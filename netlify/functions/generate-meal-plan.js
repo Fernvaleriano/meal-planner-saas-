@@ -1,6 +1,4 @@
 // Netlify Function for secure Gemini API calls
-// Using native fetch (Node.js 18+)
-
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
@@ -13,8 +11,16 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Check for API key
+  if (!GEMINI_API_KEY) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'API key not configured' })
+    };
+  }
+
   try {
-    const { prompt, isJson = true } = JSON.parse(event.body);
+    const { prompt } = JSON.parse(event.body);
 
     if (!prompt) {
       return {
@@ -23,92 +29,40 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Prepare Gemini API request
-    const geminiRequest = {
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 8192
-      }
-    };
-
-    // Call Gemini API
+    // Call Gemini API with gemini-pro
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(geminiRequest)
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048
+        }
+      })
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Gemini API Error:', errorData);
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({ 
-          error: 'Gemini API request failed',
-          details: errorData 
-        })
-      };
-    }
-
     const data = await response.json();
-    
-    // Extract the generated content
-    let result;
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-      const text = data.candidates[0].content.parts[0].text;
-      
-     if (isJson) {
-  try {
-    // Strip markdown code blocks if present
-    let cleanText = text.trim();
-    if (cleanText.startsWith('```json')) {
-      cleanText = cleanText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-    } else if (cleanText.startsWith('```')) {
-      cleanText = cleanText.replace(/^```\n?/, '').replace(/\n?```$/, '');
-    }
-    
-    // Parse JSON response
-    result = JSON.parse(cleanText.trim());
-  } catch (e) {
-          console.error('JSON parse error:', e);
-          return {
-            statusCode: 500,
-            body: JSON.stringify({ 
-              error: 'Failed to parse JSON response from Gemini',
-              rawText: text
-            })
-          };
-        }
-      } else {
-        result = text;
-      }
-    } else {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ 
-          error: 'Unexpected response format from Gemini',
-          data: data
-        })
-      };
+
+    if (!response.ok) {
+      console.error('Gemini API Error:', data);
+      throw new Error(data.error?.message || 'API request failed');
     }
 
+    // Return the RAW Gemini response
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type'
+        'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify(result)
+      body: JSON.stringify(data)
     };
 
   } catch (error) {
@@ -116,8 +70,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       body: JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message 
+        error: error.message 
       })
     };
   }
