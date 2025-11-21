@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generate Meal Plan</title>
+    <title>Generate Meal Plan - Zique Fitness</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
@@ -95,6 +94,13 @@
             cursor: not-allowed;
             transform: none;
         }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
         .loader {
             text-align: center;
             padding: 3rem;
@@ -121,7 +127,7 @@
         .meal-card {
             background: white;
             padding: 1.5rem;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             margin-bottom: 1rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -160,11 +166,11 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 1rem;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
+            margin: 2rem 0 1rem 0;
             font-weight: 700;
             font-size: 1.25rem;
             text-align: center;
-            margin: 2rem 0 1rem 0;
         }
         .back-link {
             display: inline-block;
@@ -186,6 +192,57 @@
         .highlight-box label {
             color: #2c5282;
             font-weight: 700;
+        }
+        .meal-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .meal-actions button {
+            flex: 1;
+            min-width: 150px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        .revision-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 0.5rem;
+        }
+        .revision-box input {
+            margin-top: 0.5rem;
+        }
+        .ingredients-list {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .ingredients-list h5 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        .ingredients-list ul {
+            list-style-position: inside;
+            color: #4a5568;
+        }
+        .instructions {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .instructions h5 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        .instructions p {
+            color: #4a5568;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -313,6 +370,7 @@
 
         let currentCoach = null;
         let generatedPlan = null;
+        let currentPlanQuery = null;
 
         // Check authentication
         async function checkAuth() {
@@ -322,7 +380,6 @@
                 return null;
             }
 
-            // Get coach details
             const { data: coach } = await supabase
                 .from('coaches')
                 .select('*')
@@ -387,6 +444,8 @@
                 dislikedFoods: document.getElementById('dislikedFoods').value || 'none',
                 numDays: parseInt(document.getElementById('numDays').value)
             };
+
+            currentPlanQuery = formData;
 
             // Generate each day separately
             const allDays = [];
@@ -489,13 +548,13 @@ Return JSON:
             `;
 
             // Display each day
-            multiDayData.forEach((dayData) => {
+            multiDayData.forEach((dayData, dayIndex) => {
                 const dayLabel = multiDayData.length === 1 ? 'Meal Plan' : `Day ${dayData.day}`;
                 planHTML += `<div class="day-divider">${dayLabel}</div>`;
 
-                dayData.plan.forEach((meal) => {
+                dayData.plan.forEach((meal, mealIndex) => {
                     planHTML += `
-                        <div class="meal-card">
+                        <div class="meal-card" data-day-index="${dayIndex}" data-meal-index="${mealIndex}">
                             <h3>${meal.type}</h3>
                             <h4>${meal.name}</h4>
                             <div class="macros">
@@ -516,10 +575,41 @@ Return JSON:
                                     <div class="macro-label">Fat</div>
                                 </div>
                             </div>
+                            ${meal.ingredients ? `
+                                <div class="ingredients-list">
+                                    <h5>Ingredients:</h5>
+                                    <ul>
+                                        ${meal.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            ${meal.instructions ? `
+                                <div class="instructions">
+                                    <h5>Instructions:</h5>
+                                    <p>${meal.instructions}</p>
+                                </div>
+                            ` : ''}
+                            <div class="meal-actions">
+                                <button class="btn btn-secondary" onclick="changeMeal(${dayIndex}, ${mealIndex})">Change Meal</button>
+                                <button class="btn btn-secondary" onclick="toggleRevision(${dayIndex}, ${mealIndex})">Revise</button>
+                            </div>
+                            <div class="revision-box" id="revision-${dayIndex}-${mealIndex}" style="display: none;">
+                                <label>How would you like to revise this meal?</label>
+                                <input type="text" id="revision-input-${dayIndex}-${mealIndex}" placeholder="e.g., make it vegan, add more protein">
+                                <button class="btn" style="margin-top: 0.5rem;" onclick="reviseMeal(${dayIndex}, ${mealIndex})">Apply Revision</button>
+                            </div>
                         </div>
                     `;
                 });
             });
+
+            // Action buttons
+            planHTML += `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
+                    <button class="btn" onclick="downloadPDF()">📥 Download PDF</button>
+                    <button class="btn btn-secondary" onclick="regeneratePlan()">🔄 Regenerate Plan</button>
+                </div>
+            `;
 
             // Share link
             planHTML += `
@@ -533,6 +623,190 @@ Return JSON:
 
             planHTML += '</div>';
             resultDiv.innerHTML = planHTML;
+
+            // Store the plan data globally
+            window.currentMealPlan = multiDayData;
+        }
+
+        // Toggle revision box
+        function toggleRevision(dayIndex, mealIndex) {
+            const revisionBox = document.getElementById(`revision-${dayIndex}-${mealIndex}`);
+            revisionBox.style.display = revisionBox.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Change meal (swap with different meal)
+        async function changeMeal(dayIndex, mealIndex) {
+            const mealCard = document.querySelector(`[data-day-index="${dayIndex}"][data-meal-index="${mealIndex}"]`);
+            const originalMeal = window.currentMealPlan[dayIndex].plan[mealIndex];
+            
+            mealCard.innerHTML = `
+                <div class="loader">
+                    <div class="loader-spinner"></div>
+                    <p>Finding alternative meal...</p>
+                </div>
+            `;
+
+            const prompt = `Alternative ${originalMeal.type} meal:
+Target: ${originalMeal.calories} calories
+Diet: ${currentPlanQuery.preference}
+Avoid: ${currentPlanQuery.allergies}, ${currentPlanQuery.dislikedFoods}
+Different from: ${originalMeal.name}
+
+Return JSON:
+{"type":"${originalMeal.type}","name":"Name","calories":${originalMeal.calories},"protein":40,"carbs":50,"fat":15,"ingredients":["item"],"instructions":"steps"}`;
+
+            const newMeal = await callGemini(prompt, true);
+
+            if (newMeal.error) {
+                alert('Error changing meal: ' + newMeal.error);
+                location.reload();
+                return;
+            }
+
+            window.currentMealPlan[dayIndex].plan[mealIndex] = newMeal;
+            displayMealPlan(window.currentMealPlan, generatedPlan.shareable_token);
+        }
+
+        // Revise meal based on user feedback
+        async function reviseMeal(dayIndex, mealIndex) {
+            const revisionInput = document.getElementById(`revision-input-${dayIndex}-${mealIndex}`);
+            const revision = revisionInput.value.trim();
+            
+            if (!revision) {
+                alert('Please enter a revision request');
+                return;
+            }
+
+            const mealCard = document.querySelector(`[data-day-index="${dayIndex}"][data-meal-index="${mealIndex}"]`);
+            const originalMeal = window.currentMealPlan[dayIndex].plan[mealIndex];
+            
+            mealCard.innerHTML = `
+                <div class="loader">
+                    <div class="loader-spinner"></div>
+                    <p>Revising meal...</p>
+                </div>
+            `;
+
+            const prompt = `Revise ${originalMeal.type} meal:
+Original: ${originalMeal.name} (${originalMeal.calories} cal)
+Revision request: ${revision}
+Diet: ${currentPlanQuery.preference}
+Avoid: ${currentPlanQuery.allergies}
+
+Return JSON:
+{"type":"${originalMeal.type}","name":"Name","calories":${originalMeal.calories},"protein":40,"carbs":50,"fat":15,"ingredients":["item"],"instructions":"steps"}`;
+
+            const newMeal = await callGemini(prompt, true);
+
+            if (newMeal.error) {
+                alert('Error revising meal: ' + newMeal.error);
+                location.reload();
+                return;
+            }
+
+            window.currentMealPlan[dayIndex].plan[mealIndex] = newMeal;
+            displayMealPlan(window.currentMealPlan, generatedPlan.shareable_token);
+        }
+
+        // Regenerate entire plan
+        function regeneratePlan() {
+            if (confirm('Regenerate the entire meal plan? This will create a completely new plan.')) {
+                document.getElementById('mealPlanForm').dispatchEvent(new Event('submit'));
+            }
+        }
+
+        // Download as PDF
+        async function downloadPDF() {
+            if (!window.currentMealPlan) {
+                alert('No meal plan to download');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const margin = 20;
+            let y = margin;
+
+            // Title
+            pdf.setFontSize(20);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`${currentPlanQuery.clientName}'s Meal Plan`, margin, y);
+            y += 15;
+
+            // Targets
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'normal');
+            const targets = window.currentMealPlan[0].targets;
+            pdf.text(`Daily Targets: ${targets.calories} cal | ${targets.protein}g protein | ${targets.carbs}g carbs | ${targets.fat}g fat`, margin, y);
+            y += 15;
+
+            // Each day
+            window.currentMealPlan.forEach((dayData, dayIndex) => {
+                if (y > 250) {
+                    pdf.addPage();
+                    y = margin;
+                }
+
+                // Day header
+                pdf.setFontSize(16);
+                pdf.setFont('helvetica', 'bold');
+                const dayLabel = window.currentMealPlan.length === 1 ? 'Meal Plan' : `Day ${dayData.day}`;
+                pdf.text(dayLabel, margin, y);
+                y += 10;
+
+                // Each meal
+                dayData.plan.forEach((meal) => {
+                    if (y > 250) {
+                        pdf.addPage();
+                        y = margin;
+                    }
+
+                    pdf.setFontSize(12);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(`${meal.type.toUpperCase()}: ${meal.name}`, margin, y);
+                    y += 7;
+
+                    pdf.setFontSize(10);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`${meal.calories} cal | ${meal.protein}g P | ${meal.carbs}g C | ${meal.fat}g F`, margin, y);
+                    y += 10;
+
+                    if (meal.ingredients && meal.ingredients.length > 0) {
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Ingredients:', margin, y);
+                        y += 5;
+                        pdf.setFont('helvetica', 'normal');
+                        meal.ingredients.forEach(ing => {
+                            if (y > 270) {
+                                pdf.addPage();
+                                y = margin;
+                            }
+                            const lines = pdf.splitTextToSize(`• ${ing}`, 170);
+                            pdf.text(lines, margin + 5, y);
+                            y += (lines.length * 5);
+                        });
+                        y += 3;
+                    }
+
+                    if (meal.instructions) {
+                        if (y > 250) {
+                            pdf.addPage();
+                            y = margin;
+                        }
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text('Instructions:', margin, y);
+                        y += 5;
+                        pdf.setFont('helvetica', 'normal');
+                        const lines = pdf.splitTextToSize(meal.instructions, 170);
+                        pdf.text(lines, margin + 5, y);
+                        y += (lines.length * 5) + 5;
+                    }
+
+                    y += 5;
+                });
+            });
+
+            pdf.save(`${currentPlanQuery.clientName}-meal-plan.pdf`);
         }
 
         // Initialize
@@ -540,4 +814,3 @@ Return JSON:
     </script>
 </body>
 </html>
-
