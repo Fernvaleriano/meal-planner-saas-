@@ -1,5 +1,5 @@
 // Netlify Function for secure Gemini API calls
-const fetch = require('node-fetch');
+// Using native fetch (Node.js 18+)
 
 const GEMINI_API_KEY = 'AIzaSyC3F9kLn-5uhChFv8Cp56PIpeeAdgSmDmo';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
