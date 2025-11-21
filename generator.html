@@ -678,6 +678,9 @@
                 const mealPlan = await generateMealPlan(formData, nutrition);
 
                 // Save to localStorage
+                console.log('Nutrition before saving:', nutrition);
+                console.log('Meal plan before saving:', mealPlan);
+                
                 const planData = {
                     clientName: formData.get('clientName'),
                     clientEmail: formData.get('clientEmail'),
@@ -692,6 +695,7 @@
                     generatedAt: new Date().toISOString()
                 };
 
+                console.log('Complete plan data:', planData);
                 localStorage.setItem('currentMealPlan', JSON.stringify(planData));
 
                 // Redirect to view page
@@ -853,3 +857,4 @@ CRITICAL RULES:
     </script>
 </body>
 </html>
+
