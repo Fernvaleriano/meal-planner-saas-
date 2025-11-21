@@ -96,102 +96,6 @@
             border-color: #667eea;
         }
 
-        .radio-group {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .radio-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .radio-option input[type="radio"] {
-            width: auto;
-            margin: 0;
-        }
-
-        .formula-card {
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .formula-card:hover {
-            border-color: #667eea;
-            background: white;
-        }
-
-        .formula-card.selected {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .formula-card input[type="radio"] {
-            width: auto;
-            margin-right: 10px;
-        }
-
-        .formula-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .formula-description {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .manual-inputs {
-            display: none;
-            margin-top: 15px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-        }
-
-        .manual-inputs.show {
-            display: block;
-        }
-
-        .macro-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 10px;
-        }
-
-        .validation-message {
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-
-        .validation-error {
-            background: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
-        }
-
-        .validation-success {
-            background: #efe;
-            color: #3c3;
-            border: 1px solid #cfc;
-        }
-
-        .validation-info {
-            background: #fef9e7;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
         .generate-btn {
             width: 100%;
             padding: 18px;
@@ -262,10 +166,6 @@
             .header h1 {
                 font-size: 1.8em;
             }
-
-            .macro-grid {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
@@ -294,21 +194,15 @@
             <div class="form-section">
                 <h2>Body Stats</h2>
                 <div class="form-group">
-                    <label>Gender</label>
-                    <div class="radio-group">
-                        <div class="radio-option">
-                            <input type="radio" id="male" name="gender" value="male" required>
-                            <label for="male">Male</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="female" name="gender" value="female" required>
-                            <label for="female">Female</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
                     <label for="age">Age</label>
                     <input type="number" id="age" min="15" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" required>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="weight">Weight (lbs)</label>
@@ -319,67 +213,13 @@
                     <input type="number" id="height" min="48" max="96" required>
                 </div>
                 <div class="form-group">
-                    <label for="bodyFat">Body Fat % <span class="label-optional">(optional - required for Katch-McArdle)</span></label>
-                    <input type="number" id="bodyFat" min="5" max="60" step="0.1">
-                </div>
-            </div>
-
-            <!-- Formula Selection -->
-            <div class="form-section">
-                <h2>Calorie Calculation Method</h2>
-                
-                <div class="formula-card" onclick="selectFormula('mifflin')">
-                    <input type="radio" id="mifflin" name="formula" value="mifflin" checked>
-                    <div class="formula-title">Mifflin-St Jeor (Recommended)</div>
-                    <div class="formula-description">Most accurate for general population</div>
-                </div>
-
-                <div class="formula-card" onclick="selectFormula('katch')">
-                    <input type="radio" id="katch" name="formula" value="katch">
-                    <div class="formula-title">Katch-McArdle (Body Fat %)</div>
-                    <div class="formula-description">More accurate when body fat % is known</div>
-                </div>
-
-                <div class="formula-card" onclick="selectFormula('manual')">
-                    <input type="radio" id="manual" name="formula" value="manual">
-                    <div class="formula-title">Manual Override</div>
-                    <div class="formula-description">I've already calculated TDEE and macros</div>
-                    
-                    <div id="manualInputs" class="manual-inputs">
-                        <div class="form-group">
-                            <label for="manualTDEE">TDEE (calories/day)</label>
-                            <input type="number" id="manualTDEE" min="1000" max="5000">
-                        </div>
-                        <div class="macro-grid">
-                            <div class="form-group">
-                                <label for="manualProtein">Protein (g)</label>
-                                <input type="number" id="manualProtein" min="0" max="500">
-                            </div>
-                            <div class="form-group">
-                                <label for="manualCarbs">Carbs (g)</label>
-                                <input type="number" id="manualCarbs" min="0" max="1000">
-                            </div>
-                            <div class="form-group">
-                                <label for="manualFat">Fat (g)</label>
-                                <input type="number" id="manualFat" min="0" max="300">
-                            </div>
-                        </div>
-                        <div id="macroValidation"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Activity Level (Hidden for Manual) -->
-            <div class="form-section" id="activitySection">
-                <h2>Activity Level</h2>
-                <div class="form-group">
-                    <label for="activityLevel">Daily Activity Level</label>
+                    <label for="activityLevel">Activity Level</label>
                     <select id="activityLevel" required>
-                        <option value="1.2">Sedentary (little or no exercise)</option>
-                        <option value="1.375">Lightly Active (1-3 days/week)</option>
-                        <option value="1.55" selected>Moderately Active (3-5 days/week)</option>
-                        <option value="1.725">Very Active (6-7 days/week)</option>
-                        <option value="1.9">Extremely Active (2x per day)</option>
+                        <option value="1.2">Sedentary</option>
+                        <option value="1.375">Lightly Active</option>
+                        <option value="1.55" selected>Moderately Active</option>
+                        <option value="1.725">Very Active</option>
+                        <option value="1.9">Extra Active</option>
                     </select>
                 </div>
             </div>
@@ -391,40 +231,9 @@
                     <label for="goal">Fitness Goal</label>
                     <select id="goal" required>
                         <option value="maintain">Maintain Weight</option>
-                        <option value="lose">Lose Weight (Fat Loss)</option>
-                        <option value="gain">Gain Weight (Muscle Gain)</option>
+                        <option value="lose">Lose Weight</option>
+                        <option value="gain">Gain Muscle</option>
                     </select>
-                </div>
-                <div class="form-group" id="calorieAdjustmentGroup">
-                    <label for="calorieAdjustment">Calorie Adjustment</label>
-                    <select id="calorieAdjustment" required>
-                        <option value="standard">Standard (-300 cal)</option>
-                        <option value="aggressive">Aggressive (-500 cal)</option>
-                    </select>
-                </div>
-                <div class="form-group" id="macroPreferenceGroup">
-                    <label for="macroPreference">Macronutrient Preference</label>
-                    <select id="macroPreference" required>
-                        <option value="balanced">Balanced (30% Protein, 40% Carbs, 30% Fat)</option>
-                        <option value="lowcarb">Low Carb (35% Protein, 25% Carbs, 40% Fat)</option>
-                        <option value="highcarb">High Carb (25% Protein, 50% Carbs, 25% Fat)</option>
-                        <option value="keto">Keto (30% Protein, 5% Carbs, 65% Fat)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="dietType">Diet Type</label>
-                    <select id="dietType" required>
-                        <option value="standard">Standard (No Restrictions)</option>
-                        <option value="vegetarian">Vegetarian</option>
-                        <option value="vegan">Vegan</option>
-                        <option value="pescatarian">Pescatarian</option>
-                        <option value="keto">Ketogenic</option>
-                        <option value="paleo">Paleo</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="allergies">Allergies/Restrictions <span class="label-optional">(optional)</span></label>
-                    <textarea id="allergies" rows="3" placeholder="e.g., peanuts, shellfish, dairy"></textarea>
                 </div>
                 <div class="form-group">
                     <label for="mealsPerDay">Meals Per Day</label>
@@ -434,6 +243,19 @@
                         <option value="5">5 Meals</option>
                         <option value="6">6 Meals</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="dietType">Diet Type</label>
+                    <select id="dietType" required>
+                        <option value="standard">Standard</option>
+                        <option value="vegetarian">Vegetarian</option>
+                        <option value="vegan">Vegan</option>
+                        <option value="keto">Keto</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="allergies">Allergies <span class="label-optional">(optional)</span></label>
+                    <textarea id="allergies" rows="2" placeholder="e.g., dairy, gluten"></textarea>
                 </div>
             </div>
 
@@ -450,199 +272,46 @@
     </div>
 
     <script>
-        // API calls now go through secure Netlify function
         const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
 
-        // Formula selection
-        function selectFormula(formula) {
-            document.querySelectorAll('.formula-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            event.currentTarget.classList.add('selected');
-            document.getElementById(formula).checked = true;
-
-            const manualInputs = document.getElementById('manualInputs');
-            const activitySection = document.getElementById('activitySection');
-            const macroPreferenceGroup = document.getElementById('macroPreferenceGroup');
-            const calorieAdjustmentGroup = document.getElementById('calorieAdjustmentGroup');
-
-            if (formula === 'manual') {
-                manualInputs.classList.add('show');
-                activitySection.style.display = 'none';
-                macroPreferenceGroup.style.display = 'none';
-                calorieAdjustmentGroup.style.display = 'none';
-            } else {
-                manualInputs.classList.remove('show');
-                activitySection.style.display = 'block';
-                macroPreferenceGroup.style.display = 'block';
-                if (document.getElementById('goal').value !== 'maintain') {
-                    calorieAdjustmentGroup.style.display = 'block';
-                }
-            }
-
-            // Show info for Katch-McArdle if body fat is filled
-            if (formula === 'katch') {
-                const bodyFat = document.getElementById('bodyFat').value;
-                if (bodyFat) {
-                    showValidationMessage('info', '💡 Great! Using Katch-McArdle with your body fat % for higher accuracy.');
-                } else {
-                    showValidationMessage('error', '⚠️ Katch-McArdle requires Body Fat %. Please enter it or switch formulas.');
-                }
-            } else {
-                clearValidationMessage();
-            }
-        }
-
-        // Real-time macro validation for manual override
-        ['manualTDEE', 'manualProtein', 'manualCarbs', 'manualFat'].forEach(id => {
-            document.getElementById(id)?.addEventListener('input', validateMacros);
-        });
-
-        function validateMacros() {
-            const formula = document.querySelector('input[name="formula"]:checked').value;
-            if (formula !== 'manual') return;
-
-            const tdee = parseFloat(document.getElementById('manualTDEE').value) || 0;
-            const protein = parseFloat(document.getElementById('manualProtein').value) || 0;
-            const carbs = parseFloat(document.getElementById('manualCarbs').value) || 0;
-            const fat = parseFloat(document.getElementById('manualFat').value) || 0;
-
-            if (tdee === 0 || (protein === 0 && carbs === 0 && fat === 0)) {
-                document.getElementById('macroValidation').innerHTML = '';
-                return;
-            }
-
-            const caloriesFromMacros = (protein * 4) + (carbs * 4) + (fat * 9);
-            const difference = Math.abs(caloriesFromMacros - tdee);
-
-            const validationDiv = document.getElementById('macroValidation');
-            
-            if (difference <= 10) {
-                validationDiv.innerHTML = `<div class="validation-success">✓ Macros match TDEE perfectly! (${caloriesFromMacros} cal)</div>`;
-            } else {
-                validationDiv.innerHTML = `<div class="validation-error">⚠️ Macros = ${caloriesFromMacros} cal, but TDEE = ${tdee} cal (difference: ${difference} cal)</div>`;
-            }
-        }
-
-        function showValidationMessage(type, message) {
-            const validationDiv = document.getElementById('macroValidation');
-            validationDiv.innerHTML = `<div class="validation-${type}">${message}</div>`;
-        }
-
-        function clearValidationMessage() {
-            document.getElementById('macroValidation').innerHTML = '';
-        }
-
-        // Goal change handler
-        document.getElementById('goal').addEventListener('change', function() {
-            const calorieAdjustmentGroup = document.getElementById('calorieAdjustmentGroup');
-            const formula = document.querySelector('input[name="formula"]:checked').value;
-            
-            if (this.value === 'maintain' || formula === 'manual') {
-                calorieAdjustmentGroup.style.display = 'none';
-            } else {
-                calorieAdjustmentGroup.style.display = 'block';
-            }
-        });
-
-        // Calculate calories and macros - FIXED VERSION
+        // Mifflin-St Jeor calculation
         function calculateNutrition(formData) {
-            const formula = formData.get('formula');
-            
-            if (formula === 'manual') {
-                const manualTDEE = formData.get('manualTDEE');
-                const manualProtein = formData.get('manualProtein');
-                const manualCarbs = formData.get('manualCarbs');
-                const manualFat = formData.get('manualFat');
-                
-                // ✅ FIX: Only use manual values if they're actually filled
-                if (manualTDEE && manualProtein && manualCarbs && manualFat) {
-                    const calories = parseInt(manualTDEE);
-                    const protein = parseInt(manualProtein);
-                    const carbs = parseInt(manualCarbs);
-                    const fat = parseInt(manualFat);
-                    
-                    // Validate they're actual numbers
-                    if (!isNaN(calories) && !isNaN(protein) && !isNaN(carbs) && !isNaN(fat)) {
-                        return { calories, protein, carbs, fat };
-                    }
-                }
-                
-                // If we're here, manual fields are empty or invalid
-                throw new Error('Please fill in all manual override fields (TDEE, Protein, Carbs, Fat) or switch to a different formula.');
-            }
-
-            // For non-manual formulas (Mifflin-St Jeor or Katch-McArdle)
             const weight = parseFloat(formData.get('weight'));
             const height = parseFloat(formData.get('height'));
             const age = parseInt(formData.get('age'));
             const gender = formData.get('gender');
             const activityLevel = parseFloat(formData.get('activityLevel'));
             const goal = formData.get('goal');
-            const calorieAdjustment = formData.get('calorieAdjustment');
 
+            // Convert to metric
+            const weightKg = weight * 0.453592;
+            const heightCm = height * 2.54;
+
+            // Mifflin-St Jeor
             let bmr;
-
-            if (formula === 'katch') {
-                // Katch-McArdle formula
-                const bodyFat = parseFloat(formData.get('bodyFat'));
-                if (!bodyFat) {
-                    throw new Error('Body Fat % is required for Katch-McArdle formula');
-                }
-                const leanBodyMass = weight * (1 - bodyFat / 100);
-                bmr = 370 + (21.6 * leanBodyMass);
+            if (gender === 'male') {
+                bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
             } else {
-                // Mifflin-St Jeor formula
-                const weightKg = weight * 0.453592;
-                const heightCm = height * 2.54;
-                
-                if (gender === 'male') {
-                    bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
-                } else {
-                    bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
-                }
+                bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
             }
 
             let tdee = bmr * activityLevel;
 
             // Apply goal adjustments
             if (goal === 'lose') {
-                tdee -= (calorieAdjustment === 'aggressive' ? 500 : 300);
+                tdee -= 500;
             } else if (goal === 'gain') {
                 tdee += 300;
             }
 
             const calories = Math.round(tdee);
 
-            // Calculate macros based on preference
-            const macroPreference = formData.get('macroPreference');
-            let proteinPercent, carbPercent, fatPercent;
+            // Calculate macros (30/40/30 split)
+            const protein = Math.round((calories * 0.30) / 4);
+            const carbs = Math.round((calories * 0.40) / 4);
+            const fat = Math.round((calories * 0.30) / 9);
 
-            switch(macroPreference) {
-                case 'lowcarb':
-                    proteinPercent = 0.35;
-                    carbPercent = 0.25;
-                    fatPercent = 0.40;
-                    break;
-                case 'highcarb':
-                    proteinPercent = 0.25;
-                    carbPercent = 0.50;
-                    fatPercent = 0.25;
-                    break;
-                case 'keto':
-                    proteinPercent = 0.30;
-                    carbPercent = 0.05;
-                    fatPercent = 0.65;
-                    break;
-                default: // balanced
-                    proteinPercent = 0.30;
-                    carbPercent = 0.40;
-                    fatPercent = 0.30;
-            }
-
-            const protein = Math.round((calories * proteinPercent) / 4);
-            const carbs = Math.round((calories * carbPercent) / 4);
-            const fat = Math.round((calories * fatPercent) / 9);
+            console.log('✅ Calculated nutrition:', { calories, protein, carbs, fat });
 
             return { calories, protein, carbs, fat };
         }
@@ -652,46 +321,23 @@
             e.preventDefault();
 
             const formData = new FormData(e.target);
-            const formula = formData.get('formula');
-
-            // Validation
-            if (formula === 'katch' && !formData.get('bodyFat')) {
-                alert('Katch-McArdle formula requires Body Fat %. Please enter it or switch to another formula.');
-                return;
-            }
-
-            if (formula === 'manual') {
-                const tdee = parseFloat(formData.get('manualTDEE')) || 0;
-                const protein = parseFloat(formData.get('manualProtein')) || 0;
-                const carbs = parseFloat(formData.get('manualCarbs')) || 0;
-                const fat = parseFloat(formData.get('manualFat')) || 0;
-
-                if (tdee === 0 || protein === 0 || carbs === 0 || fat === 0) {
-                    alert('Please fill in all manual override fields (TDEE, Protein, Carbs, Fat).');
-                    return;
-                }
-
-                const caloriesFromMacros = (protein * 4) + (carbs * 4) + (fat * 9);
-                const difference = Math.abs(caloriesFromMacros - tdee);
-
-                if (difference > 50) {
-                    alert(`Macros don't match TDEE!\n\nYour macros = ${caloriesFromMacros} calories\nYour TDEE = ${tdee} calories\nDifference = ${difference} calories\n\nPlease adjust your macros to match your TDEE.`);
-                    return;
-                }
-            }
 
             try {
                 // Calculate nutrition
                 const nutrition = calculateNutrition(formData);
-                
-                console.log('✅ Nutrition calculated:', nutrition);
 
                 // Show loading
                 document.getElementById('mealPlanForm').style.display = 'none';
                 document.getElementById('loading').classList.add('show');
 
                 // Generate meal plan
-                const mealPlan = await generateMealPlan(formData, nutrition);
+                const mealsPerDay = parseInt(formData.get('mealsPerDay'));
+                const mealPlan = await generateMealPlan(formData, nutrition, mealsPerDay);
+
+                // Validate we got all meals
+                if (mealPlan.length !== mealsPerDay) {
+                    throw new Error(`Expected ${mealsPerDay} meals but got ${mealPlan.length}. Retrying...`);
+                }
 
                 // Save to localStorage
                 const planData = {
@@ -703,12 +349,12 @@
                         goal: formData.get('goal'),
                         dietType: formData.get('dietType'),
                         allergies: formData.get('allergies'),
-                        mealsPerDay: formData.get('mealsPerDay')
+                        mealsPerDay: mealsPerDay
                     },
                     generatedAt: new Date().toISOString()
                 };
 
-                console.log('✅ Complete plan data:', planData);
+                console.log('✅ Saving plan data:', planData);
                 localStorage.setItem('currentMealPlan', JSON.stringify(planData));
 
                 // Redirect to view page
@@ -719,56 +365,60 @@
                 document.getElementById('loading').classList.remove('show');
                 document.getElementById('mealPlanForm').style.display = 'block';
                 const errorDiv = document.getElementById('errorMessage');
-                errorDiv.textContent = 'Error generating meal plan: ' + error.message;
+                errorDiv.textContent = 'Error: ' + error.message + ' Please try again.';
                 errorDiv.classList.add('show');
             }
         });
 
-        async function generateMealPlan(formData, nutrition) {
-            const mealsPerDay = formData.get('mealsPerDay');
+        async function generateMealPlan(formData, nutrition, mealsPerDay) {
+            const targetCaloriesPerMeal = Math.round(nutrition.calories / mealsPerDay);
+            const targetProteinPerMeal = Math.round(nutrition.protein / mealsPerDay);
+            const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
+            const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
-            const prompt = `Create ${mealsPerDay} realistic meals for a daily meal plan.
+            // CRITICAL: Super explicit prompt
+            const prompt = `YOU MUST GENERATE EXACTLY ${mealsPerDay} MEALS. NOT ${mealsPerDay - 1}. NOT ${mealsPerDay + 1}. EXACTLY ${mealsPerDay} MEALS.
 
-NUTRITION TARGETS (divide across all ${mealsPerDay} meals):
-- Total Daily Calories: ${nutrition.calories}
-- Total Daily Protein: ${nutrition.protein}g  
-- Total Daily Carbs: ${nutrition.carbs}g
-- Total Daily Fat: ${nutrition.fat}g
+Create a meal plan with EXACTLY ${mealsPerDay} meals.
+
+DAILY TOTALS (split across ALL ${mealsPerDay} meals):
+- Total Calories: ${nutrition.calories}
+- Total Protein: ${nutrition.protein}g
+- Total Carbs: ${nutrition.carbs}g
+- Total Fat: ${nutrition.fat}g
+
+TARGET PER MEAL (approximately):
+- Calories: ${targetCaloriesPerMeal}
+- Protein: ${targetProteinPerMeal}g
+- Carbs: ${targetCarbsPerMeal}g
+- Fat: ${targetFatPerMeal}g
 
 Diet Type: ${formData.get('dietType')}
-${formData.get('allergies') ? `Avoid: ${formData.get('allergies')}` : ''}
+${formData.get('allergies') ? `AVOID: ${formData.get('allergies')}` : ''}
 
-Return ONLY a JSON array with this EXACT structure:
+Return ONLY valid JSON array with EXACTLY ${mealsPerDay} meal objects:
 
 [
   {
-    "name": "Breakfast",
-    "foods": ["3 scrambled eggs", "2 slices whole wheat toast", "1 banana", "1 tbsp butter"],
-    "calories": 450,
-    "protein": 25,
-    "carbs": 48,
-    "fat": 18,
-    "instructions": "Scramble eggs with butter, toast bread"
+    "name": "Scrambled Eggs with Toast",
+    "calories": ${targetCaloriesPerMeal},
+    "protein": ${targetProteinPerMeal},
+    "carbs": ${targetCarbsPerMeal},
+    "fat": ${targetFatPerMeal},
+    "instructions": "Scramble 3 eggs, toast 2 slices whole wheat bread"
   },
-  {
-    "name": "Lunch",
-    "foods": ["6oz grilled chicken", "1.5 cups brown rice", "1 cup broccoli", "2 tbsp olive oil"],
-    "calories": 520,
-    "protein": 45,
-    "carbs": 52,
-    "fat": 16,
-    "instructions": "Grill chicken, cook rice, steam broccoli"
-  }
+  ... (${mealsPerDay - 1} more meals MUST be here)
 ]
 
 CRITICAL RULES:
-- Generate exactly ${mealsPerDay} meals
-- Each meal needs: name, foods (array), calories (number), protein (number), carbs (number), fat (number), instructions (string)
-- Split the daily nutrition targets roughly equally across meals
-- All numeric values must be actual integers, never NaN or null
-- Return ONLY the JSON array, no other text`;
+1. MUST return EXACTLY ${mealsPerDay} meals
+2. Each meal MUST have: name (string), calories (number), protein (number), carbs (number), fat (number), instructions (string)
+3. NO markdown, NO backticks, ONLY the JSON array
+4. Split the daily totals roughly equally across all ${mealsPerDay} meals`;
 
             try {
+                console.log(`🚀 Requesting ${mealsPerDay} meals from API...`);
+                
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -776,84 +426,53 @@ CRITICAL RULES:
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
-                    throw new Error('Failed to generate meal plan: ' + errorText);
+                    throw new Error('API request failed');
                 }
 
                 const data = await response.json();
-                console.log('Full API Response:', JSON.stringify(data, null, 2));
+                console.log('📦 Raw API response:', data);
                 
-                // Handle response from Netlify function
-                let text;
-                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                    text = data.candidates[0].content.parts[0].text;
-                    console.log('Extracted text:', text);
-                } else {
-                    console.error('Unexpected response structure:', data);
-                    throw new Error('Invalid response format from API');
-                }
+                let text = data.candidates[0].content.parts[0].text;
                 
-                // Clean up the text - remove markdown code blocks
+                // Clean up response
                 text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
                 
-                // Sometimes AI adds text before/after JSON, extract just the JSON array
+                // Extract JSON array
                 const jsonMatch = text.match(/\[[\s\S]*\]/);
                 if (jsonMatch) {
                     text = jsonMatch[0];
                 }
                 
-                console.log('Cleaned text:', text);
+                console.log('🧹 Cleaned text:', text);
                 
-                // Parse JSON
                 const mealPlan = JSON.parse(text);
-                console.log('Parsed meal plan:', mealPlan);
+                console.log(`📋 Parsed ${mealPlan.length} meals:`, mealPlan);
                 
-                // Validate the meal plan
-                if (!Array.isArray(mealPlan) || mealPlan.length === 0) {
-                    throw new Error('AI returned empty meal plan');
+                // CRITICAL VALIDATION
+                if (!Array.isArray(mealPlan)) {
+                    throw new Error('AI did not return an array');
                 }
                 
-                // Validate each meal has required fields WITH NUMERIC VALUES
+                if (mealPlan.length !== mealsPerDay) {
+                    throw new Error(`AI returned ${mealPlan.length} meals instead of ${mealsPerDay}`);
+                }
+                
+                // Validate each meal
                 mealPlan.forEach((meal, index) => {
-                    console.log(`Validating meal ${index}:`, meal);
-                    
-                    if (!meal.name) {
-                        throw new Error(`Meal ${index} missing name`);
-                    }
-                    if (!meal.foods || !Array.isArray(meal.foods) || meal.foods.length === 0) {
-                        throw new Error(`Meal ${index} missing foods array`);
-                    }
-                    if (typeof meal.calories !== 'number' || meal.calories <= 0) {
-                        throw new Error(`Meal ${index} has invalid calories: ${meal.calories}`);
-                    }
-                    if (typeof meal.protein !== 'number' || meal.protein <= 0) {
-                        throw new Error(`Meal ${index} has invalid protein: ${meal.protein}`);
-                    }
-                    if (typeof meal.carbs !== 'number' || meal.carbs <= 0) {
-                        throw new Error(`Meal ${index} has invalid carbs: ${meal.carbs}`);
-                    }
-                    if (typeof meal.fat !== 'number' || meal.fat <= 0) {
-                        throw new Error(`Meal ${index} has invalid fat: ${meal.fat}`);
-                    }
-                    if (!meal.instructions) {
-                        meal.instructions = "Prepare ingredients as listed above";
+                    if (!meal.name || typeof meal.calories !== 'number' || typeof meal.protein !== 'number') {
+                        throw new Error(`Meal ${index + 1} is missing required fields`);
                     }
                 });
                 
-                console.log('✅ All meals validated successfully!');
+                console.log(`✅ Successfully validated ${mealsPerDay} meals!`);
                 return mealPlan;
                 
             } catch (error) {
-                console.error('generateMealPlan error:', error);
+                console.error('❌ generateMealPlan error:', error);
                 throw error;
             }
         }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelector('.formula-card').classList.add('selected');
-        });
     </script>
 </body>
 </html>
+
