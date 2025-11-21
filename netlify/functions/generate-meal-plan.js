@@ -3,6 +3,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 exports.handler = async (event, context) => {
+  // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -10,8 +11,9 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Check if API key is configured
   if (!GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY not configured');
+    console.error('❌ GEMINI_API_KEY not configured in environment variables');
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'API key not configured' })
@@ -20,7 +22,7 @@ exports.handler = async (event, context) => {
 
   try {
     const { prompt } = JSON.parse(event.body);
-
+    
     if (!prompt) {
       return {
         statusCode: 400,
@@ -28,8 +30,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('Calling Gemini API...');
-
+    console.log('📤 Calling Gemini API...');
+    
+    // ✅ FIXED: Proper fetch syntax with parentheses
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
@@ -52,7 +55,7 @@ exports.handler = async (event, context) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API Error:', errorText);
+      console.error('❌ Gemini API Error:', errorText);
       return {
         statusCode: response.status,
         body: JSON.stringify({ 
@@ -63,10 +66,11 @@ exports.handler = async (event, context) => {
     }
 
     const data = await response.json();
-    console.log('Gemini API Response received');
+    console.log('✅ Gemini API Response received');
 
+    // Validate response structure
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      console.error('Invalid response structure:', JSON.stringify(data));
+      console.error('❌ Invalid response structure:', JSON.stringify(data));
       return {
         statusCode: 500,
         body: JSON.stringify({ 
@@ -87,7 +91,7 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Function error:', error);
+    console.error('❌ Function error:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({ 
@@ -97,3 +101,4 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
