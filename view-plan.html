@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Meal Plan</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 2rem;
+        }
+        .meal-card {
+            background: #f7fafc;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .meal-card h3 {
+            color: #667eea;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .meal-card h4 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        .macros {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .macro {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .macro-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .macro-label {
+            font-size: 0.875rem;
+            color: #718096;
+            margin-top: 0.25rem;
+        }
+        .day-divider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            text-align: center;
+            margin: 2rem 0 1rem 0;
+        }
+        .ingredients {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .ingredients h5 {
+            color: #2d3748;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .ingredients ul {
+            list-style: none;
+            padding: 0;
+        }
+        .ingredients li {
+            color: #4a5568;
+            font-size: 0.875rem;
+            padding: 0.25rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        .ingredients li:before {
+            content: "•";
+            color: #667eea;
+            font-weight: bold;
+            position: absolute;
+            left: 0.5rem;
+        }
+        .instructions {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .instructions h5 {
+            color: #2d3748;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .instructions p {
+            color: #4a5568;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        .error {
+            text-align: center;
+            padding: 3rem;
+            color: #e53e3e;
+        }
+        .targets-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .targets-summary h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="content">
+        <div class="loading">Loading your meal plan...</div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function loadMealPlan() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            if (!token) {
+                document.getElementById('content').innerHTML = `
+                    <div class="error">
+                        <h2>Invalid Link</h2>
+                        <p>This meal plan link is invalid or expired.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const { data: plan, error } = await supabase
+                    .from('meal_plans')
+                    .select('*')
+                    .eq('shareable_token', token)
+                    .single();
+
+                if (error || !plan) {
+                    throw new Error('Meal plan not found');
+                }
+
+                displayMealPlan(plan);
+            } catch (error) {
+                console.error('Error loading meal plan:', error);
+                document.getElementById('content').innerHTML = `
+                    <div class="error">
+                        <h2>Error Loading Meal Plan</h2>
+                        <p>We couldn't load this meal plan. Please check your link and try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayMealPlan(plan) {
+            const multiDayData = plan.meal_plan_data;
+            const targets = multiDayData[0].targets;
+
+            let html = `
+                <h1>Meal Plan for ${plan.client_name}</h1>
+                <p class="subtitle">Created by your coach</p>
+
+                <div class="targets-summary">
+                    <h2>Daily Targets</h2>
+                    <div class="macros">
+                        <div class="macro">
+                            <div class="macro-value">${targets.calories}</div>
+                            <div class="macro-label">Calories</div>
+                        </div>
+                        <div class="macro">
+                            <div class="macro-value">${targets.protein}g</div>
+                            <div class="macro-label">Protein</div>
+                        </div>
+                        <div class="macro">
+                            <div class="macro-value">${targets.carbs}g</div>
+                            <div class="macro-label">Carbs</div>
+                        </div>
+                        <div class="macro">
+                            <div class="macro-value">${targets.fat}g</div>
+                            <div class="macro-label">Fat</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            multiDayData.forEach((dayData) => {
+                const dayLabel = multiDayData.length === 1 ? 'Your Meal Plan' : `Day ${dayData.day}`;
+                html += `<div class="day-divider">${dayLabel}</div>`;
+
+                dayData.plan.forEach((meal) => {
+                    html += `
+                        <div class="meal-card">
+                            <h3>${meal.type}</h3>
+                            <h4>${meal.name}</h4>
+                            <div class="macros">
+                                <div class="macro">
+                                    <div class="macro-value">${meal.calories}</div>
+                                    <div class="macro-label">Calories</div>
+                                </div>
+                                <div class="macro">
+                                    <div class="macro-value">${meal.protein}g</div>
+                                    <div class="macro-label">Protein</div>
+                                </div>
+                                <div class="macro">
+                                    <div class="macro-value">${meal.carbs}g</div>
+                                    <div class="macro-label">Carbs</div>
+                                </div>
+                                <div class="macro">
+                                    <div class="macro-value">${meal.fat}g</div>
+                                    <div class="macro-label">Fat</div>
+                                </div>
+                            </div>
+                            ${meal.ingredients ? `
+                                <div class="ingredients">
+                                    <h5>Ingredients:</h5>
+                                    <ul>
+                                        ${meal.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            ${meal.instructions ? `
+                                <div class="instructions">
+                                    <h5>Instructions:</h5>
+                                    <p>${meal.instructions}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            });
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        loadMealPlan();
+    </script>
+</body>
+</html>
