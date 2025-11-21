@@ -714,56 +714,55 @@
             const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
             const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
-            const prompt = `Create a ${mealsPerDay}-meal daily plan. Return ONLY valid JSON with NO other text.
+            const prompt = `Create ${mealsPerDay} realistic meals for a daily meal plan.
 
-TARGET NUTRITION (total for all ${mealsPerDay} meals):
-- Calories: ${nutrition.calories} (about ${targetCaloriesPerMeal} per meal)
-- Protein: ${nutrition.protein}g (about ${targetProteinPerMeal}g per meal)
-- Carbs: ${nutrition.carbs}g (about ${targetCarbsPerMeal}g per meal)
-- Fat: ${nutrition.fat}g (about ${targetFatPerMeal}g per meal)
+NUTRITION TARGETS (divide across all ${mealsPerDay} meals):
+- Total Daily Calories: ${nutrition.calories}
+- Total Daily Protein: ${nutrition.protein}g  
+- Total Daily Carbs: ${nutrition.carbs}g
+- Total Daily Fat: ${nutrition.fat}g
 
-Diet: ${formData.get('dietType')}
-${formData.get('allergies') ? `Restrictions: ${formData.get('allergies')}` : ''}
+Diet Type: ${formData.get('dietType')}
+${formData.get('allergies') ? `Avoid: ${formData.get('allergies')}` : ''}
 
-REQUIRED JSON FORMAT - Copy this structure exactly:
+Return ONLY a JSON array with this EXACT structure:
+
 [
   {
     "name": "Breakfast",
-    "foods": [
-      "3 large eggs scrambled",
-      "2 slices whole wheat toast",
-      "1 medium banana",
-      "1 tbsp butter"
-    ],
-    "calories": ${targetCaloriesPerMeal},
-    "protein": ${targetProteinPerMeal},
-    "carbs": ${targetCarbsPerMeal},
-    "fat": ${targetFatPerMeal},
-    "instructions": "Scramble eggs with butter, toast bread, peel banana"
+    "foods": ["3 scrambled eggs", "2 slices whole wheat toast", "1 banana", "1 tbsp butter"],
+    "calories": 450,
+    "protein": 25,
+    "carbs": 48,
+    "fat": 18,
+    "instructions": "Scramble eggs with butter, toast bread"
   },
   {
     "name": "Lunch",
-    "foods": [
-      "6 oz grilled chicken breast",
-      "1.5 cups brown rice cooked",
-      "1 cup steamed broccoli",
-      "2 tbsp olive oil"
-    ],
-    "calories": ${targetCaloriesPerMeal},
-    "protein": ${targetProteinPerMeal},
-    "carbs": ${targetCarbsPerMeal},
-    "fat": ${targetFatPerMeal},
-    "instructions": "Grill chicken seasoned with salt and pepper, cook rice according to package, steam broccoli"
+    "foods": ["6oz grilled chicken", "1.5 cups brown rice", "1 cup broccoli", "2 tbsp olive oil"],
+    "calories": 520,
+    "protein": 45,
+    "carbs": 52,
+    "fat": 16,
+    "instructions": "Grill chicken, cook rice, steam broccoli"
+  },
+  {
+    "name": "Dinner",
+    "foods": ["8oz salmon", "2 cups mixed salad", "1 sweet potato", "2 tbsp dressing"],
+    "calories": 480,
+    "protein": 42,
+    "carbs": 38,
+    "fat": 14,
+    "instructions": "Bake salmon at 400F for 15min, bake potato, toss salad"
   }
 ]
 
-RULES:
-1. Return exactly ${mealsPerDay} meals
-2. Each meal MUST have "foods" as an array with 3-5 specific food items with portions
-3. All calories/protein/carbs/fat must be positive integers
-4. Use meal names like: Breakfast, Lunch, Dinner, Snack 1, Snack 2, etc.
-
-Return ONLY the JSON array starting with [ and ending with ]. No markdown, no explanation.`;
+CRITICAL RULES:
+- Generate exactly ${mealsPerDay} meals
+- Each meal needs: name, foods (array), calories (number), protein (number), carbs (number), fat (number), instructions (string)
+- Split the daily nutrition targets roughly equally across meals
+- All numeric values must be actual integers, never NaN or null
+- Return ONLY the JSON array, no other text`;
 
             try {
                 const response = await fetch(API_ENDPOINT, {
