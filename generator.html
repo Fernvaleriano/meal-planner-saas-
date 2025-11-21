@@ -721,47 +721,85 @@ DIETARY REQUIREMENTS:
 - Goal: ${formData.get('goal')}
 ${formData.get('allergies') ? `- Allergies/Restrictions: ${formData.get('allergies')}` : ''}
 
-IMPORTANT: Return ONLY valid JSON. Each meal must include:
-1. name (meal name, e.g., "Breakfast", "Lunch")
-2. foods (array of food items with exact portions)
-3. calories (number)
-4. protein (number in grams)
-5. carbs (number in grams)
-6. fat (number in grams)
-7. instructions (brief cooking/prep instructions)
+CRITICAL: You MUST return ONLY a valid JSON array. Do not include ANY text before or after the JSON.
 
-Make meals realistic, delicious, and practical. Include specific portions (cups, oz, grams).
+Each meal MUST include ALL of these fields:
+- name: string (e.g., "Breakfast", "Lunch", "Dinner")
+- foods: array of strings (e.g., ["2 eggs scrambled", "1 slice whole wheat toast"])
+- calories: number (integer)
+- protein: number (grams as integer)
+- carbs: number (grams as integer)
+- fat: number (grams as integer)
+- instructions: string (brief cooking instructions)
 
-Format as JSON array:
-[{"name": "Meal 1", "foods": ["item1", "item2"], "calories": 500, "protein": 30, "carbs": 50, "fat": 15, "instructions": "..."}]`;
+Example format:
+[
+  {
+    "name": "Breakfast",
+    "foods": ["2 eggs", "1 toast"],
+    "calories": 300,
+    "protein": 20,
+    "carbs": 25,
+    "fat": 12,
+    "instructions": "Scramble eggs, toast bread"
+  }
+]
 
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
+Return ONLY the JSON array, nothing else.`;
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to generate meal plan');
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error('Failed to generate meal plan: ' + errorText);
+                }
+
+                const data = await response.json();
+                console.log('Full API Response:', JSON.stringify(data, null, 2));
+                
+                // Handle response from Netlify function
+                let text;
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                    // Raw Gemini API format
+                    text = data.candidates[0].content.parts[0].text;
+                    console.log('Extracted text:', text);
+                } else {
+                    console.error('Unexpected response structure:', data);
+                    throw new Error('Invalid response format from API');
+                }
+                
+                // Clean up the text
+                text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                console.log('Cleaned text:', text);
+                
+                // Parse JSON
+                const mealPlan = JSON.parse(text);
+                console.log('Parsed meal plan:', mealPlan);
+                
+                // Validate the meal plan has data
+                if (!Array.isArray(mealPlan) || mealPlan.length === 0) {
+                    throw new Error('AI returned empty meal plan');
+                }
+                
+                // Validate each meal has required fields
+                mealPlan.forEach((meal, index) => {
+                    if (!meal.name || !meal.calories || !meal.protein || !meal.carbs || !meal.fat) {
+                        console.error('Invalid meal at index', index, meal);
+                        throw new Error('AI returned incomplete meal data');
+                    }
+                });
+                
+                return mealPlan;
+            } catch (error) {
+                console.error('generateMealPlan error:', error);
+                throw error;
             }
-
-            const data = await response.json();
-            console.log('Response from Netlify function:', data); // Debug log
-            
-            // Handle response from Netlify function
-            let text;
-            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                // Raw Gemini API format
-                text = data.candidates[0].content.parts[0].text;
-            } else {
-                // Already parsed by function
-                throw new Error('Unexpected response format: ' + JSON.stringify(data));
-            }
-            
-            text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            
-            return JSON.parse(text);
         }
 
         // Initialize
