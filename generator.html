@@ -330,13 +330,36 @@
                 document.getElementById('mealPlanForm').style.display = 'none';
                 document.getElementById('loading').classList.add('show');
 
-                // Generate meal plan
+                // Generate meal plan with retry logic
                 const mealsPerDay = parseInt(formData.get('mealsPerDay'));
-                const mealPlan = await generateMealPlan(formData, nutrition, mealsPerDay);
+                let mealPlan = null;
+                let attempts = 0;
+                const maxAttempts = 3;
 
-                // Validate we got all meals
-                if (mealPlan.length !== mealsPerDay) {
-                    throw new Error(`Expected ${mealsPerDay} meals but got ${mealPlan.length}. Retrying...`);
+                while (attempts < maxAttempts && !mealPlan) {
+                    attempts++;
+                    try {
+                        console.log(`🔄 Attempt ${attempts} of ${maxAttempts}...`);
+                        const result = await generateMealPlan(formData, nutrition, mealsPerDay);
+
+                        // Validate we got all meals
+                        if (result.length === mealsPerDay) {
+                            mealPlan = result;
+                            console.log(`✅ Success! Got ${mealsPerDay} meals on attempt ${attempts}`);
+                        } else {
+                            console.warn(`⚠️ Attempt ${attempts}: Got ${result.length} meals instead of ${mealsPerDay}`);
+                            if (attempts >= maxAttempts) {
+                                throw new Error(`AI returned ${result.length} meals instead of ${mealsPerDay} after ${maxAttempts} attempts`);
+                            }
+                        }
+                    } catch (error) {
+                        if (attempts >= maxAttempts) throw error;
+                        console.warn(`⚠️ Attempt ${attempts} failed:`, error.message);
+                    }
+                }
+
+                if (!mealPlan) {
+                    throw new Error(`Failed to generate ${mealsPerDay} meals after ${maxAttempts} attempts`);
                 }
 
                 // Save to localStorage
@@ -376,14 +399,42 @@
             const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
             const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
-            // CRITICAL: Super explicit prompt with extreme repetition
-            const prompt = `🚨 CRITICAL REQUIREMENT: GENERATE EXACTLY ${mealsPerDay} MEALS 🚨
+            // Build example array showing EXACT number of meals needed
+            let exampleMeals = [];
+            const mealExamples = [
+                { name: "Scrambled Eggs with Toast and Avocado", cals: 450, prot: 30, carb: 40, ft: 15, instr: "Scramble 3 eggs in 1 tbsp butter. Toast 2 slices whole wheat bread. Serve with half an avocado." },
+                { name: "Grilled Chicken Breast with Brown Rice and Broccoli", cals: 520, prot: 45, carb: 55, ft: 12, instr: "Grill 6oz chicken breast with seasoning. Cook 1 cup brown rice. Steam 1.5 cups broccoli." },
+                { name: "Greek Yogurt with Berries and Almonds", cals: 380, prot: 25, carb: 45, ft: 10, instr: "Mix 1 cup Greek yogurt with 1 cup mixed berries. Top with 1oz sliced almonds." },
+                { name: "Baked Salmon with Quinoa and Asparagus", cals: 550, prot: 48, carb: 50, ft: 16, instr: "Bake 6oz salmon at 400F for 15 mins. Cook 3/4 cup quinoa. Roast asparagus." },
+                { name: "Turkey and Avocado Wrap", cals: 420, prot: 35, carb: 38, ft: 14, instr: "Wrap 5oz sliced turkey with avocado, lettuce, tomato in whole wheat tortilla." },
+                { name: "Protein Smoothie Bowl", cals: 400, prot: 30, carb: 50, ft: 8, instr: "Blend protein powder, banana, spinach, almond milk. Top with granola and berries." }
+            ];
 
-YOU MUST CREATE EXACTLY ${mealsPerDay} MEALS. NOT ${mealsPerDay - 1}. NOT ${mealsPerDay + 1}. EXACTLY ${mealsPerDay} MEALS.
+            for (let i = 0; i < mealsPerDay; i++) {
+                const ex = mealExamples[i % mealExamples.length];
+                exampleMeals.push(`  {
+    "name": "${ex.name}",
+    "calories": ${ex.cals},
+    "protein": ${ex.prot},
+    "carbs": ${ex.carb},
+    "fat": ${ex.ft},
+    "instructions": "${ex.instr}"
+  }`);
+            }
 
-I NEED ${mealsPerDay} MEALS TOTAL. COUNT: 1, 2, 3... up to ${mealsPerDay}.
+            const exampleArray = `[\n${exampleMeals.join(',\n')}\n]`;
 
-DAILY NUTRITION TARGETS (split across ${mealsPerDay} meals):
+            // CRITICAL: Super explicit prompt with exact meal count shown
+            const prompt = `🚨🚨🚨 CRITICAL: YOU MUST GENERATE EXACTLY ${mealsPerDay} MEALS 🚨🚨🚨
+
+I am counting the meals. There MUST be ${mealsPerDay} meal objects in the JSON array.
+
+YOU MUST GENERATE:
+${Array.from({length: mealsPerDay}, (_, i) => `- MEAL ${i + 1}`).join('\n')}
+
+THAT'S ${mealsPerDay} MEALS TOTAL.
+
+DAILY NUTRITION TARGETS (distribute across all ${mealsPerDay} meals):
 - Total Calories: ${nutrition.calories} cal
 - Total Protein: ${nutrition.protein}g
 - Total Carbs: ${nutrition.carbs}g
@@ -398,37 +449,17 @@ TARGET PER MEAL (approximately):
 Diet Type: ${formData.get('dietType')}
 ${formData.get('allergies') ? `Allergies/Restrictions: ${formData.get('allergies')}` : ''}
 
-Return ONLY a JSON array with EXACTLY ${mealsPerDay} meal objects. Here is the EXACT format (showing 2 examples, but YOU MUST GENERATE ${mealsPerDay} TOTAL):
+Return ONLY a JSON array with EXACTLY ${mealsPerDay} meal objects like this:
 
-[
-  {
-    "name": "Scrambled Eggs with Toast and Avocado",
-    "calories": 450,
-    "protein": 30,
-    "carbs": 40,
-    "fat": 15,
-    "instructions": "Scramble 3 eggs in 1 tbsp butter. Toast 2 slices whole wheat bread. Serve with half an avocado sliced."
-  },
-  {
-    "name": "Grilled Chicken with Brown Rice and Broccoli",
-    "calories": 520,
-    "protein": 45,
-    "carbs": 55,
-    "fat": 12,
-    "instructions": "Grill 6oz chicken breast seasoned with herbs. Cook 1 cup brown rice. Steam 1.5 cups broccoli."
-  }
-]
+${exampleArray}
 
-🚨 MANDATORY REQUIREMENTS 🚨:
-1. Generate EXACTLY ${mealsPerDay} meals (I am counting, must be ${mealsPerDay} meals!)
-2. ALL numbers MUST be real INTEGERS (like 450, 35, 50 - NOT NaN, NOT null, NOT undefined)
-3. Each meal MUST have: name, calories, protein, carbs, fat, instructions
-4. calories, protein, carbs, fat must ALL be actual numbers
-5. NO markdown code blocks (no \`\`\`json)
-6. NO backticks
-7. NO explanatory text before or after
-8. ONLY the JSON array
-9. Remember: ${mealsPerDay} meals total!`;
+🚨 ABSOLUTE REQUIREMENTS 🚨:
+1. The array MUST contain EXACTLY ${mealsPerDay} meal objects (not ${mealsPerDay - 1}, not 2, not 3... EXACTLY ${mealsPerDay}!)
+2. ALL numbers MUST be INTEGERS (450, 35, 50 - NOT "NaN", NOT null, NOT undefined)
+3. Each meal MUST have: name (string), calories (integer), protein (integer), carbs (integer), fat (integer), instructions (string)
+4. NO markdown, NO \`\`\`json blocks, NO backticks
+5. NO explanatory text - ONLY the JSON array
+6. Array length = ${mealsPerDay}`;
 
 
             try {
