@@ -388,19 +388,19 @@
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">Daily Calories</div>
-                    <div class="info-value" id="totalCalories">0</div>
+                    <div class="info-value" id="totalCalories">Loading...</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Protein</div>
-                    <div class="info-value" id="totalProtein">0g</div>
+                    <div class="info-value" id="totalProtein">Loading...</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Carbs</div>
-                    <div class="info-value" id="totalCarbs">0g</div>
+                    <div class="info-value" id="totalCarbs">Loading...</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Fat</div>
-                    <div class="info-value" id="totalFat">0g</div>
+                    <div class="info-value" id="totalFat">Loading...</div>
                 </div>
             </div>
         </div>
@@ -451,30 +451,61 @@
         document.addEventListener('DOMContentLoaded', function() {
             const planData = localStorage.getItem('currentMealPlan');
             if (!planData) {
+                alert('No meal plan found. Redirecting to generator...');
                 window.location.href = 'generator.html';
                 return;
             }
 
-            currentPlan = JSON.parse(planData);
-            console.log('Loaded meal plan:', currentPlan);
-            console.log('Nutrition object:', currentPlan.nutrition);
-            console.log('Meals array:', currentPlan.meals);
-            displayMealPlan();
+            try {
+                currentPlan = JSON.parse(planData);
+                console.log('✅ Loaded meal plan:', currentPlan);
+                
+                // Validate plan structure
+                if (!currentPlan.nutrition || !currentPlan.meals) {
+                    throw new Error('Invalid meal plan structure');
+                }
+                
+                displayMealPlan();
+            } catch (error) {
+                console.error('❌ Error loading meal plan:', error);
+                alert('Error loading meal plan. Please generate a new one.');
+                window.location.href = 'generator.html';
+            }
         });
 
         function displayMealPlan() {
-            // Display nutrition totals
-            console.log('Displaying nutrition - calories:', currentPlan.nutrition.calories);
-            console.log('Displaying nutrition - protein:', currentPlan.nutrition.protein);
+            // Display nutrition totals with proper fallbacks
+            const nutrition = currentPlan.nutrition || {};
             
-            document.getElementById('totalCalories').textContent = currentPlan.nutrition.calories || 'N/A';
-            document.getElementById('totalProtein').textContent = (currentPlan.nutrition.protein || 0) + 'g';
-            document.getElementById('totalCarbs').textContent = (currentPlan.nutrition.carbs || 0) + 'g';
-            document.getElementById('totalFat').textContent = (currentPlan.nutrition.fat || 0) + 'g';
+            console.log('📊 Displaying nutrition:', nutrition);
+            
+            // Use actual values or show 'N/A' if truly missing (not just zero)
+            const calories = (nutrition.calories !== null && nutrition.calories !== undefined) 
+                ? nutrition.calories 
+                : 'N/A';
+            const protein = (nutrition.protein !== null && nutrition.protein !== undefined) 
+                ? nutrition.protein + 'g' 
+                : 'N/A';
+            const carbs = (nutrition.carbs !== null && nutrition.carbs !== undefined) 
+                ? nutrition.carbs + 'g' 
+                : 'N/A';
+            const fat = (nutrition.fat !== null && nutrition.fat !== undefined) 
+                ? nutrition.fat + 'g' 
+                : 'N/A';
+            
+            document.getElementById('totalCalories').textContent = calories;
+            document.getElementById('totalProtein').textContent = protein;
+            document.getElementById('totalCarbs').textContent = carbs;
+            document.getElementById('totalFat').textContent = fat;
 
             // Display meals
             const container = document.getElementById('mealsContainer');
             container.innerHTML = '';
+
+            if (!currentPlan.meals || currentPlan.meals.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No meals found in plan.</p>';
+                return;
+            }
 
             currentPlan.meals.forEach((meal, index) => {
                 const mealCard = createMealCard(meal, index);
@@ -487,7 +518,7 @@
             card.className = 'meal-card';
             card.innerHTML = `
                 <div class="meal-header">
-                    <div class="meal-name">${meal.name}</div>
+                    <div class="meal-name">${meal.name || 'Meal ' + (index + 1)}</div>
                     <div class="meal-actions">
                         <button class="btn btn-change" onclick="changeMeal(${index})">🔄 Change Meal</button>
                         <button class="btn btn-revise" onclick="openReviseModal(${index})">✏️ Revise Meal</button>
@@ -496,23 +527,23 @@
                 <div class="macro-grid">
                     <div class="macro-item">
                         <div class="macro-label">Calories</div>
-                        <div class="macro-value">${meal.calories}</div>
+                        <div class="macro-value">${meal.calories || 0}</div>
                     </div>
                     <div class="macro-item">
                         <div class="macro-label">Protein</div>
-                        <div class="macro-value">${meal.protein}g</div>
+                        <div class="macro-value">${meal.protein || 0}g</div>
                     </div>
                     <div class="macro-item">
                         <div class="macro-label">Carbs</div>
-                        <div class="macro-value">${meal.carbs}g</div>
+                        <div class="macro-value">${meal.carbs || 0}g</div>
                     </div>
                     <div class="macro-item">
                         <div class="macro-label">Fat</div>
-                        <div class="macro-value">${meal.fat}g</div>
+                        <div class="macro-value">${meal.fat || 0}g</div>
                     </div>
                 </div>
                 <div class="foods-list">
-                    ${meal.foods.map(food => `<div class="food-item">${food}</div>`).join('')}
+                    ${(meal.foods || []).map(food => `<div class="food-item">${food}</div>`).join('')}
                 </div>
                 ${meal.instructions ? `
                     <div class="instructions">
@@ -570,7 +601,7 @@ Return ONLY valid JSON with this structure:
                 hideLoadingModal();
 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('❌ Error:', error);
                 hideLoadingModal();
                 alert('Error generating new meal. Please try again.');
             }
@@ -639,7 +670,7 @@ Return ONLY valid JSON with this structure:
                 hideLoadingModal();
 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('❌ Error:', error);
                 hideLoadingModal();
                 alert('Error revising meal. Please try again.');
             }
@@ -675,7 +706,10 @@ Return ONLY valid JSON with this structure:
             doc.text(`Daily Nutrition Targets:`, margin, yPos);
             yPos += 8;
             doc.setFontSize(10);
-            doc.text(`Calories: ${currentPlan.nutrition.calories} | Protein: ${currentPlan.nutrition.protein}g | Carbs: ${currentPlan.nutrition.carbs}g | Fat: ${currentPlan.nutrition.fat}g`, margin, yPos);
+            
+            const nutrition = currentPlan.nutrition || {};
+            const nutritionText = `Calories: ${nutrition.calories || 'N/A'} | Protein: ${nutrition.protein || 'N/A'}g | Carbs: ${nutrition.carbs || 'N/A'}g | Fat: ${nutrition.fat || 'N/A'}g`;
+            doc.text(nutritionText, margin, yPos);
             yPos += 15;
 
             // Meals
@@ -744,4 +778,3 @@ Return ONLY valid JSON with this structure:
     </script>
 </body>
 </html>
-
