@@ -158,27 +158,6 @@
             font-weight: 700;
         }
 
-        .foods-list {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        .food-item {
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .food-item:last-child {
-            border-bottom: none;
-        }
-
-        .food-item::before {
-            content: "🍽️";
-            margin-right: 10px;
-        }
-
         .instructions {
             background: #fff4e6;
             padding: 15px;
@@ -225,108 +204,29 @@
             background: #5a6268;
         }
 
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
+        .revise-section {
+            margin-top: 15px;
+            padding: 15px;
             background: white;
-            padding: 30px;
-            border-radius: 20px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            border-radius: 10px;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-title {
-            color: #667eea;
-            font-size: 1.8em;
-            font-weight: 700;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 2em;
-            cursor: pointer;
-            color: #999;
-            padding: 0;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .close-btn:hover {
-            color: #333;
-        }
-
-        .modal-body {
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-        }
-
-        .form-group textarea {
+        .revise-input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 2px solid #ddd;
             border-radius: 8px;
-            font-size: 16px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .loading-modal {
-            text-align: center;
+            margin-bottom: 10px;
         }
 
         .spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #667eea;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 10px auto;
         }
 
         @keyframes spin {
@@ -345,35 +245,6 @@
 
             .macro-grid {
                 grid-template-columns: repeat(2, 1fr);
-            }
-
-            .meal-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .btn-primary, .btn-secondary {
-                width: 100%;
-            }
-        }
-
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-
-            .container {
-                box-shadow: none;
-                padding: 20px;
-            }
-
-            .btn, .action-buttons {
-                display: none !important;
             }
         }
     </style>
@@ -413,99 +284,43 @@
         </div>
     </div>
 
-    <!-- Revise Modal -->
-    <div id="reviseModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Revise Meal</h2>
-                <button class="close-btn" onclick="closeReviseModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="reviseInstructions">What would you like to change?</label>
-                    <textarea id="reviseInstructions" placeholder="Example: Make it vegetarian, reduce calories by 100, swap chicken for fish..."></textarea>
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" style="flex: 1;" onclick="submitRevision()">Apply Changes</button>
-                <button class="btn btn-secondary" onclick="closeReviseModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loading Modal -->
-    <div id="loadingModal" class="modal">
-        <div class="modal-content loading-modal">
-            <div class="spinner"></div>
-            <p>Updating your meal...</p>
-            <p style="color: #666; margin-top: 10px;">This may take a moment</p>
-        </div>
-    </div>
-
     <script>
         const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
         let currentPlan = null;
-        let currentMealIndex = null;
 
         // Load meal plan
         document.addEventListener('DOMContentLoaded', function() {
             const planData = localStorage.getItem('currentMealPlan');
+            
             if (!planData) {
-                alert('No meal plan found. Redirecting to generator...');
+                alert('No meal plan found. Redirecting...');
                 window.location.href = 'generator.html';
                 return;
             }
 
             try {
                 currentPlan = JSON.parse(planData);
-                console.log('✅ Loaded meal plan:', currentPlan);
-                
-                // Validate plan structure
-                if (!currentPlan.nutrition || !currentPlan.meals) {
-                    throw new Error('Invalid meal plan structure');
-                }
-                
+                console.log('✅ Loaded plan:', currentPlan);
                 displayMealPlan();
             } catch (error) {
-                console.error('❌ Error loading meal plan:', error);
-                alert('Error loading meal plan. Please generate a new one.');
+                console.error('❌ Error loading plan:', error);
+                alert('Error loading plan. Please generate a new one.');
                 window.location.href = 'generator.html';
             }
         });
 
         function displayMealPlan() {
-            // Display nutrition totals with proper fallbacks
-            const nutrition = currentPlan.nutrition || {};
+            const nutrition = currentPlan.nutrition;
             
-            console.log('📊 Displaying nutrition:', nutrition);
-            
-            // Use actual values or show 'N/A' if truly missing (not just zero)
-            const calories = (nutrition.calories !== null && nutrition.calories !== undefined) 
-                ? nutrition.calories 
-                : 'N/A';
-            const protein = (nutrition.protein !== null && nutrition.protein !== undefined) 
-                ? nutrition.protein + 'g' 
-                : 'N/A';
-            const carbs = (nutrition.carbs !== null && nutrition.carbs !== undefined) 
-                ? nutrition.carbs + 'g' 
-                : 'N/A';
-            const fat = (nutrition.fat !== null && nutrition.fat !== undefined) 
-                ? nutrition.fat + 'g' 
-                : 'N/A';
-            
-            document.getElementById('totalCalories').textContent = calories;
-            document.getElementById('totalProtein').textContent = protein;
-            document.getElementById('totalCarbs').textContent = carbs;
-            document.getElementById('totalFat').textContent = fat;
+            // Display nutrition totals
+            document.getElementById('totalCalories').textContent = nutrition.calories;
+            document.getElementById('totalProtein').textContent = nutrition.protein + 'g';
+            document.getElementById('totalCarbs').textContent = nutrition.carbs + 'g';
+            document.getElementById('totalFat').textContent = nutrition.fat + 'g';
 
             // Display meals
             const container = document.getElementById('mealsContainer');
             container.innerHTML = '';
-
-            if (!currentPlan.meals || currentPlan.meals.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #666;">No meals found in plan.</p>';
-                return;
-            }
 
             currentPlan.meals.forEach((meal, index) => {
                 const mealCard = createMealCard(meal, index);
@@ -516,136 +331,96 @@
         function createMealCard(meal, index) {
             const card = document.createElement('div');
             card.className = 'meal-card';
+            card.id = `meal-${index}`;
             card.innerHTML = `
                 <div class="meal-header">
-                    <div class="meal-name">${meal.name || 'Meal ' + (index + 1)}</div>
+                    <div class="meal-name">${meal.name}</div>
                     <div class="meal-actions">
-                        <button class="btn btn-change" onclick="changeMeal(${index})">🔄 Change Meal</button>
-                        <button class="btn btn-revise" onclick="openReviseModal(${index})">✏️ Revise Meal</button>
+                        <button class="btn btn-change" onclick="changeMeal(${index})">🔄 Change</button>
+                        <button class="btn btn-revise" onclick="toggleRevise(${index})">✏️ Revise</button>
                     </div>
                 </div>
                 <div class="macro-grid">
                     <div class="macro-item">
                         <div class="macro-label">Calories</div>
-                        <div class="macro-value">${meal.calories || 0}</div>
+                        <div class="macro-value">${meal.calories}</div>
                     </div>
                     <div class="macro-item">
                         <div class="macro-label">Protein</div>
-                        <div class="macro-value">${meal.protein || 0}g</div>
+                        <div class="macro-value">${meal.protein}g</div>
                     </div>
                     <div class="macro-item">
                         <div class="macro-label">Carbs</div>
-                        <div class="macro-value">${meal.carbs || 0}g</div>
+                        <div class="macro-value">${meal.carbs}g</div>
                     </div>
                     <div class="macro-item">
                         <div class="macro-label">Fat</div>
-                        <div class="macro-value">${meal.fat || 0}g</div>
+                        <div class="macro-value">${meal.fat}g</div>
                     </div>
                 </div>
-                <div class="foods-list">
-                    ${(meal.foods || []).map(food => `<div class="food-item">${food}</div>`).join('')}
+                <div class="instructions">
+                    <span class="instructions-label">📝 Instructions:</span>
+                    ${meal.instructions}
                 </div>
-                ${meal.instructions ? `
-                    <div class="instructions">
-                        <span class="instructions-label">📝 Instructions:</span>
-                        ${meal.instructions}
-                    </div>
-                ` : ''}
+                <div id="revise-${index}" class="revise-section" style="display:none;">
+                    <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
+                    <button class="btn btn-revise" onclick="submitRevision(${index})">Apply Changes</button>
+                </div>
             `;
             return card;
         }
 
-        // Change Meal (Generate new meal)
-        async function changeMeal(index) {
-            const meal = currentPlan.meals[index];
-            const targetCalories = meal.calories;
-            const targetProtein = meal.protein;
-            const targetCarbs = meal.carbs;
-            const targetFat = meal.fat;
-
-            showLoadingModal();
-
-            try {
-                const prompt = `Generate a completely different ${meal.name} meal with these exact nutrition targets:
-- Calories: ${targetCalories}
-- Protein: ${targetProtein}g
-- Carbs: ${targetCarbs}g
-- Fat: ${targetFat}g
-
-Diet Type: ${currentPlan.preferences.dietType}
-${currentPlan.preferences.allergies ? `Restrictions: ${currentPlan.preferences.allergies}` : ''}
-
-Return ONLY valid JSON with this structure:
-{"name": "${meal.name}", "foods": ["item1", "item2"], "calories": ${targetCalories}, "protein": ${targetProtein}, "carbs": ${targetCarbs}, "fat": ${targetFat}, "instructions": "cooking instructions"}`;
-
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to generate meal');
-                }
-
-                const data = await response.json();
-                let text = data.candidates[0].content.parts[0].text;
-                text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                
-                const newMeal = JSON.parse(text);
-                currentPlan.meals[index] = newMeal;
-                
-                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
-                displayMealPlan();
-                hideLoadingModal();
-
-            } catch (error) {
-                console.error('❌ Error:', error);
-                hideLoadingModal();
-                alert('Error generating new meal. Please try again.');
+        function toggleRevise(index) {
+            const reviseSection = document.getElementById(`revise-${index}`);
+            if (reviseSection.style.display === 'none') {
+                reviseSection.style.display = 'block';
+            } else {
+                reviseSection.style.display = 'none';
             }
         }
 
-        // Revise Modal
-        function openReviseModal(index) {
-            currentMealIndex = index;
-            document.getElementById('reviseInstructions').value = '';
-            document.getElementById('reviseModal').classList.add('show');
-        }
-
-        function closeReviseModal() {
-            document.getElementById('reviseModal').classList.remove('show');
-            currentMealIndex = null;
-        }
-
-        async function submitRevision() {
-            const instructions = document.getElementById('reviseInstructions').value.trim();
-            if (!instructions) {
-                alert('Please enter revision instructions');
+        async function submitRevision(index) {
+            const input = document.getElementById(`revise-input-${index}`);
+            const revisionText = input.value.trim();
+            
+            if (!revisionText) {
+                alert('Please enter what you want to change');
                 return;
             }
 
-            closeReviseModal();
-            showLoadingModal();
+            const meal = currentPlan.meals[index];
+            const mealCard = document.getElementById(`meal-${index}`);
+            
+            // Show loading
+            mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Revising meal...</p>';
 
             try {
-                const meal = currentPlan.meals[currentMealIndex];
-                
-                const prompt = `Revise this meal based on the user's request:
+                const prompt = `Revise this meal based on user request:
 
 CURRENT MEAL:
-${JSON.stringify(meal, null, 2)}
+Name: ${meal.name}
+Calories: ${meal.calories}
+Protein: ${meal.protein}g
+Carbs: ${meal.carbs}g
+Fat: ${meal.fat}g
+Instructions: ${meal.instructions}
 
-USER REQUEST: ${instructions}
+USER REQUEST: ${revisionText}
 
-DIET TYPE: ${currentPlan.preferences.dietType}
-${currentPlan.preferences.allergies ? `RESTRICTIONS: ${currentPlan.preferences.allergies}` : ''}
+Diet: ${currentPlan.preferences.dietType}
+${currentPlan.preferences.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
 
-Important: Try to keep similar calories and macros unless the user specifically asks to change them.
+Return ONLY valid JSON (NO markdown, NO backticks):
+{
+  "name": "Updated Meal Name",
+  "calories": ${meal.calories},
+  "protein": ${meal.protein},
+  "carbs": ${meal.carbs},
+  "fat": ${meal.fat},
+  "instructions": "Updated instructions"
+}
 
-Return ONLY valid JSON with this structure:
-{"name": "${meal.name}", "foods": ["item1", "item2"], "calories": number, "protein": number, "carbs": number, "fat": number, "instructions": "cooking instructions"}`;
+Keep similar calories/macros unless specifically asked to change them.`;
 
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
@@ -653,128 +428,129 @@ Return ONLY valid JSON with this structure:
                     body: JSON.stringify({ prompt })
                 });
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to revise meal');
-                }
+                if (!response.ok) throw new Error('API request failed');
 
                 const data = await response.json();
                 let text = data.candidates[0].content.parts[0].text;
-                text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
                 
                 const revisedMeal = JSON.parse(text);
-                currentPlan.meals[currentMealIndex] = revisedMeal;
                 
+                // Update plan
+                currentPlan.meals[index] = revisedMeal;
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+                
+                // Refresh display
                 displayMealPlan();
-                hideLoadingModal();
-
+                
             } catch (error) {
-                console.error('❌ Error:', error);
-                hideLoadingModal();
-                alert('Error revising meal. Please try again.');
+                console.error('❌ Revision error:', error);
+                alert('Failed to revise meal. Please try again.');
+                displayMealPlan();
             }
         }
 
-        function showLoadingModal() {
-            document.getElementById('loadingModal').classList.add('show');
+        async function changeMeal(index) {
+            const meal = currentPlan.meals[index];
+            const mealCard = document.getElementById(`meal-${index}`);
+            
+            mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Generating new meal...</p>';
+
+            try {
+                const prompt = `Generate a DIFFERENT meal (not "${meal.name}"):
+
+Target Nutrition:
+- Calories: ${meal.calories}
+- Protein: ${meal.protein}g
+- Carbs: ${meal.carbs}g
+- Fat: ${meal.fat}g
+
+Diet: ${currentPlan.preferences.dietType}
+${currentPlan.preferences.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
+
+Return ONLY valid JSON (NO markdown, NO backticks):
+{
+  "name": "Different Meal Name",
+  "calories": ${meal.calories},
+  "protein": ${meal.protein},
+  "carbs": ${meal.carbs},
+  "fat": ${meal.fat},
+  "instructions": "Cooking instructions"
+}`;
+
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+
+                if (!response.ok) throw new Error('API request failed');
+
+                const data = await response.json();
+                let text = data.candidates[0].content.parts[0].text;
+                text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                
+                const newMeal = JSON.parse(text);
+                
+                currentPlan.meals[index] = newMeal;
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+                
+                displayMealPlan();
+                
+            } catch (error) {
+                console.error('❌ Change meal error:', error);
+                alert('Failed to change meal. Please try again.');
+                displayMealPlan();
+            }
         }
 
-        function hideLoadingModal() {
-            document.getElementById('loadingModal').classList.remove('show');
-        }
-
-        // PDF Download
         function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            let yPos = 20;
-            const pageWidth = doc.internal.pageSize.getWidth();
+            let y = 20;
             const margin = 20;
-            const maxWidth = pageWidth - (2 * margin);
+            const pageWidth = doc.internal.pageSize.getWidth();
 
             // Header
             doc.setFontSize(24);
             doc.setTextColor(102, 126, 234);
-            doc.text('Your Personalized Meal Plan', margin, yPos);
-            yPos += 15;
+            doc.text('Your Meal Plan', margin, y);
+            y += 15;
 
-            // Nutrition Summary
+            // Nutrition
             doc.setFontSize(12);
             doc.setTextColor(0, 0, 0);
-            doc.text(`Daily Nutrition Targets:`, margin, yPos);
-            yPos += 8;
-            doc.setFontSize(10);
-            
-            const nutrition = currentPlan.nutrition || {};
-            const nutritionText = `Calories: ${nutrition.calories || 'N/A'} | Protein: ${nutrition.protein || 'N/A'}g | Carbs: ${nutrition.carbs || 'N/A'}g | Fat: ${nutrition.fat || 'N/A'}g`;
-            doc.text(nutritionText, margin, yPos);
-            yPos += 15;
+            doc.text(`Daily Targets: ${currentPlan.nutrition.calories} cal | ${currentPlan.nutrition.protein}g protein | ${currentPlan.nutrition.carbs}g carbs | ${currentPlan.nutrition.fat}g fat`, margin, y);
+            y += 20;
 
             // Meals
             currentPlan.meals.forEach((meal, index) => {
-                // Check if we need a new page
-                if (yPos > 250) {
+                if (y > 250) {
                     doc.addPage();
-                    yPos = 20;
+                    y = 20;
                 }
 
-                // Meal Name
                 doc.setFontSize(16);
-                doc.setTextColor(118, 75, 162);
-                doc.text(`${meal.name}`, margin, yPos);
-                yPos += 8;
+                doc.setTextColor(102, 126, 234);
+                doc.text(meal.name, margin, y);
+                y += 10;
 
-                // Macros
                 doc.setFontSize(10);
                 doc.setTextColor(100, 100, 100);
-                doc.text(`${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat`, margin, yPos);
-                yPos += 8;
+                doc.text(`${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat`, margin, y);
+                y += 10;
 
-                // Foods
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
-                meal.foods.forEach(food => {
-                    const lines = doc.splitTextToSize(`• ${food}`, maxWidth);
-                    lines.forEach(line => {
-                        if (yPos > 270) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(line, margin, yPos);
-                        yPos += 6;
-                    });
-                });
-
-                // Instructions
-                if (meal.instructions) {
-                    yPos += 3;
-                    doc.setFontSize(9);
-                    doc.setTextColor(150, 75, 0);
-                    const instructionLines = doc.splitTextToSize(`Instructions: ${meal.instructions}`, maxWidth);
-                    instructionLines.forEach(line => {
-                        if (yPos > 270) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(line, margin, yPos);
-                        yPos += 5;
-                    });
-                }
-
-                yPos += 12;
+                const lines = doc.splitTextToSize(meal.instructions, pageWidth - (margin * 2));
+                doc.text(lines, margin, y);
+                y += lines.length * 6 + 15;
             });
 
-            // Footer
-            const today = new Date().toLocaleDateString();
-            doc.setFontSize(8);
-            doc.setTextColor(150, 150, 150);
-            doc.text(`Generated by Zique Fitness | ${today}`, margin, doc.internal.pageSize.getHeight() - 10);
-
-            // Save
-            doc.save(`meal-plan-${today}.pdf`);
+            doc.save('meal-plan.pdf');
         }
     </script>
 </body>
 </html>
+
