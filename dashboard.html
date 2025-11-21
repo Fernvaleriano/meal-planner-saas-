@@ -224,7 +224,7 @@
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
                 
                 if (sessionError || !session) {
-                    window.location.href = 'login.html';
+                    window.location.href = 'index.html';
                     return;
                 }
                 
@@ -258,7 +258,7 @@
             } catch (error) {
                 console.error('Error loading dashboard:', error);
                 alert('Error loading dashboard: ' + error.message);
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
             }
         }
         
@@ -268,7 +268,7 @@
             if (error) {
                 alert('Error logging out: ' + error.message);
             } else {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
             }
         });
         
