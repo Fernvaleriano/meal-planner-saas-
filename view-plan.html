@@ -3,283 +3,740 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Meal Plan</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Your Meal Plan - Zique Fitness</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 2rem;
+            padding: 20px;
         }
+
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
-            border-radius: 1rem;
-            padding: 2rem;
+            border-radius: 20px;
+            padding: 40px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        h1 {
-            color: #2d3748;
-            margin-bottom: 0.5rem;
-            font-size: 2rem;
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
         }
-        .subtitle {
-            color: #718096;
-            margin-bottom: 2rem;
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
         }
+
+        .client-info {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e0e7ff;
+        }
+
+        .info-label {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+
         .meal-card {
-            background: #f7fafc;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 2px solid #e0e7ff;
         }
-        .meal-card h3 {
-            color: #667eea;
-            text-transform: uppercase;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-        }
-        .meal-card h4 {
-            color: #2d3748;
-            margin-bottom: 1rem;
-            font-size: 1.25rem;
-        }
-        .macros {
+
+        .meal-header {
             display: flex;
-            gap: 1rem;
-            margin: 1rem 0;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
-        .macro {
-            flex: 1;
-            text-align: center;
-            padding: 0.75rem;
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .macro-value {
-            font-size: 1.5rem;
-            font-weight: 700;
+
+        .meal-name {
             color: #667eea;
+            font-size: 1.8em;
+            font-weight: 700;
         }
+
+        .meal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .btn-change {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-change:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-revise {
+            background: #764ba2;
+            color: white;
+        }
+
+        .btn-revise:hover {
+            background: #653a8a;
+            transform: translateY(-2px);
+        }
+
+        .macro-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .macro-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e0e7ff;
+        }
+
         .macro-label {
-            font-size: 0.875rem;
-            color: #718096;
-            margin-top: 0.25rem;
-        }
-        .day-divider {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            font-weight: 700;
-            font-size: 1.25rem;
-            text-align: center;
-            margin: 2rem 0 1rem 0;
-        }
-        .ingredients {
-            background: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-        }
-        .ingredients h5 {
-            color: #2d3748;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-        }
-        .ingredients ul {
-            list-style: none;
-            padding: 0;
-        }
-        .ingredients li {
-            color: #4a5568;
-            font-size: 0.875rem;
-            padding: 0.25rem 0;
-            padding-left: 1.5rem;
-            position: relative;
-        }
-        .ingredients li:before {
-            content: "•";
-            color: #667eea;
-            font-weight: bold;
-            position: absolute;
-            left: 0.5rem;
-        }
-        .instructions {
-            background: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-        }
-        .instructions h5 {
-            color: #2d3748;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-        }
-        .instructions p {
-            color: #4a5568;
-            font-size: 0.875rem;
-            line-height: 1.6;
-        }
-        .loading {
-            text-align: center;
-            padding: 3rem;
             color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
         }
-        .error {
-            text-align: center;
-            padding: 3rem;
-            color: #e53e3e;
+
+        .macro-value {
+            color: #667eea;
+            font-size: 1.5em;
+            font-weight: 700;
         }
-        .targets-summary {
+
+        .foods-list {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .food-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .food-item:last-child {
+            border-bottom: none;
+        }
+
+        .food-item::before {
+            content: "🍽️";
+            margin-right: 10px;
+        }
+
+        .instructions {
+            background: #fff4e6;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #ffa726;
+            margin-top: 15px;
+        }
+
+        .instructions-label {
+            color: #e65100;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            margin-bottom: 2rem;
+            padding: 15px 40px;
+            font-size: 1.1em;
         }
-        .targets-summary h2 {
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.1em;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            color: #667eea;
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .loading-modal {
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .macro-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .meal-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+
+            .btn, .action-buttons {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container" id="content">
-        <div class="loading">Loading your meal plan...</div>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Your Personalized Meal Plan</h1>
+        </div>
+
+        <div class="client-info">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Daily Calories</div>
+                    <div class="info-value" id="totalCalories">0</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Protein</div>
+                    <div class="info-value" id="totalProtein">0g</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Carbs</div>
+                    <div class="info-value" id="totalCarbs">0g</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Fat</div>
+                    <div class="info-value" id="totalFat">0g</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mealsContainer"></div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
+            <button class="btn btn-secondary" onclick="window.location.href='generator.html'">← Generate New Plan</button>
+        </div>
+    </div>
+
+    <!-- Revise Modal -->
+    <div id="reviseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Revise Meal</h2>
+                <button class="close-btn" onclick="closeReviseModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="reviseInstructions">What would you like to change?</label>
+                    <textarea id="reviseInstructions" placeholder="Example: Make it vegetarian, reduce calories by 100, swap chicken for fish..."></textarea>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" style="flex: 1;" onclick="submitRevision()">Apply Changes</button>
+                <button class="btn btn-secondary" onclick="closeReviseModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="modal">
+        <div class="modal-content loading-modal">
+            <div class="spinner"></div>
+            <p>Updating your meal...</p>
+            <p style="color: #666; margin-top: 10px;">This may take a moment</p>
+        </div>
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const GEMINI_API_KEY = 'AIzaSyAeQ5XBpHhURpJKfixA6S2DzRf4uLJP3Co';
+        let currentPlan = null;
+        let currentMealIndex = null;
 
-        async function loadMealPlan() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-
-            if (!token) {
-                document.getElementById('content').innerHTML = `
-                    <div class="error">
-                        <h2>Invalid Link</h2>
-                        <p>This meal plan link is invalid or expired.</p>
-                    </div>
-                `;
+        // Load meal plan
+        document.addEventListener('DOMContentLoaded', function() {
+            const planData = localStorage.getItem('currentMealPlan');
+            if (!planData) {
+                window.location.href = 'generator.html';
                 return;
             }
 
-            try {
-                const { data: plan, error } = await supabase
-                    .from('meal_plans')
-                    .select('*')
-                    .eq('shareable_token', token)
-                    .single();
+            currentPlan = JSON.parse(planData);
+            displayMealPlan();
+        });
 
-                if (error || !plan) {
-                    throw new Error('Meal plan not found');
-                }
+        function displayMealPlan() {
+            // Display nutrition totals
+            document.getElementById('totalCalories').textContent = currentPlan.nutrition.calories;
+            document.getElementById('totalProtein').textContent = currentPlan.nutrition.protein + 'g';
+            document.getElementById('totalCarbs').textContent = currentPlan.nutrition.carbs + 'g';
+            document.getElementById('totalFat').textContent = currentPlan.nutrition.fat + 'g';
 
-                displayMealPlan(plan);
-            } catch (error) {
-                console.error('Error loading meal plan:', error);
-                document.getElementById('content').innerHTML = `
-                    <div class="error">
-                        <h2>Error Loading Meal Plan</h2>
-                        <p>We couldn't load this meal plan. Please check your link and try again.</p>
+            // Display meals
+            const container = document.getElementById('mealsContainer');
+            container.innerHTML = '';
+
+            currentPlan.meals.forEach((meal, index) => {
+                const mealCard = createMealCard(meal, index);
+                container.appendChild(mealCard);
+            });
+        }
+
+        function createMealCard(meal, index) {
+            const card = document.createElement('div');
+            card.className = 'meal-card';
+            card.innerHTML = `
+                <div class="meal-header">
+                    <div class="meal-name">${meal.name}</div>
+                    <div class="meal-actions">
+                        <button class="btn btn-change" onclick="changeMeal(${index})">🔄 Change Meal</button>
+                        <button class="btn btn-revise" onclick="openReviseModal(${index})">✏️ Revise Meal</button>
                     </div>
-                `;
+                </div>
+                <div class="macro-grid">
+                    <div class="macro-item">
+                        <div class="macro-label">Calories</div>
+                        <div class="macro-value">${meal.calories}</div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="macro-label">Protein</div>
+                        <div class="macro-value">${meal.protein}g</div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="macro-label">Carbs</div>
+                        <div class="macro-value">${meal.carbs}g</div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="macro-label">Fat</div>
+                        <div class="macro-value">${meal.fat}g</div>
+                    </div>
+                </div>
+                <div class="foods-list">
+                    ${meal.foods.map(food => `<div class="food-item">${food}</div>`).join('')}
+                </div>
+                ${meal.instructions ? `
+                    <div class="instructions">
+                        <span class="instructions-label">📝 Instructions:</span>
+                        ${meal.instructions}
+                    </div>
+                ` : ''}
+            `;
+            return card;
+        }
+
+        // Change Meal (Generate new meal)
+        async function changeMeal(index) {
+            const meal = currentPlan.meals[index];
+            const targetCalories = meal.calories;
+            const targetProtein = meal.protein;
+            const targetCarbs = meal.carbs;
+            const targetFat = meal.fat;
+
+            showLoadingModal();
+
+            try {
+                const prompt = `Generate a completely different ${meal.name} meal with these exact nutrition targets:
+- Calories: ${targetCalories}
+- Protein: ${targetProtein}g
+- Carbs: ${targetCarbs}g
+- Fat: ${targetFat}g
+
+Diet Type: ${currentPlan.preferences.dietType}
+${currentPlan.preferences.allergies ? `Restrictions: ${currentPlan.preferences.allergies}` : ''}
+
+Return ONLY valid JSON with this structure:
+{"name": "${meal.name}", "foods": ["item1", "item2"], "calories": ${targetCalories}, "protein": ${targetProtein}, "carbs": ${targetCarbs}, "fat": ${targetFat}, "instructions": "cooking instructions"}`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.9,
+                            maxOutputTokens: 1024
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                let text = data.candidates[0].content.parts[0].text;
+                text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                
+                const newMeal = JSON.parse(text);
+                currentPlan.meals[index] = newMeal;
+                
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+                displayMealPlan();
+                hideLoadingModal();
+
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoadingModal();
+                alert('Error generating new meal. Please try again.');
             }
         }
 
-        function displayMealPlan(plan) {
-            const multiDayData = plan.meal_plan_data;
-            const targets = multiDayData[0].targets;
-
-            let html = `
-                <h1>Meal Plan for ${plan.client_name}</h1>
-                <p class="subtitle">Created by your coach</p>
-
-                <div class="targets-summary">
-                    <h2>Daily Targets</h2>
-                    <div class="macros">
-                        <div class="macro">
-                            <div class="macro-value">${targets.calories}</div>
-                            <div class="macro-label">Calories</div>
-                        </div>
-                        <div class="macro">
-                            <div class="macro-value">${targets.protein}g</div>
-                            <div class="macro-label">Protein</div>
-                        </div>
-                        <div class="macro">
-                            <div class="macro-value">${targets.carbs}g</div>
-                            <div class="macro-label">Carbs</div>
-                        </div>
-                        <div class="macro">
-                            <div class="macro-value">${targets.fat}g</div>
-                            <div class="macro-label">Fat</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            multiDayData.forEach((dayData) => {
-                const dayLabel = multiDayData.length === 1 ? 'Your Meal Plan' : `Day ${dayData.day}`;
-                html += `<div class="day-divider">${dayLabel}</div>`;
-
-                dayData.plan.forEach((meal) => {
-                    html += `
-                        <div class="meal-card">
-                            <h3>${meal.type}</h3>
-                            <h4>${meal.name}</h4>
-                            <div class="macros">
-                                <div class="macro">
-                                    <div class="macro-value">${meal.calories}</div>
-                                    <div class="macro-label">Calories</div>
-                                </div>
-                                <div class="macro">
-                                    <div class="macro-value">${meal.protein}g</div>
-                                    <div class="macro-label">Protein</div>
-                                </div>
-                                <div class="macro">
-                                    <div class="macro-value">${meal.carbs}g</div>
-                                    <div class="macro-label">Carbs</div>
-                                </div>
-                                <div class="macro">
-                                    <div class="macro-value">${meal.fat}g</div>
-                                    <div class="macro-label">Fat</div>
-                                </div>
-                            </div>
-                            ${meal.ingredients ? `
-                                <div class="ingredients">
-                                    <h5>Ingredients:</h5>
-                                    <ul>
-                                        ${meal.ingredients.map(ing => `<li>${ing}</li>`).join('')}
-                                    </ul>
-                                </div>
-                            ` : ''}
-                            ${meal.instructions ? `
-                                <div class="instructions">
-                                    <h5>Instructions:</h5>
-                                    <p>${meal.instructions}</p>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-            });
-
-            document.getElementById('content').innerHTML = html;
+        // Revise Modal
+        function openReviseModal(index) {
+            currentMealIndex = index;
+            document.getElementById('reviseInstructions').value = '';
+            document.getElementById('reviseModal').classList.add('show');
         }
 
-        loadMealPlan();
+        function closeReviseModal() {
+            document.getElementById('reviseModal').classList.remove('show');
+            currentMealIndex = null;
+        }
+
+        async function submitRevision() {
+            const instructions = document.getElementById('reviseInstructions').value.trim();
+            if (!instructions) {
+                alert('Please enter revision instructions');
+                return;
+            }
+
+            closeReviseModal();
+            showLoadingModal();
+
+            try {
+                const meal = currentPlan.meals[currentMealIndex];
+                
+                const prompt = `Revise this meal based on the user's request:
+
+CURRENT MEAL:
+${JSON.stringify(meal, null, 2)}
+
+USER REQUEST: ${instructions}
+
+DIET TYPE: ${currentPlan.preferences.dietType}
+${currentPlan.preferences.allergies ? `RESTRICTIONS: ${currentPlan.preferences.allergies}` : ''}
+
+Important: Try to keep similar calories and macros unless the user specifically asks to change them.
+
+Return ONLY valid JSON with this structure:
+{"name": "${meal.name}", "foods": ["item1", "item2"], "calories": number, "protein": number, "carbs": number, "fat": number, "instructions": "cooking instructions"}`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.7,
+                            maxOutputTokens: 1024
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                let text = data.candidates[0].content.parts[0].text;
+                text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                
+                const revisedMeal = JSON.parse(text);
+                currentPlan.meals[currentMealIndex] = revisedMeal;
+                
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+                displayMealPlan();
+                hideLoadingModal();
+
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoadingModal();
+                alert('Error revising meal. Please try again.');
+            }
+        }
+
+        function showLoadingModal() {
+            document.getElementById('loadingModal').classList.add('show');
+        }
+
+        function hideLoadingModal() {
+            document.getElementById('loadingModal').classList.remove('show');
+        }
+
+        // PDF Download
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            let yPos = 20;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            const maxWidth = pageWidth - (2 * margin);
+
+            // Header
+            doc.setFontSize(24);
+            doc.setTextColor(102, 126, 234);
+            doc.text('Your Personalized Meal Plan', margin, yPos);
+            yPos += 15;
+
+            // Nutrition Summary
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Daily Nutrition Targets:`, margin, yPos);
+            yPos += 8;
+            doc.setFontSize(10);
+            doc.text(`Calories: ${currentPlan.nutrition.calories} | Protein: ${currentPlan.nutrition.protein}g | Carbs: ${currentPlan.nutrition.carbs}g | Fat: ${currentPlan.nutrition.fat}g`, margin, yPos);
+            yPos += 15;
+
+            // Meals
+            currentPlan.meals.forEach((meal, index) => {
+                // Check if we need a new page
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                // Meal Name
+                doc.setFontSize(16);
+                doc.setTextColor(118, 75, 162);
+                doc.text(`${meal.name}`, margin, yPos);
+                yPos += 8;
+
+                // Macros
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat`, margin, yPos);
+                yPos += 8;
+
+                // Foods
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                meal.foods.forEach(food => {
+                    const lines = doc.splitTextToSize(`• ${food}`, maxWidth);
+                    lines.forEach(line => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(line, margin, yPos);
+                        yPos += 6;
+                    });
+                });
+
+                // Instructions
+                if (meal.instructions) {
+                    yPos += 3;
+                    doc.setFontSize(9);
+                    doc.setTextColor(150, 75, 0);
+                    const instructionLines = doc.splitTextToSize(`Instructions: ${meal.instructions}`, maxWidth);
+                    instructionLines.forEach(line => {
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(line, margin, yPos);
+                        yPos += 5;
+                    });
+                }
+
+                yPos += 12;
+            });
+
+            // Footer
+            const today = new Date().toLocaleDateString();
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Generated by Zique Fitness | ${today}`, margin, doc.internal.pageSize.getHeight() - 10);
+
+            // Save
+            doc.save(`meal-plan-${today}.pdf`);
+        }
     </script>
 </body>
 </html>
