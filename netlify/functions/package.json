@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "AI-powered meal planning SaaS for fitness coaches",
   "dependencies": {
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.7.0"
   }
 }
