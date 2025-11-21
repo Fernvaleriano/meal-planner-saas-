@@ -747,7 +747,17 @@ Format as JSON array:
             }
 
             const data = await response.json();
-            let text = data.candidates[0].content.parts[0].text;
+            console.log('Response from Netlify function:', data); // Debug log
+            
+            // Handle response from Netlify function
+            let text;
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                // Raw Gemini API format
+                text = data.candidates[0].content.parts[0].text;
+            } else {
+                // Already parsed by function
+                throw new Error('Unexpected response format: ' + JSON.stringify(data));
+            }
             
             text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             
