@@ -376,46 +376,60 @@
             const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
             const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
-            // CRITICAL: Super explicit prompt
-            const prompt = `YOU MUST GENERATE EXACTLY ${mealsPerDay} MEALS.
+            // CRITICAL: Super explicit prompt with extreme repetition
+            const prompt = `🚨 CRITICAL REQUIREMENT: GENERATE EXACTLY ${mealsPerDay} MEALS 🚨
 
-Create ${mealsPerDay} meals with these DAILY TOTALS:
-- Total Calories: ${nutrition.calories}
+YOU MUST CREATE EXACTLY ${mealsPerDay} MEALS. NOT ${mealsPerDay - 1}. NOT ${mealsPerDay + 1}. EXACTLY ${mealsPerDay} MEALS.
+
+I NEED ${mealsPerDay} MEALS TOTAL. COUNT: 1, 2, 3... up to ${mealsPerDay}.
+
+DAILY NUTRITION TARGETS (split across ${mealsPerDay} meals):
+- Total Calories: ${nutrition.calories} cal
 - Total Protein: ${nutrition.protein}g
 - Total Carbs: ${nutrition.carbs}g
 - Total Fat: ${nutrition.fat}g
 
-TARGET PER MEAL: ~${targetCaloriesPerMeal} cal, ~${targetProteinPerMeal}g protein, ~${targetCarbsPerMeal}g carbs, ~${targetFatPerMeal}g fat
+TARGET PER MEAL (approximately):
+- Calories: ~${targetCaloriesPerMeal} cal
+- Protein: ~${targetProteinPerMeal}g
+- Carbs: ~${targetCarbsPerMeal}g
+- Fat: ~${targetFatPerMeal}g
 
-Diet: ${formData.get('dietType')}
-${formData.get('allergies') ? `Avoid: ${formData.get('allergies')}` : ''}
+Diet Type: ${formData.get('dietType')}
+${formData.get('allergies') ? `Allergies/Restrictions: ${formData.get('allergies')}` : ''}
 
-Return ONLY a JSON array with EXACTLY ${mealsPerDay} meals. Example format:
+Return ONLY a JSON array with EXACTLY ${mealsPerDay} meal objects. Here is the EXACT format (showing 2 examples, but YOU MUST GENERATE ${mealsPerDay} TOTAL):
 
 [
   {
-    "name": "Scrambled Eggs with Toast",
+    "name": "Scrambled Eggs with Toast and Avocado",
     "calories": 450,
     "protein": 30,
     "carbs": 40,
     "fat": 15,
-    "instructions": "Scramble 3 eggs in butter, toast 2 slices whole wheat bread"
+    "instructions": "Scramble 3 eggs in 1 tbsp butter. Toast 2 slices whole wheat bread. Serve with half an avocado sliced."
   },
   {
-    "name": "Grilled Chicken with Rice",
+    "name": "Grilled Chicken with Brown Rice and Broccoli",
     "calories": 520,
     "protein": 45,
     "carbs": 55,
     "fat": 12,
-    "instructions": "Grill 6oz chicken breast, cook 1 cup brown rice"
+    "instructions": "Grill 6oz chicken breast seasoned with herbs. Cook 1 cup brown rice. Steam 1.5 cups broccoli."
   }
 ]
 
-CRITICAL: 
-- Return EXACTLY ${mealsPerDay} meal objects
-- ALL numbers must be INTEGERS (450, not "450" or NaN)
-- NO markdown, NO backticks
-- NO explanatory text, ONLY the JSON array`;
+🚨 MANDATORY REQUIREMENTS 🚨:
+1. Generate EXACTLY ${mealsPerDay} meals (I am counting, must be ${mealsPerDay} meals!)
+2. ALL numbers MUST be real INTEGERS (like 450, 35, 50 - NOT NaN, NOT null, NOT undefined)
+3. Each meal MUST have: name, calories, protein, carbs, fat, instructions
+4. calories, protein, carbs, fat must ALL be actual numbers
+5. NO markdown code blocks (no \`\`\`json)
+6. NO backticks
+7. NO explanatory text before or after
+8. ONLY the JSON array
+9. Remember: ${mealsPerDay} meals total!`;
+
 
             try {
                 console.log(`🚀 Requesting ${mealsPerDay} meals from API...`);
