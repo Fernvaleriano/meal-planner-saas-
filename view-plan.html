@@ -456,15 +456,21 @@
             }
 
             currentPlan = JSON.parse(planData);
+            console.log('Loaded meal plan:', currentPlan);
+            console.log('Nutrition object:', currentPlan.nutrition);
+            console.log('Meals array:', currentPlan.meals);
             displayMealPlan();
         });
 
         function displayMealPlan() {
             // Display nutrition totals
-            document.getElementById('totalCalories').textContent = currentPlan.nutrition.calories;
-            document.getElementById('totalProtein').textContent = currentPlan.nutrition.protein + 'g';
-            document.getElementById('totalCarbs').textContent = currentPlan.nutrition.carbs + 'g';
-            document.getElementById('totalFat').textContent = currentPlan.nutrition.fat + 'g';
+            console.log('Displaying nutrition - calories:', currentPlan.nutrition.calories);
+            console.log('Displaying nutrition - protein:', currentPlan.nutrition.protein);
+            
+            document.getElementById('totalCalories').textContent = currentPlan.nutrition.calories || 'N/A';
+            document.getElementById('totalProtein').textContent = (currentPlan.nutrition.protein || 0) + 'g';
+            document.getElementById('totalCarbs').textContent = (currentPlan.nutrition.carbs || 0) + 'g';
+            document.getElementById('totalFat').textContent = (currentPlan.nutrition.fat || 0) + 'g';
 
             // Display meals
             const container = document.getElementById('mealsContainer');
@@ -738,3 +744,4 @@ Return ONLY valid JSON with this structure:
     </script>
 </body>
 </html>
+
