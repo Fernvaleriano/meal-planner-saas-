@@ -310,13 +310,37 @@
         });
 
         function displayMealPlan() {
-            const nutrition = currentPlan.nutrition;
-            
-            // Display nutrition totals
-            document.getElementById('totalCalories').textContent = nutrition.calories;
-            document.getElementById('totalProtein').textContent = nutrition.protein + 'g';
-            document.getElementById('totalCarbs').textContent = nutrition.carbs + 'g';
-            document.getElementById('totalFat').textContent = nutrition.fat + 'g';
+            // CRITICAL FIX: Validate nutrition object exists, calculate if missing
+            let nutrition = currentPlan.nutrition;
+
+            if (!nutrition || !nutrition.calories) {
+                console.warn('⚠️ Nutrition object missing or invalid, calculating from meals...');
+                nutrition = {
+                    calories: 0,
+                    protein: 0,
+                    carbs: 0,
+                    fat: 0
+                };
+
+                // Calculate totals from meals
+                currentPlan.meals.forEach(meal => {
+                    nutrition.calories += parseInt(meal.calories) || 0;
+                    nutrition.protein += parseInt(meal.protein) || 0;
+                    nutrition.carbs += parseInt(meal.carbs) || 0;
+                    nutrition.fat += parseInt(meal.fat) || 0;
+                });
+
+                // Update plan with calculated nutrition
+                currentPlan.nutrition = nutrition;
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+                console.log('✅ Calculated nutrition:', nutrition);
+            }
+
+            // Display nutrition totals (with fallback to "N/A")
+            document.getElementById('totalCalories').textContent = nutrition.calories || 'N/A';
+            document.getElementById('totalProtein').textContent = nutrition.protein ? nutrition.protein + 'g' : 'N/A';
+            document.getElementById('totalCarbs').textContent = nutrition.carbs ? nutrition.carbs + 'g' : 'N/A';
+            document.getElementById('totalFat').textContent = nutrition.fat ? nutrition.fat + 'g' : 'N/A';
 
             // Display meals
             const container = document.getElementById('mealsContainer');
@@ -432,9 +456,25 @@ Keep similar calories/macros unless specifically asked to change them.`;
 
                 const data = await response.json();
                 let text = data.candidates[0].content.parts[0].text;
+
+                // CRITICAL FIX: Pre-process to remove NaN before parsing
                 text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                
+                text = text.replace(/:\s*NaN/g, ': null');
+                text = text.replace(/,\s*\.\.\./g, '');
+
+                // Extract JSON object
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    text = jsonMatch[0];
+                }
+
                 const revisedMeal = JSON.parse(text);
+
+                // CRITICAL FIX: Sanitize numeric values
+                revisedMeal.calories = parseInt(revisedMeal.calories) || meal.calories;
+                revisedMeal.protein = parseInt(revisedMeal.protein) || meal.protein;
+                revisedMeal.carbs = parseInt(revisedMeal.carbs) || meal.carbs;
+                revisedMeal.fat = parseInt(revisedMeal.fat) || meal.fat;
                 
                 // Update plan
                 currentPlan.meals[index] = revisedMeal;
@@ -488,9 +528,25 @@ Return ONLY valid JSON (NO markdown, NO backticks):
 
                 const data = await response.json();
                 let text = data.candidates[0].content.parts[0].text;
+
+                // CRITICAL FIX: Pre-process to remove NaN before parsing
                 text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                
+                text = text.replace(/:\s*NaN/g, ': null');
+                text = text.replace(/,\s*\.\.\./g, '');
+
+                // Extract JSON object
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    text = jsonMatch[0];
+                }
+
                 const newMeal = JSON.parse(text);
+
+                // CRITICAL FIX: Sanitize numeric values
+                newMeal.calories = parseInt(newMeal.calories) || meal.calories;
+                newMeal.protein = parseInt(newMeal.protein) || meal.protein;
+                newMeal.carbs = parseInt(newMeal.carbs) || meal.carbs;
+                newMeal.fat = parseInt(newMeal.fat) || meal.fat;
                 
                 currentPlan.meals[index] = newMeal;
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
