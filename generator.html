@@ -377,44 +377,45 @@
             const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
             // CRITICAL: Super explicit prompt
-            const prompt = `YOU MUST GENERATE EXACTLY ${mealsPerDay} MEALS. NOT ${mealsPerDay - 1}. NOT ${mealsPerDay + 1}. EXACTLY ${mealsPerDay} MEALS.
+            const prompt = `YOU MUST GENERATE EXACTLY ${mealsPerDay} MEALS.
 
-Create a meal plan with EXACTLY ${mealsPerDay} meals.
-
-DAILY TOTALS (split across ALL ${mealsPerDay} meals):
+Create ${mealsPerDay} meals with these DAILY TOTALS:
 - Total Calories: ${nutrition.calories}
 - Total Protein: ${nutrition.protein}g
 - Total Carbs: ${nutrition.carbs}g
 - Total Fat: ${nutrition.fat}g
 
-TARGET PER MEAL (approximately):
-- Calories: ${targetCaloriesPerMeal}
-- Protein: ${targetProteinPerMeal}g
-- Carbs: ${targetCarbsPerMeal}g
-- Fat: ${targetFatPerMeal}g
+TARGET PER MEAL: ~${targetCaloriesPerMeal} cal, ~${targetProteinPerMeal}g protein, ~${targetCarbsPerMeal}g carbs, ~${targetFatPerMeal}g fat
 
-Diet Type: ${formData.get('dietType')}
-${formData.get('allergies') ? `AVOID: ${formData.get('allergies')}` : ''}
+Diet: ${formData.get('dietType')}
+${formData.get('allergies') ? `Avoid: ${formData.get('allergies')}` : ''}
 
-Return ONLY valid JSON array with EXACTLY ${mealsPerDay} meal objects:
+Return ONLY a JSON array with EXACTLY ${mealsPerDay} meals. Example format:
 
 [
   {
     "name": "Scrambled Eggs with Toast",
-    "calories": ${targetCaloriesPerMeal},
-    "protein": ${targetProteinPerMeal},
-    "carbs": ${targetCarbsPerMeal},
-    "fat": ${targetFatPerMeal},
-    "instructions": "Scramble 3 eggs, toast 2 slices whole wheat bread"
+    "calories": 450,
+    "protein": 30,
+    "carbs": 40,
+    "fat": 15,
+    "instructions": "Scramble 3 eggs in butter, toast 2 slices whole wheat bread"
   },
-  ... (${mealsPerDay - 1} more meals MUST be here)
+  {
+    "name": "Grilled Chicken with Rice",
+    "calories": 520,
+    "protein": 45,
+    "carbs": 55,
+    "fat": 12,
+    "instructions": "Grill 6oz chicken breast, cook 1 cup brown rice"
+  }
 ]
 
-CRITICAL RULES:
-1. MUST return EXACTLY ${mealsPerDay} meals
-2. Each meal MUST have: name (string), calories (number), protein (number), carbs (number), fat (number), instructions (string)
-3. NO markdown, NO backticks, ONLY the JSON array
-4. Split the daily totals roughly equally across all ${mealsPerDay} meals`;
+CRITICAL: 
+- Return EXACTLY ${mealsPerDay} meal objects
+- ALL numbers must be INTEGERS (450, not "450" or NaN)
+- NO markdown, NO backticks
+- NO explanatory text, ONLY the JSON array`;
 
             try {
                 console.log(`🚀 Requesting ${mealsPerDay} meals from API...`);
@@ -437,6 +438,10 @@ CRITICAL RULES:
                 // Clean up response
                 text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
                 
+                // CRITICAL FIX: Replace any NaN text with null before parsing
+                text = text.replace(/:\s*NaN/g, ': null');
+                text = text.replace(/,\s*\.\.\./g, '');  // Remove ... placeholders
+                
                 // Extract JSON array
                 const jsonMatch = text.match(/\[[\s\S]*\]/);
                 if (jsonMatch) {
@@ -457,11 +462,19 @@ CRITICAL RULES:
                     throw new Error(`AI returned ${mealPlan.length} meals instead of ${mealsPerDay}`);
                 }
                 
-                // Validate each meal
+                // Validate and SANITIZE each meal
                 mealPlan.forEach((meal, index) => {
-                    if (!meal.name || typeof meal.calories !== 'number' || typeof meal.protein !== 'number') {
-                        throw new Error(`Meal ${index + 1} is missing required fields`);
+                    if (!meal.name || !meal.instructions) {
+                        throw new Error(`Meal ${index + 1} is missing name or instructions`);
                     }
+                    
+                    // FIX: Ensure all numbers are valid integers (handle null from NaN replacement)
+                    meal.calories = parseInt(meal.calories) || targetCaloriesPerMeal;
+                    meal.protein = parseInt(meal.protein) || targetProteinPerMeal;
+                    meal.carbs = parseInt(meal.carbs) || targetCarbsPerMeal;
+                    meal.fat = parseInt(meal.fat) || targetFatPerMeal;
+                    
+                    console.log(`✅ Meal ${index + 1}: ${meal.name} - ${meal.calories} cal, ${meal.protein}g protein`);
                 });
                 
                 console.log(`✅ Successfully validated ${mealsPerDay} meals!`);
