@@ -545,20 +545,34 @@
             }
         });
 
-        // Calculate calories and macros
+        // Calculate calories and macros - FIXED VERSION
         function calculateNutrition(formData) {
             const formula = formData.get('formula');
             
             if (formula === 'manual') {
-                // Use manual values directly
-                return {
-                    calories: parseInt(formData.get('manualTDEE')),
-                    protein: parseInt(formData.get('manualProtein')),
-                    carbs: parseInt(formData.get('manualCarbs')),
-                    fat: parseInt(formData.get('manualFat'))
-                };
+                const manualTDEE = formData.get('manualTDEE');
+                const manualProtein = formData.get('manualProtein');
+                const manualCarbs = formData.get('manualCarbs');
+                const manualFat = formData.get('manualFat');
+                
+                // ✅ FIX: Only use manual values if they're actually filled
+                if (manualTDEE && manualProtein && manualCarbs && manualFat) {
+                    const calories = parseInt(manualTDEE);
+                    const protein = parseInt(manualProtein);
+                    const carbs = parseInt(manualCarbs);
+                    const fat = parseInt(manualFat);
+                    
+                    // Validate they're actual numbers
+                    if (!isNaN(calories) && !isNaN(protein) && !isNaN(carbs) && !isNaN(fat)) {
+                        return { calories, protein, carbs, fat };
+                    }
+                }
+                
+                // If we're here, manual fields are empty or invalid
+                throw new Error('Please fill in all manual override fields (TDEE, Protein, Carbs, Fat) or switch to a different formula.');
             }
 
+            // For non-manual formulas (Mifflin-St Jeor or Katch-McArdle)
             const weight = parseFloat(formData.get('weight'));
             const height = parseFloat(formData.get('height'));
             const age = parseInt(formData.get('age'));
@@ -669,6 +683,8 @@
             try {
                 // Calculate nutrition
                 const nutrition = calculateNutrition(formData);
+                
+                console.log('✅ Nutrition calculated:', nutrition);
 
                 // Show loading
                 document.getElementById('mealPlanForm').style.display = 'none';
@@ -678,9 +694,6 @@
                 const mealPlan = await generateMealPlan(formData, nutrition);
 
                 // Save to localStorage
-                console.log('Nutrition before saving:', nutrition);
-                console.log('Meal plan before saving:', mealPlan);
-                
                 const planData = {
                     clientName: formData.get('clientName'),
                     clientEmail: formData.get('clientEmail'),
@@ -695,14 +708,14 @@
                     generatedAt: new Date().toISOString()
                 };
 
-                console.log('Complete plan data:', planData);
+                console.log('✅ Complete plan data:', planData);
                 localStorage.setItem('currentMealPlan', JSON.stringify(planData));
 
                 // Redirect to view page
                 window.location.href = 'view-plan.html';
 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('❌ Error:', error);
                 document.getElementById('loading').classList.remove('show');
                 document.getElementById('mealPlanForm').style.display = 'block';
                 const errorDiv = document.getElementById('errorMessage');
@@ -713,10 +726,6 @@
 
         async function generateMealPlan(formData, nutrition) {
             const mealsPerDay = formData.get('mealsPerDay');
-            const targetCaloriesPerMeal = Math.round(nutrition.calories / mealsPerDay);
-            const targetProteinPerMeal = Math.round(nutrition.protein / mealsPerDay);
-            const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
-            const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
             const prompt = `Create ${mealsPerDay} realistic meals for a daily meal plan.
 
@@ -749,15 +758,6 @@ Return ONLY a JSON array with this EXACT structure:
     "carbs": 52,
     "fat": 16,
     "instructions": "Grill chicken, cook rice, steam broccoli"
-  },
-  {
-    "name": "Dinner",
-    "foods": ["8oz salmon", "2 cups mixed salad", "1 sweet potato", "2 tbsp dressing"],
-    "calories": 480,
-    "protein": 42,
-    "carbs": 38,
-    "fat": 14,
-    "instructions": "Bake salmon at 400F for 15min, bake potato, toss salad"
   }
 ]
 
@@ -841,7 +841,7 @@ CRITICAL RULES:
                     }
                 });
                 
-                console.log('All meals validated successfully!');
+                console.log('✅ All meals validated successfully!');
                 return mealPlan;
                 
             } catch (error) {
@@ -857,4 +857,3 @@ CRITICAL RULES:
     </script>
 </body>
 </html>
-
