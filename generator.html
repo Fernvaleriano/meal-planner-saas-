@@ -714,53 +714,56 @@
             const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
             const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
-            const prompt = `You are a meal planning API. Return ONLY a JSON array with exactly ${mealsPerDay} meals.
+            const prompt = `Create a ${mealsPerDay}-meal daily plan. Return ONLY valid JSON with NO other text.
 
-REQUIREMENTS FOR EACH MEAL:
-- Total daily calories: ${nutrition.calories} (approximately ${targetCaloriesPerMeal} per meal)
-- Total daily protein: ${nutrition.protein}g (approximately ${targetProteinPerMeal}g per meal)
-- Total daily carbs: ${nutrition.carbs}g (approximately ${targetCarbsPerMeal}g per meal)
-- Total daily fat: ${nutrition.fat}g (approximately ${targetFatPerMeal}g per meal)
+TARGET NUTRITION (total for all ${mealsPerDay} meals):
+- Calories: ${nutrition.calories} (about ${targetCaloriesPerMeal} per meal)
+- Protein: ${nutrition.protein}g (about ${targetProteinPerMeal}g per meal)
+- Carbs: ${nutrition.carbs}g (about ${targetCarbsPerMeal}g per meal)
+- Fat: ${nutrition.fat}g (about ${targetFatPerMeal}g per meal)
 
-Diet restrictions: ${formData.get('dietType')}
-${formData.get('allergies') ? `Avoid: ${formData.get('allergies')}` : ''}
+Diet: ${formData.get('dietType')}
+${formData.get('allergies') ? `Restrictions: ${formData.get('allergies')}` : ''}
 
-CRITICAL RULES:
-1. Return ONLY valid JSON - no markdown, no explanation, no text before or after
-2. EVERY meal MUST have ALL these fields with NUMERIC values:
-   - name (string: "Breakfast", "Lunch", "Dinner", "Snack 1", etc.)
-   - foods (array of strings with portions)
-   - calories (number - integer only)
-   - protein (number - integer only) 
-   - carbs (number - integer only)
-   - fat (number - integer only)
-   - instructions (string)
-
-3. All numeric values MUST be actual numbers, NOT null or strings
-
-EXAMPLE OF CORRECT FORMAT:
+REQUIRED JSON FORMAT - Copy this structure exactly:
 [
   {
     "name": "Breakfast",
-    "foods": ["3 scrambled eggs", "2 slices whole wheat toast", "1 medium banana"],
-    "calories": 450,
-    "protein": 25,
-    "carbs": 55,
-    "fat": 15,
-    "instructions": "Scramble eggs in pan, toast bread, serve with banana"
+    "foods": [
+      "3 large eggs scrambled",
+      "2 slices whole wheat toast",
+      "1 medium banana",
+      "1 tbsp butter"
+    ],
+    "calories": ${targetCaloriesPerMeal},
+    "protein": ${targetProteinPerMeal},
+    "carbs": ${targetCarbsPerMeal},
+    "fat": ${targetFatPerMeal},
+    "instructions": "Scramble eggs with butter, toast bread, peel banana"
   },
   {
     "name": "Lunch",
-    "foods": ["6oz grilled chicken breast", "1 cup brown rice", "1 cup broccoli"],
-    "calories": 520,
-    "protein": 45,
-    "carbs": 50,
-    "fat": 12,
-    "instructions": "Grill chicken, cook rice, steam broccoli"
+    "foods": [
+      "6 oz grilled chicken breast",
+      "1.5 cups brown rice cooked",
+      "1 cup steamed broccoli",
+      "2 tbsp olive oil"
+    ],
+    "calories": ${targetCaloriesPerMeal},
+    "protein": ${targetProteinPerMeal},
+    "carbs": ${targetCarbsPerMeal},
+    "fat": ${targetFatPerMeal},
+    "instructions": "Grill chicken seasoned with salt and pepper, cook rice according to package, steam broccoli"
   }
 ]
 
-Generate ${mealsPerDay} meals following this EXACT format. Return ONLY the JSON array.`;
+RULES:
+1. Return exactly ${mealsPerDay} meals
+2. Each meal MUST have "foods" as an array with 3-5 specific food items with portions
+3. All calories/protein/carbs/fat must be positive integers
+4. Use meal names like: Breakfast, Lunch, Dinner, Snack 1, Snack 2, etc.
+
+Return ONLY the JSON array starting with [ and ending with ]. No markdown, no explanation.`;
 
             try {
                 const response = await fetch(API_ENDPOINT, {
@@ -790,6 +793,13 @@ Generate ${mealsPerDay} meals following this EXACT format. Return ONLY the JSON 
                 
                 // Clean up the text - remove markdown code blocks
                 text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                
+                // Sometimes AI adds text before/after JSON, extract just the JSON array
+                const jsonMatch = text.match(/\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    text = jsonMatch[0];
+                }
+                
                 console.log('Cleaned text:', text);
                 
                 // Parse JSON
@@ -808,23 +818,23 @@ Generate ${mealsPerDay} meals following this EXACT format. Return ONLY the JSON 
                     if (!meal.name) {
                         throw new Error(`Meal ${index} missing name`);
                     }
-                    if (!Array.isArray(meal.foods) || meal.foods.length === 0) {
+                    if (!meal.foods || !Array.isArray(meal.foods) || meal.foods.length === 0) {
                         throw new Error(`Meal ${index} missing foods array`);
                     }
-                    if (typeof meal.calories !== 'number' || meal.calories === 0) {
+                    if (typeof meal.calories !== 'number' || meal.calories <= 0) {
                         throw new Error(`Meal ${index} has invalid calories: ${meal.calories}`);
                     }
-                    if (typeof meal.protein !== 'number' || meal.protein === 0) {
+                    if (typeof meal.protein !== 'number' || meal.protein <= 0) {
                         throw new Error(`Meal ${index} has invalid protein: ${meal.protein}`);
                     }
-                    if (typeof meal.carbs !== 'number' || meal.carbs === 0) {
+                    if (typeof meal.carbs !== 'number' || meal.carbs <= 0) {
                         throw new Error(`Meal ${index} has invalid carbs: ${meal.carbs}`);
                     }
-                    if (typeof meal.fat !== 'number' || meal.fat === 0) {
+                    if (typeof meal.fat !== 'number' || meal.fat <= 0) {
                         throw new Error(`Meal ${index} has invalid fat: ${meal.fat}`);
                     }
                     if (!meal.instructions) {
-                        meal.instructions = "Prepare as directed";
+                        meal.instructions = "Prepare ingredients as listed above";
                     }
                 });
                 
