@@ -66,11 +66,19 @@ exports.handler = async (event, context) => {
     if (data.candidates && data.candidates[0] && data.candidates[0].content) {
       const text = data.candidates[0].content.parts[0].text;
       
-      if (isJson) {
-        try {
-          // Parse JSON response
-          result = JSON.parse(text);
-        } catch (e) {
+     if (isJson) {
+  try {
+    // Strip markdown code blocks if present
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```json')) {
+      cleanText = cleanText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    } else if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    }
+    
+    // Parse JSON response
+    result = JSON.parse(cleanText.trim());
+  } catch (e) {
           console.error('JSON parse error:', e);
           return {
             statusCode: 500,
