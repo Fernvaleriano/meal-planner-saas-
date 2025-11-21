@@ -34,14 +34,9 @@ exports.handler = async (event, context) => {
         temperature: 0.7,
         topK: 40,
         topP: 0.95,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 8192
       }
     };
-
-    // If expecting JSON, add response format instruction
-    if (isJson) {
-      geminiRequest.generationConfig.responseMimeType = "application/json";
-    }
 
     // Call Gemini API
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
