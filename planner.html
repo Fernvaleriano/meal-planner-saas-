@@ -351,12 +351,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             currentCoach = session.user;
-            console.log('Coach logged in:', currentCoach.email);
+            console.log("Coach logged in:", currentCoach.email);
         } else {
-            console.warn('No active session - plans will not be saved to history');
+            console.warn("No active session - plans will not be saved to history");
         }
     } catch (error) {
-        console.error('Auth error:', error);
+        console.error("Auth error:", error);
     }
 });
 
