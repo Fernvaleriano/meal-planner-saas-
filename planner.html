@@ -372,23 +372,20 @@ document.addEventListener('DOMContentLoaded', () => {
             newClientNameInput.required = false;
             selectedClientIdInput.value = selectedValue;
 
-            // Find the selected client and optionally pre-populate preferences
+            // Find the selected client and auto-populate ALL fields
             const client = clientsList.find(c => c.id === parseInt(selectedValue));
             if (client) {
-                console.log('Selected client:', client.client_name);
+                console.log('✅ Auto-filling data for client:', client.client_name);
 
-                // Optionally pre-populate dietary preferences if they exist
-                if (client.default_dietary_restrictions && Array.isArray(client.default_dietary_restrictions)) {
-                    // Map client restrictions to diet type if possible
-                    const restrictions = client.default_dietary_restrictions;
-                    if (restrictions.includes('vegan')) {
-                        document.getElementById('dp_preference').value = 'vegan';
-                    } else if (restrictions.includes('vegetarian')) {
-                        document.getElementById('dp_preference').value = 'vegetarian';
-                    }
-                }
+                // Physical stats
+                if (client.age) document.getElementById('dp_age').value = client.age;
+                if (client.gender) document.getElementById('dp_gender').value = client.gender;
+                if (client.weight) document.getElementById('dp_weight').value = client.weight;
+                if (client.height_ft) document.getElementById('dp_height_ft').value = client.height_ft;
+                if (client.height_in) document.getElementById('dp_height_in').value = client.height_in;
+                if (client.activity_level) document.getElementById('dp_activity').value = client.activity_level;
 
-                // Pre-populate goal if it exists
+                // Goals & nutrition
                 if (client.default_goal) {
                     const goalMap = {
                         'lose_weight': 'lose weight',
@@ -396,10 +393,47 @@ document.addEventListener('DOMContentLoaded', () => {
                         'gain_muscle': 'gain muscle'
                     };
                     const goalValue = goalMap[client.default_goal];
-                    if (goalValue) {
-                        document.getElementById('dp_goal').value = goalValue;
-                    }
+                    if (goalValue) document.getElementById('dp_goal').value = goalValue;
                 }
+
+                if (client.calorie_adjustment) document.getElementById('dp_calorie_adjustment').value = client.calorie_adjustment;
+                if (client.diet_type) document.getElementById('dp_preference').value = client.diet_type;
+                if (client.macro_preference) document.getElementById('dp_macro_preference').value = client.macro_preference;
+                if (client.meal_count) document.getElementById('dp_meals').value = client.meal_count;
+
+                // Food preferences
+                if (client.allergies) document.getElementById('dp_allergies').value = client.allergies;
+                if (client.disliked_foods) document.getElementById('dp_disliked_foods').value = client.disliked_foods;
+                if (client.preferred_foods) document.getElementById('dp_preferred_foods').value = client.preferred_foods;
+                if (client.budget) document.getElementById('dp_budget').value = client.budget;
+
+                // Cooking equipment
+                if (client.cooking_equipment && Array.isArray(client.cooking_equipment)) {
+                    // Uncheck all first
+                    document.querySelectorAll('input[id^="equip_"]').forEach(cb => cb.checked = false);
+                    // Check the ones from client profile
+                    client.cooking_equipment.forEach(equip => {
+                        const equipId = 'equip_' + equip.toLowerCase().replace(/\s+/g, '');
+                        const checkbox = document.getElementById(equipId);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+
+                // Protein powder
+                if (client.use_protein_powder) {
+                    document.getElementById('dp_use_protein').checked = true;
+                    document.getElementById('protein-powder-section').style.display = 'block';
+                    if (client.protein_powder_brand) document.getElementById('dp_protein_brand').value = client.protein_powder_brand;
+                    if (client.protein_powder_calories) document.getElementById('dp_protein_cals').value = client.protein_powder_calories;
+                    if (client.protein_powder_protein) document.getElementById('dp_protein_protein').value = client.protein_powder_protein;
+                    if (client.protein_powder_carbs) document.getElementById('dp_protein_carbs').value = client.protein_powder_carbs;
+                    if (client.protein_powder_fat) document.getElementById('dp_protein_fat').value = client.protein_powder_fat;
+                } else {
+                    document.getElementById('dp_use_protein').checked = false;
+                    document.getElementById('protein-powder-section').style.display = 'none';
+                }
+
+                console.log('✅ All fields auto-populated from client profile');
             }
         }
     });
