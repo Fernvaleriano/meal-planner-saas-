@@ -375,7 +375,7 @@
         <div class="action-buttons">
             <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
             <button id="sharePlanBtn" class="btn btn-share" onclick="generateShareLink()" style="display: none;">🔗 Share Plan Link</button>
-            <button id="generateNewBtn" class="btn btn-secondary" onclick="window.location.href='generator.html'" style="display: none;">← Generate New Plan</button>
+            <button id="generateNewBtn" class="btn btn-secondary" onclick="window.location.href='planner.html'" style="display: none;">← Generate New Plan</button>
         </div>
     </div>
 
@@ -416,7 +416,7 @@
 
                 if (!planData) {
                     alert('No meal plan found. Redirecting...');
-                    window.location.href = 'generator.html';
+                    window.location.href = 'planner.html';
                     return;
                 }
 
@@ -432,7 +432,7 @@
                 } catch (error) {
                     console.error('❌ Error loading plan:', error);
                     alert('Error loading plan. Please generate a new one.');
-                    window.location.href = 'generator.html';
+                    window.location.href = 'planner.html';
                 }
             }
         });
@@ -467,7 +467,7 @@
             } catch (error) {
                 console.error('❌ Error loading shared plan:', error);
                 alert('Failed to load shared plan. The link may be invalid or expired.');
-                window.location.href = 'generator.html';
+                window.location.href = 'planner.html';
             }
         }
 
