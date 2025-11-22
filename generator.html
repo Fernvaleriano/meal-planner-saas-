@@ -477,24 +477,30 @@ ${exampleArray}
 
                 const data = await response.json();
                 console.log('📦 Raw API response:', data);
-                
+
                 let text = data.candidates[0].content.parts[0].text;
-                
+                console.log('📝 Original text from AI:', text.substring(0, 500));
+
                 // Clean up response
                 text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                
+
                 // CRITICAL FIX: Replace any NaN text with null before parsing
                 text = text.replace(/:\s*NaN/g, ': null');
                 text = text.replace(/,\s*\.\.\./g, '');  // Remove ... placeholders
-                
+
                 // Extract JSON array
                 const jsonMatch = text.match(/\[[\s\S]*\]/);
                 if (jsonMatch) {
                     text = jsonMatch[0];
+                    console.log('✅ Found JSON array, length:', text.length);
+                } else {
+                    console.error('❌ No JSON array found in response!');
+                    console.error('Full cleaned text:', text);
+                    throw new Error('AI response did not contain a JSON array');
                 }
-                
-                console.log('🧹 Cleaned text:', text);
-                
+
+                console.log('🧹 Cleaned text (first 1000 chars):', text.substring(0, 1000));
+
                 const mealPlan = JSON.parse(text);
                 console.log(`📋 Parsed ${mealPlan.length} meals:`, mealPlan);
                 
