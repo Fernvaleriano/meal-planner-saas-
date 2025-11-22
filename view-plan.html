@@ -518,8 +518,42 @@
 
                 console.log('Loaded coach plan:', data);
 
-                // Extract plan_data from the response
-                currentPlan = data.plan_data;
+                // Extract and transform plan_data from the response
+                const planData = data.plan_data;
+
+                // Transform multi-day plan structure to flat meals array
+                const allMeals = [];
+                let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+                if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
+                    // Multi-day plan structure
+                    planData.currentPlan.forEach(day => {
+                        if (day.plan && Array.isArray(day.plan)) {
+                            day.plan.forEach(meal => {
+                                allMeals.push(meal);
+                                totalCalories += parseInt(meal.calories) || 0;
+                                totalProtein += parseInt(meal.protein) || 0;
+                                totalCarbs += parseInt(meal.carbs) || 0;
+                                totalFat += parseInt(meal.fat) || 0;
+                            });
+                        }
+                    });
+                }
+
+                // Create compatible structure for displayMealPlan
+                currentPlan = {
+                    clientName: planData.clientName || data.client_name,
+                    preferences: planData.preferences || {},
+                    meals: allMeals,
+                    nutrition: {
+                        calories: totalCalories,
+                        protein: totalProtein,
+                        carbs: totalCarbs,
+                        fat: totalFat
+                    }
+                };
+
+                console.log('Transformed plan:', currentPlan);
 
                 // Show coach-only buttons
                 document.getElementById('sharePlanBtn').style.display = 'inline-block';
@@ -528,7 +562,7 @@
                 displayMealPlan();
 
                 // Update header with client name
-                const clientName = data.client_name || 'Client';
+                const clientName = currentPlan.clientName || 'Client';
                 const mealCount = currentPlan.meals ? currentPlan.meals.length : 0;
                 const planText = mealCount > 1 ? 'Meal Plans' : 'Meal Plan';
                 document.getElementById('planHeader').textContent = `${clientName}'s ${planText}`;
