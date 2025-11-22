@@ -960,9 +960,30 @@ Return ONLY valid JSON (NO markdown, NO backticks):
             `;
 
             try {
-                // Collect all meals from the plan
+                // Collect all meals from the plan (handle both single-day and multi-day)
                 const allMeals = [];
-                if (currentPlan.meals && Array.isArray(currentPlan.meals)) {
+                let numDays = 1;
+
+                if (currentPlan.multiDay && currentPlan.days) {
+                    // Multi-day plan: collect from all days
+                    numDays = currentPlan.days.length;
+                    currentPlan.days.forEach(dayData => {
+                        if (dayData.plan && Array.isArray(dayData.plan)) {
+                            dayData.plan.forEach(meal => {
+                                allMeals.push({
+                                    day: dayData.day,
+                                    type: meal.type,
+                                    name: meal.name,
+                                    calories: meal.calories,
+                                    protein: meal.protein,
+                                    carbs: meal.carbs,
+                                    fat: meal.fat
+                                });
+                            });
+                        }
+                    });
+                } else if (currentPlan.meals && Array.isArray(currentPlan.meals)) {
+                    // Single-day plan
                     currentPlan.meals.forEach(meal => {
                         allMeals.push({
                             type: meal.type,
@@ -980,9 +1001,15 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                     return;
                 }
 
-                const mealsList = allMeals.map(m => `${m.type}: ${m.name}`).join('\n');
+                // Build meals list (include day number for multi-day plans)
+                const mealsList = allMeals.map(m => {
+                    if (m.day) {
+                        return `Day ${m.day} ${m.type}: ${m.name}`;
+                    }
+                    return `${m.type}: ${m.name}`;
+                }).join('\n');
 
-                const prompt = `You are a professional meal prep consultant. Create a comprehensive meal prep guide for the following meal plan:
+                const prompt = `You are a professional meal prep consultant. Create a comprehensive meal prep guide for the following ${numDays}-day meal plan:
 
 ${mealsList}
 
@@ -1043,6 +1070,10 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
 
         // Simple markdown formatter
         function formatMarkdown(text) {
+            if (!text || typeof text !== 'string') {
+                console.error('formatMarkdown received invalid input:', text);
+                throw new Error('Invalid response format from AI');
+            }
             return text
                 .replace(/^## (.+)$/gm, '<h2 style="font-size: 24px; font-weight: bold; margin: 30px 0 15px 0; color: #333;">$1</h2>')
                 .replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: 600; margin: 20px 0 10px 0; color: #555;">$1</h3>')
@@ -1066,10 +1097,19 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
             });
 
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error:', errorText);
                 throw new Error('Failed to generate meal prep guide');
             }
 
             const data = await response.json();
+            console.log('API Response:', data);
+
+            if (!data.result) {
+                console.error('No result in response:', data);
+                throw new Error('Invalid response from AI service');
+            }
+
             return data.result;
         }
 
@@ -1201,7 +1241,28 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
 
                 // Generate meal prep guide
                 const allMeals = [];
-                if (currentPlan.meals && Array.isArray(currentPlan.meals)) {
+                let numDays = 1;
+
+                if (currentPlan.multiDay && currentPlan.days) {
+                    // Multi-day plan: collect from all days
+                    numDays = currentPlan.days.length;
+                    currentPlan.days.forEach(dayData => {
+                        if (dayData.plan && Array.isArray(dayData.plan)) {
+                            dayData.plan.forEach(meal => {
+                                allMeals.push({
+                                    day: dayData.day,
+                                    type: meal.type,
+                                    name: meal.name,
+                                    calories: meal.calories,
+                                    protein: meal.protein,
+                                    carbs: meal.carbs,
+                                    fat: meal.fat
+                                });
+                            });
+                        }
+                    });
+                } else if (currentPlan.meals && Array.isArray(currentPlan.meals)) {
+                    // Single-day plan
                     currentPlan.meals.forEach(meal => {
                         allMeals.push({
                             type: meal.type,
@@ -1214,8 +1275,13 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                     });
                 }
 
-                const mealsList = allMeals.map(m => `${m.type}: ${m.name}`).join('\n');
-                const numDays = currentPlan.numDays || 3;
+                // Build meals list (include day number for multi-day plans)
+                const mealsList = allMeals.map(m => {
+                    if (m.day) {
+                        return `Day ${m.day} ${m.type}: ${m.name}`;
+                    }
+                    return `${m.type}: ${m.name}`;
+                }).join('\n');
 
                 const prompt = `You are a professional meal prep consultant. Create a comprehensive meal prep guide for the following ${numDays}-day meal plan:
 
