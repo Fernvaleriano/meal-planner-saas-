@@ -545,6 +545,7 @@
                 if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
                     // Multi-day plan structure - keep it organized by day
                     currentPlan = {
+                        planId: data.id, // Store the coach plan ID for linking shared plans
                         clientName: planData.clientName || data.client_name,
                         preferences: planData.preferences || {},
                         multiDay: true,
@@ -559,6 +560,7 @@
                 } else {
                     // Fallback for old single-day format
                     currentPlan = {
+                        planId: data.id, // Store the coach plan ID for linking shared plans
                         clientName: planData.clientName || data.client_name,
                         preferences: planData.preferences || {},
                         meals: planData.meals || [],
@@ -603,10 +605,20 @@
             try {
                 console.log('📤 Saving plan for sharing...');
 
+                // Prepare request body
+                const requestBody = { planData: currentPlan };
+
+                // If this plan was loaded from database (has planId), include it
+                // This links the shared plan to the coach plan for cascade deletion
+                if (currentPlan.planId) {
+                    requestBody.coachPlanId = currentPlan.planId;
+                    console.log('Linking shared plan to coach plan:', currentPlan.planId);
+                }
+
                 const response = await fetch(SAVE_PLAN_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ planData: currentPlan })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {

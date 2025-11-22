@@ -14,7 +14,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { planData } = JSON.parse(event.body);
+    const { planData, coachPlanId } = JSON.parse(event.body);
 
     if (!planData) {
       return {
@@ -29,16 +29,22 @@ exports.handler = async (event, context) => {
     // Generate a unique share ID (8 characters)
     const shareId = Math.random().toString(36).substring(2, 10);
 
+    // Prepare insert data
+    const insertData = {
+      share_id: shareId,
+      plan_data: planData,
+      created_at: new Date().toISOString()
+    };
+
+    // Add coach_plan_id if provided (links shared plan to coach plan)
+    if (coachPlanId) {
+      insertData.coach_plan_id = coachPlanId;
+    }
+
     // Insert the shared plan into the database
     const { data, error } = await supabase
       .from('shared_meal_plans')
-      .insert([
-        {
-          share_id: shareId,
-          plan_data: planData,
-          created_at: new Date().toISOString()
-        }
-      ])
+      .insert([insertData])
       .select()
       .single();
 
