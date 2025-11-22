@@ -521,37 +521,30 @@
                 // Extract and transform plan_data from the response
                 const planData = data.plan_data;
 
-                // Transform multi-day plan structure to flat meals array
-                const allMeals = [];
-                let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
-
+                // FIXED: Store multi-day structure instead of flattening
                 if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
-                    // Multi-day plan structure
-                    planData.currentPlan.forEach(day => {
-                        if (day.plan && Array.isArray(day.plan)) {
-                            day.plan.forEach(meal => {
-                                allMeals.push(meal);
-                                totalCalories += parseInt(meal.calories) || 0;
-                                totalProtein += parseInt(meal.protein) || 0;
-                                totalCarbs += parseInt(meal.carbs) || 0;
-                                totalFat += parseInt(meal.fat) || 0;
-                            });
+                    // Multi-day plan structure - keep it organized by day
+                    currentPlan = {
+                        clientName: planData.clientName || data.client_name,
+                        preferences: planData.preferences || {},
+                        multiDay: true,
+                        days: planData.currentPlan, // Store all days with structure
+                        nutrition: {
+                            calories: planData.calories,
+                            protein: planData.protein,
+                            carbs: planData.carbs,
+                            fat: planData.fat
                         }
-                    });
+                    };
+                } else {
+                    // Fallback for old single-day format
+                    currentPlan = {
+                        clientName: planData.clientName || data.client_name,
+                        preferences: planData.preferences || {},
+                        meals: planData.meals || [],
+                        nutrition: planData.nutrition || {}
+                    };
                 }
-
-                // Create compatible structure for displayMealPlan
-                currentPlan = {
-                    clientName: planData.clientName || data.client_name,
-                    preferences: planData.preferences || {},
-                    meals: allMeals,
-                    nutrition: {
-                        calories: totalCalories,
-                        protein: totalProtein,
-                        carbs: totalCarbs,
-                        fat: totalFat
-                    }
-                };
 
                 console.log('Transformed plan:', currentPlan);
 
@@ -655,11 +648,11 @@
         }
 
         function displayMealPlan() {
-            // CRITICAL FIX: Validate nutrition object exists, calculate if missing
+            // FIXED: Handle both multi-day and single-day plans
             let nutrition = currentPlan.nutrition;
 
             if (!nutrition || !nutrition.calories) {
-                console.warn('⚠️ Nutrition object missing or invalid, calculating from meals...');
+                console.warn('⚠️ Nutrition object missing or invalid, calculating...');
                 nutrition = {
                     calories: 0,
                     protein: 0,
@@ -667,34 +660,61 @@
                     fat: 0
                 };
 
-                // Calculate totals from meals
-                currentPlan.meals.forEach(meal => {
-                    nutrition.calories += parseInt(meal.calories) || 0;
-                    nutrition.protein += parseInt(meal.protein) || 0;
-                    nutrition.carbs += parseInt(meal.carbs) || 0;
-                    nutrition.fat += parseInt(meal.fat) || 0;
-                });
+                // Calculate based on plan type
+                if (currentPlan.multiDay && currentPlan.days) {
+                    // For multi-day, show DAILY targets (not total across all days)
+                    if (currentPlan.days[0] && currentPlan.days[0].targets) {
+                        nutrition = currentPlan.days[0].targets;
+                    }
+                } else if (currentPlan.meals) {
+                    // For single-day, calculate totals
+                    currentPlan.meals.forEach(meal => {
+                        nutrition.calories += parseInt(meal.calories) || 0;
+                        nutrition.protein += parseInt(meal.protein) || 0;
+                        nutrition.carbs += parseInt(meal.carbs) || 0;
+                        nutrition.fat += parseInt(meal.fat) || 0;
+                    });
+                }
 
-                // Update plan with calculated nutrition
                 currentPlan.nutrition = nutrition;
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
                 console.log('✅ Calculated nutrition:', nutrition);
             }
 
-            // Display nutrition totals (with fallback to "N/A")
+            // Display DAILY nutrition totals
             document.getElementById('totalCalories').textContent = nutrition.calories || 'N/A';
             document.getElementById('totalProtein').textContent = nutrition.protein ? nutrition.protein + 'g' : 'N/A';
             document.getElementById('totalCarbs').textContent = nutrition.carbs ? nutrition.carbs + 'g' : 'N/A';
             document.getElementById('totalFat').textContent = nutrition.fat ? nutrition.fat + 'g' : 'N/A';
 
-            // Display meals
+            // Display meals - FIXED for multi-day plans
             const container = document.getElementById('mealsContainer');
             container.innerHTML = '';
 
-            currentPlan.meals.forEach((meal, index) => {
-                const mealCard = createMealCard(meal, index);
-                container.appendChild(mealCard);
-            });
+            if (currentPlan.multiDay && currentPlan.days) {
+                // Multi-day plan: show days with separators
+                currentPlan.days.forEach((dayData, dayIndex) => {
+                    // Day header
+                    const dayHeader = document.createElement('div');
+                    dayHeader.style.cssText = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 12px; margin: 20px 0 15px 0; font-weight: 700; font-size: 1.3em; text-align: center;';
+                    dayHeader.textContent = `Day ${dayData.day}`;
+                    container.appendChild(dayHeader);
+
+                    // Meals for this day
+                    if (dayData.plan && Array.isArray(dayData.plan)) {
+                        dayData.plan.forEach((meal, mealIndex) => {
+                            const mealCard = createMealCard(meal, `${dayIndex}-${mealIndex}`, dayIndex, mealIndex);
+                            container.appendChild(mealCard);
+                        });
+                    }
+                });
+            } else if (currentPlan.meals) {
+                // Single-day plan: show meals directly
+                currentPlan.meals.forEach((meal, index) => {
+                    const mealCard = createMealCard(meal, index);
+                    container.appendChild(mealCard);
+                });
+            }
         }
 
         function createMealCard(meal, index) {
