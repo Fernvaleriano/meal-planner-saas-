@@ -517,10 +517,58 @@
                 hour12: true
             });
 
+            // Extract plan details from plan_data
+            const planData = plan.plan_data || {};
+            let planDetails = [];
+
+            // Get number of days
+            let numDays = 1;
+            if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
+                numDays = planData.currentPlan.length;
+            } else if (planData.days && Array.isArray(planData.days)) {
+                numDays = planData.days.length;
+            }
+            planDetails.push(`${numDays}-Day`);
+
+            // Get calories
+            if (planData.calories) {
+                planDetails.push(`${planData.calories} cal`);
+            } else if (planData.nutrition && planData.nutrition.calories) {
+                planDetails.push(`${planData.nutrition.calories} cal`);
+            }
+
+            // Get goal
+            if (planData.goal) {
+                const goalLabels = {
+                    'lose weight': 'Lose Weight',
+                    'lose_weight': 'Lose Weight',
+                    'maintain weight': 'Maintain',
+                    'maintain': 'Maintain',
+                    'gain muscle': 'Gain Muscle',
+                    'gain_muscle': 'Gain Muscle'
+                };
+                planDetails.push(goalLabels[planData.goal.toLowerCase()] || planData.goal);
+            } else if (planData.preferences && planData.preferences.goal) {
+                const goalLabels = {
+                    'lose weight': 'Lose Weight',
+                    'lose_weight': 'Lose Weight',
+                    'maintain weight': 'Maintain',
+                    'maintain': 'Maintain',
+                    'gain muscle': 'Gain Muscle',
+                    'gain_muscle': 'Gain Muscle'
+                };
+                planDetails.push(goalLabels[planData.preferences.goal.toLowerCase()] || planData.preferences.goal);
+            }
+
+            const planSummary = planDetails.join(' • ');
+
             return `
                 <div class="plan-card" onclick="viewPlan(${plan.id})">
                     <div class="plan-card-header">
-                        <div class="plan-date">${formattedDate} at ${formattedTime}</div>
+                        <div>
+                            <div style="font-weight: 600; color: #667eea; margin-bottom: 4px;">${planSummary}</div>
+                            <div class="plan-date">${formattedDate} at ${formattedTime}</div>
+                        </div>
                         <div class="plan-actions">
                             <button class="icon-btn" onclick="deletePlan(${plan.id}, event)" title="Delete plan">🗑️</button>
                         </div>
