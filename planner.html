@@ -547,9 +547,27 @@ async function generateDietPlan() {
             previousMealsText = `\n\nPREVIOUS DAYS MEALS (DO NOT REPEAT):\n${previousMeals.join('\n')}\n\nIMPORTANT: Create COMPLETELY DIFFERENT meals from the previous days listed above. Provide variety in proteins, cuisines, and cooking methods.`;
         }
 
+        // Parse meal structure to be explicit
+        let mealStructure = '';
+        let expectedMealTypes = [];
+
+        if (meals === '3 meals') {
+            mealStructure = 'EXACTLY 3 meals: breakfast, lunch, dinner';
+            expectedMealTypes = ['breakfast', 'lunch', 'dinner'];
+        } else if (meals === '3 meals, 1 snack') {
+            mealStructure = 'EXACTLY 4 items: breakfast, lunch, dinner, and 1 snack';
+            expectedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+        } else if (meals === '3 meals, 2 snacks') {
+            mealStructure = 'EXACTLY 5 items: breakfast, lunch, dinner, and 2 snacks';
+            expectedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'snack'];
+        } else if (meals === '3 meals, 3 snacks') {
+            mealStructure = 'EXACTLY 6 items: breakfast, lunch, dinner, and 3 snacks';
+            expectedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'snack', 'snack'];
+        }
+
         const dayPrompt = `Create 1-day meal plan for Day ${day} of ${numDays}.
 Stats: ${age}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
-Goal: ${goal}, Meals: ${meals}, Diet: ${preference}
+Goal: ${goal}, Diet: ${preference}
 Macro Preference: ${macroPreference}
 Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
@@ -558,6 +576,12 @@ Budget: ${budget}
 Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
+
+CRITICAL MEAL STRUCTURE:
+Generate ${mealStructure}. DO NOT generate more or fewer items.
+${expectedMealTypes.length === 4 ? 'The array should have EXACTLY 4 objects.' : ''}
+${expectedMealTypes.length === 5 ? 'The array should have EXACTLY 5 objects.' : ''}
+${expectedMealTypes.length === 6 ? 'The array should have EXACTLY 6 objects.' : ''}
 
 CRITICAL CALORIE ACCURACY RULES:
 - VERIFY macro math: (protein grams × 4) + (carbs grams × 4) + (fat grams × 9) MUST equal total calories
@@ -589,6 +613,18 @@ Include detailed ingredients list and full cooking instructions.
             resultDiv.innerHTML = `<div class="card text-red-600">Error generating Day ${day}: ${dayData.error}</div>`;
             button.disabled = false;
             return;
+        }
+
+        // Validate meal count
+        if (dayData.plan && Array.isArray(dayData.plan)) {
+            if (dayData.plan.length !== expectedMealTypes.length) {
+                console.warn(`⚠️ Wrong meal count: Got ${dayData.plan.length} meals but expected ${expectedMealTypes.length}`);
+                // Trim or pad the plan to match expected count
+                if (dayData.plan.length > expectedMealTypes.length) {
+                    console.log('Trimming excess meals...');
+                    dayData.plan = dayData.plan.slice(0, expectedMealTypes.length);
+                }
+            }
         }
 
         // Validate each meal and regenerate if needed
