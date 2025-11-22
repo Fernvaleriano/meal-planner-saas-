@@ -164,48 +164,12 @@
         <h1 class="text-3xl font-bold text-gray-800 mb-2">🏋️ AI Meal Planner</h1>
         <p class="text-gray-600 mb-4">Professional meal planning powered by AI</p>
 
-        <!-- Unit System Toggle -->
-        <div class="flex justify-center items-center gap-3 mb-6">
-            <span class="text-sm text-gray-600">Unit System:</span>
-            <div class="flex gap-2">
-                <button id="unit-imperial" class="btn btn-primary text-sm py-1 px-3">Imperial (lbs/ft)</button>
-                <button id="unit-metric" class="btn btn-secondary text-sm py-1 px-3">Metric (kg/cm)</button>
-            </div>
-        </div>
-
         <div class="flex flex-col md:flex-row gap-4 justify-center">
-            <button data-action="nav-meal-generator" class="btn btn-secondary text-lg">Single Meal Generator</button>
-            <button data-action="nav-diet-plan" class="btn btn-primary text-lg">Full Diet Plan (Multi-Day)</button>
-            <button data-action="nav-cheat-meal" class="btn btn-secondary text-lg">Cheat Meal Helper</button>
+            <button data-action="nav-diet-plan" class="btn btn-primary text-lg">Create Meal Plan</button>
         </div>
         <div class="mt-6">
             <a href="dashboard.html" class="text-blue-600 hover:underline">← Back to Dashboard</a>
         </div>
-    </div>
-
-    <!-- MEAL GENERATOR VIEW -->
-    <div id="meal-generator-view" class="hidden">
-        <div class="card">
-            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Single Meal Generator</h2>
-            <div class="space-y-6">
-                <div>
-                    <label class="font-semibold text-gray-700">Meal Type</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                        <div><input type="radio" name="mealType" id="mg_breakfast" value="breakfast" class="hidden" checked><label for="mg_breakfast" class="radio-label w-full justify-center">Breakfast</label></div>
-                        <div><input type="radio" name="mealType" id="mg_lunch" value="lunch" class="hidden"><label for="mg_lunch" class="radio-label w-full justify-center">Lunch</label></div>
-                        <div><input type="radio" name="mealType" id="mg_dinner" value="dinner" class="hidden"><label for="mg_dinner" class="radio-label w-full justify-center">Dinner</label></div>
-                        <div><input type="radio" name="mealType" id="mg_snack" value="snack" class="hidden"><label for="mg_snack" class="radio-label w-full justify-center">Snack</label></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label for="mg_allergies" class="font-semibold text-gray-700">Allergies</label><input type="text" id="mg_allergies" class="input-field" placeholder="e.g., dairy, nuts"></div>
-                    <div><label for="mg_comments" class="font-semibold text-gray-700">Special Requests</label><input type="text" id="mg_comments" class="input-field" placeholder="e.g., high protein"></div>
-                </div>
-                <button data-action="generate-meal" id="generate-meal-btn" class="btn btn-primary w-full text-lg">✨ Generate Meal</button>
-            </div>
-        </div>
-        <div id="meal-idea-result"></div>
     </div>
 
     <!-- DIET PLAN VIEW -->
@@ -213,6 +177,16 @@
         <div class="card">
             <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Full Diet Plan Generator</h2>
+
+            <!-- Unit System Toggle -->
+            <div class="flex justify-center items-center gap-3 mb-6 p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-semibold text-gray-700">Unit System:</span>
+                <div class="flex gap-2">
+                    <button id="unit-imperial" class="btn btn-primary text-sm py-1 px-3">Imperial (lbs/ft)</button>
+                    <button id="unit-metric" class="btn btn-secondary text-sm py-1 px-3">Metric (kg/cm)</button>
+                </div>
+            </div>
+
             <div class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label for="dp_client_name" class="font-semibold text-gray-700">Client Name</label><input type="text" id="dp_client_name" class="input-field" placeholder="John Doe" required></div>
@@ -277,28 +251,6 @@
             </div>
         </div>
         <div id="diet-plan-result"></div>
-    </div>
-
-    <!-- CHEAT MEAL VIEW -->
-    <div id="cheat-meal-view" class="hidden">
-        <div class="card">
-            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Cheat Meal Helper</h2>
-            <div class="space-y-6">
-                <div><label for="cm_craving" class="font-semibold text-gray-700">What are you craving?</label><input type="text" id="cm_craving" class="input-field" placeholder="e.g., Pizza"></div>
-                <div><label for="cm_restaurant" class="font-semibold text-gray-700">Restaurant (Optional)</label><input type="text" id="cm_restaurant" class="input-field" placeholder="e.g., Domino's"></div>
-                <div>
-                    <label class="font-semibold text-gray-700">Advice Type</label>
-                    <div class="grid grid-cols-3 gap-2 mt-2">
-                        <div><input type="radio" name="cm_option" id="cm_healthy" value="healthy" class="hidden" checked><label for="cm_healthy" class="radio-label justify-center">Healthiest</label></div>
-                        <div><input type="radio" name="cm_option" id="cm_balanced" value="balanced" class="hidden"><label for="cm_balanced" class="radio-label justify-center">Balanced</label></div>
-                        <div><input type="radio" name="cm_option" id="cm_damage" value="damage-control" class="hidden"><label for="cm_damage" class="radio-label justify-center">Damage Control</label></div>
-                    </div>
-                </div>
-                <button data-action="generate-cheat-meal-advice" id="generate-cheat-meal-btn" class="btn btn-primary w-full text-lg">Get Advice</button>
-            </div>
-        </div>
-        <div id="cheat-meal-result"></div>
     </div>
 
     <!-- RECIPE MODAL -->

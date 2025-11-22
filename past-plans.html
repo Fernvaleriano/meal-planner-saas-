@@ -291,6 +291,7 @@
 
         const GET_PLANS_ENDPOINT = '/.netlify/functions/get-coach-plans';
         const GET_PLAN_BY_ID_ENDPOINT = '/.netlify/functions/get-coach-plan-by-id';
+        const DELETE_PLAN_ENDPOINT = '/.netlify/functions/delete-coach-plan';
 
         let currentUser = null;
 
@@ -377,12 +378,20 @@
                 month: 'short',
                 day: 'numeric'
             });
+            const formattedTime = createdDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
 
             card.innerHTML = `
                 <div class="plan-card-header">
                     <div>
                         <div class="client-name">${plan.client_name || 'Unnamed Client'}</div>
-                        <div class="plan-date">${formattedDate}</div>
+                        <div class="plan-date">${formattedDate} at ${formattedTime}</div>
+                    </div>
+                    <div class="plan-actions">
+                        <button class="icon-btn" onclick="deletePlan(${plan.id}, event)" title="Delete plan">🗑️</button>
                     </div>
                 </div>
                 <button class="view-btn" onclick="viewPlan(${plan.id})">View Plan</button>
@@ -411,8 +420,37 @@
                 window.location.href = 'planner.html';
 
             } catch (error) {
-                console.error('❌ Error loading plan:', error);
+                console.error('Error loading plan:', error);
                 alert('Failed to load plan. Please try again.');
+            }
+        }
+
+        async function deletePlan(planId, event) {
+            event.stopPropagation();
+
+            if (!confirm('Are you sure you want to delete this meal plan? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                console.log('Deleting plan:', planId);
+
+                const response = await fetch(`${DELETE_PLAN_ENDPOINT}?planId=${planId}&coachId=${currentUser.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete plan');
+                }
+
+                console.log('Plan deleted successfully');
+
+                // Reload plans
+                await loadPlans();
+
+            } catch (error) {
+                console.error('Error deleting plan:', error);
+                alert('Failed to delete plan. Please try again.');
             }
         }
     </script>
