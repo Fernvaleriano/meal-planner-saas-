@@ -290,7 +290,6 @@
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const GET_PLANS_ENDPOINT = '/.netlify/functions/get-coach-plans';
-        const GET_PLAN_BY_ID_ENDPOINT = '/.netlify/functions/get-coach-plan-by-id';
         const DELETE_PLAN_ENDPOINT = '/.netlify/functions/delete-coach-plan';
 
         let currentUser = null;
@@ -394,35 +393,10 @@
                         <button class="icon-btn" onclick="deletePlan(${plan.id}, event)" title="Delete plan">🗑️</button>
                     </div>
                 </div>
-                <button class="view-btn" onclick="viewPlan(${plan.id})">View Plan</button>
+                <button class="view-btn" onclick="window.location.href='view-plan.html?planId=${plan.id}'">View Plan</button>
             `;
 
             return card;
-        }
-
-        async function viewPlan(planId) {
-            try {
-                console.log('📥 Loading plan:', planId);
-
-                const response = await fetch(`${GET_PLAN_BY_ID_ENDPOINT}?planId=${planId}&coachId=${currentUser.id}`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to load plan');
-                }
-
-                const data = await response.json();
-                const planData = data.plan.plan_data;
-
-                console.log('Plan loaded:', planData);
-
-                // Save to localStorage and redirect to view page
-                localStorage.setItem('currentMealPlan', JSON.stringify(planData));
-                window.location.href = 'view-plan.html';
-
-            } catch (error) {
-                console.error('Error loading plan:', error);
-                alert('Failed to load plan. Please try again.');
-            }
         }
 
         async function deletePlan(planId, event) {
