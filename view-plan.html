@@ -234,6 +234,96 @@
             100% { transform: rotate(360deg); }
         }
 
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .share-link-container {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e0e7ff;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+
+        .share-link {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .btn-copy {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+        }
+
+        .btn-copy:hover {
+            background: #5568d3;
+        }
+
+        .btn-close-modal {
+            background: #6c757d;
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        .btn-close-modal:hover {
+            background: #5a6268;
+        }
+
+        .btn-share {
+            background: #28a745;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.1em;
+        }
+
+        .btn-share:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -245,6 +335,10 @@
 
             .macro-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-content {
+                padding: 25px;
             }
         }
     </style>
@@ -280,34 +374,174 @@
 
         <div class="action-buttons">
             <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
+            <button class="btn btn-share" onclick="generateShareLink()">🔗 Share Plan Link</button>
             <button class="btn btn-secondary" onclick="window.location.href='generator.html'">← Generate New Plan</button>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔗 Share Your Meal Plan</h2>
+                <p style="color: #666;">Share this link with your client</p>
+            </div>
+            <div class="share-link-container">
+                <div class="share-link" id="shareLinkText">Generating link...</div>
+            </div>
+            <button class="btn btn-copy" onclick="copyShareLink()">📋 Copy Link</button>
+            <button class="btn btn-close-modal" onclick="closeShareModal()">Close</button>
         </div>
     </div>
 
     <script>
         const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
+        const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
+        const GET_PLAN_ENDPOINT = '/.netlify/functions/get-shared-plan';
         let currentPlan = null;
+        let currentShareUrl = '';
 
         // Load meal plan
         document.addEventListener('DOMContentLoaded', function() {
-            const planData = localStorage.getItem('currentMealPlan');
-            
-            if (!planData) {
-                alert('No meal plan found. Redirecting...');
+            // Check if this is a shared plan URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share');
+
+            if (shareId) {
+                // Load shared plan from database
+                loadSharedPlan(shareId);
+            } else {
+                // Load from localStorage
+                const planData = localStorage.getItem('currentMealPlan');
+
+                if (!planData) {
+                    alert('No meal plan found. Redirecting...');
+                    window.location.href = 'generator.html';
+                    return;
+                }
+
+                try {
+                    currentPlan = JSON.parse(planData);
+                    console.log('✅ Loaded plan from localStorage:', currentPlan);
+                    displayMealPlan();
+                } catch (error) {
+                    console.error('❌ Error loading plan:', error);
+                    alert('Error loading plan. Please generate a new one.');
+                    window.location.href = 'generator.html';
+                }
+            }
+        });
+
+        // Load shared plan from database
+        async function loadSharedPlan(shareId) {
+            try {
+                console.log('📥 Loading shared plan:', shareId);
+
+                const response = await fetch(`${GET_PLAN_ENDPOINT}?shareId=${shareId}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load shared plan');
+                }
+
+                const data = await response.json();
+                currentPlan = data.planData;
+
+                console.log('✅ Loaded shared plan:', currentPlan);
+
+                // Also save to localStorage for offline access
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+                displayMealPlan();
+
+                // Update header to indicate this is a shared plan
+                document.querySelector('.header h1').textContent = '🔥 Shared Meal Plan';
+
+            } catch (error) {
+                console.error('❌ Error loading shared plan:', error);
+                alert('Failed to load shared plan. The link may be invalid or expired.');
                 window.location.href = 'generator.html';
+            }
+        }
+
+        // Generate and save share link
+        async function generateShareLink() {
+            if (!currentPlan) {
+                alert('No meal plan to share');
+                return;
+            }
+
+            // Show modal with loading state
+            const modal = document.getElementById('shareModal');
+            const linkText = document.getElementById('shareLinkText');
+            linkText.textContent = 'Generating share link...';
+            modal.classList.add('show');
+
+            try {
+                console.log('📤 Saving plan for sharing...');
+
+                const response = await fetch(SAVE_PLAN_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ planData: currentPlan })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate share link');
+                }
+
+                const data = await response.json();
+                currentShareUrl = data.shareUrl;
+
+                console.log('✅ Share link generated:', currentShareUrl);
+
+                linkText.textContent = currentShareUrl;
+
+            } catch (error) {
+                console.error('❌ Error generating share link:', error);
+                linkText.textContent = 'Failed to generate link. Please try again.';
+                alert('Failed to generate share link. Please try again.');
+            }
+        }
+
+        // Copy share link to clipboard
+        async function copyShareLink() {
+            if (!currentShareUrl) {
+                alert('No share link available');
                 return;
             }
 
             try {
-                currentPlan = JSON.parse(planData);
-                console.log('✅ Loaded plan:', currentPlan);
-                displayMealPlan();
+                await navigator.clipboard.writeText(currentShareUrl);
+
+                // Update button text temporarily
+                const copyBtn = event.target;
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                copyBtn.style.background = '#28a745';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '';
+                }, 2000);
+
             } catch (error) {
-                console.error('❌ Error loading plan:', error);
-                alert('Error loading plan. Please generate a new one.');
-                window.location.href = 'generator.html';
+                console.error('❌ Copy error:', error);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = currentShareUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Link copied to clipboard!');
             }
-        });
+        }
+
+        // Close share modal
+        function closeShareModal() {
+            const modal = document.getElementById('shareModal');
+            modal.classList.remove('show');
+        }
 
         function displayMealPlan() {
             // CRITICAL FIX: Validate nutrition object exists, calculate if missing
