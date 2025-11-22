@@ -485,7 +485,19 @@ async function generateDietPlan() {
     // Generate each day separately
     const allDays = [];
     for (let day = 1; day <= numDays; day++) {
-        const dayPrompt = `Create 1-day meal plan for Day ${day}.
+        // Build a list of previously used meals to ensure variety
+        let previousMealsText = '';
+        if (allDays.length > 0) {
+            const previousMeals = [];
+            allDays.forEach(dayData => {
+                dayData.plan.forEach(meal => {
+                    previousMeals.push(meal.name);
+                });
+            });
+            previousMealsText = `\n\nPREVIOUS DAYS MEALS (DO NOT REPEAT):\n${previousMeals.join('\n')}\n\nIMPORTANT: Create COMPLETELY DIFFERENT meals from the previous days listed above. Provide variety in proteins, cuisines, and cooking methods.`;
+        }
+
+        const dayPrompt = `Create 1-day meal plan for Day ${day} of ${numDays}.
 Stats: ${age}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
 Goal: ${goal}, Meals: ${meals}, Diet: ${preference}
 Macro Preference: ${macroPreference}
@@ -493,7 +505,7 @@ Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
 Preferred Foods/Cuisines: ${preferredFoods}
 Budget: ${budget}
-Available Equipment: ${equipmentStr}${proteinPowderNote}
+Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
@@ -505,6 +517,7 @@ CRITICAL NAMING RULES:
 
 IMPORTANT: Only use recipes that can be made with the available equipment.
 Consider the budget constraint and preferred foods when planning meals.
+${day > 1 ? 'ENSURE VARIETY: This is Day ' + day + ', so make sure meals are different from previous days.' : ''}
 
 CRITICAL: Return ONLY valid JSON with NO special characters, NO quotes in text, NO newlines in strings.
 Use only alphanumeric characters and basic punctuation (periods, commas) in text fields.
