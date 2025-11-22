@@ -315,14 +315,40 @@ async function callGemini(prompt, isJson = true) {
         const data = await response.json();
         let text = data.candidates[0].content.parts[0].text;
 
-        // Clean response
+        // Clean response - remove markdown code blocks
         text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         text = text.replace(/:\s*NaN/g, ': null');
+        text = text.replace(/,\s*\.\.\./g, '');
 
         if (isJson) {
+            // Extract JSON array or object
             const jsonMatch = text.match(/[\[{][\s\S]*[\]}]/);
             if (jsonMatch) text = jsonMatch[0];
-            return JSON.parse(text);
+
+            // Try to parse - if it fails, try to fix common issues
+            try {
+                return JSON.parse(text);
+            } catch (parseError) {
+                console.warn('First parse failed, attempting to fix JSON:', parseError.message);
+
+                // Try to fix unescaped quotes in string values
+                // This is a simple fix - replace quotes inside string values
+                text = text.replace(/"instructions":\s*"([^"]*(?:"[^"]*)*)"}/g, (match, content) => {
+                    const fixed = content.replace(/"/g, "'");
+                    return `"instructions": "${fixed}"}`;
+                });
+
+                // Remove trailing commas
+                text = text.replace(/,(\s*[}\]])/g, '$1');
+
+                try {
+                    return JSON.parse(text);
+                } catch (secondError) {
+                    console.error('JSON Parse Error:', secondError.message);
+                    console.error('Attempted to parse:', text.substring(0, 500));
+                    throw new Error('Invalid JSON from AI: ' + secondError.message);
+                }
+            }
         }
         return text;
     } catch (error) {
@@ -356,14 +382,16 @@ async function generateMealIdea() {
 Avoid: ${allergies}
 Requests: ${comments}
 
-Return ONLY valid JSON (no markdown, no backticks):
+CRITICAL: Return ONLY valid JSON. NO quotes in text fields - use apostrophes instead.
+Keep text simple and brief. NO newlines in strings.
+
 {
-  "name": "Meal Name with ingredients and quantities",
+  "name": "Meal Name",
   "calories": 450,
   "protein": 35,
   "carbs": 40,
   "fat": 15,
-  "instructions": "Step by step cooking instructions"
+  "instructions": "Simple step by step instructions."
 }`;
 
     const meal = await callGemini(prompt, true);
@@ -473,8 +501,11 @@ Goal: ${goal}, Meals: ${meals}, Diet: ${preference}, Avoid: ${allergies}${protei
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
-Return ONLY valid JSON (no markdown):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Name","calories":500,"protein":40,"carbs":50,"fat":15,"ingredients":["200g chicken"],"instructions":"steps"}]}`;
+CRITICAL: Return ONLY valid JSON with NO special characters, NO quotes in text, NO newlines in strings.
+Use only alphanumeric characters and basic punctuation (periods, commas) in text fields.
+Replace all quotes with apostrophes. Keep instructions simple and brief.
+
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs with Toast","calories":400,"protein":25,"carbs":35,"fat":15,"ingredients":["3 eggs","2 slices bread","1 tbsp butter"],"instructions":"Scramble eggs in butter. Toast bread. Serve together."}]}`;
 
         const dayData = await callGemini(dayPrompt, true);
         if (dayData.error) {
@@ -606,8 +637,9 @@ Request: ${newPreference}
 Diet: ${lastPlanQuery.preference}, Avoid: ${lastPlanQuery.allergies}
 Target macros: ${meal.calories} cal, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
-Return ONLY valid JSON (no markdown):
-{"type":"${meal.type}","name":"New Name","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["200g chicken"],"instructions":"steps"}`;
+CRITICAL: Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.
+
+{"type":"${meal.type}","name":"New Meal Name","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["200g chicken","1 cup rice"],"instructions":"Cook and serve."}`;
 
     const revisedMeal = await callGemini(prompt, true);
 
