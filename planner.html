@@ -182,7 +182,7 @@
                 <div class="p-4 bg-green-50 border-2 border-green-400 rounded-lg">
                     <label class="font-bold text-green-900 block mb-2">👤 Select Client</label>
                     <div class="grid grid-cols-1 gap-3">
-                        <select id="dp_client_selector" class="input-field border-2 border-green-500">
+                        <select id="dp_client_selector" class="input-field border-2 border-green-500" required>
                             <option value="">Loading clients...</option>
                         </select>
                         <div id="new_client_form" class="hidden">
@@ -349,13 +349,17 @@ async function loadClients() {
             clientSelector.appendChild(option);
         });
 
-        // Add "New Client" option
-        const newOption = document.createElement('option');
-        newOption.value = 'new';
-        newOption.textContent = '➕ Add New Client';
-        clientSelector.appendChild(newOption);
-
         console.log(`✅ Loaded ${clientsList.length} clients`);
+
+        // Check for clientId URL parameter and auto-select
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get('clientId');
+        if (clientId) {
+            clientSelector.value = clientId;
+            // Trigger change event to auto-populate fields
+            clientSelector.dispatchEvent(new Event('change'));
+            console.log(`✅ Auto-selected client from URL: ${clientId}`);
+        }
 
     } catch (error) {
         console.error('Error loading clients:', error);
@@ -375,20 +379,11 @@ document.addEventListener('DOMContentLoaded', () => {
     clientSelector.addEventListener('change', (e) => {
         const selectedValue = e.target.value;
 
-        if (selectedValue === 'new') {
-            // Show new client name input
-            newClientForm.classList.remove('hidden');
-            newClientNameInput.required = true;
-            selectedClientIdInput.value = '';
-        } else if (selectedValue === '') {
+        if (selectedValue === '') {
             // No selection
-            newClientForm.classList.add('hidden');
-            newClientNameInput.required = false;
             selectedClientIdInput.value = '';
         } else {
-            // Existing client selected
-            newClientForm.classList.add('hidden');
-            newClientNameInput.required = false;
+            // Client selected
             selectedClientIdInput.value = selectedValue;
 
             // Find the selected client and auto-populate ALL fields
@@ -606,34 +601,25 @@ async function generateDietPlan() {
     resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Creating your diet plan...</p></div>';
     button.disabled = true;
 
-    // Get client name from selector or new client input
+    // Get client from selector
     let clientName = 'Client';
     let clientId = null;
     const clientSelector = document.getElementById('dp_client_selector');
     const selectedValue = clientSelector.value;
 
-    if (selectedValue === 'new') {
-        // New client - get name from input
-        clientName = document.getElementById('dp_new_client_name').value.trim();
-        if (!clientName) {
-            alert('Please enter a client name');
-            button.disabled = false;
-            resultDiv.innerHTML = '';
-            return;
-        }
-    } else if (selectedValue) {
-        // Existing client selected
-        clientId = parseInt(selectedValue);
-        const client = clientsList.find(c => c.id === clientId);
-        if (client) {
-            clientName = client.client_name;
-        }
-    } else {
+    if (!selectedValue) {
         // No client selected
-        alert('Please select a client');
+        alert('Please select a client from the dropdown');
         button.disabled = false;
         resultDiv.innerHTML = '';
         return;
+    }
+
+    // Get client details
+    clientId = parseInt(selectedValue);
+    const client = clientsList.find(c => c.id === clientId);
+    if (client) {
+        clientName = client.client_name;
     }
 
     const gender = document.getElementById('dp_gender').value;
