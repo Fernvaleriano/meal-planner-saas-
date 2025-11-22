@@ -234,9 +234,27 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label class="font-semibold text-gray-700">Goal</label><select id="dp_goal" class="input-field"><option value="lose weight">Lose Weight</option><option value="maintain weight" selected>Maintain</option><option value="gain muscle">Gain Muscle</option></select></div>
+                    <div><label class="font-semibold text-gray-700">Calorie Adjustment</label><select id="dp_calorie_adjustment" class="input-field"><option value="0" selected>Standard (Recommended)</option><option value="-250">Slightly Aggressive (-250 cals)</option><option value="-500">Aggressive (-500 cals)</option><option value="-750">Most Aggressive (-750 cals)</option><option value="250">Slight Surplus (+250 cals)</option><option value="500">Moderate Surplus (+500 cals)</option></select></div>
                     <div><label class="font-semibold text-gray-700">Diet Type</label><select id="dp_preference" class="input-field"><option value="omnivore" selected>Omnivore</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="keto">Keto</option></select></div>
-                    <div><label for="dp_allergies" class="font-semibold text-gray-700">Allergies</label><input type="text" id="dp_allergies" class="input-field" placeholder="e.g., dairy"></div>
+                    <div><label class="font-semibold text-gray-700">Macronutrient Preference</label><select id="dp_macro_preference" class="input-field"><option value="balanced" selected>Balanced (Default)</option><option value="lower-carb">Lower Carb</option><option value="higher-carb">Higher Carb / Lower Fat</option></select></div>
+                    <div><label for="dp_allergies" class="font-semibold text-gray-700">Allergies</label><input type="text" id="dp_allergies" class="input-field" placeholder="e.g., dairy, nuts"></div>
+                    <div><label for="dp_disliked_foods" class="font-semibold text-gray-700">Disliked Foods</label><input type="text" id="dp_disliked_foods" class="input-field" placeholder="e.g., mushrooms, olives"></div>
+                    <div><label for="dp_preferred_foods" class="font-semibold text-gray-700">Preferred Foods or Cuisines</label><input type="text" id="dp_preferred_foods" class="input-field" placeholder="e.g., Italian, Mexican"></div>
+                    <div><label for="dp_budget" class="font-semibold text-gray-700">Budget (Optional)</label><input type="text" id="dp_budget" class="input-field" placeholder="e.g., $50/week"></div>
                     <div><label class="font-semibold text-gray-700">Meals Per Day</label><select id="dp_meals" class="input-field"><option value="3 meals">3 Meals</option><option value="3 meals, 1 snack" selected>3 Meals + Snack</option></select></div>
+                </div>
+
+                <!-- Cooking Equipment -->
+                <div class="p-4 bg-green-50 border-2 border-green-400 rounded-lg">
+                    <label class="font-bold text-green-900 block mb-2">🍳 Available Cooking Equipment</label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <label class="flex items-center"><input type="checkbox" id="equip_stove" value="Stove" class="mr-2 h-4 w-4" checked> Stove</label>
+                        <label class="flex items-center"><input type="checkbox" id="equip_oven" value="Oven" class="mr-2 h-4 w-4" checked> Oven</label>
+                        <label class="flex items-center"><input type="checkbox" id="equip_microwave" value="Microwave" class="mr-2 h-4 w-4" checked> Microwave</label>
+                        <label class="flex items-center"><input type="checkbox" id="equip_airfryer" value="Air Fryer" class="mr-2 h-4 w-4"> Air Fryer</label>
+                        <label class="flex items-center"><input type="checkbox" id="equip_grill" value="Grill" class="mr-2 h-4 w-4"> Grill</label>
+                        <label class="flex items-center"><input type="checkbox" id="equip_blender" value="Blender" class="mr-2 h-4 w-4" checked> Blender</label>
+                    </div>
                 </div>
 
                 <!-- Protein Powder Integration -->
@@ -442,10 +460,25 @@ async function generateDietPlan() {
     const gender = document.getElementById('dp_gender').value;
     const activity = parseFloat(document.getElementById('dp_activity').value);
     const goal = document.getElementById('dp_goal').value;
+    const calorieAdjustment = parseInt(document.getElementById('dp_calorie_adjustment').value);
     const preference = document.getElementById('dp_preference').value;
+    const macroPreference = document.getElementById('dp_macro_preference').value;
     const allergies = document.getElementById('dp_allergies').value || 'none';
+    const dislikedFoods = document.getElementById('dp_disliked_foods').value || 'none';
+    const preferredFoods = document.getElementById('dp_preferred_foods').value || 'none';
+    const budget = document.getElementById('dp_budget').value || 'none';
     const meals = document.getElementById('dp_meals').value;
     const numDays = parseInt(document.getElementById('dp_days').value);
+
+    // Get cooking equipment
+    const equipment = [];
+    if (document.getElementById('equip_stove').checked) equipment.push('Stove');
+    if (document.getElementById('equip_oven').checked) equipment.push('Oven');
+    if (document.getElementById('equip_microwave').checked) equipment.push('Microwave');
+    if (document.getElementById('equip_airfryer').checked) equipment.push('Air Fryer');
+    if (document.getElementById('equip_grill').checked) equipment.push('Grill');
+    if (document.getElementById('equip_blender').checked) equipment.push('Blender');
+    const equipmentStr = equipment.length > 0 ? equipment.join(', ') : 'basic kitchen tools';
 
     // Calculate nutrition (Mifflin-St Jeor)
     let weightKg, heightCm;
@@ -468,10 +501,30 @@ async function generateDietPlan() {
     if (goal === 'lose weight') tdee -= 500;
     if (goal === 'gain muscle') tdee += 300;
 
+    // Apply calorie adjustment
+    tdee += calorieAdjustment;
+
     let calories = Math.round(tdee);
-    let protein = Math.round((calories * 0.30) / 4);
-    let carbs = Math.round((calories * 0.40) / 4);
-    let fat = Math.round((calories * 0.30) / 9);
+
+    // Calculate macros based on macro preference
+    let proteinRatio, carbRatio, fatRatio;
+    if (macroPreference === 'lower-carb') {
+        proteinRatio = 0.35;
+        carbRatio = 0.25;
+        fatRatio = 0.40;
+    } else if (macroPreference === 'higher-carb') {
+        proteinRatio = 0.25;
+        carbRatio = 0.50;
+        fatRatio = 0.25;
+    } else { // balanced
+        proteinRatio = 0.30;
+        carbRatio = 0.40;
+        fatRatio = 0.30;
+    }
+
+    let protein = Math.round((calories * proteinRatio) / 4);
+    let carbs = Math.round((calories * carbRatio) / 4);
+    let fat = Math.round((calories * fatRatio) / 9);
 
     // Add protein powder if selected
     let proteinPowderNote = '';
@@ -490,20 +543,44 @@ async function generateDietPlan() {
         proteinPowderNote = `\n\nIMPORTANT: Client uses ${proteinBrand} (${proteinCals} cal, ${proteinProtein}g protein, ${proteinCarbs}g carbs, ${proteinFat}g fat). This is ALREADY included in daily totals, so DO NOT add extra protein shakes to the plan.`;
     }
 
-    lastPlanQuery = { calories: Math.round(tdee), protein: Math.round((tdee * 0.30) / 4), carbs: Math.round((tdee * 0.40) / 4), fat: Math.round((tdee * 0.30) / 9), preference, allergies, meals, proteinPowderNote };
+    lastPlanQuery = {
+        calories: Math.round(tdee),
+        protein,
+        carbs,
+        fat,
+        preference,
+        macroPreference,
+        allergies,
+        dislikedFoods,
+        preferredFoods,
+        budget,
+        equipmentStr,
+        meals,
+        proteinPowderNote
+    };
 
     // Generate each day separately
     const allDays = [];
     for (let day = 1; day <= numDays; day++) {
         const dayPrompt = `Create 1-day meal plan for Day ${day}.
 Stats: ${age}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
-Goal: ${goal}, Meals: ${meals}, Diet: ${preference}, Avoid: ${allergies}${proteinPowderNote}
+Goal: ${goal}, Meals: ${meals}, Diet: ${preference}
+Macro Preference: ${macroPreference}
+Avoid: ${allergies}
+Disliked Foods: ${dislikedFoods}
+Preferred Foods/Cuisines: ${preferredFoods}
+Budget: ${budget}
+Available Equipment: ${equipmentStr}${proteinPowderNote}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
+
+IMPORTANT: Only use recipes that can be made with the available equipment.
+Consider the budget constraint and preferred foods when planning meals.
 
 CRITICAL: Return ONLY valid JSON with NO special characters, NO quotes in text, NO newlines in strings.
 Use only alphanumeric characters and basic punctuation (periods, commas) in text fields.
 Replace all quotes with apostrophes. Keep instructions simple and brief.
+Include detailed ingredients list and full cooking instructions.
 
 {"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs with Toast","calories":400,"protein":25,"carbs":35,"fat":15,"ingredients":["3 eggs","2 slices bread","1 tbsp butter"],"instructions":"Scramble eggs in butter. Toast bread. Serve together."}]}`;
 
@@ -628,26 +705,47 @@ async function getAIRecipe(mealName) {
 // INDIVIDUAL MEAL REVISION
 async function changeMeal(dayIndex, mealIndex) {
     const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
-    const newPreference = prompt(`Change "${meal.name}"?\nEnter your request (e.g., "make it vegetarian" or "different protein"):`, '');
+    const newPreference = window.prompt(`Change "${meal.name}"?\nEnter your request (e.g., "make it vegetarian" or "different protein"):`, '');
 
     if (!newPreference) return;
 
-    const prompt = `Revise this meal: "${meal.name}" (${meal.type})
+    // Show loading in the meal card
+    const mealCards = document.querySelectorAll('.meal-card');
+    const targetCard = mealCards[dayIndex * lastPlanQuery.currentPlan[dayIndex].plan.length + mealIndex];
+    if (targetCard) {
+        targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Revising meal...</p>';
+    }
+
+    const aiPrompt = `Revise this meal: "${meal.name}" (${meal.type})
 Request: ${newPreference}
-Diet: ${lastPlanQuery.preference}, Avoid: ${lastPlanQuery.allergies}
+Diet: ${lastPlanQuery.preference}
+Macro Preference: ${lastPlanQuery.macroPreference}
+Avoid: ${lastPlanQuery.allergies}
+Disliked Foods: ${lastPlanQuery.dislikedFoods}
+Preferred Foods: ${lastPlanQuery.preferredFoods}
+Budget: ${lastPlanQuery.budget}
+Available Equipment: ${lastPlanQuery.equipmentStr}
 Target macros: ${meal.calories} cal, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
 CRITICAL: Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.
+Include detailed ingredients list and full cooking instructions.
 
 {"type":"${meal.type}","name":"New Meal Name","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["200g chicken","1 cup rice"],"instructions":"Cook and serve."}`;
 
-    const revisedMeal = await callGemini(prompt, true);
+    const revisedMeal = await callGemini(aiPrompt, true);
 
     if (!revisedMeal.error) {
+        // Sanitize the meal data
+        revisedMeal.calories = parseInt(revisedMeal.calories) || meal.calories;
+        revisedMeal.protein = parseInt(revisedMeal.protein) || meal.protein;
+        revisedMeal.carbs = parseInt(revisedMeal.carbs) || meal.carbs;
+        revisedMeal.fat = parseInt(revisedMeal.fat) || meal.fat;
+
         lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = revisedMeal;
         displayDietPlan(lastPlanQuery.currentPlan);
     } else {
         alert('Error revising meal: ' + revisedMeal.error);
+        displayDietPlan(lastPlanQuery.currentPlan);
     }
 }
 
@@ -751,59 +849,149 @@ function downloadPlanAsPDF() {
     }
 
     const pdf = new jsPDF();
+    const margin = 15;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const maxWidth = pageWidth - (margin * 2);
     let y = 20;
 
-    pdf.setFontSize(20);
-    pdf.text('Your Meal Plan', 20, y);
+    // Title
+    pdf.setFontSize(24);
+    pdf.setTextColor(102, 126, 234);
+    pdf.text('Your Personalized Meal Plan', margin, y);
+    y += 12;
+
+    // Daily Nutrition Summary
+    pdf.setFontSize(14);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Daily Nutrition Targets:', margin, y);
+    y += 8;
+    pdf.setFontSize(11);
+    pdf.text(`Calories: ${lastPlanQuery.calories} | Protein: ${lastPlanQuery.protein}g | Carbs: ${lastPlanQuery.carbs}g | Fat: ${lastPlanQuery.fat}g`, margin, y);
+    y += 8;
+    pdf.text(`Macro Split: ${lastPlanQuery.macroPreference}`, margin, y);
     y += 15;
 
-    pdf.setFontSize(12);
-    pdf.text(`Daily: ${lastPlanQuery.calories} cal | ${lastPlanQuery.protein}g P | ${lastPlanQuery.carbs}g C | ${lastPlanQuery.fat}g F`, 20, y);
-    y += 20;
+    // Supplement Protocol Section
+    if (lastPlanQuery.proteinPowderNote && lastPlanQuery.proteinPowderNote.trim()) {
+        if (y > 240) {
+            pdf.addPage();
+            y = 20;
+        }
+        pdf.setFontSize(16);
+        pdf.setTextColor(102, 126, 234);
+        pdf.text('Supplement Protocol', margin, y);
+        y += 8;
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        const supplementLines = pdf.splitTextToSize(lastPlanQuery.proteinPowderNote.replace(/\n/g, ' ').trim(), maxWidth);
+        pdf.text(supplementLines, margin, y);
+        y += supplementLines.length * 5 + 10;
+    }
 
+    // Meal Plans by Day
     lastPlanQuery.currentPlan.forEach(dayData => {
         if (y > 250) {
             pdf.addPage();
             y = 20;
         }
 
-        pdf.setFontSize(16);
-        pdf.text(`Day ${dayData.day}`, 20, y);
+        // Day Header
+        pdf.setFontSize(18);
+        pdf.setTextColor(118, 75, 162);
+        pdf.text(`Day ${dayData.day}`, margin, y);
         y += 10;
 
         dayData.plan.forEach(meal => {
-            if (y > 250) {
+            if (y > 230) {
                 pdf.addPage();
                 y = 20;
             }
 
-            pdf.setFontSize(12);
-            pdf.text(`${meal.type.toUpperCase()}: ${meal.name}`, 20, y);
-            y += 7;
+            // Meal Name
+            pdf.setFontSize(14);
+            pdf.setTextColor(102, 126, 234);
+            const mealNameLines = pdf.splitTextToSize(`${meal.type.toUpperCase()}: ${meal.name}`, maxWidth);
+            pdf.text(mealNameLines, margin, y);
+            y += mealNameLines.length * 6;
+
+            // Macros
             pdf.setFontSize(10);
-            pdf.text(`${meal.calories} cal | ${meal.protein}g P | ${meal.carbs}g C | ${meal.fat}g F`, 25, y);
-            y += 10;
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat`, margin + 5, y);
+            y += 7;
+
+            // Ingredients
+            if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Ingredients:', margin + 5, y);
+                y += 5;
+                pdf.setFont(undefined, 'normal');
+                pdf.setFontSize(9);
+                meal.ingredients.forEach(ingredient => {
+                    if (y > 270) {
+                        pdf.addPage();
+                        y = 20;
+                    }
+                    const ingredientLines = pdf.splitTextToSize(`• ${ingredient}`, maxWidth - 10);
+                    pdf.text(ingredientLines, margin + 10, y);
+                    y += ingredientLines.length * 4;
+                });
+                y += 3;
+            }
+
+            // Full Cooking Instructions
+            if (meal.instructions) {
+                if (y > 260) {
+                    pdf.addPage();
+                    y = 20;
+                }
+                pdf.setFontSize(11);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Cooking Instructions:', margin + 5, y);
+                y += 5;
+                pdf.setFont(undefined, 'normal');
+                pdf.setFontSize(9);
+                const instructionLines = pdf.splitTextToSize(meal.instructions, maxWidth - 10);
+                pdf.text(instructionLines, margin + 10, y);
+                y += instructionLines.length * 4 + 8;
+            }
+
+            y += 5; // Space between meals
         });
-        y += 10;
+        y += 10; // Space between days
     });
 
-    // Add Grocery List
+    // Grocery List
     pdf.addPage();
     y = 20;
     pdf.setFontSize(20);
-    pdf.text('Grocery List', 20, y);
-    y += 15;
+    pdf.setTextColor(102, 126, 234);
+    pdf.text('Shopping List', margin, y);
+    y += 12;
 
     const groceryList = aggregateGroceryList(lastPlanQuery.currentPlan);
-    pdf.setFontSize(11);
+    pdf.setFontSize(10);
+    pdf.setTextColor(0, 0, 0);
     groceryList.forEach(item => {
         if (y > 270) {
             pdf.addPage();
             y = 20;
         }
-        pdf.text(`- ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`, 20, y);
-        y += 7;
+        pdf.text(`□ ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`, margin, y);
+        y += 6;
     });
+
+    // Footer on last page
+    y += 10;
+    if (y > 260) {
+        pdf.addPage();
+        y = 20;
+    }
+    pdf.setFontSize(8);
+    pdf.setTextColor(150, 150, 150);
+    pdf.text(`Generated on ${new Date().toLocaleDateString()}`, margin, y);
 
     pdf.save('meal-plan.pdf');
 }
