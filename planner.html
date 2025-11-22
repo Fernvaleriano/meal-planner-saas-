@@ -329,12 +329,36 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// Initialize Supabase client
+const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
 const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
+const SAVE_COACH_PLAN_ENDPOINT = '/.netlify/functions/save-coach-plan';
 let lastMealQuery = {};
 let lastPlanQuery = {};
 let currentShareUrl = '';
+let currentCoach = null;
+
+// Check authentication on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            currentCoach = session.user;
+            console.log('✅ Coach logged in:', currentCoach.email);
+        } else {
+            console.warn('⚠️  No active session - plans won't be saved to history');
+        }
+    } catch (error) {
+        console.error('❌ Auth error:', error);
+    }
+});
 
 // DIRECT NETLIFY FUNCTION CALL (replaces Velo callGemini)
 async function callGemini(prompt, isJson = true) {
@@ -622,6 +646,10 @@ Include detailed ingredients list and full cooking instructions.
 
     lastPlanQuery.currentPlan = allDays;
     displayDietPlan(allDays);
+
+    // Save plan to coach's history
+    saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+
     button.disabled = false;
 }
 
@@ -670,6 +698,39 @@ function displayDietPlan(multiDayData) {
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
+}
+
+// SAVE COACH PLAN TO DATABASE
+async function saveCoachPlan(planData, clientName) {
+    if (!currentCoach) {
+        console.warn('⚠️  No coach session - plan not saved to history');
+        return;
+    }
+
+    try {
+        console.log('💾 Saving plan to coach history...');
+
+        const response = await fetch(SAVE_COACH_PLAN_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                coachId: currentCoach.id,
+                clientName: clientName,
+                planData: planData
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save plan');
+        }
+
+        const data = await response.json();
+        console.log('✅ Plan saved to history with ID:', data.planId);
+
+    } catch (error) {
+        console.error('❌ Error saving plan:', error);
+        // Don't show error to user - saving to history is not critical
+    }
 }
 
 // CHEAT MEAL ADVICE
