@@ -346,7 +346,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔥 Your Personalized Meal Plan</h1>
+            <h1 id="planHeader">🔥 Your Personalized Meal Plan</h1>
         </div>
 
         <div class="client-info">
@@ -374,8 +374,8 @@
 
         <div class="action-buttons">
             <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
-            <button class="btn btn-share" onclick="generateShareLink()">🔗 Share Plan Link</button>
-            <button class="btn btn-secondary" onclick="window.location.href='generator.html'">← Generate New Plan</button>
+            <button id="sharePlanBtn" class="btn btn-share" onclick="generateShareLink()" style="display: none;">🔗 Share Plan Link</button>
+            <button id="generateNewBtn" class="btn btn-secondary" onclick="window.location.href='generator.html'" style="display: none;">← Generate New Plan</button>
         </div>
     </div>
 
@@ -408,10 +408,10 @@
             const shareId = urlParams.get('share');
 
             if (shareId) {
-                // Load shared plan from database
+                // Load shared plan from database (client view)
                 loadSharedPlan(shareId);
             } else {
-                // Load from localStorage
+                // Load from localStorage (coach view)
                 const planData = localStorage.getItem('currentMealPlan');
 
                 if (!planData) {
@@ -423,6 +423,11 @@
                 try {
                     currentPlan = JSON.parse(planData);
                     console.log('✅ Loaded plan from localStorage:', currentPlan);
+
+                    // Show coach-only buttons
+                    document.getElementById('sharePlanBtn').style.display = 'inline-block';
+                    document.getElementById('generateNewBtn').style.display = 'inline-block';
+
                     displayMealPlan();
                 } catch (error) {
                     console.error('❌ Error loading plan:', error);
@@ -453,8 +458,11 @@
 
                 displayMealPlan();
 
-                // Update header to indicate this is a shared plan
-                document.querySelector('.header h1').textContent = '🔥 Shared Meal Plan';
+                // Update header with client name
+                const clientName = currentPlan.clientName || 'Client';
+                const mealCount = currentPlan.meals ? currentPlan.meals.length : 0;
+                const planText = mealCount > 1 ? 'Meal Plans' : 'Meal Plan';
+                document.getElementById('planHeader').textContent = `🔥 ${clientName}'s ${planText}`;
 
             } catch (error) {
                 console.error('❌ Error loading shared plan:', error);
@@ -797,48 +805,195 @@ Return ONLY valid JSON (NO markdown, NO backticks):
         function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
-            let y = 20;
-            const margin = 20;
-            const pageWidth = doc.internal.pageSize.getWidth();
 
-            // Header
+            const margin = 15;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const maxWidth = pageWidth - (margin * 2);
+            let y = 20;
+
+            // Title
             doc.setFontSize(24);
             doc.setTextColor(102, 126, 234);
-            doc.text('Your Meal Plan', margin, y);
-            y += 15;
+            doc.text('Personalized Meal Plan', margin, y);
+            y += 10;
 
-            // Nutrition
-            doc.setFontSize(12);
+            // Client Name
+            if (currentPlan.clientName) {
+                doc.setFontSize(16);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`For: ${currentPlan.clientName}`, margin, y);
+                y += 12;
+            }
+
+            // Daily Nutrition Summary
+            doc.setFontSize(14);
             doc.setTextColor(0, 0, 0);
-            doc.text(`Daily Targets: ${currentPlan.nutrition.calories} cal | ${currentPlan.nutrition.protein}g protein | ${currentPlan.nutrition.carbs}g carbs | ${currentPlan.nutrition.fat}g fat`, margin, y);
-            y += 20;
+            doc.text('Daily Nutrition Targets:', margin, y);
+            y += 8;
+            doc.setFontSize(11);
+            const nutrition = currentPlan.nutrition;
+            doc.text(`Calories: ${nutrition.calories} | Protein: ${nutrition.protein}g | Carbs: ${nutrition.carbs}g | Fat: ${nutrition.fat}g`, margin, y);
+            y += 15;
 
             // Meals
             currentPlan.meals.forEach((meal, index) => {
-                if (y > 250) {
+                if (y > 230) {
                     doc.addPage();
                     y = 20;
                 }
 
-                doc.setFontSize(16);
+                // Meal Name
+                doc.setFontSize(14);
                 doc.setTextColor(102, 126, 234);
-                doc.text(meal.name, margin, y);
-                y += 10;
+                const mealNameLines = doc.splitTextToSize(meal.name, maxWidth);
+                doc.text(mealNameLines, margin, y);
+                y += mealNameLines.length * 6;
 
+                // Macros
                 doc.setFontSize(10);
                 doc.setTextColor(100, 100, 100);
-                doc.text(`${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat`, margin, y);
-                y += 10;
+                doc.text(`${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat`, margin + 5, y);
+                y += 7;
+
+                // Ingredients (if available)
+                if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+                    doc.setFontSize(11);
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Ingredients:', margin + 5, y);
+                    y += 5;
+                    doc.setFont(undefined, 'normal');
+                    doc.setFontSize(9);
+                    meal.ingredients.forEach(ingredient => {
+                        if (y > 270) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        const ingredientLines = doc.splitTextToSize(`• ${ingredient}`, maxWidth - 10);
+                        doc.text(ingredientLines, margin + 10, y);
+                        y += ingredientLines.length * 4;
+                    });
+                    y += 3;
+                }
+
+                // Cooking Instructions
+                if (meal.instructions) {
+                    if (y > 260) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.setFontSize(11);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Cooking Instructions:', margin + 5, y);
+                    y += 5;
+                    doc.setFont(undefined, 'normal');
+                    doc.setFontSize(9);
+                    const instructionLines = doc.splitTextToSize(meal.instructions, maxWidth - 10);
+                    doc.text(instructionLines, margin + 10, y);
+                    y += instructionLines.length * 4 + 8;
+                }
+
+                y += 5; // Space between meals
+            });
+
+            // Grocery List
+            const groceryList = aggregateGroceryList();
+            if (groceryList && groceryList.length > 0) {
+                doc.addPage();
+                y = 20;
+                doc.setFontSize(20);
+                doc.setTextColor(102, 126, 234);
+                doc.text('Shopping List', margin, y);
+                y += 12;
 
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
-                const lines = doc.splitTextToSize(meal.instructions, pageWidth - (margin * 2));
-                doc.text(lines, margin, y);
-                y += lines.length * 6 + 15;
-            });
+                groceryList.forEach(item => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    const itemText = `- ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`;
+                    doc.text(itemText, margin, y);
+                    y += 6;
+                });
+            }
+
+            // Footer
+            y += 10;
+            if (y > 260) {
+                doc.addPage();
+                y = 20;
+            }
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, y);
 
             doc.save('meal-plan.pdf');
+        }
+
+        // Helper functions for grocery list aggregation
+        function parseIngredient(ingredient) {
+            const match = ingredient.match(/^([\d.\/]+)?\s*([a-zA-Z]+)?\s*(.+)$/);
+            if (!match) return { quantity: 1, unit: 'unit', name: ingredient };
+
+            const quantity = match[1] ? eval(match[1]) : 1;
+            const unit = match[2] || 'unit';
+            const name = match[3] || ingredient;
+
+            return { quantity, unit: unit.toLowerCase(), name: name.trim() };
+        }
+
+        function normalizeUnit(quantity, unit) {
+            const conversions = {
+                'tbsp': { base: 'cup', factor: 1/16 },
+                'tablespoon': { base: 'cup', factor: 1/16 },
+                'tsp': { base: 'cup', factor: 1/48 },
+                'teaspoon': { base: 'cup', factor: 1/48 },
+                'oz': { base: 'lb', factor: 1/16 },
+                'ounce': { base: 'lb', factor: 1/16 },
+                'g': { base: 'kg', factor: 0.001 },
+                'gram': { base: 'kg', factor: 0.001 },
+                'ml': { base: 'l', factor: 0.001 },
+                'milliliter': { base: 'l', factor: 0.001 }
+            };
+
+            if (conversions[unit]) {
+                return {
+                    quantity: quantity * conversions[unit].factor,
+                    unit: conversions[unit].base
+                };
+            }
+
+            return { quantity, unit };
+        }
+
+        function aggregateGroceryList() {
+            if (!currentPlan || !currentPlan.meals) return [];
+
+            const aggregated = {};
+
+            currentPlan.meals.forEach(meal => {
+                if (!meal.ingredients || !Array.isArray(meal.ingredients)) return;
+
+                meal.ingredients.forEach(ingredient => {
+                    const parsed = parseIngredient(ingredient);
+                    const normalized = normalizeUnit(parsed.quantity, parsed.unit);
+
+                    const key = `${parsed.name}|${normalized.unit}`;
+                    if (aggregated[key]) {
+                        aggregated[key].quantity += normalized.quantity;
+                    } else {
+                        aggregated[key] = {
+                            name: parsed.name,
+                            quantity: normalized.quantity,
+                            unit: normalized.unit
+                        };
+                    }
+                });
+            });
+
+            return Object.values(aggregated).sort((a, b) => a.name.localeCompare(b.name));
         }
     </script>
 </body>
