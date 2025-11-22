@@ -27,6 +27,20 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // First, delete any associated shared plans
+    // This ensures clients lose access to the shared link
+    const { error: sharedError } = await supabase
+      .from('shared_meal_plans')
+      .delete()
+      .eq('coach_plan_id', planId);
+
+    if (sharedError) {
+      console.warn('Warning: Could not delete shared plans:', sharedError.message);
+      // Continue with coach plan deletion even if shared plan deletion fails
+    } else {
+      console.log('Associated shared plans deleted for plan:', planId);
+    }
+
     // Delete the meal plan (RLS policies ensure only the owner can delete)
     const { error } = await supabase
       .from('coach_meal_plans')
@@ -45,7 +59,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('Plan deleted:', planId);
+    console.log('Coach plan deleted:', planId);
 
     return {
       statusCode: 200,
