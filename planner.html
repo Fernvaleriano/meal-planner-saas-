@@ -991,6 +991,14 @@ async function saveCoachPlan(planData, clientName) {
         const data = await response.json();
         console.log('Plan saved to history with ID:', data.planId);
 
+        // Store the planId in lastPlanQuery so it can be used when sharing
+        if (lastPlanQuery) {
+            lastPlanQuery.planId = data.planId;
+            console.log('✅ Plan ID stored for sharing:', data.planId);
+        }
+
+        return data.planId; // Return the planId in case caller needs it
+
     } catch (error) {
         console.error('Error saving plan:', error);
         // Don't show error to user - saving to history is not critical
@@ -1449,10 +1457,20 @@ async function sharePlan() {
     try {
         console.log('Saving plan for sharing...');
 
+        // Prepare request body
+        const requestBody = { planData: shareData };
+
+        // If this plan was saved to history (has planId), include it
+        // This links the shared plan to the coach plan for cascade deletion
+        if (lastPlanQuery.planId) {
+            requestBody.coachPlanId = lastPlanQuery.planId;
+            console.log('Linking shared plan to coach plan:', lastPlanQuery.planId);
+        }
+
         const response = await fetch(SAVE_PLAN_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ planData: shareData })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
