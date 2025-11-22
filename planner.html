@@ -215,6 +215,7 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Full Diet Plan Generator</h2>
             <div class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="dp_client_name" class="font-semibold text-gray-700">Client Name</label><input type="text" id="dp_client_name" class="input-field" placeholder="John Doe" required></div>
                     <div><label for="dp_age" class="font-semibold text-gray-700">Age</label><input type="number" id="dp_age" class="input-field" placeholder="30" required></div>
                     <div><label for="dp_gender" class="font-semibold text-gray-700">Gender</label><select id="dp_gender" class="input-field"><option value="male">Male</option><option value="female">Female</option></select></div>
                     <div><label for="dp_weight" class="font-semibold text-gray-700">Weight (lbs)</label><input type="number" id="dp_weight" class="input-field" placeholder="155" required></div>
@@ -241,7 +242,7 @@
                     <div><label for="dp_disliked_foods" class="font-semibold text-gray-700">Disliked Foods</label><input type="text" id="dp_disliked_foods" class="input-field" placeholder="e.g., mushrooms, olives"></div>
                     <div><label for="dp_preferred_foods" class="font-semibold text-gray-700">Preferred Foods or Cuisines</label><input type="text" id="dp_preferred_foods" class="input-field" placeholder="e.g., Italian, Mexican"></div>
                     <div><label for="dp_budget" class="font-semibold text-gray-700">Budget (Optional)</label><input type="text" id="dp_budget" class="input-field" placeholder="e.g., $50/week"></div>
-                    <div><label class="font-semibold text-gray-700">Meals Per Day</label><select id="dp_meals" class="input-field"><option value="3 meals">3 Meals</option><option value="3 meals, 1 snack" selected>3 Meals + Snack</option></select></div>
+                    <div><label class="font-semibold text-gray-700">Meals Per Day</label><select id="dp_meals" class="input-field"><option value="3 meals">3 Meals</option><option value="3 meals, 1 snack" selected>3 Meals + 1 Snack</option><option value="3 meals, 2 snacks">3 Meals + 2 Snacks</option><option value="3 meals, 3 snacks">3 Meals + 3 Snacks</option></select></div>
                 </div>
 
                 <!-- Cooking Equipment -->
@@ -457,6 +458,7 @@ async function generateDietPlan() {
     resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Creating your diet plan...</p></div>';
     button.disabled = true;
 
+    const clientName = document.getElementById('dp_client_name').value || 'Client';
     const gender = document.getElementById('dp_gender').value;
     const activity = parseFloat(document.getElementById('dp_activity').value);
     const goal = document.getElementById('dp_goal').value;
@@ -544,6 +546,7 @@ async function generateDietPlan() {
     }
 
     lastPlanQuery = {
+        clientName,
         calories: Math.round(tdee),
         protein,
         carbs,
@@ -574,6 +577,12 @@ Available Equipment: ${equipmentStr}${proteinPowderNote}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
+CRITICAL NAMING RULES:
+- Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz sirloin steak, 1 cup brown rice, 100g roasted vegetables")
+- DO NOT use generic names like "Steak with Roasted Vegetables"
+- NEVER use adjectives like "hearty", "delicious", "tasty", "nutritious" in meal names
+- Be direct and specific with measurements
+
 IMPORTANT: Only use recipes that can be made with the available equipment.
 Consider the budget constraint and preferred foods when planning meals.
 
@@ -582,7 +591,7 @@ Use only alphanumeric characters and basic punctuation (periods, commas) in text
 Replace all quotes with apostrophes. Keep instructions simple and brief.
 Include detailed ingredients list and full cooking instructions.
 
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs with Toast","calories":400,"protein":25,"carbs":35,"fat":15,"ingredients":["3 eggs","2 slices bread","1 tbsp butter"],"instructions":"Scramble eggs in butter. Toast bread. Serve together."}]}`;
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 scrambled eggs, 2 slices whole wheat toast, 1/2 avocado","calories":400,"protein":25,"carbs":35,"fat":15,"ingredients":["3 eggs","2 slices whole wheat bread","1 tbsp butter","1/2 avocado"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with half an avocado sliced."}]}`;
 
         const dayData = await callGemini(dayPrompt, true);
         if (dayData.error) {
@@ -627,7 +636,8 @@ function displayDietPlan(multiDayData) {
                         <span>${meal.fat}g F</span>
                     </div>
                     <div class="flex gap-2 mt-2">
-                        <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change This Meal</button>
+                        <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
+                        <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
                     </div>
                 </div>`;
@@ -702,22 +712,24 @@ async function getAIRecipe(mealName) {
     }
 }
 
-// INDIVIDUAL MEAL REVISION
+// CHANGE MEAL - Generate a completely different meal
 async function changeMeal(dayIndex, mealIndex) {
     const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
-    const newPreference = window.prompt(`Change "${meal.name}"?\nEnter your request (e.g., "make it vegetarian" or "different protein"):`, '');
 
-    if (!newPreference) return;
-
-    // Show loading in the meal card
+    // Show loading
+    displayDietPlan(lastPlanQuery.currentPlan);
     const mealCards = document.querySelectorAll('.meal-card');
-    const targetCard = mealCards[dayIndex * lastPlanQuery.currentPlan[dayIndex].plan.length + mealIndex];
+    let cardIndex = 0;
+    for (let d = 0; d < dayIndex; d++) {
+        cardIndex += lastPlanQuery.currentPlan[d].plan.length;
+    }
+    cardIndex += mealIndex;
+    const targetCard = mealCards[cardIndex];
     if (targetCard) {
-        targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Revising meal...</p>';
+        targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Generating different meal...</p>';
     }
 
-    const aiPrompt = `Revise this meal: "${meal.name}" (${meal.type})
-Request: ${newPreference}
+    const aiPrompt = `Generate a COMPLETELY DIFFERENT ${meal.type} meal (NOT "${meal.name}").
 Diet: ${lastPlanQuery.preference}
 Macro Preference: ${lastPlanQuery.macroPreference}
 Avoid: ${lastPlanQuery.allergies}
@@ -727,10 +739,85 @@ Budget: ${lastPlanQuery.budget}
 Available Equipment: ${lastPlanQuery.equipmentStr}
 Target macros: ${meal.calories} cal, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
+CRITICAL NAMING RULES:
+- Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz grilled salmon, 150g quinoa, 100g steamed broccoli")
+- DO NOT use generic names like "Salmon with Quinoa"
+- NEVER use adjectives like "hearty", "delicious", "tasty", "nutritious" in meal names
+- Be direct and specific with measurements
+
 CRITICAL: Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.
 Include detailed ingredients list and full cooking instructions.
 
-{"type":"${meal.type}","name":"New Meal Name","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["200g chicken","1 cup rice"],"instructions":"Cook and serve."}`;
+{"type":"${meal.type}","name":"6oz chicken breast, 1 cup brown rice, 100g steamed vegetables","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["6oz chicken breast","1 cup brown rice","100g mixed vegetables"],"instructions":"Grill chicken, cook rice, steam vegetables."}`;
+
+    const newMeal = await callGemini(aiPrompt, true);
+
+    if (!newMeal.error) {
+        // Sanitize the meal data
+        newMeal.calories = parseInt(newMeal.calories) || meal.calories;
+        newMeal.protein = parseInt(newMeal.protein) || meal.protein;
+        newMeal.carbs = parseInt(newMeal.carbs) || meal.carbs;
+        newMeal.fat = parseInt(newMeal.fat) || meal.fat;
+
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = newMeal;
+        displayDietPlan(lastPlanQuery.currentPlan);
+    } else {
+        alert('Error changing meal: ' + newMeal.error);
+        displayDietPlan(lastPlanQuery.currentPlan);
+    }
+}
+
+// REVISE MEAL - Custom user modifications
+async function reviseMeal(dayIndex, mealIndex) {
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    const userRequest = window.prompt(`Revise "${meal.name}"?\n\nEnter your specific request (e.g., "make it vegetarian", "swap rice for sweet potato", "add more protein"):`, '');
+
+    if (!userRequest || !userRequest.trim()) return;
+
+    // Show loading
+    displayDietPlan(lastPlanQuery.currentPlan);
+    const mealCards = document.querySelectorAll('.meal-card');
+    let cardIndex = 0;
+    for (let d = 0; d < dayIndex; d++) {
+        cardIndex += lastPlanQuery.currentPlan[d].plan.length;
+    }
+    cardIndex += mealIndex;
+    const targetCard = mealCards[cardIndex];
+    if (targetCard) {
+        targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Revising meal...</p>';
+    }
+
+    const aiPrompt = `Revise this meal based on user request: "${meal.name}" (${meal.type})
+
+USER REQUEST: ${userRequest}
+
+Current meal details:
+- Calories: ${meal.calories}
+- Protein: ${meal.protein}g
+- Carbs: ${meal.carbs}g
+- Fat: ${meal.fat}g
+- Ingredients: ${meal.ingredients ? meal.ingredients.join(', ') : 'N/A'}
+
+Diet: ${lastPlanQuery.preference}
+Macro Preference: ${lastPlanQuery.macroPreference}
+Avoid: ${lastPlanQuery.allergies}
+Disliked Foods: ${lastPlanQuery.dislikedFoods}
+Preferred Foods: ${lastPlanQuery.preferredFoods}
+Budget: ${lastPlanQuery.budget}
+Available Equipment: ${lastPlanQuery.equipmentStr}
+
+CRITICAL NAMING RULES:
+- Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz grilled salmon, 150g quinoa, 100g steamed broccoli")
+- DO NOT use generic names like "Salmon with Quinoa"
+- NEVER use adjectives like "hearty", "delicious", "tasty", "nutritious" in meal names
+- Be direct and specific with measurements
+
+Keep macros similar unless user specifically requests changes.
+
+CRITICAL: Return ONLY valid JSON. NO quotes in text - use apostrophes.
+Include detailed ingredients list and full cooking instructions.
+
+{"type":"${meal.type}","name":"6oz turkey breast, 150g sweet potato, 100g green beans","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["6oz turkey breast","150g sweet potato","100g green beans","1 tsp olive oil"],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}`;
 
     const revisedMeal = await callGemini(aiPrompt, true);
 
@@ -857,8 +944,16 @@ function downloadPlanAsPDF() {
     // Title
     pdf.setFontSize(24);
     pdf.setTextColor(102, 126, 234);
-    pdf.text('Your Personalized Meal Plan', margin, y);
-    y += 12;
+    pdf.text('Personalized Meal Plan', margin, y);
+    y += 10;
+
+    // Client Name
+    if (lastPlanQuery.clientName) {
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`For: ${lastPlanQuery.clientName}`, margin, y);
+        y += 12;
+    }
 
     // Daily Nutrition Summary
     pdf.setFontSize(14);
@@ -979,7 +1074,8 @@ function downloadPlanAsPDF() {
             pdf.addPage();
             y = 20;
         }
-        pdf.text(`□ ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`, margin, y);
+        const itemText = `- ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`;
+        pdf.text(itemText, margin, y);
         y += 6;
     });
 
@@ -1038,6 +1134,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             changeMeal(dayIndex, mealIndex);
+        },
+        'revise-meal': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            reviseMeal(dayIndex, mealIndex);
         },
         'show-grocery-list': showGroceryList,
         'close-grocery-list': () => {
