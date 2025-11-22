@@ -631,6 +631,16 @@
                 // Load clients
                 await loadClients();
 
+                // Check if we should auto-open edit modal
+                const urlParams = new URLSearchParams(window.location.search);
+                const editClientId = urlParams.get('editClient');
+                if (editClientId) {
+                    // Wait a bit for rendering to complete, then open edit modal
+                    setTimeout(() => {
+                        editClient(parseInt(editClientId));
+                    }, 100);
+                }
+
             } catch (error) {
                 console.error('Error initializing page:', error);
                 alert('Error loading page: ' + error.message);
@@ -671,12 +681,21 @@
         }
 
         // Render client cards
-        function renderClients() {
+        async function renderClients() {
             clientsContainer.innerHTML = '';
+
+            // Fetch plan counts for all clients
+            const planCounts = await fetchPlanCounts();
 
             clients.forEach(client => {
                 const card = document.createElement('div');
                 card.className = 'client-card';
+                card.style.cursor = 'pointer';
+
+                // Add click handler to open client profile
+                card.addEventListener('click', () => {
+                    window.location.href = `client-profile.html?clientId=${client.id}`;
+                });
 
                 // Parse dietary restrictions
                 const restrictions = Array.isArray(client.default_dietary_restrictions)
@@ -688,6 +707,9 @@
                     ? client.default_goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
                     : 'Not set';
 
+                // Get plan count for this client
+                const planCount = planCounts[client.id] || 0;
+
                 card.innerHTML = `
                     <div class="client-header">
                         <div>
@@ -696,8 +718,8 @@
                             ${client.phone ? `<div class="client-info">📱 ${escapeHtml(client.phone)}</div>` : ''}
                         </div>
                         <div class="client-actions">
-                            <button class="btn btn-primary btn-small" onclick="editClient(${client.id})">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
+                            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
                         </div>
                     </div>
 
@@ -712,12 +734,37 @@
                     ${client.notes ? `<div class="client-info" style="margin-top: 10px;"><strong>Notes:</strong> ${escapeHtml(client.notes)}</div>` : ''}
 
                     <div class="client-stats">
-                        📅 Added: ${new Date(client.created_at).toLocaleDateString()}
+                        📊 ${planCount} ${planCount === 1 ? 'plan' : 'plans'} • 📅 Added: ${new Date(client.created_at).toLocaleDateString()}
                     </div>
                 `;
 
                 clientsContainer.appendChild(card);
             });
+        }
+
+        // Fetch plan counts for all clients
+        async function fetchPlanCounts() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('client_id')
+                    .eq('coach_id', currentCoachId);
+
+                if (error) throw error;
+
+                // Count plans per client
+                const counts = {};
+                data.forEach(plan => {
+                    if (plan.client_id) {
+                        counts[plan.client_id] = (counts[plan.client_id] || 0) + 1;
+                    }
+                });
+
+                return counts;
+            } catch (error) {
+                console.error('Error fetching plan counts:', error);
+                return {};
+            }
         }
 
         // Open modal for adding client

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Profile - Meal Planner SaaS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            cursor: pointer;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-email {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: #d32f2f;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* Client Info Card */
+        .client-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+        }
+
+        .client-name {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .client-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .client-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-back {
+            background: #6c757d;
+            color: white;
+        }
+
+        .client-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Plans Section */
+        .plans-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .plan-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            cursor: pointer;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .plan-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .plan-date {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .plan-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .view-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .view-btn:hover {
+            opacity: 0.9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .client-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .plans-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .client-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo" onclick="window.location.href='dashboard.html'">🍽️ Meal Planner SaaS</div>
+        <div class="user-info">
+            <span class="user-email" id="userEmail">Loading...</span>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Client Info Card -->
+        <div class="client-card" id="clientCard" style="display: none;">
+            <div class="client-header">
+                <div>
+                    <div class="client-name" id="clientName">Loading...</div>
+                    <div class="client-meta" id="clientMeta"></div>
+                </div>
+                <div class="client-actions">
+                    <button class="btn btn-primary" onclick="generateNewPlan()">🔥 Generate New Plan</button>
+                    <button class="btn btn-edit" onclick="editClient()">✏️ Edit</button>
+                    <button class="btn btn-back" onclick="window.location.href='manage-clients.html'">← Back</button>
+                </div>
+            </div>
+            <div class="client-stats" id="clientStats"></div>
+        </div>
+
+        <!-- Plans Section -->
+        <div class="plans-section">
+            <div class="section-header">
+                <h2 class="section-title">📊 Meal Plans</h2>
+            </div>
+            <div id="plansContainer">
+                <div class="loading">Loading plans...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const GET_CLIENT_PLANS_ENDPOINT = '/.netlify/functions/get-client-plans';
+        const DELETE_PLAN_ENDPOINT = '/.netlify/functions/delete-coach-plan';
+
+        let currentUser = null;
+        let currentClient = null;
+        let clientPlans = [];
+
+        // Logout function
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'index.html';
+        });
+
+        // Load client and plans on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Get clientId from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientId = urlParams.get('clientId');
+
+            if (!clientId) {
+                alert('No client specified');
+                window.location.href = 'manage-clients.html';
+                return;
+            }
+
+            // Check authentication
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+            if (sessionError || !session) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentUser = session.user;
+            document.getElementById('userEmail').textContent = currentUser.email;
+
+            // Load client data and plans
+            await loadClient(clientId);
+            await loadPlans(clientId);
+        });
+
+        async function loadClient(clientId) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('clients')
+                    .select('*')
+                    .eq('id', clientId)
+                    .eq('coach_id', currentUser.id)
+                    .single();
+
+                if (error) throw error;
+                if (!data) {
+                    alert('Client not found');
+                    window.location.href = 'manage-clients.html';
+                    return;
+                }
+
+                currentClient = data;
+                displayClient(data);
+
+            } catch (error) {
+                console.error('Error loading client:', error);
+                alert('Failed to load client');
+                window.location.href = 'manage-clients.html';
+            }
+        }
+
+        function displayClient(client) {
+            document.getElementById('clientName').textContent = client.client_name;
+
+            // Build meta information
+            const metaItems = [];
+            if (client.email) metaItems.push(`📧 ${client.email}`);
+            if (client.phone) metaItems.push(`📞 ${client.phone}`);
+            if (client.default_goal) {
+                const goalLabels = {
+                    'lose_weight': 'Lose Weight',
+                    'maintain': 'Maintain',
+                    'gain_muscle': 'Gain Muscle'
+                };
+                metaItems.push(`🎯 ${goalLabels[client.default_goal] || client.default_goal}`);
+            }
+
+            document.getElementById('clientMeta').innerHTML = metaItems
+                .map(item => `<div class="client-meta-item">${item}</div>`)
+                .join('');
+
+            // Show client card
+            document.getElementById('clientCard').style.display = 'block';
+        }
+
+        async function loadPlans(clientId) {
+            try {
+                const response = await fetch(`${GET_CLIENT_PLANS_ENDPOINT}?clientId=${clientId}&coachId=${currentUser.id}`);
+
+                if (!response.ok) throw new Error('Failed to load plans');
+
+                const data = await response.json();
+                clientPlans = data.plans;
+
+                // Update stats
+                displayStats();
+
+                // Display plans
+                displayPlans();
+
+            } catch (error) {
+                console.error('Error loading plans:', error);
+                document.getElementById('plansContainer').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error loading plans</h3>
+                        <p>Please try again</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayStats() {
+            const statsContainer = document.getElementById('clientStats');
+            const totalPlans = clientPlans.length;
+
+            // Calculate last plan date
+            let lastPlanText = 'Never';
+            if (totalPlans > 0) {
+                const lastPlan = new Date(clientPlans[0].created_at);
+                const now = new Date();
+                const daysAgo = Math.floor((now - lastPlan) / (1000 * 60 * 60 * 24));
+
+                if (daysAgo === 0) lastPlanText = 'Today';
+                else if (daysAgo === 1) lastPlanText = 'Yesterday';
+                else if (daysAgo < 7) lastPlanText = `${daysAgo} days ago`;
+                else if (daysAgo < 30) lastPlanText = `${Math.floor(daysAgo / 7)} weeks ago`;
+                else lastPlanText = `${Math.floor(daysAgo / 30)} months ago`;
+            }
+
+            statsContainer.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${totalPlans}</div>
+                    <div class="stat-label">Total Plans</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${lastPlanText}</div>
+                    <div class="stat-label">Last Plan</div>
+                </div>
+            `;
+        }
+
+        function displayPlans() {
+            const container = document.getElementById('plansContainer');
+
+            if (clientPlans.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No meal plans yet</h3>
+                        <p>Generate the first plan for ${currentClient.client_name}</p>
+                        <button class="btn btn-primary" onclick="generateNewPlan()">🔥 Generate Plan</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const plansHTML = clientPlans.map(plan => createPlanCard(plan)).join('');
+            container.innerHTML = `<div class="plans-grid">${plansHTML}</div>`;
+        }
+
+        function createPlanCard(plan) {
+            const createdDate = new Date(plan.created_at);
+            const formattedDate = createdDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            const formattedTime = createdDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            return `
+                <div class="plan-card" onclick="viewPlan(${plan.id})">
+                    <div class="plan-card-header">
+                        <div class="plan-date">${formattedDate} at ${formattedTime}</div>
+                        <div class="plan-actions">
+                            <button class="icon-btn" onclick="deletePlan(${plan.id}, event)" title="Delete plan">🗑️</button>
+                        </div>
+                    </div>
+                    <button class="view-btn" onclick="viewPlan(${plan.id})">View Plan</button>
+                </div>
+            `;
+        }
+
+        function viewPlan(planId) {
+            window.location.href = `view-plan.html?planId=${planId}`;
+        }
+
+        async function deletePlan(planId, event) {
+            event.stopPropagation();
+
+            if (!confirm('Are you sure you want to delete this meal plan? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${DELETE_PLAN_ENDPOINT}?planId=${planId}&coachId=${currentUser.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Failed to delete plan');
+
+                console.log('Plan deleted successfully');
+
+                // Reload plans
+                await loadPlans(currentClient.id);
+
+            } catch (error) {
+                console.error('Error deleting plan:', error);
+                alert('Failed to delete plan. Please try again.');
+            }
+        }
+
+        function generateNewPlan() {
+            // Redirect to planner with client pre-selected
+            window.location.href = `planner.html?clientId=${currentClient.id}`;
+        }
+
+        function editClient() {
+            // Redirect back to manage clients page
+            // The manage-clients page will need to handle opening the edit modal
+            window.location.href = `manage-clients.html?editClient=${currentClient.id}`;
+        }
+    </script>
+</body>
+</html>
