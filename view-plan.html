@@ -394,7 +394,15 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
         const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
         const GET_PLAN_ENDPOINT = '/.netlify/functions/get-shared-plan';
@@ -402,16 +410,20 @@
         let currentShareUrl = '';
 
         // Load meal plan
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if this is a shared plan URL
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const shareId = urlParams.get('share');
+            const planId = urlParams.get('planId');
 
             if (shareId) {
                 // Load shared plan from database (client view)
                 loadSharedPlan(shareId);
+            } else if (planId) {
+                // Load coach plan from database by ID (coach viewing past plan)
+                await loadCoachPlan(planId);
             } else {
-                // Load from localStorage (coach view)
+                // Load from localStorage (newly generated plan)
                 const planData = localStorage.getItem('currentMealPlan');
 
                 if (!planData) {
@@ -422,7 +434,7 @@
 
                 try {
                     currentPlan = JSON.parse(planData);
-                    console.log('✅ Loaded plan from localStorage:', currentPlan);
+                    console.log('Loaded plan from localStorage:', currentPlan);
 
                     // Show coach-only buttons
                     document.getElementById('sharePlanBtn').style.display = 'inline-block';
@@ -430,7 +442,7 @@
 
                     displayMealPlan();
                 } catch (error) {
-                    console.error('❌ Error loading plan:', error);
+                    console.error('Error loading plan:', error);
                     alert('Error loading plan. Please generate a new one.');
                     window.location.href = 'planner.html';
                 }
@@ -468,6 +480,63 @@
                 console.error('❌ Error loading shared plan:', error);
                 alert('Failed to load shared plan. The link may be invalid or expired.');
                 window.location.href = 'planner.html';
+            }
+        }
+
+        // Load coach plan from database by ID
+        async function loadCoachPlan(planId) {
+            try {
+                console.log('Loading coach plan:', planId);
+
+                // Check if user is logged in
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+                if (sessionError || !session) {
+                    alert('Please log in to view this plan.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                const currentUser = session.user;
+
+                // Fetch plan from coach_meal_plans table
+                const { data, error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('*')
+                    .eq('id', planId)
+                    .eq('coach_id', currentUser.id)
+                    .single();
+
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw new Error('Failed to load plan');
+                }
+
+                if (!data) {
+                    throw new Error('Plan not found');
+                }
+
+                console.log('Loaded coach plan:', data);
+
+                // Extract plan_data from the response
+                currentPlan = data.plan_data;
+
+                // Show coach-only buttons
+                document.getElementById('sharePlanBtn').style.display = 'inline-block';
+                document.getElementById('generateNewBtn').style.display = 'inline-block';
+
+                displayMealPlan();
+
+                // Update header with client name
+                const clientName = data.client_name || 'Client';
+                const mealCount = currentPlan.meals ? currentPlan.meals.length : 0;
+                const planText = mealCount > 1 ? 'Meal Plans' : 'Meal Plan';
+                document.getElementById('planHeader').textContent = `${clientName}'s ${planText}`;
+
+            } catch (error) {
+                console.error('Error loading coach plan:', error);
+                alert('Failed to load plan. Please try again.');
+                window.location.href = 'past-plans.html';
             }
         }
 
