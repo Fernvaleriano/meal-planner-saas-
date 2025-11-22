@@ -73,12 +73,16 @@ exports.handler = async (event, context) => {
       console.error('❌ Invalid response structure:', JSON.stringify(data));
       return {
         statusCode: 500,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Invalid response from Gemini API',
           data: data
         })
       };
     }
+
+    // Log first 500 chars of AI response for debugging
+    const aiText = data.candidates[0].content.parts[0].text;
+    console.log('🤖 AI Response preview:', aiText.substring(0, 500));
 
     return {
       statusCode: 200,
