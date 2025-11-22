@@ -286,6 +286,25 @@
             <button data-action="close-share-modal" class="btn btn-secondary w-full">Close</button>
         </div>
     </div>
+
+    <!-- MEAL PREP GUIDE MODAL -->
+    <div id="meal-prep-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-4xl max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-3xl font-bold text-gray-800">📋 Meal Prep Guide</h3>
+                <button data-action="close-meal-prep-modal" class="text-2xl font-bold">&times;</button>
+            </div>
+            <div id="meal-prep-content" class="text-gray-700 space-y-6">
+                <div class="flex items-center justify-center py-12">
+                    <div class="loader"><div class="loader-spinner"></div></div>
+                    <p class="ml-4 text-gray-600">Generating your comprehensive meal prep guide...</p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button data-action="close-meal-prep-modal" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -929,6 +948,7 @@ function displayDietPlan(multiDayData) {
 
     planHTML += `
         <div class="flex gap-2 mt-4">
+            <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b;">📋 Meal Prep Guide</button>
             <button data-action="show-grocery-list" class="btn btn-secondary w-full">📝 Grocery List</button>
             <button data-action="download-pdf" class="btn btn-primary w-full">📥 Download PDF</button>
             <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745;">🔗 Share Plan Link</button>
@@ -1491,6 +1511,121 @@ function closeShareModal() {
     modal.classList.add('hidden');
 }
 
+// MEAL PREP GUIDE GENERATOR
+async function showMealPrepGuide() {
+    const modal = document.getElementById('meal-prep-modal');
+    const content = document.getElementById('meal-prep-content');
+
+    // Show modal with loading state
+    modal.classList.remove('hidden');
+    content.innerHTML = `
+        <div class="flex items-center justify-center py-12">
+            <div class="loader"><div class="loader-spinner"></div></div>
+            <p class="ml-4 text-gray-600">Generating your comprehensive meal prep guide...</p>
+        </div>
+    `;
+
+    try {
+        // Collect all meals from the plan
+        const allMeals = [];
+        if (lastPlanQuery.currentPlan && Array.isArray(lastPlanQuery.currentPlan)) {
+            lastPlanQuery.currentPlan.forEach(dayData => {
+                if (dayData.plan && Array.isArray(dayData.plan)) {
+                    dayData.plan.forEach(meal => {
+                        allMeals.push({
+                            day: dayData.day,
+                            type: meal.type,
+                            name: meal.name,
+                            calories: meal.calories,
+                            protein: meal.protein,
+                            carbs: meal.carbs,
+                            fat: meal.fat
+                        });
+                    });
+                }
+            });
+        }
+
+        if (allMeals.length === 0) {
+            content.innerHTML = '<p class="text-center text-gray-600">No meal plan found. Please generate a meal plan first.</p>';
+            return;
+        }
+
+        const numDays = lastPlanQuery.currentPlan.length;
+        const mealsList = allMeals.map(m => `Day ${m.day} ${m.type}: ${m.name}`).join('\n');
+
+        const prompt = `You are a professional meal prep consultant. Create a comprehensive meal prep guide for the following ${numDays}-day meal plan:
+
+${mealsList}
+
+Create a detailed, actionable meal prep guide with the following sections:
+
+## 📝 Shopping List
+Group all ingredients by category (Proteins, Vegetables, Fruits, Grains/Carbs, Dairy, Pantry Items, etc.)
+Combine quantities where meals share ingredients
+Be specific with quantities and measurements
+
+## ⏰ Meal Prep Timeline
+Provide a day-by-day prep schedule (e.g., "Sunday: Cook all proteins", "Monday: Prep vegetables")
+Include which meals to batch cook together
+Suggest which components can be prepared ahead
+Include estimated time for each prep session
+
+## 🥡 Storage Instructions
+For EACH meal, specify:
+- How long it keeps in the refrigerator (be specific: 3-4 days, 5-6 days, etc.)
+- Whether it can be frozen and for how long
+- Best storage containers (airtight, glass, etc.)
+- Any special storage notes
+
+## 🔥 Reheating Instructions
+For EACH meal type (not every individual meal, but each unique recipe), provide:
+- Microwave instructions (time and power level)
+- Oven/stovetop instructions if better quality
+- Tips to maintain texture and flavor
+
+## 💡 Time-Saving Tips
+- Batch cooking strategies (cook all chicken at once, prep all vegetables together, etc.)
+- Make-ahead components (cook rice/grains in bulk, pre-chop vegetables, etc.)
+- Kitchen shortcuts and efficiency tips
+- Which meals taste better fresh vs reheated
+
+Format the response in clean, readable markdown with clear headings and bullet points.
+Be specific, practical, and actionable. Focus on making meal prep as easy and efficient as possible.`;
+
+        const response = await callGemini(prompt, false);
+
+        // Format the response nicely
+        content.innerHTML = `
+            <div class="prose prose-sm max-w-none">
+                ${formatMarkdown(response)}
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('Error generating meal prep guide:', error);
+        content.innerHTML = `
+            <div class="text-center text-red-600 py-8">
+                <p class="font-semibold">Error generating meal prep guide</p>
+                <p class="text-sm mt-2">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Simple markdown formatter
+function formatMarkdown(text) {
+    return text
+        .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold mt-6 mb-4 text-gray-800">$1</h2>')
+        .replace(/^### (.+)$/gm, '<h3 class="text-xl font-semibold mt-4 mb-3 text-gray-700">$1</h3>')
+        .replace(/^\* (.+)$/gm, '<li class="ml-4">$1</li>')
+        .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n\n/g, '</p><p class="mb-3">')
+        .replace(/^(?!<[hl]|<li)/gm, '<p class="mb-3">')
+        .replace(/<\/li>\n<li/g, '</li><li');
+}
+
 // UNIT SYSTEM STATE
 let currentUnitSystem = 'imperial';
 
@@ -1538,6 +1673,8 @@ document.addEventListener('click', function(event) {
         'close-grocery-list': () => {
             event.target.closest('.card').remove();
         },
+        'show-meal-prep-guide': showMealPrepGuide,
+        'close-meal-prep-modal': () => document.getElementById('meal-prep-modal').classList.add('hidden'),
         'download-pdf': downloadPlanAsPDF,
         'share-plan': sharePlan,
         'copy-share-link': copyShareLink,
