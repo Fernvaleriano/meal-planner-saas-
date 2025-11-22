@@ -373,9 +373,29 @@
         <div id="mealsContainer"></div>
 
         <div class="action-buttons">
+            <button class="btn btn-primary" onclick="showMealPrepGuide()" style="background:#ff6b6b;">📋 Meal Prep Guide</button>
             <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
             <button id="sharePlanBtn" class="btn btn-share" onclick="generateShareLink()" style="display: none;">🔗 Share Plan Link</button>
             <button id="generateNewBtn" class="btn btn-secondary" onclick="window.location.href='planner.html'" style="display: none;">← Generate New Plan</button>
+        </div>
+    </div>
+
+    <!-- Meal Prep Guide Modal -->
+    <div id="mealPrepModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>📋 Meal Prep Guide</h2>
+                <button class="close-btn" onclick="closeMealPrepModal()">&times;</button>
+            </div>
+            <div id="mealPrepContent" style="padding: 20px;">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loader" style="margin: 0 auto 20px;"></div>
+                    <p style="color: #666;">Generating your comprehensive meal prep guide...</p>
+                </div>
+            </div>
+            <div style="padding: 20px; border-top: 1px solid #ddd; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeMealPrepModal()">Close</button>
+            </div>
         </div>
     </div>
 
@@ -925,7 +945,135 @@ Return ONLY valid JSON (NO markdown, NO backticks):
             }
         }
 
-        function downloadPDF() {
+        // MEAL PREP GUIDE FUNCTIONS
+        async function showMealPrepGuide() {
+            const modal = document.getElementById('mealPrepModal');
+            const content = document.getElementById('mealPrepContent');
+
+            // Show modal with loading state
+            modal.style.display = 'flex';
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loader" style="margin: 0 auto 20px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+                    <p style="color: #666;">Generating your comprehensive meal prep guide...</p>
+                </div>
+            `;
+
+            try {
+                // Collect all meals from the plan
+                const allMeals = [];
+                if (currentPlan.meals && Array.isArray(currentPlan.meals)) {
+                    currentPlan.meals.forEach(meal => {
+                        allMeals.push({
+                            type: meal.type,
+                            name: meal.name,
+                            calories: meal.calories,
+                            protein: meal.protein,
+                            carbs: meal.carbs,
+                            fat: meal.fat
+                        });
+                    });
+                }
+
+                if (allMeals.length === 0) {
+                    content.innerHTML = '<p style="text-align: center; color: #666;">No meal plan found.</p>';
+                    return;
+                }
+
+                const mealsList = allMeals.map(m => `${m.type}: ${m.name}`).join('\n');
+
+                const prompt = `You are a professional meal prep consultant. Create a comprehensive meal prep guide for the following meal plan:
+
+${mealsList}
+
+Create a detailed, actionable meal prep guide with the following sections:
+
+## 📝 Shopping List
+Group all ingredients by category (Proteins, Vegetables, Fruits, Grains/Carbs, Dairy, Pantry Items, etc.)
+Combine quantities where meals share ingredients
+Be specific with quantities and measurements
+
+## ⏰ Meal Prep Timeline
+Provide a prep schedule (e.g., "Sunday: Cook all proteins", "Monday: Prep vegetables")
+Include which meals to batch cook together
+Suggest which components can be prepared ahead
+Include estimated time for each prep session
+
+## 🥡 Storage Instructions
+For EACH meal, specify:
+- How long it keeps in the refrigerator (be specific: 3-4 days, 5-6 days, etc.)
+- Whether it can be frozen and for how long
+- Best storage containers (airtight, glass, etc.)
+- Any special storage notes
+
+## 🔥 Reheating Instructions
+For EACH meal type, provide:
+- Microwave instructions (time and power level)
+- Oven/stovetop instructions if better quality
+- Tips to maintain texture and flavor
+
+## 💡 Time-Saving Tips
+- Batch cooking strategies (cook all chicken at once, prep all vegetables together, etc.)
+- Make-ahead components (cook rice/grains in bulk, pre-chop vegetables, etc.)
+- Kitchen shortcuts and efficiency tips
+- Which meals taste better fresh vs reheated
+
+Format the response in clean, readable markdown with clear headings and bullet points.
+Be specific, practical, and actionable. Focus on making meal prep as easy and efficient as possible.`;
+
+                const response = await callGeminiAPI(prompt);
+
+                // Format the response nicely
+                content.innerHTML = `<div style="line-height: 1.6;">${formatMarkdown(response)}</div>`;
+
+            } catch (error) {
+                console.error('Error generating meal prep guide:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; color: #f44336; padding: 40px;">
+                        <p style="font-weight: bold;">Error generating meal prep guide</p>
+                        <p style="font-size: 14px; margin-top: 10px;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function closeMealPrepModal() {
+            document.getElementById('mealPrepModal').style.display = 'none';
+        }
+
+        // Simple markdown formatter
+        function formatMarkdown(text) {
+            return text
+                .replace(/^## (.+)$/gm, '<h2 style="font-size: 24px; font-weight: bold; margin: 30px 0 15px 0; color: #333;">$1</h2>')
+                .replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: 600; margin: 20px 0 10px 0; color: #555;">$1</h3>')
+                .replace(/^\* (.+)$/gm, '<li style="margin-left: 20px; margin-bottom: 8px;">$1</li>')
+                .replace(/^- (.+)$/gm, '<li style="margin-left: 20px; margin-bottom: 8px;">$1</li>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n\n/g, '</p><p style="margin: 12px 0;">')
+                .replace(/^(?!<[hl]|<li)/gm, '<p style="margin: 12px 0;">')
+                .replace(/<\/li>\n<li/g, '</li><li');
+        }
+
+        // API call to Gemini (reuse existing implementation if available, or add new one)
+        async function callGeminiAPI(prompt) {
+            const response = await fetch('/.netlify/functions/generate-meal-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt,
+                    isJson: false
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate meal prep guide');
+            }
+
+            const data = await response.json();
+            return data.result;
+        }
+
+        async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
@@ -1040,6 +1188,174 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                     doc.text(itemText, margin, y);
                     y += 6;
                 });
+            }
+
+            // Meal Prep Guide
+            try {
+                // Show loading indicator
+                const loadingMsg = document.createElement('div');
+                loadingMsg.id = 'pdf-loading';
+                loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:30px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10001;text-align:center;';
+                loadingMsg.innerHTML = '<div style="font-size:18px;font-weight:bold;margin-bottom:10px;">📄 Generating PDF...</div><div style="color:#666;">Adding meal prep guide</div>';
+                document.body.appendChild(loadingMsg);
+
+                // Generate meal prep guide
+                const allMeals = [];
+                if (currentPlan.meals && Array.isArray(currentPlan.meals)) {
+                    currentPlan.meals.forEach(meal => {
+                        allMeals.push({
+                            type: meal.type,
+                            name: meal.name,
+                            calories: meal.calories,
+                            protein: meal.protein,
+                            carbs: meal.carbs,
+                            fat: meal.fat
+                        });
+                    });
+                }
+
+                const mealsList = allMeals.map(m => `${m.type}: ${m.name}`).join('\n');
+                const numDays = currentPlan.numDays || 3;
+
+                const prompt = `You are a professional meal prep consultant. Create a comprehensive meal prep guide for the following ${numDays}-day meal plan:
+
+${mealsList}
+
+Create a detailed, actionable meal prep guide with the following sections:
+
+## 📝 Shopping List Tips
+Provide tips for efficient shopping based on this meal plan (best stores, what to buy in bulk, what to buy fresh, etc.)
+
+## ⏰ Meal Prep Timeline
+Provide a day-by-day prep schedule (e.g., "Sunday: Cook all proteins", "Monday: Prep vegetables")
+Include which meals to batch cook together
+Suggest which components can be prepared ahead
+Include estimated time for each prep session
+
+## 🥡 Storage Instructions
+For EACH unique meal type, specify:
+- How long it keeps in the refrigerator (be specific: 3-4 days, 5-6 days, etc.)
+- Whether it can be frozen and for how long
+- Best storage containers (airtight, glass, etc.)
+- Any special storage notes
+
+## 🔥 Reheating Instructions
+For EACH unique meal type, provide:
+- Microwave instructions (time and power level)
+- Oven/stovetop instructions if better quality
+- Tips to maintain texture and flavor
+
+## 💡 Time-Saving Tips
+- Batch cooking strategies
+- Make-ahead components
+- Kitchen shortcuts and efficiency tips
+- Which meals taste better fresh vs reheated
+
+Format the response in clean, readable markdown with clear headings and bullet points.
+Be specific, practical, and actionable. Keep it concise but comprehensive.`;
+
+                const response = await callGeminiAPI(prompt);
+
+                // Remove loading indicator
+                document.body.removeChild(loadingMsg);
+
+                // Add new page for meal prep guide
+                doc.addPage();
+                y = 20;
+
+                // Title
+                doc.setFontSize(20);
+                doc.setTextColor(255, 107, 107);
+                doc.text('Meal Prep Guide', margin, y);
+                y += 12;
+
+                // Parse and format the meal prep guide for PDF
+                const lines = response.split('\n');
+                doc.setTextColor(0, 0, 0);
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+
+                    if (!line) {
+                        y += 4; // Blank line spacing
+                        continue;
+                    }
+
+                    // Check if we need a new page
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+
+                    // Section headers (## )
+                    if (line.startsWith('## ')) {
+                        y += 5;
+                        if (y > 265) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        const headerText = line.replace('## ', '').replace(/[📝⏰🥡🔥💡]/g, '').trim();
+                        doc.setFontSize(14);
+                        doc.setFont(undefined, 'bold');
+                        doc.setTextColor(102, 126, 234);
+                        doc.text(headerText, margin, y);
+                        y += 8;
+                        doc.setFont(undefined, 'normal');
+                        doc.setTextColor(0, 0, 0);
+                        continue;
+                    }
+
+                    // Subsection headers (### )
+                    if (line.startsWith('### ')) {
+                        y += 3;
+                        if (y > 268) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        const subheaderText = line.replace('### ', '');
+                        doc.setFontSize(11);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(subheaderText, margin + 5, y);
+                        y += 6;
+                        doc.setFont(undefined, 'normal');
+                        continue;
+                    }
+
+                    // Bullet points
+                    if (line.startsWith('* ') || line.startsWith('- ')) {
+                        doc.setFontSize(9);
+                        const bulletText = line.replace(/^[*-] /, '').replace(/\*\*/g, '');
+                        const bulletLines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 15);
+
+                        bulletLines.forEach((bulletLine, idx) => {
+                            if (y > 275) {
+                                doc.addPage();
+                                y = 20;
+                            }
+                            doc.text(bulletLine, margin + (idx === 0 ? 8 : 12), y);
+                            y += 4;
+                        });
+                        continue;
+                    }
+
+                    // Regular paragraph text
+                    doc.setFontSize(9);
+                    const textLines = doc.splitTextToSize(line, maxWidth - 5);
+                    textLines.forEach(textLine => {
+                        if (y > 275) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        doc.text(textLine, margin + 5, y);
+                        y += 4;
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error generating meal prep guide for PDF:', error);
+                // Continue with PDF generation without meal prep guide
+                const loadingEl = document.getElementById('pdf-loading');
+                if (loadingEl) document.body.removeChild(loadingEl);
             }
 
             // Footer
