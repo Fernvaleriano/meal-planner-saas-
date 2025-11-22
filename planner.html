@@ -311,12 +311,30 @@
             <div id="recipe-content" class="text-gray-700 space-y-4 prose"></div>
         </div>
     </div>
+
+    <!-- SHARE MODAL -->
+    <div id="share-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-blue-600">🔗 Share Meal Plan</h3>
+                <button data-action="close-share-modal" class="text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-gray-600 mb-4">Share this link with your client. They'll be able to view, change, and revise meals.</p>
+            <div class="bg-blue-50 p-4 rounded-lg mb-4 break-all">
+                <div id="share-link-text" class="text-blue-600 font-semibold">Generating link...</div>
+            </div>
+            <button data-action="copy-share-link" class="btn btn-primary w-full mb-2">📋 Copy Link</button>
+            <button data-action="close-share-modal" class="btn btn-secondary w-full">Close</button>
+        </div>
+    </div>
 </div>
 
 <script>
 const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
+const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
 let lastMealQuery = {};
 let lastPlanQuery = {};
+let currentShareUrl = '';
 
 // DIRECT NETLIFY FUNCTION CALL (replaces Velo callGemini)
 async function callGemini(prompt, isJson = true) {
@@ -648,6 +666,7 @@ function displayDietPlan(multiDayData) {
         <div class="flex gap-2 mt-4">
             <button data-action="show-grocery-list" class="btn btn-secondary w-full">📝 Grocery List</button>
             <button data-action="download-pdf" class="btn btn-primary w-full">📥 Download PDF</button>
+            <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745;">🔗 Share Plan Link</button>
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
@@ -1092,6 +1111,110 @@ function downloadPlanAsPDF() {
     pdf.save('meal-plan.pdf');
 }
 
+// SHARE PLAN FUNCTIONALITY
+async function sharePlan() {
+    if (!lastPlanQuery.currentPlan) {
+        alert('No plan to share. Please generate a plan first.');
+        return;
+    }
+
+    // Prepare the plan data for sharing
+    const shareData = {
+        clientName: lastPlanQuery.clientName || 'Client',
+        nutrition: {
+            calories: lastPlanQuery.calories,
+            protein: lastPlanQuery.protein,
+            carbs: lastPlanQuery.carbs,
+            fat: lastPlanQuery.fat
+        },
+        meals: [],
+        preferences: {
+            goal: document.getElementById('dp_goal')?.value || 'maintain',
+            dietType: lastPlanQuery.preference || 'omnivore',
+            allergies: lastPlanQuery.allergies || 'none',
+            mealsPerDay: lastPlanQuery.currentPlan.length > 0 ? lastPlanQuery.currentPlan[0].plan.length : 3
+        },
+        generatedAt: new Date().toISOString()
+    };
+
+    // Flatten multi-day plan into single meals array
+    lastPlanQuery.currentPlan.forEach(dayData => {
+        dayData.plan.forEach(meal => {
+            shareData.meals.push(meal);
+        });
+    });
+
+    // Show modal with loading state
+    const modal = document.getElementById('share-modal');
+    const linkText = document.getElementById('share-link-text');
+    linkText.textContent = 'Generating share link...';
+    modal.classList.remove('hidden');
+
+    try {
+        console.log('📤 Saving plan for sharing...');
+
+        const response = await fetch(SAVE_PLAN_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planData: shareData })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to generate share link');
+        }
+
+        const data = await response.json();
+        currentShareUrl = data.shareUrl;
+
+        console.log('✅ Share link generated:', currentShareUrl);
+
+        linkText.textContent = currentShareUrl;
+
+    } catch (error) {
+        console.error('❌ Error generating share link:', error);
+        linkText.textContent = 'Failed to generate link. Please try again.';
+        alert('Failed to generate share link. Please try again.');
+    }
+}
+
+async function copyShareLink() {
+    if (!currentShareUrl) {
+        alert('No share link available');
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(currentShareUrl);
+
+        // Update button text temporarily
+        const copyBtn = event.target;
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = '✅ Copied!';
+        copyBtn.style.background = '#28a745';
+
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.style.background = '';
+        }, 2000);
+
+    } catch (error) {
+        console.error('❌ Copy error:', error);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = currentShareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Link copied to clipboard!');
+    }
+}
+
+function closeShareModal() {
+    const modal = document.getElementById('share-modal');
+    modal.classList.add('hidden');
+}
+
 // UNIT SYSTEM STATE
 let currentUnitSystem = 'imperial';
 
@@ -1145,7 +1268,10 @@ document.addEventListener('click', function(event) {
         'close-grocery-list': () => {
             event.target.closest('.card').remove();
         },
-        'download-pdf': downloadPlanAsPDF
+        'download-pdf': downloadPlanAsPDF,
+        'share-plan': sharePlan,
+        'copy-share-link': copyShareLink,
+        'close-share-modal': closeShareModal
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
