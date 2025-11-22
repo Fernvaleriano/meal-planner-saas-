@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meal Planner - Full Featured</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            -webkit-overflow-scrolling: touch !important;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-y: auto !important;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 1rem auto;
+            padding: 0.5rem;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #5568d3;
+        }
+
+        .btn-secondary {
+            background-color: #E3E9F5;
+            color: #667eea;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #D3DBF0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .radio-label, .checkbox-label {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="radio"]:checked + .radio-label,
+        input[type="checkbox"]:checked + .checkbox-label {
+            background-color: #E3E9F5;
+            border-color: #667eea;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            margin: 2rem auto;
+            position: relative;
+        }
+
+        .loader-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .meal-card {
+            border: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .day-divider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin: 2rem 0 1rem 0;
+            font-weight: 700;
+            font-size: 1.25rem;
+            text-align: center;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .prose h3 { margin-bottom: 0.5em; }
+        .prose ul { list-style-type: disc; padding-left: 1.5em; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5em; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div id="main-menu" class="card text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">🏋️ AI Meal Planner</h1>
+        <p class="text-gray-600 mb-4">Professional meal planning powered by AI</p>
+
+        <!-- Unit System Toggle -->
+        <div class="flex justify-center items-center gap-3 mb-6">
+            <span class="text-sm text-gray-600">Unit System:</span>
+            <div class="flex gap-2">
+                <button id="unit-imperial" class="btn btn-primary text-sm py-1 px-3">Imperial (lbs/ft)</button>
+                <button id="unit-metric" class="btn btn-secondary text-sm py-1 px-3">Metric (kg/cm)</button>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-4 justify-center">
+            <button data-action="nav-meal-generator" class="btn btn-secondary text-lg">Single Meal Generator</button>
+            <button data-action="nav-diet-plan" class="btn btn-primary text-lg">Full Diet Plan (Multi-Day)</button>
+            <button data-action="nav-cheat-meal" class="btn btn-secondary text-lg">Cheat Meal Helper</button>
+        </div>
+        <div class="mt-6">
+            <a href="dashboard.html" class="text-blue-600 hover:underline">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- MEAL GENERATOR VIEW -->
+    <div id="meal-generator-view" class="hidden">
+        <div class="card">
+            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Single Meal Generator</h2>
+            <div class="space-y-6">
+                <div>
+                    <label class="font-semibold text-gray-700">Meal Type</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                        <div><input type="radio" name="mealType" id="mg_breakfast" value="breakfast" class="hidden" checked><label for="mg_breakfast" class="radio-label w-full justify-center">Breakfast</label></div>
+                        <div><input type="radio" name="mealType" id="mg_lunch" value="lunch" class="hidden"><label for="mg_lunch" class="radio-label w-full justify-center">Lunch</label></div>
+                        <div><input type="radio" name="mealType" id="mg_dinner" value="dinner" class="hidden"><label for="mg_dinner" class="radio-label w-full justify-center">Dinner</label></div>
+                        <div><input type="radio" name="mealType" id="mg_snack" value="snack" class="hidden"><label for="mg_snack" class="radio-label w-full justify-center">Snack</label></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="mg_allergies" class="font-semibold text-gray-700">Allergies</label><input type="text" id="mg_allergies" class="input-field" placeholder="e.g., dairy, nuts"></div>
+                    <div><label for="mg_comments" class="font-semibold text-gray-700">Special Requests</label><input type="text" id="mg_comments" class="input-field" placeholder="e.g., high protein"></div>
+                </div>
+                <button data-action="generate-meal" id="generate-meal-btn" class="btn btn-primary w-full text-lg">✨ Generate Meal</button>
+            </div>
+        </div>
+        <div id="meal-idea-result"></div>
+    </div>
+
+    <!-- DIET PLAN VIEW -->
+    <div id="diet-plan-view" class="hidden">
+        <div class="card">
+            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Full Diet Plan Generator</h2>
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="dp_age" class="font-semibold text-gray-700">Age</label><input type="number" id="dp_age" class="input-field" placeholder="30" required></div>
+                    <div><label for="dp_gender" class="font-semibold text-gray-700">Gender</label><select id="dp_gender" class="input-field"><option value="male">Male</option><option value="female">Female</option></select></div>
+                    <div><label for="dp_weight" class="font-semibold text-gray-700">Weight (lbs)</label><input type="number" id="dp_weight" class="input-field" placeholder="155" required></div>
+                    <div><label for="dp_height_ft" class="font-semibold text-gray-700">Height (ft)</label><input type="number" id="dp_height_ft" class="input-field" placeholder="5" required></div>
+                    <div><label for="dp_height_in" class="font-semibold text-gray-700">Height (in)</label><input type="number" id="dp_height_in" class="input-field" placeholder="10" required></div>
+                    <div><label for="dp_activity" class="font-semibold text-gray-700">Activity</label><select id="dp_activity" class="input-field"><option value="1.2">Sedentary</option><option value="1.55" selected>Moderate</option><option value="1.725">Very Active</option></select></div>
+                </div>
+
+                <div class="p-4 bg-blue-50 border-2 border-blue-400 rounded-lg">
+                    <label class="font-bold text-blue-900 block mb-2">📅 Number of Days</label>
+                    <select id="dp_days" class="input-field border-2 border-blue-500">
+                        <option value="1">1 Day</option>
+                        <option value="2">2 Days</option>
+                        <option value="3" selected>3 Days</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="font-semibold text-gray-700">Goal</label><select id="dp_goal" class="input-field"><option value="lose weight">Lose Weight</option><option value="maintain weight" selected>Maintain</option><option value="gain muscle">Gain Muscle</option></select></div>
+                    <div><label class="font-semibold text-gray-700">Diet Type</label><select id="dp_preference" class="input-field"><option value="omnivore" selected>Omnivore</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="keto">Keto</option></select></div>
+                    <div><label for="dp_allergies" class="font-semibold text-gray-700">Allergies</label><input type="text" id="dp_allergies" class="input-field" placeholder="e.g., dairy"></div>
+                    <div><label class="font-semibold text-gray-700">Meals Per Day</label><select id="dp_meals" class="input-field"><option value="3 meals">3 Meals</option><option value="3 meals, 1 snack" selected>3 Meals + Snack</option></select></div>
+                </div>
+
+                <!-- Protein Powder Integration -->
+                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="dp_use_protein" class="mr-2 h-5 w-5">
+                        <label for="dp_use_protein" class="font-bold text-purple-900">Add Protein Powder (Optional)</label>
+                    </div>
+                    <div id="protein-powder-fields" class="hidden grid grid-cols-2 gap-2 mt-2">
+                        <input type="text" id="dp_protein_brand" class="input-field" placeholder="Brand/Name">
+                        <input type="number" id="dp_protein_cals" class="input-field" placeholder="Calories">
+                        <input type="number" id="dp_protein_protein" class="input-field" placeholder="Protein (g)">
+                        <input type="number" id="dp_protein_carbs" class="input-field" placeholder="Carbs (g)">
+                        <input type="number" id="dp_protein_fat" class="input-field" placeholder="Fat (g)">
+                    </div>
+                </div>
+
+                <button data-action="generate-plan" id="generate-plan-btn" class="btn btn-primary w-full text-lg">✨ Create Diet Plan</button>
+            </div>
+        </div>
+        <div id="diet-plan-result"></div>
+    </div>
+
+    <!-- CHEAT MEAL VIEW -->
+    <div id="cheat-meal-view" class="hidden">
+        <div class="card">
+            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Cheat Meal Helper</h2>
+            <div class="space-y-6">
+                <div><label for="cm_craving" class="font-semibold text-gray-700">What are you craving?</label><input type="text" id="cm_craving" class="input-field" placeholder="e.g., Pizza"></div>
+                <div><label for="cm_restaurant" class="font-semibold text-gray-700">Restaurant (Optional)</label><input type="text" id="cm_restaurant" class="input-field" placeholder="e.g., Domino's"></div>
+                <div>
+                    <label class="font-semibold text-gray-700">Advice Type</label>
+                    <div class="grid grid-cols-3 gap-2 mt-2">
+                        <div><input type="radio" name="cm_option" id="cm_healthy" value="healthy" class="hidden" checked><label for="cm_healthy" class="radio-label justify-center">Healthiest</label></div>
+                        <div><input type="radio" name="cm_option" id="cm_balanced" value="balanced" class="hidden"><label for="cm_balanced" class="radio-label justify-center">Balanced</label></div>
+                        <div><input type="radio" name="cm_option" id="cm_damage" value="damage-control" class="hidden"><label for="cm_damage" class="radio-label justify-center">Damage Control</label></div>
+                    </div>
+                </div>
+                <button data-action="generate-cheat-meal-advice" id="generate-cheat-meal-btn" class="btn btn-primary w-full text-lg">Get Advice</button>
+            </div>
+        </div>
+        <div id="cheat-meal-result"></div>
+    </div>
+
+    <!-- RECIPE MODAL -->
+    <div id="recipe-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="recipe-title" class="text-2xl font-bold">Recipe</h3>
+                <button data-action="close-modal" class="text-2xl font-bold">&times;</button>
+            </div>
+            <div id="recipe-content" class="text-gray-700 space-y-4 prose"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
+let lastMealQuery = {};
+let lastPlanQuery = {};
+
+// DIRECT NETLIFY FUNCTION CALL (replaces Velo callGemini)
+async function callGemini(prompt, isJson = true) {
+    try {
+        const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+
+        if (!response.ok) {
+            throw new Error('API request failed');
+        }
+
+        const data = await response.json();
+        let text = data.candidates[0].content.parts[0].text;
+
+        // Clean response
+        text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        text = text.replace(/:\s*NaN/g, ': null');
+
+        if (isJson) {
+            const jsonMatch = text.match(/[\[{][\s\S]*[\]}]/);
+            if (jsonMatch) text = jsonMatch[0];
+            return JSON.parse(text);
+        }
+        return text;
+    } catch (error) {
+        console.error('AI Error:', error);
+        return { error: error.message };
+    }
+}
+
+// NAVIGATION
+function showView(viewId) {
+    ['main-menu', 'meal-generator-view', 'diet-plan-view', 'cheat-meal-view'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(viewId).classList.remove('hidden');
+    window.scrollTo(0, 0);
+}
+
+// SINGLE MEAL GENERATOR
+async function generateMealIdea() {
+    const resultDiv = document.getElementById('meal-idea-result');
+    const button = document.getElementById('generate-meal-btn');
+
+    resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Generating meal...</p></div>';
+    button.disabled = true;
+
+    const mealType = document.querySelector('input[name="mealType"]:checked').value;
+    const allergies = document.getElementById('mg_allergies').value || 'none';
+    const comments = document.getElementById('mg_comments').value || 'none';
+
+    const prompt = `Generate a single ${mealType} meal.
+Avoid: ${allergies}
+Requests: ${comments}
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "name": "Meal Name with ingredients and quantities",
+  "calories": 450,
+  "protein": 35,
+  "carbs": 40,
+  "fat": 15,
+  "instructions": "Step by step cooking instructions"
+}`;
+
+    const meal = await callGemini(prompt, true);
+
+    if (meal.error) {
+        resultDiv.innerHTML = `<div class="card text-red-600">Error: ${meal.error}</div>`;
+    } else {
+        lastMealQuery.lastGeneratedMeal = meal;
+        resultDiv.innerHTML = `
+            <div class="card">
+                <h3 class="text-xl font-bold text-gray-800">${meal.name}</h3>
+                <div class="my-4 grid grid-cols-4 gap-2 text-center">
+                    <div><span class="font-bold text-blue-600">${meal.calories || 0}</span><p class="text-sm">Cal</p></div>
+                    <div><span class="font-bold text-blue-600">${meal.protein || 0}g</span><p class="text-sm">Protein</p></div>
+                    <div><span class="font-bold text-blue-600">${meal.carbs || 0}g</span><p class="text-sm">Carbs</p></div>
+                    <div><span class="font-bold text-blue-600">${meal.fat || 0}g</span><p class="text-sm">Fat</p></div>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <p class="font-semibold text-gray-700 mb-2">Instructions:</p>
+                    <p class="text-gray-600">${meal.instructions}</p>
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary flex-1">Get Full Recipe</button>
+                </div>
+            </div>`;
+    }
+    button.disabled = false;
+}
+
+// MULTI-DAY DIET PLAN GENERATOR
+async function generateDietPlan() {
+    const resultDiv = document.getElementById('diet-plan-result');
+    const button = document.getElementById('generate-plan-btn');
+
+    const age = document.getElementById('dp_age').value;
+    const weight = document.getElementById('dp_weight').value;
+    const heightFt = document.getElementById('dp_height_ft').value;
+    const heightIn = document.getElementById('dp_height_in').value;
+
+    if (!age || !weight || !heightFt) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Creating your diet plan...</p></div>';
+    button.disabled = true;
+
+    const gender = document.getElementById('dp_gender').value;
+    const activity = parseFloat(document.getElementById('dp_activity').value);
+    const goal = document.getElementById('dp_goal').value;
+    const preference = document.getElementById('dp_preference').value;
+    const allergies = document.getElementById('dp_allergies').value || 'none';
+    const meals = document.getElementById('dp_meals').value;
+    const numDays = parseInt(document.getElementById('dp_days').value);
+
+    // Calculate nutrition (Mifflin-St Jeor)
+    let weightKg, heightCm;
+    if (currentUnitSystem === 'imperial') {
+        weightKg = parseFloat(weight) * 0.453592;
+        heightCm = (parseInt(heightFt) * 30.48) + (parseInt(heightIn || 0) * 2.54);
+    } else {
+        weightKg = parseFloat(weight);
+        heightCm = parseFloat(heightFt);
+    }
+
+    let bmr;
+    if (gender === 'male') {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * parseInt(age)) + 5;
+    } else {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * parseInt(age)) - 161;
+    }
+
+    let tdee = bmr * activity;
+    if (goal === 'lose weight') tdee -= 500;
+    if (goal === 'gain muscle') tdee += 300;
+
+    let calories = Math.round(tdee);
+    let protein = Math.round((calories * 0.30) / 4);
+    let carbs = Math.round((calories * 0.40) / 4);
+    let fat = Math.round((calories * 0.30) / 9);
+
+    // Add protein powder if selected
+    let proteinPowderNote = '';
+    if (document.getElementById('dp_use_protein').checked) {
+        const proteinCals = parseInt(document.getElementById('dp_protein_cals').value) || 0;
+        const proteinProtein = parseInt(document.getElementById('dp_protein_protein').value) || 0;
+        const proteinCarbs = parseInt(document.getElementById('dp_protein_carbs').value) || 0;
+        const proteinFat = parseInt(document.getElementById('dp_protein_fat').value) || 0;
+        const proteinBrand = document.getElementById('dp_protein_brand').value || 'Protein Powder';
+
+        calories -= proteinCals;
+        protein -= proteinProtein;
+        carbs -= proteinCarbs;
+        fat -= proteinFat;
+
+        proteinPowderNote = `\n\nIMPORTANT: Client uses ${proteinBrand} (${proteinCals} cal, ${proteinProtein}g protein, ${proteinCarbs}g carbs, ${proteinFat}g fat). This is ALREADY included in daily totals, so DO NOT add extra protein shakes to the plan.`;
+    }
+
+    lastPlanQuery = { calories: Math.round(tdee), protein: Math.round((tdee * 0.30) / 4), carbs: Math.round((tdee * 0.40) / 4), fat: Math.round((tdee * 0.30) / 9), preference, allergies, meals, proteinPowderNote };
+
+    // Generate each day separately
+    const allDays = [];
+    for (let day = 1; day <= numDays; day++) {
+        const dayPrompt = `Create 1-day meal plan for Day ${day}.
+Stats: ${age}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
+Goal: ${goal}, Meals: ${meals}, Diet: ${preference}, Avoid: ${allergies}${proteinPowderNote}
+
+Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
+
+Return ONLY valid JSON (no markdown):
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Name","calories":500,"protein":40,"carbs":50,"fat":15,"ingredients":["200g chicken"],"instructions":"steps"}]}`;
+
+        const dayData = await callGemini(dayPrompt, true);
+        if (dayData.error) {
+            resultDiv.innerHTML = `<div class="card text-red-600">Error generating Day ${day}: ${dayData.error}</div>`;
+            button.disabled = false;
+            return;
+        }
+        allDays.push(dayData);
+    }
+
+    lastPlanQuery.currentPlan = allDays;
+    displayDietPlan(allDays);
+    button.disabled = false;
+}
+
+function displayDietPlan(multiDayData) {
+    const resultDiv = document.getElementById('diet-plan-result');
+    const targets = multiDayData[0].targets;
+
+    let planHTML = `
+        <div class="card">
+            <h3 class="text-xl font-bold mb-4">Your ${multiDayData.length}-Day Plan</h3>
+            <div class="grid grid-cols-4 gap-2 p-4 bg-blue-50 rounded-lg mb-4">
+                <div class="text-center"><p class="text-sm text-gray-600">Calories</p><span class="font-bold text-blue-600">${targets.calories}</span></div>
+                <div class="text-center"><p class="text-sm text-gray-600">Protein</p><span class="font-bold text-blue-600">${targets.protein}g</span></div>
+                <div class="text-center"><p class="text-sm text-gray-600">Carbs</p><span class="font-bold text-blue-600">${targets.carbs}g</span></div>
+                <div class="text-center"><p class="text-sm text-gray-600">Fat</p><span class="font-bold text-blue-600">${targets.fat}g</span></div>
+            </div>
+    `;
+
+    multiDayData.forEach((dayData, dayIndex) => {
+        planHTML += `<div class="day-divider">Day ${dayData.day}</div>`;
+        dayData.plan.forEach((meal, mealIndex) => {
+            planHTML += `
+                <div class="meal-card">
+                    <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
+                    <p class="text-blue-700">${meal.name}</p>
+                    <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 my-2">
+                        <span>${meal.calories} cal</span>
+                        <span>${meal.protein}g P</span>
+                        <span>${meal.carbs}g C</span>
+                        <span>${meal.fat}g F</span>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change This Meal</button>
+                        <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
+                    </div>
+                </div>`;
+        });
+    });
+
+    planHTML += `
+        <div class="flex gap-2 mt-4">
+            <button data-action="show-grocery-list" class="btn btn-secondary w-full">📝 Grocery List</button>
+            <button data-action="download-pdf" class="btn btn-primary w-full">📥 Download PDF</button>
+        </div>
+    </div>`;
+    resultDiv.innerHTML = planHTML;
+}
+
+// CHEAT MEAL ADVICE
+async function generateCheatMealAdvice() {
+    const resultDiv = document.getElementById('cheat-meal-result');
+    const button = document.getElementById('generate-cheat-meal-btn');
+
+    const craving = document.getElementById('cm_craving').value;
+    if (!craving) {
+        alert('Please enter what you\'re craving');
+        return;
+    }
+
+    resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div></div>';
+    button.disabled = true;
+
+    const restaurant = document.getElementById('cm_restaurant').value || 'any restaurant';
+    const option = document.querySelector('input[name="cm_option"]:checked').value;
+
+    const prompt = `Give nutrition advice for craving ${craving} at ${restaurant}. Approach: ${option}. 2-3 sentences, actionable tips.`;
+
+    const advice = await callGemini(prompt, false);
+
+    if (advice.error) {
+        resultDiv.innerHTML = `<div class="card text-red-600">Error: ${advice.error}</div>`;
+    } else {
+        resultDiv.innerHTML = `<div class="card"><div class="prose">${advice.replace(/\n/g, '<br>')}</div></div>`;
+    }
+    button.disabled = false;
+}
+
+// RECIPE GENERATOR
+async function getAIRecipe(mealName) {
+    const modal = document.getElementById('recipe-modal');
+    const content = document.getElementById('recipe-content');
+
+    document.getElementById('recipe-title').innerText = mealName;
+    modal.classList.remove('hidden');
+    content.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div>';
+
+    const prompt = `Recipe for "${mealName}". Use markdown with ### Ingredients and ### Instructions headings.`;
+    const recipe = await callGemini(prompt, false);
+
+    if (recipe.error) {
+        content.innerHTML = `<p class="text-red-500">${recipe.error}</p>`;
+    } else {
+        let html = recipe
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^\* (.*$)/gim, '<li>$1</li>')
+            .replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>')
+            .replace(/<\/li>\n<li>/g, '</li><li>');
+
+        html = html.replace(/(<li>.*<\/li>)/gs, (match) => {
+            if(match.toLowerCase().includes('ingredient')) return `<ul>${match}</ul>`;
+            return `<ol>${match}</ol>`;
+        });
+
+        content.innerHTML = html;
+    }
+}
+
+// INDIVIDUAL MEAL REVISION
+async function changeMeal(dayIndex, mealIndex) {
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    const newPreference = prompt(`Change "${meal.name}"?\nEnter your request (e.g., "make it vegetarian" or "different protein"):`, '');
+
+    if (!newPreference) return;
+
+    const prompt = `Revise this meal: "${meal.name}" (${meal.type})
+Request: ${newPreference}
+Diet: ${lastPlanQuery.preference}, Avoid: ${lastPlanQuery.allergies}
+Target macros: ${meal.calories} cal, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
+
+Return ONLY valid JSON (no markdown):
+{"type":"${meal.type}","name":"New Name","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["200g chicken"],"instructions":"steps"}`;
+
+    const revisedMeal = await callGemini(prompt, true);
+
+    if (!revisedMeal.error) {
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = revisedMeal;
+        displayDietPlan(lastPlanQuery.currentPlan);
+    } else {
+        alert('Error revising meal: ' + revisedMeal.error);
+    }
+}
+
+// GROCERY LIST AGGREGATION
+function parseIngredient(ingredientStr) {
+    const patterns = [
+        /(\d+\.?\d*)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|pieces?)\s+(.+)/i,
+        /(\d+\.?\d*)\s+(.+)/i
+    ];
+
+    for (const pattern of patterns) {
+        const match = ingredientStr.match(pattern);
+        if (match) {
+            return {
+                quantity: parseFloat(match[1]) || 0,
+                unit: (match[2] || 'unit').toLowerCase(),
+                name: (match[3] || match[2] || ingredientStr).toLowerCase().trim()
+            };
+        }
+    }
+    return { quantity: 1, unit: 'unit', name: ingredientStr.toLowerCase().trim() };
+}
+
+function normalizeUnit(quantity, unit) {
+    const conversions = {
+        'oz': 1, 'ounce': 1, 'ounces': 1,
+        'lb': 16, 'lbs': 16, 'pound': 16, 'pounds': 16,
+        'g': 0.035274, 'gram': 0.035274, 'grams': 0.035274,
+        'kg': 35.274,
+        'cup': 1, 'cups': 1,
+        'tbsp': 1, 'tsp': 0.333,
+        'piece': 1, 'pieces': 1, 'unit': 1
+    };
+
+    const normalized = conversions[unit] || 1;
+    return { quantity: quantity * normalized, unit: unit in conversions ? (normalized > 10 ? 'oz' : unit) : unit };
+}
+
+function aggregateGroceryList(multiDayPlan) {
+    const aggregated = {};
+
+    multiDayPlan.forEach(dayData => {
+        dayData.plan.forEach(meal => {
+            if (!meal.ingredients || !Array.isArray(meal.ingredients)) return;
+
+            meal.ingredients.forEach(ingredient => {
+                const parsed = parseIngredient(ingredient);
+                const normalized = normalizeUnit(parsed.quantity, parsed.unit);
+
+                const key = `${parsed.name}|${normalized.unit}`;
+                if (aggregated[key]) {
+                    aggregated[key].quantity += normalized.quantity;
+                } else {
+                    aggregated[key] = {
+                        name: parsed.name,
+                        quantity: normalized.quantity,
+                        unit: normalized.unit
+                    };
+                }
+            });
+        });
+    });
+
+    return Object.values(aggregated).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function showGroceryList() {
+    if (!lastPlanQuery.currentPlan) {
+        alert('No plan available');
+        return;
+    }
+
+    const groceryList = aggregateGroceryList(lastPlanQuery.currentPlan);
+
+    let listHTML = `
+        <div class="card mt-4">
+            <h3 class="text-2xl font-bold mb-4">📝 Grocery List</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">`;
+
+    groceryList.forEach(item => {
+        listHTML += `<div class="p-2 bg-gray-50 rounded">
+            <span class="font-semibold">${item.quantity.toFixed(1)} ${item.unit}</span> ${item.name}
+        </div>`;
+    });
+
+    listHTML += `</div>
+        <button data-action="close-grocery-list" class="btn btn-secondary w-full mt-4">Close</button>
+    </div>`;
+
+    const resultDiv = document.getElementById('diet-plan-result');
+    resultDiv.innerHTML += listHTML;
+    resultDiv.lastElementChild.scrollIntoView({ behavior: 'smooth' });
+}
+
+// PDF EXPORT
+function downloadPlanAsPDF() {
+    const { jsPDF } = window.jspdf;
+    if (!lastPlanQuery.currentPlan) {
+        alert('No plan to download');
+        return;
+    }
+
+    const pdf = new jsPDF();
+    let y = 20;
+
+    pdf.setFontSize(20);
+    pdf.text('Your Meal Plan', 20, y);
+    y += 15;
+
+    pdf.setFontSize(12);
+    pdf.text(`Daily: ${lastPlanQuery.calories} cal | ${lastPlanQuery.protein}g P | ${lastPlanQuery.carbs}g C | ${lastPlanQuery.fat}g F`, 20, y);
+    y += 20;
+
+    lastPlanQuery.currentPlan.forEach(dayData => {
+        if (y > 250) {
+            pdf.addPage();
+            y = 20;
+        }
+
+        pdf.setFontSize(16);
+        pdf.text(`Day ${dayData.day}`, 20, y);
+        y += 10;
+
+        dayData.plan.forEach(meal => {
+            if (y > 250) {
+                pdf.addPage();
+                y = 20;
+            }
+
+            pdf.setFontSize(12);
+            pdf.text(`${meal.type.toUpperCase()}: ${meal.name}`, 20, y);
+            y += 7;
+            pdf.setFontSize(10);
+            pdf.text(`${meal.calories} cal | ${meal.protein}g P | ${meal.carbs}g C | ${meal.fat}g F`, 25, y);
+            y += 10;
+        });
+        y += 10;
+    });
+
+    // Add Grocery List
+    pdf.addPage();
+    y = 20;
+    pdf.setFontSize(20);
+    pdf.text('Grocery List', 20, y);
+    y += 15;
+
+    const groceryList = aggregateGroceryList(lastPlanQuery.currentPlan);
+    pdf.setFontSize(11);
+    groceryList.forEach(item => {
+        if (y > 270) {
+            pdf.addPage();
+            y = 20;
+        }
+        pdf.text(`- ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`, 20, y);
+        y += 7;
+    });
+
+    pdf.save('meal-plan.pdf');
+}
+
+// UNIT SYSTEM STATE
+let currentUnitSystem = 'imperial';
+
+function toggleUnitSystem(system) {
+    currentUnitSystem = system;
+    document.getElementById('unit-imperial').className = system === 'imperial' ? 'btn btn-primary text-sm py-1 px-3' : 'btn btn-secondary text-sm py-1 px-3';
+    document.getElementById('unit-metric').className = system === 'metric' ? 'btn btn-primary text-sm py-1 px-3' : 'btn btn-secondary text-sm py-1 px-3';
+
+    // Update labels
+    const weightLabel = system === 'imperial' ? 'Weight (lbs)' : 'Weight (kg)';
+    const heightLabel1 = system === 'imperial' ? 'Height (ft)' : 'Height (cm)';
+    const heightLabel2 = system === 'imperial' ? 'Height (in)' : '';
+
+    document.querySelector('label[for="dp_weight"]').textContent = weightLabel;
+    document.querySelector('label[for="dp_height_ft"]').textContent = heightLabel1;
+    document.querySelector('label[for="dp_height_in"]').textContent = heightLabel2;
+    document.getElementById('dp_height_in').style.display = system === 'imperial' ? 'block' : 'none';
+}
+
+// EVENT HANDLERS
+document.addEventListener('click', function(event) {
+    const actionTarget = event.target.closest('[data-action]');
+    if (!actionTarget) return;
+
+    const actions = {
+        'nav-meal-generator': () => showView('meal-generator-view'),
+        'nav-diet-plan': () => showView('diet-plan-view'),
+        'nav-cheat-meal': () => showView('cheat-meal-view'),
+        'nav-main-menu': () => showView('main-menu'),
+        'generate-meal': generateMealIdea,
+        'generate-plan': generateDietPlan,
+        'generate-cheat-meal-advice': generateCheatMealAdvice,
+        'close-modal': () => document.getElementById('recipe-modal').classList.add('hidden'),
+        'get-recipe': () => {
+            const mealName = event.target.closest('[data-meal-name]').dataset.mealName;
+            if(mealName) getAIRecipe(mealName);
+        },
+        'change-meal': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            changeMeal(dayIndex, mealIndex);
+        },
+        'show-grocery-list': showGroceryList,
+        'close-grocery-list': () => {
+            event.target.closest('.card').remove();
+        },
+        'download-pdf': downloadPlanAsPDF
+    };
+
+    if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
+});
+
+// Unit system toggle
+document.getElementById('unit-imperial').addEventListener('click', () => toggleUnitSystem('imperial'));
+document.getElementById('unit-metric').addEventListener('click', () => toggleUnitSystem('metric'));
+
+// Protein powder checkbox toggle
+document.getElementById('dp_use_protein').addEventListener('change', function() {
+    const fields = document.getElementById('protein-powder-fields');
+    if (this.checked) {
+        fields.classList.remove('hidden');
+    } else {
+        fields.classList.add('hidden');
+    }
+});
+</script>
+</body>
+</html>
