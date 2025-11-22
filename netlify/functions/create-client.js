@@ -15,7 +15,14 @@ exports.handler = async (event, context) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { coachId, clientName, email, phone, notes, defaultDietaryRestrictions, defaultGoal } = body;
+    const {
+      coachId, clientName, email, phone, notes, defaultDietaryRestrictions, defaultGoal,
+      age, gender, weight, heightFt, heightIn, activityLevel, unitSystem,
+      calorieAdjustment, dietType, macroPreference, mealCount, budget,
+      allergies, dislikedFoods, preferredFoods, cookingEquipment,
+      useProteinPowder, proteinPowderBrand, proteinPowderCalories,
+      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat
+    } = body;
 
     // Validate required fields
     if (!coachId || !clientName) {
@@ -28,7 +35,7 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Insert new client
+    // Insert new client with all fields
     const { data, error } = await supabase
       .from('clients')
       .insert([
@@ -39,7 +46,34 @@ exports.handler = async (event, context) => {
           phone: phone || null,
           notes: notes || null,
           default_dietary_restrictions: defaultDietaryRestrictions || [],
-          default_goal: defaultGoal || null
+          default_goal: defaultGoal || null,
+          // Physical stats
+          age: age || null,
+          gender: gender || null,
+          weight: weight || null,
+          height_ft: heightFt || null,
+          height_in: heightIn || null,
+          activity_level: activityLevel || null,
+          unit_system: unitSystem || 'imperial',
+          // Goals & nutrition
+          calorie_adjustment: calorieAdjustment || 0,
+          diet_type: dietType || null,
+          macro_preference: macroPreference || 'balanced',
+          meal_count: mealCount || '3 meals',
+          budget: budget || null,
+          // Food preferences
+          allergies: allergies || null,
+          disliked_foods: dislikedFoods || null,
+          preferred_foods: preferredFoods || null,
+          // Equipment
+          cooking_equipment: cookingEquipment || [],
+          // Protein powder
+          use_protein_powder: useProteinPowder || false,
+          protein_powder_brand: proteinPowderBrand || null,
+          protein_powder_calories: proteinPowderCalories || null,
+          protein_powder_protein: proteinPowderProtein || null,
+          protein_powder_carbs: proteinPowderCarbs || null,
+          protein_powder_fat: proteinPowderFat || null
         }
       ])
       .select()

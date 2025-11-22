@@ -15,7 +15,14 @@ exports.handler = async (event, context) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { clientId, coachId, clientName, email, phone, notes, defaultDietaryRestrictions, defaultGoal } = body;
+    const {
+      clientId, coachId, clientName, email, phone, notes, defaultDietaryRestrictions, defaultGoal,
+      age, gender, weight, heightFt, heightIn, activityLevel, unitSystem,
+      calorieAdjustment, dietType, macroPreference, mealCount, budget,
+      allergies, dislikedFoods, preferredFoods, cookingEquipment,
+      useProteinPowder, proteinPowderBrand, proteinPowderCalories,
+      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat
+    } = body;
 
     // Validate required fields
     if (!clientId || !coachId) {
@@ -28,14 +35,42 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Build update object with only provided fields
+    // Build update object with all provided fields
     const updateData = {};
+    // Basic info
     if (clientName !== undefined) updateData.client_name = clientName;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
     if (notes !== undefined) updateData.notes = notes;
     if (defaultDietaryRestrictions !== undefined) updateData.default_dietary_restrictions = defaultDietaryRestrictions;
     if (defaultGoal !== undefined) updateData.default_goal = defaultGoal;
+    // Physical stats
+    if (age !== undefined) updateData.age = age;
+    if (gender !== undefined) updateData.gender = gender;
+    if (weight !== undefined) updateData.weight = weight;
+    if (heightFt !== undefined) updateData.height_ft = heightFt;
+    if (heightIn !== undefined) updateData.height_in = heightIn;
+    if (activityLevel !== undefined) updateData.activity_level = activityLevel;
+    if (unitSystem !== undefined) updateData.unit_system = unitSystem;
+    // Goals & nutrition
+    if (calorieAdjustment !== undefined) updateData.calorie_adjustment = calorieAdjustment;
+    if (dietType !== undefined) updateData.diet_type = dietType;
+    if (macroPreference !== undefined) updateData.macro_preference = macroPreference;
+    if (mealCount !== undefined) updateData.meal_count = mealCount;
+    if (budget !== undefined) updateData.budget = budget;
+    // Food preferences
+    if (allergies !== undefined) updateData.allergies = allergies;
+    if (dislikedFoods !== undefined) updateData.disliked_foods = dislikedFoods;
+    if (preferredFoods !== undefined) updateData.preferred_foods = preferredFoods;
+    // Equipment
+    if (cookingEquipment !== undefined) updateData.cooking_equipment = cookingEquipment;
+    // Protein powder
+    if (useProteinPowder !== undefined) updateData.use_protein_powder = useProteinPowder;
+    if (proteinPowderBrand !== undefined) updateData.protein_powder_brand = proteinPowderBrand;
+    if (proteinPowderCalories !== undefined) updateData.protein_powder_calories = proteinPowderCalories;
+    if (proteinPowderProtein !== undefined) updateData.protein_powder_protein = proteinPowderProtein;
+    if (proteinPowderCarbs !== undefined) updateData.protein_powder_carbs = proteinPowderCarbs;
+    if (proteinPowderFat !== undefined) updateData.protein_powder_fat = proteinPowderFat;
 
     // Update client (verify it belongs to this coach)
     const { data, error } = await supabase

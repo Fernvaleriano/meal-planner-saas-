@@ -366,6 +366,9 @@
             <form id="clientForm">
                 <input type="hidden" id="clientId">
 
+                <!-- Basic Information -->
+                <h3 style="margin-bottom: 15px; color: #667eea;">📋 Basic Information</h3>
+
                 <div class="form-group">
                     <label for="clientName">Client Name *</label>
                     <input type="text" id="clientName" required placeholder="John Doe">
@@ -381,42 +384,202 @@
                     <input type="tel" id="clientPhone" placeholder="(555) 123-4567">
                 </div>
 
-                <div class="form-group">
-                    <label for="defaultGoal">Default Goal</label>
-                    <select id="defaultGoal">
-                        <option value="">-- Select Goal --</option>
-                        <option value="lose_weight">Lose Weight</option>
-                        <option value="maintain">Maintain Weight</option>
-                        <option value="gain_muscle">Gain Muscle</option>
-                    </select>
-                </div>
+                <!-- Physical Stats -->
+                <h3 style="margin: 25px 0 15px 0; color: #667eea;">📏 Physical Stats</h3>
 
-                <div class="form-group">
-                    <label>Default Dietary Restrictions</label>
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="restrictions" value="vegan"> Vegan
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="restrictions" value="vegetarian"> Vegetarian
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="restrictions" value="gluten-free"> Gluten-Free
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="restrictions" value="dairy-free"> Dairy-Free
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="restrictions" value="nut-free"> Nut-Free
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="restrictions" value="pescatarian"> Pescatarian
-                        </label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="clientAge">Age</label>
+                        <input type="number" id="clientAge" placeholder="30">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientGender">Gender</label>
+                        <select id="clientGender">
+                            <option value="">-- Select --</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientWeight">Weight (lbs)</label>
+                        <input type="number" id="clientWeight" placeholder="155" step="0.1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientHeightFt">Height (ft)</label>
+                        <input type="number" id="clientHeightFt" placeholder="5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientHeightIn">Height (in)</label>
+                        <input type="number" id="clientHeightIn" placeholder="10">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientActivity">Activity Level</label>
+                        <select id="clientActivity">
+                            <option value="">-- Select --</option>
+                            <option value="1.2">Sedentary</option>
+                            <option value="1.55">Moderate</option>
+                            <option value="1.725">Very Active</option>
+                        </select>
                     </div>
                 </div>
 
+                <!-- Goals & Preferences -->
+                <h3 style="margin: 25px 0 15px 0; color: #667eea;">🎯 Goals & Nutrition</h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="defaultGoal">Goal</label>
+                        <select id="defaultGoal">
+                            <option value="">-- Select Goal --</option>
+                            <option value="lose_weight">Lose Weight</option>
+                            <option value="maintain">Maintain Weight</option>
+                            <option value="gain_muscle">Gain Muscle</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="calorieAdjustment">Calorie Adjustment</label>
+                        <select id="calorieAdjustment">
+                            <option value="0">Standard</option>
+                            <option value="-250">-250 cals</option>
+                            <option value="-500">-500 cals</option>
+                            <option value="-750">-750 cals</option>
+                            <option value="250">+250 cals</option>
+                            <option value="500">+500 cals</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dietType">Diet Type</label>
+                        <select id="dietType">
+                            <option value="">-- Select --</option>
+                            <option value="omnivore">Omnivore</option>
+                            <option value="vegetarian">Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                            <option value="keto">Keto</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="macroPreference">Macro Preference</label>
+                        <select id="macroPreference">
+                            <option value="balanced">Balanced</option>
+                            <option value="lower-carb">Lower Carb</option>
+                            <option value="higher-carb">Higher Carb</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mealCount">Meal Count</label>
+                        <select id="mealCount">
+                            <option value="2 meals">2 Meals</option>
+                            <option value="3 meals">3 Meals</option>
+                            <option value="3 meals, 1 snack">3 Meals + 1 Snack</option>
+                            <option value="3 meals, 2 snacks">3 Meals + 2 Snacks</option>
+                            <option value="3 meals, 3 snacks">3 Meals + 3 Snacks</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="budget">Budget</label>
+                        <select id="budget">
+                            <option value="">No Preference</option>
+                            <option value="budget-friendly">Budget Friendly</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="premium">Premium</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Food Preferences -->
+                <h3 style="margin: 25px 0 15px 0; color: #667eea;">🍽️ Food Preferences</h3>
+
                 <div class="form-group">
-                    <label for="clientNotes">Notes</label>
+                    <label for="allergies">Allergies</label>
+                    <input type="text" id="allergies" placeholder="e.g., dairy, nuts, shellfish">
+                </div>
+
+                <div class="form-group">
+                    <label for="dislikedFoods">Disliked Foods</label>
+                    <input type="text" id="dislikedFoods" placeholder="e.g., brussels sprouts, mushrooms">
+                </div>
+
+                <div class="form-group">
+                    <label for="preferredFoods">Preferred Foods</label>
+                    <input type="text" id="preferredFoods" placeholder="e.g., chicken, rice, broccoli">
+                </div>
+
+                <!-- Cooking Equipment -->
+                <h3 style="margin: 25px 0 15px 0; color: #667eea;">🔥 Cooking Equipment</h3>
+
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="equipment" value="Stove"> Stove
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="equipment" value="Oven"> Oven
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="equipment" value="Microwave"> Microwave
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="equipment" value="Air Fryer"> Air Fryer
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="equipment" value="Grill"> Grill
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="equipment" value="Blender"> Blender
+                    </label>
+                </div>
+
+                <!-- Protein Powder -->
+                <h3 style="margin: 25px 0 15px 0; color: #667eea;">💪 Protein Supplement</h3>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="useProteinPowder"> Client uses protein powder
+                    </label>
+                </div>
+
+                <div id="proteinPowderFields" style="display: none; padding-left: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label for="proteinBrand">Brand</label>
+                            <input type="text" id="proteinBrand" placeholder="e.g., Optimum Nutrition">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="proteinCalories">Calories per serving</label>
+                            <input type="number" id="proteinCalories" placeholder="120">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="proteinProtein">Protein (g)</label>
+                            <input type="number" id="proteinProtein" placeholder="24">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="proteinCarbs">Carbs (g)</label>
+                            <input type="number" id="proteinCarbs" placeholder="3">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="proteinFat">Fat (g)</label>
+                            <input type="number" id="proteinFat" placeholder="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <h3 style="margin: 25px 0 15px 0; color: #667eea;">📝 Notes</h3>
+
+                <div class="form-group">
                     <textarea id="clientNotes" placeholder="Any important information about this client..."></textarea>
                 </div>
 
@@ -572,19 +735,52 @@
 
             modalTitle.textContent = 'Edit Client';
             document.getElementById('clientId').value = client.id;
+
+            // Basic info
             document.getElementById('clientName').value = client.client_name;
             document.getElementById('clientEmail').value = client.email || '';
             document.getElementById('clientPhone').value = client.phone || '';
-            document.getElementById('defaultGoal').value = client.default_goal || '';
-            document.getElementById('clientNotes').value = client.notes || '';
 
-            // Set dietary restrictions
-            const restrictions = Array.isArray(client.default_dietary_restrictions)
-                ? client.default_dietary_restrictions
-                : [];
-            document.querySelectorAll('input[name="restrictions"]').forEach(checkbox => {
-                checkbox.checked = restrictions.includes(checkbox.value);
+            // Physical stats
+            document.getElementById('clientAge').value = client.age || '';
+            document.getElementById('clientGender').value = client.gender || '';
+            document.getElementById('clientWeight').value = client.weight || '';
+            document.getElementById('clientHeightFt').value = client.height_ft || '';
+            document.getElementById('clientHeightIn').value = client.height_in || '';
+            document.getElementById('clientActivity').value = client.activity_level || '';
+
+            // Goals & nutrition
+            document.getElementById('defaultGoal').value = client.default_goal || '';
+            document.getElementById('calorieAdjustment').value = client.calorie_adjustment || '0';
+            document.getElementById('dietType').value = client.diet_type || '';
+            document.getElementById('macroPreference').value = client.macro_preference || 'balanced';
+            document.getElementById('mealCount').value = client.meal_count || '3 meals';
+            document.getElementById('budget').value = client.budget || '';
+
+            // Food preferences
+            document.getElementById('allergies').value = client.allergies || '';
+            document.getElementById('dislikedFoods').value = client.disliked_foods || '';
+            document.getElementById('preferredFoods').value = client.preferred_foods || '';
+
+            // Cooking equipment
+            const equipment = Array.isArray(client.cooking_equipment) ? client.cooking_equipment : [];
+            document.querySelectorAll('input[name="equipment"]').forEach(checkbox => {
+                checkbox.checked = equipment.includes(checkbox.value);
             });
+
+            // Protein powder
+            document.getElementById('useProteinPowder').checked = client.use_protein_powder || false;
+            if (client.use_protein_powder) {
+                document.getElementById('proteinPowderFields').style.display = 'block';
+                document.getElementById('proteinBrand').value = client.protein_powder_brand || '';
+                document.getElementById('proteinCalories').value = client.protein_powder_calories || '';
+                document.getElementById('proteinProtein').value = client.protein_powder_protein || '';
+                document.getElementById('proteinCarbs').value = client.protein_powder_carbs || '';
+                document.getElementById('proteinFat').value = client.protein_powder_fat || '';
+            }
+
+            // Notes
+            document.getElementById('clientNotes').value = client.notes || '';
 
             clientModal.style.display = 'block';
         }
@@ -601,14 +797,6 @@
 
             const clientId = document.getElementById('clientId').value;
             const clientName = document.getElementById('clientName').value.trim();
-            const email = document.getElementById('clientEmail').value.trim();
-            const phone = document.getElementById('clientPhone').value.trim();
-            const defaultGoal = document.getElementById('defaultGoal').value;
-            const notes = document.getElementById('clientNotes').value.trim();
-
-            // Get selected dietary restrictions
-            const restrictions = Array.from(document.querySelectorAll('input[name="restrictions"]:checked'))
-                .map(cb => cb.value);
 
             if (!clientName) {
                 alert('Client name is required');
@@ -620,14 +808,54 @@
             saveBtn.textContent = 'Saving...';
 
             try {
+                // Collect all form data
                 const payload = {
                     coachId: currentCoachId,
                     clientName,
-                    email: email || null,
-                    phone: phone || null,
-                    notes: notes || null,
-                    defaultDietaryRestrictions: restrictions,
-                    defaultGoal: defaultGoal || null
+
+                    // Basic info
+                    email: document.getElementById('clientEmail').value.trim() || null,
+                    phone: document.getElementById('clientPhone').value.trim() || null,
+
+                    // Physical stats
+                    age: parseInt(document.getElementById('clientAge').value) || null,
+                    gender: document.getElementById('clientGender').value || null,
+                    weight: parseFloat(document.getElementById('clientWeight').value) || null,
+                    heightFt: parseInt(document.getElementById('clientHeightFt').value) || null,
+                    heightIn: parseInt(document.getElementById('clientHeightIn').value) || null,
+                    activityLevel: parseFloat(document.getElementById('clientActivity').value) || null,
+                    unitSystem: 'imperial',
+
+                    // Goals & nutrition
+                    defaultGoal: document.getElementById('defaultGoal').value || null,
+                    calorieAdjustment: parseInt(document.getElementById('calorieAdjustment').value) || 0,
+                    dietType: document.getElementById('dietType').value || null,
+                    macroPreference: document.getElementById('macroPreference').value || 'balanced',
+                    mealCount: document.getElementById('mealCount').value || '3 meals',
+                    budget: document.getElementById('budget').value || null,
+
+                    // Food preferences
+                    allergies: document.getElementById('allergies').value.trim() || null,
+                    dislikedFoods: document.getElementById('dislikedFoods').value.trim() || null,
+                    preferredFoods: document.getElementById('preferredFoods').value.trim() || null,
+
+                    // Equipment
+                    cookingEquipment: Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
+                        .map(cb => cb.value),
+
+                    // Protein powder
+                    useProteinPowder: document.getElementById('useProteinPowder').checked,
+                    proteinPowderBrand: document.getElementById('proteinBrand').value.trim() || null,
+                    proteinPowderCalories: parseInt(document.getElementById('proteinCalories').value) || null,
+                    proteinPowderProtein: parseInt(document.getElementById('proteinProtein').value) || null,
+                    proteinPowderCarbs: parseInt(document.getElementById('proteinCarbs').value) || null,
+                    proteinPowderFat: parseInt(document.getElementById('proteinFat').value) || null,
+
+                    // Notes
+                    notes: document.getElementById('clientNotes').value.trim() || null,
+
+                    // Legacy field for compatibility
+                    defaultDietaryRestrictions: []
                 };
 
                 let response;
@@ -707,6 +935,12 @@
 
         // Event listeners
         addClientBtn.addEventListener('click', openAddClientModal);
+
+        // Protein powder toggle
+        document.getElementById('useProteinPowder').addEventListener('change', (e) => {
+            document.getElementById('proteinPowderFields').style.display =
+                e.target.checked ? 'block' : 'none';
+        });
 
         logoutBtn.addEventListener('click', async () => {
             const { error } = await supabaseClient.auth.signOut();
