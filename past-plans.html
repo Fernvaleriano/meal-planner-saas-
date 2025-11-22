@@ -413,11 +413,11 @@
                 const data = await response.json();
                 const planData = data.plan.plan_data;
 
-                console.log('✅ Plan loaded:', planData);
+                console.log('Plan loaded:', planData);
 
-                // Save to localStorage and redirect to planner
+                // Save to localStorage and redirect to view page
                 localStorage.setItem('currentMealPlan', JSON.stringify(planData));
-                window.location.href = 'planner.html';
+                window.location.href = 'view-plan.html';
 
             } catch (error) {
                 console.error('Error loading plan:', error);
