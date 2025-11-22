@@ -360,6 +360,56 @@ async function callGemini(prompt, isJson = true) {
     }
 }
 
+// MEAL VALIDATION FUNCTION
+function validateMeal(meal, mealType) {
+    const issues = [];
+
+    // Validation 1: Macro math check
+    const calculatedCalories = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
+    const calorieDifference = Math.abs(meal.calories - calculatedCalories);
+    const percentOff = calorieDifference / meal.calories;
+
+    if (percentOff > 0.20) { // More than 20% off
+        issues.push(`Macro math error: ${meal.calories} cal listed but macros calculate to ${Math.round(calculatedCalories)} cal`);
+    }
+
+    // Validation 2: Reasonable calorie ranges by meal type
+    const reasonableRanges = {
+        'breakfast': { min: 250, max: 700 },
+        'lunch': { min: 350, max: 800 },
+        'dinner': { min: 350, max: 900 },
+        'snack': { min: 50, max: 400 }
+    };
+
+    const range = reasonableRanges[mealType] || reasonableRanges['snack'];
+    if (meal.calories < range.min || meal.calories > range.max) {
+        issues.push(`${mealType} calories (${meal.calories}) outside reasonable range ${range.min}-${range.max}`);
+    }
+
+    // Validation 3: Protein shake specific check
+    const isShake = meal.name.toLowerCase().includes('shake') ||
+                   meal.name.toLowerCase().includes('protein powder') ||
+                   meal.name.toLowerCase().includes('smoothie');
+    if (isShake && meal.calories > 450) {
+        issues.push(`Protein shake/smoothie too high: ${meal.calories} cal (should be under 450)`);
+    }
+
+    // Validation 4: Sanity check on macros
+    if (meal.protein < 0 || meal.carbs < 0 || meal.fat < 0) {
+        issues.push('Negative macro values detected');
+    }
+
+    if (meal.protein > 100 || meal.carbs > 150 || meal.fat > 80) {
+        issues.push('Unrealistically high macro values in single meal');
+    }
+
+    return {
+        valid: issues.length === 0,
+        issues: issues,
+        meal: meal
+    };
+}
+
 // MULTI-DAY DIET PLAN GENERATOR
 async function generateDietPlan() {
     const resultDiv = document.getElementById('diet-plan-result');
@@ -509,6 +559,14 @@ Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
+CRITICAL CALORIE ACCURACY RULES:
+- VERIFY macro math: (protein grams × 4) + (carbs grams × 4) + (fat grams × 9) MUST equal total calories
+- Use REALISTIC portion sizes based on actual food weights
+- Protein shake = 120-250 calories MAX (1 scoop protein + liquid)
+- Snacks = 100-400 calories
+- Meals = 400-700 calories depending on meal type
+- Double-check all calorie counts are accurate for the portions listed
+
 CRITICAL NAMING RULES:
 - Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz sirloin steak, 1 cup brown rice, 100g roasted vegetables")
 - DO NOT use generic names like "Steak with Roasted Vegetables"
@@ -532,6 +590,60 @@ Include detailed ingredients list and full cooking instructions.
             button.disabled = false;
             return;
         }
+
+        // Validate each meal and regenerate if needed
+        if (dayData.plan && Array.isArray(dayData.plan)) {
+            for (let mealIndex = 0; mealIndex < dayData.plan.length; mealIndex++) {
+                const meal = dayData.plan[mealIndex];
+                const validation = validateMeal(meal, meal.type);
+
+                if (!validation.valid) {
+                    console.warn(`⚠️ Validation failed for ${meal.type} on Day ${day}:`, validation.issues);
+                    console.log('🔄 Regenerating meal...');
+
+                    // Regenerate this specific meal (max 2 attempts)
+                    let retryCount = 0;
+                    let validMeal = null;
+
+                    while (retryCount < 2 && !validMeal) {
+                        const regeneratePrompt = `Generate a single ${meal.type} meal.
+Diet: ${preference}
+Avoid: ${allergies}
+Target: ${meal.calories} calories (but be ACCURATE with portions)
+Target macros: ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
+
+CRITICAL CALORIE ACCURACY:
+- VERIFY: (protein × 4) + (carbs × 4) + (fat × 9) = total calories
+- Use realistic portion sizes
+- ${meal.type === 'snack' ? 'Snacks should be 100-400 calories' : 'Meals should be 400-700 calories'}
+- Double-check your math!
+
+Return ONLY valid JSON. Example:
+{"type":"${meal.type}","name":"4oz chicken breast, 1 cup rice, 100g broccoli","calories":450,"protein":40,"carbs":50,"fat":8,"ingredients":["4oz chicken breast","1 cup brown rice","100g broccoli"],"instructions":"Grill chicken, cook rice, steam broccoli."}`;
+
+                        const newMeal = await callGemini(regeneratePrompt, true);
+                        if (!newMeal.error) {
+                            const newValidation = validateMeal(newMeal, meal.type);
+                            if (newValidation.valid) {
+                                validMeal = newMeal;
+                                console.log('✅ Regenerated meal passed validation');
+                            } else {
+                                console.warn(`Retry ${retryCount + 1} still has issues:`, newValidation.issues);
+                            }
+                        }
+                        retryCount++;
+                    }
+
+                    // Use regenerated meal if valid, otherwise keep original
+                    if (validMeal) {
+                        dayData.plan[mealIndex] = validMeal;
+                    } else {
+                        console.warn('⚠️ Could not generate valid meal after retries, keeping original');
+                    }
+                }
+            }
+        }
+
         allDays.push(dayData);
     }
 
