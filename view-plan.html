@@ -1091,8 +1091,7 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt,
-                    isJson: false
+                    prompt
                 })
             });
 
@@ -1105,12 +1104,23 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
             const data = await response.json();
             console.log('API Response:', data);
 
-            if (!data.result) {
-                console.error('No result in response:', data);
-                throw new Error('Invalid response from AI service');
+            // Extract text from Gemini response structure
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                const text = data.candidates[0].content.parts[0].text;
+                if (!text) {
+                    console.error('No text in response:', data);
+                    throw new Error('Invalid response from AI service');
+                }
+                return text;
             }
 
-            return data.result;
+            // Fallback: check for data.result (in case of different response format)
+            if (data.result) {
+                return data.result;
+            }
+
+            console.error('Unexpected response structure:', data);
+            throw new Error('Invalid response from AI service');
         }
 
         async function downloadPDF() {
@@ -1474,11 +1484,26 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
         }
 
         function aggregateGroceryList() {
-            if (!currentPlan || !currentPlan.meals) return [];
+            if (!currentPlan) return [];
 
             const aggregated = {};
+            let allMeals = [];
 
-            currentPlan.meals.forEach(meal => {
+            // Handle both multi-day and single-day plans
+            if (currentPlan.multiDay && currentPlan.days) {
+                // Multi-day plan: collect meals from all days
+                currentPlan.days.forEach(dayData => {
+                    if (dayData.plan && Array.isArray(dayData.plan)) {
+                        allMeals = allMeals.concat(dayData.plan);
+                    }
+                });
+            } else if (currentPlan.meals && Array.isArray(currentPlan.meals)) {
+                // Single-day plan
+                allMeals = currentPlan.meals;
+            }
+
+            // Aggregate ingredients from all meals
+            allMeals.forEach(meal => {
                 if (!meal.ingredients || !Array.isArray(meal.ingredients)) return;
 
                 meal.ingredients.forEach(ingredient => {
