@@ -1,4 +1,4 @@
-// Netlify Function to save a coach's meal plan
+// Netlify Function to create a new client
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -14,35 +14,34 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { coachId, clientName, planData, clientId } = JSON.parse(event.body);
+    const body = JSON.parse(event.body);
+    const { coachId, clientName, email, phone, notes, defaultDietaryRestrictions, defaultGoal } = body;
 
-    if (!coachId || !planData) {
+    // Validate required fields
+    if (!coachId || !clientName) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Coach ID and plan data are required' })
+        body: JSON.stringify({ error: 'Coach ID and client name are required' })
       };
     }
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Prepare insert data
-    const insertData = {
-      coach_id: coachId,
-      client_name: clientName || 'Unnamed Client',
-      plan_data: planData,
-      created_at: new Date().toISOString()
-    };
-
-    // Add client_id if provided
-    if (clientId) {
-      insertData.client_id = clientId;
-    }
-
-    // Insert the meal plan into the database
+    // Insert new client
     const { data, error } = await supabase
-      .from('coach_meal_plans')
-      .insert([insertData])
+      .from('clients')
+      .insert([
+        {
+          coach_id: coachId,
+          client_name: clientName,
+          email: email || null,
+          phone: phone || null,
+          notes: notes || null,
+          default_dietary_restrictions: defaultDietaryRestrictions || [],
+          default_goal: defaultGoal || null
+        }
+      ])
       .select()
       .single();
 
@@ -51,13 +50,13 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 500,
         body: JSON.stringify({
-          error: 'Failed to save meal plan',
+          error: 'Failed to create client',
           details: error.message
         })
       };
     }
 
-    console.log('✅ Meal plan saved with ID:', data.id);
+    console.log(`✅ Created client: ${clientName} (ID: ${data.id})`);
 
     return {
       statusCode: 200,
@@ -67,8 +66,7 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Headers': 'Content-Type'
       },
       body: JSON.stringify({
-        planId: data.id,
-        message: 'Plan saved successfully'
+        client: data
       })
     };
 

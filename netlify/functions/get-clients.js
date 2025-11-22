@@ -1,12 +1,12 @@
-// Netlify Function to save a coach's meal plan
+// Netlify Function to retrieve all clients for a coach
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
+  // Only allow GET requests
+  if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
       body: JSON.stringify({ error: 'Method not allowed' })
@@ -14,50 +14,37 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { coachId, clientName, planData, clientId } = JSON.parse(event.body);
+    const coachId = event.queryStringParameters.coachId;
 
-    if (!coachId || !planData) {
+    if (!coachId) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Coach ID and plan data are required' })
+        body: JSON.stringify({ error: 'Coach ID is required' })
       };
     }
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Prepare insert data
-    const insertData = {
-      coach_id: coachId,
-      client_name: clientName || 'Unnamed Client',
-      plan_data: planData,
-      created_at: new Date().toISOString()
-    };
-
-    // Add client_id if provided
-    if (clientId) {
-      insertData.client_id = clientId;
-    }
-
-    // Insert the meal plan into the database
+    // Retrieve all clients for this coach, ordered by name
     const { data, error } = await supabase
-      .from('coach_meal_plans')
-      .insert([insertData])
-      .select()
-      .single();
+      .from('clients')
+      .select('*')
+      .eq('coach_id', coachId)
+      .order('client_name', { ascending: true });
 
     if (error) {
       console.error('❌ Supabase error:', error);
       return {
         statusCode: 500,
         body: JSON.stringify({
-          error: 'Failed to save meal plan',
+          error: 'Failed to retrieve clients',
           details: error.message
         })
       };
     }
 
-    console.log('✅ Meal plan saved with ID:', data.id);
+    console.log(`✅ Retrieved ${data.length} clients for coach ${coachId}`);
 
     return {
       statusCode: 200,
@@ -67,8 +54,7 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Headers': 'Content-Type'
       },
       body: JSON.stringify({
-        planId: data.id,
-        message: 'Plan saved successfully'
+        clients: data
       })
     };
 

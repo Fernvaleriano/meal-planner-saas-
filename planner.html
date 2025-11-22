@@ -178,8 +178,21 @@
             </div>
 
             <div class="space-y-6">
+                <!-- Client Selector Section -->
+                <div class="p-4 bg-green-50 border-2 border-green-400 rounded-lg">
+                    <label class="font-bold text-green-900 block mb-2">👤 Select Client</label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <select id="dp_client_selector" class="input-field border-2 border-green-500">
+                            <option value="">Loading clients...</option>
+                        </select>
+                        <div id="new_client_form" class="hidden">
+                            <input type="text" id="dp_new_client_name" class="input-field border-2 border-green-500" placeholder="Enter new client name" required>
+                            <input type="hidden" id="dp_selected_client_id">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label for="dp_client_name" class="font-semibold text-gray-700">Client Name</label><input type="text" id="dp_client_name" class="input-field" placeholder="John Doe" required></div>
                     <div><label for="dp_age" class="font-semibold text-gray-700">Age</label><input type="number" id="dp_age" class="input-field" placeholder="30" required></div>
                     <div><label for="dp_gender" class="font-semibold text-gray-700">Gender</label><select id="dp_gender" class="input-field"><option value="male">Male</option><option value="female">Female</option></select></div>
                     <div><label for="dp_weight" class="font-semibold text-gray-700">Weight (lbs)</label><input type="number" id="dp_weight" class="input-field" placeholder="155" required></div>
@@ -194,6 +207,10 @@
                         <option value="1">1 Day</option>
                         <option value="2">2 Days</option>
                         <option value="3" selected>3 Days</option>
+                        <option value="4">4 Days</option>
+                        <option value="5">5 Days</option>
+                        <option value="6">6 Days</option>
+                        <option value="7">7 Days (Full Week)</option>
                     </select>
                 </div>
 
@@ -286,6 +303,107 @@ let lastMealQuery = {};
 let lastPlanQuery = {};
 let currentShareUrl = '';
 let currentCoach = null;
+let clientsList = [];
+
+// Load clients from database
+async function loadClients() {
+    try {
+        if (!currentCoach) return;
+
+        const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoach.id}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load clients');
+        }
+
+        clientsList = data.clients || [];
+
+        // Populate dropdown
+        const clientSelector = document.getElementById('dp_client_selector');
+        clientSelector.innerHTML = '<option value="">-- Select a Client --</option>';
+
+        clientsList.forEach(client => {
+            const option = document.createElement('option');
+            option.value = client.id;
+            option.textContent = client.client_name;
+            clientSelector.appendChild(option);
+        });
+
+        // Add "New Client" option
+        const newOption = document.createElement('option');
+        newOption.value = 'new';
+        newOption.textContent = '➕ Add New Client';
+        clientSelector.appendChild(newOption);
+
+        console.log(`✅ Loaded ${clientsList.length} clients`);
+
+    } catch (error) {
+        console.error('Error loading clients:', error);
+        const clientSelector = document.getElementById('dp_client_selector');
+        clientSelector.innerHTML = '<option value="new">Enter Client Name</option>';
+        document.getElementById('new_client_form').classList.remove('hidden');
+    }
+}
+
+// Handle client selection
+document.addEventListener('DOMContentLoaded', () => {
+    const clientSelector = document.getElementById('dp_client_selector');
+    const newClientForm = document.getElementById('new_client_form');
+    const newClientNameInput = document.getElementById('dp_new_client_name');
+    const selectedClientIdInput = document.getElementById('dp_selected_client_id');
+
+    clientSelector.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+
+        if (selectedValue === 'new') {
+            // Show new client name input
+            newClientForm.classList.remove('hidden');
+            newClientNameInput.required = true;
+            selectedClientIdInput.value = '';
+        } else if (selectedValue === '') {
+            // No selection
+            newClientForm.classList.add('hidden');
+            newClientNameInput.required = false;
+            selectedClientIdInput.value = '';
+        } else {
+            // Existing client selected
+            newClientForm.classList.add('hidden');
+            newClientNameInput.required = false;
+            selectedClientIdInput.value = selectedValue;
+
+            // Find the selected client and optionally pre-populate preferences
+            const client = clientsList.find(c => c.id === parseInt(selectedValue));
+            if (client) {
+                console.log('Selected client:', client.client_name);
+
+                // Optionally pre-populate dietary preferences if they exist
+                if (client.default_dietary_restrictions && Array.isArray(client.default_dietary_restrictions)) {
+                    // Map client restrictions to diet type if possible
+                    const restrictions = client.default_dietary_restrictions;
+                    if (restrictions.includes('vegan')) {
+                        document.getElementById('dp_preference').value = 'vegan';
+                    } else if (restrictions.includes('vegetarian')) {
+                        document.getElementById('dp_preference').value = 'vegetarian';
+                    }
+                }
+
+                // Pre-populate goal if it exists
+                if (client.default_goal) {
+                    const goalMap = {
+                        'lose_weight': 'lose weight',
+                        'maintain': 'maintain weight',
+                        'gain_muscle': 'gain muscle'
+                    };
+                    const goalValue = goalMap[client.default_goal];
+                    if (goalValue) {
+                        document.getElementById('dp_goal').value = goalValue;
+                    }
+                }
+            }
+        }
+    });
+});
 
 // Check authentication on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -294,8 +412,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (session) {
             currentCoach = session.user;
             console.log("Coach logged in:", currentCoach.email);
+
+            // Load clients for the dropdown
+            await loadClients();
         } else {
             console.warn("No active session - plans will not be saved to history");
+            // If no session, just show a simple text input
+            const clientSelector = document.getElementById('dp_client_selector');
+            clientSelector.innerHTML = '<option value="new">Enter Client Name</option>';
+            document.getElementById('new_client_form').classList.remove('hidden');
         }
     } catch (error) {
         console.error("Auth error:", error);
@@ -428,7 +553,36 @@ async function generateDietPlan() {
     resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Creating your diet plan...</p></div>';
     button.disabled = true;
 
-    const clientName = document.getElementById('dp_client_name').value || 'Client';
+    // Get client name from selector or new client input
+    let clientName = 'Client';
+    let clientId = null;
+    const clientSelector = document.getElementById('dp_client_selector');
+    const selectedValue = clientSelector.value;
+
+    if (selectedValue === 'new') {
+        // New client - get name from input
+        clientName = document.getElementById('dp_new_client_name').value.trim();
+        if (!clientName) {
+            alert('Please enter a client name');
+            button.disabled = false;
+            resultDiv.innerHTML = '';
+            return;
+        }
+    } else if (selectedValue) {
+        // Existing client selected
+        clientId = parseInt(selectedValue);
+        const client = clientsList.find(c => c.id === clientId);
+        if (client) {
+            clientName = client.client_name;
+        }
+    } else {
+        // No client selected
+        alert('Please select a client');
+        button.disabled = false;
+        resultDiv.innerHTML = '';
+        return;
+    }
+
     const gender = document.getElementById('dp_gender').value;
     const activity = parseFloat(document.getElementById('dp_activity').value);
     const goal = document.getElementById('dp_goal').value;
@@ -517,6 +671,7 @@ async function generateDietPlan() {
 
     lastPlanQuery = {
         clientName,
+        clientId,
         calories: Math.round(tdee),
         protein,
         carbs,
@@ -758,14 +913,21 @@ async function saveCoachPlan(planData, clientName) {
     try {
         console.log('Saving plan to coach history...');
 
+        const payload = {
+            coachId: currentCoach.id,
+            clientName: clientName,
+            planData: planData
+        };
+
+        // Add clientId if available
+        if (planData.clientId) {
+            payload.clientId = planData.clientId;
+        }
+
         const response = await fetch(SAVE_COACH_PLAN_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                coachId: currentCoach.id,
-                clientName: clientName,
-                planData: planData
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {

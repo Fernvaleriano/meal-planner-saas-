@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Clients - Meal Planner SaaS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            cursor: pointer;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-email {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: #d32f2f;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .client-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .client-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .client-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .client-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .client-info strong {
+            color: #333;
+        }
+
+        .client-stats {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .dietary-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .dietary-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 50px auto;
+            padding: 40px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            width: auto;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo" onclick="window.location.href='dashboard.html'">🍽️ Meal Planner SaaS</div>
+        <div class="user-info">
+            <span class="user-email" id="userEmail">Loading...</span>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>👥 Manage Clients</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+                <button class="btn btn-primary" id="addClientBtn">+ Add Client</button>
+            </div>
+        </div>
+
+        <div id="loadingDiv" class="loading">
+            Loading clients...
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>No clients yet</h3>
+            <p>Get started by adding your first client</p>
+            <button class="btn btn-primary" onclick="openAddClientModal()">+ Add Your First Client</button>
+        </div>
+
+        <div id="clientsContainer" class="clients-grid" style="display: none;">
+            <!-- Client cards will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Add/Edit Client Modal -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Client</h2>
+                <button class="close-btn" onclick="closeClientModal()">&times;</button>
+            </div>
+            <form id="clientForm">
+                <input type="hidden" id="clientId">
+
+                <div class="form-group">
+                    <label for="clientName">Client Name *</label>
+                    <input type="text" id="clientName" required placeholder="John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label for="clientEmail">Email</label>
+                    <input type="email" id="clientEmail" placeholder="john@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="clientPhone">Phone</label>
+                    <input type="tel" id="clientPhone" placeholder="(555) 123-4567">
+                </div>
+
+                <div class="form-group">
+                    <label for="defaultGoal">Default Goal</label>
+                    <select id="defaultGoal">
+                        <option value="">-- Select Goal --</option>
+                        <option value="lose_weight">Lose Weight</option>
+                        <option value="maintain">Maintain Weight</option>
+                        <option value="gain_muscle">Gain Muscle</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Default Dietary Restrictions</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="restrictions" value="vegan"> Vegan
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="restrictions" value="vegetarian"> Vegetarian
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="restrictions" value="gluten-free"> Gluten-Free
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="restrictions" value="dairy-free"> Dairy-Free
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="restrictions" value="nut-free"> Nut-Free
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="restrictions" value="pescatarian"> Pescatarian
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="clientNotes">Notes</label>
+                    <textarea id="clientNotes" placeholder="Any important information about this client..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeClientModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveClientBtn">Save Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentCoachId = null;
+        let clients = [];
+
+        // UI Elements
+        const loadingDiv = document.getElementById('loadingDiv');
+        const emptyState = document.getElementById('emptyState');
+        const clientsContainer = document.getElementById('clientsContainer');
+        const clientModal = document.getElementById('clientModal');
+        const clientForm = document.getElementById('clientForm');
+        const modalTitle = document.getElementById('modalTitle');
+        const userEmailSpan = document.getElementById('userEmail');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const addClientBtn = document.getElementById('addClientBtn');
+
+        // Initialize page
+        async function initPage() {
+            try {
+                // Check if user is logged in
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+                if (sessionError || !session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                currentCoachId = session.user.id;
+                userEmailSpan.textContent = session.user.email;
+
+                // Load clients
+                await loadClients();
+
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                alert('Error loading page: ' + error.message);
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Load all clients for the coach
+        async function loadClients() {
+            try {
+                loadingDiv.style.display = 'block';
+                emptyState.style.display = 'none';
+                clientsContainer.style.display = 'none';
+
+                const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load clients');
+                }
+
+                clients = data.clients || [];
+
+                loadingDiv.style.display = 'none';
+
+                if (clients.length === 0) {
+                    emptyState.style.display = 'block';
+                } else {
+                    clientsContainer.style.display = 'grid';
+                    renderClients();
+                }
+
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                loadingDiv.style.display = 'none';
+                alert('Error loading clients: ' + error.message);
+            }
+        }
+
+        // Render client cards
+        function renderClients() {
+            clientsContainer.innerHTML = '';
+
+            clients.forEach(client => {
+                const card = document.createElement('div');
+                card.className = 'client-card';
+
+                // Parse dietary restrictions
+                const restrictions = Array.isArray(client.default_dietary_restrictions)
+                    ? client.default_dietary_restrictions
+                    : [];
+
+                // Format goal
+                const goalDisplay = client.default_goal
+                    ? client.default_goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    : 'Not set';
+
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div>
+                            <div class="client-name">${escapeHtml(client.client_name)}</div>
+                            ${client.email ? `<div class="client-info">📧 ${escapeHtml(client.email)}</div>` : ''}
+                            ${client.phone ? `<div class="client-info">📱 ${escapeHtml(client.phone)}</div>` : ''}
+                        </div>
+                        <div class="client-actions">
+                            <button class="btn btn-primary btn-small" onclick="editClient(${client.id})">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
+                        </div>
+                    </div>
+
+                    <div class="client-info"><strong>Goal:</strong> ${goalDisplay}</div>
+
+                    ${restrictions.length > 0 ? `
+                        <div class="dietary-tags">
+                            ${restrictions.map(r => `<span class="dietary-tag">${escapeHtml(r)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    ${client.notes ? `<div class="client-info" style="margin-top: 10px;"><strong>Notes:</strong> ${escapeHtml(client.notes)}</div>` : ''}
+
+                    <div class="client-stats">
+                        📅 Added: ${new Date(client.created_at).toLocaleDateString()}
+                    </div>
+                `;
+
+                clientsContainer.appendChild(card);
+            });
+        }
+
+        // Open modal for adding client
+        function openAddClientModal() {
+            modalTitle.textContent = 'Add New Client';
+            clientForm.reset();
+            document.getElementById('clientId').value = '';
+            clientModal.style.display = 'block';
+        }
+
+        // Open modal for editing client
+        function editClient(clientId) {
+            const client = clients.find(c => c.id === clientId);
+            if (!client) return;
+
+            modalTitle.textContent = 'Edit Client';
+            document.getElementById('clientId').value = client.id;
+            document.getElementById('clientName').value = client.client_name;
+            document.getElementById('clientEmail').value = client.email || '';
+            document.getElementById('clientPhone').value = client.phone || '';
+            document.getElementById('defaultGoal').value = client.default_goal || '';
+            document.getElementById('clientNotes').value = client.notes || '';
+
+            // Set dietary restrictions
+            const restrictions = Array.isArray(client.default_dietary_restrictions)
+                ? client.default_dietary_restrictions
+                : [];
+            document.querySelectorAll('input[name="restrictions"]').forEach(checkbox => {
+                checkbox.checked = restrictions.includes(checkbox.value);
+            });
+
+            clientModal.style.display = 'block';
+        }
+
+        // Close modal
+        function closeClientModal() {
+            clientModal.style.display = 'none';
+            clientForm.reset();
+        }
+
+        // Save client (create or update)
+        clientForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const clientId = document.getElementById('clientId').value;
+            const clientName = document.getElementById('clientName').value.trim();
+            const email = document.getElementById('clientEmail').value.trim();
+            const phone = document.getElementById('clientPhone').value.trim();
+            const defaultGoal = document.getElementById('defaultGoal').value;
+            const notes = document.getElementById('clientNotes').value.trim();
+
+            // Get selected dietary restrictions
+            const restrictions = Array.from(document.querySelectorAll('input[name="restrictions"]:checked'))
+                .map(cb => cb.value);
+
+            if (!clientName) {
+                alert('Client name is required');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveClientBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                const payload = {
+                    coachId: currentCoachId,
+                    clientName,
+                    email: email || null,
+                    phone: phone || null,
+                    notes: notes || null,
+                    defaultDietaryRestrictions: restrictions,
+                    defaultGoal: defaultGoal || null
+                };
+
+                let response;
+                if (clientId) {
+                    // Update existing client
+                    payload.clientId = clientId;
+                    response = await fetch('/.netlify/functions/update-client', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // Create new client
+                    response = await fetch('/.netlify/functions/create-client', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to save client');
+                }
+
+                alert(clientId ? 'Client updated successfully!' : 'Client added successfully!');
+                closeClientModal();
+                await loadClients();
+
+            } catch (error) {
+                console.error('Error saving client:', error);
+                alert('Error saving client: ' + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Client';
+            }
+        });
+
+        // Delete client
+        async function deleteClient(clientId, clientName) {
+            if (!confirm(`Are you sure you want to delete ${clientName}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/.netlify/functions/delete-client', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        coachId: currentCoachId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to delete client');
+                }
+
+                alert('Client deleted successfully');
+                await loadClients();
+
+            } catch (error) {
+                console.error('Error deleting client:', error);
+                alert('Error deleting client: ' + error.message);
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        addClientBtn.addEventListener('click', openAddClientModal);
+
+        logoutBtn.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                alert('Error logging out: ' + error.message);
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === clientModal) {
+                closeClientModal();
+            }
+        };
+
+        // Initialize page on load
+        initPage();
+    </script>
+</body>
+</html>
