@@ -160,58 +160,12 @@
 </head>
 <body>
 <div class="app-container">
-    <div id="main-menu" class="card text-center">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">🏋️ AI Meal Planner</h1>
-        <p class="text-gray-600 mb-4">Professional meal planning powered by AI</p>
 
-        <!-- Unit System Toggle -->
-        <div class="flex justify-center items-center gap-3 mb-6">
-            <span class="text-sm text-gray-600">Unit System:</span>
-            <div class="flex gap-2">
-                <button id="unit-imperial" class="btn btn-primary text-sm py-1 px-3">Imperial (lbs/ft)</button>
-                <button id="unit-metric" class="btn btn-secondary text-sm py-1 px-3">Metric (kg/cm)</button>
-            </div>
-        </div>
-
-        <div class="flex flex-col md:flex-row gap-4 justify-center">
-            <button data-action="nav-meal-generator" class="btn btn-secondary text-lg">Single Meal Generator</button>
-            <button data-action="nav-diet-plan" class="btn btn-primary text-lg">Full Diet Plan (Multi-Day)</button>
-            <button data-action="nav-cheat-meal" class="btn btn-secondary text-lg">Cheat Meal Helper</button>
-        </div>
-        <div class="mt-6">
-            <a href="dashboard.html" class="text-blue-600 hover:underline">← Back to Dashboard</a>
-        </div>
-    </div>
-
-    <!-- MEAL GENERATOR VIEW -->
-    <div id="meal-generator-view" class="hidden">
-        <div class="card">
-            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Single Meal Generator</h2>
-            <div class="space-y-6">
-                <div>
-                    <label class="font-semibold text-gray-700">Meal Type</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                        <div><input type="radio" name="mealType" id="mg_breakfast" value="breakfast" class="hidden" checked><label for="mg_breakfast" class="radio-label w-full justify-center">Breakfast</label></div>
-                        <div><input type="radio" name="mealType" id="mg_lunch" value="lunch" class="hidden"><label for="mg_lunch" class="radio-label w-full justify-center">Lunch</label></div>
-                        <div><input type="radio" name="mealType" id="mg_dinner" value="dinner" class="hidden"><label for="mg_dinner" class="radio-label w-full justify-center">Dinner</label></div>
-                        <div><input type="radio" name="mealType" id="mg_snack" value="snack" class="hidden"><label for="mg_snack" class="radio-label w-full justify-center">Snack</label></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label for="mg_allergies" class="font-semibold text-gray-700">Allergies</label><input type="text" id="mg_allergies" class="input-field" placeholder="e.g., dairy, nuts"></div>
-                    <div><label for="mg_comments" class="font-semibold text-gray-700">Special Requests</label><input type="text" id="mg_comments" class="input-field" placeholder="e.g., high protein"></div>
-                </div>
-                <button data-action="generate-meal" id="generate-meal-btn" class="btn btn-primary w-full text-lg">✨ Generate Meal</button>
-            </div>
-        </div>
-        <div id="meal-idea-result"></div>
-    </div>
 
     <!-- DIET PLAN VIEW -->
-    <div id="diet-plan-view" class="hidden">
+    <div id="diet-plan-view">
         <div class="card">
-            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
+            <a href="dashboard.html" class="text-blue-600 hover:text-blue-800 mb-6 inline-block">&larr; Back to Dashboard</a>
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Full Diet Plan Generator</h2>
 
             <!-- Unit System Toggle -->
@@ -287,28 +241,6 @@
             </div>
         </div>
         <div id="diet-plan-result"></div>
-    </div>
-
-    <!-- CHEAT MEAL VIEW -->
-    <div id="cheat-meal-view" class="hidden">
-        <div class="card">
-            <button data-action="nav-main-menu" class="text-blue-600 hover:text-blue-800 mb-6">&larr; Back</button>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Cheat Meal Helper</h2>
-            <div class="space-y-6">
-                <div><label for="cm_craving" class="font-semibold text-gray-700">What are you craving?</label><input type="text" id="cm_craving" class="input-field" placeholder="e.g., Pizza"></div>
-                <div><label for="cm_restaurant" class="font-semibold text-gray-700">Restaurant (Optional)</label><input type="text" id="cm_restaurant" class="input-field" placeholder="e.g., Domino's"></div>
-                <div>
-                    <label class="font-semibold text-gray-700">Advice Type</label>
-                    <div class="grid grid-cols-3 gap-2 mt-2">
-                        <div><input type="radio" name="cm_option" id="cm_healthy" value="healthy" class="hidden" checked><label for="cm_healthy" class="radio-label justify-center">Healthiest</label></div>
-                        <div><input type="radio" name="cm_option" id="cm_balanced" value="balanced" class="hidden"><label for="cm_balanced" class="radio-label justify-center">Balanced</label></div>
-                        <div><input type="radio" name="cm_option" id="cm_damage" value="damage-control" class="hidden"><label for="cm_damage" class="radio-label justify-center">Damage Control</label></div>
-                    </div>
-                </div>
-                <button data-action="generate-cheat-meal-advice" id="generate-cheat-meal-btn" class="btn btn-primary w-full text-lg">Get Advice</button>
-            </div>
-        </div>
-        <div id="cheat-meal-result"></div>
     </div>
 
     <!-- RECIPE MODAL -->
@@ -426,70 +358,6 @@ async function callGemini(prompt, isJson = true) {
         console.error('AI Error:', error);
         return { error: error.message };
     }
-}
-
-// NAVIGATION
-function showView(viewId) {
-    ['main-menu', 'meal-generator-view', 'diet-plan-view', 'cheat-meal-view'].forEach(id => {
-        document.getElementById(id).classList.add('hidden');
-    });
-    document.getElementById(viewId).classList.remove('hidden');
-    window.scrollTo(0, 0);
-}
-
-// SINGLE MEAL GENERATOR
-async function generateMealIdea() {
-    const resultDiv = document.getElementById('meal-idea-result');
-    const button = document.getElementById('generate-meal-btn');
-
-    resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Generating meal...</p></div>';
-    button.disabled = true;
-
-    const mealType = document.querySelector('input[name="mealType"]:checked').value;
-    const allergies = document.getElementById('mg_allergies').value || 'none';
-    const comments = document.getElementById('mg_comments').value || 'none';
-
-    const prompt = `Generate a single ${mealType} meal.
-Avoid: ${allergies}
-Requests: ${comments}
-
-CRITICAL: Return ONLY valid JSON. NO quotes in text fields - use apostrophes instead.
-Keep text simple and brief. NO newlines in strings.
-
-{
-  "name": "Meal Name",
-  "calories": 450,
-  "protein": 35,
-  "carbs": 40,
-  "fat": 15,
-  "instructions": "Simple step by step instructions."
-}`;
-
-    const meal = await callGemini(prompt, true);
-
-    if (meal.error) {
-        resultDiv.innerHTML = `<div class="card text-red-600">Error: ${meal.error}</div>`;
-    } else {
-        lastMealQuery.lastGeneratedMeal = meal;
-        resultDiv.innerHTML = `
-            <div class="card">
-                <h3 class="text-xl font-bold text-gray-800">${meal.name}</h3>
-                <div class="my-4 grid grid-cols-4 gap-2 text-center">
-                    <div><span class="font-bold text-blue-600">${meal.calories || 0}</span><p class="text-sm">Cal</p></div>
-                    <div><span class="font-bold text-blue-600">${meal.protein || 0}g</span><p class="text-sm">Protein</p></div>
-                    <div><span class="font-bold text-blue-600">${meal.carbs || 0}g</span><p class="text-sm">Carbs</p></div>
-                    <div><span class="font-bold text-blue-600">${meal.fat || 0}g</span><p class="text-sm">Fat</p></div>
-                </div>
-                <div class="bg-yellow-50 p-4 rounded-lg">
-                    <p class="font-semibold text-gray-700 mb-2">Instructions:</p>
-                    <p class="text-gray-600">${meal.instructions}</p>
-                </div>
-                <div class="flex gap-2 mt-4">
-                    <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary flex-1">Get Full Recipe</button>
-                </div>
-            </div>`;
-    }
-    button.disabled = false;
 }
 
 // MULTI-DAY DIET PLAN GENERATOR
@@ -741,35 +609,6 @@ async function saveCoachPlan(planData, clientName) {
         console.error('Error saving plan:', error);
         // Don't show error to user - saving to history is not critical
     }
-}
-
-// CHEAT MEAL ADVICE
-async function generateCheatMealAdvice() {
-    const resultDiv = document.getElementById('cheat-meal-result');
-    const button = document.getElementById('generate-cheat-meal-btn');
-
-    const craving = document.getElementById('cm_craving').value;
-    if (!craving) {
-        alert('Please enter what you\'re craving');
-        return;
-    }
-
-    resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div></div>';
-    button.disabled = true;
-
-    const restaurant = document.getElementById('cm_restaurant').value || 'any restaurant';
-    const option = document.querySelector('input[name="cm_option"]:checked').value;
-
-    const prompt = `Give nutrition advice for craving ${craving} at ${restaurant}. Approach: ${option}. 2-3 sentences, actionable tips.`;
-
-    const advice = await callGemini(prompt, false);
-
-    if (advice.error) {
-        resultDiv.innerHTML = `<div class="card text-red-600">Error: ${advice.error}</div>`;
-    } else {
-        resultDiv.innerHTML = `<div class="card"><div class="prose">${advice.replace(/\n/g, '<br>')}</div></div>`;
-    }
-    button.disabled = false;
 }
 
 // RECIPE GENERATOR
@@ -1311,13 +1150,7 @@ document.addEventListener('click', function(event) {
     if (!actionTarget) return;
 
     const actions = {
-        'nav-meal-generator': () => showView('meal-generator-view'),
-        'nav-diet-plan': () => showView('diet-plan-view'),
-        'nav-cheat-meal': () => showView('cheat-meal-view'),
-        'nav-main-menu': () => showView('main-menu'),
-        'generate-meal': generateMealIdea,
         'generate-plan': generateDietPlan,
-        'generate-cheat-meal-advice': generateCheatMealAdvice,
         'close-modal': () => document.getElementById('recipe-modal').classList.add('hidden'),
         'get-recipe': () => {
             const mealName = event.target.closest('[data-meal-name]').dataset.mealName;
