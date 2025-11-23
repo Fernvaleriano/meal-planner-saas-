@@ -757,6 +757,11 @@ async function generateDietPlan() {
         } else if (meals === '3 meals, 3 snacks') {
             mealStructure = 'EXACTLY 6 items: breakfast, lunch, dinner, and 3 snacks';
             expectedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'snack', 'snack'];
+        } else {
+            // Default fallback if meals value is invalid
+            console.warn(`Invalid meals value: "${meals}". Defaulting to 3 meals + 1 snack`);
+            mealStructure = 'EXACTLY 4 items: breakfast, lunch, dinner, and 1 snack';
+            expectedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
         }
 
         const dayPrompt = `Create 1-day meal plan for Day ${day} of ${numDays}.
