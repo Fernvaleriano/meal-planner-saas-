@@ -1,7 +1,5 @@
 // Netlify Function for secure Claude API calls (Anthropic)
-const AnthropicModule = require('@anthropic-ai/sdk');
-// Handle both CommonJS and ES module exports
-const Anthropic = AnthropicModule.default || AnthropicModule;
+import Anthropic from '@anthropic-ai/sdk';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -49,7 +47,7 @@ const FOOD_DATABASE = {
   'strawberries': { per: '100g', cal: 32, protein: 1, carbs: 8, fat: 0 }
 };
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
@@ -125,7 +123,9 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('❌ Function error:', error);
+    console.error('❌ Function error:', error.message);
+    console.error('Stack:', error.stack);
+
     return {
       statusCode: 500,
       body: JSON.stringify({
