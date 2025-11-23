@@ -1,5 +1,7 @@
 // Netlify Function for secure Claude API calls (Anthropic)
-import Anthropic from '@anthropic-ai/sdk';
+const AnthropicModule = require('@anthropic-ai/sdk');
+// Handle both CommonJS and ES module exports
+const Anthropic = AnthropicModule.default || AnthropicModule;
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
