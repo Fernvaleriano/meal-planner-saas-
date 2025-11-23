@@ -1136,17 +1136,40 @@ MATH CHECK: (40×4) + (50×4) + (6×9) = 160 + 200 + 54 = 414 ≈ 430 ✓`;
                     if (validMeal) {
                         dayData.plan[mealIndex] = validMeal;
                     } else {
-                        console.warn('⚠️ Could not generate valid meal after retries, keeping original');
+                        console.error(`❌ CRITICAL: Could not generate valid ${meal.type} after ${retryCount} retries`);
+                        console.error('Invalid meal issues:', validation.issues);
+
+                        // BLOCK: Do not proceed with invalid meal
+                        resultDiv.innerHTML = `<div class="card text-red-600">
+                            <h3 class="font-bold mb-2">❌ Meal Generation Failed</h3>
+                            <p>Could not generate a valid ${meal.type} for Day ${day} after multiple attempts.</p>
+                            <p class="mt-2">Issues detected: ${validation.issues.join(', ')}</p>
+                            <p class="mt-4 text-sm">This is a quality control measure to ensure accurate nutrition data. Please try generating again.</p>
+                        </div>`;
+                        button.disabled = false;
+                        return; // STOP - don't save or display plan
                     }
                 }
             }
         }
 
-        // Validate day's total macros against targets
+        // Validate day's total macros against targets - ENFORCE THIS
         const dayValidation = validateDayTotals(dayData);
         if (!dayValidation.valid) {
-            console.warn(`⚠️ Day ${day} totals don't match targets:`, dayValidation.issues);
-            console.log(`Actual totals: ${dayValidation.totals.calories} cal, ${dayValidation.totals.protein}g protein, ${dayValidation.totals.carbs}g carbs, ${dayValidation.totals.fat}g fat`);
+            console.error(`❌ CRITICAL: Day ${day} totals don't match targets:`, dayValidation.issues);
+            console.error(`Actual totals: ${dayValidation.totals.calories} cal, ${dayValidation.totals.protein}g protein, ${dayValidation.totals.carbs}g carbs, ${dayValidation.totals.fat}g fat`);
+
+            // BLOCK: Do not proceed with inaccurate day
+            resultDiv.innerHTML = `<div class="card text-red-600">
+                <h3 class="font-bold mb-2">❌ Daily Total Validation Failed</h3>
+                <p>Day ${day} meals don't add up to targets accurately enough.</p>
+                <p class="mt-2"><strong>Target:</strong> ${dayData.targets.calories} cal, ${dayData.targets.protein}g protein, ${dayData.targets.carbs}g carbs, ${dayData.targets.fat}g fat</p>
+                <p><strong>Actual:</strong> ${dayValidation.totals.calories} cal, ${dayValidation.totals.protein}g protein, ${dayValidation.totals.carbs}g carbs, ${dayValidation.totals.fat}g fat</p>
+                <p class="mt-4 text-sm">Issues: ${dayValidation.issues.join(', ')}</p>
+                <p class="mt-4 text-sm">This is a quality control measure. Please try generating again.</p>
+            </div>`;
+            button.disabled = false;
+            return; // STOP - don't save or display plan
         } else {
             console.log(`✅ Day ${day} totals validated successfully`);
         }
@@ -1154,10 +1177,54 @@ MATH CHECK: (40×4) + (50×4) + (6×9) = 160 + 200 + 54 = 414 ≈ 430 ✓`;
         allDays.push(dayData);
     }
 
+    // FINAL VALIDATION: Check all days before saving/displaying
+    console.log('🔍 Performing final validation on entire plan...');
+    let planValid = true;
+    let planIssues = [];
+
+    for (let i = 0; i < allDays.length; i++) {
+        const day = allDays[i];
+
+        // Check each meal
+        for (let j = 0; j < day.plan.length; j++) {
+            const meal = day.plan[j];
+            const validation = validateMeal(meal, meal.type);
+            if (!validation.valid) {
+                planValid = false;
+                planIssues.push(`Day ${day.day} ${meal.type}: ${validation.issues.join(', ')}`);
+            }
+        }
+
+        // Check day totals
+        const dayValidation = validateDayTotals(day);
+        if (!dayValidation.valid) {
+            planValid = false;
+            planIssues.push(`Day ${day.day} totals: ${dayValidation.issues.join(', ')}`);
+        }
+    }
+
+    if (!planValid) {
+        console.error('❌ FINAL VALIDATION FAILED');
+        console.error('Issues found:', planIssues);
+        resultDiv.innerHTML = `<div class="card text-red-600">
+            <h3 class="font-bold mb-2">❌ Plan Validation Failed</h3>
+            <p>The generated plan did not pass final quality checks.</p>
+            <p class="mt-2"><strong>Issues found:</strong></p>
+            <ul class="list-disc ml-6 mt-2">
+                ${planIssues.map(issue => `<li>${issue}</li>`).join('')}
+            </ul>
+            <p class="mt-4 text-sm">This is a quality control measure. Please try generating again.</p>
+        </div>`;
+        button.disabled = false;
+        return; // BLOCK - do not save or display invalid plan
+    }
+
+    console.log('✅ All validation passed - plan is accurate');
+
     lastPlanQuery.currentPlan = allDays;
     displayDietPlan(allDays);
 
-    // Save plan to coach's history
+    // Save plan to coach's history (only if valid)
     saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
 
     button.disabled = false;
