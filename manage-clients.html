@@ -1038,14 +1038,17 @@
             }
 
             try {
-                const response = await fetch('/.netlify/functions/invite-client', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId: currentCoachId
-                    })
-                });
+               const response = await fetch(`${SUPABASE_URL}/functions/v1/invite-client`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({
+        email: client.email,
+        name: clientName
+    })
+});
 
                 const data = await response.json();
 
