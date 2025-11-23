@@ -469,10 +469,20 @@ window.addEventListener('pageshow', function(event) {
 // Check authentication on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Clear any cached session data to force fresh fetch
-        await supabaseClient.auth.refreshSession();
+        // Refresh session and use the returned data directly
+        const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-        const { data: { session } } = await supabaseClient.auth.getSession();
+        // If refresh succeeds, use that session; otherwise fall back to getSession
+        let session = null;
+
+        if (!refreshError && refreshData?.session) {
+            session = refreshData.session;
+        } else {
+            // Fallback to getSession if refresh failed
+            const result = await supabaseClient.auth.getSession();
+            session = result.data?.session;
+        }
+
         if (session) {
             currentCoach = session.user;
             console.log("Coach logged in:", currentCoach.email);

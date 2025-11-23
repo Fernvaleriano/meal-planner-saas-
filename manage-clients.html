@@ -664,19 +664,31 @@
         // Initialize page
         async function initPage() {
             try {
-                // Clear any cached session data to force fresh fetch
-                await supabaseClient.auth.refreshSession();
+                // Refresh session and use the returned data directly
+                const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-                // Check if user is logged in
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                // If refresh succeeds, use that session; otherwise fall back to getSession
+                let session = null;
+                let sessionError = null;
+
+                if (!refreshError && refreshData?.session) {
+                    session = refreshData.session;
+                } else {
+                    // Fallback to getSession if refresh failed
+                    const result = await supabaseClient.auth.getSession();
+                    session = result.data?.session;
+                    sessionError = result.error;
+                }
 
                 if (sessionError || !session) {
+                    console.error('Session error:', sessionError);
                     window.location.href = 'index.html';
                     return;
                 }
 
                 currentCoachId = session.user.id;
                 userEmailSpan.textContent = session.user.email;
+                console.log('User authenticated:', currentCoachId);
 
                 // Load clients
                 await loadClients();
