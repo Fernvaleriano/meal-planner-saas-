@@ -21,7 +21,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
             min-height: 100vh;
             overflow-y: auto !important;
         }
@@ -59,7 +59,7 @@
         }
 
         .btn-primary {
-            background-color: #667eea;
+            background-color: #0d9488;
             color: white;
         }
 
@@ -69,7 +69,7 @@
 
         .btn-secondary {
             background-color: #E3E9F5;
-            color: #667eea;
+            color: #0d9488;
         }
 
         .btn-secondary:hover:not(:disabled) {
@@ -101,7 +101,7 @@
         input[type="radio"]:checked + .radio-label,
         input[type="checkbox"]:checked + .checkbox-label {
             background-color: #E3E9F5;
-            border-color: #667eea;
+            border-color: #0d9488;
         }
 
         .loader {
@@ -115,7 +115,7 @@
             width: 60px;
             height: 60px;
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border-top: 4px solid #0d9488;
             border-radius: 50%;
             animation: spin 2s linear infinite;
             margin: 0 auto;
@@ -134,7 +134,7 @@
         }
 
         .day-divider {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
             color: white;
             padding: 1rem;
             border-radius: 0.75rem;
@@ -183,14 +183,14 @@
 
             <div class="space-y-6">
                 <!-- Client Selector Section -->
-                <div class="p-4 bg-green-50 border-2 border-green-400 rounded-lg">
-                    <label class="font-bold text-green-900 block mb-2">👤 Select Client</label>
+                <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
+                    <label class="font-bold text-teal-900 block mb-2">👤 Select Client</label>
                     <div class="grid grid-cols-1 gap-3">
-                        <select id="dp_client_selector" class="input-field border-2 border-green-500" required>
+                        <select id="dp_client_selector" class="input-field border-2 border-teal-500" required>
                             <option value="">Loading clients...</option>
                         </select>
                         <div id="new_client_form" class="hidden">
-                            <input type="text" id="dp_new_client_name" class="input-field border-2 border-green-500" placeholder="Enter new client name" required>
+                            <input type="text" id="dp_new_client_name" class="input-field border-2 border-teal-500" placeholder="Enter new client name" required>
                             <input type="hidden" id="dp_selected_client_id">
                         </div>
                     </div>
@@ -231,8 +231,8 @@
                 </div>
 
                 <!-- Cooking Equipment -->
-                <div class="p-4 bg-green-50 border-2 border-green-400 rounded-lg">
-                    <label class="font-bold text-green-900 block mb-2">🍳 Available Cooking Equipment</label>
+                <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
+                    <label class="font-bold text-teal-900 block mb-2">🍳 Available Cooking Equipment</label>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                         <label class="flex items-center"><input type="checkbox" id="equip_stove" value="Stove" class="mr-2 h-4 w-4" checked> Stove</label>
                         <label class="flex items-center"><input type="checkbox" id="equip_oven" value="Oven" class="mr-2 h-4 w-4" checked> Oven</label>
@@ -244,10 +244,10 @@
                 </div>
 
                 <!-- Protein Powder Integration -->
-                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
+                <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
                     <div class="flex items-center mb-2">
                         <input type="checkbox" id="dp_use_protein" class="mr-2 h-5 w-5">
-                        <label for="dp_use_protein" class="font-bold text-purple-900">Add Protein Powder (Optional)</label>
+                        <label for="dp_use_protein" class="font-bold text-teal-900">Add Protein Powder (Optional)</label>
                     </div>
                     <div id="protein-powder-fields" class="hidden grid grid-cols-2 gap-2 mt-2">
                         <input type="text" id="dp_protein_brand" class="input-field" placeholder="Brand/Name">
