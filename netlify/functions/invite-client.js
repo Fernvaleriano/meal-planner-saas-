@@ -88,7 +88,7 @@ exports.handler = async (event, context) => {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       client.email,
       {
-        redirectTo: `${process.env.URL || 'https://cute-jalebi-b0f423.netlify.app'}/client-login.html`
+        redirectTo: `${process.env.URL || 'https://cute-jalebi-b0f423.netlify.app'}/client-reset-password.html`
       }
     );
 
