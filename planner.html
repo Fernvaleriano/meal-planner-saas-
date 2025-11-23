@@ -457,6 +457,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Listen for auth state changes to handle session expiration
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
+
+    if (event === 'SIGNED_OUT') {
+        console.log('User signed out, clearing current coach');
+        currentCoach = null;
+    } else if (event === 'TOKEN_REFRESHED' && currentCoach) {
+        console.log('Token refreshed for existing coach');
+        // Reload clients if we have a coach
+        loadClients();
+    }
+});
+
 // Detect if page was loaded from back/forward cache and force reload
 window.addEventListener('pageshow', function(event) {
     if (event.persisted) {
@@ -469,18 +483,19 @@ window.addEventListener('pageshow', function(event) {
 // Check authentication on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Refresh session and use the returned data directly
+        // Try to refresh the session to get a fresh token
         const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-        // If refresh succeeds, use that session; otherwise fall back to getSession
         let session = null;
 
-        if (!refreshError && refreshData?.session) {
+        // If refresh succeeded and we have a valid session with access token, use it
+        if (!refreshError && refreshData?.session?.access_token) {
             session = refreshData.session;
+            console.log('Session refreshed successfully');
         } else {
-            // Fallback to getSession if refresh failed
-            const result = await supabaseClient.auth.getSession();
-            session = result.data?.session;
+            // If refresh failed, session is likely expired
+            console.warn('Session refresh failed or returned invalid session:', refreshError);
+            session = null;
         }
 
         if (session) {
@@ -498,6 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error("Auth error:", error);
+        currentCoach = null;
     }
 });
 
