@@ -233,32 +233,69 @@
 
         async function loadDashboard() {
             try {
-                // Clear any cached session data to force fresh fetch
-                await supabaseClient.auth.refreshSession();
+                // Refresh session and use the returned data directly
+                const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-                // Check if user is logged in
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-                
+                // If refresh succeeds, use that session; otherwise fall back to getSession
+                let session = null;
+                let sessionError = null;
+
+                if (!refreshError && refreshData?.session) {
+                    session = refreshData.session;
+                } else {
+                    // Fallback to getSession if refresh failed
+                    const result = await supabaseClient.auth.getSession();
+                    session = result.data?.session;
+                    sessionError = result.error;
+                }
+
                 if (sessionError || !session) {
+                    console.error('Session error:', sessionError);
                     window.location.href = 'index.html';
                     return;
                 }
-                
+
                 const user = session.user;
+                console.log('User authenticated:', user.id);
                 
-                // Get coach data from database
-                const { data: coachData, error: coachError } = await supabaseClient
-                    .from('coaches')
-                    .select('*')
-                    .eq('id', user.id)
-                    .maybeSingle();
+                // Get coach data from database with retry logic for transient failures
+                let coachData = null;
+                let coachError = null;
+                let retries = 0;
+                const maxRetries = 2;
 
-                if (coachError) throw coachError;
+                while (retries <= maxRetries) {
+                    const result = await supabaseClient
+                        .from('coaches')
+                        .select('*')
+                        .eq('id', user.id)
+                        .maybeSingle();
 
-                // Check if coach record exists
-                if (!coachData) {
-                    throw new Error('Coach account not found. Please contact support.');
+                    coachData = result.data;
+                    coachError = result.error;
+
+                    if (coachError) {
+                        console.error(`Database error (attempt ${retries + 1}):`, coachError);
+                        if (retries < maxRetries) {
+                            // Wait before retrying (100ms, then 200ms)
+                            await new Promise(resolve => setTimeout(resolve, 100 * (retries + 1)));
+                            retries++;
+                            continue;
+                        }
+                        throw coachError;
+                    }
+
+                    // Check if coach record exists
+                    if (!coachData) {
+                        console.error('No coach record found for user ID:', user.id);
+                        throw new Error('Coach account not found. Please contact support.');
+                    }
+
+                    // Success - break out of retry loop
+                    break;
                 }
+
+                console.log('Coach data loaded successfully');
                 
                 // Update UI
                 userEmailSpan.textContent = user.email;
