@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Client Profile - Meal Planner SaaS</title>
+    <!-- Prevent caching to avoid stale data on back navigation -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         * {
             margin: 0;
@@ -367,6 +371,15 @@
         const urlParams = new URLSearchParams(window.location.search);
         const clientId = urlParams.get('clientId');
 
+        // Detect if page was loaded from back/forward cache and force reload
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Page was loaded from bfcache (back/forward cache)
+                console.log('Page loaded from cache, forcing reload...');
+                window.location.reload();
+            }
+        });
+
         // Load client and plans on page load
         document.addEventListener('DOMContentLoaded', async function() {
             if (!clientId) {
@@ -374,6 +387,9 @@
                 window.location.href = 'manage-clients.html';
                 return;
             }
+
+            // Clear any cached session data to force fresh fetch
+            await supabaseClient.auth.refreshSession();
 
             // Check authentication
             const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();

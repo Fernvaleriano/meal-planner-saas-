@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Clients - Meal Planner SaaS</title>
+    <!-- Prevent caching to avoid stale data on back navigation -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         * {
             margin: 0;
@@ -660,6 +664,9 @@
         // Initialize page
         async function initPage() {
             try {
+                // Clear any cached session data to force fresh fetch
+                await supabaseClient.auth.refreshSession();
+
                 // Check if user is logged in
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
@@ -1110,6 +1117,15 @@
                 closeInvitationModal();
             }
         };
+
+        // Detect if page was loaded from back/forward cache and force reload
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Page was loaded from bfcache (back/forward cache)
+                console.log('Page loaded from cache, forcing reload...');
+                window.location.reload();
+            }
+        });
 
         // Initialize page on load
         initPage();
