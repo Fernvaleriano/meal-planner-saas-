@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Client Plans</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #00ff00; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #00ff00; }
+        button { background: #00ff00; color: #000; padding: 10px 20px; margin: 10px 5px; border: none; cursor: pointer; }
+        pre { background: #000; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 DEBUG: Client Plans Visibility</h1>
+    <button onclick="runDebug()">RUN FULL DEBUG</button>
+    <div id="output"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function runDebug() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<div class="section">⏳ Running debug...</div>';
+            let html = '';
+
+            try {
+                // 1. Check authentication
+                html += '<div class="section"><h2>1️⃣ AUTHENTICATION CHECK</h2>';
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    html += '<p>❌ NOT LOGGED IN! Please log in as the client first.</p></div>';
+                    output.innerHTML = html;
+                    return;
+                }
+
+                html += `<p>✅ Logged in as: ${session.user.email}</p>`;
+                html += `<p>User ID: ${session.user.id}</p></div>`;
+
+                // 2. Check client record
+                html += '<div class="section"><h2>2️⃣ CLIENT RECORD CHECK</h2>';
+                const { data: clientData, error: clientError } = await supabaseClient
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (clientError || !clientData) {
+                    html += `<p>❌ CLIENT RECORD NOT FOUND!</p>`;
+                    html += `<p>Error: ${clientError?.message}</p></div>`;
+                    output.innerHTML = html;
+                    return;
+                }
+
+                html += `<p>✅ Client found: ${clientData.client_name}</p>`;
+                html += `<p>Client ID: ${clientData.id}</p>`;
+                html += `<p>Coach ID: ${clientData.coach_id}</p>`;
+                html += `<pre>${JSON.stringify(clientData, null, 2)}</pre></div>`;
+
+                const currentClientId = clientData.id;
+
+                // 3. Query plans (same as dashboard)
+                html += '<div class="section"><h2>3️⃣ PLANS QUERY (Same as Dashboard)</h2>';
+                html += `<p>Querying: coach_meal_plans WHERE client_id = ${currentClientId}</p>`;
+
+                const { data: plans, error: plansError } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('*')
+                    .eq('client_id', currentClientId)
+                    .order('created_at', { ascending: false });
+
+                if (plansError) {
+                    html += `<p>❌ QUERY ERROR: ${plansError.message}</p>`;
+                    html += `<p>Code: ${plansError.code}</p>`;
+                    html += `<p>Details: ${plansError.details}</p>`;
+                    html += `<p>Hint: ${plansError.hint}</p></div>`;
+                } else {
+                    html += `<p>✅ Query succeeded</p>`;
+                    html += `<p>Plans found: ${plans?.length || 0}</p>`;
+
+                    if (plans && plans.length > 0) {
+                        html += '<p>📋 PLAN DETAILS:</p>';
+                        plans.forEach((plan, i) => {
+                            html += `<pre>Plan ${i + 1}:
+  ID: ${plan.id}
+  Client ID: ${plan.client_id}
+  Client Name: ${plan.client_name}
+  Created: ${plan.created_at}
+  Has Plan Data: ${!!plan.plan_data}
+</pre>`;
+                        });
+                    } else {
+                        html += '<p>⚠️ NO PLANS RETURNED BY QUERY</p>';
+                    }
+                    html += '</div>';
+                }
+
+                // 4. Check ALL plans for this coach (admin view)
+                html += '<div class="section"><h2>4️⃣ ALL PLANS FOR COACH (Admin Check)</h2>';
+                const { data: allCoachPlans } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('id, client_id, client_name, created_at')
+                    .eq('coach_id', clientData.coach_id);
+
+                html += `<p>Total plans by coach: ${allCoachPlans?.length || 0}</p>`;
+
+                if (allCoachPlans && allCoachPlans.length > 0) {
+                    const plansForThisClient = allCoachPlans.filter(p => p.client_id === currentClientId);
+                    const plansWithNullClientId = allCoachPlans.filter(p => p.client_id === null);
+
+                    html += `<p>Plans with client_id = ${currentClientId}: ${plansForThisClient.length}</p>`;
+                    html += `<p>Plans with client_id = NULL: ${plansWithNullClientId.length}</p>`;
+
+                    html += '<p>📊 ALL PLANS:</p><pre>';
+                    allCoachPlans.forEach(p => {
+                        const marker = p.client_id === currentClientId ? '✅' : (p.client_id === null ? '❌' : '  ');
+                        html += `${marker} ID:${p.id} client_id:${p.client_id || 'NULL'} name:${p.client_name}\n`;
+                    });
+                    html += '</pre>';
+                }
+                html += '</div>';
+
+                // 5. RLS Policy Test
+                html += '<div class="section"><h2>5️⃣ RLS POLICY TEST</h2>';
+                html += '<p>Testing if RLS is blocking access...</p>';
+
+                // Try to select without any filters
+                const { data: rlsTest, error: rlsError } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('id, client_id, client_name');
+
+                if (rlsError) {
+                    html += `<p>❌ RLS Error: ${rlsError.message}</p>`;
+                } else {
+                    html += `<p>✅ RLS allows access to ${rlsTest?.length || 0} plan(s)</p>`;
+                    if (rlsTest && rlsTest.length > 0) {
+                        html += '<pre>';
+                        rlsTest.forEach(p => {
+                            html += `ID:${p.id} client_id:${p.client_id || 'NULL'} name:${p.client_name}\n`;
+                        });
+                        html += '</pre>';
+                    }
+                }
+                html += '</div>';
+
+            } catch (error) {
+                html += `<div class="section"><h2>❌ UNEXPECTED ERROR</h2><pre>${error.message}\n${error.stack}</pre></div>`;
+            }
+
+            output.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
