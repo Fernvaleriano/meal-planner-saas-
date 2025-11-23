@@ -139,6 +139,16 @@
             color: white;
         }
 
+        .btn-refresh {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-refresh.refreshing {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .client-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -312,6 +322,7 @@
                 </div>
                 <div class="client-actions">
                     <button class="btn btn-primary" onclick="generateNewPlan()">🔥 Generate New Plan</button>
+                    <button class="btn btn-refresh" id="refreshBtn" onclick="manualRefresh()">🔄 Refresh</button>
                     <button class="btn btn-edit" onclick="editClient()">✏️ Edit</button>
                     <button class="btn btn-back" onclick="window.location.href='manage-clients.html'">← Back</button>
                 </div>
@@ -352,12 +363,12 @@
             window.location.href = 'index.html';
         });
 
+        // Get clientId from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get('clientId');
+
         // Load client and plans on page load
         document.addEventListener('DOMContentLoaded', async function() {
-            // Get clientId from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const clientId = urlParams.get('clientId');
-
             if (!clientId) {
                 alert('No client specified');
                 window.location.href = 'manage-clients.html';
@@ -376,18 +387,69 @@
             document.getElementById('userEmail').textContent = currentUser.email;
 
             // Load client data and plans
+            await refreshAllData();
+        });
+
+        // Reload data when page becomes visible (e.g., when coming back from editing)
+        document.addEventListener('visibilitychange', async function() {
+            if (!document.hidden && currentUser && clientId) {
+                console.log('Page became visible, refreshing data...');
+                await refreshAllData();
+            }
+        });
+
+        // Also reload when window regains focus
+        window.addEventListener('focus', async function() {
+            if (currentUser && clientId) {
+                console.log('Window focused, refreshing data...');
+                await refreshAllData();
+            }
+        });
+
+        // Manual refresh function with visual feedback
+        async function manualRefresh() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (!refreshBtn) return;
+
+            // Disable button and show loading state
+            refreshBtn.classList.add('refreshing');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '🔄 Refreshing...';
+
+            try {
+                await refreshAllData();
+            } finally {
+                // Re-enable button
+                refreshBtn.classList.remove('refreshing');
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 Refresh';
+            }
+        }
+
+        // Refresh all data function
+        async function refreshAllData() {
+            if (!clientId) return;
+
+            console.log('Refreshing client data...');
+
+            // Force a fresh fetch by adding a timestamp to bypass cache
+            const timestamp = new Date().getTime();
+
             await loadClient(clientId);
             await loadPlans(clientId);
-        });
+
+            console.log('Data refreshed successfully');
+        }
 
         async function loadClient(clientId) {
             try {
+                // Force fresh data by using maybeSingle() and re-fetching
                 const { data, error } = await supabaseClient
                     .from('clients')
                     .select('*')
                     .eq('id', clientId)
                     .eq('coach_id', currentUser.id)
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
                 if (!data) {
@@ -398,6 +460,8 @@
 
                 currentClient = data;
                 displayClient(data);
+
+                console.log('Client data loaded:', data);
 
             } catch (error) {
                 console.error('Error loading client:', error);
@@ -432,7 +496,11 @@
 
         async function loadPlans(clientId) {
             try {
-                const response = await fetch(`${GET_CLIENT_PLANS_ENDPOINT}?clientId=${clientId}&coachId=${currentUser.id}`);
+                // Add cache-busting timestamp to ensure fresh data
+                const timestamp = new Date().getTime();
+                const response = await fetch(`${GET_CLIENT_PLANS_ENDPOINT}?clientId=${clientId}&coachId=${currentUser.id}&_t=${timestamp}`, {
+                    cache: 'no-store' // Disable browser caching
+                });
 
                 if (!response.ok) throw new Error('Failed to load plans');
 
@@ -444,6 +512,8 @@
 
                 // Display plans
                 displayPlans();
+
+                console.log('Plans loaded:', clientPlans.length);
 
             } catch (error) {
                 console.error('Error loading plans:', error);
