@@ -579,13 +579,13 @@ async function callGemini(prompt, isJson = true) {
 function validateMeal(meal, mealType) {
     const issues = [];
 
-    // Validation 1: Macro math check
+    // Validation 1: Macro math check - TIGHTENED to 5%
     const calculatedCalories = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
     const calorieDifference = Math.abs(meal.calories - calculatedCalories);
     const percentOff = calorieDifference / meal.calories;
 
-    if (percentOff > 0.20) { // More than 20% off
-        issues.push(`Macro math error: ${meal.calories} cal listed but macros calculate to ${Math.round(calculatedCalories)} cal`);
+    if (percentOff > 0.05) { // More than 5% off - MUCH STRICTER
+        issues.push(`Macro math error: ${meal.calories} cal listed but macros calculate to ${Math.round(calculatedCalories)} cal (${Math.round(percentOff*100)}% error)`);
     }
 
     // Validation 2: Reasonable calorie ranges by meal type
@@ -616,6 +616,28 @@ function validateMeal(meal, mealType) {
 
     if (meal.protein > 100 || meal.carbs > 150 || meal.fat > 80) {
         issues.push('Unrealistically high macro values in single meal');
+    }
+
+    // Validation 5: Realistic portion sizes for common high-calorie foods
+    const mealNameLower = meal.name.toLowerCase();
+    const calorieFloorChecks = [
+        { keywords: ['burrito', 'wrap with'], minCal: 400, name: 'Burrito/Large wrap' },
+        { keywords: ['pizza', 'slice'], minCal: 250, name: 'Pizza' },
+        { keywords: ['burger', 'cheeseburger'], minCal: 400, name: 'Burger' },
+        { keywords: ['pasta', 'spaghetti', 'fettuccine', 'penne'], minCal: 350, name: 'Pasta dish' },
+        { keywords: ['fried'], minCal: 300, name: 'Fried food' },
+        { keywords: ['quesadilla'], minCal: 400, name: 'Quesadilla' },
+        { keywords: ['sandwich with'], minCal: 350, name: 'Large sandwich' },
+        { keywords: ['steak', 'ribeye', 'sirloin'], minCal: 300, name: 'Steak meal' },
+        { keywords: ['bacon'], minCal: 200, name: 'Meal with bacon' }
+    ];
+
+    for (const check of calorieFloorChecks) {
+        if (check.keywords.some(kw => mealNameLower.includes(kw))) {
+            if (meal.calories < check.minCal) {
+                issues.push(`${check.name} is unrealistically low: ${meal.calories} cal (minimum ${check.minCal} cal expected)`);
+            }
+        }
     }
 
     return {
@@ -847,12 +869,20 @@ ${expectedMealTypes.length === 5 ? 'The array should have EXACTLY 5 objects.' : 
 ${expectedMealTypes.length === 6 ? 'The array should have EXACTLY 6 objects.' : ''}
 
 CRITICAL CALORIE ACCURACY RULES:
-- VERIFY macro math: (protein grams × 4) + (carbs grams × 4) + (fat grams × 9) MUST equal total calories
-- Use REALISTIC portion sizes based on actual food weights
+- VERIFY macro math: (protein grams × 4) + (carbs grams × 4) + (fat grams × 9) MUST equal total calories EXACTLY (±5%)
+- Use REALISTIC portion sizes based on actual food database values
+- Common food MINIMUM calories (DO NOT go below these):
+  * Burrito with protein/cheese/toppings = 400-800 cal
+  * Burger with bun and toppings = 400-700 cal
+  * Pizza (2 slices) = 500-600 cal
+  * Pasta dish with sauce/protein = 350-600 cal
+  * Quesadilla with cheese/protein = 400-600 cal
+  * Sandwich with multiple ingredients = 350-500 cal
+  * Steak (6-8oz) with sides = 500-700 cal
 - Protein shake = 120-250 calories MAX (1 scoop protein + liquid)
 - Snacks = 100-400 calories
-- Meals = 400-700 calories depending on meal type
-- Double-check all calorie counts are accurate for the portions listed
+- BE CONSERVATIVE: When in doubt, estimate HIGHER not lower
+- Double-check portions match real-world serving sizes
 
 CRITICAL NAMING RULES:
 - Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz sirloin steak, 1 cup brown rice, 100g roasted vegetables")
@@ -912,10 +942,12 @@ Target: ${meal.calories} calories (but be ACCURATE with portions)
 Target macros: ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
 CRITICAL CALORIE ACCURACY:
-- VERIFY: (protein × 4) + (carbs × 4) + (fat × 9) = total calories
-- Use realistic portion sizes
+- VERIFY: (protein × 4) + (carbs × 4) + (fat × 9) = total calories EXACTLY (±5%)
+- Use realistic portion sizes based on actual food values
 - ${meal.type === 'snack' ? 'Snacks should be 100-400 calories' : 'Meals should be 400-700 calories'}
-- Double-check your math!
+- Common foods: Burrito=400-800cal, Burger=400-700cal, Pasta=350-600cal
+- BE CONSERVATIVE: When in doubt, estimate HIGHER not lower
+- Double-check your math and portions!
 
 Return ONLY valid JSON. Example:
 {"type":"${meal.type}","name":"4oz chicken breast, 1 cup rice, 100g broccoli","calories":450,"protein":40,"carbs":50,"fat":8,"ingredients":["4oz chicken breast","1 cup brown rice","100g broccoli"],"instructions":"Grill chicken, cook rice, steam broccoli."}`;
