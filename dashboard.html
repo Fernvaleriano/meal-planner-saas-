@@ -235,9 +235,14 @@
                     .from('coaches')
                     .select('*')
                     .eq('id', user.id)
-                    .single();
-                
+                    .maybeSingle();
+
                 if (coachError) throw coachError;
+
+                // Check if coach record exists
+                if (!coachData) {
+                    throw new Error('Coach account not found. Please contact support.');
+                }
                 
                 // Update UI
                 userEmailSpan.textContent = user.email;

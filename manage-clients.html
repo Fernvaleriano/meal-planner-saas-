@@ -591,6 +591,49 @@
         </div>
     </div>
 
+    <!-- Invitation Modal -->
+    <div id="invitationModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Client Portal Invitation</h2>
+                <button class="close-btn" onclick="closeInvitationModal()">&times;</button>
+            </div>
+
+            <div style="background: #e6fffa; border: 2px solid #48bb78; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="color: #2d3748; margin-bottom: 15px;">✅ Invitation Sent Successfully!</h3>
+                <p style="color: #2d3748; margin-bottom: 15px;">Your client has been invited to the portal.</p>
+
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; color: #718096; margin-bottom: 5px; font-weight: 600;">CLIENT</label>
+                    <div style="color: #2d3748; font-weight: 600;" id="inviteClientName">-</div>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; color: #718096; margin-bottom: 5px; font-weight: 600;">EMAIL</label>
+                    <div style="font-family: monospace; color: #2d3748; word-break: break-all;" id="inviteEmail">-</div>
+                </div>
+
+                <div style="background: #fff9e6; border: 1px solid #ffd700; padding: 15px; border-radius: 6px; font-size: 14px; color: #2d3748;">
+                    📧 <strong>They will receive an email with a link to set their password.</strong>
+                    <p style="margin-top: 8px; font-size: 13px; color: #666;">
+                        The email will be sent to the address above. They can click the link to create their password and access the portal.
+                    </p>
+                </div>
+            </div>
+
+            <div style="background: #f7fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <h4 style="color: #2d3748; margin-bottom: 10px; font-size: 14px;">Portal URL:</h4>
+                <a href="client-login.html" target="_blank" style="color: #48bb78; text-decoration: none; font-weight: 600;">
+                    <span id="portalUrl">client-login.html</span>
+                </a>
+            </div>
+
+            <div style="text-align: right;">
+                <button class="btn btn-primary" onclick="closeInvitationModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase client
@@ -998,18 +1041,14 @@
             }
 
             try {
-               const response = await fetch(`${SUPABASE_URL}/functions/v1/invite-client`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-    },
-    body: JSON.stringify({
-    email: client.email,
-    name: clientName,
-    coachId: currentCoachId
-})
-});
+                const response = await fetch('/.netlify/functions/invite-client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        coachId: currentCoachId
+                    })
+                });
 
                 const data = await response.json();
 
@@ -1017,20 +1056,24 @@
                     throw new Error(data.error || data.message || 'Failed to invite client');
                 }
 
-// Show improved success message
-alert(`✅ Invitation Sent Successfully!\n\n` +
-      `Client: ${clientName}\n` +
-      `Email: ${client.email}\n\n` +
-      `📧 They will receive an email with a link to set their password.\n\n` +
-      `Portal URL: ${window.location.origin}/client-login.html`);
+                // Show invitation modal
+                document.getElementById('inviteClientName').textContent = data.clientName || clientName;
+                document.getElementById('inviteEmail').textContent = data.email;
+                document.getElementById('portalUrl').textContent = window.location.origin + '/client-login.html';
+                document.getElementById('invitationModal').style.display = 'block';
 
                 // Reload clients to update the UI (remove invite button)
                 await loadClients();
 
             } catch (error) {
-   alert('❌ Error inviting client:\n\n' + error.message);
+                console.error('Error inviting client:', error);
                 alert('Error inviting client: ' + error.message);
             }
+        }
+
+        // Close invitation modal
+        function closeInvitationModal() {
+            document.getElementById('invitationModal').style.display = 'none';
         }
 
         // Escape HTML to prevent XSS
@@ -1062,6 +1105,9 @@ alert(`✅ Invitation Sent Successfully!\n\n` +
         window.onclick = function(event) {
             if (event.target === clientModal) {
                 closeClientModal();
+            }
+            if (event.target === document.getElementById('invitationModal')) {
+                closeInvitationModal();
             }
         };
 
