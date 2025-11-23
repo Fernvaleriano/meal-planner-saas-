@@ -591,6 +591,46 @@
         </div>
     </div>
 
+    <!-- Invitation Modal -->
+    <div id="invitationModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Client Portal Invitation</h2>
+                <button class="close-btn" onclick="closeInvitationModal()">&times;</button>
+            </div>
+
+            <div style="background: #e6fffa; border: 2px solid #48bb78; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="color: #2d3748; margin-bottom: 15px;">✅ Invitation Successful!</h3>
+                <p style="color: #2d3748; margin-bottom: 15px;">Share these credentials with your client:</p>
+
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 10px;">
+                    <label style="display: block; font-size: 12px; color: #718096; margin-bottom: 5px; font-weight: 600;">EMAIL</label>
+                    <div style="font-family: monospace; color: #2d3748; word-break: break-all;" id="inviteEmail">-</div>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <label style="display: block; font-size: 12px; color: #718096; margin-bottom: 5px; font-weight: 600;">TEMPORARY PASSWORD</label>
+                    <div style="font-family: monospace; color: #2d3748; word-break: break-all;" id="invitePassword">-</div>
+                </div>
+
+                <div style="background: #fff9e6; border: 1px solid #ffd700; padding: 12px; border-radius: 6px; font-size: 13px; color: #666;">
+                    ⚠️ <strong>Important:</strong> The client should change this password after their first login.
+                </div>
+            </div>
+
+            <div style="background: #f7fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <h4 style="color: #2d3748; margin-bottom: 10px; font-size: 14px;">Client Portal URL:</h4>
+                <a href="client-login.html" target="_blank" style="color: #48bb78; text-decoration: none; font-weight: 600;">
+                    <span id="portalUrl">client-login.html</span>
+                </a>
+            </div>
+
+            <div style="text-align: right;">
+                <button class="btn btn-primary" onclick="closeInvitationModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase client
@@ -718,6 +758,7 @@
                             ${client.phone ? `<div class="client-info">📱 ${escapeHtml(client.phone)}</div>` : ''}
                         </div>
                         <div class="client-actions">
+                            ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite to Portal</button>` : ''}
                             <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
                             <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
                         </div>
@@ -973,6 +1014,65 @@
             }
         }
 
+        // Invite client to portal
+        async function inviteClient(clientId, clientName) {
+            // Find the client to check if they have an email
+            const client = clients.find(c => c.id === clientId);
+            if (!client) {
+                alert('Client not found');
+                return;
+            }
+
+            if (!client.email) {
+                alert('Please add an email address to this client before inviting them.\n\nYou can edit the client to add an email.');
+                return;
+            }
+
+            if (client.user_id) {
+                alert('This client already has portal access.');
+                return;
+            }
+
+            if (!confirm(`Invite ${clientName} to the client portal?\n\nAn account will be created with their email: ${client.email}`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/.netlify/functions/invite-client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        coachId: currentCoachId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || 'Failed to invite client');
+                }
+
+                // Show invitation modal with credentials
+                document.getElementById('inviteEmail').textContent = data.email;
+                document.getElementById('invitePassword').textContent = data.tempPassword;
+                document.getElementById('portalUrl').textContent = window.location.origin + '/client-login.html';
+                document.getElementById('invitationModal').style.display = 'block';
+
+                // Reload clients to update the UI (remove invite button)
+                await loadClients();
+
+            } catch (error) {
+                console.error('Error inviting client:', error);
+                alert('Error inviting client: ' + error.message);
+            }
+        }
+
+        // Close invitation modal
+        function closeInvitationModal() {
+            document.getElementById('invitationModal').style.display = 'none';
+        }
+
         // Escape HTML to prevent XSS
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -998,10 +1098,13 @@
             }
         });
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target === clientModal) {
                 closeClientModal();
+            }
+            if (event.target === document.getElementById('invitationModal')) {
+                closeInvitationModal();
             }
         };
 
