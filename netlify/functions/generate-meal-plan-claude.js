@@ -1,8 +1,9 @@
 // Netlify Function for secure Claude API calls (Anthropic)
-// Using REST API directly (no SDK required)
+const AnthropicModule = require('@anthropic-ai/sdk');
+// Handle both CommonJS and ES module exports
+const Anthropic = AnthropicModule.default || AnthropicModule;
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 // USDA-verified food database
 const FOOD_DATABASE = {
@@ -76,63 +77,34 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('📤 Calling Claude API via REST...');
+    console.log('📤 Calling Claude API...');
     console.log('Targets:', targets);
+
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    });
 
     // Build optimized Claude prompt
     const systemPrompt = buildSystemPrompt(targets, previousAttempt);
 
-    // Call Claude API using REST API (no SDK needed)
-    const response = await fetch(ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4096,
-        temperature: 0.3,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
+    const message = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 4096,
+      temperature: 0.3, // Low temperature for precise calculations
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Claude API Error:', errorText);
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({
-          error: 'Claude API request failed',
-          details: errorText
-        })
-      };
-    }
-
-    const data = await response.json();
     console.log('✅ Claude API Response received');
 
-    // Validate response structure
-    if (!data.content || !data.content[0] || !data.content[0].text) {
-      console.error('❌ Invalid response structure:', JSON.stringify(data));
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'Invalid response from Claude API',
-          data: data
-        })
-      };
-    }
-
     // Extract text from Claude's response
-    const responseText = data.content[0].text;
+    const responseText = message.content[0].text;
     console.log('🤖 Claude Response preview:', responseText.substring(0, 500));
 
     // Parse JSON (handle markdown-wrapped responses)
@@ -153,9 +125,7 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('❌ Function error:', error.message);
-    console.error('Stack:', error.stack);
-
+    console.error('❌ Function error:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({
