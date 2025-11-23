@@ -647,6 +647,45 @@ function validateMeal(meal, mealType) {
     };
 }
 
+// VALIDATE ENTIRE DAY'S TOTALS
+function validateDayTotals(dayData) {
+    const targets = dayData.targets;
+    const plan = dayData.plan;
+
+    // Calculate actual totals
+    const actualCals = plan.reduce((sum, meal) => sum + meal.calories, 0);
+    const actualProtein = plan.reduce((sum, meal) => sum + meal.protein, 0);
+    const actualCarbs = plan.reduce((sum, meal) => sum + meal.carbs, 0);
+    const actualFat = plan.reduce((sum, meal) => sum + meal.fat, 0);
+
+    const issues = [];
+
+    // Check if totals are within 10% of targets
+    const calDiff = Math.abs(actualCals - targets.calories) / targets.calories;
+    const proteinDiff = Math.abs(actualProtein - targets.protein) / targets.protein;
+    const carbsDiff = Math.abs(actualCarbs - targets.carbs) / targets.carbs;
+    const fatDiff = Math.abs(actualFat - targets.fat) / targets.fat;
+
+    if (calDiff > 0.10) {
+        issues.push(`Daily calories off by ${Math.round(calDiff * 100)}%: ${actualCals} vs target ${targets.calories}`);
+    }
+    if (proteinDiff > 0.15) {
+        issues.push(`Daily protein off by ${Math.round(proteinDiff * 100)}%: ${actualProtein}g vs target ${targets.protein}g`);
+    }
+    if (carbsDiff > 0.15) {
+        issues.push(`Daily carbs off by ${Math.round(carbsDiff * 100)}%: ${actualCarbs}g vs target ${targets.carbs}g`);
+    }
+    if (fatDiff > 0.15) {
+        issues.push(`Daily fat off by ${Math.round(fatDiff * 100)}%: ${actualFat}g vs target ${targets.fat}g`);
+    }
+
+    return {
+        valid: issues.length === 0,
+        issues: issues,
+        totals: { calories: actualCals, protein: actualProtein, carbs: actualCarbs, fat: actualFat }
+    };
+}
+
 // MULTI-DAY DIET PLAN GENERATOR
 async function generateDietPlan() {
     const resultDiv = document.getElementById('diet-plan-result');
@@ -871,6 +910,7 @@ ${expectedMealTypes.length === 6 ? 'The array should have EXACTLY 6 objects.' : 
 CRITICAL CALORIE ACCURACY RULES:
 - VERIFY macro math: (protein grams × 4) + (carbs grams × 4) + (fat grams × 9) MUST equal total calories EXACTLY (±5%)
 - Use REALISTIC portion sizes based on actual food database values
+- Meal sizes should be appropriate for the daily ${calories} calorie target
 - Common food MINIMUM calories (DO NOT go below these):
   * Burrito with protein/cheese/toppings = 400-800 cal
   * Burger with bun and toppings = 400-700 cal
@@ -879,10 +919,20 @@ CRITICAL CALORIE ACCURACY RULES:
   * Quesadilla with cheese/protein = 400-600 cal
   * Sandwich with multiple ingredients = 350-500 cal
   * Steak (6-8oz) with sides = 500-700 cal
+- ACCURATE PROTEIN PORTIONS:
+  * 4oz chicken breast = 185 cal, 35g protein
+  * 4oz ground beef (90% lean) = 200 cal, 24g protein, 11g fat
+  * 6oz salmon = 280 cal, 34g protein, 17g fat
+  * 3 large eggs = 210 cal, 18g protein, 15g fat
+- ACCURATE CARB PORTIONS:
+  * 1 cup cooked rice = 200 cal, 45g carbs
+  * 1 cup cooked pasta = 220 cal, 43g carbs
+  * 1 medium sweet potato = 115 cal, 27g carbs
+  * 2 slices whole wheat bread = 160 cal, 28g carbs
 - Protein shake = 120-250 calories MAX (1 scoop protein + liquid)
 - Snacks = 100-400 calories
 - BE CONSERVATIVE: When in doubt, estimate HIGHER not lower
-- Double-check portions match real-world serving sizes
+- DAILY TOTALS MUST HIT TARGETS: Your meals must add up to the daily targets within 10%
 
 CRITICAL NAMING RULES:
 - Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz sirloin steak, 1 cup brown rice, 100g roasted vegetables")
@@ -899,7 +949,10 @@ Use only alphanumeric characters and basic punctuation (periods, commas) in text
 Replace all quotes with apostrophes. Keep instructions simple and brief.
 Include detailed ingredients list and full cooking instructions.
 
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 scrambled eggs, 2 slices whole wheat toast, 1/2 avocado","calories":400,"protein":25,"carbs":35,"fat":15,"ingredients":["3 eggs","2 slices whole wheat bread","1 tbsp butter","1/2 avocado"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with half an avocado sliced."}]}`;
+EXAMPLE (use this as reference for accuracy):
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 large eggs scrambled, 2 slices whole wheat toast, 1/2 medium avocado","calories":470,"protein":23,"carbs":32,"fat":28,"ingredients":["3 large eggs","2 slices whole wheat bread","1 tbsp butter for cooking","1/2 avocado"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast bread. Serve with sliced avocado."}]}
+
+CALCULATION CHECK: (23×4) + (32×4) + (28×9) = 92 + 128 + 252 = 472 ≈ 470 ✓`;
 
         const dayData = await callGemini(dayPrompt, true);
         if (dayData.error) {
@@ -943,14 +996,17 @@ Target macros: ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
 CRITICAL CALORIE ACCURACY:
 - VERIFY: (protein × 4) + (carbs × 4) + (fat × 9) = total calories EXACTLY (±5%)
-- Use realistic portion sizes based on actual food values
-- ${meal.type === 'snack' ? 'Snacks should be 100-400 calories' : 'Meals should be 400-700 calories'}
+- Use realistic portion sizes: 4oz chicken=185cal/35gP, 1cup rice=200cal/45gC
+- Size meals appropriately to hit the daily target (not too big or too small)
+- ${meal.type === 'snack' ? 'Snacks typically 100-400 calories' : 'Main meals typically 400-900 calories depending on daily target'}
 - Common foods: Burrito=400-800cal, Burger=400-700cal, Pasta=350-600cal
 - BE CONSERVATIVE: When in doubt, estimate HIGHER not lower
 - Double-check your math and portions!
 
-Return ONLY valid JSON. Example:
-{"type":"${meal.type}","name":"4oz chicken breast, 1 cup rice, 100g broccoli","calories":450,"protein":40,"carbs":50,"fat":8,"ingredients":["4oz chicken breast","1 cup brown rice","100g broccoli"],"instructions":"Grill chicken, cook rice, steam broccoli."}`;
+Return ONLY valid JSON. Example with ACCURATE macros:
+{"type":"${meal.type}","name":"4oz grilled chicken breast, 1 cup brown rice, 100g steamed broccoli","calories":430,"protein":40,"carbs":50,"fat":6,"ingredients":["4oz chicken breast","1 cup brown rice","100g broccoli","cooking spray"],"instructions":"Grill chicken with cooking spray. Cook rice. Steam broccoli."}
+
+MATH CHECK: (40×4) + (50×4) + (6×9) = 160 + 200 + 54 = 414 ≈ 430 ✓`;
 
                         const newMeal = await callGemini(regeneratePrompt, true);
                         if (!newMeal.error) {
@@ -973,6 +1029,15 @@ Return ONLY valid JSON. Example:
                     }
                 }
             }
+        }
+
+        // Validate day's total macros against targets
+        const dayValidation = validateDayTotals(dayData);
+        if (!dayValidation.valid) {
+            console.warn(`⚠️ Day ${day} totals don't match targets:`, dayValidation.issues);
+            console.log(`Actual totals: ${dayValidation.totals.calories} cal, ${dayValidation.totals.protein}g protein, ${dayValidation.totals.carbs}g carbs, ${dayValidation.totals.fat}g fat`);
+        } else {
+            console.log(`✅ Day ${day} totals validated successfully`);
         }
 
         allDays.push(dayData);
