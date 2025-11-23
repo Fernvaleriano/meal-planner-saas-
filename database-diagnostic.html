@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Diagnostic Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .result {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .success {
+            background: #c6f6d5;
+            border: 1px solid #48bb78;
+            color: #22543d;
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 1px solid #f56565;
+            color: #742a2a;
+        }
+
+        .warning {
+            background: #feebc8;
+            border: 1px solid #ed8936;
+            color: #7c2d12;
+        }
+
+        .info {
+            background: #bee3f8;
+            border: 1px solid #4299e1;
+            color: #2c5282;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #a0aec0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .fix-button {
+            background: #48bb78;
+            margin-top: 10px;
+        }
+
+        .fix-button:hover {
+            background: #38a169;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Database Diagnostic Tool</h1>
+        <p class="subtitle">This tool will help diagnose why meal plans aren't showing up for clients</p>
+
+        <div class="test-section">
+            <h2>1. Coach Authentication Test</h2>
+            <button class="btn" onclick="testCoachAuth()">Test Coach Login</button>
+            <div id="coachAuthResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Client Authentication Test</h2>
+            <button class="btn" onclick="testClientAuth()">Test Client Login</button>
+            <div id="clientAuthResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Database Schema Check</h2>
+            <button class="btn" onclick="checkSchema()">Check Schema</button>
+            <div id="schemaResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Meal Plans Query Test</h2>
+            <button class="btn" onclick="testMealPlansQuery()">Query Meal Plans</button>
+            <div id="mealPlansResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. Client-Plan Association Test</h2>
+            <button class="btn" onclick="testClientPlanAssociation()">Check Associations</button>
+            <div id="associationResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>6. Realtime Configuration Test</h2>
+            <button class="btn" onclick="testRealtime()">Test Realtime</button>
+            <div id="realtimeResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>7. Fix Missing client_id Values</h2>
+            <p style="margin-bottom: 10px; color: #718096;">If meal plans exist but don't have client_id set, this will attempt to match them by client_name.</p>
+            <button class="btn fix-button" onclick="fixClientIds()">Fix client_id Values</button>
+            <div id="fixResult"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function testCoachAuth() {
+            const resultDiv = document.getElementById('coachAuthResult');
+            resultDiv.innerHTML = '<div class="result info">Testing coach authentication...</div>';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    resultDiv.innerHTML = `
+                        <div class="result warning">
+                            ⚠️ No active session found. Please log in as a coach first.
+                            <div class="code-block"><code>window.location.href = 'index.html';</code></div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Check if user is a coach (has entries in coach_meal_plans)
+                const { data: plans, error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('id')
+                    .eq('coach_id', session.user.id)
+                    .limit(1);
+
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ Error checking coach status: ${error.message}
+                        </div>
+                    `;
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        ✅ Coach authenticated successfully
+                        <br>User ID: ${session.user.id}
+                        <br>Email: ${session.user.email}
+                        <br>Has created plans: ${plans && plans.length > 0 ? 'Yes' : 'No'}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testClientAuth() {
+            const resultDiv = document.getElementById('clientAuthResult');
+            resultDiv.innerHTML = '<div class="result info">Testing client authentication...</div>';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    resultDiv.innerHTML = `
+                        <div class="result warning">
+                            ⚠️ No active session found. This test requires a logged-in user.
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Check if user is a client
+                const { data: clientData, error: clientError } = await supabaseClient
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (clientError) {
+                    resultDiv.innerHTML = `
+                        <div class="result warning">
+                            ⚠️ User is not a client: ${clientError.message}
+                            <br>User ID: ${session.user.id}
+                        </div>
+                    `;
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        ✅ Client authenticated successfully
+                        <br>Client ID: ${clientData.id}
+                        <br>Client Name: ${clientData.client_name}
+                        <br>Email: ${clientData.email}
+                        <br>Coach ID: ${clientData.coach_id}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function checkSchema() {
+            const resultDiv = document.getElementById('schemaResult');
+            resultDiv.innerHTML = '<div class="result info">Checking database schema...</div>';
+
+            try {
+                // Try to select from coach_meal_plans with all expected columns
+                const { data, error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('id, coach_id, client_id, client_name, plan_data, created_at')
+                    .limit(1);
+
+                if (error) {
+                    if (error.message.includes('column') && error.message.includes('does not exist')) {
+                        resultDiv.innerHTML = `
+                            <div class="result error">
+                                ❌ Missing column in database!
+                                <br>${error.message}
+                                <br><br>You need to run the database migration scripts:
+                                <div class="code-block"><code>-- Run these SQL commands in Supabase SQL Editor:
+1. database-coach-plans.sql
+2. database-clients.sql
+3. database-client-accounts.sql</code></div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ Schema check failed: ${error.message}
+                        </div>
+                    `;
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        ✅ Database schema looks good!
+                        <br>All required columns exist: id, coach_id, client_id, client_name, plan_data, created_at
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testMealPlansQuery() {
+            const resultDiv = document.getElementById('mealPlansResult');
+            resultDiv.innerHTML = '<div class="result info">Querying meal plans...</div>';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    resultDiv.innerHTML = `
+                        <div class="result warning">
+                            ⚠️ Please log in first
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Try to get all meal plans (as coach)
+                const { data: coachPlans, error: coachError } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('*')
+                    .eq('coach_id', session.user.id);
+
+                if (coachError) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ Error querying coach plans: ${coachError.message}
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Try to get plans as client
+                const { data: clientData } = await supabaseClient
+                    .from('clients')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                let clientPlansInfo = '';
+                if (clientData) {
+                    const { data: clientPlans, error: clientError } = await supabaseClient
+                        .from('coach_meal_plans')
+                        .select('*')
+                        .eq('client_id', clientData.id);
+
+                    if (clientError) {
+                        clientPlansInfo = `<br><br>Client plans query error: ${clientError.message}`;
+                    } else {
+                        clientPlansInfo = `<br><br>Plans as client (client_id=${clientData.id}): ${clientPlans ? clientPlans.length : 0} found`;
+
+                        if (clientPlans && clientPlans.length > 0) {
+                            clientPlansInfo += `<div class="code-block"><code>${JSON.stringify(clientPlans, null, 2)}</code></div>`;
+                        }
+                    }
+                }
+
+                let html = `
+                    <div class="result ${coachPlans && coachPlans.length > 0 ? 'success' : 'warning'}">
+                        ${coachPlans && coachPlans.length > 0 ? '✅' : '⚠️'} Plans as coach: ${coachPlans ? coachPlans.length : 0} found
+                        ${clientPlansInfo}
+                `;
+
+                if (coachPlans && coachPlans.length > 0) {
+                    const plansWithClientId = coachPlans.filter(p => p.client_id !== null);
+                    const plansWithoutClientId = coachPlans.filter(p => p.client_id === null);
+
+                    html += `
+                        <br><br>Plans WITH client_id: ${plansWithClientId.length}
+                        <br>Plans WITHOUT client_id: ${plansWithoutClientId.length}
+                    `;
+
+                    if (plansWithoutClientId.length > 0) {
+                        html += `
+                            <br><br>⚠️ <strong>Problem found:</strong> ${plansWithoutClientId.length} plan(s) missing client_id!
+                            <br>Use the "Fix client_id Values" tool below to fix this.
+                        `;
+                    }
+
+                    html += `<div class="code-block"><code>${JSON.stringify(coachPlans, null, 2)}</code></div>`;
+                }
+
+                html += `</div>`;
+                resultDiv.innerHTML = html;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testClientPlanAssociation() {
+            const resultDiv = document.getElementById('associationResult');
+            resultDiv.innerHTML = '<div class="result info">Checking client-plan associations...</div>';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    resultDiv.innerHTML = `<div class="result warning">⚠️ Please log in first</div>`;
+                    return;
+                }
+
+                // Get all clients for this coach
+                const { data: clients, error: clientsError } = await supabaseClient
+                    .from('clients')
+                    .select('*')
+                    .eq('coach_id', session.user.id);
+
+                if (clientsError) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ Error querying clients: ${clientsError.message}
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!clients || clients.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="result warning">
+                            ⚠️ No clients found for this coach
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = `<div class="result info">`;
+                html += `Found ${clients.length} client(s):<br><br>`;
+
+                for (const client of clients) {
+                    const { data: plans } = await supabaseClient
+                        .from('coach_meal_plans')
+                        .select('id, created_at, client_name')
+                        .eq('client_id', client.id);
+
+                    html += `📋 <strong>${client.client_name}</strong> (ID: ${client.id})`;
+                    html += `<br>&nbsp;&nbsp;&nbsp;Email: ${client.email || 'N/A'}`;
+                    html += `<br>&nbsp;&nbsp;&nbsp;User ID: ${client.user_id || 'Not registered'}`;
+                    html += `<br>&nbsp;&nbsp;&nbsp;Plans: ${plans ? plans.length : 0}`;
+                    html += `<br><br>`;
+                }
+
+                html += `</div>`;
+                resultDiv.innerHTML = html;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testRealtime() {
+            const resultDiv = document.getElementById('realtimeResult');
+            resultDiv.innerHTML = '<div class="result info">Testing realtime connection...</div>';
+
+            try {
+                const testChannel = supabaseClient
+                    .channel('diagnostic_test')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'coach_meal_plans'
+                        },
+                        (payload) => {
+                            console.log('Realtime event received:', payload);
+                        }
+                    )
+                    .subscribe((status) => {
+                        console.log('Realtime status:', status);
+
+                        if (status === 'SUBSCRIBED') {
+                            resultDiv.innerHTML = `
+                                <div class="result success">
+                                    ✅ Realtime connection successful!
+                                    <br>The database is configured for realtime updates.
+                                    <br><br>Note: This means the feature should work. If it's not working, the issue is likely with client authentication or missing client_id values.
+                                </div>
+                            `;
+
+                            // Clean up
+                            setTimeout(() => {
+                                supabaseClient.removeChannel(testChannel);
+                            }, 2000);
+                        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                            resultDiv.innerHTML = `
+                                <div class="result error">
+                                    ❌ Realtime connection failed!
+                                    <br>Status: ${status}
+                                    <br><br>You may need to enable Realtime in Supabase Dashboard:
+                                    <div class="code-block"><code>1. Go to Database > Replication
+2. Enable realtime for 'coach_meal_plans' table</code></div>
+                                </div>
+                            `;
+                        }
+                    });
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function fixClientIds() {
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '<div class="result info">Attempting to fix client_id values...</div>';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    resultDiv.innerHTML = `<div class="result warning">⚠️ Please log in as coach first</div>`;
+                    return;
+                }
+
+                // Get all plans without client_id for this coach
+                const { data: plansWithoutClientId, error: plansError } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('*')
+                    .eq('coach_id', session.user.id)
+                    .is('client_id', null);
+
+                if (plansError) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ Error: ${plansError.message}
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!plansWithoutClientId || plansWithoutClientId.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            ✅ No plans found without client_id. Everything looks good!
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Get all clients for this coach
+                const { data: clients } = await supabaseClient
+                    .from('clients')
+                    .select('*')
+                    .eq('coach_id', session.user.id);
+
+                if (!clients || clients.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="result warning">
+                            ⚠️ Found ${plansWithoutClientId.length} plan(s) without client_id, but no clients exist to match them to.
+                            <br>You need to create client profiles first.
+                        </div>
+                    `;
+                    return;
+                }
+
+                let fixed = 0;
+                let errors = [];
+
+                for (const plan of plansWithoutClientId) {
+                    const clientName = plan.client_name;
+                    const matchingClient = clients.find(c =>
+                        c.client_name.toLowerCase().trim() === clientName.toLowerCase().trim()
+                    );
+
+                    if (matchingClient) {
+                        const { error } = await supabaseClient
+                            .from('coach_meal_plans')
+                            .update({ client_id: matchingClient.id })
+                            .eq('id', plan.id);
+
+                        if (error) {
+                            errors.push(`Plan ID ${plan.id}: ${error.message}`);
+                        } else {
+                            fixed++;
+                        }
+                    }
+                }
+
+                let html = `<div class="result ${errors.length > 0 ? 'warning' : 'success'}">`;
+                html += `✅ Fixed ${fixed} plan(s) out of ${plansWithoutClientId.length}`;
+
+                if (errors.length > 0) {
+                    html += `<br><br>Errors:<br>${errors.join('<br>')}`;
+                }
+
+                const unfixed = plansWithoutClientId.length - fixed;
+                if (unfixed > 0) {
+                    html += `<br><br>⚠️ ${unfixed} plan(s) could not be matched to clients. They may need manual assignment.`;
+                }
+
+                html += `</div>`;
+                resultDiv.innerHTML = html;
+
+                // Refresh the meal plans query to show updated data
+                if (fixed > 0) {
+                    setTimeout(() => testMealPlansQuery(), 1000);
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
