@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Protein powder
                 if (client.use_protein_powder) {
                     document.getElementById('dp_use_protein').checked = true;
-                    document.getElementById('protein-powder-section').style.display = 'block';
+                    document.getElementById('protein-powder-fields').style.display = 'block';
                     if (client.protein_powder_brand) document.getElementById('dp_protein_brand').value = client.protein_powder_brand;
                     if (client.protein_powder_calories) document.getElementById('dp_protein_cals').value = client.protein_powder_calories;
                     if (client.protein_powder_protein) document.getElementById('dp_protein_protein').value = client.protein_powder_protein;
@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (client.protein_powder_fat) document.getElementById('dp_protein_fat').value = client.protein_powder_fat;
                 } else {
                     document.getElementById('dp_use_protein').checked = false;
-                    document.getElementById('protein-powder-section').style.display = 'none';
+                    document.getElementById('protein-powder-fields').style.display = 'none';
                 }
 
                 console.log('✅ All fields auto-populated from client profile');
