@@ -63,14 +63,14 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Generate a temporary password (client should change this)
-    const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+    // Generate a random password (client will reset it via email)
+    const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10) + 'A1!';
 
-    // Create auth user
+    // Create auth user with auto-confirm
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: client.email,
-      password: tempPassword,
-      email_confirm: true // Skip email confirmation for now
+      password: randomPassword,
+      email_confirm: true
     });
 
     if (authError) {
@@ -82,6 +82,19 @@ exports.handler = async (event, context) => {
           details: authError.message
         })
       };
+    }
+
+    // Send password reset email so client can set their own password
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      client.email,
+      {
+        redirectTo: `${process.env.URL || 'https://cute-jalebi-b0f423.netlify.app'}/client-login.html`
+      }
+    );
+
+    if (resetError) {
+      console.warn('Warning: Could not send password reset email:', resetError.message);
+      // Don't fail the whole invitation if email fails - we'll continue
     }
 
     // Update client record with user_id and invitation timestamp
@@ -119,8 +132,8 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         email: client.email,
-        tempPassword: tempPassword,
-        message: 'Client invited successfully'
+        clientName: client.client_name,
+        message: 'Client invited successfully. Password reset email sent.'
       })
     };
 
