@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Emergency Fix - Link Plans to Client</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial; max-width: 900px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background: #ff4444; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; margin: 10px 5px; }
+        button:hover { background: #cc0000; }
+        button.secondary { background: #4CAF50; }
+        button.secondary:hover { background: #45a049; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 EMERGENCY FIX</h1>
+        <p><strong>This will immediately fix all plans that are missing client_id</strong></p>
+
+        <button class="secondary" onclick="diagnose()">1. DIAGNOSE (Check Status First)</button>
+        <button onclick="fixAll()">2. FIX ALL NOW</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function diagnose() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result info">⏳ Diagnosing...</div>';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    resultDiv.innerHTML = '<div class="result error">❌ Not logged in! Log in as coach first at index.html</div>';
+                    return;
+                }
+
+                // Get all clients
+                const { data: clients } = await supabaseClient.from('clients').select('*').eq('coach_id', session.user.id);
+
+                // Get all plans
+                const { data: allPlans } = await supabaseClient.from('coach_meal_plans').select('*').eq('coach_id', session.user.id);
+
+                // Get plans without client_id
+                const { data: brokenPlans } = await supabaseClient.from('coach_meal_plans').select('*').eq('coach_id', session.user.id).is('client_id', null);
+
+                let output = `📊 DIAGNOSIS:\n\n`;
+                output += `Coach: ${session.user.email}\n`;
+                output += `Total Clients: ${clients?.length || 0}\n`;
+                output += `Total Plans: ${allPlans?.length || 0}\n`;
+                output += `Plans WITHOUT client_id: ${brokenPlans?.length || 0} ⚠️\n\n`;
+
+                if (clients && clients.length > 0) {
+                    output += `\n📋 CLIENTS:\n`;
+                    for (const client of clients) {
+                        const clientPlans = allPlans?.filter(p => p.client_id === client.id) || [];
+                        output += `  • ${client.client_name} (ID: ${client.id})\n`;
+                        output += `    - User ID: ${client.user_id || 'NOT REGISTERED ⚠️'}\n`;
+                        output += `    - Plans with client_id: ${clientPlans.length}\n`;
+                    }
+                }
+
+                if (brokenPlans && brokenPlans.length > 0) {
+                    output += `\n\n🔴 BROKEN PLANS (missing client_id):\n`;
+                    for (const plan of brokenPlans) {
+                        output += `  • Plan ID: ${plan.id}\n`;
+                        output += `    - Client Name: ${plan.client_name}\n`;
+                        output += `    - Created: ${new Date(plan.created_at).toLocaleString()}\n`;
+
+                        const match = clients?.find(c => c.client_name.toLowerCase().trim() === plan.client_name.toLowerCase().trim());
+                        if (match) {
+                            output += `    - ✅ CAN MATCH to client ID ${match.id}\n`;
+                        } else {
+                            output += `    - ❌ NO MATCHING CLIENT FOUND\n`;
+                        }
+                    }
+                }
+
+                resultDiv.innerHTML = `<div class="result info">${output}</div>`;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}\n${error.stack}</div>`;
+            }
+        }
+
+        async function fixAll() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result info">⏳ FIXING ALL PLANS...</div>';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    resultDiv.innerHTML = '<div class="result error">❌ Not logged in!</div>';
+                    return;
+                }
+
+                // Get clients
+                const { data: clients } = await supabaseClient.from('clients').select('*').eq('coach_id', session.user.id);
+
+                // Get broken plans
+                const { data: brokenPlans } = await supabaseClient.from('coach_meal_plans').select('*').eq('coach_id', session.user.id).is('client_id', null);
+
+                if (!brokenPlans || brokenPlans.length === 0) {
+                    resultDiv.innerHTML = '<div class="result success">✅ No broken plans found! All plans already have client_id.</div>';
+                    return;
+                }
+
+                let output = `🔧 FIXING ${brokenPlans.length} PLANS:\n\n`;
+                let fixed = 0;
+
+                for (const plan of brokenPlans) {
+                    const match = clients?.find(c => c.client_name.toLowerCase().trim() === plan.client_name.toLowerCase().trim());
+
+                    if (match) {
+                        const { error } = await supabaseClient
+                            .from('coach_meal_plans')
+                            .update({ client_id: match.id })
+                            .eq('id', plan.id);
+
+                        if (error) {
+                            output += `❌ Plan ${plan.id} (${plan.client_name}): ${error.message}\n`;
+                        } else {
+                            fixed++;
+                            output += `✅ Plan ${plan.id} (${plan.client_name}) → Linked to client ID ${match.id}\n`;
+                        }
+                    } else {
+                        output += `⚠️ Plan ${plan.id} (${plan.client_name}): NO MATCHING CLIENT\n`;
+                    }
+                }
+
+                output += `\n\n🎉 DONE! Fixed ${fixed} out of ${brokenPlans.length} plans.\n`;
+                output += `\n✅ Clients should now see their plans on the dashboard!`;
+
+                resultDiv.innerHTML = `<div class="result ${fixed > 0 ? 'success' : 'error'}">${output}</div>`;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}\n${error.stack}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
