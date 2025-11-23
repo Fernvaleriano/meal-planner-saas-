@@ -618,8 +618,47 @@ function validateMeal(meal, mealType) {
         issues.push('Unrealistically high macro values in single meal');
     }
 
-    // Validation 5: Realistic portion sizes for common high-calorie foods
+    // Validation 5: Protein source validation - catch impossible protein claims
     const mealNameLower = meal.name.toLowerCase();
+
+    // Check protein limits based on portion sizes in meal name
+    const proteinChecks = [
+        // Whey protein - STRICT LIMIT
+        { regex: /1\s*scoop.*(?:whey|protein powder)/i, maxProtein: 30, name: '1 scoop protein' },
+        { regex: /2\s*scoop.*(?:whey|protein powder)/i, maxProtein: 55, name: '2 scoops protein' },
+
+        // Chicken breast
+        { regex: /4\s*oz.*chicken/i, maxProtein: 40, name: '4oz chicken' },
+        { regex: /6\s*oz.*chicken/i, maxProtein: 55, name: '6oz chicken' },
+        { regex: /8\s*oz.*chicken/i, maxProtein: 75, name: '8oz chicken' },
+
+        // Ground turkey
+        { regex: /4\s*oz.*(?:ground\s*)?turkey/i, maxProtein: 32, name: '4oz turkey' },
+        { regex: /6\s*oz.*(?:ground\s*)?turkey/i, maxProtein: 48, name: '6oz turkey' },
+
+        // Salmon/fish
+        { regex: /4\s*oz.*(?:salmon|fish)/i, maxProtein: 28, name: '4oz salmon/fish' },
+        { regex: /6\s*oz.*(?:salmon|fish)/i, maxProtein: 40, name: '6oz salmon/fish' },
+
+        // Eggs
+        { regex: /2\s*(?:large\s*)?egg/i, maxProtein: 14, name: '2 eggs' },
+        { regex: /3\s*(?:large\s*)?egg/i, maxProtein: 20, name: '3 eggs' },
+        { regex: /4\s*(?:large\s*)?egg/i, maxProtein: 26, name: '4 eggs' },
+
+        // Greek yogurt
+        { regex: /1\s*cup.*greek yogurt/i, maxProtein: 22, name: '1 cup Greek yogurt' },
+        { regex: /2\s*cup.*greek yogurt/i, maxProtein: 42, name: '2 cups Greek yogurt' }
+    ];
+
+    for (const check of proteinChecks) {
+        if (check.regex.test(mealNameLower)) {
+            if (meal.protein > check.maxProtein) {
+                issues.push(`Protein impossible for ${check.name}: ${meal.protein}g claimed but max ~${check.maxProtein}g from that portion`);
+            }
+        }
+    }
+
+    // Validation 6: Realistic portion sizes for common high-calorie foods
     const calorieFloorChecks = [
         { keywords: ['burrito', 'wrap with'], minCal: 400, name: 'Burrito/Large wrap' },
         { keywords: ['pizza', 'slice'], minCal: 250, name: 'Pizza' },
@@ -919,11 +958,16 @@ CRITICAL CALORIE ACCURACY RULES:
   * Quesadilla with cheese/protein = 400-600 cal
   * Sandwich with multiple ingredients = 350-500 cal
   * Steak (6-8oz) with sides = 500-700 cal
-- ACCURATE PROTEIN PORTIONS:
-  * 4oz chicken breast = 185 cal, 35g protein
+- ACCURATE PROTEIN PORTIONS (DO NOT EXCEED THESE):
+  * 1 scoop whey protein = 120 cal, 25g protein MAX
+  * 4oz chicken breast = 185 cal, 35g protein MAX
+  * 4oz ground turkey = 240 cal, 28g protein MAX
   * 4oz ground beef (90% lean) = 200 cal, 24g protein, 11g fat
   * 6oz salmon = 280 cal, 34g protein, 17g fat
   * 3 large eggs = 210 cal, 18g protein, 15g fat
+  * 1 cup Greek yogurt = 150 cal, 20g protein
+  * WARNING: If you list "4oz chicken" you CANNOT claim more than 35g protein!
+  * WARNING: If you list "1 scoop whey" you CANNOT claim more than 25g protein!
 - ACCURATE CARB PORTIONS:
   * 1 cup cooked rice = 200 cal, 45g carbs
   * 1 cup cooked pasta = 220 cal, 43g carbs
