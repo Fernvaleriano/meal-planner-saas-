@@ -1,6 +1,6 @@
 // Netlify Function for secure Gemini API calls
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp:generateContent';
 
 exports.handler = async (event, context) => {
   // Only allow POST requests
