@@ -647,12 +647,12 @@ const FOOD_DATABASE = {
 function validateMeal(meal, mealType) {
     const issues = [];
 
-    // Validation 1: Macro math check - TIGHTENED to 5%
+    // Validation 1: Macro math check - ALIGNED with Claude's 8% tolerance
     const calculatedCalories = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
     const calorieDifference = Math.abs(meal.calories - calculatedCalories);
     const percentOff = calorieDifference / meal.calories;
 
-    if (percentOff > 0.05) { // More than 5% off - MUCH STRICTER
+    if (percentOff > 0.08) { // More than 8% off - matches Claude's training
         issues.push(`Macro math error: ${meal.calories} cal listed but macros calculate to ${Math.round(calculatedCalories)} cal (${Math.round(percentOff*100)}% error)`);
     }
 
@@ -1092,7 +1092,15 @@ STEP-BY-STEP FOR EVERY MEAL:
 4. That sum IS your meal total - do not guess!
 5. Include breakdown field showing your calculation`;
 
-        const dayData = await callGemini(dayPrompt, true);
+        // Build targets object for Claude
+        const dayTargets = {
+            calories: calories,
+            protein: protein,
+            carbs: carbs,
+            fat: fat
+        };
+
+        const dayData = await callClaude(dayPrompt, dayTargets);
         if (dayData.error) {
             resultDiv.innerHTML = `<div class="card text-red-600">Error generating Day ${day}: ${dayData.error}</div>`;
             button.disabled = false;
@@ -1121,32 +1129,32 @@ STEP-BY-STEP FOR EVERY MEAL:
                     console.warn(`⚠️ Validation failed for ${meal.type} on Day ${day}:`, validation.issues);
                     console.log('🔄 Regenerating meal...');
 
-                    // Regenerate this specific meal (max 2 attempts)
+                    // Regenerate this specific meal using Claude (max 2 attempts)
                     let retryCount = 0;
                     let validMeal = null;
+                    let previousAttempt = null;
 
                     while (retryCount < 2 && !validMeal) {
                         const regeneratePrompt = `Generate a single ${meal.type} meal.
-Diet: ${preference}
+Diet preference: ${preference}
 Avoid: ${allergies}
-Target: ${meal.calories} calories (but be ACCURATE with portions)
-Target macros: ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
-CRITICAL CALORIE ACCURACY:
-- VERIFY: (protein × 4) + (carbs × 4) + (fat × 9) = total calories EXACTLY (±5%)
-- Use realistic portion sizes: 4oz chicken=185cal/35gP, 1cup rice=200cal/45gC
-- Size meals appropriately to hit the daily target (not too big or too small)
-- ${meal.type === 'snack' ? 'Snacks typically 100-400 calories' : 'Main meals typically 400-900 calories depending on daily target'}
-- Common foods: Burrito=400-800cal, Burger=400-700cal, Pasta=350-600cal
-- BE CONSERVATIVE: When in doubt, estimate HIGHER not lower
-- Double-check your math and portions!
+This meal should fit into a day's plan with the following targets.`;
 
-Return ONLY valid JSON. Example with ACCURATE macros:
-{"type":"${meal.type}","name":"4oz grilled chicken breast, 1 cup brown rice, 100g steamed broccoli","calories":430,"protein":40,"carbs":50,"fat":6,"ingredients":["4oz chicken breast","1 cup brown rice","100g broccoli","cooking spray"],"instructions":"Grill chicken with cooking spray. Cook rice. Steam broccoli."}
+                        // Build targets object for Claude
+                        const mealTargets = {
+                            calories: meal.calories,
+                            protein: meal.protein,
+                            carbs: meal.carbs,
+                            fat: meal.fat
+                        };
 
-MATH CHECK: (40×4) + (50×4) + (6×9) = 160 + 200 + 54 = 414 ≈ 430 ✓`;
+                        // Include validation errors as feedback if this is a retry
+                        if (retryCount > 0 && previousAttempt) {
+                            previousAttempt.errors = validation.issues;
+                        }
 
-                        const newMeal = await callGemini(regeneratePrompt, true);
+                        const newMeal = await callClaude(regeneratePrompt, mealTargets, previousAttempt);
                         if (!newMeal.error) {
                             const newValidation = validateMeal(newMeal, meal.type);
                             if (newValidation.valid) {
@@ -1154,6 +1162,7 @@ MATH CHECK: (40×4) + (50×4) + (6×9) = 160 + 200 + 54 = 414 ≈ 430 ✓`;
                                 console.log('✅ Regenerated meal passed validation');
                             } else {
                                 console.warn(`Retry ${retryCount + 1} still has issues:`, newValidation.issues);
+                                previousAttempt = { errors: newValidation.issues };
                             }
                         }
                         retryCount++;
