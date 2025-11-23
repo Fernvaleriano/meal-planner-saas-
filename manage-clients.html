@@ -1045,9 +1045,10 @@
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
     },
     body: JSON.stringify({
-        email: client.email,
-        name: clientName
-    })
+    email: client.email,
+    name: clientName,
+    coachId: currentCoachId
+})
 });
 
                 const data = await response.json();
