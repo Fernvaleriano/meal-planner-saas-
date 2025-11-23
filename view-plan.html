@@ -879,16 +879,21 @@
             }
         }
 
-        function createMealCard(meal, index) {
+        function createMealCard(meal, index, dayIndex = null, mealIndex = null) {
             const card = document.createElement('div');
             card.className = 'meal-card';
             card.id = `meal-${index}`;
+
+            // For multi-day plans, pass both indices; for single-day, pass just the index
+            const changeParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
+            const reviseParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
+
             card.innerHTML = `
                 <div class="meal-header">
                     <div class="meal-name">${meal.name}</div>
                     <div class="meal-actions">
-                        <button class="btn btn-change" onclick="changeMeal(${index})">🔄 Change</button>
-                        <button class="btn btn-revise" onclick="toggleRevise(${index})">✏️ Revise</button>
+                        <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
+                        <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
                     </div>
                 </div>
                 <div class="macro-grid">
@@ -915,13 +920,13 @@
                 </div>
                 <div id="revise-${index}" class="revise-section" style="display:none;">
                     <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
-                    <button class="btn btn-revise" onclick="submitRevision(${index})">Apply Changes</button>
+                    <button class="btn btn-revise" onclick="submitRevision(${changeParam})">Apply Changes</button>
                 </div>
             `;
             return card;
         }
 
-        function toggleRevise(index) {
+        function toggleRevise(index, dayIndex = null, mealIndex = null) {
             const reviseSection = document.getElementById(`revise-${index}`);
             if (reviseSection.style.display === 'none') {
                 reviseSection.style.display = 'block';
@@ -930,16 +935,24 @@
             }
         }
 
-        async function submitRevision(index) {
+        async function submitRevision(index, dayIndex = null, mealIndex = null) {
             const input = document.getElementById(`revise-input-${index}`);
             const revisionText = input.value.trim();
-            
+
             if (!revisionText) {
                 alert('Please enter what you want to change');
                 return;
             }
 
-            const meal = currentPlan.meals[index];
+            // Get the meal based on plan structure
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                // Multi-day plan
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else {
+                // Single-day plan
+                meal = currentPlan.meals[index];
+            }
             const mealCard = document.getElementById(`meal-${index}`);
             
             // Show loading
@@ -1002,11 +1015,17 @@ Keep similar calories/macros unless specifically asked to change them.`;
                 revisedMeal.protein = parseInt(revisedMeal.protein) || meal.protein;
                 revisedMeal.carbs = parseInt(revisedMeal.carbs) || meal.carbs;
                 revisedMeal.fat = parseInt(revisedMeal.fat) || meal.fat;
-                
-                // Update plan
-                currentPlan.meals[index] = revisedMeal;
+
+                // Save the revised meal to the correct location
+                if (dayIndex !== null && mealIndex !== null) {
+                    // Multi-day plan
+                    currentPlan.days[dayIndex].plan[mealIndex] = revisedMeal;
+                } else {
+                    // Single-day plan
+                    currentPlan.meals[index] = revisedMeal;
+                }
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
-                
+
                 // Refresh display
                 displayMealPlan();
                 
@@ -1017,8 +1036,17 @@ Keep similar calories/macros unless specifically asked to change them.`;
             }
         }
 
-        async function changeMeal(index) {
-            const meal = currentPlan.meals[index];
+        async function changeMeal(index, dayIndex = null, mealIndex = null) {
+            // Get the meal based on plan structure
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                // Multi-day plan
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else {
+                // Single-day plan
+                meal = currentPlan.meals[index];
+            }
+
             const mealCard = document.getElementById(`meal-${index}`);
             
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Generating new meal...</p>';
@@ -1074,10 +1102,17 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 newMeal.protein = parseInt(newMeal.protein) || meal.protein;
                 newMeal.carbs = parseInt(newMeal.carbs) || meal.carbs;
                 newMeal.fat = parseInt(newMeal.fat) || meal.fat;
-                
-                currentPlan.meals[index] = newMeal;
+
+                // Save the new meal to the correct location
+                if (dayIndex !== null && mealIndex !== null) {
+                    // Multi-day plan
+                    currentPlan.days[dayIndex].plan[mealIndex] = newMeal;
+                } else {
+                    // Single-day plan
+                    currentPlan.meals[index] = newMeal;
+                }
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
-                
+
                 displayMealPlan();
                 
             } catch (error) {
@@ -1298,8 +1333,35 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
             doc.text(`Calories: ${nutrition.calories} | Protein: ${nutrition.protein}g | Carbs: ${nutrition.carbs}g | Fat: ${nutrition.fat}g`, margin, y);
             y += 15;
 
+            // Collect all meals (handles both single-day and multi-day plans)
+            let allMeals = [];
+            if (currentPlan.multiDay && currentPlan.days) {
+                // Multi-day plan: collect meals from all days
+                currentPlan.days.forEach(dayData => {
+                    if (dayData.plan && Array.isArray(dayData.plan)) {
+                        dayData.plan.forEach(meal => {
+                            allMeals.push({ ...meal, dayNumber: dayData.day });
+                        });
+                    }
+                });
+            } else if (currentPlan.meals) {
+                // Single-day plan
+                allMeals = currentPlan.meals;
+            }
+
             // Meals
-            currentPlan.meals.forEach((meal, index) => {
+            allMeals.forEach((meal, index) => {
+                // Add day header for multi-day plans
+                if (meal.dayNumber && (index === 0 || meal.dayNumber !== allMeals[index - 1].dayNumber)) {
+                    if (y > 250) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.setFontSize(16);
+                    doc.setTextColor(102, 126, 234);
+                    doc.text(`Day ${meal.dayNumber}`, margin, y);
+                    y += 10;
+                }
                 if (y > 230) {
                     doc.addPage();
                     y = 20;
