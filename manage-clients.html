@@ -661,27 +661,56 @@
         const logoutBtn = document.getElementById('logoutBtn');
         const addClientBtn = document.getElementById('addClientBtn');
 
+        // Track if we're already initializing to prevent multiple simultaneous inits
+        let isInitializing = false;
+
+        // Listen for auth state changes to handle session expiration
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
+
+            if (event === 'SIGNED_OUT') {
+                console.log('User signed out, redirecting to login');
+                window.location.href = 'index.html';
+            } else if (event === 'TOKEN_REFRESHED' && currentCoachId) {
+                console.log('Token refreshed, reloading clients');
+                loadClients();
+            }
+        });
+
         // Initialize page
         async function initPage() {
+            // Prevent multiple simultaneous initializations
+            if (isInitializing) {
+                console.log('Page is already initializing, skipping...');
+                return;
+            }
+
+            isInitializing = true;
+
             try {
-                // Refresh session and use the returned data directly
+                console.log('Starting page initialization...');
+
+                // Try to refresh the session to get a fresh token
                 const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-                // If refresh succeeds, use that session; otherwise fall back to getSession
                 let session = null;
-                let sessionError = null;
 
-                if (!refreshError && refreshData?.session) {
-                    session = refreshData.session;
-                } else {
-                    // Fallback to getSession if refresh failed
-                    const result = await supabaseClient.auth.getSession();
-                    session = result.data?.session;
-                    sessionError = result.error;
+                // Check if refresh was successful
+                if (refreshError) {
+                    console.error('Session refresh failed:', refreshError);
+                    // If refresh fails, the session is likely expired
+                    await supabaseClient.auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
                 }
 
-                if (sessionError || !session) {
-                    console.error('Session error:', sessionError);
+                // Use the refreshed session
+                session = refreshData?.session;
+
+                // Double-check we have a valid session
+                if (!session || !session.access_token) {
+                    console.error('No valid session after refresh');
+                    await supabaseClient.auth.signOut();
                     window.location.href = 'index.html';
                     return;
                 }
@@ -706,7 +735,12 @@
             } catch (error) {
                 console.error('Error initializing page:', error);
                 alert('Error loading page: ' + error.message);
+
+                // If there's an error, sign out and redirect to be safe
+                await supabaseClient.auth.signOut();
                 window.location.href = 'index.html';
+            } finally {
+                isInitializing = false;
             }
         }
 

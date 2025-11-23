@@ -222,6 +222,27 @@
         const logoutBtn = document.getElementById('logoutBtn');
         const brandingBtn = document.getElementById('brandingBtn');
 
+        // Track if we're already loading to prevent multiple simultaneous loads
+        let isLoading = false;
+
+        // Listen for auth state changes to handle session expiration
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
+
+            if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+                // If signed out, redirect to login
+                if (event === 'SIGNED_OUT') {
+                    console.log('User signed out, redirecting to login');
+                    window.location.href = 'index.html';
+                }
+                // If token refreshed successfully, reload dashboard if it's currently showing
+                else if (event === 'TOKEN_REFRESHED' && dashboardContent.style.display !== 'none') {
+                    console.log('Token refreshed, reloading dashboard');
+                    loadDashboard();
+                }
+            }
+        });
+
         // Detect if page was loaded from back/forward cache and force reload
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
@@ -232,32 +253,46 @@
         });
 
         async function loadDashboard() {
+            // Prevent multiple simultaneous loads
+            if (isLoading) {
+                console.log('Dashboard is already loading, skipping...');
+                return;
+            }
+
+            isLoading = true;
+
             try {
-                // Refresh session and use the returned data directly
+                console.log('Starting dashboard load...');
+
+                // First, try to refresh the session to get a fresh token
                 const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-                // If refresh succeeds, use that session; otherwise fall back to getSession
                 let session = null;
-                let sessionError = null;
 
-                if (!refreshError && refreshData?.session) {
-                    session = refreshData.session;
-                } else {
-                    // Fallback to getSession if refresh failed
-                    const result = await supabaseClient.auth.getSession();
-                    session = result.data?.session;
-                    sessionError = result.error;
+                // Check if refresh was successful
+                if (refreshError) {
+                    console.error('Session refresh failed:', refreshError);
+                    // If refresh fails, the session is likely expired
+                    // Clear any stale session data and redirect to login
+                    await supabaseClient.auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
                 }
 
-                if (sessionError || !session) {
-                    console.error('Session error:', sessionError);
+                // Use the refreshed session
+                session = refreshData?.session;
+
+                // Double-check we have a valid session
+                if (!session || !session.access_token) {
+                    console.error('No valid session after refresh');
+                    await supabaseClient.auth.signOut();
                     window.location.href = 'index.html';
                     return;
                 }
 
                 const user = session.user;
                 console.log('User authenticated:', user.id);
-                
+
                 // Get coach data from database with retry logic for transient failures
                 let coachData = null;
                 let coachError = null;
@@ -276,12 +311,24 @@
 
                     if (coachError) {
                         console.error(`Database error (attempt ${retries + 1}):`, coachError);
+
+                        // Check if it's an auth error (expired token, invalid session, etc.)
+                        if (coachError.code === 'PGRST301' || coachError.message?.includes('JWT') ||
+                            coachError.message?.includes('expired') || coachError.message?.includes('invalid')) {
+                            console.error('Authentication error detected, session is invalid');
+                            await supabaseClient.auth.signOut();
+                            window.location.href = 'index.html';
+                            return;
+                        }
+
                         if (retries < maxRetries) {
                             // Wait before retrying (100ms, then 200ms)
                             await new Promise(resolve => setTimeout(resolve, 100 * (retries + 1)));
                             retries++;
                             continue;
                         }
+
+                        // If we've exhausted retries and it's not an auth error, throw it
                         throw coachError;
                     }
 
@@ -296,27 +343,32 @@
                 }
 
                 console.log('Coach data loaded successfully');
-                
+
                 // Update UI
                 userEmailSpan.textContent = user.email;
                 tierBadge.textContent = coachData.subscription_tier.toUpperCase();
                 tierBadge.className = `tier-badge ${coachData.subscription_tier}`;
-                
+
                 // Show branding button only for branded tier
                 if (coachData.subscription_tier === 'branded') {
                     brandingBtn.parentElement.style.display = 'block';
                 } else {
                     brandingBtn.parentElement.style.display = 'none';
                 }
-                
+
                 // Hide loading, show dashboard
                 loadingDiv.style.display = 'none';
                 dashboardContent.style.display = 'block';
-                
+
             } catch (error) {
                 console.error('Error loading dashboard:', error);
                 alert('Error loading dashboard: ' + error.message);
+
+                // If there's an error, sign out and redirect to be safe
+                await supabaseClient.auth.signOut();
                 window.location.href = 'index.html';
+            } finally {
+                isLoading = false;
             }
         }
         
