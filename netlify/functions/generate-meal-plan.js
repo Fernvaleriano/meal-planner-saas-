@@ -21,8 +21,8 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt } = JSON.parse(event.body);
-    
+    const { prompt, targets, previousAttempt } = JSON.parse(event.body);
+
     if (!prompt) {
       return {
         statusCode: 400,
@@ -31,6 +31,9 @@ exports.handler = async (event, context) => {
     }
 
     console.log('📤 Calling Gemini API...');
+    if (targets) {
+      console.log('Targets:', targets);
+    }
     
     // ✅ FIXED: Proper fetch syntax with parentheses
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
@@ -81,8 +84,11 @@ exports.handler = async (event, context) => {
     }
 
     // Log first 500 chars of AI response for debugging
-    const aiText = data.candidates[0].content.parts[0].text;
-    console.log('🤖 AI Response preview:', aiText.substring(0, 500));
+    const responseText = data.candidates[0].content.parts[0].text;
+    console.log('🤖 Gemini Response preview:', responseText.substring(0, 500));
+
+    // Parse JSON (handle markdown-wrapped responses)
+    const jsonData = extractJSON(responseText);
 
     return {
       statusCode: 200,
@@ -91,17 +97,45 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type'
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        success: true,
+        data: jsonData,
+        rawResponse: responseText
+      })
     };
 
   } catch (error) {
     console.error('❌ Function error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Internal server error',
-        message: error.message 
+        message: error.message
       })
     };
   }
 };
+
+function extractJSON(text) {
+  // Remove markdown code blocks if present
+  let cleaned = text.trim();
+
+  // Remove ```json and ``` if wrapped
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+
+  // Try to parse
+  try {
+    return JSON.parse(cleaned);
+  } catch (error) {
+    // Try to extract JSON from text
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error('Could not extract valid JSON from response');
+  }
+}
