@@ -649,20 +649,33 @@ async function generateDietPlan() {
     const clientSelector = document.getElementById('dp_client_selector');
     const selectedValue = clientSelector.value;
 
-    if (!selectedValue) {
+    if (!selectedValue || selectedValue === "") {
         // No client selected
-        alert('Please select a client from the dropdown');
+        alert('⚠️ Please select a client from the dropdown before generating a plan.');
         button.disabled = false;
         resultDiv.innerHTML = '';
         return;
     }
 
-    // Get client details
+    // Parse and validate client ID
     clientId = parseInt(selectedValue);
-    const client = clientsList.find(c => c.id === clientId);
-    if (client) {
-        clientName = client.client_name;
+    if (isNaN(clientId) || clientId <= 0) {
+        alert('⚠️ Invalid client selection. Please select a valid client from the dropdown.');
+        button.disabled = false;
+        resultDiv.innerHTML = '';
+        return;
     }
+
+    // Ensure client exists in the list
+    const client = clientsList.find(c => c.id === clientId);
+    if (!client) {
+        alert('⚠️ Selected client not found. Please refresh the page and try again.');
+        button.disabled = false;
+        resultDiv.innerHTML = '';
+        return;
+    }
+
+    clientName = client.client_name;
 
     const gender = document.getElementById('dp_gender').value;
     const activity = parseFloat(document.getElementById('dp_activity').value);
@@ -997,19 +1010,22 @@ async function saveCoachPlan(planData, clientName) {
         return;
     }
 
+    // Validate that clientId exists and is valid
+    if (!planData.clientId || isNaN(planData.clientId) || planData.clientId <= 0) {
+        console.error('❌ Cannot save plan: Invalid or missing clientId', planData.clientId);
+        alert('⚠️ Error: Cannot save plan without a valid client selection. Please select a client and try again.');
+        return;
+    }
+
     try {
         console.log('Saving plan to coach history...');
 
         const payload = {
             coachId: currentCoach.id,
             clientName: clientName,
-            planData: planData
+            planData: planData,
+            clientId: planData.clientId  // Always include clientId (validated above)
         };
-
-        // Add clientId if available
-        if (planData.clientId) {
-            payload.clientId = planData.clientId;
-        }
 
         const response = await fetch(SAVE_COACH_PLAN_ENDPOINT, {
             method: 'POST',
