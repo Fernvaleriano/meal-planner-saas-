@@ -143,15 +143,6 @@
             color: white;
         }
 
-        .btn-refresh {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-refresh.refreshing {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
 
         .client-stats {
             display: grid;
@@ -326,7 +317,6 @@
                 </div>
                 <div class="client-actions">
                     <button class="btn btn-primary" onclick="generateNewPlan()">🔥 Generate New Plan</button>
-                    <button class="btn btn-refresh" id="refreshBtn" onclick="manualRefresh()">🔄 Refresh</button>
                     <button class="btn btn-edit" onclick="editClient()">✏️ Edit</button>
                     <button class="btn btn-back" onclick="window.location.href='manage-clients.html'">← Back</button>
                 </div>
@@ -461,26 +451,6 @@
                 await refreshAllData();
             }
         });
-
-        // Manual refresh function with visual feedback
-        async function manualRefresh() {
-            const refreshBtn = document.getElementById('refreshBtn');
-            if (!refreshBtn) return;
-
-            // Disable button and show loading state
-            refreshBtn.classList.add('refreshing');
-            refreshBtn.disabled = true;
-            refreshBtn.textContent = '🔄 Refreshing...';
-
-            try {
-                await refreshAllData();
-            } finally {
-                // Re-enable button
-                refreshBtn.classList.remove('refreshing');
-                refreshBtn.disabled = false;
-                refreshBtn.textContent = '🔄 Refresh';
-            }
-        }
 
         // Refresh all data function
         async function refreshAllData() {
