@@ -1,5 +1,5 @@
 // Netlify Function for secure Claude API calls (Anthropic)
-import Anthropic from '@anthropic-ai/sdk';
+// Using dynamic import for Anthropic SDK compatibility
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -47,7 +47,7 @@ const FOOD_DATABASE = {
   'strawberries': { per: '100g', cal: 32, protein: 1, carbs: 8, fat: 0 }
 };
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
@@ -77,6 +77,9 @@ export const handler = async (event, context) => {
 
     console.log('📤 Calling Claude API...');
     console.log('Targets:', targets);
+
+    // Dynamic import of Anthropic SDK (handles ES modules in Netlify)
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
 
     // Initialize Anthropic client
     const anthropic = new Anthropic({
