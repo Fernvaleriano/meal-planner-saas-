@@ -319,7 +319,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
+const API_ENDPOINT = '/.netlify/functions/generate-meal-plan-claude';
 const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
 const SAVE_COACH_PLAN_ENDPOINT = '/.netlify/functions/save-coach-plan';
 let lastMealQuery = {};
@@ -517,10 +517,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// DIRECT NETLIFY FUNCTION CALL (replaces Velo callGemini)
-async function callGemini(prompt, isJson = true) {
+// DIRECT NETLIFY FUNCTION CALL - Now using Claude 3.5 Sonnet
+async function callClaude(prompt, targets, previousAttempt = null) {
     try {
         const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt,
+                targets,
+                previousAttempt
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'API request failed');
+        }
+
+        const result = await response.json();
+
+        // Claude function returns: { success: true, data: {...}, rawResponse: "..." }
+        if (result.success && result.data) {
+            return result.data;
+        } else if (result.error) {
+            throw new Error(result.error);
+        } else {
+            throw new Error('Invalid response from Claude API');
+        }
+    } catch (error) {
+        console.error('Claude API Error:', error);
+        return { error: error.message };
+    }
+}
+
+// Backwards compatibility wrapper - gradually replace callGemini with callClaude
+async function callGemini(prompt, isJson = true, targets = null, previousAttempt = null) {
+    // If targets provided, use Claude (new way)
+    if (targets) {
+        return await callClaude(prompt, targets, previousAttempt);
+    }
+
+    // Otherwise fall back to old Gemini behavior (for compatibility)
+    try {
+        const response = await fetch('/.netlify/functions/generate-meal-plan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt })
@@ -543,29 +583,16 @@ async function callGemini(prompt, isJson = true) {
             const jsonMatch = text.match(/[\[{][\s\S]*[\]}]/);
             if (jsonMatch) text = jsonMatch[0];
 
-            // Try to parse - if it fails, try to fix common issues
             try {
                 return JSON.parse(text);
             } catch (parseError) {
                 console.warn('First parse failed, attempting to fix JSON:', parseError.message);
-
-                // Try to fix unescaped quotes in string values
-                // This is a simple fix - replace quotes inside string values
                 text = text.replace(/"instructions":\s*"([^"]*(?:"[^"]*)*)"}/g, (match, content) => {
                     const fixed = content.replace(/"/g, "'");
                     return `"instructions": "${fixed}"}`;
                 });
-
-                // Remove trailing commas
                 text = text.replace(/,(\s*[}\]])/g, '$1');
-
-                try {
-                    return JSON.parse(text);
-                } catch (secondError) {
-                    console.error('JSON Parse Error:', secondError.message);
-                    console.error('Attempted to parse:', text.substring(0, 500));
-                    throw new Error('Invalid JSON from AI: ' + secondError.message);
-                }
+                return JSON.parse(text);
             }
         }
         return text;
