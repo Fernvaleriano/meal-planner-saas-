@@ -1520,17 +1520,51 @@ Include detailed ingredients list and full cooking instructions.
 }
 
 // GROCERY LIST AGGREGATION
+
+// Helper function to parse fractions and mixed numbers
+function parseFraction(str) {
+    // Handle mixed numbers like "1 1/2" or "2 3/4"
+    const mixedMatch = str.match(/(\d+)\s+(\d+)\/(\d+)/);
+    if (mixedMatch) {
+        const whole = parseInt(mixedMatch[1]);
+        const numerator = parseInt(mixedMatch[2]);
+        const denominator = parseInt(mixedMatch[3]);
+        return whole + (numerator / denominator);
+    }
+
+    // Handle simple fractions like "1/2" or "3/4"
+    const fractionMatch = str.match(/(\d+)\/(\d+)/);
+    if (fractionMatch) {
+        const numerator = parseInt(fractionMatch[1]);
+        const denominator = parseInt(fractionMatch[2]);
+        return numerator / denominator;
+    }
+
+    // Handle decimals like "1.5" or whole numbers like "2"
+    return parseFloat(str) || 0;
+}
+
 function parseIngredient(ingredientStr) {
+    // Patterns to match:
+    // 1. "1/4 cup bell pepper" or "1 1/2 cups flour"
+    // 2. "4oz chicken breast" or "100g broccoli"
+    // 3. "2 medium bananas"
     const patterns = [
-        /(\d+\.?\d*)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|pieces?)\s+(.+)/i,
-        /(\d+\.?\d*)\s+(.+)/i
+        // Pattern 1: Fractions or decimals with units - e.g., "1/4 cup" or "1 1/2 cups" or "2.5 tbsp"
+        /([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small)\s+(.+)/i,
+        // Pattern 2: Just number with rest of string - e.g., "2 bananas"
+        /([\d\s\/\.]+)\s+(.+)/i
     ];
 
     for (const pattern of patterns) {
         const match = ingredientStr.match(pattern);
         if (match) {
+            // Parse the quantity (handles fractions, mixed numbers, decimals)
+            const quantityStr = match[1].trim();
+            const quantity = parseFraction(quantityStr);
+
             return {
-                quantity: parseFloat(match[1]) || 0,
+                quantity: quantity,
                 unit: (match[2] || 'unit').toLowerCase(),
                 name: (match[3] || match[2] || ingredientStr).toLowerCase().trim()
             };
@@ -1540,18 +1574,59 @@ function parseIngredient(ingredientStr) {
 }
 
 function normalizeUnit(quantity, unit) {
-    const conversions = {
-        'oz': 1, 'ounce': 1, 'ounces': 1,
-        'lb': 16, 'lbs': 16, 'pound': 16, 'pounds': 16,
-        'g': 0.035274, 'gram': 0.035274, 'grams': 0.035274,
-        'kg': 35.274,
-        'cup': 1, 'cups': 1,
-        'tbsp': 1, 'tsp': 0.333,
-        'piece': 1, 'pieces': 1, 'unit': 1
+    // Normalize unit names and keep quantities in their original units
+    // Group similar units together for aggregation
+    const unitNormalization = {
+        // Weight units - keep in grams
+        'g': 'g',
+        'gram': 'g',
+        'grams': 'g',
+        'kg': 'g', // Convert kg to g for aggregation
+        'oz': 'oz',
+        'ounce': 'oz',
+        'ounces': 'oz',
+        'lb': 'oz', // Convert lbs to oz for aggregation
+        'lbs': 'oz',
+        'pound': 'oz',
+        'pounds': 'oz',
+
+        // Volume units - keep separate
+        'cup': 'cup',
+        'cups': 'cup',
+        'tbsp': 'tbsp',
+        'tablespoon': 'tbsp',
+        'tablespoons': 'tbsp',
+        'tsp': 'tsp',
+        'teaspoon': 'tsp',
+        'teaspoons': 'tsp',
+
+        // Count units
+        'piece': 'unit',
+        'pieces': 'unit',
+        'medium': 'medium',
+        'large': 'large',
+        'small': 'small',
+        'unit': 'unit'
     };
 
-    const normalized = conversions[unit] || 1;
-    return { quantity: quantity * normalized, unit: unit in conversions ? (normalized > 10 ? 'oz' : unit) : unit };
+    const normalizedUnit = unitNormalization[unit] || unit;
+    let normalizedQuantity = quantity;
+
+    // Convert kg to g (1 kg = 1000 g)
+    if (unit === 'kg') {
+        normalizedQuantity = quantity * 1000;
+    }
+    // Convert lbs to oz (1 lb = 16 oz)
+    else if (unit === 'lb' || unit === 'lbs' || unit === 'pound' || unit === 'pounds') {
+        normalizedQuantity = quantity * 16;
+    }
+    // Convert tablespoons to teaspoons if needed for consistency (optional)
+    // For now, keep them separate for easier reading
+
+    return {
+        quantity: normalizedQuantity,
+        unit: normalizedUnit
+    };
 }
 
 function aggregateGroceryList(multiDayPlan) {
@@ -1582,6 +1657,53 @@ function aggregateGroceryList(multiDayPlan) {
     return Object.values(aggregated).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Format quantity with fractions for better readability
+function formatQuantity(quantity) {
+    // Round to nearest 0.125 for cleaner fractions
+    const rounded = Math.round(quantity * 8) / 8;
+
+    const whole = Math.floor(rounded);
+    const decimal = rounded - whole;
+
+    // Convert common decimals to fractions
+    const fractions = {
+        0: '',
+        0.125: '1/8',
+        0.25: '1/4',
+        0.333: '1/3',
+        0.375: '3/8',
+        0.5: '1/2',
+        0.625: '5/8',
+        0.666: '2/3',
+        0.75: '3/4',
+        0.875: '7/8'
+    };
+
+    // Find closest fraction
+    let closestDecimal = 0;
+    let minDiff = 1;
+    for (const dec in fractions) {
+        const diff = Math.abs(decimal - parseFloat(dec));
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestDecimal = dec;
+        }
+    }
+
+    const fraction = fractions[closestDecimal];
+
+    if (whole === 0 && fraction) {
+        return fraction;
+    } else if (whole > 0 && fraction) {
+        return `${whole} ${fraction}`;
+    } else if (whole > 0) {
+        return whole.toString();
+    } else {
+        // If no clean fraction match, show decimal
+        return quantity.toFixed(1);
+    }
+}
+
 function showGroceryList() {
     if (!lastPlanQuery.currentPlan) {
         alert('No plan available');
@@ -1596,8 +1718,9 @@ function showGroceryList() {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">`;
 
     groceryList.forEach(item => {
+        const formattedQty = formatQuantity(item.quantity);
         listHTML += `<div class="p-2 bg-gray-50 rounded">
-            <span class="font-semibold">${item.quantity.toFixed(1)} ${item.unit}</span> ${item.name}
+            <span class="font-semibold">${formattedQty} ${item.unit}</span> ${item.name}
         </div>`;
     });
 
@@ -1757,7 +1880,8 @@ function downloadPlanAsPDF() {
             pdf.addPage();
             y = 20;
         }
-        const itemText = `- ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`;
+        const formattedQty = formatQuantity(item.quantity);
+        const itemText = `- ${formattedQty} ${item.unit} ${item.name}`;
         pdf.text(itemText, margin, y);
         y += 6;
     });
