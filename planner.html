@@ -575,6 +575,47 @@ async function callGemini(prompt, isJson = true) {
     }
 }
 
+// FOOD DATABASE - Real nutritional values per standard portion
+const FOOD_DATABASE = {
+    // Proteins
+    'chicken breast': { per: '4oz', cal: 185, protein: 35, carbs: 0, fat: 4 },
+    'ground turkey': { per: '4oz', cal: 200, protein: 28, carbs: 0, fat: 11 },
+    'ground beef 90/10': { per: '4oz', cal: 200, protein: 24, carbs: 0, fat: 11 },
+    'salmon': { per: '4oz', cal: 200, protein: 23, carbs: 0, fat: 12 },
+    'tilapia': { per: '4oz', cal: 145, protein: 30, carbs: 0, fat: 3 },
+    'shrimp': { per: '4oz', cal: 120, protein: 26, carbs: 0, fat: 1 },
+    'egg': { per: '1 large', cal: 70, protein: 6, carbs: 0, fat: 5 },
+    'greek yogurt': { per: '1 cup', cal: 150, protein: 20, carbs: 10, fat: 4 },
+    'cottage cheese': { per: '1 cup', cal: 200, protein: 28, carbs: 8, fat: 5 },
+    'whey protein': { per: '1 scoop', cal: 120, protein: 25, carbs: 3, fat: 1 },
+
+    // Carbs
+    'brown rice': { per: '1 cup cooked', cal: 215, protein: 5, carbs: 45, fat: 2 },
+    'white rice': { per: '1 cup cooked', cal: 205, protein: 4, carbs: 45, fat: 0 },
+    'quinoa': { per: '1 cup cooked', cal: 222, protein: 8, carbs: 39, fat: 4 },
+    'sweet potato': { per: '1 medium', cal: 115, protein: 2, carbs: 27, fat: 0 },
+    'oats': { per: '1 cup cooked', cal: 150, protein: 6, carbs: 27, fat: 3 },
+    'whole wheat bread': { per: '1 slice', cal: 80, protein: 4, carbs: 14, fat: 1 },
+    'pasta': { per: '1 cup cooked', cal: 220, protein: 8, carbs: 43, fat: 1 },
+
+    // Fats
+    'avocado': { per: '1/2 medium', cal: 120, protein: 1, carbs: 6, fat: 10 },
+    'olive oil': { per: '1 tbsp', cal: 120, protein: 0, carbs: 0, fat: 14 },
+    'almond butter': { per: '1 tbsp', cal: 95, protein: 3, carbs: 3, fat: 9 },
+    'almonds': { per: '1 oz (23 nuts)', cal: 160, protein: 6, carbs: 6, fat: 14 },
+    'cheese cheddar': { per: '1 oz', cal: 115, protein: 7, carbs: 0, fat: 9 },
+
+    // Vegetables
+    'broccoli': { per: '100g', cal: 35, protein: 3, carbs: 7, fat: 0 },
+    'spinach': { per: '100g', cal: 23, protein: 3, carbs: 4, fat: 0 },
+    'bell pepper': { per: '100g', cal: 26, protein: 1, carbs: 6, fat: 0 },
+
+    // Fruits
+    'banana': { per: '1 medium', cal: 105, protein: 1, carbs: 27, fat: 0 },
+    'apple': { per: '1 medium', cal: 95, protein: 0, carbs: 25, fat: 0 },
+    'blueberries': { per: '1 cup', cal: 85, protein: 1, carbs: 21, fat: 0 }
+};
+
 // MEAL VALIDATION FUNCTION
 function validateMeal(meal, mealType) {
     const issues = [];
@@ -618,8 +659,47 @@ function validateMeal(meal, mealType) {
         issues.push('Unrealistically high macro values in single meal');
     }
 
-    // Validation 5: Realistic portion sizes for common high-calorie foods
+    // Validation 5: Protein source validation - catch impossible protein claims
     const mealNameLower = meal.name.toLowerCase();
+
+    // Check protein limits based on portion sizes in meal name
+    const proteinChecks = [
+        // Whey protein - STRICT LIMIT
+        { regex: /1\s*scoop.*(?:whey|protein powder)/i, maxProtein: 30, name: '1 scoop protein' },
+        { regex: /2\s*scoop.*(?:whey|protein powder)/i, maxProtein: 55, name: '2 scoops protein' },
+
+        // Chicken breast
+        { regex: /4\s*oz.*chicken/i, maxProtein: 40, name: '4oz chicken' },
+        { regex: /6\s*oz.*chicken/i, maxProtein: 55, name: '6oz chicken' },
+        { regex: /8\s*oz.*chicken/i, maxProtein: 75, name: '8oz chicken' },
+
+        // Ground turkey
+        { regex: /4\s*oz.*(?:ground\s*)?turkey/i, maxProtein: 32, name: '4oz turkey' },
+        { regex: /6\s*oz.*(?:ground\s*)?turkey/i, maxProtein: 48, name: '6oz turkey' },
+
+        // Salmon/fish
+        { regex: /4\s*oz.*(?:salmon|fish)/i, maxProtein: 28, name: '4oz salmon/fish' },
+        { regex: /6\s*oz.*(?:salmon|fish)/i, maxProtein: 40, name: '6oz salmon/fish' },
+
+        // Eggs
+        { regex: /2\s*(?:large\s*)?egg/i, maxProtein: 14, name: '2 eggs' },
+        { regex: /3\s*(?:large\s*)?egg/i, maxProtein: 20, name: '3 eggs' },
+        { regex: /4\s*(?:large\s*)?egg/i, maxProtein: 26, name: '4 eggs' },
+
+        // Greek yogurt
+        { regex: /1\s*cup.*greek yogurt/i, maxProtein: 22, name: '1 cup Greek yogurt' },
+        { regex: /2\s*cup.*greek yogurt/i, maxProtein: 42, name: '2 cups Greek yogurt' }
+    ];
+
+    for (const check of proteinChecks) {
+        if (check.regex.test(mealNameLower)) {
+            if (meal.protein > check.maxProtein) {
+                issues.push(`Protein impossible for ${check.name}: ${meal.protein}g claimed but max ~${check.maxProtein}g from that portion`);
+            }
+        }
+    }
+
+    // Validation 6: Realistic portion sizes for common high-calorie foods
     const calorieFloorChecks = [
         { keywords: ['burrito', 'wrap with'], minCal: 400, name: 'Burrito/Large wrap' },
         { keywords: ['pizza', 'slice'], minCal: 250, name: 'Pizza' },
@@ -919,16 +999,35 @@ CRITICAL CALORIE ACCURACY RULES:
   * Quesadilla with cheese/protein = 400-600 cal
   * Sandwich with multiple ingredients = 350-500 cal
   * Steak (6-8oz) with sides = 500-700 cal
-- ACCURATE PROTEIN PORTIONS:
-  * 4oz chicken breast = 185 cal, 35g protein
-  * 4oz ground beef (90% lean) = 200 cal, 24g protein, 11g fat
-  * 6oz salmon = 280 cal, 34g protein, 17g fat
-  * 3 large eggs = 210 cal, 18g protein, 15g fat
-- ACCURATE CARB PORTIONS:
-  * 1 cup cooked rice = 200 cal, 45g carbs
-  * 1 cup cooked pasta = 220 cal, 43g carbs
-  * 1 medium sweet potato = 115 cal, 27g carbs
-  * 2 slices whole wheat bread = 160 cal, 28g carbs
+USE THESE EXACT NUTRITIONAL VALUES (scientifically verified):
+
+PROTEINS (per standard portion):
+* 1 large egg = 70 cal, 6g protein, 0g carbs, 5g fat
+* 4oz chicken breast = 185 cal, 35g protein, 0g carbs, 4g fat
+* 4oz ground turkey = 200 cal, 28g protein, 0g carbs, 11g fat
+* 4oz salmon = 200 cal, 23g protein, 0g carbs, 12g fat
+* 4oz ground beef (90/10) = 200 cal, 24g protein, 0g carbs, 11g fat
+* 1 scoop whey protein = 120 cal, 25g protein, 3g carbs, 1g fat
+* 1 cup Greek yogurt = 150 cal, 20g protein, 10g carbs, 4g fat
+
+CARBS (per standard portion):
+* 1 cup cooked brown rice = 215 cal, 5g protein, 45g carbs, 2g fat
+* 1 cup cooked pasta = 220 cal, 8g protein, 43g carbs, 1g fat
+* 1 cup cooked quinoa = 222 cal, 8g protein, 39g carbs, 4g fat
+* 1 medium sweet potato = 115 cal, 2g protein, 27g carbs, 0g fat
+* 1 slice whole wheat bread = 80 cal, 4g protein, 14g carbs, 1g fat
+* 1 cup cooked oats = 150 cal, 6g protein, 27g carbs, 3g fat
+
+FATS (per standard portion):
+* 1 tbsp olive oil = 120 cal, 0g protein, 0g carbs, 14g fat
+* 1/2 medium avocado = 120 cal, 1g protein, 6g carbs, 10g fat
+* 1 tbsp almond butter = 95 cal, 3g protein, 3g carbs, 9g fat
+
+FRUITS/VEGGIES:
+* 1 medium banana = 105 cal, 1g protein, 27g carbs, 0g fat
+* 100g broccoli = 35 cal, 3g protein, 7g carbs, 0g fat
+
+USE ONLY THESE VALUES! Calculate ingredient by ingredient!
 - Protein shake = 120-250 calories MAX (1 scoop protein + liquid)
 - Snacks = 100-400 calories
 - BE CONSERVATIVE: When in doubt, estimate HIGHER not lower
@@ -949,10 +1048,22 @@ Use only alphanumeric characters and basic punctuation (periods, commas) in text
 Replace all quotes with apostrophes. Keep instructions simple and brief.
 Include detailed ingredients list and full cooking instructions.
 
-EXAMPLE (use this as reference for accuracy):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 large eggs scrambled, 2 slices whole wheat toast, 1/2 medium avocado","calories":470,"protein":23,"carbs":32,"fat":28,"ingredients":["3 large eggs","2 slices whole wheat bread","1 tbsp butter for cooking","1/2 avocado"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast bread. Serve with sliced avocado."}]}
+CRITICAL CALCULATION REQUIREMENT:
+You MUST calculate macros by adding up each ingredient individually:
+1. Look up REAL nutritional values for each ingredient
+2. Calculate each ingredient's contribution
+3. Sum them up for the total
+4. Show your work in the calculation
 
-CALCULATION CHECK: (23×4) + (32×4) + (28×9) = 92 + 128 + 252 = 472 ≈ 470 ✓`;
+EXAMPLE (use this EXACT format and accuracy):
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 large eggs scrambled, 2 slices whole wheat toast, 1/2 medium avocado","calories":470,"protein":23,"carbs":32,"fat":28,"ingredients":["3 large eggs","2 slices whole wheat bread","1 tbsp butter for cooking","1/2 avocado"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast bread. Serve with sliced avocado.","breakdown":"3 eggs (210cal,18gP,0gC,15gF) + 2 toast (160cal,8gP,28gC,2gF) + 1tbsp butter (100cal,0gP,0gC,11gF) + half avocado (120cal,1gP,6gC,10gF) = 590cal but oil absorbed varies"}]}
+
+STEP-BY-STEP FOR EVERY MEAL:
+1. List each ingredient with portion
+2. Look up its REAL calories and macros
+3. Add them all up
+4. That sum IS your meal total - do not guess!
+5. Include breakdown field showing your calculation`;
 
         const dayData = await callGemini(dayPrompt, true);
         if (dayData.error) {
