@@ -432,6 +432,8 @@
         const GET_PLAN_ENDPOINT = '/.netlify/functions/get-shared-plan';
         let currentPlan = null;
         let currentShareUrl = '';
+        let realtimeChannel = null;
+        let currentPlanId = null;
 
         // Detect if page was loaded from back/forward cache and force reload
         window.addEventListener('pageshow', function(event) {
@@ -448,13 +450,14 @@
             const urlParams = new URLSearchParams(window.location.search);
             const shareId = urlParams.get('share');
             const planId = urlParams.get('planId');
+            const clientView = urlParams.get('clientView') === 'true';
 
             if (shareId) {
                 // Load shared plan from database (client view)
                 loadSharedPlan(shareId);
             } else if (planId) {
-                // Load coach plan from database by ID (coach viewing past plan)
-                await loadCoachPlan(planId);
+                // Load plan from database by ID (coach or client viewing)
+                await loadCoachPlan(planId, clientView);
             } else {
                 // Load from localStorage (newly generated plan)
                 const planData = localStorage.getItem('currentMealPlan');
@@ -517,9 +520,9 @@
         }
 
         // Load coach plan from database by ID
-        async function loadCoachPlan(planId) {
+        async function loadCoachPlan(planId, isClientView = false) {
             try {
-                console.log('Loading coach plan:', planId);
+                console.log('Loading plan:', planId, 'Client view:', isClientView);
 
                 // Clear any cached session data to force fresh fetch
                 await supabaseClient.auth.refreshSession();
@@ -529,19 +532,38 @@
 
                 if (sessionError || !session) {
                     alert('Please log in to view this plan.');
-                    window.location.href = 'index.html';
+                    const redirectUrl = isClientView ? 'client-login.html' : 'index.html';
+                    window.location.href = redirectUrl;
                     return;
                 }
 
                 const currentUser = session.user;
-
-                // Fetch plan from coach_meal_plans table
-                const { data, error } = await supabaseClient
+                let query = supabaseClient
                     .from('coach_meal_plans')
                     .select('*')
-                    .eq('id', planId)
-                    .eq('coach_id', currentUser.id)
-                    .single();
+                    .eq('id', planId);
+
+                if (isClientView) {
+                    // For client view, verify the client owns this plan
+                    const { data: clientData, error: clientError } = await supabaseClient
+                        .from('clients')
+                        .select('id')
+                        .eq('user_id', currentUser.id)
+                        .single();
+
+                    if (clientError || !clientData) {
+                        alert('Client account not found. Please contact your coach.');
+                        window.location.href = 'client-login.html';
+                        return;
+                    }
+
+                    query = query.eq('client_id', clientData.id);
+                } else {
+                    // For coach view, verify the coach owns this plan
+                    query = query.eq('coach_id', currentUser.id);
+                }
+
+                const { data, error } = await query.single();
 
                 if (error) {
                     console.error('Supabase error:', error);
@@ -552,7 +574,8 @@
                     throw new Error('Plan not found');
                 }
 
-                console.log('Loaded coach plan:', data);
+                console.log('Loaded plan:', data);
+                currentPlanId = planId;
 
                 // Extract and transform plan_data from the response
                 const planData = data.plan_data;
@@ -586,9 +609,11 @@
 
                 console.log('Transformed plan:', currentPlan);
 
-                // Show coach-only buttons
-                document.getElementById('sharePlanBtn').style.display = 'inline-block';
-                document.getElementById('generateNewBtn').style.display = 'inline-block';
+                // Show coach-only buttons (only for coach view)
+                if (!isClientView) {
+                    document.getElementById('sharePlanBtn').style.display = 'inline-block';
+                    document.getElementById('generateNewBtn').style.display = 'inline-block';
+                }
 
                 displayMealPlan();
 
@@ -596,14 +621,103 @@
                 const clientName = currentPlan.clientName || 'Client';
                 const mealCount = currentPlan.meals ? currentPlan.meals.length : 0;
                 const planText = mealCount > 1 ? 'Meal Plans' : 'Meal Plan';
-                document.getElementById('planHeader').textContent = `${clientName}'s ${planText}`;
+                if (isClientView) {
+                    document.getElementById('planHeader').textContent = `Your ${planText}`;
+                } else {
+                    document.getElementById('planHeader').textContent = `${clientName}'s ${planText}`;
+                }
+
+                // Set up real-time subscription for automatic updates
+                setupRealtimeSubscription(planId, isClientView);
 
             } catch (error) {
-                console.error('Error loading coach plan:', error);
+                console.error('Error loading plan:', error);
                 alert('Failed to load plan. Please try again.');
-                window.location.href = 'past-plans.html';
+                const redirectUrl = isClientView ? 'client-dashboard.html' : 'past-plans.html';
+                window.location.href = redirectUrl;
             }
         }
+
+        function setupRealtimeSubscription(planId, isClientView) {
+            // Clean up existing subscription if any
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+            }
+
+            // Subscribe to changes for this specific plan
+            realtimeChannel = supabaseClient
+                .channel(`plan_${planId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                        schema: 'public',
+                        table: 'coach_meal_plans',
+                        filter: `id=eq.${planId}`
+                    },
+                    (payload) => {
+                        console.log('Real-time update received:', payload);
+                        handlePlanUpdate(payload, isClientView);
+                    }
+                )
+                .subscribe((status) => {
+                    console.log('Realtime subscription status:', status);
+                });
+        }
+
+        async function handlePlanUpdate(payload, isClientView) {
+            const { eventType, new: newRecord } = payload;
+
+            if (eventType === 'DELETE') {
+                // Plan was deleted by coach
+                console.log('Plan deleted');
+                alert('This meal plan has been removed by your coach.');
+                const redirectUrl = isClientView ? 'client-dashboard.html' : 'past-plans.html';
+                window.location.href = redirectUrl;
+            } else if (eventType === 'UPDATE') {
+                // Plan was updated - reload and display
+                console.log('Plan updated:', newRecord);
+
+                const planData = newRecord.plan_data;
+
+                // Update the currentPlan with new data
+                if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
+                    currentPlan = {
+                        planId: newRecord.id,
+                        clientName: planData.clientName || newRecord.client_name,
+                        preferences: planData.preferences || {},
+                        multiDay: true,
+                        days: planData.currentPlan,
+                        nutrition: {
+                            calories: planData.calories,
+                            protein: planData.protein,
+                            carbs: planData.carbs,
+                            fat: planData.fat
+                        }
+                    };
+                } else {
+                    currentPlan = {
+                        planId: newRecord.id,
+                        clientName: planData.clientName || newRecord.client_name,
+                        preferences: planData.preferences || {},
+                        meals: planData.meals || [],
+                        nutrition: planData.nutrition || {}
+                    };
+                }
+
+                // Refresh the display with updated data
+                displayMealPlan();
+
+                console.log('Plan display refreshed with updated data');
+            }
+        }
+
+        // Clean up subscription when page unloads
+        window.addEventListener('beforeunload', function() {
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+            }
+        });
 
         // Generate and save share link
         async function generateShareLink() {

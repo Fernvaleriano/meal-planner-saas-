@@ -306,6 +306,7 @@
 
         let currentClientId = null;
         let currentCoachId = null;
+        let realtimeChannel = null;
 
         // Check authentication and load data
         async function init() {
@@ -345,6 +346,9 @@
 
             // Load meal plans
             await loadMealPlans();
+
+            // Set up real-time subscription for automatic updates
+            setupRealtimeSubscription();
         }
 
         async function loadMealPlans() {
@@ -449,7 +453,109 @@
             window.location.href = `view-plan.html?planId=${planId}&clientView=true`;
         }
 
+        function setupRealtimeSubscription() {
+            // Clean up existing subscription if any
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+            }
+
+            // Subscribe to changes in coach_meal_plans for this client
+            realtimeChannel = supabaseClient
+                .channel(`client_plans_${currentClientId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                        schema: 'public',
+                        table: 'coach_meal_plans',
+                        filter: `client_id=eq.${currentClientId}`
+                    },
+                    (payload) => {
+                        console.log('Real-time update received:', payload);
+                        handleRealtimeUpdate(payload);
+                    }
+                )
+                .subscribe((status) => {
+                    console.log('Realtime subscription status:', status);
+                });
+        }
+
+        async function handleRealtimeUpdate(payload) {
+            const { eventType, new: newRecord, old: oldRecord } = payload;
+
+            const plansContainer = document.getElementById('plansContainer');
+            const plansGrid = plansContainer.querySelector('.plans-grid');
+
+            if (eventType === 'INSERT') {
+                // New plan added - add it to the top of the list
+                console.log('New plan added:', newRecord);
+
+                if (plansGrid) {
+                    // Add new plan card at the beginning
+                    const newPlanHTML = createPlanCard(newRecord);
+                    plansGrid.insertAdjacentHTML('afterbegin', newPlanHTML);
+                } else {
+                    // No plans existed before, reload to show the grid
+                    await loadMealPlans();
+                }
+            } else if (eventType === 'DELETE') {
+                // Plan deleted - remove it from the list
+                console.log('Plan deleted:', oldRecord);
+
+                const planCard = plansContainer.querySelector(`[onclick*="viewPlan(${oldRecord.id})"]`);
+                if (planCard) {
+                    planCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                    planCard.style.opacity = '0';
+                    planCard.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        planCard.remove();
+
+                        // Check if no plans left
+                        const remainingPlans = plansContainer.querySelectorAll('.plan-card');
+                        if (remainingPlans.length === 0) {
+                            plansContainer.innerHTML = `
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🍽️</div>
+                                    <h3>No Meal Plans Yet</h3>
+                                    <p>Your coach hasn't created any meal plans for you yet. Check back soon!</p>
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                }
+            } else if (eventType === 'UPDATE') {
+                // Plan updated - update the card
+                console.log('Plan updated:', newRecord);
+
+                const planCard = plansContainer.querySelector(`[onclick*="viewPlan(${newRecord.id})"]`);
+                if (planCard) {
+                    // Replace the card with updated data
+                    const newPlanHTML = createPlanCard(newRecord);
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newPlanHTML;
+                    const newPlanElement = tempDiv.firstElementChild;
+
+                    // Smooth transition
+                    planCard.style.transition = 'opacity 0.2s';
+                    planCard.style.opacity = '0.5';
+                    setTimeout(() => {
+                        planCard.replaceWith(newPlanElement);
+                        newPlanElement.style.opacity = '0.5';
+                        setTimeout(() => {
+                            newPlanElement.style.transition = 'opacity 0.2s';
+                            newPlanElement.style.opacity = '1';
+                        }, 50);
+                    }, 200);
+                }
+            }
+        }
+
         async function logout() {
+            // Clean up realtime subscription
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+            }
+
             await supabaseClient.auth.signOut();
             sessionStorage.clear();
             window.location.href = 'client-login.html';
