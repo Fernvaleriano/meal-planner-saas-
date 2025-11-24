@@ -517,8 +517,43 @@ exports.handler = async (event, context) => {
       console.log(`📊 Per-meal targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
     }
 
-    // Handle both single meal and array of meals
-    if (Array.isArray(jsonData)) {
+    // Handle different response formats from Gemini
+    if (jsonData.plan && Array.isArray(jsonData.plan)) {
+      // Day object with plan array: { day: 1, targets: {...}, plan: [...] }
+      console.log(`📊 Optimizing day object with ${jsonData.plan.length} meals using JS algorithm...`);
+      const optimizedMeals = [];
+      for (let i = 0; i < jsonData.plan.length; i++) {
+        console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.plan.length}...`);
+        const optimizedMeal = mealTargets
+          ? optimizeMealMacros(jsonData.plan[i], mealTargets)
+          : optimizeMealMacros(jsonData.plan[i], { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        optimizedMeals.push(optimizedMeal);
+      }
+      console.log(`✅ All ${jsonData.plan.length} meals optimized!`);
+
+      // Reconstruct day object with optimized meals
+      correctedData = {
+        ...jsonData,
+        plan: optimizedMeals
+      };
+
+      // Calculate and log daily totals vs targets
+      if (mealTargets && targets) {
+        const dailyTotals = optimizedMeals.reduce((acc, meal) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein || 0),
+          carbs: acc.carbs + (meal.carbs || 0),
+          fat: acc.fat + (meal.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+        console.log('📊 DAILY TOTALS vs TARGETS:');
+        console.log(`   Calories: ${dailyTotals.calories} / ${targets.calories} (${((dailyTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Protein:  ${dailyTotals.protein}g / ${targets.protein}g (${((dailyTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
+      }
+    } else if (Array.isArray(jsonData)) {
+      // Array of meals: [meal1, meal2, meal3]
       console.log(`📊 Optimizing ${jsonData.length} meals with JS algorithm...`);
       correctedData = [];
       for (let i = 0; i < jsonData.length; i++) {
@@ -554,6 +589,7 @@ exports.handler = async (event, context) => {
       console.log('✅ Meal optimized!');
     } else {
       console.log('⚠️ Unexpected data format, skipping optimization');
+      console.log('jsonData:', JSON.stringify(jsonData).substring(0, 200));
     }
 
     return {
