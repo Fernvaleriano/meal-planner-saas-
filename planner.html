@@ -1379,14 +1379,92 @@ function displayDietPlan(multiDayData) {
     const resultDiv = document.getElementById('diet-plan-result');
     const targets = multiDayData[0].targets;
 
+    // Calculate actual totals from all meals across all days
+    let actualTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    multiDayData.forEach(dayData => {
+        dayData.plan.forEach(meal => {
+            actualTotals.calories += meal.calories || 0;
+            actualTotals.protein += meal.protein || 0;
+            actualTotals.carbs += meal.carbs || 0;
+            actualTotals.fat += meal.fat || 0;
+        });
+    });
+
+    // Calculate variance (for single day, show actual vs target)
+    const dayCount = multiDayData.length;
+    const dailyActual = {
+        calories: Math.round(actualTotals.calories / dayCount),
+        protein: Math.round(actualTotals.protein / dayCount),
+        carbs: Math.round(actualTotals.carbs / dayCount),
+        fat: Math.round(actualTotals.fat / dayCount)
+    };
+
+    // Calculate variance percentages
+    const variance = {
+        calories: ((dailyActual.calories - targets.calories) / targets.calories * 100),
+        protein: ((dailyActual.protein - targets.protein) / targets.protein * 100),
+        carbs: ((dailyActual.carbs - targets.carbs) / targets.carbs * 100),
+        fat: ((dailyActual.fat - targets.fat) / targets.fat * 100)
+    };
+
+    // Helper function to get color class based on variance
+    const getVarianceColor = (variancePercent) => {
+        const abs = Math.abs(variancePercent);
+        if (abs <= 10) return 'text-green-600'; // Within ±10% - good
+        if (abs <= 20) return 'text-yellow-600'; // Within ±20% - acceptable
+        return 'text-red-600'; // Over ±20% - needs adjustment
+    };
+
+    // Helper function to format variance display
+    const formatVariance = (actual, target, variancePercent) => {
+        const diff = actual - target;
+        const sign = diff >= 0 ? '+' : '';
+        return `${sign}${diff} (${sign}${variancePercent.toFixed(1)}%)`;
+    };
+
     let planHTML = `
         <div class="card">
             <h3 class="text-xl font-bold mb-4">Your ${multiDayData.length}-Day Plan</h3>
-            <div class="grid grid-cols-4 gap-2 p-4 bg-blue-50 rounded-lg mb-4">
-                <div class="text-center"><p class="text-sm text-gray-600">Calories</p><span class="font-bold text-blue-600">${targets.calories}</span></div>
-                <div class="text-center"><p class="text-sm text-gray-600">Protein</p><span class="font-bold text-blue-600">${targets.protein}g</span></div>
-                <div class="text-center"><p class="text-sm text-gray-600">Carbs</p><span class="font-bold text-blue-600">${targets.carbs}g</span></div>
-                <div class="text-center"><p class="text-sm text-gray-600">Fat</p><span class="font-bold text-blue-600">${targets.fat}g</span></div>
+
+            <div class="mb-4">
+                <p class="text-sm font-semibold text-gray-700 mb-2">Daily Nutrition Targets:</p>
+                <div class="grid grid-cols-4 gap-2 p-4 bg-blue-50 rounded-lg">
+                    <div class="text-center"><p class="text-sm text-gray-600">Calories</p><span class="font-bold text-blue-600">${targets.calories}</span></div>
+                    <div class="text-center"><p class="text-sm text-gray-600">Protein</p><span class="font-bold text-blue-600">${targets.protein}g</span></div>
+                    <div class="text-center"><p class="text-sm text-gray-600">Carbs</p><span class="font-bold text-blue-600">${targets.carbs}g</span></div>
+                    <div class="text-center"><p class="text-sm text-gray-600">Fat</p><span class="font-bold text-blue-600">${targets.fat}g</span></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-sm font-semibold text-gray-700 mb-2">Actual Daily Totals:</p>
+                <div class="grid grid-cols-4 gap-2 p-4 bg-gray-50 rounded-lg">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">Calories</p>
+                        <span class="font-bold ${getVarianceColor(variance.calories)}">${dailyActual.calories}</span>
+                        <p class="text-xs ${getVarianceColor(variance.calories)}">${formatVariance(dailyActual.calories, targets.calories, variance.calories)}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">Protein</p>
+                        <span class="font-bold ${getVarianceColor(variance.protein)}">${dailyActual.protein}g</span>
+                        <p class="text-xs ${getVarianceColor(variance.protein)}">${formatVariance(dailyActual.protein, targets.protein, variance.protein)}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">Carbs</p>
+                        <span class="font-bold ${getVarianceColor(variance.carbs)}">${dailyActual.carbs}g</span>
+                        <p class="text-xs ${getVarianceColor(variance.carbs)}">${formatVariance(dailyActual.carbs, targets.carbs, variance.carbs)}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">Fat</p>
+                        <span class="font-bold ${getVarianceColor(variance.fat)}">${dailyActual.fat}g</span>
+                        <p class="text-xs ${getVarianceColor(variance.fat)}">${formatVariance(dailyActual.fat, targets.fat, variance.fat)}</p>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-gray-600 text-center">
+                    <span class="text-green-600">●</span> Within ±10% |
+                    <span class="text-yellow-600">●</span> Within ±20% |
+                    <span class="text-red-600">●</span> Over ±20%
+                </div>
             </div>
     `;
 
