@@ -238,7 +238,7 @@ function parseIngredientString(ingredient) {
   }
 
   // Pattern 2: "amount Food Name" - like "2 eggs" or "200g chicken"
-  const pattern2 = /^(\d+\.?\d*\s*(?:g|oz|cup|tbsp|tsp|ml|kg|lb|lbs|whole|slices?|pieces?))\s+(.+)$/i;
+  const pattern2 = /^(\d+\.?\d*\s*(?:g|oz|cup|tbsp|tsp|ml|kg|lb|lbs|whole|slices?|pieces?|scoops?|medium|large|small))\s+(.+)$/i;
   const match2 = ingredient.match(pattern2);
 
   if (match2) {
@@ -500,16 +500,24 @@ function matchFoodToDatabase(foodName, amount = "") {
     'mustard': 'mustard',
     'vinegar': 'vinegar',
     'lemon juice': 'lemon_juice',
-    'lime juice': 'lime_juice'
+    'lime juice': 'lime_juice',
+
+    // Skip these (not real foods)
+    'water': null,
+    'ice': null,
+    'salt': null,
+    'pepper': null,
+    'black pepper': null
   };
 
   // Try exact match first
-  if (nameMap[normalizedName]) {
-    return nameMap[normalizedName];
+  if (nameMap.hasOwnProperty(normalizedName)) {
+    return nameMap[normalizedName]; // May return null for water/ice/salt/pepper
   }
 
   // Try fuzzy matching (contains)
   for (const [key, value] of Object.entries(nameMap)) {
+    if (value === null) continue; // Skip null entries in fuzzy matching
     if (normalizedName.includes(key) || key.includes(normalizedName)) {
       console.log(`✅ Fuzzy matched "${foodName}" → "${value}"`);
       return value;
