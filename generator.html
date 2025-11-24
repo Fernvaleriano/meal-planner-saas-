@@ -460,12 +460,36 @@ ${Array.from({length: mealsPerDay}, (_, i) => `- MEAL ${i + 1}`).join('\n')}
 
 THAT'S ${mealsPerDay} MEALS TOTAL.
 
-## AVAILABLE FOODS (use ONLY these):
-**Proteins:** chicken_breast, ground_turkey, ground_beef_90, salmon, tilapia, shrimp, egg_large, greek_yogurt, cottage_cheese, whey_protein
-**Carbs:** brown_rice_cooked, white_rice_cooked, quinoa_cooked, sweet_potato, oats_cooked, whole_wheat_bread, pasta_cooked
-**Fats:** avocado, olive_oil, almond_butter, almonds, cheddar_cheese
-**Vegetables:** broccoli, spinach, bell_pepper, asparagus, green_beans
-**Fruits:** banana, apple, blueberries, strawberries
+## AVAILABLE FOODS - Use ONLY foods from this comprehensive list:
+
+**PROTEINS - Poultry:** chicken_breast, chicken_thigh_skinless, chicken_tenderloins, ground_chicken, turkey_breast, ground_turkey, turkey_bacon
+**PROTEINS - Beef:** ground_beef_90, ground_beef_93, ground_beef_96, sirloin_steak, flank_steak, eye_of_round, bison
+**PROTEINS - Pork:** pork_tenderloin, pork_chop, ham_lean, canadian_bacon
+**PROTEINS - Fish:** tilapia, cod, halibut, mahi_mahi, sea_bass, salmon, tuna_fresh, tuna_canned_water, sardines, mackerel
+**PROTEINS - Shellfish:** shrimp, scallops, crab_meat, lobster
+**PROTEINS - Dairy/Eggs:** egg_large, egg_white, greek_yogurt_nonfat, greek_yogurt_2pct, cottage_cheese_low, cottage_cheese_nonfat, skyr, mozzarella_part_skim, parmesan, cheddar_cheese, feta_cheese, string_cheese
+**PROTEINS - Plant:** tofu_firm, tofu_extra_firm, tempeh, edamame, seitan, lentils_cooked, black_beans, kidney_beans, chickpeas, pinto_beans
+**PROTEINS - Powders:** whey_protein, casein_protein, pea_protein, egg_white_protein
+
+**CARBS - Rice/Grains:** white_rice_cooked, brown_rice_cooked, jasmine_rice_cooked, basmati_rice_cooked, wild_rice_cooked, quinoa_cooked, couscous_cooked, farro_cooked, barley_cooked
+**CARBS - Oats:** oats_rolled_dry, oats_cooked, steel_cut_oats_dry, cream_of_rice_dry
+**CARBS - Potatoes:** sweet_potato, russet_potato, red_potato, yukon_gold_potato
+**CARBS - Pasta/Bread:** pasta_cooked, whole_wheat_pasta_cooked, whole_wheat_bread, white_bread, ezekiel_bread, english_muffin_whole, tortilla_corn, tortilla_flour, rice_cakes
+
+**FATS - Oils:** olive_oil, avocado_oil, coconut_oil, butter, ghee
+**FATS - Nut Butters:** peanut_butter, almond_butter, cashew_butter, tahini
+**FATS - Nuts/Seeds:** almonds, walnuts, cashews, pecans, pistachios, chia_seeds, flax_seeds, hemp_seeds, pumpkin_seeds, sunflower_seeds
+**FATS - Whole Foods:** avocado, coconut_meat, olives_black, dark_chocolate_85
+
+**VEGETABLES - Cruciferous:** broccoli, cauliflower, brussels_sprouts, cabbage, kale
+**VEGETABLES - Leafy:** spinach, romaine_lettuce, arugula, swiss_chard, mixed_greens
+**VEGETABLES - Other:** bell_pepper, asparagus, green_beans, zucchini, cucumber, tomato, cherry_tomatoes, mushrooms_white, mushrooms_portobello, onion, garlic, carrots, celery, eggplant, snap_peas, squash_spaghetti
+
+**FRUITS - Berries:** blueberries, strawberries, raspberries, blackberries
+**FRUITS - Common:** banana, apple, orange, grapefruit, grapes, pear, peach, plum, cherries
+**FRUITS - Tropical:** pineapple, mango, papaya, kiwi, watermelon, cantaloupe, honeydew
+
+**CONDIMENTS (Low Cal):** soy_sauce, hot_sauce, salsa, mustard, vinegar, lemon_juice, lime_juice
 
 ## DAILY NUTRITION TARGETS (distribute across all ${mealsPerDay} meals):
 - Total Calories: ${nutrition.calories} cal
