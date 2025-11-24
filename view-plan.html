@@ -1340,7 +1340,8 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt
+                    prompt,
+                    isJson: false // 🆕 CRITICAL: This is a text-only request (markdown)
                 })
             });
 

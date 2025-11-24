@@ -624,7 +624,10 @@ async function callClaude(prompt, targets, previousAttempt = null) {
 async function callGemini(prompt, isJson = true, targets = null, previousAttempt = null, mealsPerDay = null) {
     // Use hybrid Gemini + Claude approach (Gemini creates, Claude optimizes)
     try {
-        const requestBody = { prompt };
+        const requestBody = {
+            prompt,
+            isJson // 🆕 CRITICAL: Send isJson flag to backend
+        };
         if (targets) requestBody.targets = targets;
         if (mealsPerDay) requestBody.mealsPerDay = mealsPerDay;
 
@@ -654,8 +657,8 @@ async function callGemini(prompt, isJson = true, targets = null, previousAttempt
             if (isJson) {
                 return data.data; // Already parsed JSON
             } else {
-                // For text responses (like Meal Prep Guide), return the raw Gemini text
-                return data.rawResponse || JSON.stringify(data.data, null, 2);
+                // For text responses (like Recipe or Meal Prep Guide), return the raw text
+                return data.data; // This is the raw markdown text from Gemini
             }
         }
 
