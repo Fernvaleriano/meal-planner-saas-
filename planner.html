@@ -1056,6 +1056,21 @@ Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
+CRITICAL TARGET REQUIREMENT:
+Your meals MUST add up to approximately these daily targets. This is NOT optional.
+- Acceptable variance: ±10% for calories, ±15% for macros
+- Being 20%+ UNDER targets is UNACCEPTABLE - you must size portions appropriately
+- Each meal should average ~${Math.round(calories / expectedMealTypes.length)} calories
+- Calculate portions so your meals collectively hit targets within acceptable variance
+- Example: If target is 2604 cal, acceptable range is 2344-2864 cal
+- If your meals only add up to 2079 cal (20% under), portions are TOO SMALL
+
+PORTION SIZING GUIDANCE:
+- Small snack: 200-350 cal | Regular meal: 500-700 cal | Large meal: 700-900 cal
+- Adjust protein portions: 100-200g chicken/fish, 150-300g tofu/beans
+- Adjust carb portions: 150-300g cooked rice/pasta, 200-400g potatoes
+- Don't be timid with portions - hitting targets is more important than "small portions"
+
 CRITICAL VARIETY REQUIREMENT:
 Create UNIQUE and CREATIVE meals. DO NOT default to common patterns like eggs/toast/avocado.
 Vary your meal choices across:
