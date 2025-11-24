@@ -434,6 +434,7 @@
         let currentShareUrl = '';
         let realtimeChannel = null;
         let currentPlanId = null;
+        let isClientView = false; // Track if this is a client viewing their plan
 
         // Detect if page was loaded from back/forward cache and force reload
         window.addEventListener('pageshow', function(event) {
@@ -454,9 +455,11 @@
 
             if (shareId) {
                 // Load shared plan from database (client view)
+                isClientView = true; // Shared plans are read-only
                 loadSharedPlan(shareId);
             } else if (planId) {
                 // Load plan from database by ID (coach or client viewing)
+                isClientView = clientView; // Set global flag
                 await loadCoachPlan(planId, clientView);
             } else {
                 // Load from localStorage (newly generated plan)
@@ -888,13 +891,18 @@
             const changeParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
             const reviseParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
 
+            // Only show Change/Revise buttons for coach view (not client view)
+            const actionButtons = isClientView ? '' : `
+                <div class="meal-actions">
+                    <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
+                    <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
+                </div>
+            `;
+
             card.innerHTML = `
                 <div class="meal-header">
                     <div class="meal-name">${meal.name}</div>
-                    <div class="meal-actions">
-                        <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
-                        <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
-                    </div>
+                    ${actionButtons}
                 </div>
                 <div class="macro-grid">
                     <div class="macro-item">
@@ -918,10 +926,12 @@
                     <span class="instructions-label">📝 Instructions:</span>
                     ${meal.instructions}
                 </div>
-                <div id="revise-${index}" class="revise-section" style="display:none;">
-                    <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
-                    <button class="btn btn-revise" onclick="submitRevision(${changeParam})">Apply Changes</button>
-                </div>
+                ${isClientView ? '' : `
+                    <div id="revise-${index}" class="revise-section" style="display:none;">
+                        <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
+                        <button class="btn btn-revise" onclick="submitRevision(${changeParam})">Apply Changes</button>
+                    </div>
+                `}
             `;
             return card;
         }
