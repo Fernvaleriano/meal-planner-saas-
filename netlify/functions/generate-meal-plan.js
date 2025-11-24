@@ -239,6 +239,16 @@ function parseAmount(amountStr, foodData) {
     return quantity / 100; // e.g., "200g" → 200/100 = 2x multiplier
   }
 
+  // If database is "per Xg" (like "per 28g") and amount is in grams
+  if (dbUnit.includes('g') && (amount.includes('g') || amount.includes('gram')) && !dbUnit.includes('100g')) {
+    // Extract the gram amount from database unit (e.g., "28g" → 28)
+    const dbGramMatch = dbUnit.match(/(\d+)g/);
+    if (dbGramMatch) {
+      const dbGrams = parseFloat(dbGramMatch[1]);
+      return quantity / dbGrams; // e.g., "56g" with "per 28g" → 56/28 = 2x
+    }
+  }
+
   // If database is "per 1 egg" / "per 1 slice" / "per 1 cake" and amount is in count
   if (dbUnit.includes('1 ') && !amount.includes('tbsp') && !amount.includes('g')) {
     return quantity; // e.g., "3 eggs" → 3x multiplier
@@ -254,6 +264,7 @@ function parseAmount(amountStr, foodData) {
   }
 
   // Default: assume it's a direct multiplier
+  console.warn(`⚠️ parseAmount couldn't match units - defaulting to ${quantity}x for "${amountStr}" with db unit "${foodData.per}"`);
   return quantity;
 }
 
