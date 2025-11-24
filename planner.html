@@ -1525,18 +1525,27 @@ Budget: ${lastPlanQuery.budget}
 Available Equipment: ${lastPlanQuery.equipmentStr}
 Target macros: ${meal.calories} cal, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
-CRITICAL NAMING RULES:
-- Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz grilled salmon, 150g quinoa, 100g steamed broccoli")
-- DO NOT use generic names like "Salmon with Quinoa"
-- NEVER use adjectives like "hearty", "delicious", "tasty", "nutritious" in meal names
-- Be direct and specific with measurements
+Use ONLY foods from USDA database with exact snake_case names:
+chicken_breast, salmon, ground_turkey, egg_large, brown_rice_cooked, quinoa_cooked,
+sweet_potato, oats_cooked, whole_wheat_bread, avocado, olive_oil, almonds, broccoli, etc.
 
-CRITICAL: Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.
-Include detailed ingredients list and full cooking instructions.
+CRITICAL: Return ingredients as STRUCTURED OBJECTS with exact database names.
+DO NOT include calories/protein/carbs/fat - backend will calculate from database.
 
-{"type":"${meal.type}","name":"6oz chicken breast, 1 cup brown rice, 100g steamed vegetables","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["6oz chicken breast","1 cup brown rice","100g mixed vegetables"],"instructions":"Grill chicken, cook rice, steam vegetables."}`;
+EXAMPLE FORMAT:
+{"type":"${meal.type}","name":"200g grilled chicken breast with 150g quinoa and 100g broccoli","ingredients":[{"food":"chicken_breast","amount":"200g"},{"food":"quinoa_cooked","amount":"150g"},{"food":"broccoli","amount":"100g"},{"food":"olive_oil","amount":"1 tbsp"}],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
 
-    const newMeal = await callGemini(aiPrompt, true);
+Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
+
+    // Call backend with targets so it calculates accurate macros
+    const mealTargets = {
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat
+    };
+
+    const newMeal = await callGemini(aiPrompt, true, mealTargets, null, 1);
 
     if (!newMeal.error) {
         // Sanitize the meal data
@@ -1592,18 +1601,17 @@ Preferred Foods: ${lastPlanQuery.preferredFoods}
 Budget: ${lastPlanQuery.budget}
 Available Equipment: ${lastPlanQuery.equipmentStr}
 
-CRITICAL NAMING RULES:
-- Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz grilled salmon, 150g quinoa, 100g steamed broccoli")
-- DO NOT use generic names like "Salmon with Quinoa"
-- NEVER use adjectives like "hearty", "delicious", "tasty", "nutritious" in meal names
-- Be direct and specific with measurements
+Use ONLY foods from USDA database with exact snake_case names:
+chicken_breast, salmon, ground_turkey, egg_large, brown_rice_cooked, quinoa_cooked,
+sweet_potato, oats_cooked, whole_wheat_bread, avocado, olive_oil, almonds, broccoli, etc.
 
-Keep macros similar unless user specifically requests changes.
+CRITICAL: Return ingredients as STRUCTURED OBJECTS with exact database names.
+DO NOT include calories/protein/carbs/fat - backend will calculate from database.
 
-CRITICAL: Return ONLY valid JSON. NO quotes in text - use apostrophes.
-Include detailed ingredients list and full cooking instructions.
+EXAMPLE FORMAT:
+{"type":"${meal.type}","name":"200g turkey breast with 150g sweet potato and 100g green beans","ingredients":[{"food":"turkey_breast","amount":"200g"},{"food":"sweet_potato","amount":"150g"},{"food":"green_beans","amount":"100g"},{"food":"olive_oil","amount":"1 tsp"}],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}
 
-{"type":"${meal.type}","name":"6oz turkey breast, 150g sweet potato, 100g green beans","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["6oz turkey breast","150g sweet potato","100g green beans","1 tsp olive oil"],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}`;
+Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
     // Pass current meal macros as targets so Claude can optimize portions to match
     const mealTargets = {
