@@ -1548,12 +1548,8 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
     const newMeal = await callGemini(aiPrompt, true, mealTargets, null, 1);
 
     if (!newMeal.error) {
-        // Sanitize the meal data
-        newMeal.calories = parseInt(newMeal.calories) || meal.calories;
-        newMeal.protein = parseInt(newMeal.protein) || meal.protein;
-        newMeal.carbs = parseInt(newMeal.carbs) || meal.carbs;
-        newMeal.fat = parseInt(newMeal.fat) || meal.fat;
-
+        // Backend calculated accurate macros - use them directly
+        // No fallback needed since backend always returns complete meal with macros
         lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = newMeal;
         displayDietPlan(lastPlanQuery.currentPlan);
     } else {
@@ -1624,12 +1620,8 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
     const revisedMeal = await callGemini(aiPrompt, true, mealTargets, null, 1);
 
     if (!revisedMeal.error) {
-        // Sanitize the meal data
-        revisedMeal.calories = parseInt(revisedMeal.calories) || meal.calories;
-        revisedMeal.protein = parseInt(revisedMeal.protein) || meal.protein;
-        revisedMeal.carbs = parseInt(revisedMeal.carbs) || meal.carbs;
-        revisedMeal.fat = parseInt(revisedMeal.fat) || meal.fat;
-
+        // Backend calculated accurate macros - use them directly
+        // No fallback needed since backend always returns complete meal with macros
         lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = revisedMeal;
         displayDietPlan(lastPlanQuery.currentPlan);
     } else {
