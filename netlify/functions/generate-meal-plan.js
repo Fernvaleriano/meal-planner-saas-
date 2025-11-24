@@ -556,8 +556,8 @@ exports.handler = async (event, context) => {
         console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
         console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
       }
-    } else if (jsonData.name && jsonData.calories) {
-      // Single meal object
+    } else if (jsonData.name && jsonData.ingredients) {
+      // Single meal object with structured ingredients
       console.log('📊 Optimizing single meal with JS algorithm...');
       correctedData = mealTargets
         ? optimizeMealMacros(jsonData, mealTargets)
@@ -566,6 +566,8 @@ exports.handler = async (event, context) => {
     } else {
       console.log('⚠️ Unexpected data format, skipping optimization');
       console.log('jsonData:', JSON.stringify(jsonData).substring(0, 200));
+      // Return as-is if format doesn't match any expected pattern
+      correctedData = jsonData;
     }
 
     return {
