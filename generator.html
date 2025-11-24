@@ -400,25 +400,50 @@
             const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
             const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
 
-            // Build example array showing EXACT number of meals needed
+            // Build example array with STRUCTURED INGREDIENTS
             let exampleMeals = [];
             const mealExamples = [
-                { name: "Scrambled Eggs with Toast and Avocado", cals: 450, prot: 30, carb: 40, ft: 15, instr: "Scramble 3 eggs in 1 tbsp butter. Toast 2 slices whole wheat bread. Serve with half an avocado." },
-                { name: "Grilled Chicken Breast with Brown Rice and Broccoli", cals: 520, prot: 45, carb: 55, ft: 12, instr: "Grill 6oz chicken breast with seasoning. Cook 1 cup brown rice. Steam 1.5 cups broccoli." },
-                { name: "Greek Yogurt with Berries and Almonds", cals: 380, prot: 25, carb: 45, ft: 10, instr: "Mix 1 cup Greek yogurt with 1 cup mixed berries. Top with 1oz sliced almonds." },
-                { name: "Baked Salmon with Quinoa and Asparagus", cals: 550, prot: 48, carb: 50, ft: 16, instr: "Bake 6oz salmon at 400F for 15 mins. Cook 3/4 cup quinoa. Roast asparagus." },
-                { name: "Turkey and Avocado Wrap", cals: 420, prot: 35, carb: 38, ft: 14, instr: "Wrap 5oz sliced turkey with avocado, lettuce, tomato in whole wheat tortilla." },
-                { name: "Protein Smoothie Bowl", cals: 400, prot: 30, carb: 50, ft: 8, instr: "Blend protein powder, banana, spinach, almond milk. Top with granola and berries." }
+                {
+                    name: "Scrambled Eggs with Toast and Avocado",
+                    ingredients: [
+                        {food: "egg_large", amount: "3 eggs"},
+                        {food: "whole_wheat_bread", amount: "2 slices"},
+                        {food: "avocado", amount: "50g"}
+                    ],
+                    instr: "Scramble 3 eggs. Toast 2 slices whole wheat bread. Serve with 50g avocado slices."
+                },
+                {
+                    name: "Grilled Chicken Breast with Brown Rice and Broccoli",
+                    ingredients: [
+                        {food: "chicken_breast", amount: "170g"},
+                        {food: "brown_rice_cooked", amount: "200g"},
+                        {food: "broccoli", amount: "150g"},
+                        {food: "olive_oil", amount: "1 tbsp"}
+                    ],
+                    instr: "Grill 170g chicken breast. Cook 200g brown rice. Steam 150g broccoli. Drizzle with 1 tbsp olive oil."
+                },
+                {
+                    name: "Greek Yogurt with Berries and Almonds",
+                    ingredients: [
+                        {food: "greek_yogurt", amount: "200g"},
+                        {food: "blueberries", amount: "100g"},
+                        {food: "almonds", amount: "28g"}
+                    ],
+                    instr: "Mix 200g Greek yogurt with 100g blueberries. Top with 28g sliced almonds."
+                }
             ];
 
             for (let i = 0; i < mealsPerDay; i++) {
                 const ex = mealExamples[i % mealExamples.length];
+                const ingredientsStr = ex.ingredients.map(ing =>
+                    `      {"food": "${ing.food}", "amount": "${ing.amount}"}`
+                ).join(',\n');
+
                 exampleMeals.push(`  {
     "name": "${ex.name}",
-    "calories": ${ex.cals},
-    "protein": ${ex.prot},
-    "carbs": ${ex.carb},
-    "fat": ${ex.ft},
+    "ingredients": [
+${ingredientsStr}
+    ],
     "instructions": "${ex.instr}"
   }`);
             }
@@ -435,13 +460,20 @@ ${Array.from({length: mealsPerDay}, (_, i) => `- MEAL ${i + 1}`).join('\n')}
 
 THAT'S ${mealsPerDay} MEALS TOTAL.
 
-DAILY NUTRITION TARGETS (distribute across all ${mealsPerDay} meals):
+## AVAILABLE FOODS (use ONLY these):
+**Proteins:** chicken_breast, ground_turkey, ground_beef_90, salmon, tilapia, shrimp, egg_large, greek_yogurt, cottage_cheese, whey_protein
+**Carbs:** brown_rice_cooked, white_rice_cooked, quinoa_cooked, sweet_potato, oats_cooked, whole_wheat_bread, pasta_cooked
+**Fats:** avocado, olive_oil, almond_butter, almonds, cheddar_cheese
+**Vegetables:** broccoli, spinach, bell_pepper, asparagus, green_beans
+**Fruits:** banana, apple, blueberries, strawberries
+
+## DAILY NUTRITION TARGETS (distribute across all ${mealsPerDay} meals):
 - Total Calories: ${nutrition.calories} cal
 - Total Protein: ${nutrition.protein}g
 - Total Carbs: ${nutrition.carbs}g
 - Total Fat: ${nutrition.fat}g
 
-TARGET PER MEAL (approximately):
+## TARGET PER MEAL (approximately):
 - Calories: ~${targetCaloriesPerMeal} cal
 - Protein: ~${targetProteinPerMeal}g
 - Carbs: ~${targetCarbsPerMeal}g
@@ -450,17 +482,19 @@ TARGET PER MEAL (approximately):
 Diet Type: ${formData.get('dietType')}
 ${formData.get('allergies') ? `Allergies/Restrictions: ${formData.get('allergies')}` : ''}
 
+## RESPONSE FORMAT:
 Return ONLY a JSON array with EXACTLY ${mealsPerDay} meal objects like this:
 
 ${exampleArray}
 
 🚨 ABSOLUTE REQUIREMENTS 🚨:
-1. The array MUST contain EXACTLY ${mealsPerDay} meal objects (not ${mealsPerDay - 1}, not 2, not 3... EXACTLY ${mealsPerDay}!)
-2. ALL numbers MUST be INTEGERS (450, 35, 50 - NOT "NaN", NOT null, NOT undefined)
-3. Each meal MUST have: name (string), calories (integer), protein (integer), carbs (integer), fat (integer), instructions (string)
-4. NO markdown, NO \`\`\`json blocks, NO backticks
-5. NO explanatory text - ONLY the JSON array
-6. Array length = ${mealsPerDay}`;
+1. The array MUST contain EXACTLY ${mealsPerDay} meal objects
+2. Each meal MUST have: "name" (string), "ingredients" (array), "instructions" (string)
+3. Each ingredient MUST have: "food" (from available foods list above), "amount" (string like "200g", "2 eggs", "1 tbsp")
+4. Use ONLY foods from the available foods list above
+5. NO markdown, NO \`\`\`json blocks, NO backticks
+6. NO explanatory text - ONLY the JSON array
+7. Amounts should be realistic portions (chicken: 150-250g, rice: 150-250g, etc.)`;
 
 
             try {
@@ -515,19 +549,19 @@ ${exampleArray}
                     throw new Error(`AI returned ${mealPlan.length} meals instead of ${mealsPerDay}`);
                 }
                 
-                // Validate and SANITIZE each meal
+                // Validate each meal (Claude will add macros from ingredients)
                 mealPlan.forEach((meal, index) => {
                     if (!meal.name || !meal.instructions) {
                         throw new Error(`Meal ${index + 1} is missing name or instructions`);
                     }
-                    
-                    // FIX: Ensure all numbers are valid integers (handle null from NaN replacement)
-                    meal.calories = parseInt(meal.calories) || targetCaloriesPerMeal;
-                    meal.protein = parseInt(meal.protein) || targetProteinPerMeal;
-                    meal.carbs = parseInt(meal.carbs) || targetCarbsPerMeal;
-                    meal.fat = parseInt(meal.fat) || targetFatPerMeal;
-                    
-                    console.log(`✅ Meal ${index + 1}: ${meal.name} - ${meal.calories} cal, ${meal.protein}g protein`);
+
+                    // NEW: Check for ingredients array
+                    if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
+                        console.warn(`⚠️ Meal ${index + 1} missing ingredients array - Claude will need to estimate`);
+                    }
+
+                    // Macros will be added by Claude correction
+                    console.log(`✅ Meal ${index + 1}: ${meal.name} - ${meal.ingredients ? meal.ingredients.length : 0} ingredients`);
                 });
                 
                 console.log(`✅ Successfully validated ${mealsPerDay} meals!`);
