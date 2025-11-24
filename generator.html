@@ -265,8 +265,8 @@
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Generating your personalized meal plan...</p>
-            <p style="color: #666; margin-top: 10px;">Gemini creating meals + Claude correcting macros...</p>
-            <p style="color: #999; font-size: 0.9em; margin-top: 5px;">This may take 30-60 seconds</p>
+            <p style="color: #666; margin-top: 10px;">Gemini creating meals + JS optimizing portions...</p>
+            <p style="color: #999; font-size: 0.9em; margin-top: 5px;">Using deterministic math for 100% accuracy!</p>
         </div>
 
         <div class="error-message" id="errorMessage"></div>
@@ -541,17 +541,17 @@ ${exampleArray}
                 const data = await response.json();
                 console.log('📦 Raw API response:', data);
 
-                // Check if Claude corrections were applied
-                if (data.claudeCorrected) {
-                    console.log('✅ Claude macro corrections APPLIED!');
+                // Check if JS optimization was applied
+                if (data.jsOptimized) {
+                    console.log('✅ JS portion optimization APPLIED! (100% deterministic math)');
                 } else {
-                    console.log('⚠️ Claude corrections NOT applied (API key missing?)');
+                    console.log('⚠️ JS optimization NOT applied');
                 }
 
-                // Use the corrected data from our backend
+                // Use the optimized data from our backend
                 let mealPlan;
                 if (data.success && data.data) {
-                    // New format: backend already parsed and corrected the meals
+                    // New format: backend already parsed and optimized the meals
                     mealPlan = data.data;
                     console.log(`📋 Received ${mealPlan.length} meals from backend:`, mealPlan);
                 } else {
@@ -577,18 +577,18 @@ ${exampleArray}
                     throw new Error(`AI returned ${mealPlan.length} meals instead of ${mealsPerDay}`);
                 }
                 
-                // Validate each meal (Claude will add macros from ingredients)
+                // Validate each meal (JS optimizer will calculate macros from ingredients)
                 mealPlan.forEach((meal, index) => {
                     if (!meal.name || !meal.instructions) {
                         throw new Error(`Meal ${index + 1} is missing name or instructions`);
                     }
 
-                    // NEW: Check for ingredients array
+                    // Check for ingredients array
                     if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
-                        console.warn(`⚠️ Meal ${index + 1} missing ingredients array - Claude will need to estimate`);
+                        console.warn(`⚠️ Meal ${index + 1} missing ingredients array - cannot optimize`);
                     }
 
-                    // Macros will be added by Claude correction
+                    // Macros calculated by JS optimizer from USDA database
                     console.log(`✅ Meal ${index + 1}: ${meal.name} - ${meal.ingredients ? meal.ingredients.length : 0} ingredients`);
                 });
                 

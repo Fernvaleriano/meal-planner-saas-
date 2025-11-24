@@ -219,128 +219,182 @@ const FOOD_DATABASE = {
 };
 
 /**
- * Optimizes meal portions to hit target macros using Claude API
- * Takes Gemini's creative meal with ingredients and adjusts portions to hit exact targets
+ * Parse ingredient amount into grams/count/tbsp for calculation
+ * Handles: "200g", "2 eggs", "1 tbsp", "150g", "3 slices", etc.
  */
-async function correctMealMacros(geminiMeal, mealTargets) {
-  if (!ANTHROPIC_API_KEY) {
-    console.warn('⚠️ ANTHROPIC_API_KEY not configured, skipping macro correction');
-    return geminiMeal; // Return original if Claude not available
+function parseAmount(amountStr, foodData) {
+  const amount = amountStr.toLowerCase().trim();
+
+  // Determine what unit the database uses
+  const dbUnit = foodData.per.toLowerCase();
+
+  // Extract number from amount string
+  const numMatch = amount.match(/(\d+\.?\d*)/);
+  if (!numMatch) return 1; // Default to 1 if no number found
+
+  const quantity = parseFloat(numMatch[1]);
+
+  // If database is "per 100g" and amount is in grams
+  if (dbUnit.includes('100g') && (amount.includes('g') || amount.includes('gram'))) {
+    return quantity / 100; // e.g., "200g" → 200/100 = 2x multiplier
   }
 
-  try {
-    console.log(`🔍 Claude optimizing portions for: ${geminiMeal.name}`);
-    console.log(`🎯 Targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+  // If database is "per 1 egg" / "per 1 slice" / "per 1 cake" and amount is in count
+  if (dbUnit.includes('1 ') && !amount.includes('tbsp') && !amount.includes('g')) {
+    return quantity; // e.g., "3 eggs" → 3x multiplier
+  }
 
-    // Check if meal has ingredients array (new format)
-    if (!geminiMeal.ingredients || !Array.isArray(geminiMeal.ingredients)) {
-      console.warn(`⚠️ Meal missing ingredients array, using fallback estimation`);
-      return geminiMeal; // Can't calculate without ingredients
-    }
+  // If database is "per 1 tbsp" / "per 1 cup" and amount matches
+  if (dbUnit.includes('tbsp') && amount.includes('tbsp')) {
+    return quantity; // e.g., "2 tbsp" → 2x multiplier
+  }
 
-    const anthropic = new Anthropic({
-      apiKey: ANTHROPIC_API_KEY,
-    });
+  if (dbUnit.includes('cup') && amount.includes('cup')) {
+    return quantity;
+  }
 
-    const optimizationPrompt = `You are a precision nutrition optimizer. Your job is to ADJUST PORTIONS to hit exact macro targets.
-
-## FOOD DATABASE (USDA-VERIFIED):
-${JSON.stringify(FOOD_DATABASE, null, 2)}
-
-## MEAL TO OPTIMIZE:
-Name: ${geminiMeal.name}
-Starting Ingredients (portions may need adjustment):
-${JSON.stringify(geminiMeal.ingredients, null, 2)}
-Instructions: ${geminiMeal.instructions}
-
-## TARGET MACROS FOR THIS MEAL (MUST HIT WITHIN ±8%):
-- Calories: ${mealTargets.calories} cal (±8% = ${Math.round(mealTargets.calories * 0.92)}-${Math.round(mealTargets.calories * 1.08)})
-- Protein: ${mealTargets.protein}g (±8% = ${Math.round(mealTargets.protein * 0.92)}-${Math.round(mealTargets.protein * 1.08)}g)
-- Carbs: ${mealTargets.carbs}g (±8% = ${Math.round(mealTargets.carbs * 0.92)}-${Math.round(mealTargets.carbs * 1.08)}g)
-- Fat: ${mealTargets.fat}g (±8% = ${Math.round(mealTargets.fat * 0.92)}-${Math.round(mealTargets.fat * 1.08)}g)
-
-## YOUR TASK:
-1. Calculate current macros from starting ingredients
-2. Determine how to ADJUST PORTIONS to hit targets (±8%)
-3. You can:
-   - Increase/decrease ingredient amounts
-   - Add small amounts of complementary foods from database
-   - Remove ingredients if needed
-4. Keep portions realistic (chicken: 100-300g, rice: 100-300g, etc.)
-5. Verify math: (P×4) + (C×4) + (F×9) ≈ calories
-
-## CALCULATION RULES:
-- Database portions: "per 100g" = scale by grams, "per 1 egg" = scale by count, "per 1 tbsp" = scale by tbsp
-- Examples:
-  - chicken_breast "200g" → 200g ÷ 100g × database values = 2x multiplier
-  - egg_large "3 eggs" → 3 × database values
-  - olive_oil "2 tbsp" → 2 × database values
-
-## RESPONSE FORMAT (JSON only, no markdown):
-{
-  "name": "${geminiMeal.name}",
-  "ingredients": [
-    {"food": "food_name", "amount": "adjusted_amount"}
-  ],
-  "calories": <total_integer>,
-  "protein": <total_integer>,
-  "carbs": <total_integer>,
-  "fat": <total_integer>,
-  "instructions": "${geminiMeal.instructions}",
-  "calculation_notes": "Brief explanation of adjustments made to hit targets"
+  // Default: assume it's a direct multiplier
+  return quantity;
 }
 
-Return ONLY the JSON object, no markdown, no backticks. Portions MUST be adjusted to hit targets within ±8%.`;
+/**
+ * Calculate exact macros from ingredients using deterministic math
+ * NO AI GUESSING - Pure JavaScript calculation
+ */
+function calculateMacrosFromIngredients(ingredients) {
+  let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  const breakdown = [];
 
-    const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 2048,
-      temperature: 0.1, // Very low temperature for precise calculations
-      messages: [
-        {
-          role: "user",
-          content: optimizationPrompt
-        }
-      ]
+  for (const ing of ingredients) {
+    const foodKey = ing.food;
+    const foodData = FOOD_DATABASE[foodKey];
+
+    if (!foodData) {
+      console.warn(`⚠️ Food not in database: ${foodKey}`);
+      continue;
+    }
+
+    // Parse amount and calculate multiplier
+    const multiplier = parseAmount(ing.amount, foodData);
+
+    // Calculate exact macros
+    const calories = Math.round(foodData.cal * multiplier);
+    const protein = Math.round(foodData.protein * multiplier);
+    const carbs = Math.round(foodData.carbs * multiplier);
+    const fat = Math.round(foodData.fat * multiplier);
+
+    totals.calories += calories;
+    totals.protein += protein;
+    totals.carbs += carbs;
+    totals.fat += fat;
+
+    breakdown.push({
+      food: foodKey,
+      amount: ing.amount,
+      multiplier: multiplier.toFixed(2),
+      macros: { calories, protein, carbs, fat }
     });
-
-    const responseText = message.content[0].text;
-    console.log('🤖 Claude optimization response:', responseText);
-
-    // Parse JSON
-    const calculatedMeal = extractJSON(responseText);
-
-    // Validate calculated meal has all required fields
-    if (!calculatedMeal.calories || !calculatedMeal.protein ||
-        !calculatedMeal.carbs || !calculatedMeal.fat) {
-      console.error('❌ Claude calculation missing macro fields');
-      throw new Error('Incomplete macro calculation');
-    }
-
-    // Verify math is reasonable
-    const calcCalories = (calculatedMeal.protein * 4) + (calculatedMeal.carbs * 4) + (calculatedMeal.fat * 9);
-    const difference = Math.abs(calcCalories - calculatedMeal.calories);
-    const percentOff = (difference / calculatedMeal.calories) * 100;
-
-    if (percentOff > 10) {
-      console.warn(`⚠️ Math verification failed: ${percentOff.toFixed(1)}% off`);
-      console.warn(`   Calculated: ${calcCalories} cal, Claimed: ${calculatedMeal.calories} cal`);
-    }
-
-    console.log(`✅ Claude optimized: ${calculatedMeal.calories} cal, ${calculatedMeal.protein}g P, ${calculatedMeal.carbs}g C, ${calculatedMeal.fat}g F`);
-    console.log(`🎯 vs Target: ${mealTargets.calories} cal, ${mealTargets.protein}g P, ${mealTargets.carbs}g C, ${mealTargets.fat}g F`);
-    if (calculatedMeal.calculation_notes) {
-      console.log(`📝 Optimization notes: ${calculatedMeal.calculation_notes}`);
-    }
-    console.log(`📦 Final meal ingredients:`, JSON.stringify(calculatedMeal.ingredients, null, 2));
-
-    return calculatedMeal;
-
-  } catch (error) {
-    console.error('❌ Claude calculation error:', error.message);
-    console.warn('⚠️ Falling back to original Gemini meal');
-    return geminiMeal; // Fallback to original on error
   }
+
+  return { totals, breakdown };
+}
+
+/**
+ * Optimize meal portions to hit target macros using deterministic algorithm
+ * NO LLM - Pure math optimization
+ */
+function optimizeMealMacros(geminiMeal, mealTargets) {
+  console.log(`🔍 JS optimizing portions for: ${geminiMeal.name}`);
+  console.log(`🎯 Targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+
+  // Check if meal has ingredients array
+  if (!geminiMeal.ingredients || !Array.isArray(geminiMeal.ingredients)) {
+    console.warn(`⚠️ Meal missing ingredients array, cannot optimize`);
+    return geminiMeal;
+  }
+
+  // Step 1: Calculate current macros from ingredients
+  const current = calculateMacrosFromIngredients(geminiMeal.ingredients);
+  console.log(`📊 Current totals: ${current.totals.calories}cal, ${current.totals.protein}P, ${current.totals.carbs}C, ${current.totals.fat}F`);
+  console.log(`📝 Breakdown:`, current.breakdown);
+
+  // Step 2: Determine adjustment needed
+  const calDiff = mealTargets.calories - current.totals.calories;
+  const proteinDiff = mealTargets.protein - current.totals.protein;
+  const carbsDiff = mealTargets.carbs - current.totals.carbs;
+  const fatDiff = mealTargets.fat - current.totals.fat;
+
+  console.log(`📈 Adjustments needed: ${calDiff}cal, ${proteinDiff}P, ${carbsDiff}C, ${fatDiff}F`);
+
+  // Step 3: Identify adjustment strategies based on what's in the meal
+  const adjustedIngredients = [...geminiMeal.ingredients];
+
+  // Find protein sources (chicken, beef, fish, eggs, etc.)
+  const proteinIdx = adjustedIngredients.findIndex(ing =>
+    ing.food.includes('chicken') || ing.food.includes('turkey') || ing.food.includes('beef') ||
+    ing.food.includes('fish') || ing.food.includes('salmon') || ing.food.includes('tuna') ||
+    ing.food.includes('egg') || ing.food.includes('tofu') || ing.food.includes('shrimp')
+  );
+
+  // Find carb sources (rice, pasta, potato, oats, bread)
+  const carbIdx = adjustedIngredients.findIndex(ing =>
+    ing.food.includes('rice') || ing.food.includes('pasta') || ing.food.includes('potato') ||
+    ing.food.includes('oat') || ing.food.includes('bread') || ing.food.includes('quinoa')
+  );
+
+  // Find fat sources (oil, butter, avocado, nuts, cheese)
+  const fatIdx = adjustedIngredients.findIndex(ing =>
+    ing.food.includes('oil') || ing.food.includes('butter') || ing.food.includes('avocado') ||
+    ing.food.includes('nut') || ing.food.includes('cheese') || ing.food.includes('almond')
+  );
+
+  // Step 4: Adjust portions to hit targets
+  // If protein is low, increase protein source
+  if (proteinDiff > 5 && proteinIdx >= 0) {
+    const currentAmount = parseFloat(adjustedIngredients[proteinIdx].amount.match(/(\d+)/)?.[1] || 100);
+    const increase = Math.round(proteinDiff * 5); // ~5g per oz of protein
+    const newAmount = currentAmount + increase;
+    adjustedIngredients[proteinIdx].amount = `${newAmount}g`;
+    console.log(`🔧 Increased ${adjustedIngredients[proteinIdx].food} from ${currentAmount}g to ${newAmount}g`);
+  }
+
+  // If carbs are low, increase carb source
+  if (carbsDiff > 5 && carbIdx >= 0) {
+    const currentAmount = parseFloat(adjustedIngredients[carbIdx].amount.match(/(\d+)/)?.[1] || 100);
+    const increase = Math.round(carbsDiff * 4); // ~25g carbs per 100g rice
+    const newAmount = currentAmount + increase;
+    adjustedIngredients[carbIdx].amount = `${newAmount}g`;
+    console.log(`🔧 Increased ${adjustedIngredients[carbIdx].food} from ${currentAmount}g to ${newAmount}g`);
+  }
+
+  // If fat is low, increase fat source
+  if (fatDiff > 3 && fatIdx >= 0) {
+    const currentAmount = parseFloat(adjustedIngredients[fatIdx].amount.match(/(\d+)/)?.[1] || 1);
+    const isTbsp = adjustedIngredients[fatIdx].amount.includes('tbsp');
+    if (isTbsp) {
+      const newAmount = Math.ceil(currentAmount + (fatDiff / 14)); // 14g fat per tbsp
+      adjustedIngredients[fatIdx].amount = `${newAmount} tbsp`;
+      console.log(`🔧 Increased ${adjustedIngredients[fatIdx].food} from ${currentAmount} tbsp to ${newAmount} tbsp`);
+    }
+  }
+
+  // Step 5: Recalculate with adjusted portions
+  const optimized = calculateMacrosFromIngredients(adjustedIngredients);
+
+  console.log(`✅ Optimized totals: ${optimized.totals.calories}cal, ${optimized.totals.protein}P, ${optimized.totals.carbs}C, ${optimized.totals.fat}F`);
+  console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+
+  // Return optimized meal
+  return {
+    name: geminiMeal.name,
+    ingredients: adjustedIngredients,
+    calories: optimized.totals.calories,
+    protein: optimized.totals.protein,
+    carbs: optimized.totals.carbs,
+    fat: optimized.totals.fat,
+    instructions: geminiMeal.instructions,
+    calculation_notes: `Deterministic JS optimization: ${JSON.stringify(optimized.breakdown)}`
+  };
 }
 
 exports.handler = async (event, context) => {
@@ -465,13 +519,13 @@ exports.handler = async (event, context) => {
 
     // Handle both single meal and array of meals
     if (Array.isArray(jsonData)) {
-      console.log(`📊 Optimizing ${jsonData.length} meals with Claude...`);
+      console.log(`📊 Optimizing ${jsonData.length} meals with JS algorithm...`);
       correctedData = [];
       for (let i = 0; i < jsonData.length; i++) {
         console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.length}...`);
         const optimizedMeal = mealTargets
-          ? await correctMealMacros(jsonData[i], mealTargets)
-          : await correctMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 });
+          ? optimizeMealMacros(jsonData[i], mealTargets)
+          : optimizeMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 });
         correctedData.push(optimizedMeal);
       }
       console.log(`✅ All ${jsonData.length} meals optimized!`);
@@ -493,10 +547,10 @@ exports.handler = async (event, context) => {
       }
     } else if (jsonData.name && jsonData.calories) {
       // Single meal object
-      console.log('📊 Optimizing single meal with Claude...');
+      console.log('📊 Optimizing single meal with JS algorithm...');
       correctedData = mealTargets
-        ? await correctMealMacros(jsonData, mealTargets)
-        : await correctMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        ? optimizeMealMacros(jsonData, mealTargets)
+        : optimizeMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 });
       console.log('✅ Meal optimized!');
     } else {
       console.log('⚠️ Unexpected data format, skipping optimization');
@@ -513,7 +567,8 @@ exports.handler = async (event, context) => {
         success: true,
         data: correctedData,
         rawResponse: responseText,
-        claudeCorrected: ANTHROPIC_API_KEY ? true : false
+        jsOptimized: true, // Using deterministic JS optimizer instead of Claude
+        claudeCorrected: false // No longer using Claude for optimization
       })
     };
 
