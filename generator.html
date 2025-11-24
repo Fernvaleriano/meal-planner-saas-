@@ -523,11 +523,15 @@ ${exampleArray}
 
             try {
                 console.log(`🚀 Requesting ${mealsPerDay} meals from API...`);
-                
+
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({
+                        prompt,
+                        targets: nutrition,
+                        mealsPerDay: mealsPerDay
+                    })
                 });
 
                 if (!response.ok) {
