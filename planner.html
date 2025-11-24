@@ -1789,7 +1789,7 @@ function parseFraction(str) {
 function parseIngredient(ingredientStr) {
     // NEW FORMAT: "Food Name (amount)" - e.g., "Chicken Breast (200g)" or "Eggs (2 whole)"
     // Pattern 1: "Food Name (quantity unit)" - e.g., "Chicken Breast (200g)" or "Olive Oil (1 tbsp)"
-    const parenthesesPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|whole|slices?|dry|cooked)?\)$/i;
+    const parenthesesPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|whole|slices?|scoops?|servings?|dry|cooked|ml|l|liters?)?\)$/i;
     const parenthesesMatch = ingredientStr.match(parenthesesPattern);
 
     if (parenthesesMatch) {
@@ -1798,8 +1798,8 @@ function parseIngredient(ingredientStr) {
         const quantity = parseFraction(quantityStr);
         const unit = (parenthesesMatch[3] || 'unit').toLowerCase();
 
-        // Filter out descriptors like "dry" and "cooked" from unit
-        const filteredUnit = ['dry', 'cooked'].includes(unit) ? 'unit' : unit;
+        // Filter out descriptors like "dry", "cooked", and non-measurement units
+        const filteredUnit = ['dry', 'cooked', 'whole'].includes(unit) ? 'unit' : unit;
 
         return {
             quantity: quantity,
@@ -1811,7 +1811,7 @@ function parseIngredient(ingredientStr) {
     // OLD FORMAT FALLBACK: "quantity unit food" - e.g., "200g chicken breast" or "2 eggs"
     const patterns = [
         // Pattern 1: Fractions or decimals with units - e.g., "1/4 cup" or "1 1/2 cups" or "2.5 tbsp"
-        /([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small)\s+(.+)/i,
+        /([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|scoops?|servings?)\s+(.+)/i,
         // Pattern 2: Just number with rest of string - e.g., "2 bananas"
         /([\d\s\/\.]+)\s+(.+)/i
     ];
@@ -1859,6 +1859,12 @@ function normalizeUnit(quantity, unit) {
         'tsp': 'tsp',
         'teaspoon': 'tsp',
         'teaspoons': 'tsp',
+        'ml': 'ml',
+        'milliliter': 'ml',
+        'milliliters': 'ml',
+        'l': 'l',
+        'liter': 'l',
+        'liters': 'l',
 
         // Count units
         'piece': 'unit',
@@ -1866,6 +1872,10 @@ function normalizeUnit(quantity, unit) {
         'medium': 'medium',
         'large': 'large',
         'small': 'small',
+        'scoop': 'scoop',
+        'scoops': 'scoop',
+        'serving': 'serving',
+        'servings': 'serving',
         'unit': 'unit'
     };
 
