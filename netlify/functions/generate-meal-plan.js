@@ -219,6 +219,309 @@ const FOOD_DATABASE = {
 };
 
 /**
+ * Parse string-based ingredient into food name and amount
+ * Examples: "Chicken Breast (200g)" → { name: "Chicken Breast", amount: "200g" }
+ *           "Eggs (2 whole)" → { name: "Eggs", amount: "2 whole" }
+ *           "Rolled Oats (80g dry)" → { name: "Rolled Oats", amount: "80g dry" }
+ */
+function parseIngredientString(ingredient) {
+  // Pattern 1: "Food Name (amount)" - most common format
+  const pattern1 = /^(.+?)\s*\((.+?)\)$/;
+  const match1 = ingredient.match(pattern1);
+
+  if (match1) {
+    return {
+      name: match1[1].trim(),
+      amount: match1[2].trim(),
+      original: ingredient
+    };
+  }
+
+  // Pattern 2: "amount Food Name" - like "2 eggs" or "200g chicken"
+  const pattern2 = /^(\d+\.?\d*\s*(?:g|oz|cup|tbsp|tsp|ml|kg|lb|lbs|whole|slices?|pieces?))\s+(.+)$/i;
+  const match2 = ingredient.match(pattern2);
+
+  if (match2) {
+    return {
+      name: match2[2].trim(),
+      amount: match2[1].trim(),
+      original: ingredient
+    };
+  }
+
+  // If no pattern matches, assume it's just a food name with default amount "1"
+  console.warn(`⚠️ Could not parse ingredient format: "${ingredient}" - assuming 1 serving`);
+  return {
+    name: ingredient.trim(),
+    amount: "1",
+    original: ingredient
+  };
+}
+
+/**
+ * Match natural language food name to database key
+ * Examples: "Chicken Breast" → "chicken_breast"
+ *           "Rolled Oats" → "oats_rolled_dry" or "oats_cooked" (context-dependent)
+ *           "Greek Yogurt" → "greek_yogurt_nonfat"
+ */
+function matchFoodToDatabase(foodName, amount = "") {
+  const normalizedName = foodName.toLowerCase().trim();
+  const normalizedAmount = amount.toLowerCase();
+
+  // Direct snake_case match (if already using database keys)
+  if (FOOD_DATABASE[normalizedName]) {
+    return normalizedName;
+  }
+
+  // Build reverse lookup map for natural language → database key
+  const nameMap = {
+    // Proteins - Poultry
+    'chicken breast': 'chicken_breast',
+    'chicken thigh': 'chicken_thigh_skinless',
+    'chicken tenderloins': 'chicken_tenderloins',
+    'ground chicken': 'ground_chicken',
+    'turkey breast': 'turkey_breast',
+    'ground turkey': 'ground_turkey',
+    'turkey bacon': 'turkey_bacon',
+
+    // Proteins - Beef
+    'ground beef 90': 'ground_beef_90',
+    'ground beef 93': 'ground_beef_93',
+    'ground beef 96': 'ground_beef_96',
+    'ground beef': 'ground_beef_93', // Default to 93% lean
+    'sirloin steak': 'sirloin_steak',
+    'sirloin': 'sirloin_steak',
+    'flank steak': 'flank_steak',
+    'eye of round': 'eye_of_round',
+    'bison': 'bison',
+
+    // Proteins - Pork
+    'pork tenderloin': 'pork_tenderloin',
+    'pork chop': 'pork_chop',
+    'ham': 'ham_lean',
+    'canadian bacon': 'canadian_bacon',
+
+    // Proteins - Seafood
+    'tilapia': 'tilapia',
+    'cod': 'cod',
+    'halibut': 'halibut',
+    'mahi mahi': 'mahi_mahi',
+    'sea bass': 'sea_bass',
+    'salmon': 'salmon',
+    'tuna': normalizedAmount.includes('canned') || normalizedAmount.includes('can') ? 'tuna_canned_water' : 'tuna_fresh',
+    'sardines': 'sardines',
+    'mackerel': 'mackerel',
+    'shrimp': 'shrimp',
+    'scallops': 'scallops',
+    'crab': 'crab_meat',
+    'crab meat': 'crab_meat',
+    'lobster': 'lobster',
+
+    // Proteins - Dairy & Eggs
+    'egg': 'egg_large',
+    'eggs': 'egg_large',
+    'egg white': 'egg_white',
+    'egg whites': 'egg_white',
+    'greek yogurt': normalizedAmount.includes('2%') || normalizedAmount.includes('2 pct') ? 'greek_yogurt_2pct' : 'greek_yogurt_nonfat',
+    'yogurt': 'greek_yogurt_nonfat',
+    'cottage cheese': normalizedAmount.includes('low') || normalizedAmount.includes('1%') ? 'cottage_cheese_low' : 'cottage_cheese_nonfat',
+    'skyr': 'skyr',
+    'mozzarella': 'mozzarella_part_skim',
+    'parmesan': 'parmesan',
+    'cheddar': 'cheddar_cheese',
+    'cheddar cheese': 'cheddar_cheese',
+    'feta': 'feta_cheese',
+    'feta cheese': 'feta_cheese',
+    'string cheese': 'string_cheese',
+
+    // Proteins - Plant-based
+    'tofu': normalizedAmount.includes('extra') ? 'tofu_extra_firm' : 'tofu_firm',
+    'tempeh': 'tempeh',
+    'edamame': 'edamame',
+    'seitan': 'seitan',
+    'lentils': 'lentils_cooked',
+    'black beans': 'black_beans',
+    'kidney beans': 'kidney_beans',
+    'chickpeas': 'chickpeas',
+    'pinto beans': 'pinto_beans',
+
+    // Proteins - Powders
+    'whey protein': 'whey_protein',
+    'protein powder': 'whey_protein',
+    'casein': 'casein_protein',
+    'casein protein': 'casein_protein',
+    'pea protein': 'pea_protein',
+    'egg white protein': 'egg_white_protein',
+
+    // Carbs - Rice & Grains
+    'white rice': 'white_rice_cooked',
+    'brown rice': 'brown_rice_cooked',
+    'jasmine rice': 'jasmine_rice_cooked',
+    'basmati rice': 'basmati_rice_cooked',
+    'wild rice': 'wild_rice_cooked',
+    'rice': 'brown_rice_cooked', // Default to brown
+    'quinoa': 'quinoa_cooked',
+    'couscous': 'couscous_cooked',
+    'farro': 'farro_cooked',
+    'barley': 'barley_cooked',
+
+    // Carbs - Oats
+    'rolled oats': normalizedAmount.includes('cooked') ? 'oats_cooked' : 'oats_rolled_dry',
+    'oats': normalizedAmount.includes('cooked') ? 'oats_cooked' : 'oats_rolled_dry',
+    'oatmeal': normalizedAmount.includes('cooked') ? 'oats_cooked' : 'oats_rolled_dry',
+    'steel cut oats': 'steel_cut_oats_dry',
+    'cream of rice': 'cream_of_rice_dry',
+
+    // Carbs - Potatoes
+    'sweet potato': 'sweet_potato',
+    'sweet potatoes': 'sweet_potato',
+    'russet potato': 'russet_potato',
+    'red potato': 'red_potato',
+    'yukon gold potato': 'yukon_gold_potato',
+    'potato': 'russet_potato', // Default
+    'potatoes': 'russet_potato',
+
+    // Carbs - Pasta & Bread
+    'pasta': normalizedAmount.includes('whole wheat') ? 'whole_wheat_pasta_cooked' : 'pasta_cooked',
+    'whole wheat pasta': 'whole_wheat_pasta_cooked',
+    'whole wheat bread': 'whole_wheat_bread',
+    'white bread': 'white_bread',
+    'bread': 'whole_wheat_bread', // Default to whole wheat
+    'ezekiel bread': 'ezekiel_bread',
+    'english muffin': 'english_muffin_whole',
+    'corn tortilla': 'tortilla_corn',
+    'flour tortilla': 'tortilla_flour',
+    'tortilla': 'tortilla_flour', // Default
+    'rice cake': 'rice_cakes',
+    'rice cakes': 'rice_cakes',
+
+    // Fats - Oils & Butters
+    'olive oil': 'olive_oil',
+    'avocado oil': 'avocado_oil',
+    'coconut oil': 'coconut_oil',
+    'butter': 'butter',
+    'ghee': 'ghee',
+
+    // Fats - Nut Butters
+    'peanut butter': 'peanut_butter',
+    'almond butter': 'almond_butter',
+    'cashew butter': 'cashew_butter',
+    'tahini': 'tahini',
+
+    // Fats - Nuts & Seeds
+    'almonds': 'almonds',
+    'walnuts': 'walnuts',
+    'cashews': 'cashews',
+    'pecans': 'pecans',
+    'pistachios': 'pistachios',
+    'chia seeds': 'chia_seeds',
+    'flax seeds': 'flax_seeds',
+    'hemp seeds': 'hemp_seeds',
+    'pumpkin seeds': 'pumpkin_seeds',
+    'sunflower seeds': 'sunflower_seeds',
+
+    // Fats - Whole Foods
+    'avocado': 'avocado',
+    'coconut meat': 'coconut_meat',
+    'black olives': 'olives_black',
+    'olives': 'olives_black',
+    'dark chocolate': 'dark_chocolate_85',
+
+    // Vegetables
+    'broccoli': 'broccoli',
+    'cauliflower': 'cauliflower',
+    'brussels sprouts': 'brussels_sprouts',
+    'cabbage': 'cabbage',
+    'kale': 'kale',
+    'spinach': 'spinach',
+    'romaine': 'romaine_lettuce',
+    'romaine lettuce': 'romaine_lettuce',
+    'lettuce': 'romaine_lettuce',
+    'arugula': 'arugula',
+    'swiss chard': 'swiss_chard',
+    'mixed greens': 'mixed_greens',
+    'bell pepper': 'bell_pepper',
+    'peppers': 'bell_pepper',
+    'asparagus': 'asparagus',
+    'green beans': 'green_beans',
+    'zucchini': 'zucchini',
+    'cucumber': 'cucumber',
+    'tomato': 'tomato',
+    'tomatoes': 'tomato',
+    'cherry tomatoes': 'cherry_tomatoes',
+    'mushrooms': 'mushrooms_white',
+    'white mushrooms': 'mushrooms_white',
+    'portobello mushrooms': 'mushrooms_portobello',
+    'onion': 'onion',
+    'onions': 'onion',
+    'garlic': 'garlic',
+    'carrots': 'carrots',
+    'celery': 'celery',
+    'eggplant': 'eggplant',
+    'snap peas': 'snap_peas',
+    'spaghetti squash': 'squash_spaghetti',
+
+    // Fruits - Berries
+    'blueberries': 'blueberries',
+    'strawberries': 'strawberries',
+    'raspberries': 'raspberries',
+    'blackberries': 'blackberries',
+
+    // Fruits - Common
+    'banana': 'banana',
+    'bananas': 'banana',
+    'apple': 'apple',
+    'apples': 'apple',
+    'orange': 'orange',
+    'oranges': 'orange',
+    'grapefruit': 'grapefruit',
+    'grapes': 'grapes',
+    'pear': 'pear',
+    'pears': 'pear',
+    'peach': 'peach',
+    'peaches': 'peach',
+    'plum': 'plum',
+    'plums': 'plum',
+    'cherries': 'cherries',
+
+    // Fruits - Tropical
+    'pineapple': 'pineapple',
+    'mango': 'mango',
+    'papaya': 'papaya',
+    'kiwi': 'kiwi',
+    'watermelon': 'watermelon',
+    'cantaloupe': 'cantaloupe',
+    'honeydew': 'honeydew',
+
+    // Condiments
+    'soy sauce': 'soy_sauce',
+    'hot sauce': 'hot_sauce',
+    'salsa': 'salsa',
+    'mustard': 'mustard',
+    'vinegar': 'vinegar',
+    'lemon juice': 'lemon_juice',
+    'lime juice': 'lime_juice'
+  };
+
+  // Try exact match first
+  if (nameMap[normalizedName]) {
+    return nameMap[normalizedName];
+  }
+
+  // Try fuzzy matching (contains)
+  for (const [key, value] of Object.entries(nameMap)) {
+    if (normalizedName.includes(key) || key.includes(normalizedName)) {
+      console.log(`✅ Fuzzy matched "${foodName}" → "${value}"`);
+      return value;
+    }
+  }
+
+  // If no match found, warn and return null
+  console.warn(`⚠️ Could not match food "${foodName}" to database`);
+  return null;
+}
+
+/**
  * Parse ingredient amount into grams/count/tbsp for calculation
  * Handles: "200g", "2 eggs", "1 tbsp", "150g", "3 slices", etc.
  */
@@ -271,13 +574,39 @@ function parseAmount(amountStr, foodData) {
 /**
  * Calculate exact macros from ingredients using deterministic math
  * NO AI GUESSING - Pure JavaScript calculation
+ * Supports both string-based ("Chicken Breast (200g)") and structured ({food: "chicken_breast", amount: "200g"}) formats
  */
 function calculateMacrosFromIngredients(ingredients) {
   let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
   const breakdown = [];
 
   for (const ing of ingredients) {
-    const foodKey = ing.food;
+    let foodKey, amount, originalString;
+
+    // Detect format: string-based or structured object
+    if (typeof ing === 'string') {
+      // String-based: "Chicken Breast (200g)"
+      originalString = ing;
+      const parsed = parseIngredientString(ing);
+      const matched = matchFoodToDatabase(parsed.name, parsed.amount);
+
+      if (!matched) {
+        console.warn(`⚠️ Could not match ingredient "${ing}" to database - skipping`);
+        continue;
+      }
+
+      foodKey = matched;
+      amount = parsed.amount;
+    } else if (typeof ing === 'object' && ing.food) {
+      // Structured object: {"food": "chicken_breast", "amount": "200g"}
+      foodKey = ing.food;
+      amount = ing.amount;
+      originalString = `${ing.food} ${ing.amount}`;
+    } else {
+      console.warn(`⚠️ Invalid ingredient format:`, ing);
+      continue;
+    }
+
     const foodData = FOOD_DATABASE[foodKey];
 
     if (!foodData) {
@@ -286,7 +615,7 @@ function calculateMacrosFromIngredients(ingredients) {
     }
 
     // Parse amount and calculate multiplier
-    const multiplier = parseAmount(ing.amount, foodData);
+    const multiplier = parseAmount(amount, foodData);
 
     // Calculate exact macros
     const calories = Math.round(foodData.cal * multiplier);
@@ -301,7 +630,8 @@ function calculateMacrosFromIngredients(ingredients) {
 
     breakdown.push({
       food: foodKey,
-      amount: ing.amount,
+      amount: amount,
+      original: originalString,
       multiplier: multiplier.toFixed(2),
       macros: { calories, protein, carbs, fat }
     });

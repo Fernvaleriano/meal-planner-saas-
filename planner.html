@@ -1189,24 +1189,37 @@ Replace all quotes with apostrophes. Keep instructions simple and brief.
 Include detailed ingredients list and full cooking instructions.
 
 CRITICAL INGREDIENTS FORMAT:
-You MUST return ingredients as STRUCTURED OBJECTS using ONLY foods from the database above.
-Use exact snake_case names: chicken_breast, egg_large, brown_rice_cooked, etc.
+You MUST return ingredients as an ARRAY OF STRINGS in natural language format.
+Include the food name AND amount/portion in parentheses.
 
-EXAMPLE (use this EXACT format):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Whole Wheat Toast (2 slices) and Avocado (50g)","ingredients":[{"food":"egg_large","amount":"3"},{"food":"whole_wheat_bread","amount":"2 slices"},{"food":"butter","amount":"1 tbsp"},{"food":"avocado","amount":"50g"}],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with sliced avocado."}]}
+EXAMPLES:
+"Chicken Breast (200g)" ✅
+"Eggs (3 whole)" ✅
+"Rolled Oats (80g dry)" ✅
+"Egg Whites (200g)" ✅
+"Brown Rice (150g cooked)" ✅
+"Whole Wheat Bread (2 slices)" ✅
+"Olive Oil (1 tbsp)" ✅
+"Greek Yogurt (170g)" ✅
+
+FULL EXAMPLE (use this EXACT format):
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Whole Wheat Toast (2 slices) and Avocado (50g)","ingredients":["Eggs (3 whole)","Whole Wheat Bread (2 slices)","Butter (1 tbsp)","Avocado (50g)"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with sliced avocado."}]}
 
 CRITICAL REQUIREMENTS:
-1. Ingredients MUST be array of objects: [{"food":"exact_db_name","amount":"100g"}]
-2. Use EXACT snake_case names from database (e.g., "egg_large" not "egg", "brown_rice_cooked" not "brown rice")
-3. DO NOT include calories/protein/carbs/fat - backend calculates from database
-4. Portions: "100g", "150g", "200g", "1 tbsp", "2 slices", "1 egg", "3 eggs"
-5. Each meal MUST have "type", "name", "ingredients", "instructions"
+1. Ingredients MUST be array of strings: ["Food Name (amount)", "Food Name (amount)"]
+2. Use natural language names: "Chicken Breast" not "chicken_breast"
+3. ALWAYS include amount in parentheses: "Chicken Breast (200g)" not just "Chicken Breast"
+4. DO NOT include calories/protein/carbs/fat - backend calculates from database
+5. Portions: "100g", "150g", "200g", "1 tbsp", "2 slices", "3 whole", etc.
+6. Each meal MUST have "type", "name", "ingredients", "instructions"
+7. For descriptors like dry/cooked, include in parentheses: "Oats (80g dry)" or "Rice (200g cooked)"
 
 STEP-BY-STEP:
 1. Choose 3-5 foods from database for each meal
-2. Use exact snake_case names
+2. Use natural language food names
 3. Specify realistic portions to hit meal targets
-4. Backend will calculate exact macros and optimize portions`;
+4. Format as string array with amounts in parentheses
+5. Backend will match to database and calculate exact macros`;
 
         // Build targets object for hybrid Gemini + JS optimizer
         const dayTargets = {
@@ -1619,18 +1632,20 @@ Budget: ${lastPlanQuery.budget}
 Available Equipment: ${lastPlanQuery.equipmentStr}
 Target macros: ${meal.calories} cal, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
 
-Use ONLY foods from USDA database with exact snake_case names:
-chicken_breast, salmon, ground_turkey, egg_large, brown_rice_cooked, quinoa_cooked,
-sweet_potato, oats_cooked, whole_wheat_bread, avocado, olive_oil, almonds, broccoli, etc.
+Use ONLY foods from USDA database - you can choose from 200+ foods including:
+Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Shrimp, Tofu, Greek Yogurt
+Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
+Fats: Olive Oil, Avocado, Almonds, Peanut Butter
+Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
 
-CRITICAL: Return ingredients as STRUCTURED OBJECTS with exact database names.
+CRITICAL: Return ingredients as ARRAY OF STRINGS in natural language format.
+Include food name AND amount in parentheses.
 DO NOT include calories/protein/carbs/fat - backend will calculate from database.
 MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
 Example: "Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)"
-IMPORTANT: Descriptor in name MUST match database entry (oats_rolled_dry→"dry", oats_cooked→"cooked")
 
 EXAMPLE FORMAT:
-{"type":"${meal.type}","name":"Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)","ingredients":[{"food":"chicken_breast","amount":"200g"},{"food":"quinoa_cooked","amount":"150g"},{"food":"broccoli","amount":"100g"},{"food":"olive_oil","amount":"1 tbsp"}],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
+{"type":"${meal.type}","name":"Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)","ingredients":["Chicken Breast (200g)","Quinoa (150g cooked)","Broccoli (100g)","Olive Oil (1 tbsp)"],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
 
 Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
@@ -1701,18 +1716,20 @@ Preferred Foods: ${lastPlanQuery.preferredFoods}
 Budget: ${lastPlanQuery.budget}
 Available Equipment: ${lastPlanQuery.equipmentStr}
 
-Use ONLY foods from USDA database with exact snake_case names:
-chicken_breast, salmon, ground_turkey, egg_large, brown_rice_cooked, quinoa_cooked,
-sweet_potato, oats_cooked, whole_wheat_bread, avocado, olive_oil, almonds, broccoli, etc.
+Use ONLY foods from USDA database - you can choose from 200+ foods including:
+Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Shrimp, Tofu, Greek Yogurt
+Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
+Fats: Olive Oil, Avocado, Almonds, Peanut Butter
+Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
 
-CRITICAL: Return ingredients as STRUCTURED OBJECTS with exact database names.
+CRITICAL: Return ingredients as ARRAY OF STRINGS in natural language format.
+Include food name AND amount in parentheses.
 DO NOT include calories/protein/carbs/fat - backend will calculate from database.
 MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
 Example: "Baked Turkey Breast (200g) with Sweet Potato (150g) and Green Beans (100g)"
-IMPORTANT: Descriptor in name MUST match database entry (oats_rolled_dry→"dry", oats_cooked→"cooked")
 
 EXAMPLE FORMAT:
-{"type":"${meal.type}","name":"Baked Turkey Breast (200g) with Sweet Potato (150g) and Green Beans (100g)","ingredients":[{"food":"turkey_breast","amount":"200g"},{"food":"sweet_potato","amount":"150g"},{"food":"green_beans","amount":"100g"},{"food":"olive_oil","amount":"1 tsp"}],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}
+{"type":"${meal.type}","name":"Baked Turkey Breast (200g) with Sweet Potato (150g) and Green Beans (100g)","ingredients":["Turkey Breast (200g)","Sweet Potato (150g)","Green Beans (100g)","Olive Oil (1 tsp)"],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}
 
 Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
@@ -1770,10 +1787,28 @@ function parseFraction(str) {
 }
 
 function parseIngredient(ingredientStr) {
-    // Patterns to match:
-    // 1. "1/4 cup bell pepper" or "1 1/2 cups flour"
-    // 2. "4oz chicken breast" or "100g broccoli"
-    // 3. "2 medium bananas"
+    // NEW FORMAT: "Food Name (amount)" - e.g., "Chicken Breast (200g)" or "Eggs (2 whole)"
+    // Pattern 1: "Food Name (quantity unit)" - e.g., "Chicken Breast (200g)" or "Olive Oil (1 tbsp)"
+    const parenthesesPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|whole|slices?|dry|cooked)?\)$/i;
+    const parenthesesMatch = ingredientStr.match(parenthesesPattern);
+
+    if (parenthesesMatch) {
+        const name = parenthesesMatch[1].trim();
+        const quantityStr = parenthesesMatch[2].trim();
+        const quantity = parseFraction(quantityStr);
+        const unit = (parenthesesMatch[3] || 'unit').toLowerCase();
+
+        // Filter out descriptors like "dry" and "cooked" from unit
+        const filteredUnit = ['dry', 'cooked'].includes(unit) ? 'unit' : unit;
+
+        return {
+            quantity: quantity,
+            unit: filteredUnit,
+            name: name.toLowerCase().trim()
+        };
+    }
+
+    // OLD FORMAT FALLBACK: "quantity unit food" - e.g., "200g chicken breast" or "2 eggs"
     const patterns = [
         // Pattern 1: Fractions or decimals with units - e.g., "1/4 cup" or "1 1/2 cups" or "2.5 tbsp"
         /([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small)\s+(.+)/i,
