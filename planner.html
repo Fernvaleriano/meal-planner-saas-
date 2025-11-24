@@ -1132,22 +1132,21 @@ Use only alphanumeric characters and basic punctuation (periods, commas) in text
 Replace all quotes with apostrophes. Keep instructions simple and brief.
 Include detailed ingredients list and full cooking instructions.
 
-CRITICAL CALCULATION REQUIREMENT:
-You MUST calculate macros by adding up each ingredient individually:
-1. Look up REAL nutritional values for each ingredient
-2. Calculate each ingredient's contribution
-3. Sum them up for the total
-4. Show your work in the calculation
+CRITICAL INGREDIENTS FORMAT:
+You MUST return ingredients as STRUCTURED OBJECTS using foods from the database.
+Use these exact food names (snake_case): chicken_breast, ground_turkey, salmon, ground_beef_90, egg, brown_rice_cooked, white_rice_cooked, sweet_potato, pasta_cooked, whole_wheat_bread, oats_cooked, avocado, olive_oil, butter, broccoli, spinach, etc.
 
-EXAMPLE (use this EXACT format and accuracy):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 large eggs scrambled, 2 slices whole wheat toast, 1/2 medium avocado","calories":470,"protein":23,"carbs":32,"fat":28,"ingredients":["3 large eggs","2 slices whole wheat bread","1 tbsp butter for cooking","1/2 avocado"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast bread. Serve with sliced avocado.","breakdown":"3 eggs (210cal,18gP,0gC,15gF) + 2 toast (160cal,8gP,28gC,2gF) + 1tbsp butter (100cal,0gP,0gC,11gF) + half avocado (120cal,1gP,6gC,10gF) = 590cal but oil absorbed varies"}]}
+EXAMPLE (use this EXACT format):
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 large eggs scrambled, 2 slices whole wheat toast, 1/2 avocado","ingredients":[{"food":"egg","amount":"3"},{"food":"whole_wheat_bread","amount":"2 slices"},{"food":"butter","amount":"1 tbsp"},{"food":"avocado","amount":"50g"}],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast bread. Serve with sliced avocado."}]}
+
+CRITICAL: ingredients must be an array of objects with "food" and "amount" keys.
+DO NOT include calories/protein/carbs/fat in meal objects - backend JS algorithm calculates these exactly from database.
 
 STEP-BY-STEP FOR EVERY MEAL:
-1. List each ingredient with portion
-2. Look up its REAL calories and macros
-3. Add them all up
-4. That sum IS your meal total - do not guess!
-5. Include breakdown field showing your calculation`;
+1. Choose foods from the database (use snake_case names)
+2. Specify portions (e.g., "4oz", "100g", "1 cup", "2 slices", "1 tbsp")
+3. Return as structured objects: {"food":"food_name","amount":"portion"}
+4. Backend JS algorithm will calculate exact macros from database`;
 
         // Build targets object for hybrid Gemini + JS optimizer
         const dayTargets = {
