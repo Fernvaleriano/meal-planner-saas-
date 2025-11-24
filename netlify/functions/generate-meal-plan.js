@@ -299,13 +299,13 @@ Return ONLY the JSON object, no markdown, no backticks. Portions MUST be adjuste
       messages: [
         {
           role: "user",
-          content: calculationPrompt
+          content: optimizationPrompt
         }
       ]
     });
 
     const responseText = message.content[0].text;
-    console.log('🤖 Claude calculation response preview:', responseText.substring(0, 300));
+    console.log('🤖 Claude optimization response:', responseText);
 
     // Parse JSON
     const calculatedMeal = extractJSON(responseText);
@@ -327,10 +327,12 @@ Return ONLY the JSON object, no markdown, no backticks. Portions MUST be adjuste
       console.warn(`   Calculated: ${calcCalories} cal, Claimed: ${calculatedMeal.calories} cal`);
     }
 
-    console.log(`✅ Claude calculated: ${calculatedMeal.calories} cal, ${calculatedMeal.protein}g P, ${calculatedMeal.carbs}g C, ${calculatedMeal.fat}g F`);
+    console.log(`✅ Claude optimized: ${calculatedMeal.calories} cal, ${calculatedMeal.protein}g P, ${calculatedMeal.carbs}g C, ${calculatedMeal.fat}g F`);
+    console.log(`🎯 vs Target: ${mealTargets.calories} cal, ${mealTargets.protein}g P, ${mealTargets.carbs}g C, ${mealTargets.fat}g F`);
     if (calculatedMeal.calculation_notes) {
-      console.log(`📝 Calculation: ${calculatedMeal.calculation_notes}`);
+      console.log(`📝 Optimization notes: ${calculatedMeal.calculation_notes}`);
     }
+    console.log(`📦 Final meal ingredients:`, JSON.stringify(calculatedMeal.ingredients, null, 2));
 
     return calculatedMeal;
 
@@ -443,6 +445,7 @@ exports.handler = async (event, context) => {
 
     // Parse JSON (handle markdown-wrapped responses)
     const jsonData = extractJSON(responseText);
+    console.log('📋 Gemini generated meals:', JSON.stringify(jsonData, null, 2));
 
     // 🎯 NEW: Optimize meal portions using Claude
     console.log('🔄 Starting Claude portion optimization...');
@@ -472,6 +475,22 @@ exports.handler = async (event, context) => {
         correctedData.push(optimizedMeal);
       }
       console.log(`✅ All ${jsonData.length} meals optimized!`);
+
+      // Calculate and log daily totals vs targets
+      if (mealTargets && targets) {
+        const dailyTotals = correctedData.reduce((acc, meal) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein || 0),
+          carbs: acc.carbs + (meal.carbs || 0),
+          fat: acc.fat + (meal.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+        console.log('📊 DAILY TOTALS vs TARGETS:');
+        console.log(`   Calories: ${dailyTotals.calories} / ${targets.calories} (${((dailyTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Protein:  ${dailyTotals.protein}g / ${targets.protein}g (${((dailyTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
+      }
     } else if (jsonData.name && jsonData.calories) {
       // Single meal object
       console.log('📊 Optimizing single meal with Claude...');
