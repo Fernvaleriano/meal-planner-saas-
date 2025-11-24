@@ -309,6 +309,20 @@
             </div>
         </div>
     </div>
+
+    <!-- MATH CHECK MODAL -->
+    <div id="math-check-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-4xl max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-3xl font-bold text-gray-800">🔍 Nutrition Math Check</h3>
+                <button data-action="close-math-modal" class="text-2xl font-bold">&times;</button>
+            </div>
+            <div id="math-check-content" class="text-gray-700 space-y-4"></div>
+            <div class="mt-6 flex justify-end">
+                <button data-action="close-math-modal" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -660,26 +674,8 @@ function validateMeal(meal, mealType) {
         issues.push(`Macro math error: ${meal.calories} cal listed but macros calculate to ${Math.round(calculatedCalories)} cal (${Math.round(percentOff*100)}% error)`);
     }
 
-    // Validation 2: Reasonable calorie ranges by meal type
-    const reasonableRanges = {
-        'breakfast': { min: 250, max: 700 },
-        'lunch': { min: 350, max: 800 },
-        'dinner': { min: 350, max: 900 },
-        'snack': { min: 50, max: 400 }
-    };
-
-    const range = reasonableRanges[mealType] || reasonableRanges['snack'];
-    if (meal.calories < range.min || meal.calories > range.max) {
-        issues.push(`${mealType} calories (${meal.calories}) outside reasonable range ${range.min}-${range.max}`);
-    }
-
-    // Validation 3: Protein shake specific check
-    const isShake = meal.name.toLowerCase().includes('shake') ||
-                   meal.name.toLowerCase().includes('protein powder') ||
-                   meal.name.toLowerCase().includes('smoothie');
-    if (isShake && meal.calories > 450) {
-        issues.push(`Protein shake/smoothie too high: ${meal.calories} cal (should be under 450)`);
-    }
+    // Validation 2 & 3: REMOVED - Calorie ranges were too strict
+    // Now using informational warnings only via "Check Math" feature
 
     // Validation 4: Sanity check on macros
     if (meal.protein < 0 || meal.carbs < 0 || meal.fat < 0) {
@@ -752,7 +748,7 @@ function validateMeal(meal, mealType) {
     }
 
     return {
-        valid: issues.length === 0,
+        valid: true, // Always valid - issues are informational only
         issues: issues,
         meal: meal
     };
@@ -1309,6 +1305,7 @@ function displayDietPlan(multiDayData) {
 
     planHTML += `
         <div class="flex gap-2 mt-4">
+            <button data-action="check-math" class="btn btn-secondary w-full" style="background:#6c757d;">🔍 Check Math</button>
             <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b;">📋 Meal Prep Guide</button>
             <button data-action="show-grocery-list" class="btn btn-secondary w-full">📝 Grocery List</button>
             <button data-action="download-pdf" class="btn btn-primary w-full">📥 Download PDF</button>
@@ -1735,6 +1732,149 @@ function showGroceryList() {
     const resultDiv = document.getElementById('diet-plan-result');
     resultDiv.innerHTML += listHTML;
     resultDiv.lastElementChild.scrollIntoView({ behavior: 'smooth' });
+}
+
+// MATH CHECK FUNCTION
+function showMathCheck() {
+    if (!lastPlanQuery.currentPlan) {
+        alert('No plan available');
+        return;
+    }
+
+    const modal = document.getElementById('math-check-modal');
+    const content = document.getElementById('math-check-content');
+    const targets = lastPlanQuery.currentPlan[0].targets;
+
+    let html = `
+        <div class="bg-blue-50 p-4 rounded-lg mb-6">
+            <h4 class="font-bold text-lg mb-2">Daily Targets</h4>
+            <div class="grid grid-cols-4 gap-4">
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">Calories</p>
+                    <span class="font-bold text-blue-600">${targets.calories}</span>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">Protein</p>
+                    <span class="font-bold text-blue-600">${targets.protein}g</span>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">Carbs</p>
+                    <span class="font-bold text-blue-600">${targets.carbs}g</span>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">Fat</p>
+                    <span class="font-bold text-blue-600">${targets.fat}g</span>
+                </div>
+            </div>
+        </div>`;
+
+    // Analyze each day
+    lastPlanQuery.currentPlan.forEach((dayData, dayIndex) => {
+        html += `<div class="mb-6 border-b pb-4">
+            <h4 class="font-bold text-xl mb-3">Day ${dayData.day}</h4>`;
+
+        // Calculate daily totals
+        let dayCalories = 0, dayProtein = 0, dayCarbs = 0, dayFat = 0;
+
+        // Analyze each meal
+        dayData.plan.forEach((meal, mealIndex) => {
+            const validation = validateMeal(meal, meal.type);
+            const calculatedCalories = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
+            const calorieDifference = Math.abs(meal.calories - calculatedCalories);
+            const percentOff = calorieDifference / meal.calories;
+
+            // Determine status color
+            let statusColor = 'green';
+            let statusIcon = '✅';
+            let statusText = 'Accurate';
+
+            if (validation.issues.length > 0) {
+                statusColor = 'orange';
+                statusIcon = '⚠️';
+                statusText = 'Warning';
+            }
+
+            if (percentOff > 0.15) {
+                statusColor = 'red';
+                statusIcon = '❌';
+                statusText = 'Math Error';
+            }
+
+            html += `
+                <div class="bg-gray-50 p-3 rounded-lg mb-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-bold capitalize">${meal.type}: ${meal.name}</h5>
+                        <span class="text-${statusColor}-600 font-semibold">${statusIcon} ${statusText}</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 text-sm mb-2">
+                        <div><span class="text-gray-600">Calories:</span> <strong>${meal.calories}</strong></div>
+                        <div><span class="text-gray-600">Protein:</span> <strong>${meal.protein}g</strong></div>
+                        <div><span class="text-gray-600">Carbs:</span> <strong>${meal.carbs}g</strong></div>
+                        <div><span class="text-gray-600">Fat:</span> <strong>${meal.fat}g</strong></div>
+                    </div>
+                    <div class="text-sm">
+                        <p class="text-gray-600">Macro Math: <strong>${Math.round(calculatedCalories)} cal</strong>
+                        ${percentOff > 0.08 ? `<span class="text-orange-600">(${Math.round(percentOff*100)}% difference)</span>` : '<span class="text-green-600">(✓ Within 8%)</span>'}
+                        </p>
+                    </div>`;
+
+            if (validation.issues.length > 0) {
+                html += `<div class="mt-2 p-2 bg-yellow-50 rounded text-sm">
+                    <p class="font-semibold text-yellow-800">Validation Notes:</p>
+                    <ul class="list-disc ml-5 text-yellow-700">`;
+                validation.issues.forEach(issue => {
+                    html += `<li>${issue}</li>`;
+                });
+                html += `</ul></div>`;
+            }
+
+            html += `</div>`;
+
+            // Add to daily totals
+            dayCalories += meal.calories;
+            dayProtein += meal.protein;
+            dayCarbs += meal.carbs;
+            dayFat += meal.fat;
+        });
+
+        // Daily totals summary
+        const calDiff = dayCalories - targets.calories;
+        const proteinDiff = dayProtein - targets.protein;
+        const carbsDiff = dayCarbs - targets.carbs;
+        const fatDiff = dayFat - targets.fat;
+
+        const calStatus = Math.abs(calDiff) <= 50 ? 'text-green-600' : 'text-orange-600';
+        const proteinStatus = Math.abs(proteinDiff) <= 5 ? 'text-green-600' : 'text-orange-600';
+        const carbsStatus = Math.abs(carbsDiff) <= 10 ? 'text-green-600' : 'text-orange-600';
+        const fatStatus = Math.abs(fatDiff) <= 5 ? 'text-green-600' : 'text-orange-600';
+
+        html += `
+            <div class="bg-blue-50 p-3 rounded-lg mt-3">
+                <h5 class="font-bold mb-2">Day ${dayData.day} Totals vs Targets</h5>
+                <div class="grid grid-cols-4 gap-2 text-sm">
+                    <div class="${calStatus}">
+                        <strong>${dayCalories}</strong> / ${targets.calories} cal
+                        <br><span class="text-xs">(${calDiff > 0 ? '+' : ''}${calDiff})</span>
+                    </div>
+                    <div class="${proteinStatus}">
+                        <strong>${dayProtein}g</strong> / ${targets.protein}g
+                        <br><span class="text-xs">(${proteinDiff > 0 ? '+' : ''}${proteinDiff}g)</span>
+                    </div>
+                    <div class="${carbsStatus}">
+                        <strong>${dayCarbs}g</strong> / ${targets.carbs}g
+                        <br><span class="text-xs">(${carbsDiff > 0 ? '+' : ''}${carbsDiff}g)</span>
+                    </div>
+                    <div class="${fatStatus}">
+                        <strong>${dayFat}g</strong> / ${targets.fat}g
+                        <br><span class="text-xs">(${fatDiff > 0 ? '+' : ''}${fatDiff}g)</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+
+    content.innerHTML = html;
+    modal.classList.remove('hidden');
 }
 
 // PDF EXPORT
@@ -2175,6 +2315,8 @@ document.addEventListener('click', function(event) {
             const mealIndex = parseInt(target.dataset.mealIndex);
             reviseMeal(dayIndex, mealIndex);
         },
+        'check-math': showMathCheck,
+        'close-math-modal': () => document.getElementById('math-check-modal').classList.add('hidden'),
         'show-grocery-list': showGroceryList,
         'close-grocery-list': () => {
             event.target.closest('.card').remove();
