@@ -55,12 +55,12 @@ const FOOD_DATABASE = {
 
   // ===== PROTEINS - DAIRY & EGGS =====
   'egg_large': { per: '1 egg', cal: 70, protein: 6, carbs: 0, fat: 5 },
-  'egg_white': { per: '1 large', cal: 17, protein: 4, carbs: 0, fat: 0 },
-  'greek_yogurt_nonfat': { per: '100g', cal: 59, protein: 10, carbs: 4, fat: 0 },
+  'egg_white': { per: '1 large', cal: 17, protein: 4, carbs: 0, fat: 0.1 },
+  'greek_yogurt_nonfat': { per: '100g', cal: 59, protein: 10, carbs: 4, fat: 0.4 },
   'greek_yogurt_2pct': { per: '100g', cal: 73, protein: 10, carbs: 4, fat: 2 },
   'cottage_cheese_low': { per: '100g', cal: 98, protein: 11, carbs: 3, fat: 4 },
-  'cottage_cheese_nonfat': { per: '100g', cal: 72, protein: 12, carbs: 6, fat: 0 },
-  'skyr': { per: '100g', cal: 63, protein: 11, carbs: 4, fat: 0 },
+  'cottage_cheese_nonfat': { per: '100g', cal: 72, protein: 12, carbs: 6, fat: 0.4 },
+  'skyr': { per: '100g', cal: 63, protein: 11, carbs: 4, fat: 0.2 },
   'mozzarella_part_skim': { per: '28g', cal: 72, protein: 7, carbs: 1, fat: 5 },
   'parmesan': { per: '28g', cal: 110, protein: 10, carbs: 1, fat: 7 },
   'cheddar_cheese': { per: '28g', cal: 115, protein: 7, carbs: 0, fat: 9 },
@@ -103,10 +103,10 @@ const FOOD_DATABASE = {
   'cream_of_rice_dry': { per: '100g', cal: 365, protein: 8, carbs: 79, fat: 1 },
 
   // ===== CARBS - POTATOES =====
-  'sweet_potato': { per: '100g', cal: 86, protein: 2, carbs: 20, fat: 0 },
-  'russet_potato': { per: '100g', cal: 79, protein: 2, carbs: 18, fat: 0 },
-  'red_potato': { per: '100g', cal: 70, protein: 2, carbs: 16, fat: 0 },
-  'yukon_gold_potato': { per: '100g', cal: 77, protein: 2, carbs: 17, fat: 0 },
+  'sweet_potato': { per: '100g', cal: 86, protein: 2, carbs: 20, fat: 0.1 },
+  'russet_potato': { per: '100g', cal: 79, protein: 2, carbs: 18, fat: 0.1 },
+  'red_potato': { per: '100g', cal: 70, protein: 2, carbs: 16, fat: 0.1 },
+  'yukon_gold_potato': { per: '100g', cal: 77, protein: 2, carbs: 17, fat: 0.1 },
 
   // ===== CARBS - PASTA & BREAD =====
   'pasta_cooked': { per: '100g', cal: 131, protein: 5, carbs: 25, fat: 1 },
@@ -117,7 +117,7 @@ const FOOD_DATABASE = {
   'english_muffin_whole': { per: '1 muffin 57g', cal: 120, protein: 5, carbs: 24, fat: 1 },
   'tortilla_corn': { per: '1 tortilla 26g', cal: 52, protein: 1, carbs: 11, fat: 1 },
   'tortilla_flour': { per: '1 tortilla 32g', cal: 94, protein: 3, carbs: 16, fat: 2 },
-  'rice_cakes': { per: '1 cake 9g', cal: 35, protein: 1, carbs: 7, fat: 0 },
+  'rice_cakes': { per: '1 cake 9g', cal: 35, protein: 1, carbs: 7, fat: 0.3 },
 
   // ===== FATS - OILS & BUTTERS =====
   'olive_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
