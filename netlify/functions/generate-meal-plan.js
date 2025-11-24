@@ -7,48 +7,215 @@ const AnthropicModule = require('@anthropic-ai/sdk');
 const Anthropic = AnthropicModule.default || AnthropicModule;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-// USDA-verified food database for Claude corrections
+// USDA-verified food database for Claude corrections - Comprehensive Fitness Database
 const FOOD_DATABASE = {
-  // Proteins
+  // ===== PROTEINS - POULTRY =====
   'chicken_breast': { per: '100g', cal: 165, protein: 31, carbs: 0, fat: 4 },
+  'chicken_thigh_skinless': { per: '100g', cal: 209, protein: 26, carbs: 0, fat: 11 },
+  'chicken_tenderloins': { per: '100g', cal: 109, protein: 24, carbs: 0, fat: 1 },
+  'ground_chicken': { per: '100g', cal: 143, protein: 17, carbs: 0, fat: 8 },
+  'turkey_breast': { per: '100g', cal: 135, protein: 30, carbs: 0, fat: 1 },
   'ground_turkey': { per: '100g', cal: 176, protein: 25, carbs: 0, fat: 10 },
+  'turkey_bacon': { per: '2 slices 28g', cal: 60, protein: 4, carbs: 1, fat: 5 },
+
+  // ===== PROTEINS - BEEF =====
   'ground_beef_90': { per: '100g', cal: 176, protein: 21, carbs: 0, fat: 10 },
-  'salmon': { per: '100g', cal: 177, protein: 20, carbs: 0, fat: 11 },
+  'ground_beef_93': { per: '100g', cal: 164, protein: 22, carbs: 0, fat: 7 },
+  'ground_beef_96': { per: '100g', cal: 145, protein: 23, carbs: 0, fat: 5 },
+  'sirloin_steak': { per: '100g', cal: 160, protein: 28, carbs: 0, fat: 5 },
+  'flank_steak': { per: '100g', cal: 192, protein: 27, carbs: 0, fat: 9 },
+  'eye_of_round': { per: '100g', cal: 149, protein: 26, carbs: 0, fat: 4 },
+  'bison': { per: '100g', cal: 143, protein: 28, carbs: 0, fat: 2 },
+
+  // ===== PROTEINS - PORK =====
+  'pork_tenderloin': { per: '100g', cal: 143, protein: 26, carbs: 0, fat: 4 },
+  'pork_chop': { per: '100g', cal: 206, protein: 26, carbs: 0, fat: 11 },
+  'ham_lean': { per: '100g', cal: 145, protein: 21, carbs: 1, fat: 6 },
+  'canadian_bacon': { per: '2 slices 28g', cal: 43, protein: 6, carbs: 0, fat: 2 },
+
+  // ===== PROTEINS - SEAFOOD (White Fish) =====
   'tilapia': { per: '100g', cal: 128, protein: 26, carbs: 0, fat: 3 },
+  'cod': { per: '100g', cal: 82, protein: 18, carbs: 0, fat: 1 },
+  'halibut': { per: '100g', cal: 111, protein: 23, carbs: 0, fat: 2 },
+  'mahi_mahi': { per: '100g', cal: 109, protein: 23, carbs: 0, fat: 1 },
+  'sea_bass': { per: '100g', cal: 97, protein: 19, carbs: 0, fat: 2 },
+
+  // ===== PROTEINS - SEAFOOD (Fatty Fish) =====
+  'salmon': { per: '100g', cal: 177, protein: 20, carbs: 0, fat: 11 },
+  'tuna_fresh': { per: '100g', cal: 144, protein: 23, carbs: 0, fat: 5 },
+  'tuna_canned_water': { per: '100g', cal: 116, protein: 26, carbs: 0, fat: 1 },
+  'sardines': { per: '100g', cal: 208, protein: 25, carbs: 0, fat: 11 },
+  'mackerel': { per: '100g', cal: 205, protein: 19, carbs: 0, fat: 14 },
+
+  // ===== PROTEINS - SHELLFISH =====
   'shrimp': { per: '100g', cal: 106, protein: 23, carbs: 1, fat: 1 },
+  'scallops': { per: '100g', cal: 111, protein: 20, carbs: 5, fat: 1 },
+  'crab_meat': { per: '100g', cal: 97, protein: 19, carbs: 0, fat: 1 },
+  'lobster': { per: '100g', cal: 89, protein: 19, carbs: 0, fat: 1 },
+
+  // ===== PROTEINS - DAIRY & EGGS =====
   'egg_large': { per: '1 egg', cal: 70, protein: 6, carbs: 0, fat: 5 },
-  'greek_yogurt': { per: '100g', cal: 59, protein: 10, carbs: 4, fat: 0 },
-  'cottage_cheese': { per: '100g', cal: 98, protein: 11, carbs: 3, fat: 4 },
-  'whey_protein': { per: '1 scoop 30g', cal: 120, protein: 25, carbs: 3, fat: 1 },
-
-  // Carbs
-  'brown_rice_cooked': { per: '100g', cal: 112, protein: 2, carbs: 24, fat: 1 },
-  'white_rice_cooked': { per: '100g', cal: 130, protein: 3, carbs: 28, fat: 0 },
-  'quinoa_cooked': { per: '100g', cal: 120, protein: 4, carbs: 21, fat: 2 },
-  'sweet_potato': { per: '100g', cal: 86, protein: 2, carbs: 20, fat: 0 },
-  'oats_cooked': { per: '100g', cal: 71, protein: 2, carbs: 12, fat: 1 },
-  'whole_wheat_bread': { per: '1 slice 28g', cal: 80, protein: 4, carbs: 14, fat: 1 },
-  'pasta_cooked': { per: '100g', cal: 131, protein: 5, carbs: 25, fat: 1 },
-
-  // Fats
-  'avocado': { per: '100g', cal: 160, protein: 2, carbs: 9, fat: 15 },
-  'olive_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
-  'almond_butter': { per: '1 tbsp 16g', cal: 95, protein: 3, carbs: 3, fat: 9 },
-  'almonds': { per: '28g', cal: 160, protein: 6, carbs: 6, fat: 14 },
+  'egg_white': { per: '1 large', cal: 17, protein: 4, carbs: 0, fat: 0 },
+  'greek_yogurt_nonfat': { per: '100g', cal: 59, protein: 10, carbs: 4, fat: 0 },
+  'greek_yogurt_2pct': { per: '100g', cal: 73, protein: 10, carbs: 4, fat: 2 },
+  'cottage_cheese_low': { per: '100g', cal: 98, protein: 11, carbs: 3, fat: 4 },
+  'cottage_cheese_nonfat': { per: '100g', cal: 72, protein: 12, carbs: 6, fat: 0 },
+  'skyr': { per: '100g', cal: 63, protein: 11, carbs: 4, fat: 0 },
+  'mozzarella_part_skim': { per: '28g', cal: 72, protein: 7, carbs: 1, fat: 5 },
+  'parmesan': { per: '28g', cal: 110, protein: 10, carbs: 1, fat: 7 },
   'cheddar_cheese': { per: '28g', cal: 115, protein: 7, carbs: 0, fat: 9 },
+  'feta_cheese': { per: '28g', cal: 75, protein: 4, carbs: 1, fat: 6 },
+  'string_cheese': { per: '1 stick 28g', cal: 80, protein: 6, carbs: 1, fat: 6 },
 
-  // Vegetables
+  // ===== PROTEINS - PLANT-BASED =====
+  'tofu_firm': { per: '100g', cal: 76, protein: 8, carbs: 2, fat: 5 },
+  'tofu_extra_firm': { per: '100g', cal: 91, protein: 10, carbs: 2, fat: 5 },
+  'tempeh': { per: '100g', cal: 193, protein: 19, carbs: 9, fat: 11 },
+  'edamame': { per: '100g', cal: 122, protein: 11, carbs: 10, fat: 5 },
+  'seitan': { per: '100g', cal: 370, protein: 75, carbs: 14, fat: 2 },
+  'lentils_cooked': { per: '100g', cal: 116, protein: 9, carbs: 20, fat: 0 },
+  'black_beans': { per: '100g', cal: 132, protein: 9, carbs: 24, fat: 1 },
+  'kidney_beans': { per: '100g', cal: 127, protein: 9, carbs: 23, fat: 0 },
+  'chickpeas': { per: '100g', cal: 164, protein: 9, carbs: 27, fat: 3 },
+  'pinto_beans': { per: '100g', cal: 143, protein: 9, carbs: 26, fat: 1 },
+
+  // ===== PROTEINS - POWDERS =====
+  'whey_protein': { per: '1 scoop 30g', cal: 120, protein: 25, carbs: 3, fat: 1 },
+  'casein_protein': { per: '1 scoop 30g', cal: 120, protein: 24, carbs: 3, fat: 1 },
+  'pea_protein': { per: '1 scoop 30g', cal: 120, protein: 24, carbs: 2, fat: 2 },
+  'egg_white_protein': { per: '1 scoop 30g', cal: 110, protein: 25, carbs: 2, fat: 0 },
+
+  // ===== CARBS - RICE & GRAINS =====
+  'white_rice_cooked': { per: '100g', cal: 130, protein: 3, carbs: 28, fat: 0 },
+  'brown_rice_cooked': { per: '100g', cal: 112, protein: 2, carbs: 24, fat: 1 },
+  'jasmine_rice_cooked': { per: '100g', cal: 129, protein: 3, carbs: 28, fat: 0 },
+  'basmati_rice_cooked': { per: '100g', cal: 121, protein: 3, carbs: 25, fat: 0 },
+  'wild_rice_cooked': { per: '100g', cal: 101, protein: 4, carbs: 21, fat: 0 },
+  'quinoa_cooked': { per: '100g', cal: 120, protein: 4, carbs: 21, fat: 2 },
+  'couscous_cooked': { per: '100g', cal: 112, protein: 4, carbs: 23, fat: 0 },
+  'farro_cooked': { per: '100g', cal: 114, protein: 4, carbs: 23, fat: 1 },
+  'barley_cooked': { per: '100g', cal: 123, protein: 2, carbs: 28, fat: 0 },
+
+  // ===== CARBS - OATS =====
+  'oats_rolled_dry': { per: '100g', cal: 389, protein: 17, carbs: 66, fat: 7 },
+  'oats_cooked': { per: '100g', cal: 71, protein: 2, carbs: 12, fat: 1 },
+  'steel_cut_oats_dry': { per: '100g', cal: 379, protein: 13, carbs: 67, fat: 7 },
+  'cream_of_rice_dry': { per: '100g', cal: 365, protein: 8, carbs: 79, fat: 1 },
+
+  // ===== CARBS - POTATOES =====
+  'sweet_potato': { per: '100g', cal: 86, protein: 2, carbs: 20, fat: 0 },
+  'russet_potato': { per: '100g', cal: 79, protein: 2, carbs: 18, fat: 0 },
+  'red_potato': { per: '100g', cal: 70, protein: 2, carbs: 16, fat: 0 },
+  'yukon_gold_potato': { per: '100g', cal: 77, protein: 2, carbs: 17, fat: 0 },
+
+  // ===== CARBS - PASTA & BREAD =====
+  'pasta_cooked': { per: '100g', cal: 131, protein: 5, carbs: 25, fat: 1 },
+  'whole_wheat_pasta_cooked': { per: '100g', cal: 124, protein: 5, carbs: 26, fat: 1 },
+  'whole_wheat_bread': { per: '1 slice 28g', cal: 80, protein: 4, carbs: 14, fat: 1 },
+  'white_bread': { per: '1 slice 28g', cal: 75, protein: 2, carbs: 14, fat: 1 },
+  'ezekiel_bread': { per: '1 slice 34g', cal: 80, protein: 4, carbs: 15, fat: 1 },
+  'english_muffin_whole': { per: '1 muffin 57g', cal: 120, protein: 5, carbs: 24, fat: 1 },
+  'tortilla_corn': { per: '1 tortilla 26g', cal: 52, protein: 1, carbs: 11, fat: 1 },
+  'tortilla_flour': { per: '1 tortilla 32g', cal: 94, protein: 3, carbs: 16, fat: 2 },
+  'rice_cakes': { per: '1 cake 9g', cal: 35, protein: 1, carbs: 7, fat: 0 },
+
+  // ===== FATS - OILS & BUTTERS =====
+  'olive_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
+  'avocado_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
+  'coconut_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
+  'butter': { per: '1 tbsp 14g', cal: 102, protein: 0, carbs: 0, fat: 12 },
+  'ghee': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
+
+  // ===== FATS - NUT BUTTERS =====
+  'peanut_butter': { per: '1 tbsp 16g', cal: 94, protein: 4, carbs: 3, fat: 8 },
+  'almond_butter': { per: '1 tbsp 16g', cal: 95, protein: 3, carbs: 3, fat: 9 },
+  'cashew_butter': { per: '1 tbsp 16g', cal: 94, protein: 3, carbs: 4, fat: 8 },
+  'tahini': { per: '1 tbsp 15g', cal: 89, protein: 3, carbs: 3, fat: 8 },
+
+  // ===== FATS - NUTS & SEEDS =====
+  'almonds': { per: '28g', cal: 160, protein: 6, carbs: 6, fat: 14 },
+  'walnuts': { per: '28g', cal: 185, protein: 4, carbs: 4, fat: 18 },
+  'cashews': { per: '28g', cal: 157, protein: 5, carbs: 9, fat: 12 },
+  'pecans': { per: '28g', cal: 193, protein: 3, carbs: 4, fat: 20 },
+  'pistachios': { per: '28g', cal: 156, protein: 6, carbs: 8, fat: 12 },
+  'chia_seeds': { per: '1 tbsp 12g', cal: 58, protein: 2, carbs: 5, fat: 4 },
+  'flax_seeds': { per: '1 tbsp 10g', cal: 55, protein: 2, carbs: 3, fat: 4 },
+  'hemp_seeds': { per: '1 tbsp 10g', cal: 56, protein: 3, carbs: 1, fat: 4 },
+  'pumpkin_seeds': { per: '28g', cal: 151, protein: 7, carbs: 5, fat: 13 },
+  'sunflower_seeds': { per: '28g', cal: 165, protein: 6, carbs: 7, fat: 14 },
+
+  // ===== FATS - WHOLE FOODS =====
+  'avocado': { per: '100g', cal: 160, protein: 2, carbs: 9, fat: 15 },
+  'coconut_meat': { per: '100g', cal: 354, protein: 3, carbs: 15, fat: 33 },
+  'olives_black': { per: '100g', cal: 115, protein: 1, carbs: 6, fat: 11 },
+  'dark_chocolate_85': { per: '28g', cal: 170, protein: 2, carbs: 13, fat: 12 },
+
+  // ===== VEGETABLES - CRUCIFEROUS =====
   'broccoli': { per: '100g', cal: 34, protein: 3, carbs: 7, fat: 0 },
+  'cauliflower': { per: '100g', cal: 25, protein: 2, carbs: 5, fat: 0 },
+  'brussels_sprouts': { per: '100g', cal: 43, protein: 3, carbs: 9, fat: 0 },
+  'cabbage': { per: '100g', cal: 25, protein: 1, carbs: 6, fat: 0 },
+  'kale': { per: '100g', cal: 35, protein: 3, carbs: 6, fat: 1 },
+
+  // ===== VEGETABLES - LEAFY GREENS =====
   'spinach': { per: '100g', cal: 23, protein: 3, carbs: 4, fat: 0 },
+  'romaine_lettuce': { per: '100g', cal: 17, protein: 1, carbs: 3, fat: 0 },
+  'arugula': { per: '100g', cal: 25, protein: 3, carbs: 4, fat: 1 },
+  'swiss_chard': { per: '100g', cal: 19, protein: 2, carbs: 4, fat: 0 },
+  'mixed_greens': { per: '100g', cal: 23, protein: 2, carbs: 4, fat: 0 },
+
+  // ===== VEGETABLES - OTHER =====
   'bell_pepper': { per: '100g', cal: 26, protein: 1, carbs: 6, fat: 0 },
   'asparagus': { per: '100g', cal: 20, protein: 2, carbs: 4, fat: 0 },
   'green_beans': { per: '100g', cal: 31, protein: 2, carbs: 7, fat: 0 },
+  'zucchini': { per: '100g', cal: 17, protein: 1, carbs: 3, fat: 0 },
+  'cucumber': { per: '100g', cal: 16, protein: 1, carbs: 4, fat: 0 },
+  'tomato': { per: '100g', cal: 18, protein: 1, carbs: 4, fat: 0 },
+  'cherry_tomatoes': { per: '100g', cal: 18, protein: 1, carbs: 4, fat: 0 },
+  'mushrooms_white': { per: '100g', cal: 22, protein: 3, carbs: 3, fat: 0 },
+  'mushrooms_portobello': { per: '100g', cal: 29, protein: 3, carbs: 5, fat: 0 },
+  'onion': { per: '100g', cal: 40, protein: 1, carbs: 9, fat: 0 },
+  'garlic': { per: '1 clove 3g', cal: 4, protein: 0, carbs: 1, fat: 0 },
+  'carrots': { per: '100g', cal: 41, protein: 1, carbs: 10, fat: 0 },
+  'celery': { per: '100g', cal: 16, protein: 1, carbs: 3, fat: 0 },
+  'eggplant': { per: '100g', cal: 25, protein: 1, carbs: 6, fat: 0 },
+  'snap_peas': { per: '100g', cal: 42, protein: 3, carbs: 7, fat: 0 },
+  'squash_spaghetti': { per: '100g', cal: 31, protein: 1, carbs: 7, fat: 0 },
 
-  // Fruits
+  // ===== FRUITS - BERRIES =====
+  'blueberries': { per: '100g', cal: 57, protein: 1, carbs: 14, fat: 0 },
+  'strawberries': { per: '100g', cal: 32, protein: 1, carbs: 8, fat: 0 },
+  'raspberries': { per: '100g', cal: 52, protein: 1, carbs: 12, fat: 1 },
+  'blackberries': { per: '100g', cal: 43, protein: 1, carbs: 10, fat: 0 },
+
+  // ===== FRUITS - COMMON =====
   'banana': { per: '1 medium 118g', cal: 105, protein: 1, carbs: 27, fat: 0 },
   'apple': { per: '1 medium 182g', cal: 95, protein: 0, carbs: 25, fat: 0 },
-  'blueberries': { per: '100g', cal: 57, protein: 1, carbs: 14, fat: 0 },
-  'strawberries': { per: '100g', cal: 32, protein: 1, carbs: 8, fat: 0 }
+  'orange': { per: '1 medium 140g', cal: 65, protein: 1, carbs: 16, fat: 0 },
+  'grapefruit': { per: '1/2 medium 128g', cal: 52, protein: 1, carbs: 13, fat: 0 },
+  'grapes': { per: '100g', cal: 69, protein: 1, carbs: 18, fat: 0 },
+  'pear': { per: '1 medium 178g', cal: 101, protein: 1, carbs: 27, fat: 0 },
+  'peach': { per: '1 medium 150g', cal: 59, protein: 1, carbs: 14, fat: 0 },
+  'plum': { per: '1 medium 66g', cal: 30, protein: 0, carbs: 8, fat: 0 },
+  'cherries': { per: '100g', cal: 63, protein: 1, carbs: 16, fat: 0 },
+
+  // ===== FRUITS - TROPICAL =====
+  'pineapple': { per: '100g', cal: 50, protein: 1, carbs: 13, fat: 0 },
+  'mango': { per: '100g', cal: 60, protein: 1, carbs: 15, fat: 0 },
+  'papaya': { per: '100g', cal: 43, protein: 0, carbs: 11, fat: 0 },
+  'kiwi': { per: '1 medium 69g', cal: 42, protein: 1, carbs: 10, fat: 0 },
+  'watermelon': { per: '100g', cal: 30, protein: 1, carbs: 8, fat: 0 },
+  'cantaloupe': { per: '100g', cal: 34, protein: 1, carbs: 8, fat: 0 },
+  'honeydew': { per: '100g', cal: 36, protein: 1, carbs: 9, fat: 0 },
+
+  // ===== CONDIMENTS & SEASONINGS (Low/No Cal) =====
+  'soy_sauce': { per: '1 tbsp 15ml', cal: 8, protein: 1, carbs: 1, fat: 0 },
+  'hot_sauce': { per: '1 tbsp 15ml', cal: 1, protein: 0, carbs: 0, fat: 0 },
+  'salsa': { per: '2 tbsp 32g', cal: 10, protein: 0, carbs: 2, fat: 0 },
+  'mustard': { per: '1 tbsp 15g', cal: 10, protein: 1, carbs: 1, fat: 1 },
+  'vinegar': { per: '1 tbsp 15ml', cal: 3, protein: 0, carbs: 0, fat: 0 },
+  'lemon_juice': { per: '1 tbsp 15ml', cal: 3, protein: 0, carbs: 1, fat: 0 },
+  'lime_juice': { per: '1 tbsp 15ml', cal: 4, protein: 0, carbs: 1, fat: 0 }
 };
 
 /**
