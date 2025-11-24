@@ -557,6 +557,57 @@ async function callClaude(prompt, targets, previousAttempt = null) {
 
         // Claude function returns: { success: true, data: {...}, rawResponse: "..." }
         if (result.success && result.data) {
+            // 🔍 DETAILED LOGGING FOR DEBUGGING
+            console.log('\n========================================');
+            console.log('📥 BACKEND RESPONSE RECEIVED');
+            console.log('========================================');
+
+            // Check if JavaScript optimizer was used
+            if (result.jsOptimized) {
+                console.log('✅ JavaScript Optimizer: ACTIVE');
+            } else {
+                console.log('⚠️ JavaScript Optimizer: NOT DETECTED');
+            }
+
+            // Log each meal's details
+            if (result.data.plan && Array.isArray(result.data.plan)) {
+                console.log(`\n📋 Meals Generated: ${result.data.plan.length}`);
+                result.data.plan.forEach((meal, index) => {
+                    console.log(`\n--- Meal ${index + 1}: ${meal.name} ---`);
+                    console.log(`   Type: ${meal.type || 'N/A'}`);
+                    console.log(`   Macros: ${meal.calories}cal, ${meal.protein}P, ${meal.carbs}C, ${meal.fat}F`);
+
+                    if (meal.ingredients && Array.isArray(meal.ingredients)) {
+                        console.log(`   Ingredients (${meal.ingredients.length}):`);
+                        meal.ingredients.forEach(ing => {
+                            if (typeof ing === 'string') {
+                                console.log(`      - ${ing}`);
+                            } else if (ing.food && ing.amount) {
+                                console.log(`      - ${ing.amount} ${ing.food}`);
+                            }
+                        });
+                    }
+
+                    if (meal.calculation_notes) {
+                        console.log(`   🧮 JS Calculation:`, meal.calculation_notes);
+                    }
+
+                    if (meal.breakdown && Array.isArray(meal.breakdown)) {
+                        console.log(`   📊 Detailed Breakdown:`);
+                        meal.breakdown.forEach(item => {
+                            console.log(`      - ${item.amount} ${item.food}: ${item.macros.calories}cal, ${item.macros.protein}P, ${item.macros.carbs}C, ${item.macros.fat}F (×${item.multiplier})`);
+                        });
+                    }
+                });
+
+                // Log totals if available
+                if (result.data.targets) {
+                    console.log('\n🎯 Target Macros:');
+                    console.log(`   ${result.data.targets.calories}cal, ${result.data.targets.protein}P, ${result.data.targets.carbs}C, ${result.data.targets.fat}F`);
+                }
+            }
+            console.log('========================================\n');
+
             return result.data;
         } else if (result.error) {
             throw new Error(result.error);
