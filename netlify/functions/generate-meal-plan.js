@@ -70,6 +70,7 @@ exports.handler = async (event, context) => {
 
     const data = await response.json();
     console.log('✅ Gemini API Response received');
+    console.log('Full response structure:', JSON.stringify(data, null, 2));
 
     // Validate response structure
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
@@ -78,6 +79,19 @@ exports.handler = async (event, context) => {
         statusCode: 500,
         body: JSON.stringify({
           error: 'Invalid response from Gemini API',
+          data: data
+        })
+      };
+    }
+
+    // Validate parts array exists
+    if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      console.error('❌ Missing parts in response:', JSON.stringify(data));
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: 'Invalid response structure from Gemini API',
+          message: 'Missing parts array in response',
           data: data
         })
       };
