@@ -589,6 +589,20 @@ async function callGemini(prompt, isJson = true, targets = null, previousAttempt
         }
 
         const data = await response.json();
+
+        // NEW: Handle new backend format (with Claude corrections)
+        if (data.success && data.data) {
+            console.log('✅ Using new format with Claude corrections');
+            // Backend already parsed and corrected the meal
+            if (isJson) {
+                return data.data; // Already parsed JSON
+            } else {
+                return JSON.stringify(data.data); // Return as string if text needed
+            }
+        }
+
+        // FALLBACK: Old Gemini format (for backwards compatibility)
+        console.log('⚠️ Using old Gemini format');
         let text = data.candidates[0].content.parts[0].text;
 
         // Clean response - remove markdown code blocks
