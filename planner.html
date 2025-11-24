@@ -532,7 +532,11 @@ async function callClaude(prompt, targets, previousAttempt = null) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'API request failed');
+            const errorMsg = errorData.message
+                ? `${errorData.error}: ${errorData.message}`
+                : errorData.error || 'API request failed';
+            console.error('API Error Details:', errorData);
+            throw new Error(errorMsg);
         }
 
         const result = await response.json();
