@@ -1167,8 +1167,11 @@ hot_sauce: 1cal, 0P, 0C, 0F | soy_sauce: 9cal, 1P, 1C, 0F
 CRITICAL RULES:
 - Use ONLY foods from this list with exact snake_case names
 - Portions: "100g", "150g", "1 tbsp", "2 slices", "1 egg", "200g"
-- MEAL NAME FORMAT: Include main ingredient portion in parentheses at end
-  Examples: "Grilled Chicken Breast with Rice (200g chicken)", "Greek Yogurt Bowl (170g yogurt)", "Scrambled Eggs with Toast (3 eggs)"
+- MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
+  Examples:
+  "High-Protein Oatmeal (80g dry) with Scrambled Eggs (2 whole, 200g whites) and Peanut Butter (1 tbsp)"
+  "Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)"
+  "Greek Yogurt Bowl (170g) with Blueberries (75g) and Almonds (28g)"
 - NO adjectives like "delicious" or "hearty" in meal names
 
 IMPORTANT: Only use recipes that can be made with the available equipment.
@@ -1185,7 +1188,7 @@ You MUST return ingredients as STRUCTURED OBJECTS using ONLY foods from the data
 Use exact snake_case names: chicken_breast, egg_large, brown_rice_cooked, etc.
 
 EXAMPLE (use this EXACT format):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs with Whole Wheat Toast and Avocado (3 eggs)","ingredients":[{"food":"egg_large","amount":"3"},{"food":"whole_wheat_bread","amount":"2 slices"},{"food":"butter","amount":"1 tbsp"},{"food":"avocado","amount":"50g"}],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with sliced avocado."}]}
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Whole Wheat Toast (2 slices) and Avocado (50g)","ingredients":[{"food":"egg_large","amount":"3"},{"food":"whole_wheat_bread","amount":"2 slices"},{"food":"butter","amount":"1 tbsp"},{"food":"avocado","amount":"50g"}],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with sliced avocado."}]}
 
 CRITICAL REQUIREMENTS:
 1. Ingredients MUST be array of objects: [{"food":"exact_db_name","amount":"100g"}]
@@ -1617,10 +1620,11 @@ sweet_potato, oats_cooked, whole_wheat_bread, avocado, olive_oil, almonds, brocc
 
 CRITICAL: Return ingredients as STRUCTURED OBJECTS with exact database names.
 DO NOT include calories/protein/carbs/fat - backend will calculate from database.
-MEAL NAME FORMAT: Include main ingredient portion in parentheses at end (e.g., "Grilled Chicken with Quinoa (200g chicken)")
+MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
+Example: "Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)"
 
 EXAMPLE FORMAT:
-{"type":"${meal.type}","name":"Grilled Chicken Breast with Quinoa and Broccoli (200g chicken)","ingredients":[{"food":"chicken_breast","amount":"200g"},{"food":"quinoa_cooked","amount":"150g"},{"food":"broccoli","amount":"100g"},{"food":"olive_oil","amount":"1 tbsp"}],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
+{"type":"${meal.type}","name":"Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)","ingredients":[{"food":"chicken_breast","amount":"200g"},{"food":"quinoa_cooked","amount":"150g"},{"food":"broccoli","amount":"100g"},{"food":"olive_oil","amount":"1 tbsp"}],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
 
 Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
@@ -1697,10 +1701,11 @@ sweet_potato, oats_cooked, whole_wheat_bread, avocado, olive_oil, almonds, brocc
 
 CRITICAL: Return ingredients as STRUCTURED OBJECTS with exact database names.
 DO NOT include calories/protein/carbs/fat - backend will calculate from database.
-MEAL NAME FORMAT: Include main ingredient portion in parentheses at end (e.g., "Turkey Breast with Sweet Potato (200g turkey)")
+MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
+Example: "Baked Turkey Breast (200g) with Sweet Potato (150g) and Green Beans (100g)"
 
 EXAMPLE FORMAT:
-{"type":"${meal.type}","name":"Baked Turkey Breast with Sweet Potato and Green Beans (200g turkey)","ingredients":[{"food":"turkey_breast","amount":"200g"},{"food":"sweet_potato","amount":"150g"},{"food":"green_beans","amount":"100g"},{"food":"olive_oil","amount":"1 tsp"}],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}
+{"type":"${meal.type}","name":"Baked Turkey Breast (200g) with Sweet Potato (150g) and Green Beans (100g)","ingredients":[{"food":"turkey_breast","amount":"200g"},{"food":"sweet_potato","amount":"150g"},{"food":"green_beans","amount":"100g"},{"food":"olive_oil","amount":"1 tsp"}],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}
 
 Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
