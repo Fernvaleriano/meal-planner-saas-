@@ -588,8 +588,13 @@ ${exampleArray}
                         console.warn(`⚠️ Meal ${index + 1} missing ingredients array - cannot optimize`);
                     }
 
-                    // Macros calculated by JS optimizer from USDA database
-                    console.log(`✅ Meal ${index + 1}: ${meal.name} - ${meal.ingredients ? meal.ingredients.length : 0} ingredients`);
+                    // Log detailed optimization results
+                    console.log(`\n✅ Meal ${index + 1}: ${meal.name}`);
+                    console.log(`   Macros: ${meal.calories}cal, ${meal.protein}P, ${meal.carbs}C, ${meal.fat}F`);
+                    console.log(`   Ingredients:`, meal.ingredients);
+                    if (meal.calculation_notes) {
+                        console.log(`   JS Calculation:`, meal.calculation_notes);
+                    }
                 });
                 
                 console.log(`✅ Successfully validated ${mealsPerDay} meals!`);
