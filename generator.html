@@ -265,7 +265,8 @@
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Generating your personalized meal plan...</p>
-            <p style="color: #666; margin-top: 10px;">This may take 30-60 seconds</p>
+            <p style="color: #666; margin-top: 10px;">Gemini creating meals + Claude correcting macros...</p>
+            <p style="color: #999; font-size: 0.9em; margin-top: 5px;">This may take 30-60 seconds</p>
         </div>
 
         <div class="error-message" id="errorMessage"></div>
@@ -478,31 +479,32 @@ ${exampleArray}
                 const data = await response.json();
                 console.log('📦 Raw API response:', data);
 
-                let text = data.candidates[0].content.parts[0].text;
-                console.log('📝 Original text from AI:', text.substring(0, 500));
-
-                // Clean up response
-                text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-
-                // CRITICAL FIX: Replace any NaN text with null before parsing
-                text = text.replace(/:\s*NaN/g, ': null');
-                text = text.replace(/,\s*\.\.\./g, '');  // Remove ... placeholders
-
-                // Extract JSON array
-                const jsonMatch = text.match(/\[[\s\S]*\]/);
-                if (jsonMatch) {
-                    text = jsonMatch[0];
-                    console.log('✅ Found JSON array, length:', text.length);
+                // Check if Claude corrections were applied
+                if (data.claudeCorrected) {
+                    console.log('✅ Claude macro corrections APPLIED!');
                 } else {
-                    console.error('❌ No JSON array found in response!');
-                    console.error('Full cleaned text:', text);
-                    throw new Error('AI response did not contain a JSON array');
+                    console.log('⚠️ Claude corrections NOT applied (API key missing?)');
                 }
 
-                console.log('🧹 Cleaned text (first 1000 chars):', text.substring(0, 1000));
-
-                const mealPlan = JSON.parse(text);
-                console.log(`📋 Parsed ${mealPlan.length} meals:`, mealPlan);
+                // Use the corrected data from our backend
+                let mealPlan;
+                if (data.success && data.data) {
+                    // New format: backend already parsed and corrected the meals
+                    mealPlan = data.data;
+                    console.log(`📋 Received ${mealPlan.length} meals from backend:`, mealPlan);
+                } else {
+                    // Fallback: old format (shouldn't happen, but just in case)
+                    console.warn('⚠️ Using fallback parsing...');
+                    let text = data.candidates[0].content.parts[0].text;
+                    text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                    text = text.replace(/:\s*NaN/g, ': null');
+                    text = text.replace(/,\s*\.\.\./g, '');
+                    const jsonMatch = text.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        text = jsonMatch[0];
+                    }
+                    mealPlan = JSON.parse(text);
+                }
                 
                 // CRITICAL VALIDATION
                 if (!Array.isArray(mealPlan)) {
