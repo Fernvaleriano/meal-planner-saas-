@@ -530,6 +530,122 @@ function matchFoodToDatabase(foodName, amount = "") {
 }
 
 /**
+ * Scale ingredient amount string by a factor
+ * Examples: "200g" × 1.15 → "230g", "2 whole" × 1.15 → "2 whole" (rounded)
+ */
+function scaleAmountString(amountStr, factor) {
+  // Extract number from amount string
+  const numberMatch = amountStr.match(/([\d\.]+)/);
+  if (!numberMatch) return amountStr;
+
+  const originalNumber = parseFloat(numberMatch[1]);
+  const scaledNumber = originalNumber * factor;
+
+  // Get the rest of the string (unit + descriptors)
+  const restOfString = amountStr.substring(numberMatch.index + numberMatch[1].length);
+
+  // For count units (whole, medium, slices, pieces, scoop), use intelligent rounding
+  if (restOfString.match(/\s*(whole|medium|large|small|slices?|pieces?|scoops?|servings?)/i)) {
+    // For small counts (< 3), round to nearest 0.5
+    if (scaledNumber < 3) {
+      const rounded = Math.round(scaledNumber * 2) / 2;
+      // If rounded to 0.5, show as "1/2"
+      if (rounded === 0.5) return `1/2${restOfString}`;
+      // If it has .5, show as "X 1/2" format (e.g., "2.5 slices" → "2 1/2 slices")
+      if (rounded % 1 === 0.5) {
+        const whole = Math.floor(rounded);
+        return `${whole} 1/2${restOfString}`;
+      }
+      return `${rounded}${restOfString}`;
+    }
+    // For larger counts, round to whole number
+    const rounded = Math.round(scaledNumber);
+    return `${rounded}${restOfString}`;
+  }
+
+  // For weight/volume units (g, oz, tbsp, cups, ml), round to whole numbers
+  if (restOfString.match(/\s*(g|oz|tbsp|tsp|cup|ml|kg)/i)) {
+    const rounded = Math.round(scaledNumber);
+    return `${rounded}${restOfString}`;
+  }
+
+  // Default: round to 1 decimal place
+  const rounded = Math.round(scaledNumber * 10) / 10;
+  return `${rounded}${restOfString}`;
+}
+
+/**
+ * Scale a string-format ingredient by a factor
+ * Example: "Chicken Breast (200g)" × 1.15 → "Chicken Breast (230g)"
+ */
+function scaleIngredientString(ingredientStr, factor) {
+  // Parse "Chicken Breast (200g)" format
+  const match = ingredientStr.match(/^(.+?)\s*\((.+?)\)$/);
+  if (!match) return ingredientStr;
+
+  const foodName = match[1];
+  const amount = match[2];
+  const scaledAmount = scaleAmountString(amount, factor);
+
+  return `${foodName} (${scaledAmount})`;
+}
+
+/**
+ * Scale all portions in meals to hit target macros
+ * Returns scaled meals with recalculated macros
+ */
+function scalePortionsToTargets(meals, actualTotals, targetTotals) {
+  // Calculate scaling factor based on calories (primary metric)
+  const scalingFactor = targetTotals.calories / actualTotals.calories;
+
+  // Only scale if variance is significant (outside ±5%)
+  if (Math.abs(scalingFactor - 1) < 0.05) {
+    console.log('⏭️ Skipping portion scaling - variance within acceptable range (<5%)');
+    return meals;
+  }
+
+  const variancePercent = ((scalingFactor - 1) * 100).toFixed(1);
+  console.log(`🔧 SCALING PORTIONS by ${scalingFactor.toFixed(3)}x (${variancePercent}% adjustment) to hit targets`);
+
+  // Scale each meal's ingredients
+  const scaledMeals = meals.map(meal => {
+    if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
+      return meal;
+    }
+
+    const scaledIngredients = meal.ingredients.map(ing => {
+      if (typeof ing === 'string') {
+        // String format: "Chicken Breast (200g)"
+        return scaleIngredientString(ing, scalingFactor);
+      } else if (ing.food && ing.amount) {
+        // Object format: {"food":"chicken_breast","amount":"200g"}
+        return {
+          food: ing.food,
+          amount: scaleAmountString(ing.amount, scalingFactor)
+        };
+      }
+      return ing;
+    });
+
+    // Recalculate macros from scaled ingredients
+    const recalculated = calculateMacrosFromIngredients(scaledIngredients);
+
+    return {
+      ...meal,
+      ingredients: scaledIngredients,
+      calories: recalculated.totals.calories,
+      protein: recalculated.totals.protein,
+      carbs: recalculated.totals.carbs,
+      fat: recalculated.totals.fat,
+      breakdown: recalculated.breakdown,
+      calculation_notes: `Scaled by ${scalingFactor.toFixed(3)}x and recalculated from ${scaledIngredients.length} ingredients`
+    };
+  });
+
+  return scaledMeals;
+}
+
+/**
  * Parse ingredient amount into grams/count/tbsp for calculation
  * Handles: "200g", "2 eggs", "1 tbsp", "150g", "3 slices", etc.
  */
@@ -860,11 +976,29 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS:');
+        console.log('📊 DAILY TOTALS vs TARGETS (before scaling):');
         console.log(`   Calories: ${dailyTotals.calories} / ${targets.calories} (${((dailyTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
         console.log(`   Protein:  ${dailyTotals.protein}g / ${targets.protein}g (${((dailyTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
         console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
         console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
+
+        // Scale portions to hit targets
+        const scaledMeals = scalePortionsToTargets(optimizedMeals, dailyTotals, targets);
+        correctedData.plan = scaledMeals;
+
+        // Recalculate totals after scaling
+        const scaledTotals = scaledMeals.reduce((acc, meal) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein || 0),
+          carbs: acc.carbs + (meal.carbs || 0),
+          fat: acc.fat + (meal.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+        console.log('📊 DAILY TOTALS vs TARGETS (after scaling):');
+        console.log(`   Calories: ${scaledTotals.calories} / ${targets.calories} (${((scaledTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Protein:  ${scaledTotals.protein}g / ${targets.protein}g (${((scaledTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Carbs:    ${scaledTotals.carbs}g / ${targets.carbs}g (${((scaledTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Fat:      ${scaledTotals.fat}g / ${targets.fat}g (${((scaledTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
       }
     } else if (Array.isArray(jsonData)) {
       // Array of meals: [meal1, meal2, meal3]
@@ -888,11 +1022,28 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS:');
+        console.log('📊 DAILY TOTALS vs TARGETS (before scaling):');
         console.log(`   Calories: ${dailyTotals.calories} / ${targets.calories} (${((dailyTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
         console.log(`   Protein:  ${dailyTotals.protein}g / ${targets.protein}g (${((dailyTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
         console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
         console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
+
+        // Scale portions to hit targets
+        correctedData = scalePortionsToTargets(correctedData, dailyTotals, targets);
+
+        // Recalculate totals after scaling
+        const scaledTotals = correctedData.reduce((acc, meal) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein || 0),
+          carbs: acc.carbs + (meal.carbs || 0),
+          fat: acc.fat + (meal.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+        console.log('📊 DAILY TOTALS vs TARGETS (after scaling):');
+        console.log(`   Calories: ${scaledTotals.calories} / ${targets.calories} (${((scaledTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Protein:  ${scaledTotals.protein}g / ${targets.protein}g (${((scaledTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Carbs:    ${scaledTotals.carbs}g / ${targets.carbs}g (${((scaledTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Fat:      ${scaledTotals.fat}g / ${targets.fat}g (${((scaledTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
       }
     } else if (jsonData.name && jsonData.ingredients) {
       // Single meal object with structured ingredients
