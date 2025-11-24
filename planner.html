@@ -1071,57 +1071,82 @@ ${expectedMealTypes.length === 4 ? 'The array should have EXACTLY 4 objects.' : 
 ${expectedMealTypes.length === 5 ? 'The array should have EXACTLY 5 objects.' : ''}
 ${expectedMealTypes.length === 6 ? 'The array should have EXACTLY 6 objects.' : ''}
 
-CRITICAL CALORIE ACCURACY RULES:
-- VERIFY macro math: (protein grams × 4) + (carbs grams × 4) + (fat grams × 9) MUST equal total calories EXACTLY (±5%)
-- Use REALISTIC portion sizes based on actual food database values
-- Meal sizes should be appropriate for the daily ${calories} calorie target
-- Common food MINIMUM calories (DO NOT go below these):
-  * Burrito with protein/cheese/toppings = 400-800 cal
-  * Burger with bun and toppings = 400-700 cal
-  * Pizza (2 slices) = 500-600 cal
-  * Pasta dish with sauce/protein = 350-600 cal
-  * Quesadilla with cheese/protein = 400-600 cal
-  * Sandwich with multiple ingredients = 350-500 cal
-  * Steak (6-8oz) with sides = 500-700 cal
-USE THESE EXACT NUTRITIONAL VALUES (scientifically verified):
+===== USDA VERIFIED FOOD DATABASE =====
+YOU MUST CHOOSE ONLY FROM THIS LIST. Use exact snake_case names.
 
-PROTEINS (per standard portion):
-* 1 large egg = 70 cal, 6g protein, 0g carbs, 5g fat
-* 4oz chicken breast = 185 cal, 35g protein, 0g carbs, 4g fat
-* 4oz ground turkey = 200 cal, 28g protein, 0g carbs, 11g fat
-* 4oz salmon = 200 cal, 23g protein, 0g carbs, 12g fat
-* 4oz ground beef (90/10) = 200 cal, 24g protein, 0g carbs, 11g fat
-* 1 scoop whey protein = 120 cal, 25g protein, 3g carbs, 1g fat
-* 1 cup Greek yogurt = 150 cal, 20g protein, 10g carbs, 4g fat
+PROTEINS - Poultry (per 100g raw):
+chicken_breast: 165cal, 31P, 0C, 4F | turkey_breast: 135cal, 30P, 0C, 1F
+ground_turkey: 176cal, 25P, 0C, 10F | ground_chicken: 143cal, 17P, 0C, 8F
 
-CARBS (per standard portion):
-* 1 cup cooked brown rice = 215 cal, 5g protein, 45g carbs, 2g fat
-* 1 cup cooked pasta = 220 cal, 8g protein, 43g carbs, 1g fat
-* 1 cup cooked quinoa = 222 cal, 8g protein, 39g carbs, 4g fat
-* 1 medium sweet potato = 115 cal, 2g protein, 27g carbs, 0g fat
-* 1 slice whole wheat bread = 80 cal, 4g protein, 14g carbs, 1g fat
-* 1 cup cooked oats = 150 cal, 6g protein, 27g carbs, 3g fat
+PROTEINS - Beef (per 100g raw):
+ground_beef_93: 164cal, 22P, 0C, 7F | sirloin_steak: 160cal, 28P, 0C, 5F
+flank_steak: 192cal, 27P, 0C, 9F | bison: 143cal, 28P, 0C, 2F
 
-FATS (per standard portion):
-* 1 tbsp olive oil = 120 cal, 0g protein, 0g carbs, 14g fat
-* 1/2 medium avocado = 120 cal, 1g protein, 6g carbs, 10g fat
-* 1 tbsp almond butter = 95 cal, 3g protein, 3g carbs, 9g fat
+PROTEINS - Pork (per 100g raw):
+pork_tenderloin: 143cal, 26P, 0C, 4F | pork_chop: 206cal, 26P, 0C, 11F
 
-FRUITS/VEGGIES:
-* 1 medium banana = 105 cal, 1g protein, 27g carbs, 0g fat
-* 100g broccoli = 35 cal, 3g protein, 7g carbs, 0g fat
+PROTEINS - Seafood (per 100g raw):
+salmon: 177cal, 20P, 0C, 11F | cod: 82cal, 18P, 0C, 1F | tilapia: 128cal, 26P, 0C, 3F
+shrimp: 106cal, 23P, 1C, 1F | tuna_canned_water: 116cal, 26P, 0C, 1F
 
-USE ONLY THESE VALUES! Calculate ingredient by ingredient!
-- Protein shake = 120-250 calories MAX (1 scoop protein + liquid)
-- Snacks = 100-400 calories
-- BE CONSERVATIVE: When in doubt, estimate HIGHER not lower
-- DAILY TOTALS MUST HIT TARGETS: Your meals must add up to the daily targets within 10%
+PROTEINS - Dairy & Eggs:
+egg_large (1 egg): 70cal, 6P, 0C, 5F | egg_white (1 white): 17cal, 4P, 0C, 0F
+greek_yogurt_nonfat (100g): 59cal, 10P, 4C, 0F
+cottage_cheese_nonfat (100g): 72cal, 12P, 6C, 0F
 
-CRITICAL NAMING RULES:
-- Name meals with SPECIFIC QUANTITIES and ingredients (e.g., "6oz sirloin steak, 1 cup brown rice, 100g roasted vegetables")
-- DO NOT use generic names like "Steak with Roasted Vegetables"
-- NEVER use adjectives like "hearty", "delicious", "tasty", "nutritious" in meal names
-- Be direct and specific with measurements
+PROTEINS - Plant (per 100g cooked):
+tofu_firm: 76cal, 8P, 2C, 5F | lentils_cooked: 116cal, 9P, 20C, 0F
+black_beans: 132cal, 9P, 24C, 1F | chickpeas: 164cal, 9P, 27C, 3F
+
+PROTEINS - Powder (per scoop):
+whey_protein (30g): 120cal, 25P, 3C, 1F
+
+CARBS - Rice & Grains (per 100g cooked):
+brown_rice_cooked: 112cal, 2P, 24C, 1F | white_rice_cooked: 130cal, 3P, 28C, 0F
+quinoa_cooked: 120cal, 4P, 21C, 2F | oats_cooked: 71cal, 2P, 12C, 1F
+pasta_cooked: 131cal, 5P, 25C, 1F
+
+CARBS - Potatoes (per 100g):
+sweet_potato: 86cal, 2P, 20C, 0F | russet_potato: 79cal, 2P, 18C, 0F
+
+CARBS - Bread (per slice/piece):
+whole_wheat_bread (1 slice 28g): 80cal, 4P, 14C, 1F
+ezekiel_bread (1 slice 34g): 80cal, 4P, 15C, 1F
+tortilla_flour (1 tortilla 32g): 94cal, 3P, 16C, 2F
+
+FATS - Oils & Butters (per tbsp):
+olive_oil: 120cal, 0P, 0C, 14F | butter: 102cal, 0P, 0C, 12F
+avocado_oil: 120cal, 0P, 0C, 14F
+
+FATS - Nut Butters (per tbsp 16g):
+peanut_butter: 94cal, 4P, 3C, 8F | almond_butter: 95cal, 3P, 3C, 9F
+
+FATS - Nuts (per 28g):
+almonds: 160cal, 6P, 6C, 14F | walnuts: 185cal, 4P, 4C, 18F
+
+FATS - Whole Foods (per 100g):
+avocado: 160cal, 2P, 9C, 15F
+
+VEGETABLES (per 100g):
+broccoli: 34cal, 3P, 7C, 0F | spinach: 23cal, 3P, 4C, 0F
+bell_pepper: 26cal, 1P, 6C, 0F | zucchini: 17cal, 1P, 3C, 0F
+asparagus: 20cal, 2P, 4C, 0F | green_beans: 31cal, 2P, 7C, 0F
+
+FRUITS:
+banana (1 medium 118g): 105cal, 1P, 27C, 0F
+blueberries (100g): 57cal, 1P, 14C, 0F
+strawberries (100g): 32cal, 1P, 8C, 0F
+apple (1 medium 182g): 95cal, 0P, 25C, 0F
+
+CONDIMENTS (per tbsp):
+ketchup: 17cal, 0P, 4C, 0F | mustard: 10cal, 1P, 1C, 1F
+hot_sauce: 1cal, 0P, 0C, 0F | soy_sauce: 9cal, 1P, 1C, 0F
+
+CRITICAL RULES:
+- Use ONLY foods from this list with exact snake_case names
+- Portions: "100g", "150g", "1 tbsp", "2 slices", "1 egg", "200g"
+- Name meals with SPECIFIC amounts: "150g chicken_breast, 200g brown_rice_cooked"
+- NO adjectives like "delicious" or "hearty" in meal names
 
 IMPORTANT: Only use recipes that can be made with the available equipment.
 Consider the budget constraint and preferred foods when planning meals.
@@ -1133,20 +1158,24 @@ Replace all quotes with apostrophes. Keep instructions simple and brief.
 Include detailed ingredients list and full cooking instructions.
 
 CRITICAL INGREDIENTS FORMAT:
-You MUST return ingredients as STRUCTURED OBJECTS using foods from the database.
-Use these exact food names (snake_case): chicken_breast, ground_turkey, salmon, ground_beef_90, egg, brown_rice_cooked, white_rice_cooked, sweet_potato, pasta_cooked, whole_wheat_bread, oats_cooked, avocado, olive_oil, butter, broccoli, spinach, etc.
+You MUST return ingredients as STRUCTURED OBJECTS using ONLY foods from the database above.
+Use exact snake_case names: chicken_breast, egg_large, brown_rice_cooked, etc.
 
 EXAMPLE (use this EXACT format):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 large eggs scrambled, 2 slices whole wheat toast, 1/2 avocado","ingredients":[{"food":"egg","amount":"3"},{"food":"whole_wheat_bread","amount":"2 slices"},{"food":"butter","amount":"1 tbsp"},{"food":"avocado","amount":"50g"}],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast bread. Serve with sliced avocado."}]}
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"3 eggs scrambled with 2 slices whole wheat toast and 50g avocado","ingredients":[{"food":"egg_large","amount":"3"},{"food":"whole_wheat_bread","amount":"2 slices"},{"food":"butter","amount":"1 tbsp"},{"food":"avocado","amount":"50g"}],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with sliced avocado."}]}
 
-CRITICAL: ingredients must be an array of objects with "food" and "amount" keys.
-DO NOT include calories/protein/carbs/fat in meal objects - backend JS algorithm calculates these exactly from database.
+CRITICAL REQUIREMENTS:
+1. Ingredients MUST be array of objects: [{"food":"exact_db_name","amount":"100g"}]
+2. Use EXACT snake_case names from database (e.g., "egg_large" not "egg", "brown_rice_cooked" not "brown rice")
+3. DO NOT include calories/protein/carbs/fat - backend calculates from database
+4. Portions: "100g", "150g", "200g", "1 tbsp", "2 slices", "1 egg", "3 eggs"
+5. Each meal MUST have "type", "name", "ingredients", "instructions"
 
-STEP-BY-STEP FOR EVERY MEAL:
-1. Choose foods from the database (use snake_case names)
-2. Specify portions (e.g., "4oz", "100g", "1 cup", "2 slices", "1 tbsp")
-3. Return as structured objects: {"food":"food_name","amount":"portion"}
-4. Backend JS algorithm will calculate exact macros from database`;
+STEP-BY-STEP:
+1. Choose 3-5 foods from database for each meal
+2. Use exact snake_case names
+3. Specify realistic portions to hit meal targets
+4. Backend will calculate exact macros and optimize portions`;
 
         // Build targets object for hybrid Gemini + JS optimizer
         const dayTargets = {
