@@ -570,18 +570,17 @@ async function callClaude(prompt, targets, previousAttempt = null) {
 }
 
 // Backwards compatibility wrapper - gradually replace callGemini with callClaude
-async function callGemini(prompt, isJson = true, targets = null, previousAttempt = null) {
-    // If targets provided, use Claude (new way)
-    if (targets) {
-        return await callClaude(prompt, targets, previousAttempt);
-    }
-
-    // Otherwise fall back to old Gemini behavior (for compatibility)
+async function callGemini(prompt, isJson = true, targets = null, previousAttempt = null, mealsPerDay = null) {
+    // Use hybrid Gemini + Claude approach (Gemini creates, Claude optimizes)
     try {
+        const requestBody = { prompt };
+        if (targets) requestBody.targets = targets;
+        if (mealsPerDay) requestBody.mealsPerDay = mealsPerDay;
+
         const response = await fetch('/.netlify/functions/generate-meal-plan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -1517,7 +1516,15 @@ Include detailed ingredients list and full cooking instructions.
 
 {"type":"${meal.type}","name":"6oz turkey breast, 150g sweet potato, 100g green beans","calories":${meal.calories},"protein":${meal.protein},"carbs":${meal.carbs},"fat":${meal.fat},"ingredients":["6oz turkey breast","150g sweet potato","100g green beans","1 tsp olive oil"],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}`;
 
-    const revisedMeal = await callGemini(aiPrompt, true);
+    // Pass current meal macros as targets so Claude can optimize portions to match
+    const mealTargets = {
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat
+    };
+
+    const revisedMeal = await callGemini(aiPrompt, true, mealTargets, null, 1);
 
     if (!revisedMeal.error) {
         // Sanitize the meal data

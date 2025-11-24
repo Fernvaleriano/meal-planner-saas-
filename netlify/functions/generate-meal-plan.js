@@ -219,17 +219,18 @@ const FOOD_DATABASE = {
 };
 
 /**
- * Calculates meal macros from ingredient list using Claude API
- * Takes Gemini's creative meal with ingredients and calculates accurate macros
+ * Optimizes meal portions to hit target macros using Claude API
+ * Takes Gemini's creative meal with ingredients and adjusts portions to hit exact targets
  */
-async function correctMealMacros(geminiMeal) {
+async function correctMealMacros(geminiMeal, mealTargets) {
   if (!ANTHROPIC_API_KEY) {
     console.warn('⚠️ ANTHROPIC_API_KEY not configured, skipping macro correction');
     return geminiMeal; // Return original if Claude not available
   }
 
   try {
-    console.log(`🔍 Claude calculating macros for: ${geminiMeal.name}`);
+    console.log(`🔍 Claude optimizing portions for: ${geminiMeal.name}`);
+    console.log(`🎯 Targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
 
     // Check if meal has ingredients array (new format)
     if (!geminiMeal.ingredients || !Array.isArray(geminiMeal.ingredients)) {
@@ -241,23 +242,32 @@ async function correctMealMacros(geminiMeal) {
       apiKey: ANTHROPIC_API_KEY,
     });
 
-    const calculationPrompt = `You are a precision nutrition calculator. Calculate exact macros from this ingredient list.
+    const optimizationPrompt = `You are a precision nutrition optimizer. Your job is to ADJUST PORTIONS to hit exact macro targets.
 
 ## FOOD DATABASE (USDA-VERIFIED):
 ${JSON.stringify(FOOD_DATABASE, null, 2)}
 
-## MEAL TO CALCULATE:
+## MEAL TO OPTIMIZE:
 Name: ${geminiMeal.name}
-Ingredients:
+Starting Ingredients (portions may need adjustment):
 ${JSON.stringify(geminiMeal.ingredients, null, 2)}
 Instructions: ${geminiMeal.instructions}
 
+## TARGET MACROS FOR THIS MEAL (MUST HIT WITHIN ±8%):
+- Calories: ${mealTargets.calories} cal (±8% = ${Math.round(mealTargets.calories * 0.92)}-${Math.round(mealTargets.calories * 1.08)})
+- Protein: ${mealTargets.protein}g (±8% = ${Math.round(mealTargets.protein * 0.92)}-${Math.round(mealTargets.protein * 1.08)}g)
+- Carbs: ${mealTargets.carbs}g (±8% = ${Math.round(mealTargets.carbs * 0.92)}-${Math.round(mealTargets.carbs * 1.08)}g)
+- Fat: ${mealTargets.fat}g (±8% = ${Math.round(mealTargets.fat * 0.92)}-${Math.round(mealTargets.fat * 1.08)}g)
+
 ## YOUR TASK:
-For each ingredient:
-1. Look up the food in the database above
-2. Parse the amount (e.g., "200g", "2 eggs", "1 tbsp")
-3. Calculate macros for that portion
-4. Sum all ingredients to get meal totals
+1. Calculate current macros from starting ingredients
+2. Determine how to ADJUST PORTIONS to hit targets (±8%)
+3. You can:
+   - Increase/decrease ingredient amounts
+   - Add small amounts of complementary foods from database
+   - Remove ingredients if needed
+4. Keep portions realistic (chicken: 100-300g, rice: 100-300g, etc.)
+5. Verify math: (P×4) + (C×4) + (F×9) ≈ calories
 
 ## CALCULATION RULES:
 - Database portions: "per 100g" = scale by grams, "per 1 egg" = scale by count, "per 1 tbsp" = scale by tbsp
@@ -265,21 +275,22 @@ For each ingredient:
   - chicken_breast "200g" → 200g ÷ 100g × database values = 2x multiplier
   - egg_large "3 eggs" → 3 × database values
   - olive_oil "2 tbsp" → 2 × database values
-- Verify final math: (P×4) + (C×4) + (F×9) ≈ calories (±5%)
 
 ## RESPONSE FORMAT (JSON only, no markdown):
 {
   "name": "${geminiMeal.name}",
-  "ingredients": ${JSON.stringify(geminiMeal.ingredients)},
+  "ingredients": [
+    {"food": "food_name", "amount": "adjusted_amount"}
+  ],
   "calories": <total_integer>,
   "protein": <total_integer>,
   "carbs": <total_integer>,
   "fat": <total_integer>,
   "instructions": "${geminiMeal.instructions}",
-  "calculation_notes": "Brief breakdown of how totals were calculated"
+  "calculation_notes": "Brief explanation of adjustments made to hit targets"
 }
 
-Return ONLY the JSON object, no markdown, no backticks.`;
+Return ONLY the JSON object, no markdown, no backticks. Portions MUST be adjusted to hit targets within ±8%.`;
 
     const message = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
@@ -349,7 +360,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt, targets, previousAttempt } = JSON.parse(event.body);
+    const { prompt, targets, mealsPerDay, previousAttempt } = JSON.parse(event.body);
 
     if (!prompt) {
       return {
@@ -360,7 +371,8 @@ exports.handler = async (event, context) => {
 
     console.log('📤 Calling Gemini API...');
     if (targets) {
-      console.log('Targets:', targets);
+      console.log('Daily Targets:', targets);
+      console.log('Meals per day:', mealsPerDay);
     }
     
     // ✅ FIXED: Proper fetch syntax with parentheses
@@ -432,27 +444,43 @@ exports.handler = async (event, context) => {
     // Parse JSON (handle markdown-wrapped responses)
     const jsonData = extractJSON(responseText);
 
-    // 🎯 NEW: Correct macros using Claude
-    console.log('🔄 Starting Claude macro correction...');
+    // 🎯 NEW: Optimize meal portions using Claude
+    console.log('🔄 Starting Claude portion optimization...');
     let correctedData = jsonData;
+
+    // Calculate per-meal targets
+    const mealTargets = targets && mealsPerDay ? {
+      calories: Math.round(targets.calories / mealsPerDay),
+      protein: Math.round(targets.protein / mealsPerDay),
+      carbs: Math.round(targets.carbs / mealsPerDay),
+      fat: Math.round(targets.fat / mealsPerDay)
+    } : null;
+
+    if (mealTargets) {
+      console.log(`📊 Per-meal targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+    }
 
     // Handle both single meal and array of meals
     if (Array.isArray(jsonData)) {
-      console.log(`📊 Correcting ${jsonData.length} meals with Claude...`);
+      console.log(`📊 Optimizing ${jsonData.length} meals with Claude...`);
       correctedData = [];
       for (let i = 0; i < jsonData.length; i++) {
-        console.log(`⏳ Correcting meal ${i + 1}/${jsonData.length}...`);
-        const correctedMeal = await correctMealMacros(jsonData[i]);
-        correctedData.push(correctedMeal);
+        console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.length}...`);
+        const optimizedMeal = mealTargets
+          ? await correctMealMacros(jsonData[i], mealTargets)
+          : await correctMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        correctedData.push(optimizedMeal);
       }
-      console.log(`✅ All ${jsonData.length} meals corrected!`);
+      console.log(`✅ All ${jsonData.length} meals optimized!`);
     } else if (jsonData.name && jsonData.calories) {
       // Single meal object
-      console.log('📊 Correcting single meal with Claude...');
-      correctedData = await correctMealMacros(jsonData);
-      console.log('✅ Meal corrected!');
+      console.log('📊 Optimizing single meal with Claude...');
+      correctedData = mealTargets
+        ? await correctMealMacros(jsonData, mealTargets)
+        : await correctMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      console.log('✅ Meal optimized!');
     } else {
-      console.log('⚠️ Unexpected data format, skipping correction');
+      console.log('⚠️ Unexpected data format, skipping optimization');
     }
 
     return {
