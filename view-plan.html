@@ -434,7 +434,6 @@
         let currentShareUrl = '';
         let realtimeChannel = null;
         let currentPlanId = null;
-        let isClientView = false; // Track if this is a client viewing their plan
 
         // Detect if page was loaded from back/forward cache and force reload
         window.addEventListener('pageshow', function(event) {
@@ -455,11 +454,9 @@
 
             if (shareId) {
                 // Load shared plan from database (client view)
-                isClientView = true; // Shared plans are read-only
                 loadSharedPlan(shareId);
             } else if (planId) {
                 // Load plan from database by ID (coach or client viewing)
-                isClientView = clientView; // Set global flag
                 await loadCoachPlan(planId, clientView);
             } else {
                 // Load from localStorage (newly generated plan)
@@ -722,6 +719,52 @@
             }
         });
 
+        // Save current plan back to database if viewing from database
+        async function savePlanToDatabase() {
+            if (!currentPlanId) {
+                console.log('⏭️ Skipping database save - no planId (viewing from localStorage)');
+                return;
+            }
+
+            try {
+                console.log('💾 Saving plan changes to database...', currentPlanId);
+
+                // Prepare the plan data in the format the database expects
+                const planData = {
+                    clientName: currentPlan.clientName,
+                    preferences: currentPlan.preferences || {},
+                    nutrition: currentPlan.nutrition
+                };
+
+                // Add the plan structure based on type
+                if (currentPlan.multiDay && currentPlan.days) {
+                    planData.currentPlan = currentPlan.days;
+                    planData.calories = currentPlan.nutrition.calories;
+                    planData.protein = currentPlan.nutrition.protein;
+                    planData.carbs = currentPlan.nutrition.carbs;
+                    planData.fat = currentPlan.nutrition.fat;
+                } else if (currentPlan.meals) {
+                    planData.meals = currentPlan.meals;
+                }
+
+                // Update the database record
+                const { error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .update({ plan_data: planData })
+                    .eq('id', currentPlanId);
+
+                if (error) {
+                    console.error('❌ Database save error:', error);
+                    throw error;
+                }
+
+                console.log('✅ Plan saved to database successfully');
+            } catch (error) {
+                console.error('❌ Failed to save plan to database:', error);
+                alert('Warning: Changes saved locally but failed to sync to database. Your coach may not see your changes.');
+            }
+        }
+
         // Generate and save share link
         async function generateShareLink() {
             if (!currentPlan) {
@@ -891,18 +934,13 @@
             const changeParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
             const reviseParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
 
-            // Only show Change/Revise buttons for coach view (not client view)
-            const actionButtons = isClientView ? '' : `
-                <div class="meal-actions">
-                    <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
-                    <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
-                </div>
-            `;
-
             card.innerHTML = `
                 <div class="meal-header">
                     <div class="meal-name">${meal.name}</div>
-                    ${actionButtons}
+                    <div class="meal-actions">
+                        <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
+                        <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
+                    </div>
                 </div>
                 <div class="macro-grid">
                     <div class="macro-item">
@@ -926,12 +964,10 @@
                     <span class="instructions-label">📝 Instructions:</span>
                     ${meal.instructions}
                 </div>
-                ${isClientView ? '' : `
-                    <div id="revise-${index}" class="revise-section" style="display:none;">
-                        <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
-                        <button class="btn btn-revise" onclick="submitRevision(${changeParam})">Apply Changes</button>
-                    </div>
-                `}
+                <div id="revise-${index}" class="revise-section" style="display:none;">
+                    <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
+                    <button class="btn btn-revise" onclick="submitRevision(${changeParam})">Apply Changes</button>
+                </div>
             `;
             return card;
         }
@@ -1046,6 +1082,9 @@ Keep similar calories/macros unless specifically asked to change them.`;
                 }
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
 
+                // Save to database if viewing from database
+                await savePlanToDatabase();
+
                 // Refresh display
                 displayMealPlan();
                 
@@ -1142,6 +1181,9 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                     currentPlan.meals[index] = newMeal;
                 }
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+                // Save to database if viewing from database
+                await savePlanToDatabase();
 
                 displayMealPlan();
                 
