@@ -1149,7 +1149,7 @@ STEP-BY-STEP FOR EVERY MEAL:
 4. That sum IS your meal total - do not guess!
 5. Include breakdown field showing your calculation`;
 
-        // Build targets object for Claude
+        // Build targets object for hybrid Gemini + JS optimizer
         const dayTargets = {
             calories: calories,
             protein: protein,
@@ -1157,7 +1157,8 @@ STEP-BY-STEP FOR EVERY MEAL:
             fat: fat
         };
 
-        const dayData = await callClaude(dayPrompt, dayTargets);
+        // ✅ Use callGemini (hybrid approach with JS optimizer) instead of callClaude
+        const dayData = await callGemini(dayPrompt, true, dayTargets, null, expectedMealTypes.length);
         if (dayData.error) {
             resultDiv.innerHTML = `<div class="card text-red-600">Error generating Day ${day}: ${dayData.error}</div>`;
             button.disabled = false;
@@ -1186,7 +1187,7 @@ STEP-BY-STEP FOR EVERY MEAL:
                     console.warn(`⚠️ Validation failed for ${meal.type} on Day ${day}:`, validation.issues);
                     console.log('🔄 Regenerating meal...');
 
-                    // Regenerate this specific meal using Claude (max 2 attempts)
+                    // Regenerate this specific meal using hybrid Gemini + JS optimizer (max 2 attempts)
                     let retryCount = 0;
                     let validMeal = null;
                     let previousAttempt = null;
@@ -1198,7 +1199,7 @@ Avoid: ${allergies}
 
 This meal should fit into a day's plan with the following targets.`;
 
-                        // Build targets object for Claude
+                        // Build targets object for JS optimizer
                         const mealTargets = {
                             calories: meal.calories,
                             protein: meal.protein,
@@ -1211,7 +1212,8 @@ This meal should fit into a day's plan with the following targets.`;
                             previousAttempt.errors = validation.issues;
                         }
 
-                        const newMeal = await callClaude(regeneratePrompt, mealTargets, previousAttempt);
+                        // ✅ Use callGemini (hybrid approach with JS optimizer) instead of callClaude
+                        const newMeal = await callGemini(regeneratePrompt, true, mealTargets, previousAttempt, 1);
                         if (!newMeal.error) {
                             const newValidation = validateMeal(newMeal, meal.type);
                             if (newValidation.valid) {
