@@ -1,6 +1,6 @@
 // Netlify Function for secure Gemini API calls
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 exports.handler = async (event, context) => {
   // Only allow POST requests
@@ -70,6 +70,7 @@ exports.handler = async (event, context) => {
 
     const data = await response.json();
     console.log('✅ Gemini API Response received');
+    console.log('Full response structure:', JSON.stringify(data, null, 2));
 
     // Validate response structure
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
@@ -78,6 +79,19 @@ exports.handler = async (event, context) => {
         statusCode: 500,
         body: JSON.stringify({
           error: 'Invalid response from Gemini API',
+          data: data
+        })
+      };
+    }
+
+    // Validate parts array exists
+    if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      console.error('❌ Missing parts in response:', JSON.stringify(data));
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: 'Invalid response structure from Gemini API',
+          message: 'Missing parts array in response',
           data: data
         })
       };
