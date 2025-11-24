@@ -995,20 +995,30 @@ Keep similar calories/macros unless specifically asked to change them.`;
                 if (!response.ok) throw new Error('API request failed');
 
                 const data = await response.json();
-                let text = data.candidates[0].content.parts[0].text;
 
-                // CRITICAL FIX: Pre-process to remove NaN before parsing
-                text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                text = text.replace(/:\s*NaN/g, ': null');
-                text = text.replace(/,\s*\.\.\./g, '');
+                let revisedMeal;
+                // NEW: Handle new backend format (with Claude corrections)
+                if (data.success && data.data) {
+                    console.log('✅ Using new format with Claude corrections');
+                    revisedMeal = data.data; // Already parsed
+                } else {
+                    // FALLBACK: Old Gemini format
+                    console.log('⚠️ Using old Gemini format');
+                    let text = data.candidates[0].content.parts[0].text;
 
-                // Extract JSON object
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    text = jsonMatch[0];
+                    // CRITICAL FIX: Pre-process to remove NaN before parsing
+                    text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                    text = text.replace(/:\s*NaN/g, ': null');
+                    text = text.replace(/,\s*\.\.\./g, '');
+
+                    // Extract JSON object
+                    const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        text = jsonMatch[0];
+                    }
+
+                    revisedMeal = JSON.parse(text);
                 }
-
-                const revisedMeal = JSON.parse(text);
 
                 // CRITICAL FIX: Sanitize numeric values
                 revisedMeal.calories = parseInt(revisedMeal.calories) || meal.calories;
@@ -1082,17 +1092,27 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 if (!response.ok) throw new Error('API request failed');
 
                 const data = await response.json();
-                let text = data.candidates[0].content.parts[0].text;
 
-                // CRITICAL FIX: Pre-process to remove NaN before parsing
-                text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                text = text.replace(/:\s*NaN/g, ': null');
-                text = text.replace(/,\s*\.\.\./g, '');
+                let text;
+                // NEW: Handle new backend format (with Claude corrections)
+                if (data.success && data.data) {
+                    console.log('✅ Using new format with Claude corrections');
+                    text = JSON.stringify(data.data); // Convert back to string for parsing below
+                } else {
+                    // FALLBACK: Old Gemini format
+                    console.log('⚠️ Using old Gemini format');
+                    text = data.candidates[0].content.parts[0].text;
 
-                // Extract JSON object
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    text = jsonMatch[0];
+                    // CRITICAL FIX: Pre-process to remove NaN before parsing
+                    text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                    text = text.replace(/:\s*NaN/g, ': null');
+                    text = text.replace(/,\s*\.\.\./g, '');
+
+                    // Extract JSON object
+                    const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        text = jsonMatch[0];
+                    }
                 }
 
                 const newMeal = JSON.parse(text);
@@ -1281,8 +1301,16 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
             const data = await response.json();
             console.log('API Response:', data);
 
-            // Extract text from Gemini response structure
+            // NEW: Handle new backend format (with Claude corrections)
+            if (data.success && data.data) {
+                console.log('✅ Using new format with Claude corrections');
+                // Backend returns parsed data, convert to text if needed
+                return typeof data.data === 'string' ? data.data : JSON.stringify(data.data);
+            }
+
+            // FALLBACK: Extract text from Gemini response structure
             if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                console.log('⚠️ Using old Gemini format');
                 const text = data.candidates[0].content.parts[0].text;
                 if (!text) {
                     console.error('No text in response:', data);
