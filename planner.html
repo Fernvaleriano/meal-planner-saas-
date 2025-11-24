@@ -1567,7 +1567,7 @@ Current meal details:
 - Protein: ${meal.protein}g
 - Carbs: ${meal.carbs}g
 - Fat: ${meal.fat}g
-- Ingredients: ${meal.ingredients ? meal.ingredients.join(', ') : 'N/A'}
+- Ingredients: ${meal.ingredients ? meal.ingredients.map(ing => typeof ing === 'string' ? ing : `${ing.amount} ${ing.food}`).join(', ') : 'N/A'}
 
 Diet: ${lastPlanQuery.preference}
 Macro Preference: ${lastPlanQuery.macroPreference}
@@ -2087,7 +2087,11 @@ function downloadPlanAsPDF() {
                         pdf.addPage();
                         y = 20;
                     }
-                    const ingredientLines = pdf.splitTextToSize(`• ${ingredient}`, maxWidth - 10);
+                    // Handle both string and object ingredient formats
+                    const ingredientText = typeof ingredient === 'string'
+                        ? ingredient
+                        : `${ingredient.amount} ${ingredient.food}`;
+                    const ingredientLines = pdf.splitTextToSize(`• ${ingredientText}`, maxWidth - 10);
                     pdf.text(ingredientLines, margin + 10, y);
                     y += ingredientLines.length * 4;
                 });

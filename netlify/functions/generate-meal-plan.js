@@ -336,76 +336,29 @@ function optimizeMealMacros(geminiMeal, mealTargets) {
 
   console.log(`📈 Adjustments needed: ${calDiff}cal, ${proteinDiff}P, ${carbsDiff}C, ${fatDiff}F`);
 
-  // Step 3: Identify adjustment strategies based on what's in the meal
-  const adjustedIngredients = [...geminiMeal.ingredients];
+  // Step 3: DISABLED - Gemini with database should get close enough
+  // Just calculate macros from what Gemini provided, don't adjust portions
+  // The optimizer was too aggressive and caused macro explosions
+  console.log('⚠️ Portion optimization DISABLED - using Gemini portions as-is');
+  console.log('   (Gemini has USDA database, should choose appropriate portions)');
 
-  // Find protein sources (chicken, beef, fish, eggs, etc.)
-  const proteinIdx = adjustedIngredients.findIndex(ing =>
-    ing.food.includes('chicken') || ing.food.includes('turkey') || ing.food.includes('beef') ||
-    ing.food.includes('fish') || ing.food.includes('salmon') || ing.food.includes('tuna') ||
-    ing.food.includes('egg') || ing.food.includes('tofu') || ing.food.includes('shrimp')
-  );
-
-  // Find carb sources (rice, pasta, potato, oats, bread)
-  const carbIdx = adjustedIngredients.findIndex(ing =>
-    ing.food.includes('rice') || ing.food.includes('pasta') || ing.food.includes('potato') ||
-    ing.food.includes('oat') || ing.food.includes('bread') || ing.food.includes('quinoa')
-  );
-
-  // Find fat sources (oil, butter, avocado, nuts, cheese)
-  const fatIdx = adjustedIngredients.findIndex(ing =>
-    ing.food.includes('oil') || ing.food.includes('butter') || ing.food.includes('avocado') ||
-    ing.food.includes('nut') || ing.food.includes('cheese') || ing.food.includes('almond')
-  );
-
-  // Step 4: Adjust portions to hit targets
-  // If protein is low, increase protein source
-  if (proteinDiff > 5 && proteinIdx >= 0) {
-    const currentAmount = parseFloat(adjustedIngredients[proteinIdx].amount.match(/(\d+)/)?.[1] || 100);
-    const increase = Math.round(proteinDiff * 5); // ~5g per oz of protein
-    const newAmount = currentAmount + increase;
-    adjustedIngredients[proteinIdx].amount = `${newAmount}g`;
-    console.log(`🔧 Increased ${adjustedIngredients[proteinIdx].food} from ${currentAmount}g to ${newAmount}g`);
-  }
-
-  // If carbs are low, increase carb source
-  if (carbsDiff > 5 && carbIdx >= 0) {
-    const currentAmount = parseFloat(adjustedIngredients[carbIdx].amount.match(/(\d+)/)?.[1] || 100);
-    const increase = Math.round(carbsDiff * 4); // ~25g carbs per 100g rice
-    const newAmount = currentAmount + increase;
-    adjustedIngredients[carbIdx].amount = `${newAmount}g`;
-    console.log(`🔧 Increased ${adjustedIngredients[carbIdx].food} from ${currentAmount}g to ${newAmount}g`);
-  }
-
-  // If fat is low, increase fat source
-  if (fatDiff > 3 && fatIdx >= 0) {
-    const currentAmount = parseFloat(adjustedIngredients[fatIdx].amount.match(/(\d+)/)?.[1] || 1);
-    const isTbsp = adjustedIngredients[fatIdx].amount.includes('tbsp');
-    if (isTbsp) {
-      const newAmount = Math.ceil(currentAmount + (fatDiff / 14)); // 14g fat per tbsp
-      adjustedIngredients[fatIdx].amount = `${newAmount} tbsp`;
-      console.log(`🔧 Increased ${adjustedIngredients[fatIdx].food} from ${currentAmount} tbsp to ${newAmount} tbsp`);
-    }
-  }
-
-  // Step 5: Recalculate with adjusted portions
-  const optimized = calculateMacrosFromIngredients(adjustedIngredients);
+  const optimized = current; // Use current calculated macros without adjustment
 
   console.log(`✅ Optimized totals: ${optimized.totals.calories}cal, ${optimized.totals.protein}P, ${optimized.totals.carbs}C, ${optimized.totals.fat}F`);
   console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
 
-  // Return optimized meal
+  // Return meal with calculated macros (no portion adjustments)
   return {
     type: geminiMeal.type || 'meal',
     name: geminiMeal.name,
-    ingredients: adjustedIngredients,
+    ingredients: geminiMeal.ingredients, // Use original Gemini portions
     calories: optimized.totals.calories,
     protein: optimized.totals.protein,
     carbs: optimized.totals.carbs,
     fat: optimized.totals.fat,
     instructions: geminiMeal.instructions,
     breakdown: optimized.breakdown,
-    calculation_notes: `Calculated from ${adjustedIngredients.length} ingredients using USDA database`
+    calculation_notes: `Calculated from ${geminiMeal.ingredients.length} ingredients using USDA database`
   };
 }
 
