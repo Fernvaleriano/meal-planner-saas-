@@ -719,6 +719,52 @@
             }
         });
 
+        // Save current plan back to database if viewing from database
+        async function savePlanToDatabase() {
+            if (!currentPlanId) {
+                console.log('⏭️ Skipping database save - no planId (viewing from localStorage)');
+                return;
+            }
+
+            try {
+                console.log('💾 Saving plan changes to database...', currentPlanId);
+
+                // Prepare the plan data in the format the database expects
+                const planData = {
+                    clientName: currentPlan.clientName,
+                    preferences: currentPlan.preferences || {},
+                    nutrition: currentPlan.nutrition
+                };
+
+                // Add the plan structure based on type
+                if (currentPlan.multiDay && currentPlan.days) {
+                    planData.currentPlan = currentPlan.days;
+                    planData.calories = currentPlan.nutrition.calories;
+                    planData.protein = currentPlan.nutrition.protein;
+                    planData.carbs = currentPlan.nutrition.carbs;
+                    planData.fat = currentPlan.nutrition.fat;
+                } else if (currentPlan.meals) {
+                    planData.meals = currentPlan.meals;
+                }
+
+                // Update the database record
+                const { error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .update({ plan_data: planData })
+                    .eq('id', currentPlanId);
+
+                if (error) {
+                    console.error('❌ Database save error:', error);
+                    throw error;
+                }
+
+                console.log('✅ Plan saved to database successfully');
+            } catch (error) {
+                console.error('❌ Failed to save plan to database:', error);
+                alert('Warning: Changes saved locally but failed to sync to database. Your coach may not see your changes.');
+            }
+        }
+
         // Generate and save share link
         async function generateShareLink() {
             if (!currentPlan) {
@@ -1036,6 +1082,9 @@ Keep similar calories/macros unless specifically asked to change them.`;
                 }
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
 
+                // Save to database if viewing from database
+                await savePlanToDatabase();
+
                 // Refresh display
                 displayMealPlan();
                 
@@ -1132,6 +1181,9 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                     currentPlan.meals[index] = newMeal;
                 }
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+                // Save to database if viewing from database
+                await savePlanToDatabase();
 
                 displayMealPlan();
                 

@@ -654,7 +654,8 @@ async function callGemini(prompt, isJson = true, targets = null, previousAttempt
             if (isJson) {
                 return data.data; // Already parsed JSON
             } else {
-                return JSON.stringify(data.data); // Return as string if text needed
+                // For text responses (like Meal Prep Guide), return the raw Gemini text
+                return data.rawResponse || JSON.stringify(data.data, null, 2);
             }
         }
 
@@ -1577,31 +1578,47 @@ async function saveCoachPlan(planData, clientName) {
 
 // RECIPE GENERATOR
 async function getAIRecipe(mealName) {
+    console.log('📖 Getting recipe for:', mealName);
     const modal = document.getElementById('recipe-modal');
     const content = document.getElementById('recipe-content');
+
+    if (!modal || !content) {
+        console.error('❌ Recipe modal elements not found in DOM');
+        alert('Error: Recipe modal not found. Please refresh the page.');
+        return;
+    }
 
     document.getElementById('recipe-title').innerText = mealName;
     modal.classList.remove('hidden');
     content.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div>';
 
-    const prompt = `Recipe for "${mealName}". Use markdown with ### Ingredients and ### Instructions headings.`;
-    const recipe = await callGemini(prompt, false);
+    try {
+        const prompt = `Recipe for "${mealName}". Use markdown with ### Ingredients and ### Instructions headings.`;
+        const recipe = await callGemini(prompt, false);
 
-    if (recipe.error) {
-        content.innerHTML = `<p class="text-red-500">${recipe.error}</p>`;
-    } else {
-        let html = recipe
-            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-            .replace(/^\* (.*$)/gim, '<li>$1</li>')
-            .replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>')
-            .replace(/<\/li>\n<li>/g, '</li><li>');
+        if (recipe.error) {
+            content.innerHTML = `<p class="text-red-500">${recipe.error}</p>`;
+        } else if (typeof recipe !== 'string') {
+            console.error('❌ Recipe response is not a string:', typeof recipe, recipe);
+            content.innerHTML = '<p class="text-red-500">Error: Invalid recipe format received. Please try again.</p>';
+        } else {
+            console.log('✅ Recipe generated successfully');
+            let html = recipe
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^\* (.*$)/gim, '<li>$1</li>')
+                .replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>')
+                .replace(/<\/li>\n<li>/g, '</li><li>');
 
-        html = html.replace(/(<li>.*<\/li>)/gs, (match) => {
-            if(match.toLowerCase().includes('ingredient')) return `<ul>${match}</ul>`;
-            return `<ol>${match}</ol>`;
-        });
+            html = html.replace(/(<li>.*<\/li>)/gs, (match) => {
+                if(match.toLowerCase().includes('ingredient')) return `<ul>${match}</ul>`;
+                return `<ol>${match}</ol>`;
+            });
 
-        content.innerHTML = html;
+            content.innerHTML = html;
+        }
+    } catch (error) {
+        console.error('❌ Error generating recipe:', error);
+        content.innerHTML = `<p class="text-red-500">Error generating recipe: ${error.message}. Please try again.</p>`;
     }
 }
 
@@ -2547,6 +2564,12 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
 
 // Simple markdown formatter
 function formatMarkdown(text) {
+    // Handle non-string inputs
+    if (typeof text !== 'string') {
+        console.warn('formatMarkdown received non-string input:', typeof text);
+        text = String(text);
+    }
+
     return text
         .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold mt-6 mb-4 text-gray-800">$1</h2>')
         .replace(/^### (.+)$/gm, '<h3 class="text-xl font-semibold mt-4 mb-3 text-gray-700">$1</h3>')
@@ -2586,8 +2609,18 @@ document.addEventListener('click', function(event) {
         'generate-plan': generateDietPlan,
         'close-modal': () => document.getElementById('recipe-modal').classList.add('hidden'),
         'get-recipe': () => {
-            const mealName = event.target.closest('[data-meal-name]').dataset.mealName;
-            if(mealName) getAIRecipe(mealName);
+            const target = event.target.closest('[data-meal-name]');
+            if (!target) {
+                console.error('Recipe button clicked but no data-meal-name attribute found');
+                return;
+            }
+            const mealName = target.dataset.mealName;
+            if (mealName) {
+                console.log('Opening recipe for:', mealName);
+                getAIRecipe(mealName);
+            } else {
+                console.error('Recipe button has data-meal-name attribute but no value');
+            }
         },
         'change-meal': () => {
             const target = event.target.closest('[data-day-index]');
