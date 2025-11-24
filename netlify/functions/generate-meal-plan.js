@@ -106,11 +106,14 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error('❌ Function error:', error);
+    console.error('Error stack:', error.stack);
     return {
       statusCode: 500,
       body: JSON.stringify({
         error: 'Internal server error',
-        message: error.message
+        message: error.message,
+        details: error.stack,
+        apiKey: GEMINI_API_KEY ? 'configured' : 'missing'
       })
     };
   }
