@@ -1704,7 +1704,20 @@ function aggregateGroceryList(multiDayPlan) {
             if (!meal.ingredients || !Array.isArray(meal.ingredients)) return;
 
             meal.ingredients.forEach(ingredient => {
-                const parsed = parseIngredient(ingredient);
+                // Handle both old string format and new object format
+                let ingredientStr;
+                if (typeof ingredient === 'string') {
+                    // Old format: "3 eggs"
+                    ingredientStr = ingredient;
+                } else if (ingredient.food && ingredient.amount) {
+                    // New format: {food: "egg", amount: "3"}
+                    ingredientStr = `${ingredient.amount} ${ingredient.food}`;
+                } else {
+                    console.warn('Unknown ingredient format:', ingredient);
+                    return;
+                }
+
+                const parsed = parseIngredient(ingredientStr);
                 const normalized = normalizeUnit(parsed.quantity, parsed.unit);
 
                 const key = `${parsed.name}|${normalized.unit}`;
