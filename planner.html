@@ -643,6 +643,13 @@ async function callGemini(prompt, isJson = true, targets = null, previousAttempt
         // NEW: Handle new backend format (with Claude corrections)
         if (data.success && data.data) {
             console.log('✅ Using new format with Claude corrections');
+            console.log('📦 Raw backend response:', JSON.stringify(data.data).substring(0, 500));
+
+            // Log macros if it's a single meal
+            if (data.data.calories !== undefined) {
+                console.log(`🔢 Meal macros: ${data.data.calories}cal, ${data.data.protein}P, ${data.data.carbs}C, ${data.data.fat}F`);
+            }
+
             // Backend already parsed and corrected the meal
             if (isJson) {
                 return data.data; // Already parsed JSON
