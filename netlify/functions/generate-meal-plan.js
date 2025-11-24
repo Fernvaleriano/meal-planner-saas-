@@ -310,7 +310,17 @@ function optimizeMealMacros(geminiMeal, mealTargets) {
   // Check if meal has ingredients array
   if (!geminiMeal.ingredients || !Array.isArray(geminiMeal.ingredients)) {
     console.warn(`⚠️ Meal missing ingredients array, cannot optimize`);
-    return geminiMeal;
+    // Return meal with fallback macros (use provided macros or targets)
+    return {
+      name: geminiMeal.name || 'Unnamed Meal',
+      ingredients: geminiMeal.ingredients || [],
+      calories: geminiMeal.calories || mealTargets.calories || 0,
+      protein: geminiMeal.protein || mealTargets.protein || 0,
+      carbs: geminiMeal.carbs || mealTargets.carbs || 0,
+      fat: geminiMeal.fat || mealTargets.fat || 0,
+      instructions: geminiMeal.instructions || '',
+      calculation_notes: 'WARNING: No ingredients provided, using fallback values'
+    };
   }
 
   // Step 1: Calculate current macros from ingredients
@@ -386,6 +396,7 @@ function optimizeMealMacros(geminiMeal, mealTargets) {
 
   // Return optimized meal
   return {
+    type: geminiMeal.type || 'meal',
     name: geminiMeal.name,
     ingredients: adjustedIngredients,
     calories: optimized.totals.calories,
@@ -393,7 +404,8 @@ function optimizeMealMacros(geminiMeal, mealTargets) {
     carbs: optimized.totals.carbs,
     fat: optimized.totals.fat,
     instructions: geminiMeal.instructions,
-    calculation_notes: `Deterministic JS optimization: ${JSON.stringify(optimized.breakdown)}`
+    breakdown: optimized.breakdown,
+    calculation_notes: `Calculated from ${adjustedIngredients.length} ingredients using USDA database`
   };
 }
 
