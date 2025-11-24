@@ -846,7 +846,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt, targets, mealsPerDay, previousAttempt } = JSON.parse(event.body);
+    const { prompt, targets, mealsPerDay, previousAttempt, isJson } = JSON.parse(event.body);
 
     if (!prompt) {
       return {
@@ -856,6 +856,7 @@ exports.handler = async (event, context) => {
     }
 
     console.log('📤 Calling Gemini API...');
+    console.log('isJson flag:', isJson);
     if (targets) {
       console.log('Daily Targets:', targets);
       console.log('Meals per day:', mealsPerDay);
@@ -926,6 +927,25 @@ exports.handler = async (event, context) => {
     // Log first 500 chars of AI response for debugging
     const responseText = data.candidates[0].content.parts[0].text;
     console.log('🤖 Gemini Response preview:', responseText.substring(0, 500));
+
+    // 🆕 NEW: Handle text-only responses (like Recipe or Meal Prep Guide)
+    if (isJson === false) {
+      console.log('📝 Text-only response requested - skipping JSON parsing and optimization');
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        },
+        body: JSON.stringify({
+          success: true,
+          data: responseText, // Return raw text for markdown formatting
+          rawResponse: responseText,
+          isTextResponse: true
+        })
+      };
+    }
 
     // Parse JSON (handle markdown-wrapped responses)
     const jsonData = extractJSON(responseText);
