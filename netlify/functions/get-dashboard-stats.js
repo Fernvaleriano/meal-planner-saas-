@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
     // Handle CORS preflight
@@ -36,7 +36,7 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
         // Get all clients for this coach
         const { data: clients, error: clientsError } = await supabase
