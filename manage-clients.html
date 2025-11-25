@@ -48,17 +48,18 @@
         }
 
         .logout-btn {
-            background: #f44336;
+            background: #6b7280;
             color: white;
             border: none;
             padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+            transition: background 0.2s;
         }
 
         .logout-btn:hover {
-            background: #d32f2f;
+            background: #4b5563;
         }
 
         .container {
@@ -195,6 +196,9 @@
             flex-direction: column;
             gap: 8px;
             min-width: 140px;
+            align-items: flex-end;
+            justify-content: flex-start;
+            min-height: 110px; /* Fixed height to maintain alignment */
         }
 
         .client-info {
@@ -230,6 +234,40 @@
             border-radius: 12px;
             font-size: 12px;
             font-weight: 500;
+        }
+
+        /* Goal badges with colors */
+        .goal-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .goal-badge.lose-weight {
+            background: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fcd34d;
+        }
+
+        .goal-badge.maintain {
+            background: #dbeafe;
+            color: #2563eb;
+            border: 1px solid #93c5fd;
+        }
+
+        .goal-badge.gain-muscle {
+            background: #d1fae5;
+            color: #059669;
+            border: 1px solid #6ee7b7;
+        }
+
+        .goal-badge.not-set {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
         }
 
         /* Modal styles */
@@ -802,10 +840,13 @@
                     ? client.default_dietary_restrictions
                     : [];
 
-                // Format goal
+                // Format goal with badge class
                 const goalDisplay = client.default_goal
                     ? client.default_goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
                     : 'Not set';
+                const goalClass = client.default_goal
+                    ? client.default_goal.replace('_', '-')
+                    : 'not-set';
 
                 // Get plan count for this client
                 const planCount = planCounts[client.id] || 0;
@@ -824,7 +865,9 @@
                         </div>
                     </div>
 
-                    <div class="client-info"><strong>Goal:</strong> ${goalDisplay}</div>
+                    <div style="margin: 10px 0;">
+                        <span class="goal-badge ${goalClass}">${goalDisplay}</span>
+                    </div>
 
                     ${restrictions.length > 0 ? `
                         <div class="dietary-tags">
