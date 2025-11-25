@@ -59,7 +59,7 @@
         }
 
         .logout-btn {
-            background: #ef4444;
+            background: #6b7280;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -68,12 +68,12 @@
             font-size: 14px;
             font-weight: 600;
             transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(239, 68, 68, 0.2);
+            box-shadow: 0 1px 2px rgba(107, 114, 128, 0.2);
         }
 
         .logout-btn:hover {
-            background: #dc2626;
-            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+            background: #4b5563;
+            box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
             transform: translateY(-1px);
         }
 
@@ -90,6 +90,43 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
             margin-bottom: 40px;
             border: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .welcome-content {
+            flex: 1;
+        }
+
+        .quick-stats {
+            display: flex;
+            gap: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 28px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+            min-width: 120px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0d9488;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
         }
 
         h1 {
@@ -240,9 +277,21 @@
         
         <div id="dashboardContent" style="display: none;">
             <div class="welcome-card">
-                <span id="tierBadge" class="tier-badge">LOADING</span>
-                <h1>Welcome back! 👋</h1>
-                <p class="subtitle">Your meal planning dashboard is ready to use</p>
+                <div class="welcome-content">
+                    <span id="tierBadge" class="tier-badge">LOADING</span>
+                    <h1>Welcome back! 👋</h1>
+                    <p class="subtitle">Your meal planning dashboard is ready to use</p>
+                </div>
+                <div class="quick-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="clientCount">-</div>
+                        <div class="stat-label">Active Clients</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="planCount">-</div>
+                        <div class="stat-label">Plans Created</div>
+                    </div>
+                </div>
             </div>
             
             <div class="action-cards">
@@ -312,6 +361,33 @@
                 window.location.reload();
             }
         });
+
+        async function loadQuickStats(coachId) {
+            try {
+                // Fetch client count
+                const { count: clientCount, error: clientError } = await supabaseClient
+                    .from('clients')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('coach_id', coachId);
+
+                if (!clientError) {
+                    document.getElementById('clientCount').textContent = clientCount || 0;
+                }
+
+                // Fetch plan count
+                const { count: planCount, error: planError } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('coach_id', coachId);
+
+                if (!planError) {
+                    document.getElementById('planCount').textContent = planCount || 0;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                // Non-critical, just show dashes if failed
+            }
+        }
 
         async function loadDashboard() {
             // Prevent multiple simultaneous loads
@@ -416,6 +492,9 @@
                 } else {
                     brandingBtn.parentElement.style.display = 'none';
                 }
+
+                // Fetch and display quick stats
+                await loadQuickStats(user.id);
 
                 // Hide loading, show dashboard
                 loadingDiv.style.display = 'none';
