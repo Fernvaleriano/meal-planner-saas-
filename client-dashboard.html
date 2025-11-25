@@ -500,6 +500,175 @@
             display: none;
         }
 
+        /* Measurements Section */
+        .measurements-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .measurements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .measurements-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .measurement-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-value.positive {
+            color: #38a169;
+        }
+
+        .stat-value.negative {
+            color: #e53e3e;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .chart-container {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 200px;
+        }
+
+        .measurement-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .measurement-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .measurement-date {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .measurement-values {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .measurement-value span {
+            font-weight: 600;
+        }
+
+        /* Measurement Modal */
+        .measurement-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .measurement-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .measurement-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .measurement-modal-header h2 {
+            font-size: 20px;
+            color: #2d3748;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
         /* Lightbox */
         .lightbox {
             display: none;
@@ -585,6 +754,20 @@
                 </div>
             </div>
         </div>
+
+        <!-- Weight & Measurements Section -->
+        <div class="measurements-section">
+            <div class="measurements-header">
+                <h2 class="measurements-title">Weight & Measurements</h2>
+                <button class="btn btn-primary" onclick="openMeasurementModal()">+ Log Measurement</button>
+            </div>
+            <div id="measurementsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading measurements...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Photo Upload Modal -->
@@ -634,6 +817,100 @@
         <img id="lightboxImage" src="" alt="Full size">
     </div>
 
+    <!-- Measurement Modal -->
+    <div id="measurementModal" class="measurement-modal">
+        <div class="measurement-modal-content">
+            <div class="measurement-modal-header">
+                <h2>Log Measurement</h2>
+                <button class="close-btn" onclick="closeMeasurementModal()">&times;</button>
+            </div>
+            <form id="measurementForm" onsubmit="saveMeasurement(event)">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="measurementDate" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Weight</label>
+                        <input type="number" id="measurementWeight" step="0.1" placeholder="e.g., 175.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select id="weightUnit">
+                            <option value="lbs">lbs</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Body Fat % (optional)</label>
+                    <input type="number" id="bodyFatPercentage" step="0.1" placeholder="e.g., 15.5">
+                </div>
+
+                <h4 style="margin: 20px 0 15px; color: #4a5568; font-size: 14px;">Body Measurements (optional)</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Chest</label>
+                        <input type="number" id="measurementChest" step="0.1" placeholder="inches">
+                    </div>
+                    <div class="form-group">
+                        <label>Waist</label>
+                        <input type="number" id="measurementWaist" step="0.1" placeholder="inches">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Hips</label>
+                        <input type="number" id="measurementHips" step="0.1" placeholder="inches">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select id="measurementUnit">
+                            <option value="in">inches</option>
+                            <option value="cm">cm</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Left Arm</label>
+                        <input type="number" id="measurementLeftArm" step="0.1" placeholder="inches">
+                    </div>
+                    <div class="form-group">
+                        <label>Right Arm</label>
+                        <input type="number" id="measurementRightArm" step="0.1" placeholder="inches">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Left Thigh</label>
+                        <input type="number" id="measurementLeftThigh" step="0.1" placeholder="inches">
+                    </div>
+                    <div class="form-group">
+                        <label>Right Thigh</label>
+                        <input type="number" id="measurementRightThigh" step="0.1" placeholder="inches">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="measurementNotes" placeholder="Any notes about this measurement..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeMeasurementModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveMeasurementBtn">Save Measurement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase client
@@ -646,12 +923,15 @@
         const UPLOAD_PHOTO_ENDPOINT = '/.netlify/functions/upload-progress-photo';
         const GET_PHOTOS_ENDPOINT = '/.netlify/functions/get-progress-photos';
         const DELETE_PHOTO_ENDPOINT = '/.netlify/functions/delete-progress-photo';
+        const SAVE_MEASUREMENT_ENDPOINT = '/.netlify/functions/save-measurement';
+        const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
 
         let currentClientId = null;
         let currentCoachId = null;
         let realtimeChannel = null;
         let selectedPhotoFile = null;
         let clientPhotos = [];
+        let clientMeasurements = [];
 
         // Check authentication and load data
         async function init() {
@@ -694,6 +974,9 @@
 
             // Load progress photos
             await loadPhotos();
+
+            // Load measurements
+            await loadMeasurements();
 
             // Set up real-time subscription for automatic updates
             setupRealtimeSubscription();
@@ -1160,8 +1443,290 @@
             if (e.key === 'Escape') {
                 closeLightbox();
                 closeUploadModal();
+                closeMeasurementModal();
             }
         });
+
+        // ========== MEASUREMENTS FUNCTIONS ==========
+
+        async function loadMeasurements() {
+            try {
+                const response = await fetch(`${GET_MEASUREMENTS_ENDPOINT}?clientId=${currentClientId}`);
+
+                if (!response.ok) throw new Error('Failed to load measurements');
+
+                const data = await response.json();
+                clientMeasurements = data.measurements || [];
+                displayMeasurements(data.stats);
+
+            } catch (error) {
+                console.error('Error loading measurements:', error);
+                document.getElementById('measurementsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Unable to load measurements</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayMeasurements(stats) {
+            const container = document.getElementById('measurementsContainer');
+
+            if (clientMeasurements.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>No Measurements Yet</h3>
+                        <p>Track your progress by logging your first measurement!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Build stats cards
+            let statsHTML = '';
+            if (stats) {
+                const weightChangeClass = stats.weightChange !== null ? (stats.weightChange < 0 ? 'negative' : (stats.weightChange > 0 ? 'positive' : '')) : '';
+                const waistChangeClass = stats.waistChange !== null ? (stats.waistChange < 0 ? 'negative' : (stats.waistChange > 0 ? 'positive' : '')) : '';
+
+                statsHTML = `
+                    <div class="measurement-stats">
+                        <div class="stat-card">
+                            <div class="stat-value">${clientMeasurements[0].weight || '-'}</div>
+                            <div class="stat-label">Current Weight (${clientMeasurements[0].weight_unit || 'lbs'})</div>
+                        </div>
+                        ${stats.weightChange !== null ? `
+                            <div class="stat-card">
+                                <div class="stat-value ${weightChangeClass}">${stats.weightChange > 0 ? '+' : ''}${stats.weightChange}</div>
+                                <div class="stat-label">Weight Change (${clientMeasurements[0].weight_unit || 'lbs'})</div>
+                            </div>
+                        ` : ''}
+                        ${clientMeasurements[0].waist ? `
+                            <div class="stat-card">
+                                <div class="stat-value">${clientMeasurements[0].waist}"</div>
+                                <div class="stat-label">Current Waist</div>
+                            </div>
+                        ` : ''}
+                        ${stats.waistChange !== null ? `
+                            <div class="stat-card">
+                                <div class="stat-value ${waistChangeClass}">${stats.waistChange > 0 ? '+' : ''}${stats.waistChange}"</div>
+                                <div class="stat-label">Waist Change</div>
+                            </div>
+                        ` : ''}
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalEntries}</div>
+                            <div class="stat-label">Total Entries</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Build history entries
+            const historyHTML = clientMeasurements.slice(0, 10).map(m => `
+                <div class="measurement-entry">
+                    <div class="measurement-date">${new Date(m.measured_date).toLocaleDateString()}</div>
+                    <div class="measurement-values">
+                        ${m.weight ? `<div class="measurement-value">Weight: <span>${m.weight} ${m.weight_unit || 'lbs'}</span></div>` : ''}
+                        ${m.waist ? `<div class="measurement-value">Waist: <span>${m.waist}"</span></div>` : ''}
+                        ${m.body_fat_percentage ? `<div class="measurement-value">BF: <span>${m.body_fat_percentage}%</span></div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                ${statsHTML}
+                <div class="chart-container">
+                    <canvas id="weightChart" class="chart-canvas"></canvas>
+                </div>
+                <h4 style="margin-bottom: 12px; color: #4a5568;">Recent Measurements</h4>
+                <div class="measurement-history">
+                    ${historyHTML}
+                </div>
+            `;
+
+            // Render chart
+            renderWeightChart();
+        }
+
+        function renderWeightChart() {
+            const canvas = document.getElementById('weightChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const measurements = [...clientMeasurements].reverse().filter(m => m.weight);
+
+            if (measurements.length < 2) {
+                ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.fillStyle = '#718096';
+                ctx.textAlign = 'center';
+                ctx.fillText('Need at least 2 weight entries to show chart', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            // Set canvas size
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = rect.height;
+            const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            // Get weight values
+            const weights = measurements.map(m => parseFloat(m.weight));
+            const minWeight = Math.floor(Math.min(...weights) - 2);
+            const maxWeight = Math.ceil(Math.max(...weights) + 2);
+            const weightRange = maxWeight - minWeight;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw grid lines and labels
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.fillStyle = '#718096';
+            ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'right';
+
+            const numGridLines = 5;
+            for (let i = 0; i <= numGridLines; i++) {
+                const y = padding.top + (chartHeight * i / numGridLines);
+                const weightValue = maxWeight - (weightRange * i / numGridLines);
+
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+
+                ctx.fillText(weightValue.toFixed(0), padding.left - 8, y + 4);
+            }
+
+            // Calculate points
+            const points = measurements.map((m, i) => ({
+                x: padding.left + (chartWidth * i / (measurements.length - 1)),
+                y: padding.top + chartHeight - ((parseFloat(m.weight) - minWeight) / weightRange * chartHeight),
+                date: m.measured_date,
+                weight: m.weight
+            }));
+
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = '#0d9488';
+            ctx.lineWidth = 2;
+            points.forEach((p, i) => {
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.stroke();
+
+            // Draw area fill
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(13, 148, 136, 0.1)';
+            ctx.moveTo(points[0].x, padding.top + chartHeight);
+            points.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.lineTo(points[points.length - 1].x, padding.top + chartHeight);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw points
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.fillStyle = '#0d9488';
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.fillStyle = 'white';
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw date labels
+            ctx.fillStyle = '#718096';
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+
+            const labelInterval = Math.ceil(points.length / 6);
+            points.forEach((p, i) => {
+                if (i % labelInterval === 0 || i === points.length - 1) {
+                    const date = new Date(p.date);
+                    const label = `${date.getMonth() + 1}/${date.getDate()}`;
+                    ctx.fillText(label, p.x, height - padding.bottom + 20);
+                }
+            });
+        }
+
+        function openMeasurementModal() {
+            const modal = document.getElementById('measurementModal');
+            modal.style.display = 'flex';
+
+            // Set default date to today
+            document.getElementById('measurementDate').value = new Date().toISOString().split('T')[0];
+
+            // Reset form
+            document.getElementById('measurementForm').reset();
+            document.getElementById('measurementDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        function closeMeasurementModal() {
+            document.getElementById('measurementModal').style.display = 'none';
+        }
+
+        async function saveMeasurement(event) {
+            event.preventDefault();
+
+            const saveBtn = document.getElementById('saveMeasurementBtn');
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const measurementData = {
+                    clientId: currentClientId,
+                    coachId: currentCoachId,
+                    measuredDate: document.getElementById('measurementDate').value,
+                    weight: document.getElementById('measurementWeight').value || null,
+                    weightUnit: document.getElementById('weightUnit').value,
+                    bodyFatPercentage: document.getElementById('bodyFatPercentage').value || null,
+                    chest: document.getElementById('measurementChest').value || null,
+                    waist: document.getElementById('measurementWaist').value || null,
+                    hips: document.getElementById('measurementHips').value || null,
+                    leftArm: document.getElementById('measurementLeftArm').value || null,
+                    rightArm: document.getElementById('measurementRightArm').value || null,
+                    leftThigh: document.getElementById('measurementLeftThigh').value || null,
+                    rightThigh: document.getElementById('measurementRightThigh').value || null,
+                    measurementUnit: document.getElementById('measurementUnit').value,
+                    notes: document.getElementById('measurementNotes').value || null
+                };
+
+                const response = await fetch(SAVE_MEASUREMENT_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(measurementData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to save measurement');
+                }
+
+                console.log('Measurement saved successfully');
+                closeMeasurementModal();
+                await loadMeasurements();
+
+            } catch (error) {
+                console.error('Error saving measurement:', error);
+                alert('Failed to save measurement: ' + error.message);
+                saveBtn.textContent = originalText;
+                saveBtn.disabled = false;
+            }
+        }
 
         // Initialize on page load
         init();

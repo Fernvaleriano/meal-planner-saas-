@@ -1,0 +1,104 @@
+// Netlify Function to save client measurements
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: ''
+    };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  try {
+    const body = JSON.parse(event.body);
+    const {
+      clientId,
+      coachId,
+      measuredDate,
+      weight,
+      weightUnit,
+      bodyFatPercentage,
+      chest,
+      waist,
+      hips,
+      leftArm,
+      rightArm,
+      leftThigh,
+      rightThigh,
+      measurementUnit,
+      notes
+    } = body;
+
+    if (!clientId || !coachId) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Client ID and Coach ID are required' })
+      };
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    const { data, error } = await supabase
+      .from('client_measurements')
+      .insert([{
+        client_id: clientId,
+        coach_id: coachId,
+        measured_date: measuredDate || new Date().toISOString().split('T')[0],
+        weight: weight || null,
+        weight_unit: weightUnit || 'lbs',
+        body_fat_percentage: bodyFatPercentage || null,
+        chest: chest || null,
+        waist: waist || null,
+        hips: hips || null,
+        left_arm: leftArm || null,
+        right_arm: rightArm || null,
+        left_thigh: leftThigh || null,
+        right_thigh: rightThigh || null,
+        measurement_unit: measurementUnit || 'in',
+        notes: notes || null
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database error:', error);
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Failed to save measurement: ' + error.message })
+      };
+    }
+
+    return {
+      statusCode: 200,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ success: true, measurement: data })
+    };
+
+  } catch (error) {
+    console.error('Error saving measurement:', error);
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Internal server error: ' + error.message })
+    };
+  }
+};

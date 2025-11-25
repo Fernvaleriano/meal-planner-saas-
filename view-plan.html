@@ -594,7 +594,8 @@
                             protein: planData.protein,
                             carbs: planData.carbs,
                             fat: planData.fat
-                        }
+                        },
+                        coachNotes: data.coach_notes || null
                     };
                 } else {
                     // Fallback for old single-day format
@@ -603,7 +604,8 @@
                         clientName: planData.clientName || data.client_name,
                         preferences: planData.preferences || {},
                         meals: planData.meals || [],
-                        nutrition: planData.nutrition || {}
+                        nutrition: planData.nutrition || {},
+                        coachNotes: data.coach_notes || null
                     };
                 }
 
@@ -894,6 +896,26 @@
             document.getElementById('totalProtein').textContent = nutrition.protein ? nutrition.protein + 'g' : 'N/A';
             document.getElementById('totalCarbs').textContent = nutrition.carbs ? nutrition.carbs + 'g' : 'N/A';
             document.getElementById('totalFat').textContent = nutrition.fat ? nutrition.fat + 'g' : 'N/A';
+
+            // Display coach notes if present
+            const existingNotesSection = document.getElementById('coachNotesSection');
+            if (existingNotesSection) {
+                existingNotesSection.remove();
+            }
+
+            if (currentPlan.coachNotes) {
+                const notesSection = document.createElement('div');
+                notesSection.id = 'coachNotesSection';
+                notesSection.style.cssText = 'background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #7dd3fc;';
+                notesSection.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 20px;">📝</span>
+                        <h3 style="margin: 0; color: #0369a1; font-size: 16px; font-weight: 600;">Message from Your Coach</h3>
+                    </div>
+                    <p style="margin: 0; color: #334155; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${currentPlan.coachNotes}</p>
+                `;
+                document.getElementById('mealsContainer').parentNode.insertBefore(notesSection, document.getElementById('mealsContainer'));
+            }
 
             // Display meals - FIXED for multi-day plans
             const container = document.getElementById('mealsContainer');
