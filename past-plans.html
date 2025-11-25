@@ -498,6 +498,76 @@
                 hour12: true
             });
 
+            // Extract plan details if plan_data is available
+            const planData = plan.plan_data || {};
+            let planDetails = [];
+
+            // Get number of days
+            let numDays = 1;
+            if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
+                numDays = planData.currentPlan.length;
+            } else if (planData.days && Array.isArray(planData.days)) {
+                numDays = planData.days.length;
+            }
+            planDetails.push(`${numDays}-Day`);
+
+            // Get calories
+            if (planData.calories) {
+                planDetails.push(`${planData.calories} cal`);
+            } else if (planData.nutrition && planData.nutrition.calories) {
+                planDetails.push(`${planData.nutrition.calories} cal`);
+            }
+
+            const planSummary = planDetails.join(' • ');
+
+            // Extract additional info for the summary line
+            let summaryItems = [];
+
+            // Get diet type
+            if (planData.preference) {
+                summaryItems.push(planData.preference);
+            } else if (planData.preferences && planData.preferences.dietType) {
+                summaryItems.push(planData.preferences.dietType);
+            }
+
+            // Get goal
+            if (planData.goal) {
+                const goalLabels = {
+                    'lose weight': 'Lose Weight',
+                    'lose_weight': 'Lose Weight',
+                    'maintain weight': 'Maintain',
+                    'maintain': 'Maintain',
+                    'gain muscle': 'Gain Muscle',
+                    'gain_muscle': 'Gain Muscle'
+                };
+                summaryItems.push(goalLabels[planData.goal.toLowerCase()] || planData.goal);
+            }
+
+            // Get meal count and first meal preview
+            let mealCount = 0;
+            let firstMealName = '';
+            if (planData.currentPlan && planData.currentPlan[0] && planData.currentPlan[0].plan) {
+                mealCount = planData.currentPlan[0].plan.length;
+                firstMealName = planData.currentPlan[0].plan[0]?.name || '';
+            } else if (planData.days && planData.days[0] && planData.days[0].plan) {
+                mealCount = planData.days[0].plan.length;
+                firstMealName = planData.days[0].plan[0]?.name || '';
+            } else if (planData.meals && Array.isArray(planData.meals)) {
+                mealCount = planData.meals.length;
+                firstMealName = planData.meals[0]?.name || '';
+            }
+
+            if (mealCount > 0) {
+                summaryItems.push(`${mealCount} meals`);
+            }
+
+            const summaryDescription = summaryItems.length > 0 ? summaryItems.join(' • ') : '';
+
+            // Truncate first meal name if too long
+            if (firstMealName && firstMealName.length > 35) {
+                firstMealName = firstMealName.substring(0, 35) + '...';
+            }
+
             card.innerHTML = `
                 <input type="checkbox" class="plan-card-checkbox"
                        id="checkbox-${plan.id}"
@@ -506,6 +576,9 @@
                 <div class="plan-card-header">
                     <div>
                         <div class="client-name">${plan.client_name || 'Unnamed Client'}</div>
+                        <div style="font-weight: 600; color: #0d9488; font-size: 13px; margin: 4px 0;">${planSummary}</div>
+                        ${summaryDescription ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${summaryDescription}</div>` : ''}
+                        ${firstMealName ? `<div style="font-size: 11px; color: #94a3b8; font-style: italic;">🍽️ ${firstMealName}</div>` : ''}
                         <div class="plan-date">${formattedDate} at ${formattedTime}</div>
                     </div>
                     <div class="plan-actions">
