@@ -38,7 +38,8 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body);
 
-      const { data, error } = await supabase
+      // Insert the check-in
+      const { data: checkinData, error } = await supabase
         .from('client_checkins')
         .insert([{
           client_id: body.clientId,
@@ -52,9 +53,32 @@ exports.handler = async (event) => {
           wins: body.wins,
           challenges: body.challenges,
           questions: body.questions
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Get client name for notification
+      const { data: client } = await supabase
+        .from('clients')
+        .select('client_name')
+        .eq('id', body.clientId)
+        .single();
+
+      const clientName = client?.client_name || 'A client';
+
+      // Create notification for coach
+      await supabase
+        .from('notifications')
+        .insert([{
+          user_id: body.coachId,
+          type: 'checkin_submitted',
+          title: 'New Check-in',
+          message: `${clientName} submitted their weekly check-in`,
+          related_checkin_id: checkinData?.id,
+          related_client_id: body.clientId
+        }]);
 
       return {
         statusCode: 200,

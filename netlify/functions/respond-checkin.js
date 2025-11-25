@@ -31,6 +31,16 @@ exports.handler = async (event) => {
       };
     }
 
+    // Get the check-in to find the client_id
+    const { data: checkin, error: fetchError } = await supabase
+      .from('client_checkins')
+      .select('client_id')
+      .eq('id', checkinId)
+      .eq('coach_id', coachId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
     const { data, error } = await supabase
       .from('client_checkins')
       .update({
@@ -41,6 +51,20 @@ exports.handler = async (event) => {
       .eq('coach_id', coachId);
 
     if (error) throw error;
+
+    // Create notification for client
+    if (checkin?.client_id) {
+      await supabase
+        .from('notifications')
+        .insert([{
+          client_id: checkin.client_id,
+          type: 'coach_responded',
+          title: 'Coach Response',
+          message: 'Your coach responded to your check-in',
+          related_checkin_id: checkinId,
+          related_client_id: checkin.client_id
+        }]);
+    }
 
     return {
       statusCode: 200,
