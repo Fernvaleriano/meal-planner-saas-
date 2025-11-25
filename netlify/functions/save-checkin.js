@@ -117,7 +117,7 @@ exports.handler = async (event, context) => {
             return {
                 statusCode: 500,
                 headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ error: 'Failed to fetch check-ins' })
+                body: JSON.stringify({ error: 'Failed to fetch check-ins', details: error.message || error })
             };
         }
     }
@@ -194,7 +194,7 @@ exports.handler = async (event, context) => {
             return {
                 statusCode: 500,
                 headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ error: 'Failed to save check-in' })
+                body: JSON.stringify({ error: 'Failed to save check-in', details: error.message || error })
             };
         }
     }
