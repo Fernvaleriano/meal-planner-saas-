@@ -1076,42 +1076,58 @@
                 meal = currentPlan.meals[index];
             }
             const mealCard = document.getElementById(`meal-${index}`);
-            
+
             // Show loading
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Revising meal...</p>';
 
             try {
+                // NEW: Prompt asks for ingredients array - backend will calculate macros from USDA database
                 const prompt = `Revise this meal based on user request:
 
 CURRENT MEAL:
 Name: ${meal.name}
-Calories: ${meal.calories}
-Protein: ${meal.protein}g
-Carbs: ${meal.carbs}g
-Fat: ${meal.fat}g
-Instructions: ${meal.instructions}
+Type: ${meal.type || 'meal'}
+Instructions: ${meal.instructions || 'N/A'}
 
 USER REQUEST: ${revisionText}
 
-Diet: ${currentPlan.preferences.dietType}
-${currentPlan.preferences.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
+Diet: ${currentPlan.preferences?.dietType || 'any'}
+${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
+
+Use ONLY foods from USDA database including:
+Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Egg Whites, Shrimp, Tofu, Greek Yogurt
+Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
+Fats: Olive Oil, Avocado, Almonds, Peanut Butter
+Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
+Fruits: Blueberries, Strawberries, Banana, Apple
+
+CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses.
+DO NOT include calories/protein/carbs/fat values - the backend will calculate them from the database.
+MEAL NAME FORMAT: Include key ingredient portions inline.
 
 Return ONLY valid JSON (NO markdown, NO backticks):
 {
-  "name": "Updated Meal Name",
-  "calories": ${meal.calories},
-  "protein": ${meal.protein},
-  "carbs": ${meal.carbs},
-  "fat": ${meal.fat},
-  "instructions": "Updated instructions"
-}
+  "type": "${meal.type || 'meal'}",
+  "name": "Updated Meal Name (with portions)",
+  "ingredients": ["Ingredient 1 (amount)", "Ingredient 2 (amount)"],
+  "instructions": "Cooking instructions"
+}`;
 
-Keep similar calories/macros unless specifically asked to change them.`;
-
+                // NEW: Send isJson and targets to trigger backend USDA calculation
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({
+                        prompt,
+                        isJson: true,
+                        targets: {
+                            calories: meal.calories || 500,
+                            protein: meal.protein || 30,
+                            carbs: meal.carbs || 50,
+                            fat: meal.fat || 15
+                        },
+                        mealsPerDay: 1
+                    })
                 });
 
                 if (!response.ok) throw new Error('API request failed');
@@ -1119,21 +1135,22 @@ Keep similar calories/macros unless specifically asked to change them.`;
                 const data = await response.json();
 
                 let revisedMeal;
-                // NEW: Handle new backend format (with Claude corrections)
+                // Handle new backend format (with USDA calculation)
                 if (data.success && data.data) {
-                    console.log('✅ Using new format with Claude corrections');
-                    revisedMeal = data.data; // Already parsed
-                } else {
-                    // FALLBACK: Old Gemini format
-                    console.log('⚠️ Using old Gemini format');
-                    let text = data.candidates[0].content.parts[0].text;
+                    console.log('✅ Using new format with USDA calculation');
+                    revisedMeal = data.data;
 
-                    // CRITICAL FIX: Pre-process to remove NaN before parsing
+                    // Validate that backend calculated macros
+                    if (!revisedMeal.calories || revisedMeal.calories === 0) {
+                        console.warn('⚠️ Backend returned zero calories - ingredients may not have matched');
+                    }
+                } else {
+                    // FALLBACK: Old Gemini format (shouldn't happen with new code)
+                    console.log('⚠️ Using old Gemini format - macros may be inaccurate');
+                    let text = data.candidates[0].content.parts[0].text;
                     text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
                     text = text.replace(/:\s*NaN/g, ': null');
-                    text = text.replace(/,\s*\.\.\./g, '');
 
-                    // Extract JSON object
                     const jsonMatch = text.match(/\{[\s\S]*\}/);
                     if (jsonMatch) {
                         text = jsonMatch[0];
@@ -1142,11 +1159,16 @@ Keep similar calories/macros unless specifically asked to change them.`;
                     revisedMeal = JSON.parse(text);
                 }
 
-                // CRITICAL FIX: Sanitize numeric values
-                revisedMeal.calories = parseInt(revisedMeal.calories) || meal.calories;
-                revisedMeal.protein = parseInt(revisedMeal.protein) || meal.protein;
-                revisedMeal.carbs = parseInt(revisedMeal.carbs) || meal.carbs;
-                revisedMeal.fat = parseInt(revisedMeal.fat) || meal.fat;
+                // Ensure meal has required fields
+                revisedMeal.type = revisedMeal.type || meal.type || 'meal';
+                revisedMeal.name = revisedMeal.name || 'Revised Meal';
+                revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
+
+                // Use calculated macros, or fallback to original if calculation failed
+                revisedMeal.calories = revisedMeal.calories || meal.calories;
+                revisedMeal.protein = revisedMeal.protein || meal.protein;
+                revisedMeal.carbs = revisedMeal.carbs || meal.carbs;
+                revisedMeal.fat = revisedMeal.fat || meal.fat;
 
                 // Save the revised meal to the correct location
                 if (dayIndex !== null && mealIndex !== null) {
@@ -1163,7 +1185,7 @@ Keep similar calories/macros unless specifically asked to change them.`;
 
                 // Refresh display
                 displayMealPlan();
-                
+
             } catch (error) {
                 console.error('❌ Revision error:', error);
                 alert('Failed to revise meal. Please try again.');
@@ -1183,70 +1205,97 @@ Keep similar calories/macros unless specifically asked to change them.`;
             }
 
             const mealCard = document.getElementById(`meal-${index}`);
-            
+
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Generating new meal...</p>';
 
             try {
-                const prompt = `Generate a DIFFERENT meal (not "${meal.name}"):
+                // NEW: Prompt asks for ingredients array - backend will calculate macros from USDA database
+                const prompt = `Generate a DIFFERENT ${meal.type || 'meal'} (not "${meal.name}"):
 
-Target Nutrition:
+Target Nutrition (approximate):
 - Calories: ${meal.calories}
 - Protein: ${meal.protein}g
 - Carbs: ${meal.carbs}g
 - Fat: ${meal.fat}g
 
-Diet: ${currentPlan.preferences.dietType}
-${currentPlan.preferences.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
+Diet: ${currentPlan.preferences?.dietType || 'any'}
+${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
+
+Use ONLY foods from USDA database including:
+Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Egg Whites, Shrimp, Tofu, Greek Yogurt
+Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
+Fats: Olive Oil, Avocado, Almonds, Peanut Butter
+Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
+Fruits: Blueberries, Strawberries, Banana, Apple
+
+CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses.
+DO NOT include calories/protein/carbs/fat values - the backend will calculate them from the database.
+Choose portions that will approximately match the target nutrition.
 
 Return ONLY valid JSON (NO markdown, NO backticks):
 {
-  "name": "Different Meal Name",
-  "calories": ${meal.calories},
-  "protein": ${meal.protein},
-  "carbs": ${meal.carbs},
-  "fat": ${meal.fat},
+  "type": "${meal.type || 'meal'}",
+  "name": "Meal Name (with key portions)",
+  "ingredients": ["Ingredient 1 (amount)", "Ingredient 2 (amount)"],
   "instructions": "Cooking instructions"
 }`;
 
+                // NEW: Send isJson and targets to trigger backend USDA calculation
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({
+                        prompt,
+                        isJson: true,
+                        targets: {
+                            calories: meal.calories || 500,
+                            protein: meal.protein || 30,
+                            carbs: meal.carbs || 50,
+                            fat: meal.fat || 15
+                        },
+                        mealsPerDay: 1
+                    })
                 });
 
                 if (!response.ok) throw new Error('API request failed');
 
                 const data = await response.json();
 
-                let text;
-                // NEW: Handle new backend format (with Claude corrections)
+                let newMeal;
+                // Handle new backend format (with USDA calculation)
                 if (data.success && data.data) {
-                    console.log('✅ Using new format with Claude corrections');
-                    text = JSON.stringify(data.data); // Convert back to string for parsing below
+                    console.log('✅ Using new format with USDA calculation');
+                    newMeal = data.data;
+
+                    // Validate that backend calculated macros
+                    if (!newMeal.calories || newMeal.calories === 0) {
+                        console.warn('⚠️ Backend returned zero calories - ingredients may not have matched');
+                    }
                 } else {
                     // FALLBACK: Old Gemini format
-                    console.log('⚠️ Using old Gemini format');
-                    text = data.candidates[0].content.parts[0].text;
-
-                    // CRITICAL FIX: Pre-process to remove NaN before parsing
+                    console.log('⚠️ Using old Gemini format - macros may be inaccurate');
+                    let text = data.candidates[0].content.parts[0].text;
                     text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
                     text = text.replace(/:\s*NaN/g, ': null');
-                    text = text.replace(/,\s*\.\.\./g, '');
 
-                    // Extract JSON object
                     const jsonMatch = text.match(/\{[\s\S]*\}/);
                     if (jsonMatch) {
                         text = jsonMatch[0];
                     }
+
+                    newMeal = JSON.parse(text);
                 }
 
-                const newMeal = JSON.parse(text);
+                // Ensure meal has required fields
+                newMeal.type = newMeal.type || meal.type || 'meal';
+                newMeal.name = newMeal.name || 'New Meal';
+                newMeal.instructions = newMeal.instructions || '';
 
-                // CRITICAL FIX: Sanitize numeric values
-                newMeal.calories = parseInt(newMeal.calories) || meal.calories;
-                newMeal.protein = parseInt(newMeal.protein) || meal.protein;
-                newMeal.carbs = parseInt(newMeal.carbs) || meal.carbs;
-                newMeal.fat = parseInt(newMeal.fat) || meal.fat;
+                // Use calculated macros, or fallback to original if calculation failed
+                newMeal.calories = newMeal.calories || meal.calories;
+                newMeal.protein = newMeal.protein || meal.protein;
+                newMeal.carbs = newMeal.carbs || meal.carbs;
+                newMeal.fat = newMeal.fat || meal.fat;
 
                 // Save the new meal to the correct location
                 if (dayIndex !== null && mealIndex !== null) {
@@ -1262,7 +1311,7 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 await savePlanToDatabase();
 
                 displayMealPlan();
-                
+
             } catch (error) {
                 console.error('❌ Change meal error:', error);
                 alert('Failed to change meal. Please try again.');
@@ -1316,6 +1365,7 @@ Return ONLY valid JSON (NO markdown, NO backticks):
 
             try {
                 // Generate all meals for the day in one request
+                // NEW: Ask for ingredients arrays - backend will calculate macros from USDA database
                 const prompt = `Generate a COMPLETELY NEW ${numMeals}-meal plan for Day ${dayNumber}.
 
 Daily Nutrition Targets:
@@ -1329,22 +1379,33 @@ Required meal types (in order): ${mealTypes.join(', ')}
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}${avoidMealsText}
 
-CRITICAL: Return ONLY a valid JSON array with ${numMeals} meal objects.
-Each meal must have: type, name, calories, protein, carbs, fat, instructions
+CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses for EACH meal.
+DO NOT include calories/protein/carbs/fat values - the backend will calculate them from the USDA database.
+Use common foods with specific amounts like: "Chicken Breast (200g)", "Brown Rice (150g)", "Olive Oil (1 tbsp)"
 
-Example format:
+Return ONLY a valid JSON array with ${numMeals} meal objects:
 [
-  {"type":"breakfast","name":"Meal Name","calories":500,"protein":30,"carbs":50,"fat":15,"instructions":"Cooking steps"},
-  {"type":"lunch","name":"Another Meal","calories":600,"protein":40,"carbs":60,"fat":20,"instructions":"Steps"}
+  {"type":"breakfast","name":"Meal Name (with portions)","ingredients":["Ingredient 1 (amount)","Ingredient 2 (amount)"],"instructions":"Cooking steps"},
+  {"type":"lunch","name":"Another Meal (with portions)","ingredients":["Ingredient 1 (amount)","Ingredient 2 (amount)"],"instructions":"Steps"}
 ]
 
-Ensure total macros approximately match the daily targets.
 NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
 
+                // NEW: Send isJson and targets to trigger backend USDA calculation
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({
+                        prompt,
+                        isJson: true,
+                        targets: {
+                            calories: targets.calories || 2000,
+                            protein: targets.protein || 150,
+                            carbs: targets.carbs || 200,
+                            fat: targets.fat || 70
+                        },
+                        mealsPerDay: numMeals
+                    })
                 });
 
                 if (!response.ok) throw new Error('API request failed');
@@ -1376,7 +1437,8 @@ NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
                     throw new Error('Invalid response format');
                 }
 
-                // Sanitize numeric values
+                // Sanitize and preserve all meal data including ingredients
+                // Backend calculates macros from USDA database based on ingredients
                 newMeals = newMeals.map((meal, i) => ({
                     type: meal.type || mealTypes[i] || 'meal',
                     name: meal.name || 'New Meal',
@@ -1384,6 +1446,7 @@ NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
                     protein: parseInt(meal.protein) || Math.round(targets.protein / numMeals),
                     carbs: parseInt(meal.carbs) || Math.round(targets.carbs / numMeals),
                     fat: parseInt(meal.fat) || Math.round(targets.fat / numMeals),
+                    ingredients: meal.ingredients || [],
                     instructions: meal.instructions || 'Follow recipe instructions.'
                 }));
 
