@@ -669,6 +669,170 @@
             min-height: 60px;
         }
 
+        /* Check-in Section */
+        .checkin-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .checkin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .checkin-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .checkin-streak {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .checkin-form {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .checkin-form h4 {
+            margin: 0 0 15px 0;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .rating-group {
+            margin-bottom: 20px;
+        }
+
+        .rating-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .rating-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .rating-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .rating-btn:hover {
+            border-color: #0d9488;
+            background: #f0fdfa;
+        }
+
+        .rating-btn.selected {
+            border-color: #0d9488;
+            background: #0d9488;
+            color: white;
+        }
+
+        .adherence-slider {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .adherence-value {
+            text-align: center;
+            font-weight: 700;
+            color: #0d9488;
+            font-size: 18px;
+            margin-top: 8px;
+        }
+
+        .checkin-history {
+            margin-top: 20px;
+        }
+
+        .checkin-history h4 {
+            margin: 0 0 12px 0;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .checkin-entry {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #0d9488;
+        }
+
+        .checkin-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .checkin-date {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .checkin-adherence {
+            font-size: 14px;
+            color: #0d9488;
+            font-weight: 600;
+        }
+
+        .checkin-ratings {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .checkin-notes {
+            font-size: 13px;
+            color: #718096;
+            font-style: italic;
+        }
+
+        .coach-response {
+            background: #e0f2fe;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .coach-response-label {
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 4px;
+        }
+
         /* Lightbox */
         .lightbox {
             display: none;
@@ -765,6 +929,23 @@
                 <div class="loading">
                     <div class="spinner"></div>
                     <p>Loading measurements...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Check-in Section -->
+        <div class="checkin-section">
+            <div class="checkin-header">
+                <h2 class="checkin-title">Weekly Check-in</h2>
+                <div id="checkinStreak" class="checkin-streak" style="display: none;">
+                    <span>🔥</span>
+                    <span id="streakCount">0</span> week streak
+                </div>
+            </div>
+            <div id="checkinContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading check-ins...</p>
                 </div>
             </div>
         </div>
@@ -925,6 +1106,7 @@
         const DELETE_PHOTO_ENDPOINT = '/.netlify/functions/delete-progress-photo';
         const SAVE_MEASUREMENT_ENDPOINT = '/.netlify/functions/save-measurement';
         const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
+        const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
 
         let currentClientId = null;
         let currentCoachId = null;
@@ -932,6 +1114,14 @@
         let selectedPhotoFile = null;
         let clientPhotos = [];
         let clientMeasurements = [];
+        let clientCheckins = [];
+        let checkinFormData = {
+            energyLevel: null,
+            sleepQuality: null,
+            hungerLevel: null,
+            stressLevel: null,
+            mealPlanAdherence: 80
+        };
 
         // Check authentication and load data
         async function init() {
@@ -977,6 +1167,9 @@
 
             // Load measurements
             await loadMeasurements();
+
+            // Load weekly check-ins
+            await loadCheckins();
 
             // Set up real-time subscription for automatic updates
             setupRealtimeSubscription();
@@ -1725,6 +1918,203 @@
                 alert('Failed to save measurement: ' + error.message);
                 saveBtn.textContent = originalText;
                 saveBtn.disabled = false;
+            }
+        }
+
+        // ========== CHECK-IN FUNCTIONS ==========
+
+        async function loadCheckins() {
+            try {
+                const response = await fetch(`${CHECKIN_ENDPOINT}?clientId=${currentClientId}&limit=5`);
+
+                if (!response.ok) throw new Error('Failed to load check-ins');
+
+                const data = await response.json();
+                clientCheckins = data.checkins || [];
+                displayCheckins(data.stats);
+
+            } catch (error) {
+                console.error('Error loading check-ins:', error);
+                document.getElementById('checkinContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Unable to load check-ins</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayCheckins(stats) {
+            const container = document.getElementById('checkinContainer');
+
+            // Show streak if exists
+            if (stats && stats.currentStreak > 0) {
+                document.getElementById('checkinStreak').style.display = 'flex';
+                document.getElementById('streakCount').textContent = stats.currentStreak;
+            }
+
+            // Check if already submitted this week
+            const lastCheckin = clientCheckins[0];
+            const canSubmit = !lastCheckin || daysSinceCheckin(lastCheckin.checkin_date) >= 5;
+
+            let formHTML = '';
+            if (canSubmit) {
+                formHTML = `
+                    <div class="checkin-form">
+                        <h4>How's your week going?</h4>
+
+                        <div class="rating-group">
+                            <span class="rating-label">Energy Level</span>
+                            <div class="rating-buttons" data-rating="energy">
+                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('energy', ${n})">${n}</button>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <span class="rating-label">Sleep Quality</span>
+                            <div class="rating-buttons" data-rating="sleep">
+                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('sleep', ${n})">${n}</button>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <span class="rating-label">Hunger Level (1=always hungry, 5=satisfied)</span>
+                            <div class="rating-buttons" data-rating="hunger">
+                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('hunger', ${n})">${n}</button>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <span class="rating-label">Stress Level (1=low, 5=high)</span>
+                            <div class="rating-buttons" data-rating="stress">
+                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('stress', ${n})">${n}</button>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Meal Plan Adherence</label>
+                            <input type="range" id="adherenceSlider" class="adherence-slider" min="0" max="100" value="80" oninput="updateAdherence(this.value)">
+                            <div class="adherence-value"><span id="adherenceValue">80</span>%</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>What went well this week? (Wins)</label>
+                            <textarea id="checkinWins" placeholder="Share your victories, big or small..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>What was challenging?</label>
+                            <textarea id="checkinChallenges" placeholder="Any struggles or obstacles..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Questions for your coach?</label>
+                            <textarea id="checkinQuestions" placeholder="Anything you'd like to ask..."></textarea>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="submitCheckin()" id="submitCheckinBtn" style="width: 100%;">Submit Check-in</button>
+                    </div>
+                `;
+            } else {
+                const daysUntil = 7 - daysSinceCheckin(lastCheckin.checkin_date);
+                formHTML = `
+                    <div class="checkin-form" style="text-align: center; padding: 30px;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
+                        <h4 style="color: #38a169;">Check-in submitted!</h4>
+                        <p style="color: #718096;">Next check-in available in ${daysUntil > 0 ? daysUntil + ' days' : 'soon'}</p>
+                    </div>
+                `;
+            }
+
+            // Build history
+            let historyHTML = '';
+            if (clientCheckins.length > 0) {
+                historyHTML = `
+                    <div class="checkin-history">
+                        <h4>Recent Check-ins</h4>
+                        ${clientCheckins.map(c => `
+                            <div class="checkin-entry">
+                                <div class="checkin-entry-header">
+                                    <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString()}</span>
+                                    ${c.meal_plan_adherence !== null ? `<span class="checkin-adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
+                                </div>
+                                <div class="checkin-ratings">
+                                    ${c.energy_level ? `<span>Energy: ${c.energy_level}/5</span>` : ''}
+                                    ${c.sleep_quality ? `<span>Sleep: ${c.sleep_quality}/5</span>` : ''}
+                                    ${c.stress_level ? `<span>Stress: ${c.stress_level}/5</span>` : ''}
+                                </div>
+                                ${c.wins ? `<div class="checkin-notes">✨ ${c.wins}</div>` : ''}
+                                ${c.coach_feedback ? `
+                                    <div class="coach-response">
+                                        <div class="coach-response-label">Coach's Response:</div>
+                                        ${c.coach_feedback}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = formHTML + historyHTML;
+        }
+
+        function daysSinceCheckin(dateStr) {
+            const checkinDate = new Date(dateStr);
+            const today = new Date();
+            const diffTime = today - checkinDate;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function setRating(type, value) {
+            const container = document.querySelector(`[data-rating="${type}"]`);
+            container.querySelectorAll('.rating-btn').forEach((btn, idx) => {
+                btn.classList.toggle('selected', idx + 1 === value);
+            });
+
+            if (type === 'energy') checkinFormData.energyLevel = value;
+            if (type === 'sleep') checkinFormData.sleepQuality = value;
+            if (type === 'hunger') checkinFormData.hungerLevel = value;
+            if (type === 'stress') checkinFormData.stressLevel = value;
+        }
+
+        function updateAdherence(value) {
+            document.getElementById('adherenceValue').textContent = value;
+            checkinFormData.mealPlanAdherence = parseInt(value);
+        }
+
+        async function submitCheckin() {
+            const btn = document.getElementById('submitCheckinBtn');
+            btn.textContent = 'Submitting...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(CHECKIN_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        coachId: currentCoachId,
+                        energyLevel: checkinFormData.energyLevel,
+                        sleepQuality: checkinFormData.sleepQuality,
+                        hungerLevel: checkinFormData.hungerLevel,
+                        stressLevel: checkinFormData.stressLevel,
+                        mealPlanAdherence: checkinFormData.mealPlanAdherence,
+                        wins: document.getElementById('checkinWins').value || null,
+                        challenges: document.getElementById('checkinChallenges').value || null,
+                        questions: document.getElementById('checkinQuestions').value || null
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to submit check-in');
+
+                console.log('Check-in submitted successfully');
+                await loadCheckins();
+
+            } catch (error) {
+                console.error('Error submitting check-in:', error);
+                alert('Failed to submit check-in. Please try again.');
+                btn.textContent = 'Submit Check-in';
+                btn.disabled = false;
             }
         }
 
