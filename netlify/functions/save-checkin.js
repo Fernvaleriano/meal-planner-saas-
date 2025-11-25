@@ -1,7 +1,7 @@
 // Netlify Function to save client check-ins
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
@@ -15,6 +15,14 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
       },
       body: ''
+    };
+  }
+
+  if (!SUPABASE_SERVICE_KEY) {
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Missing SUPABASE_SERVICE_KEY' })
     };
   }
 
