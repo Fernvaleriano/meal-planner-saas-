@@ -1,8 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 exports.handler = async (event, context) => {
     // Handle CORS preflight
     if (event.httpMethod === 'OPTIONS') {
@@ -17,7 +14,30 @@ exports.handler = async (event, context) => {
         };
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+    // Check for environment variables
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('Missing Supabase environment variables');
+        return {
+            statusCode: 500,
+            headers: { 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ error: 'Server configuration error' })
+        };
+    }
+
+    let supabase;
+    try {
+        supabase = createClient(supabaseUrl, supabaseServiceKey);
+    } catch (initError) {
+        console.error('Failed to initialize Supabase client:', initError);
+        return {
+            statusCode: 500,
+            headers: { 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ error: 'Database connection error' })
+        };
+    }
 
     // GET - Fetch check-ins for a client
     if (event.httpMethod === 'GET') {
