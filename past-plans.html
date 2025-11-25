@@ -140,18 +140,10 @@
             gap: 20px;
         }
 
-        .plan-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-        }
-
         .plan-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border-color: #0d9488;
         }
 
         .plan-card-header {
@@ -190,6 +182,104 @@
 
         .icon-btn:hover {
             opacity: 1;
+        }
+
+        /* Bulk Selection Styles */
+        .bulk-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .bulk-actions-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .select-all-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .select-all-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #0d9488;
+        }
+
+        .select-all-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            user-select: none;
+        }
+
+        .selected-count {
+            font-size: 14px;
+            color: #666;
+            padding: 4px 12px;
+            background: #f0f0f0;
+            border-radius: 20px;
+        }
+
+        .btn-delete-selected {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-delete-selected:hover {
+            background: #dc2626;
+        }
+
+        .btn-delete-selected.visible {
+            display: flex;
+        }
+
+        .plan-card-checkbox {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #0d9488;
+            z-index: 10;
+        }
+
+        .plan-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            padding-left: 50px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s, border 0.2s;
+            cursor: pointer;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .plan-card.selected {
+            border-color: #0d9488;
+            background: #f0fdf9;
         }
 
         .plan-stats {
@@ -277,6 +367,20 @@
             <button class="create-plan-btn" onclick="window.location.href='planner.html'">Create Meal Plan</button>
         </div>
 
+        <!-- Bulk Actions Bar -->
+        <div class="bulk-actions" id="bulkActionsBar" style="display: none;">
+            <div class="bulk-actions-left">
+                <label class="select-all-container">
+                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                    <span class="select-all-label">Select All</span>
+                </label>
+                <span class="selected-count" id="selectedCount">0 selected</span>
+            </div>
+            <button class="btn-delete-selected" id="deleteSelectedBtn" onclick="deleteSelectedPlans()">
+                🗑️ Delete Selected
+            </button>
+        </div>
+
         <div id="plansGrid" class="plans-grid" style="display: none;"></div>
     </div>
 
@@ -293,6 +397,8 @@
         const DELETE_PLAN_ENDPOINT = '/.netlify/functions/delete-coach-plan';
 
         let currentUser = null;
+        let allPlans = [];
+        let selectedPlans = new Set();
 
         // Logout function
         document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -327,6 +433,11 @@
             const loadingDiv = document.getElementById('loadingDiv');
             const emptyState = document.getElementById('emptyState');
             const plansGrid = document.getElementById('plansGrid');
+            const bulkActionsBar = document.getElementById('bulkActionsBar');
+
+            // Reset selections
+            selectedPlans.clear();
+            updateSelectionUI();
 
             try {
                 console.log('📥 Loading plans for coach:', currentUser.id);
@@ -338,17 +449,20 @@
                 }
 
                 const data = await response.json();
-                const plans = data.plans;
+                allPlans = data.plans; // Store globally
 
-                console.log(`✅ Loaded ${plans.length} plans`);
+                console.log(`✅ Loaded ${allPlans.length} plans`);
 
                 loadingDiv.style.display = 'none';
 
-                if (plans.length === 0) {
+                if (allPlans.length === 0) {
                     emptyState.style.display = 'block';
+                    bulkActionsBar.style.display = 'none';
                 } else {
+                    emptyState.style.display = 'none';
+                    bulkActionsBar.style.display = 'flex';
                     plansGrid.style.display = 'grid';
-                    displayPlans(plans);
+                    displayPlans(allPlans);
                 }
 
             } catch (error) {
@@ -370,6 +484,7 @@
         function createPlanCard(plan) {
             const card = document.createElement('div');
             card.className = 'plan-card';
+            card.id = `plan-card-${plan.id}`;
 
             const createdDate = new Date(plan.created_at);
             const formattedDate = createdDate.toLocaleDateString('en-US', {
@@ -384,6 +499,10 @@
             });
 
             card.innerHTML = `
+                <input type="checkbox" class="plan-card-checkbox"
+                       id="checkbox-${plan.id}"
+                       onclick="togglePlanSelection(${plan.id}, event)"
+                       ${selectedPlans.has(plan.id) ? 'checked' : ''}>
                 <div class="plan-card-header">
                     <div>
                         <div class="client-name">${plan.client_name || 'Unnamed Client'}</div>
@@ -425,6 +544,157 @@
             } catch (error) {
                 console.error('Error deleting plan:', error);
                 alert('Failed to delete plan. Please try again.');
+            }
+        }
+
+        // ========== BULK SELECTION FUNCTIONS ==========
+
+        function togglePlanSelection(planId, event) {
+            event.stopPropagation();
+
+            if (selectedPlans.has(planId)) {
+                selectedPlans.delete(planId);
+            } else {
+                selectedPlans.add(planId);
+            }
+
+            updateSelectionUI();
+        }
+
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+
+            if (selectAllCheckbox.checked) {
+                // Select all plans
+                allPlans.forEach(plan => {
+                    selectedPlans.add(plan.id);
+                });
+            } else {
+                // Deselect all
+                selectedPlans.clear();
+            }
+
+            // Update all checkboxes
+            allPlans.forEach(plan => {
+                const checkbox = document.getElementById(`checkbox-${plan.id}`);
+                const card = document.getElementById(`plan-card-${plan.id}`);
+                if (checkbox) {
+                    checkbox.checked = selectedPlans.has(plan.id);
+                }
+                if (card) {
+                    if (selectedPlans.has(plan.id)) {
+                        card.classList.add('selected');
+                    } else {
+                        card.classList.remove('selected');
+                    }
+                }
+            });
+
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const selectedCount = document.getElementById('selectedCount');
+            const deleteBtn = document.getElementById('deleteSelectedBtn');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+
+            const count = selectedPlans.size;
+            selectedCount.textContent = `${count} selected`;
+
+            // Show/hide delete button
+            if (count > 0) {
+                deleteBtn.classList.add('visible');
+            } else {
+                deleteBtn.classList.remove('visible');
+            }
+
+            // Update select all checkbox state
+            if (selectAllCheckbox) {
+                if (count === 0) {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = false;
+                } else if (count === allPlans.length) {
+                    selectAllCheckbox.checked = true;
+                    selectAllCheckbox.indeterminate = false;
+                } else {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = true;
+                }
+            }
+
+            // Update card visual states
+            allPlans.forEach(plan => {
+                const card = document.getElementById(`plan-card-${plan.id}`);
+                const checkbox = document.getElementById(`checkbox-${plan.id}`);
+                if (card) {
+                    if (selectedPlans.has(plan.id)) {
+                        card.classList.add('selected');
+                    } else {
+                        card.classList.remove('selected');
+                    }
+                }
+                if (checkbox) {
+                    checkbox.checked = selectedPlans.has(plan.id);
+                }
+            });
+        }
+
+        async function deleteSelectedPlans() {
+            const count = selectedPlans.size;
+            if (count === 0) return;
+
+            const confirmMsg = count === 1
+                ? 'Are you sure you want to delete this meal plan? This action cannot be undone.'
+                : `Are you sure you want to delete ${count} meal plans? This action cannot be undone.`;
+
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            try {
+                // Show loading state on delete button
+                const deleteBtn = document.getElementById('deleteSelectedBtn');
+                const originalText = deleteBtn.innerHTML;
+                deleteBtn.innerHTML = '⏳ Deleting...';
+                deleteBtn.disabled = true;
+
+                // Delete all selected plans
+                const deletePromises = Array.from(selectedPlans).map(planId =>
+                    fetch(`${DELETE_PLAN_ENDPOINT}?planId=${planId}&coachId=${currentUser.id}`, {
+                        method: 'DELETE'
+                    })
+                );
+
+                const results = await Promise.all(deletePromises);
+
+                // Check for any failures
+                const failures = results.filter(r => !r.ok);
+                if (failures.length > 0) {
+                    console.error(`${failures.length} plan(s) failed to delete`);
+                }
+
+                console.log(`${count - failures.length} plan(s) deleted successfully`);
+
+                // Reset button state
+                deleteBtn.innerHTML = originalText;
+                deleteBtn.disabled = false;
+
+                // Clear selections and reload plans
+                selectedPlans.clear();
+                await loadPlans();
+
+                if (failures.length > 0) {
+                    alert(`${count - failures.length} plan(s) deleted. ${failures.length} failed to delete.`);
+                }
+
+            } catch (error) {
+                console.error('Error deleting plans:', error);
+                alert('Failed to delete some plans. Please try again.');
+
+                // Reset button state
+                const deleteBtn = document.getElementById('deleteSelectedBtn');
+                deleteBtn.innerHTML = '🗑️ Delete Selected';
+                deleteBtn.disabled = false;
             }
         }
     </script>
