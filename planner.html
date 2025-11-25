@@ -336,6 +336,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
 const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
 const SAVE_COACH_PLAN_ENDPOINT = '/.netlify/functions/save-coach-plan';
+const UPDATE_PLAN_NOTES_ENDPOINT = '/.netlify/functions/update-plan-notes';
 let lastMealQuery = {};
 let lastPlanQuery = {};
 let currentShareUrl = '';
@@ -1562,6 +1563,18 @@ function displayDietPlan(multiDayData) {
         });
     });
 
+    // Coach Notes Section
+    planHTML += `
+        <div class="coach-notes-section" style="margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin: 0; color: #0369a1; font-size: 14px; font-weight: 600;">📝 Coach Notes for Client</h4>
+                <button id="saveNotesBtn" data-action="save-coach-notes" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">Save Notes</button>
+            </div>
+            <textarea id="coachNotesInput" placeholder="Add personalized notes, tips, or instructions for your client..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; resize: vertical;"></textarea>
+            <p style="margin-top: 6px; font-size: 11px; color: #64748b;">These notes will be visible to the client when they view this plan.</p>
+        </div>
+    `;
+
     planHTML += `
         <div class="flex gap-2 mt-4">
             <button data-action="check-math" class="btn btn-secondary w-full" style="background:#6c757d;">🔍 Check Math</button>
@@ -1622,6 +1635,57 @@ async function saveCoachPlan(planData, clientName) {
     } catch (error) {
         console.error('Error saving plan:', error);
         // Don't show error to user - saving to history is not critical
+    }
+}
+
+// SAVE COACH NOTES TO PLAN
+async function saveCoachNotes() {
+    if (!currentCoach || !lastPlanQuery.planId) {
+        alert('Please generate a plan first before saving notes.');
+        return;
+    }
+
+    const notesInput = document.getElementById('coachNotesInput');
+    const saveBtn = document.getElementById('saveNotesBtn');
+    const notes = notesInput.value.trim();
+
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+
+    try {
+        const response = await fetch(UPDATE_PLAN_NOTES_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                planId: lastPlanQuery.planId,
+                coachId: currentCoach.id,
+                notes: notes || null
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to save notes');
+        }
+
+        console.log('✅ Coach notes saved successfully');
+        saveBtn.textContent = 'Saved!';
+        saveBtn.style.background = '#28a745';
+        saveBtn.style.color = 'white';
+
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.style.background = '';
+            saveBtn.style.color = '';
+            saveBtn.disabled = false;
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error saving notes:', error);
+        alert('Failed to save notes: ' + error.message);
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
     }
 }
 
@@ -2822,7 +2886,8 @@ document.addEventListener('click', function(event) {
         'download-pdf': downloadPlanAsPDF,
         'share-plan': sharePlan,
         'copy-share-link': copyShareLink,
-        'close-share-modal': closeShareModal
+        'close-share-modal': closeShareModal,
+        'save-coach-notes': saveCoachNotes
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();

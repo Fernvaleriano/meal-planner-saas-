@@ -646,6 +646,160 @@
             color: #666;
         }
 
+        /* Measurements Section */
+        .measurements-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .measurements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .measurements-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .weight-chart-container {
+            height: 250px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .measurements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .measurement-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .measurement-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0d9488;
+        }
+
+        .measurement-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .measurement-change {
+            font-size: 11px;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .measurement-change.positive {
+            color: #dc2626;
+        }
+
+        .measurement-change.negative {
+            color: #16a34a;
+        }
+
+        .measurements-history {
+            margin-top: 20px;
+        }
+
+        .history-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .history-date {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .history-values {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .history-value {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Measurement Modal */
+        .measurement-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .measurement-modal-content {
+            background-color: white;
+            margin: 30px auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .measurement-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
         @media (max-width: 768px) {
             .client-header {
                 flex-direction: column;
@@ -721,6 +875,92 @@
                 <div class="loading">Loading photos...</div>
             </div>
         </div>
+
+        <!-- Measurements Section -->
+        <div class="measurements-section">
+            <div class="measurements-header">
+                <h2 class="measurements-title">📊 Body Measurements</h2>
+                <button class="btn btn-primary" onclick="openMeasurementModal()">+ Log Measurement</button>
+            </div>
+            <div id="measurementsContainer">
+                <div class="loading">Loading measurements...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Measurement Modal -->
+    <div id="measurementModal" class="measurement-modal">
+        <div class="measurement-modal-content">
+            <div class="photo-modal-header">
+                <h2>Log Measurement</h2>
+                <button class="close-btn" onclick="closeMeasurementModal()">&times;</button>
+            </div>
+
+            <div class="measurement-form-grid">
+                <div class="form-group full-width">
+                    <label>Date</label>
+                    <input type="date" id="measurementDate">
+                </div>
+
+                <div class="form-group">
+                    <label>Weight</label>
+                    <input type="number" id="measurementWeight" step="0.1" placeholder="e.g., 175.5">
+                </div>
+                <div class="form-group">
+                    <label>Unit</label>
+                    <select id="weightUnit">
+                        <option value="lbs">lbs</option>
+                        <option value="kg">kg</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Body Fat %</label>
+                    <input type="number" id="measurementBodyFat" step="0.1" placeholder="e.g., 15.5">
+                </div>
+                <div class="form-group">
+                    <label>Waist</label>
+                    <input type="number" id="measurementWaist" step="0.1" placeholder="inches">
+                </div>
+
+                <div class="form-group">
+                    <label>Chest</label>
+                    <input type="number" id="measurementChest" step="0.1" placeholder="inches">
+                </div>
+                <div class="form-group">
+                    <label>Hips</label>
+                    <input type="number" id="measurementHips" step="0.1" placeholder="inches">
+                </div>
+
+                <div class="form-group">
+                    <label>Left Arm</label>
+                    <input type="number" id="measurementLeftArm" step="0.1" placeholder="inches">
+                </div>
+                <div class="form-group">
+                    <label>Right Arm</label>
+                    <input type="number" id="measurementRightArm" step="0.1" placeholder="inches">
+                </div>
+
+                <div class="form-group">
+                    <label>Left Thigh</label>
+                    <input type="number" id="measurementLeftThigh" step="0.1" placeholder="inches">
+                </div>
+                <div class="form-group">
+                    <label>Right Thigh</label>
+                    <input type="number" id="measurementRightThigh" step="0.1" placeholder="inches">
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Notes (optional)</label>
+                    <input type="text" id="measurementNotes" placeholder="e.g., After morning workout">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeMeasurementModal()">Cancel</button>
+                <button class="btn btn-primary" id="saveMeasurementBtn" onclick="saveMeasurement()">Save Measurement</button>
+            </div>
+        </div>
     </div>
 
     <!-- Photo Upload Modal -->
@@ -784,6 +1024,8 @@
         const UPLOAD_PHOTO_ENDPOINT = '/.netlify/functions/upload-progress-photo';
         const GET_PHOTOS_ENDPOINT = '/.netlify/functions/get-progress-photos';
         const DELETE_PHOTO_ENDPOINT = '/.netlify/functions/delete-progress-photo';
+        const SAVE_MEASUREMENT_ENDPOINT = '/.netlify/functions/save-measurement';
+        const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
 
         let currentUser = null;
         let currentClient = null;
@@ -791,6 +1033,7 @@
         let selectedPlans = new Set();
         let selectedPhotoFile = null;
         let clientPhotos = [];
+        let clientMeasurements = [];
 
         // Logout function
         document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -905,6 +1148,7 @@
             await loadClient(clientId);
             await loadPlans(clientId);
             await loadPhotos(clientId);
+            await loadMeasurements(clientId);
 
             console.log('Data refreshed successfully');
         }
@@ -1596,6 +1840,289 @@
             if (e.key === 'Escape') {
                 closeLightbox();
                 closeUploadModal();
+                closeMeasurementModal();
+            }
+        });
+
+        // ========== MEASUREMENTS FUNCTIONS ==========
+
+        async function loadMeasurements(clientId) {
+            try {
+                const response = await fetch(`${GET_MEASUREMENTS_ENDPOINT}?clientId=${clientId}`);
+
+                if (!response.ok) throw new Error('Failed to load measurements');
+
+                const data = await response.json();
+                clientMeasurements = data.measurements || [];
+                displayMeasurements(data.stats);
+
+            } catch (error) {
+                console.error('Error loading measurements:', error);
+                document.getElementById('measurementsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Unable to load measurements</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayMeasurements(stats) {
+            const container = document.getElementById('measurementsContainer');
+
+            if (clientMeasurements.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No measurements logged yet</p>
+                        <p style="color: #999; font-size: 14px; margin-top: 8px;">Click "Log Measurement" to track progress</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const latest = clientMeasurements[0];
+            const oldest = clientMeasurements[clientMeasurements.length - 1];
+
+            // Calculate changes
+            const weightChange = stats?.weightChange;
+            const waistChange = stats?.waistChange;
+
+            container.innerHTML = `
+                <div class="weight-chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+
+                <div class="measurements-grid">
+                    ${latest.weight ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latest.weight}</div>
+                            <div class="measurement-label">${latest.weight_unit || 'lbs'}</div>
+                            ${weightChange !== null ? `
+                                <div class="measurement-change ${weightChange > 0 ? 'positive' : 'negative'}">
+                                    ${weightChange > 0 ? '+' : ''}${weightChange} ${latest.weight_unit || 'lbs'}
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    ${latest.body_fat_percentage ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latest.body_fat_percentage}%</div>
+                            <div class="measurement-label">Body Fat</div>
+                        </div>
+                    ` : ''}
+                    ${latest.waist ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latest.waist}"</div>
+                            <div class="measurement-label">Waist</div>
+                            ${waistChange !== null ? `
+                                <div class="measurement-change ${waistChange > 0 ? 'positive' : 'negative'}">
+                                    ${waistChange > 0 ? '+' : ''}${waistChange}"
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    ${latest.chest ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latest.chest}"</div>
+                            <div class="measurement-label">Chest</div>
+                        </div>
+                    ` : ''}
+                    ${latest.left_arm || latest.right_arm ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latest.left_arm || latest.right_arm}"</div>
+                            <div class="measurement-label">Arms</div>
+                        </div>
+                    ` : ''}
+                    ${latest.hips ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latest.hips}"</div>
+                            <div class="measurement-label">Hips</div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="measurements-history">
+                    <h4 style="margin-bottom: 12px; color: #333;">History</h4>
+                    ${clientMeasurements.slice(0, 5).map(m => `
+                        <div class="history-entry">
+                            <span class="history-date">${new Date(m.measured_date).toLocaleDateString()}</span>
+                            <div class="history-values">
+                                ${m.weight ? `<span class="history-value">⚖️ ${m.weight} ${m.weight_unit || 'lbs'}</span>` : ''}
+                                ${m.waist ? `<span class="history-value">📏 ${m.waist}"</span>` : ''}
+                                ${m.body_fat_percentage ? `<span class="history-value">📊 ${m.body_fat_percentage}%</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Render chart if we have weight data
+            renderWeightChart();
+        }
+
+        function renderWeightChart() {
+            const canvas = document.getElementById('weightChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const weightData = clientMeasurements
+                .filter(m => m.weight)
+                .reverse(); // Oldest first for chart
+
+            if (weightData.length < 2) {
+                canvas.parentElement.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Add more measurements to see your progress chart</p>';
+                return;
+            }
+
+            // Simple line chart
+            const padding = 40;
+            const width = canvas.width = canvas.parentElement.offsetWidth;
+            const height = canvas.height = 200;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+
+            const weights = weightData.map(m => m.weight);
+            const minWeight = Math.min(...weights) - 5;
+            const maxWeight = Math.max(...weights) + 5;
+            const weightRange = maxWeight - minWeight;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw grid lines
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (chartHeight / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+
+                // Y-axis labels
+                const weightLabel = maxWeight - (weightRange / 4) * i;
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(weightLabel.toFixed(0), padding - 8, y + 4);
+            }
+
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = '#0d9488';
+            ctx.lineWidth = 2;
+
+            weightData.forEach((m, i) => {
+                const x = padding + (chartWidth / (weightData.length - 1)) * i;
+                const y = padding + chartHeight - ((m.weight - minWeight) / weightRange) * chartHeight;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            // Draw points
+            weightData.forEach((m, i) => {
+                const x = padding + (chartWidth / (weightData.length - 1)) * i;
+                const y = padding + chartHeight - ((m.weight - minWeight) / weightRange) * chartHeight;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#0d9488';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // X-axis labels (dates)
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            const labelInterval = Math.ceil(weightData.length / 5);
+            weightData.forEach((m, i) => {
+                if (i % labelInterval === 0 || i === weightData.length - 1) {
+                    const x = padding + (chartWidth / (weightData.length - 1)) * i;
+                    const date = new Date(m.measured_date);
+                    ctx.fillText(`${date.getMonth() + 1}/${date.getDate()}`, x, height - 10);
+                }
+            });
+        }
+
+        function openMeasurementModal() {
+            const modal = document.getElementById('measurementModal');
+            modal.style.display = 'block';
+
+            // Set default date to today
+            document.getElementById('measurementDate').value = new Date().toISOString().split('T')[0];
+
+            // Clear form
+            document.getElementById('measurementWeight').value = '';
+            document.getElementById('measurementBodyFat').value = '';
+            document.getElementById('measurementWaist').value = '';
+            document.getElementById('measurementChest').value = '';
+            document.getElementById('measurementHips').value = '';
+            document.getElementById('measurementLeftArm').value = '';
+            document.getElementById('measurementRightArm').value = '';
+            document.getElementById('measurementLeftThigh').value = '';
+            document.getElementById('measurementRightThigh').value = '';
+            document.getElementById('measurementNotes').value = '';
+        }
+
+        function closeMeasurementModal() {
+            document.getElementById('measurementModal').style.display = 'none';
+        }
+
+        async function saveMeasurement() {
+            const btn = document.getElementById('saveMeasurementBtn');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(SAVE_MEASUREMENT_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClient.id,
+                        coachId: currentUser.id,
+                        measuredDate: document.getElementById('measurementDate').value,
+                        weight: document.getElementById('measurementWeight').value || null,
+                        weightUnit: document.getElementById('weightUnit').value,
+                        bodyFatPercentage: document.getElementById('measurementBodyFat').value || null,
+                        waist: document.getElementById('measurementWaist').value || null,
+                        chest: document.getElementById('measurementChest').value || null,
+                        hips: document.getElementById('measurementHips').value || null,
+                        leftArm: document.getElementById('measurementLeftArm').value || null,
+                        rightArm: document.getElementById('measurementRightArm').value || null,
+                        leftThigh: document.getElementById('measurementLeftThigh').value || null,
+                        rightThigh: document.getElementById('measurementRightThigh').value || null,
+                        notes: document.getElementById('measurementNotes').value || null
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to save');
+                }
+
+                console.log('Measurement saved successfully');
+                closeMeasurementModal();
+                await loadMeasurements(currentClient.id);
+
+            } catch (error) {
+                console.error('Error saving measurement:', error);
+                alert('Failed to save measurement: ' + error.message);
+            } finally {
+                btn.textContent = 'Save Measurement';
+                btn.disabled = false;
+            }
+        }
+
+        // Handle window resize for chart
+        window.addEventListener('resize', () => {
+            if (clientMeasurements.length > 0) {
+                renderWeightChart();
             }
         });
     </script>
