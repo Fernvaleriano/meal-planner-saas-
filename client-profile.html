@@ -394,73 +394,100 @@
             color: #333;
         }
 
-        .photos-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
+        .photo-carousel-wrapper {
+            position: relative;
+            padding: 0 25px;
+        }
+
+        .photo-carousel {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 10px 0;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e0 transparent;
+        }
+
+        .photo-carousel::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .photo-carousel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .photo-carousel::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
         }
 
         .photo-card {
-            background: #f8f9fa;
+            position: relative;
+            flex: 0 0 160px;
+            height: 200px;
             border-radius: 10px;
             overflow: hidden;
-            position: relative;
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .photo-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
         }
 
         .photo-card img {
             width: 100%;
-            height: 200px;
+            height: 100%;
             object-fit: cover;
-            cursor: pointer;
         }
 
-        .photo-info {
-            padding: 12px;
+        .photo-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 30px 10px 10px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.75));
+            color: white;
+        }
+
+        .photo-type {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            opacity: 0.9;
+            margin-bottom: 2px;
         }
 
         .photo-date {
             font-size: 12px;
-            color: #666;
-            margin-bottom: 4px;
+            font-weight: 500;
         }
 
-        .photo-type-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            background: #e0f2fe;
-            color: #0369a1;
-            text-transform: capitalize;
-        }
-
-        .photo-notes {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 6px;
-            font-style: italic;
+        .photo-notes-text {
+            font-size: 10px;
+            opacity: 0.85;
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .photo-delete {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: 6px;
+            right: 6px;
             background: rgba(239, 68, 68, 0.9);
             color: white;
             border: none;
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -474,6 +501,39 @@
 
         .photo-delete:hover {
             background: #dc2626;
+        }
+
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #4a5568;
+            z-index: 10;
+            transition: all 0.2s;
+        }
+
+        .carousel-nav:hover {
+            background: #f7fafc;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        }
+
+        .carousel-nav.prev {
+            left: -5px;
+        }
+
+        .carousel-nav.next {
+            right: -5px;
         }
 
         /* Upload Modal */
@@ -1331,27 +1391,37 @@
             }
 
             const photoTypeLabels = {
-                'front': 'Front View',
-                'side': 'Side View',
-                'back': 'Back View',
+                'front': 'Front',
+                'side': 'Side',
+                'back': 'Back',
                 'progress': 'Progress'
             };
 
             container.innerHTML = `
-                <div class="photo-grid">
-                    ${clientPhotos.map(photo => `
-                        <div class="photo-card">
-                            <img src="${photo.photo_url}" alt="Progress photo" onclick="openLightbox('${photo.photo_url}')">
-                            <div class="photo-info">
-                                <span class="photo-type">${photoTypeLabels[photo.photo_type] || photo.photo_type}</span>
-                                <span class="photo-date">${new Date(photo.taken_date).toLocaleDateString()}</span>
+                <div class="photo-carousel-wrapper">
+                    <button class="carousel-nav prev" onclick="scrollCarousel(-1)">‹</button>
+                    <div class="photo-carousel" id="photoCarousel">
+                        ${clientPhotos.map(photo => `
+                            <div class="photo-card" onclick="openLightbox('${photo.photo_url}')">
+                                <img src="${photo.photo_url}" alt="Progress photo">
+                                <div class="photo-overlay">
+                                    <div class="photo-type">${photoTypeLabels[photo.photo_type] || photo.photo_type}</div>
+                                    <div class="photo-date">${new Date(photo.taken_date).toLocaleDateString()}</div>
+                                    ${photo.notes ? `<div class="photo-notes-text">${photo.notes}</div>` : ''}
+                                </div>
+                                <button class="photo-delete" onclick="event.stopPropagation(); deletePhoto(${photo.id})" title="Delete">×</button>
                             </div>
-                            ${photo.notes ? `<div class="photo-notes">${photo.notes}</div>` : ''}
-                            <button class="photo-delete-btn" onclick="deletePhoto(${photo.id})" title="Delete photo">×</button>
-                        </div>
-                    `).join('')}
+                        `).join('')}
+                    </div>
+                    <button class="carousel-nav next" onclick="scrollCarousel(1)">›</button>
                 </div>
             `;
+        }
+
+        function scrollCarousel(direction) {
+            const carousel = document.getElementById('photoCarousel');
+            const scrollAmount = 200;
+            carousel.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
         }
 
         function openUploadModal() {
