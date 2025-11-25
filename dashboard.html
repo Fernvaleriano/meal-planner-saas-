@@ -259,6 +259,139 @@
             color: #64748b;
             font-size: 16px;
         }
+
+        /* Notification styles */
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .notification-bell:hover {
+            background: #f1f5f9;
+        }
+
+        .notification-bell svg {
+            width: 24px;
+            height: 24px;
+            color: #64748b;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            width: 360px;
+            max-height: 400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            z-index: 1000;
+            display: none;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+        }
+
+        .notification-header {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .mark-all-read {
+            font-size: 13px;
+            color: #0d9488;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .mark-all-read:hover {
+            text-decoration: underline;
+        }
+
+        .notification-list {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #f8fafc;
+        }
+
+        .notification-item.unread {
+            background: #f0fdfa;
+        }
+
+        .notification-item.unread:hover {
+            background: #e6fffa;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .notification-message {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .notification-time {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .notification-empty {
+            padding: 40px 20px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .notification-container {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -266,6 +399,23 @@
         <div class="logo">🍽️ Meal Planner SaaS</div>
         <div class="user-info">
             <span class="user-email" id="userEmail">Loading...</span>
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">
+                        <h3>Notifications</h3>
+                        <span class="mark-all-read" id="markAllRead">Mark all read</span>
+                    </div>
+                    <div class="notification-list" id="notificationList">
+                        <div class="notification-empty">No notifications</div>
+                    </div>
+                </div>
+            </div>
             <button class="logout-btn" id="logoutBtn">Logout</button>
         </div>
     </div>
@@ -496,6 +646,9 @@
                 // Fetch and display quick stats
                 await loadQuickStats(user.id);
 
+                // Load notifications
+                loadNotifications(user.id);
+
                 // Hide loading, show dashboard
                 loadingDiv.style.display = 'none';
                 dashboardContent.style.display = 'block';
@@ -522,6 +675,103 @@
             }
         });
         
+        // Notification functions
+        const notificationBell = document.getElementById('notificationBell');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const notificationBadge = document.getElementById('notificationBadge');
+        const notificationList = document.getElementById('notificationList');
+        const markAllRead = document.getElementById('markAllRead');
+
+        let currentUserId = null;
+
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+            if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+            return date.toLocaleDateString();
+        }
+
+        async function loadNotifications(userId) {
+            currentUserId = userId;
+            try {
+                const response = await fetch(`/.netlify/functions/notifications?userId=${userId}`);
+                const data = await response.json();
+
+                if (data.unreadCount > 0) {
+                    notificationBadge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                    notificationBadge.style.display = 'flex';
+                } else {
+                    notificationBadge.style.display = 'none';
+                }
+
+                if (data.notifications && data.notifications.length > 0) {
+                    notificationList.innerHTML = data.notifications.map(n => `
+                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}">
+                            <div class="notification-title">${n.title}</div>
+                            <div class="notification-message">${n.message}</div>
+                            <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
+                        </div>
+                    `).join('');
+
+                    // Add click handlers to notifications
+                    document.querySelectorAll('.notification-item').forEach(item => {
+                        item.addEventListener('click', async () => {
+                            const notifId = item.dataset.id;
+                            const clientId = item.dataset.clientId;
+
+                            // Mark as read
+                            await fetch('/.netlify/functions/notifications', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ notificationIds: [parseInt(notifId)] })
+                            });
+
+                            // Navigate to client if applicable
+                            if (clientId) {
+                                window.location.href = `manage-clients.html?client=${clientId}`;
+                            } else {
+                                item.classList.remove('unread');
+                                loadNotifications(currentUserId);
+                            }
+                        });
+                    });
+                } else {
+                    notificationList.innerHTML = '<div class="notification-empty">No notifications yet</div>';
+                }
+            } catch (err) {
+                console.error('Error loading notifications:', err);
+            }
+        }
+
+        // Toggle dropdown
+        notificationBell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notificationDropdown.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!notificationDropdown.contains(e.target) && !notificationBell.contains(e.target)) {
+                notificationDropdown.classList.remove('show');
+            }
+        });
+
+        // Mark all as read
+        markAllRead.addEventListener('click', async () => {
+            if (!currentUserId) return;
+            await fetch('/.netlify/functions/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUserId, markAllRead: true })
+            });
+            loadNotifications(currentUserId);
+        });
+
         // Load dashboard on page load
         loadDashboard();
     </script>
