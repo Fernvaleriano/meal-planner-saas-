@@ -135,6 +135,24 @@
             transform: translateY(-2px);
         }
 
+        .btn-favorite {
+            background: transparent;
+            color: #e53e3e;
+            border: 2px solid #fed7d7;
+            padding: 8px 14px;
+            font-size: 1.1em;
+        }
+
+        .btn-favorite:hover {
+            background: #fed7d7;
+            transform: translateY(-2px);
+        }
+
+        .btn-favorite.active {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
         .macro-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -430,7 +448,9 @@
         const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
         const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
         const GET_PLAN_ENDPOINT = '/.netlify/functions/get-shared-plan';
+        const TOGGLE_FAVORITE_ENDPOINT = '/.netlify/functions/toggle-favorite';
         let currentPlan = null;
+        let clientFavorites = [];
         let currentShareUrl = '';
         let realtimeChannel = null;
         let currentPlanId = null;
@@ -556,6 +576,9 @@
                         window.location.href = 'client-login.html';
                         return;
                     }
+
+                    // Load favorites for the client
+                    await loadFavorites(clientData.id);
 
                     query = query.eq('client_id', clientData.id);
                 } else {
@@ -1032,10 +1055,19 @@
             const changeParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
             const reviseParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
 
+            // Check if meal is already favorited
+            const isFavorited = clientFavorites.some(f => f.meal_name === meal.name);
+            const favoriteClass = isFavorited ? 'active' : '';
+            const favoriteIcon = isFavorited ? '❤️' : '🤍';
+
+            // Escape meal name for use in onclick
+            const escapedMealName = meal.name.replace(/'/g, "\\'").replace(/"/g, '\\"');
+
             card.innerHTML = `
                 <div class="meal-header">
                     <div class="meal-name">${meal.name}</div>
                     <div class="meal-actions">
+                        <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                         <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
                         <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
                     </div>
@@ -2106,6 +2138,99 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             });
 
             return Object.values(aggregated).sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        // ========== FAVORITES FUNCTIONS ==========
+
+        async function loadFavorites(clientId) {
+            if (!clientId) return;
+
+            try {
+                const response = await fetch(`${TOGGLE_FAVORITE_ENDPOINT}?clientId=${clientId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    clientFavorites = data.favorites || [];
+                    console.log('Loaded favorites:', clientFavorites.length);
+                }
+            } catch (error) {
+                console.error('Error loading favorites:', error);
+            }
+        }
+
+        async function toggleFavorite(mealName, mealType, calories, protein, carbs, fat, index) {
+            // Get client ID from current context
+            let clientId = null;
+            let coachId = null;
+
+            // Check URL params for client view
+            const urlParams = new URLSearchParams(window.location.search);
+            const isClientView = urlParams.get('clientView') === 'true';
+
+            if (isClientView) {
+                // Get client ID from session
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) {
+                    const { data: clientData } = await supabaseClient
+                        .from('clients')
+                        .select('id, coach_id')
+                        .eq('user_id', session.user.id)
+                        .single();
+
+                    if (clientData) {
+                        clientId = clientData.id;
+                        coachId = clientData.coach_id;
+                    }
+                }
+            }
+
+            if (!clientId) {
+                alert('Could not determine client. Please log in again.');
+                return;
+            }
+
+            const btn = document.getElementById(`fav-${index}`);
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(TOGGLE_FAVORITE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        coachId,
+                        mealName,
+                        mealType,
+                        calories,
+                        protein,
+                        carbs,
+                        fat
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to toggle favorite');
+
+                const data = await response.json();
+
+                if (data.action === 'added') {
+                    btn.innerHTML = '❤️';
+                    btn.classList.add('active');
+                    btn.title = 'Remove from favorites';
+                    clientFavorites.push({ meal_name: mealName });
+                } else {
+                    btn.innerHTML = '🤍';
+                    btn.classList.remove('active');
+                    btn.title = 'Add to favorites';
+                    clientFavorites = clientFavorites.filter(f => f.meal_name !== mealName);
+                }
+
+            } catch (error) {
+                console.error('Error toggling favorite:', error);
+                btn.innerHTML = originalContent;
+            }
+
+            btn.disabled = false;
         }
     </script>
 </body>

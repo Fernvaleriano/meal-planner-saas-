@@ -747,6 +747,156 @@
             gap: 4px;
         }
 
+        /* Check-ins Section */
+        .checkins-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .checkins-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .checkins-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .checkin-card {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid #0d9488;
+        }
+
+        .checkin-card.needs-response {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .checkin-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .checkin-date {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 16px;
+        }
+
+        .checkin-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .checkin-badge.adherence {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .checkin-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .checkin-ratings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .checkin-rating-item {
+            text-align: center;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .checkin-rating-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0d9488;
+        }
+
+        .checkin-rating-label {
+            font-size: 11px;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
+        .checkin-feedback {
+            margin-top: 12px;
+        }
+
+        .checkin-feedback-item {
+            margin-bottom: 10px;
+        }
+
+        .checkin-feedback-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 4px;
+        }
+
+        .checkin-feedback-text {
+            font-size: 14px;
+            color: #2d3748;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .coach-response-form {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .coach-response-form textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            min-height: 80px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .coach-existing-response {
+            background: #e0f2fe;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .coach-existing-response-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 4px;
+        }
+
+        .coach-existing-response-text {
+            font-size: 14px;
+            color: #334155;
+        }
+
         /* Measurement Modal */
         .measurement-modal {
             display: none;
@@ -884,6 +1034,16 @@
             </div>
             <div id="measurementsContainer">
                 <div class="loading">Loading measurements...</div>
+            </div>
+        </div>
+
+        <!-- Check-ins Section -->
+        <div class="checkins-section">
+            <div class="checkins-header">
+                <h2 class="checkins-title">📝 Weekly Check-ins</h2>
+            </div>
+            <div id="checkinsContainer">
+                <div class="loading">Loading check-ins...</div>
             </div>
         </div>
     </div>
@@ -1026,6 +1186,8 @@
         const DELETE_PHOTO_ENDPOINT = '/.netlify/functions/delete-progress-photo';
         const SAVE_MEASUREMENT_ENDPOINT = '/.netlify/functions/save-measurement';
         const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
+        const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
+        const RESPOND_CHECKIN_ENDPOINT = '/.netlify/functions/respond-checkin';
 
         let currentUser = null;
         let currentClient = null;
@@ -1034,6 +1196,7 @@
         let selectedPhotoFile = null;
         let clientPhotos = [];
         let clientMeasurements = [];
+        let clientCheckins = [];
 
         // Logout function
         document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -1149,6 +1312,7 @@
             await loadPlans(clientId);
             await loadPhotos(clientId);
             await loadMeasurements(clientId);
+            await loadCheckins(clientId);
 
             console.log('Data refreshed successfully');
         }
@@ -2125,6 +2289,154 @@
                 renderWeightChart();
             }
         });
+
+        // ========== CHECK-INS FUNCTIONS ==========
+
+        async function loadCheckins(clientId) {
+            try {
+                const response = await fetch(`${CHECKIN_ENDPOINT}?clientId=${clientId}&limit=10`);
+
+                if (!response.ok) throw new Error('Failed to load check-ins');
+
+                const data = await response.json();
+                clientCheckins = data.checkins || [];
+                displayCheckins();
+
+            } catch (error) {
+                console.error('Error loading check-ins:', error);
+                document.getElementById('checkinsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Unable to load check-ins</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayCheckins() {
+            const container = document.getElementById('checkinsContainer');
+
+            if (clientCheckins.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p style="color: #718096;">No check-ins submitted yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = clientCheckins.map(c => {
+                const needsResponse = !c.coach_feedback && !c.coach_responded_at;
+
+                return `
+                    <div class="checkin-card ${needsResponse ? 'needs-response' : ''}">
+                        <div class="checkin-card-header">
+                            <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                            <div>
+                                ${c.meal_plan_adherence !== null ? `<span class="checkin-badge adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
+                                ${needsResponse ? `<span class="checkin-badge pending">Needs Response</span>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="checkin-ratings">
+                            ${c.energy_level ? `
+                                <div class="checkin-rating-item">
+                                    <div class="checkin-rating-value">${c.energy_level}/5</div>
+                                    <div class="checkin-rating-label">Energy</div>
+                                </div>
+                            ` : ''}
+                            ${c.sleep_quality ? `
+                                <div class="checkin-rating-item">
+                                    <div class="checkin-rating-value">${c.sleep_quality}/5</div>
+                                    <div class="checkin-rating-label">Sleep</div>
+                                </div>
+                            ` : ''}
+                            ${c.hunger_level ? `
+                                <div class="checkin-rating-item">
+                                    <div class="checkin-rating-value">${c.hunger_level}/5</div>
+                                    <div class="checkin-rating-label">Hunger</div>
+                                </div>
+                            ` : ''}
+                            ${c.stress_level ? `
+                                <div class="checkin-rating-item">
+                                    <div class="checkin-rating-value">${c.stress_level}/5</div>
+                                    <div class="checkin-rating-label">Stress</div>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="checkin-feedback">
+                            ${c.wins ? `
+                                <div class="checkin-feedback-item">
+                                    <div class="checkin-feedback-label">✨ Wins</div>
+                                    <div class="checkin-feedback-text">${c.wins}</div>
+                                </div>
+                            ` : ''}
+                            ${c.challenges ? `
+                                <div class="checkin-feedback-item">
+                                    <div class="checkin-feedback-label">💪 Challenges</div>
+                                    <div class="checkin-feedback-text">${c.challenges}</div>
+                                </div>
+                            ` : ''}
+                            ${c.questions ? `
+                                <div class="checkin-feedback-item">
+                                    <div class="checkin-feedback-label">❓ Questions</div>
+                                    <div class="checkin-feedback-text">${c.questions}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${c.coach_feedback ? `
+                            <div class="coach-existing-response">
+                                <div class="coach-existing-response-label">Your Response:</div>
+                                <div class="coach-existing-response-text">${c.coach_feedback}</div>
+                            </div>
+                        ` : `
+                            <div class="coach-response-form">
+                                <textarea id="response-${c.id}" placeholder="Write a response to encourage and guide your client..."></textarea>
+                                <button class="btn btn-primary" onclick="submitCoachResponse(${c.id})" style="width: 100%;">Send Response</button>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function submitCoachResponse(checkinId) {
+            const textarea = document.getElementById(`response-${checkinId}`);
+            const feedback = textarea.value.trim();
+
+            if (!feedback) {
+                alert('Please enter a response');
+                return;
+            }
+
+            const btn = textarea.nextElementSibling;
+            btn.textContent = 'Sending...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(RESPOND_CHECKIN_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        checkinId: checkinId,
+                        coachId: currentUser.id,
+                        feedback: feedback
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to send response');
+
+                console.log('Response sent successfully');
+                await loadCheckins(currentClient.id);
+
+            } catch (error) {
+                console.error('Error sending response:', error);
+                alert('Failed to send response. Please try again.');
+                btn.textContent = 'Send Response';
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>

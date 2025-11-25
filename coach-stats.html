@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Dashboard - Client Stats Overview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f6f8fb 0%, #e9f0f5 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            color: white;
+        }
+
+        /* Overview Cards */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .overview-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .overview-card .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .overview-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .overview-card .label {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .overview-card.positive .value {
+            color: #38a169;
+        }
+
+        .overview-card.negative .value {
+            color: #e53e3e;
+        }
+
+        /* Main Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Client Cards */
+        .clients-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .search-input {
+            padding: 8px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 200px;
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .client-card {
+            background: linear-gradient(135deg, #f7fafc 0%, #ffffff 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .client-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .client-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 16px;
+        }
+
+        .client-goal {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .goal-lose {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .goal-gain {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .goal-maintain {
+            background: #bee3f8;
+            color: #2b6cb0;
+        }
+
+        .client-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .client-stat {
+            text-align: center;
+            padding: 8px;
+            background: #f7fafc;
+            border-radius: 6px;
+        }
+
+        .client-stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .client-stat-value.positive {
+            color: #38a169;
+        }
+
+        .client-stat-value.negative {
+            color: #e53e3e;
+        }
+
+        .client-stat-label {
+            font-size: 10px;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
+        .client-activity {
+            font-size: 12px;
+            color: #718096;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .activity-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #cbd5e0;
+        }
+
+        .activity-dot.recent {
+            background: #48bb78;
+        }
+
+        /* Recent Activity */
+        .activity-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .activity-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.measurement {
+            background: #e0f2fe;
+        }
+
+        .activity-icon.photo {
+            background: #fce7f3;
+        }
+
+        .activity-icon.plan {
+            background: #d1fae5;
+        }
+
+        .activity-icon.checkin {
+            background: #fef3c7;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-client {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 14px;
+        }
+
+        .activity-details {
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .activity-time {
+            font-size: 11px;
+            color: #a0aec0;
+            margin-top: 2px;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* Filter tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .filter-tab {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #4a5568;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .filter-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .filter-tab:hover:not(.active) {
+            background: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Coach Dashboard</h1>
+            <p>Overview of all your clients' progress and activity</p>
+            <div class="header-actions">
+                <a href="dashboard.html" class="btn btn-secondary">Back to Main Dashboard</a>
+                <a href="planner.html" class="btn btn-primary">+ Create Meal Plan</a>
+            </div>
+        </div>
+
+        <div id="overviewContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading stats...</p>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="clients-section">
+                <div class="section-header">
+                    <h2 class="section-title">All Clients</h2>
+                    <input type="text" class="search-input" placeholder="Search clients..." id="clientSearch" oninput="filterClients()">
+                </div>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</button>
+                    <button class="filter-tab" data-filter="losing" onclick="setFilter('losing')">Losing Weight</button>
+                    <button class="filter-tab" data-filter="gaining" onclick="setFilter('gaining')">Gaining Weight</button>
+                    <button class="filter-tab" data-filter="recent" onclick="setFilter('recent')">Recently Active</button>
+                </div>
+                <div id="clientsContainer" class="clients-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading clients...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="activity-section">
+                <div class="section-header">
+                    <h2 class="section-title">Recent Activity</h2>
+                </div>
+                <div id="activityContainer" class="activity-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const DASHBOARD_STATS_ENDPOINT = '/.netlify/functions/get-dashboard-stats';
+
+        let currentCoach = null;
+        let dashboardData = null;
+        let currentFilter = 'all';
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentCoach = session.user;
+            await loadDashboardStats();
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch(`${DASHBOARD_STATS_ENDPOINT}?coachId=${currentCoach.id}`);
+
+                if (!response.ok) throw new Error('Failed to load stats');
+
+                dashboardData = await response.json();
+                displayOverview(dashboardData.overview);
+                displayClients(dashboardData.clients);
+                displayActivity(dashboardData.recentActivity);
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('overviewContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Failed to load dashboard stats</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayOverview(overview) {
+            const container = document.getElementById('overviewContainer');
+
+            container.innerHTML = `
+                <div class="overview-grid">
+                    <div class="overview-card">
+                        <div class="icon">👥</div>
+                        <div class="value">${overview.totalClients}</div>
+                        <div class="label">Total Clients</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="icon">✨</div>
+                        <div class="value">${overview.activeClients}</div>
+                        <div class="label">Active This Month</div>
+                    </div>
+                    <div class="overview-card positive">
+                        <div class="icon">📉</div>
+                        <div class="value">${overview.clientsLosingWeight}</div>
+                        <div class="label">Losing Weight</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="icon">📈</div>
+                        <div class="value">${overview.clientsGainingWeight}</div>
+                        <div class="label">Gaining Weight</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="icon">📊</div>
+                        <div class="value">${overview.totalMeasurementsThisMonth}</div>
+                        <div class="label">Measurements</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="icon">📷</div>
+                        <div class="value">${overview.totalPhotosThisMonth}</div>
+                        <div class="label">Progress Photos</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="icon">🍽️</div>
+                        <div class="value">${overview.totalPlansThisMonth}</div>
+                        <div class="label">Meal Plans</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="icon">📝</div>
+                        <div class="value">${overview.totalCheckinsThisMonth}</div>
+                        <div class="label">Check-ins</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayClients(clients) {
+            const container = document.getElementById('clientsContainer');
+
+            if (clients.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <h3>No Clients Yet</h3>
+                        <p>Add your first client to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Apply filter
+            let filteredClients = clients;
+            if (currentFilter === 'losing') {
+                filteredClients = clients.filter(c => c.weightChange !== null && c.weightChange < 0);
+            } else if (currentFilter === 'gaining') {
+                filteredClients = clients.filter(c => c.weightChange !== null && c.weightChange > 0);
+            } else if (currentFilter === 'recent') {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                filteredClients = clients.filter(c => c.lastActivity && new Date(c.lastActivity) > sevenDaysAgo);
+            }
+
+            // Apply search
+            const searchTerm = document.getElementById('clientSearch').value.toLowerCase();
+            if (searchTerm) {
+                filteredClients = filteredClients.filter(c =>
+                    c.name.toLowerCase().includes(searchTerm) ||
+                    (c.email && c.email.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            if (filteredClients.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No clients match your filter</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredClients.map(client => {
+                const goalClass = client.goal?.toLowerCase().includes('lose') ? 'goal-lose' :
+                                  client.goal?.toLowerCase().includes('gain') ? 'goal-gain' : 'goal-maintain';
+
+                const weightChangeClass = client.weightChange !== null ?
+                    (client.weightChange < 0 ? 'positive' : (client.weightChange > 0 ? 'negative' : '')) : '';
+
+                const isRecent = client.lastActivity &&
+                    (new Date() - new Date(client.lastActivity)) < 7 * 24 * 60 * 60 * 1000;
+
+                return `
+                    <div class="client-card" onclick="viewClient(${client.id})">
+                        <div class="client-header">
+                            <div class="client-name">${client.name}</div>
+                            ${client.goal ? `<span class="client-goal ${goalClass}">${client.goal}</span>` : ''}
+                        </div>
+                        <div class="client-stats">
+                            <div class="client-stat">
+                                <div class="client-stat-value">${client.currentWeight || '-'}</div>
+                                <div class="client-stat-label">${client.weightUnit}</div>
+                            </div>
+                            <div class="client-stat">
+                                <div class="client-stat-value ${weightChangeClass}">${client.weightChange !== null ? (client.weightChange > 0 ? '+' : '') + client.weightChange : '-'}</div>
+                                <div class="client-stat-label">Change</div>
+                            </div>
+                            <div class="client-stat">
+                                <div class="client-stat-value">${client.recentPhotos}</div>
+                                <div class="client-stat-label">Photos</div>
+                            </div>
+                        </div>
+                        <div class="client-activity">
+                            <span class="activity-dot ${isRecent ? 'recent' : ''}"></span>
+                            ${client.lastActivity ? 'Active ' + getRelativeTime(client.lastActivity) : 'No recent activity'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayActivity(activities) {
+            const container = document.getElementById('activityContainer');
+
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No recent activity</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const iconMap = {
+                measurement: { icon: '📊', class: 'measurement' },
+                photo: { icon: '📷', class: 'photo' },
+                plan: { icon: '🍽️', class: 'plan' },
+                checkin: { icon: '📝', class: 'checkin' }
+            };
+
+            container.innerHTML = activities.map(activity => {
+                const iconInfo = iconMap[activity.type] || { icon: '📌', class: '' };
+
+                return `
+                    <div class="activity-item" onclick="viewClient(${activity.clientId})">
+                        <div class="activity-icon ${iconInfo.class}">${iconInfo.icon}</div>
+                        <div class="activity-content">
+                            <div class="activity-client">${activity.clientName}</div>
+                            <div class="activity-details">${activity.details}</div>
+                            <div class="activity-time">${getRelativeTime(activity.date)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === filter);
+            });
+
+            // Re-display clients with new filter
+            if (dashboardData) {
+                displayClients(dashboardData.clients);
+            }
+        }
+
+        function filterClients() {
+            if (dashboardData) {
+                displayClients(dashboardData.clients);
+            }
+        }
+
+        function viewClient(clientId) {
+            window.location.href = `client-profile.html?clientId=${clientId}`;
+        }
+
+        function getRelativeTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        init();
+    </script>
+</body>
+</html>
