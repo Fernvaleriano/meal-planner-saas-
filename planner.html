@@ -1495,7 +1495,53 @@ function displayDietPlan(multiDayData) {
     `;
 
     multiDayData.forEach((dayData, dayIndex) => {
-        planHTML += `<div class="day-divider">Day ${dayData.day}</div>`;
+        // Calculate per-day actual totals
+        let dayTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        dayData.plan.forEach(meal => {
+            dayTotals.calories += meal.calories || 0;
+            dayTotals.protein += meal.protein || 0;
+            dayTotals.carbs += meal.carbs || 0;
+            dayTotals.fat += meal.fat || 0;
+        });
+
+        // Calculate per-day variance
+        const dayVariance = {
+            calories: ((dayTotals.calories - targets.calories) / targets.calories * 100),
+            protein: ((dayTotals.protein - targets.protein) / targets.protein * 100),
+            carbs: ((dayTotals.carbs - targets.carbs) / targets.carbs * 100),
+            fat: ((dayTotals.fat - targets.fat) / targets.fat * 100)
+        };
+
+        planHTML += `
+            <div class="day-divider" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem;">
+                <span>Day ${dayData.day}</span>
+                <button data-action="regenerate-day" data-day-index="${dayIndex}" class="btn btn-secondary text-xs" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem;">🔄 Regenerate Day</button>
+            </div>
+            <div class="mb-3 p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs font-semibold text-gray-600 mb-2">Day ${dayData.day} Totals:</p>
+                <div class="grid grid-cols-4 gap-2 text-center">
+                    <div>
+                        <p class="text-xs text-gray-500">Calories</p>
+                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.calories)}">${dayTotals.calories}</span>
+                        <p class="text-xs ${getVarianceColor(dayVariance.calories)}">${formatVariance(dayTotals.calories, targets.calories, dayVariance.calories)}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Protein</p>
+                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.protein)}">${dayTotals.protein}g</span>
+                        <p class="text-xs ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Carbs</p>
+                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.carbs)}">${dayTotals.carbs}g</span>
+                        <p class="text-xs ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Fat</p>
+                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
+                        <p class="text-xs ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
+                    </div>
+                </div>
+            </div>`;
         dayData.plan.forEach((meal, mealIndex) => {
             planHTML += `
                 <div class="meal-card">
@@ -1777,6 +1823,129 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
         displayDietPlan(lastPlanQuery.currentPlan);
     } else {
         alert('Error revising meal: ' + revisedMeal.error);
+        displayDietPlan(lastPlanQuery.currentPlan);
+    }
+}
+
+// REGENERATE ENTIRE DAY - Generate all new meals for a specific day
+async function regenerateDay(dayIndex) {
+    const dayData = lastPlanQuery.currentPlan[dayIndex];
+    const dayNumber = dayData.day;
+    const numMeals = dayData.plan.length;
+    const targets = dayData.targets;
+
+    // Get meal structure from original day
+    const mealTypes = dayData.plan.map(m => m.type);
+    let mealStructure = '';
+    let expectedMealTypes = mealTypes;
+
+    if (mealTypes.filter(t => t === 'snack').length === 1) {
+        mealStructure = `EXACTLY ${numMeals} items: ${mealTypes.join(', ')}`;
+    } else if (mealTypes.filter(t => t === 'snack').length === 2) {
+        mealStructure = `EXACTLY ${numMeals} items: ${mealTypes.join(', ')}`;
+    } else if (mealTypes.filter(t => t === 'snack').length === 3) {
+        mealStructure = `EXACTLY ${numMeals} items: ${mealTypes.join(', ')}`;
+    } else {
+        mealStructure = `EXACTLY ${numMeals} items: ${mealTypes.join(', ')}`;
+    }
+
+    // Show loading state
+    displayDietPlan(lastPlanQuery.currentPlan);
+
+    // Find the day section and show loading
+    const dayDividers = document.querySelectorAll('.day-divider');
+    if (dayDividers[dayIndex]) {
+        const daySection = dayDividers[dayIndex].parentElement;
+        // Get all meal cards after this day divider until the next day divider
+        let currentElement = dayDividers[dayIndex].nextElementSibling; // Skip the totals div
+        if (currentElement) currentElement = currentElement.nextElementSibling; // Move to first meal
+
+        while (currentElement && !currentElement.classList.contains('day-divider')) {
+            if (currentElement.classList.contains('meal-card')) {
+                currentElement.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-sm">Regenerating day...</p>';
+            }
+            currentElement = currentElement.nextElementSibling;
+        }
+    }
+
+    // Build list of meals from other days to avoid repetition
+    let otherDaysMeals = [];
+    lastPlanQuery.currentPlan.forEach((d, idx) => {
+        if (idx !== dayIndex) {
+            d.plan.forEach(meal => {
+                otherDaysMeals.push(meal.name);
+            });
+        }
+    });
+    const previousMealsText = otherDaysMeals.length > 0
+        ? `\n\nDO NOT repeat these meals from other days: ${otherDaysMeals.join(', ')}`
+        : '';
+
+    const dayPrompt = `Create 1-day meal plan for Day ${dayNumber} (REGENERATING - must be COMPLETELY DIFFERENT).
+Stats: ${lastPlanQuery.age}yo ${lastPlanQuery.gender}, ${lastPlanQuery.weight}kg, ${lastPlanQuery.height}cm
+Goal: ${lastPlanQuery.goal}, Diet: ${lastPlanQuery.preference}
+Macro Preference: ${lastPlanQuery.macroPreference}
+Avoid: ${lastPlanQuery.allergies}
+Disliked Foods: ${lastPlanQuery.dislikedFoods}
+Preferred Foods/Cuisines: ${lastPlanQuery.preferredFoods}
+Budget: ${lastPlanQuery.budget}
+Available Equipment: ${lastPlanQuery.equipmentStr}${previousMealsText}
+
+Daily targets: ${targets.calories} cal, ${targets.protein}g protein, ${targets.carbs}g carbs, ${targets.fat}g fat
+
+CRITICAL TARGET REQUIREMENT:
+Your meals MUST add up to approximately these daily targets. This is NOT optional.
+- Acceptable variance: ±10% for calories, ±15% for macros
+- Each meal should average ~${Math.round(targets.calories / numMeals)} calories
+
+CRITICAL MEAL STRUCTURE:
+Generate ${mealStructure}. DO NOT generate more or fewer items.
+The array should have EXACTLY ${numMeals} objects.
+
+Use ONLY foods from USDA database including:
+Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Shrimp, Tofu, Greek Yogurt
+Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
+Fats: Olive Oil, Avocado, Almonds, Peanut Butter
+Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
+
+CRITICAL: Return ingredients as ARRAY OF STRINGS in natural language format.
+Include food name AND amount in parentheses.
+DO NOT include calories/protein/carbs/fat - backend will calculate from database.
+MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
+
+Return ONLY valid JSON array of ${numMeals} meal objects. Each object must have:
+{"type":"meal_type","name":"Meal Name (portions)","ingredients":["Item (amount)",...],"instructions":"Brief cooking steps"}
+
+NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
+
+    try {
+        const result = await callGemini(dayPrompt, true, targets, expectedMealTypes, numMeals);
+
+        if (result.error) {
+            alert('Error regenerating day: ' + result.error);
+            displayDietPlan(lastPlanQuery.currentPlan);
+            return;
+        }
+
+        // Result should be an array of meals
+        let newMeals = Array.isArray(result) ? result : [result];
+
+        // Validate we got the right number of meals
+        if (newMeals.length !== numMeals) {
+            console.warn(`Expected ${numMeals} meals, got ${newMeals.length}. Using what we got.`);
+        }
+
+        // Update the day's meals
+        lastPlanQuery.currentPlan[dayIndex].plan = newMeals;
+
+        // Refresh the display
+        displayDietPlan(lastPlanQuery.currentPlan);
+
+        console.log(`✅ Day ${dayNumber} regenerated successfully`);
+
+    } catch (error) {
+        console.error('Error regenerating day:', error);
+        alert('Error regenerating day. Please try again.');
         displayDietPlan(lastPlanQuery.currentPlan);
     }
 }
@@ -2636,6 +2805,11 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             reviseMeal(dayIndex, mealIndex);
+        },
+        'regenerate-day': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            regenerateDay(dayIndex);
         },
         'check-math': showMathCheck,
         'close-math-modal': () => document.getElementById('math-check-modal').classList.add('hidden'),
