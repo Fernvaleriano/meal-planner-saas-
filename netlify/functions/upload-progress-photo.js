@@ -4,6 +4,42 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+const BUCKET_NAME = 'progress-photos';
+
+// Helper function to ensure bucket exists
+async function ensureBucketExists(supabase) {
+  try {
+    // Check if bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      return false;
+    }
+
+    const bucketExists = buckets.some(b => b.name === BUCKET_NAME);
+
+    if (!bucketExists) {
+      console.log(`Creating bucket: ${BUCKET_NAME}`);
+      const { data, error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
+        public: true,
+        fileSizeLimit: 5242880 // 5MB
+      });
+
+      if (createError) {
+        console.error('Error creating bucket:', createError);
+        return false;
+      }
+      console.log('Bucket created successfully');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error ensuring bucket exists:', error);
+    return false;
+  }
+}
+
 exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -43,6 +79,16 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // Ensure bucket exists (create if not)
+    const bucketReady = await ensureBucketExists(supabase);
+    if (!bucketReady) {
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Failed to initialize storage bucket' })
+      };
+    }
+
     // Decode base64 image
     const base64Data = photoData.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
@@ -57,7 +103,7 @@ exports.handler = async (event, context) => {
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('progress-photos')
+      .from(BUCKET_NAME)
       .upload(filename, buffer, {
         contentType: `image/${extension}`,
         upsert: false
@@ -74,7 +120,7 @@ exports.handler = async (event, context) => {
 
     // Get public URL for the uploaded file
     const { data: urlData } = supabase.storage
-      .from('progress-photos')
+      .from(BUCKET_NAME)
       .getPublicUrl(filename);
 
     const photoUrl = urlData.publicUrl;
@@ -99,7 +145,7 @@ exports.handler = async (event, context) => {
     if (metaError) {
       console.error('Metadata error:', metaError);
       // Try to delete the uploaded file if metadata save fails
-      await supabase.storage.from('progress-photos').remove([filename]);
+      await supabase.storage.from(BUCKET_NAME).remove([filename]);
       return {
         statusCode: 500,
         headers: { 'Access-Control-Allow-Origin': '*' },
