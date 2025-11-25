@@ -692,6 +692,15 @@ function parseAmount(amountStr, foodData) {
 
   // Default: assume it's a direct multiplier
   console.warn(`⚠️ parseAmount couldn't match units - defaulting to ${quantity}x for "${amountStr}" with db unit "${foodData.per}"`);
+
+  // SAFEGUARD: Cap multiplier at 50 to prevent astronomical values
+  // (allows up to 5kg of 100g-based foods, or 50 units of count-based foods)
+  // Values above this threshold are likely parsing errors (e.g., AI returned calorie values as amounts)
+  if (quantity > 50) {
+    console.warn(`⚠️ CAPPING multiplier from ${quantity} to 50 - likely parsing error`);
+    return 50;
+  }
+
   return quantity;
 }
 
@@ -746,6 +755,12 @@ function calculateMacrosFromIngredients(ingredients) {
     const protein = Math.round(foodData.protein * multiplier);
     const carbs = Math.round(foodData.carbs * multiplier);
     const fat = Math.round(foodData.fat * multiplier);
+
+    // SAFEGUARD: Skip ingredients with unreasonable values (likely parsing errors)
+    if (calories > 5000) {
+      console.warn(`⚠️ SKIPPING unreasonable ingredient "${originalString}" - ${calories} calories is too high for a single ingredient`);
+      continue;
+    }
 
     totals.calories += calories;
     totals.protein += protein;
@@ -1072,11 +1087,36 @@ exports.handler = async (event, context) => {
         ? optimizeMealMacros(jsonData, mealTargets)
         : optimizeMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 });
       console.log('✅ Meal optimized!');
+    } else if (jsonData.name && !jsonData.ingredients && mealTargets) {
+      // Single meal WITHOUT ingredients - AI didn't follow format
+      // Use target macros as fallback instead of AI's hallucinated values
+      console.warn('⚠️ Single meal missing ingredients array - using target macros as fallback');
+      console.log('jsonData:', JSON.stringify(jsonData).substring(0, 200));
+      correctedData = {
+        ...jsonData,
+        calories: mealTargets.calories,
+        protein: mealTargets.protein,
+        carbs: mealTargets.carbs,
+        fat: mealTargets.fat,
+        calculation_notes: 'WARNING: No ingredients provided by AI, using target macros as approximation'
+      };
     } else {
       console.log('⚠️ Unexpected data format, skipping optimization');
       console.log('jsonData:', JSON.stringify(jsonData).substring(0, 200));
       // Return as-is if format doesn't match any expected pattern
       correctedData = jsonData;
+    }
+
+    // FINAL SANITY CHECK: Catch any remaining crazy values
+    // Single meal should never exceed 5000 calories
+    if (correctedData.calories && correctedData.calories > 5000 && mealTargets) {
+      console.warn(`⚠️ SANITY CHECK FAILED: ${correctedData.calories} calories is unreasonable for a single meal`);
+      console.warn('Overriding with target macros');
+      correctedData.calories = mealTargets.calories;
+      correctedData.protein = mealTargets.protein;
+      correctedData.carbs = mealTargets.carbs;
+      correctedData.fat = mealTargets.fat;
+      correctedData.calculation_notes = 'WARNING: Original calculation was unreasonable, using target macros';
     }
 
     return {
