@@ -334,6 +334,20 @@ const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
+const TOGGLE_FAVORITE_ENDPOINT = '/.netlify/functions/toggle-favorite';
+
+// Fetch favorites for a client
+async function getClientFavorites(clientId) {
+    try {
+        const response = await fetch(`${TOGGLE_FAVORITE_ENDPOINT}?clientId=${clientId}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return data.favorites || [];
+    } catch (error) {
+        console.error('Error fetching favorites:', error);
+        return [];
+    }
+}
 const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
 const SAVE_COACH_PLAN_ENDPOINT = '/.netlify/functions/save-coach-plan';
 const UPDATE_PLAN_NOTES_ENDPOINT = '/.netlify/functions/update-plan-notes';
@@ -914,6 +928,17 @@ async function generateDietPlan() {
 
     clientName = client.client_name;
 
+    // Fetch client's favorite meals
+    const clientFavorites = await getClientFavorites(clientId);
+    let favoriteMealsText = '';
+    if (clientFavorites.length > 0) {
+        const favoriteMealsList = clientFavorites.slice(0, 10).map(f => {
+            return `- ${f.meal_name} (${f.meal_type || 'meal'}: ${f.calories || '?'} cal, ${f.protein || '?'}g protein)`;
+        }).join('\n');
+        favoriteMealsText = `\n\nCLIENT'S FAVORITE MEALS (try to include 1-2 of these or similar variations):\n${favoriteMealsList}`;
+        console.log(`Loaded ${clientFavorites.length} favorites for client ${clientId}`);
+    }
+
     const gender = document.getElementById('dp_gender').value;
     const activity = parseFloat(document.getElementById('dp_activity').value);
     const goal = document.getElementById('dp_goal').value;
@@ -1064,7 +1089,7 @@ Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
 Preferred Foods/Cuisines: ${preferredFoods}
 Budget: ${budget}
-Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}
+Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}${favoriteMealsText}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
