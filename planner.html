@@ -1672,8 +1672,8 @@ async function saveMealNote(dayIndex, mealIndex) {
     const saveBtn = event.target;
 
     // Update the meal's coach_note in the local data
-    if (lastPlanQuery.result && lastPlanQuery.result[dayIndex] && lastPlanQuery.result[dayIndex].plan[mealIndex]) {
-        lastPlanQuery.result[dayIndex].plan[mealIndex].coach_note = note;
+    if (lastPlanQuery.currentPlan && lastPlanQuery.currentPlan[dayIndex] && lastPlanQuery.currentPlan[dayIndex].plan[mealIndex]) {
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].coach_note = note;
     }
 
     // If plan is saved to database, update it
@@ -1700,7 +1700,7 @@ async function saveMealNote(dayIndex, mealIndex) {
             body: JSON.stringify({
                 planId: lastPlanQuery.planId,
                 coachId: currentCoach.id,
-                planData: lastPlanQuery.result  // Send full plan data with updated note
+                planData: lastPlanQuery.currentPlan  // Send full plan data with updated note
             })
         });
 
