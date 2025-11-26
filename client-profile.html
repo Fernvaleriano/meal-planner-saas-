@@ -1181,6 +1181,37 @@
             </div>
         </div>
 
+        <!-- Favorites Section -->
+        <div class="favorites-section">
+            <div class="favorites-header">
+                <h2 class="favorites-title">❤️ Favorite Meals</h2>
+            </div>
+            <div id="favoritesStatsBar" class="favorites-stats" style="display: none;">
+                <div class="favorites-stat-item">
+                    <span class="favorites-stat-icon">❤️</span>
+                    <span class="favorites-stat-text"><strong id="favoritesTotalCount">0</strong> favorites</span>
+                </div>
+                <div class="favorites-stat-item">
+                    <span class="favorites-stat-icon">🍲</span>
+                    <span class="favorites-stat-text"><strong id="favoritesAvgCalories">0</strong> avg calories</span>
+                </div>
+                <div class="favorites-stat-item">
+                    <span class="favorites-stat-icon">💪</span>
+                    <span class="favorites-stat-text"><strong id="favoritesAvgProtein">0</strong>g avg protein</span>
+                </div>
+            </div>
+            <div id="favoritesFilterBar" class="favorites-filter-bar" style="display: none;">
+                <button class="favorites-filter-btn active" data-filter="all" onclick="filterFavorites('all', this)">All</button>
+                <button class="favorites-filter-btn" data-filter="breakfast" onclick="filterFavorites('breakfast', this)">Breakfast</button>
+                <button class="favorites-filter-btn" data-filter="lunch" onclick="filterFavorites('lunch', this)">Lunch</button>
+                <button class="favorites-filter-btn" data-filter="dinner" onclick="filterFavorites('dinner', this)">Dinner</button>
+                <button class="favorites-filter-btn" data-filter="snack" onclick="filterFavorites('snack', this)">Snack</button>
+            </div>
+            <div id="favoritesContainer">
+                <div class="loading">Loading favorites...</div>
+            </div>
+        </div>
+
         <!-- Progress Photos Section -->
         <div class="photos-section">
             <div class="photos-header">
@@ -1210,37 +1241,6 @@
             </div>
             <div id="checkinsContainer">
                 <div class="loading">Loading check-ins...</div>
-            </div>
-        </div>
-
-        <!-- Favorites Section -->
-        <div class="favorites-section">
-            <div class="favorites-header">
-                <h2 class="favorites-title">❤️ Favorite Meals</h2>
-            </div>
-            <div id="favoritesStatsBar" class="favorites-stats" style="display: none;">
-                <div class="favorites-stat-item">
-                    <span class="favorites-stat-icon">❤️</span>
-                    <span class="favorites-stat-text"><strong id="favoritesTotalCount">0</strong> favorites</span>
-                </div>
-                <div class="favorites-stat-item">
-                    <span class="favorites-stat-icon">🍲</span>
-                    <span class="favorites-stat-text"><strong id="favoritesAvgCalories">0</strong> avg calories</span>
-                </div>
-                <div class="favorites-stat-item">
-                    <span class="favorites-stat-icon">💪</span>
-                    <span class="favorites-stat-text"><strong id="favoritesAvgProtein">0</strong>g avg protein</span>
-                </div>
-            </div>
-            <div id="favoritesFilterBar" class="favorites-filter-bar" style="display: none;">
-                <button class="favorites-filter-btn active" data-filter="all" onclick="filterFavorites('all', this)">All</button>
-                <button class="favorites-filter-btn" data-filter="breakfast" onclick="filterFavorites('breakfast', this)">Breakfast</button>
-                <button class="favorites-filter-btn" data-filter="lunch" onclick="filterFavorites('lunch', this)">Lunch</button>
-                <button class="favorites-filter-btn" data-filter="dinner" onclick="filterFavorites('dinner', this)">Dinner</button>
-                <button class="favorites-filter-btn" data-filter="snack" onclick="filterFavorites('snack', this)">Snack</button>
-            </div>
-            <div id="favoritesContainer">
-                <div class="loading">Loading favorites...</div>
             </div>
         </div>
     </div>
