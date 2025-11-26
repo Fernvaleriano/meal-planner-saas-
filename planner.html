@@ -1511,6 +1511,8 @@ function displayDietPlan(multiDayData) {
                 </div>
             </div>`;
         dayData.plan.forEach((meal, mealIndex) => {
+            const mealNoteId = `meal-note-${dayIndex}-${mealIndex}`;
+            const existingNote = meal.coach_note || '';
             planHTML += `
                 <div class="meal-card">
                     <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
@@ -1525,6 +1527,13 @@ function displayDietPlan(multiDayData) {
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                         <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
+                    </div>
+                    <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-weight: 600; color: #92400e; font-size: 11px;">📝 Note for Client:</span>
+                            <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 3px 10px; font-size: 10px; border-radius: 4px;">Save</button>
+                        </div>
+                        <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical;" placeholder="Add a note about this meal...">${existingNote}</textarea>
                     </div>
                 </div>`;
         });
@@ -1651,6 +1660,68 @@ async function saveCoachNotes() {
     } catch (error) {
         console.error('Error saving notes:', error);
         alert('Failed to save notes: ' + error.message);
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+    }
+}
+
+// SAVE MEAL NOTE (per-meal coaching note)
+async function saveMealNote(dayIndex, mealIndex) {
+    const noteTextarea = document.getElementById(`meal-note-${dayIndex}-${mealIndex}`);
+    const note = noteTextarea.value.trim();
+    const saveBtn = event.target;
+
+    // Update the meal's coach_note in the local data
+    if (lastPlanQuery.result && lastPlanQuery.result[dayIndex] && lastPlanQuery.result[dayIndex].plan[mealIndex]) {
+        lastPlanQuery.result[dayIndex].plan[mealIndex].coach_note = note;
+    }
+
+    // If plan is saved to database, update it
+    if (!lastPlanQuery.planId) {
+        // Plan not saved yet - just save locally and show feedback
+        saveBtn.textContent = 'Saved!';
+        saveBtn.style.background = '#28a745';
+        setTimeout(() => {
+            saveBtn.textContent = 'Save';
+            saveBtn.style.background = '#f59e0b';
+        }, 1500);
+        return;
+    }
+
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = '...';
+    saveBtn.disabled = true;
+
+    try {
+        // Update the plan data in database with the new note
+        const response = await fetch(UPDATE_PLAN_NOTES_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                planId: lastPlanQuery.planId,
+                coachId: currentCoach.id,
+                planData: lastPlanQuery.result  // Send full plan data with updated note
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to save note');
+        }
+
+        console.log(`✅ Meal note saved for Day ${dayIndex + 1}, Meal ${mealIndex + 1}`);
+        saveBtn.textContent = 'Saved!';
+        saveBtn.style.background = '#28a745';
+
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.style.background = '#f59e0b';
+            saveBtn.disabled = false;
+        }, 1500);
+
+    } catch (error) {
+        console.error('Error saving meal note:', error);
+        alert('Failed to save note: ' + error.message);
         saveBtn.textContent = originalText;
         saveBtn.disabled = false;
     }
@@ -2854,7 +2925,13 @@ document.addEventListener('click', function(event) {
         'share-plan': sharePlan,
         'copy-share-link': copyShareLink,
         'close-share-modal': closeShareModal,
-        'save-coach-notes': saveCoachNotes
+        'save-coach-notes': saveCoachNotes,
+        'save-meal-note': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            saveMealNote(dayIndex, mealIndex);
+        }
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
