@@ -33,6 +33,23 @@ const FOOD_DATABASE = {
   'ham_lean': { per: '100g', cal: 145, protein: 21, carbs: 1, fat: 6 },
   'canadian_bacon': { per: '2 slices 28g', cal: 43, protein: 6, carbs: 0, fat: 2 },
 
+  // ===== PROTEINS - LAMB =====
+  'lamb_chop': { per: '100g', cal: 294, protein: 25, carbs: 0, fat: 21 },
+  'ground_lamb': { per: '100g', cal: 283, protein: 17, carbs: 0, fat: 23 },
+  'lamb_leg': { per: '100g', cal: 162, protein: 24, carbs: 0, fat: 7 },
+
+  // ===== PROTEINS - OTHER MEATS =====
+  'duck_breast': { per: '100g', cal: 201, protein: 19, carbs: 0, fat: 14 },
+  'venison': { per: '100g', cal: 158, protein: 30, carbs: 0, fat: 3 },
+  'liver_beef': { per: '100g', cal: 135, protein: 21, carbs: 4, fat: 4 },
+
+  // ===== PROTEINS - DELI & JERKY =====
+  'deli_turkey': { per: '56g', cal: 50, protein: 10, carbs: 2, fat: 1 },
+  'deli_roast_beef': { per: '56g', cal: 70, protein: 12, carbs: 1, fat: 2 },
+  'deli_ham': { per: '56g', cal: 60, protein: 10, carbs: 2, fat: 2 },
+  'beef_jerky': { per: '28g', cal: 116, protein: 9, carbs: 3, fat: 7 },
+  'turkey_jerky': { per: '28g', cal: 80, protein: 13, carbs: 5, fat: 1 },
+
   // ===== PROTEINS - SEAFOOD (White Fish) =====
   'tilapia': { per: '100g', cal: 128, protein: 26, carbs: 0, fat: 3 },
   'cod': { per: '100g', cal: 82, protein: 18, carbs: 0, fat: 1 },
@@ -52,6 +69,10 @@ const FOOD_DATABASE = {
   'scallops': { per: '100g', cal: 111, protein: 20, carbs: 5, fat: 1 },
   'crab_meat': { per: '100g', cal: 97, protein: 19, carbs: 0, fat: 1 },
   'lobster': { per: '100g', cal: 89, protein: 19, carbs: 0, fat: 1 },
+  'oysters': { per: '100g', cal: 68, protein: 7, carbs: 4, fat: 2 },
+  'mussels': { per: '100g', cal: 86, protein: 12, carbs: 4, fat: 2 },
+  'clams': { per: '100g', cal: 74, protein: 13, carbs: 3, fat: 1 },
+  'smoked_salmon': { per: '100g', cal: 117, protein: 18, carbs: 0, fat: 4 },
 
   // ===== PROTEINS - DAIRY & EGGS =====
   'egg_large': { per: '1 egg', cal: 70, protein: 6, carbs: 0, fat: 5 },
@@ -66,10 +87,23 @@ const FOOD_DATABASE = {
   'cheddar_cheese': { per: '28g', cal: 115, protein: 7, carbs: 0, fat: 9 },
   'feta_cheese': { per: '28g', cal: 75, protein: 4, carbs: 1, fat: 6 },
   'string_cheese': { per: '1 stick 28g', cal: 80, protein: 6, carbs: 1, fat: 6 },
+  'ricotta_cheese': { per: '100g', cal: 174, protein: 11, carbs: 3, fat: 13 },
+  'cream_cheese': { per: '28g', cal: 99, protein: 2, carbs: 1, fat: 10 },
+
+  // ===== DAIRY - MILK & BEVERAGES =====
+  'milk_whole': { per: '240ml', cal: 149, protein: 8, carbs: 12, fat: 8 },
+  'milk_2pct': { per: '240ml', cal: 122, protein: 8, carbs: 12, fat: 5 },
+  'milk_skim': { per: '240ml', cal: 83, protein: 8, carbs: 12, fat: 0 },
+  'almond_milk_unsweetened': { per: '240ml', cal: 30, protein: 1, carbs: 1, fat: 3 },
+  'oat_milk': { per: '240ml', cal: 120, protein: 3, carbs: 16, fat: 5 },
+  'soy_milk': { per: '240ml', cal: 80, protein: 7, carbs: 4, fat: 4 },
+  'kefir': { per: '240ml', cal: 104, protein: 9, carbs: 12, fat: 2 },
+  'heavy_cream': { per: '1 tbsp 15ml', cal: 51, protein: 0, carbs: 0, fat: 5 },
+  'half_and_half': { per: '1 tbsp 15ml', cal: 20, protein: 0, carbs: 1, fat: 2 },
 
   // ===== PROTEINS - PLANT-BASED =====
-  'tofu_firm': { per: '100g', cal: 76, protein: 8, carbs: 2, fat: 5 },
-  'tofu_extra_firm': { per: '100g', cal: 91, protein: 10, carbs: 2, fat: 5 },
+  'tofu_firm': { per: '100g', cal: 144, protein: 17, carbs: 3, fat: 9 },
+  'tofu_extra_firm': { per: '100g', cal: 160, protein: 19, carbs: 2, fat: 10 },
   'tempeh': { per: '100g', cal: 193, protein: 19, carbs: 9, fat: 11 },
   'edamame': { per: '100g', cal: 122, protein: 11, carbs: 10, fat: 5 },
   'seitan': { per: '100g', cal: 370, protein: 75, carbs: 14, fat: 2 },
@@ -84,6 +118,7 @@ const FOOD_DATABASE = {
   'casein_protein': { per: '1 scoop 30g', cal: 120, protein: 24, carbs: 3, fat: 1 },
   'pea_protein': { per: '1 scoop 30g', cal: 120, protein: 24, carbs: 2, fat: 2 },
   'egg_white_protein': { per: '1 scoop 30g', cal: 110, protein: 25, carbs: 2, fat: 0 },
+  'collagen_protein': { per: '1 scoop 11g', cal: 40, protein: 10, carbs: 0, fat: 0 },
 
   // ===== CARBS - RICE & GRAINS =====
   'white_rice_cooked': { per: '100g', cal: 130, protein: 3, carbs: 28, fat: 0 },
@@ -95,6 +130,11 @@ const FOOD_DATABASE = {
   'couscous_cooked': { per: '100g', cal: 112, protein: 4, carbs: 23, fat: 0 },
   'farro_cooked': { per: '100g', cal: 114, protein: 4, carbs: 23, fat: 1 },
   'barley_cooked': { per: '100g', cal: 123, protein: 2, carbs: 28, fat: 0 },
+  'buckwheat_cooked': { per: '100g', cal: 92, protein: 3, carbs: 20, fat: 1 },
+  'bulgur_cooked': { per: '100g', cal: 83, protein: 3, carbs: 19, fat: 0 },
+  'millet_cooked': { per: '100g', cal: 119, protein: 3, carbs: 23, fat: 1 },
+  'amaranth_cooked': { per: '100g', cal: 102, protein: 4, carbs: 19, fat: 2 },
+  'polenta_cooked': { per: '100g', cal: 70, protein: 2, carbs: 15, fat: 0 },
 
   // ===== CARBS - OATS =====
   'oats_rolled_dry': { per: '100g', cal: 389, protein: 17, carbs: 66, fat: 7 },
@@ -118,6 +158,12 @@ const FOOD_DATABASE = {
   'tortilla_corn': { per: '1 tortilla 26g', cal: 52, protein: 1, carbs: 11, fat: 1 },
   'tortilla_flour': { per: '1 tortilla 32g', cal: 94, protein: 3, carbs: 16, fat: 2 },
   'rice_cakes': { per: '1 cake 9g', cal: 35, protein: 1, carbs: 7, fat: 0.3 },
+  'bagel_plain': { per: '1 bagel 98g', cal: 277, protein: 10, carbs: 54, fat: 2 },
+  'croissant': { per: '1 croissant 57g', cal: 231, protein: 5, carbs: 26, fat: 12 },
+  'granola': { per: '100g', cal: 489, protein: 10, carbs: 64, fat: 20 },
+  'cereal_bran': { per: '100g', cal: 270, protein: 8, carbs: 80, fat: 2 },
+  'popcorn_air_popped': { per: '100g', cal: 387, protein: 13, carbs: 78, fat: 4 },
+  'plantain': { per: '100g', cal: 122, protein: 1, carbs: 32, fat: 0 },
 
   // ===== FATS - OILS & BUTTERS =====
   'olive_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
@@ -125,6 +171,8 @@ const FOOD_DATABASE = {
   'coconut_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
   'butter': { per: '1 tbsp 14g', cal: 102, protein: 0, carbs: 0, fat: 12 },
   'ghee': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
+  'mct_oil': { per: '1 tbsp 14g', cal: 115, protein: 0, carbs: 0, fat: 14 },
+  'sesame_oil': { per: '1 tbsp 14g', cal: 120, protein: 0, carbs: 0, fat: 14 },
 
   // ===== FATS - NUT BUTTERS =====
   'peanut_butter': { per: '1 tbsp 16g', cal: 94, protein: 4, carbs: 3, fat: 8 },
@@ -143,12 +191,18 @@ const FOOD_DATABASE = {
   'hemp_seeds': { per: '1 tbsp 10g', cal: 56, protein: 3, carbs: 1, fat: 4 },
   'pumpkin_seeds': { per: '28g', cal: 151, protein: 7, carbs: 5, fat: 13 },
   'sunflower_seeds': { per: '28g', cal: 165, protein: 6, carbs: 7, fat: 14 },
+  'macadamia_nuts': { per: '28g', cal: 204, protein: 2, carbs: 4, fat: 21 },
+  'brazil_nuts': { per: '28g', cal: 187, protein: 4, carbs: 3, fat: 19 },
+  'hazelnuts': { per: '28g', cal: 178, protein: 4, carbs: 5, fat: 17 },
+  'pine_nuts': { per: '28g', cal: 191, protein: 4, carbs: 4, fat: 19 },
 
   // ===== FATS - WHOLE FOODS =====
   'avocado': { per: '100g', cal: 160, protein: 2, carbs: 9, fat: 15 },
   'coconut_meat': { per: '100g', cal: 354, protein: 3, carbs: 15, fat: 33 },
   'olives_black': { per: '100g', cal: 115, protein: 1, carbs: 6, fat: 11 },
   'dark_chocolate_85': { per: '28g', cal: 170, protein: 2, carbs: 13, fat: 12 },
+  'mayonnaise': { per: '1 tbsp 13g', cal: 94, protein: 0, carbs: 0, fat: 10 },
+  'sour_cream': { per: '2 tbsp 30g', cal: 57, protein: 1, carbs: 1, fat: 6 },
 
   // ===== VEGETABLES - CRUCIFEROUS =====
   'broccoli': { per: '100g', cal: 34, protein: 3, carbs: 7, fat: 0 },
@@ -181,6 +235,19 @@ const FOOD_DATABASE = {
   'eggplant': { per: '100g', cal: 25, protein: 1, carbs: 6, fat: 0 },
   'snap_peas': { per: '100g', cal: 42, protein: 3, carbs: 7, fat: 0 },
   'squash_spaghetti': { per: '100g', cal: 31, protein: 1, carbs: 7, fat: 0 },
+  'corn': { per: '100g', cal: 96, protein: 3, carbs: 21, fat: 1 },
+  'peas_green': { per: '100g', cal: 81, protein: 5, carbs: 14, fat: 0 },
+  'beets': { per: '100g', cal: 43, protein: 2, carbs: 10, fat: 0 },
+  'artichoke': { per: '1 medium 128g', cal: 60, protein: 4, carbs: 13, fat: 0 },
+  'bok_choy': { per: '100g', cal: 13, protein: 2, carbs: 2, fat: 0 },
+  'leeks': { per: '100g', cal: 61, protein: 1, carbs: 14, fat: 0 },
+  'butternut_squash': { per: '100g', cal: 45, protein: 1, carbs: 12, fat: 0 },
+  'acorn_squash': { per: '100g', cal: 40, protein: 1, carbs: 10, fat: 0 },
+  'turnips': { per: '100g', cal: 28, protein: 1, carbs: 6, fat: 0 },
+  'parsnips': { per: '100g', cal: 75, protein: 1, carbs: 18, fat: 0 },
+  'radish': { per: '100g', cal: 16, protein: 1, carbs: 3, fat: 0 },
+  'jicama': { per: '100g', cal: 38, protein: 1, carbs: 9, fat: 0 },
+  'seaweed_nori': { per: '1 sheet 3g', cal: 5, protein: 1, carbs: 1, fat: 0 },
 
   // ===== FRUITS - BERRIES =====
   'blueberries': { per: '100g', cal: 57, protein: 1, carbs: 14, fat: 0 },
@@ -208,6 +275,20 @@ const FOOD_DATABASE = {
   'cantaloupe': { per: '100g', cal: 34, protein: 1, carbs: 8, fat: 0 },
   'honeydew': { per: '100g', cal: 36, protein: 1, carbs: 9, fat: 0 },
 
+  // ===== FRUITS - DRIED & OTHER =====
+  'dates': { per: '1 date 24g', cal: 66, protein: 0, carbs: 18, fat: 0 },
+  'figs_dried': { per: '28g', cal: 70, protein: 1, carbs: 18, fat: 0 },
+  'pomegranate': { per: '100g', cal: 83, protein: 2, carbs: 19, fat: 1 },
+  'apricots': { per: '1 medium 35g', cal: 17, protein: 0, carbs: 4, fat: 0 },
+  'apricots_dried': { per: '28g', cal: 67, protein: 1, carbs: 18, fat: 0 },
+  'nectarine': { per: '1 medium 142g', cal: 62, protein: 2, carbs: 15, fat: 0 },
+  'clementine': { per: '1 medium 74g', cal: 35, protein: 1, carbs: 9, fat: 0 },
+  'cranberries': { per: '100g', cal: 46, protein: 0, carbs: 12, fat: 0 },
+  'cranberries_dried': { per: '28g', cal: 92, protein: 0, carbs: 25, fat: 0 },
+  'raisins': { per: '28g', cal: 85, protein: 1, carbs: 22, fat: 0 },
+  'dried_mango': { per: '28g', cal: 80, protein: 1, carbs: 20, fat: 0 },
+  'acai': { per: '100g', cal: 70, protein: 1, carbs: 4, fat: 5 },
+
   // ===== CONDIMENTS & SEASONINGS (Low/No Cal) =====
   'soy_sauce': { per: '1 tbsp 15ml', cal: 8, protein: 1, carbs: 1, fat: 0 },
   'hot_sauce': { per: '1 tbsp 15ml', cal: 1, protein: 0, carbs: 0, fat: 0 },
@@ -215,7 +296,29 @@ const FOOD_DATABASE = {
   'mustard': { per: '1 tbsp 15g', cal: 10, protein: 1, carbs: 1, fat: 1 },
   'vinegar': { per: '1 tbsp 15ml', cal: 3, protein: 0, carbs: 0, fat: 0 },
   'lemon_juice': { per: '1 tbsp 15ml', cal: 3, protein: 0, carbs: 1, fat: 0 },
-  'lime_juice': { per: '1 tbsp 15ml', cal: 4, protein: 0, carbs: 1, fat: 0 }
+  'lime_juice': { per: '1 tbsp 15ml', cal: 4, protein: 0, carbs: 1, fat: 0 },
+  'fish_sauce': { per: '1 tbsp 18ml', cal: 6, protein: 1, carbs: 1, fat: 0 },
+  'coconut_aminos': { per: '1 tbsp 15ml', cal: 5, protein: 0, carbs: 1, fat: 0 },
+
+  // ===== SWEETENERS =====
+  'honey': { per: '1 tbsp 21g', cal: 64, protein: 0, carbs: 17, fat: 0 },
+  'maple_syrup': { per: '1 tbsp 20g', cal: 52, protein: 0, carbs: 13, fat: 0 },
+  'agave': { per: '1 tbsp 21g', cal: 60, protein: 0, carbs: 16, fat: 0 },
+
+  // ===== SAUCES & DIPS =====
+  'hummus': { per: '2 tbsp 28g', cal: 70, protein: 2, carbs: 6, fat: 5 },
+  'guacamole': { per: '2 tbsp 30g', cal: 50, protein: 1, carbs: 3, fat: 4 },
+  'pesto': { per: '1 tbsp 15g', cal: 80, protein: 2, carbs: 1, fat: 8 },
+  'marinara_sauce': { per: '100g', cal: 37, protein: 1, carbs: 7, fat: 1 },
+  'bbq_sauce': { per: '2 tbsp 37g', cal: 70, protein: 0, carbs: 17, fat: 0 },
+  'teriyaki_sauce': { per: '1 tbsp 18g', cal: 16, protein: 1, carbs: 3, fat: 0 },
+  'ranch_dressing': { per: '2 tbsp 30g', cal: 129, protein: 0, carbs: 2, fat: 13 },
+  'italian_dressing': { per: '2 tbsp 29g', cal: 71, protein: 0, carbs: 3, fat: 6 },
+
+  // ===== COCONUT PRODUCTS =====
+  'coconut_milk': { per: '100ml', cal: 197, protein: 2, carbs: 3, fat: 21 },
+  'coconut_cream': { per: '100ml', cal: 330, protein: 3, carbs: 7, fat: 35 },
+  'coconut_milk_light': { per: '100ml', cal: 74, protein: 1, carbs: 2, fat: 7 }
 };
 
 /**
@@ -301,6 +404,30 @@ function matchFoodToDatabase(foodName, amount = "") {
     'ham': 'ham_lean',
     'canadian bacon': 'canadian_bacon',
 
+    // Proteins - Lamb
+    'lamb chop': 'lamb_chop',
+    'lamb chops': 'lamb_chop',
+    'ground lamb': 'ground_lamb',
+    'lamb leg': 'lamb_leg',
+    'lamb': 'lamb_chop',
+
+    // Proteins - Other Meats
+    'duck breast': 'duck_breast',
+    'duck': 'duck_breast',
+    'venison': 'venison',
+    'beef liver': 'liver_beef',
+    'liver': 'liver_beef',
+
+    // Proteins - Deli & Jerky
+    'deli turkey': 'deli_turkey',
+    'turkey deli': 'deli_turkey',
+    'deli roast beef': 'deli_roast_beef',
+    'roast beef deli': 'deli_roast_beef',
+    'deli ham': 'deli_ham',
+    'beef jerky': 'beef_jerky',
+    'jerky': 'beef_jerky',
+    'turkey jerky': 'turkey_jerky',
+
     // Proteins - Seafood
     'tilapia': 'tilapia',
     'cod': 'cod',
@@ -316,6 +443,11 @@ function matchFoodToDatabase(foodName, amount = "") {
     'crab': 'crab_meat',
     'crab meat': 'crab_meat',
     'lobster': 'lobster',
+    'oysters': 'oysters',
+    'mussels': 'mussels',
+    'clams': 'clams',
+    'smoked salmon': 'smoked_salmon',
+    'lox': 'smoked_salmon',
 
     // Proteins - Dairy & Eggs
     'egg': 'egg_large',
@@ -333,6 +465,23 @@ function matchFoodToDatabase(foodName, amount = "") {
     'feta': 'feta_cheese',
     'feta cheese': 'feta_cheese',
     'string cheese': 'string_cheese',
+    'ricotta': 'ricotta_cheese',
+    'ricotta cheese': 'ricotta_cheese',
+    'cream cheese': 'cream_cheese',
+
+    // Dairy - Milk & Beverages
+    'milk': 'milk_whole',
+    'whole milk': 'milk_whole',
+    '2% milk': 'milk_2pct',
+    'skim milk': 'milk_skim',
+    'nonfat milk': 'milk_skim',
+    'almond milk': 'almond_milk_unsweetened',
+    'oat milk': 'oat_milk',
+    'soy milk': 'soy_milk',
+    'kefir': 'kefir',
+    'heavy cream': 'heavy_cream',
+    'heavy whipping cream': 'heavy_cream',
+    'half and half': 'half_and_half',
 
     // Proteins - Plant-based
     'tofu': normalizedAmount.includes('extra') ? 'tofu_extra_firm' : 'tofu_firm',
@@ -352,6 +501,9 @@ function matchFoodToDatabase(foodName, amount = "") {
     'casein protein': 'casein_protein',
     'pea protein': 'pea_protein',
     'egg white protein': 'egg_white_protein',
+    'collagen': 'collagen_protein',
+    'collagen protein': 'collagen_protein',
+    'collagen peptides': 'collagen_protein',
 
     // Carbs - Rice & Grains
     'white rice': 'white_rice_cooked',
@@ -364,6 +516,13 @@ function matchFoodToDatabase(foodName, amount = "") {
     'couscous': 'couscous_cooked',
     'farro': 'farro_cooked',
     'barley': 'barley_cooked',
+    'buckwheat': 'buckwheat_cooked',
+    'bulgur': 'bulgur_cooked',
+    'bulgur wheat': 'bulgur_cooked',
+    'millet': 'millet_cooked',
+    'amaranth': 'amaranth_cooked',
+    'polenta': 'polenta_cooked',
+    'grits': 'polenta_cooked',
 
     // Carbs - Oats
     'rolled oats': normalizedAmount.includes('cooked') ? 'oats_cooked' : 'oats_rolled_dry',
@@ -394,6 +553,16 @@ function matchFoodToDatabase(foodName, amount = "") {
     'tortilla': 'tortilla_flour', // Default
     'rice cake': 'rice_cakes',
     'rice cakes': 'rice_cakes',
+    'bagel': 'bagel_plain',
+    'plain bagel': 'bagel_plain',
+    'croissant': 'croissant',
+    'granola': 'granola',
+    'bran cereal': 'cereal_bran',
+    'cereal': 'cereal_bran',
+    'popcorn': 'popcorn_air_popped',
+    'air popped popcorn': 'popcorn_air_popped',
+    'plantain': 'plantain',
+    'plantains': 'plantain',
 
     // Fats - Oils & Butters
     'olive oil': 'olive_oil',
@@ -401,6 +570,8 @@ function matchFoodToDatabase(foodName, amount = "") {
     'coconut oil': 'coconut_oil',
     'butter': 'butter',
     'ghee': 'ghee',
+    'mct oil': 'mct_oil',
+    'sesame oil': 'sesame_oil',
 
     // Fats - Nut Butters
     'peanut butter': 'peanut_butter',
@@ -419,6 +590,12 @@ function matchFoodToDatabase(foodName, amount = "") {
     'hemp seeds': 'hemp_seeds',
     'pumpkin seeds': 'pumpkin_seeds',
     'sunflower seeds': 'sunflower_seeds',
+    'macadamia nuts': 'macadamia_nuts',
+    'macadamias': 'macadamia_nuts',
+    'brazil nuts': 'brazil_nuts',
+    'hazelnuts': 'hazelnuts',
+    'filberts': 'hazelnuts',
+    'pine nuts': 'pine_nuts',
 
     // Fats - Whole Foods
     'avocado': 'avocado',
@@ -426,6 +603,9 @@ function matchFoodToDatabase(foodName, amount = "") {
     'black olives': 'olives_black',
     'olives': 'olives_black',
     'dark chocolate': 'dark_chocolate_85',
+    'mayonnaise': 'mayonnaise',
+    'mayo': 'mayonnaise',
+    'sour cream': 'sour_cream',
 
     // Vegetables
     'broccoli': 'broccoli',
@@ -460,6 +640,29 @@ function matchFoodToDatabase(foodName, amount = "") {
     'eggplant': 'eggplant',
     'snap peas': 'snap_peas',
     'spaghetti squash': 'squash_spaghetti',
+    'corn': 'corn',
+    'sweet corn': 'corn',
+    'green peas': 'peas_green',
+    'peas': 'peas_green',
+    'beets': 'beets',
+    'beetroot': 'beets',
+    'artichoke': 'artichoke',
+    'artichokes': 'artichoke',
+    'bok choy': 'bok_choy',
+    'pak choi': 'bok_choy',
+    'leeks': 'leeks',
+    'leek': 'leeks',
+    'butternut squash': 'butternut_squash',
+    'acorn squash': 'acorn_squash',
+    'turnips': 'turnips',
+    'turnip': 'turnips',
+    'parsnips': 'parsnips',
+    'parsnip': 'parsnips',
+    'radish': 'radish',
+    'radishes': 'radish',
+    'jicama': 'jicama',
+    'seaweed': 'seaweed_nori',
+    'nori': 'seaweed_nori',
 
     // Fruits - Berries
     'blueberries': 'blueberries',
@@ -493,6 +696,29 @@ function matchFoodToDatabase(foodName, amount = "") {
     'cantaloupe': 'cantaloupe',
     'honeydew': 'honeydew',
 
+    // Fruits - Dried & Other
+    'dates': 'dates',
+    'medjool dates': 'dates',
+    'dried figs': 'figs_dried',
+    'figs': 'figs_dried',
+    'pomegranate': 'pomegranate',
+    'pomegranate seeds': 'pomegranate',
+    'apricot': 'apricots',
+    'apricots': 'apricots',
+    'dried apricots': 'apricots_dried',
+    'nectarine': 'nectarine',
+    'nectarines': 'nectarine',
+    'clementine': 'clementine',
+    'clementines': 'clementine',
+    'tangerine': 'clementine',
+    'cranberries': 'cranberries',
+    'dried cranberries': 'cranberries_dried',
+    'craisins': 'cranberries_dried',
+    'raisins': 'raisins',
+    'dried mango': 'dried_mango',
+    'acai': 'acai',
+    'acai berry': 'acai',
+
     // Condiments
     'soy sauce': 'soy_sauce',
     'hot sauce': 'hot_sauce',
@@ -501,6 +727,36 @@ function matchFoodToDatabase(foodName, amount = "") {
     'vinegar': 'vinegar',
     'lemon juice': 'lemon_juice',
     'lime juice': 'lime_juice',
+    'fish sauce': 'fish_sauce',
+    'coconut aminos': 'coconut_aminos',
+
+    // Sweeteners
+    'honey': 'honey',
+    'maple syrup': 'maple_syrup',
+    'agave': 'agave',
+    'agave nectar': 'agave',
+
+    // Sauces & Dips
+    'hummus': 'hummus',
+    'guacamole': 'guacamole',
+    'guac': 'guacamole',
+    'pesto': 'pesto',
+    'basil pesto': 'pesto',
+    'marinara': 'marinara_sauce',
+    'marinara sauce': 'marinara_sauce',
+    'tomato sauce': 'marinara_sauce',
+    'bbq sauce': 'bbq_sauce',
+    'barbecue sauce': 'bbq_sauce',
+    'teriyaki': 'teriyaki_sauce',
+    'teriyaki sauce': 'teriyaki_sauce',
+    'ranch': 'ranch_dressing',
+    'ranch dressing': 'ranch_dressing',
+    'italian dressing': 'italian_dressing',
+
+    // Coconut Products
+    'coconut milk': 'coconut_milk',
+    'coconut cream': 'coconut_cream',
+    'light coconut milk': 'coconut_milk_light',
 
     // Skip these (not real foods)
     'water': null,
