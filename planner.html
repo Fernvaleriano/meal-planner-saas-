@@ -1700,7 +1700,7 @@ async function saveMealNote(dayIndex, mealIndex) {
             body: JSON.stringify({
                 planId: lastPlanQuery.planId,
                 coachId: currentCoach.id,
-                planData: lastPlanQuery.currentPlan  // Send full plan data with updated note
+                planData: lastPlanQuery  // Send full plan data including nutrition info
             })
         });
 
