@@ -28,7 +28,7 @@ exports.handler = async (event, context) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { planId, coachId, notes } = body;
+    const { planId, coachId, notes, planData } = body;
 
     if (!planId || !coachId) {
       return {
@@ -63,10 +63,19 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Update the notes
+    // Build update object - can update notes, planData, or both
+    const updateObj = {};
+    if (notes !== undefined) {
+      updateObj.coach_notes = notes || null;
+    }
+    if (planData !== undefined) {
+      updateObj.plan_data = planData;
+    }
+
+    // Update the plan
     const { data, error } = await supabase
       .from('coach_meal_plans')
-      .update({ coach_notes: notes || null })
+      .update(updateObj)
       .eq('id', planId)
       .select()
       .single();
