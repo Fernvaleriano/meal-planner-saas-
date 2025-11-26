@@ -28,7 +28,35 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Delete client (verify it belongs to this coach)
+    // First, get the client to check if they have a user_id
+    const { data: client, error: fetchError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .eq('coach_id', coachId)
+      .single();
+
+    if (fetchError || !client) {
+      console.error('❌ Client not found:', fetchError);
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Client not found or unauthorized' })
+      };
+    }
+
+    // If client has a user_id, delete the auth user first
+    if (client.user_id) {
+      console.log(`🔑 Deleting auth user: ${client.user_id}`);
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(client.user_id);
+      if (authDeleteError) {
+        console.warn('⚠️ Warning: Could not delete auth user:', authDeleteError.message);
+        // Continue with client deletion even if auth user deletion fails
+      } else {
+        console.log(`✅ Auth user deleted: ${client.user_id}`);
+      }
+    }
+
+    // Delete client from database
     const { data, error } = await supabase
       .from('clients')
       .delete()

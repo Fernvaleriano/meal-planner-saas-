@@ -66,22 +66,38 @@ exports.handler = async (event, context) => {
     // Generate a random password (client will reset it via email)
     const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10) + 'A1!';
 
-    // Create auth user with auto-confirm
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: client.email,
-      password: randomPassword,
-      email_confirm: true
-    });
+    let authUser = null;
 
-    if (authError) {
-      console.error('Auth error:', authError);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'Failed to create user account',
-          details: authError.message
-        })
-      };
+    // First, check if a user with this email already exists
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+
+    if (!listError && existingUsers) {
+      const existingUser = existingUsers.users.find(u => u.email === client.email);
+      if (existingUser) {
+        console.log('Found existing auth user for email:', client.email);
+        authUser = existingUser;
+      }
+    }
+
+    // If no existing user, create a new one
+    if (!authUser) {
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: client.email,
+        password: randomPassword,
+        email_confirm: true
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            error: 'Failed to create user account',
+            details: authError.message
+          })
+        };
+      }
+      authUser = authData.user;
     }
 
     // Send password reset email so client can set their own password
@@ -101,7 +117,7 @@ exports.handler = async (event, context) => {
     const { error: updateError } = await supabase
       .from('clients')
       .update({
-        user_id: authData.user.id,
+        user_id: authUser.id,
         invited_at: new Date().toISOString()
       })
       .eq('id', clientId)
@@ -110,7 +126,7 @@ exports.handler = async (event, context) => {
     if (updateError) {
       console.error('Update error:', updateError);
       // Try to clean up the created user
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      await supabase.auth.admin.deleteUser(authUser.id);
       return {
         statusCode: 500,
         body: JSON.stringify({
