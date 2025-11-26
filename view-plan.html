@@ -43,6 +43,10 @@
             margin-bottom: 10px;
         }
 
+        .back-btn:hover {
+            color: #0284c7;
+        }
+
         .client-info {
             background: #f8f9ff;
             padding: 20px;
@@ -367,8 +371,11 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1 id="planHeader">🔥 Your Personalized Meal Plan</h1>
+        <div class="header" style="position: relative;">
+            <a href="#" id="backButton" class="back-btn" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; color: #0d9488; text-decoration: none; font-weight: 600; font-size: 0.95em;">
+                <span style="font-size: 1.2em;">←</span> Back
+            </a>
+            <h1 id="planHeader">Your Meal Plan</h1>
         </div>
 
         <div class="client-info">
@@ -471,6 +478,14 @@
             const shareId = urlParams.get('share');
             const planId = urlParams.get('planId');
             const clientView = urlParams.get('clientView') === 'true';
+
+            // Set back button URL based on view type
+            const backButton = document.getElementById('backButton');
+            if (clientView || shareId) {
+                backButton.href = 'client-dashboard.html';
+            } else {
+                backButton.href = 'past-plans.html';
+            }
 
             if (shareId) {
                 // Load shared plan from database (client view)
