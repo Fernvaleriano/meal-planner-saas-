@@ -72,13 +72,21 @@ exports.handler = async (event, context) => {
       updateObj.plan_data = planData;
     }
 
-    // Update the plan
+    // Check if there's anything to update
+    if (Object.keys(updateObj).length === 0) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'No data to update' })
+      };
+    }
+
+    // Update the plan (don't use .single() as it can fail on some updates)
     const { data, error } = await supabase
       .from('coach_meal_plans')
       .update(updateObj)
       .eq('id', planId)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Database error:', error);
@@ -89,10 +97,18 @@ exports.handler = async (event, context) => {
       };
     }
 
+    if (!data || data.length === 0) {
+      return {
+        statusCode: 404,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Plan not found or update failed' })
+      };
+    }
+
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ success: true, plan: data })
+      body: JSON.stringify({ success: true, plan: data[0] })
     };
 
   } catch (error) {
