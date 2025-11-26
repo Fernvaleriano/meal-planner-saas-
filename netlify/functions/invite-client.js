@@ -4,11 +4,25 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+// Common headers for all responses
+const headers = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
 exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers, body: '' };
+  }
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -19,6 +33,7 @@ exports.handler = async (event, context) => {
     if (!clientId || !coachId) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ error: 'Client ID and Coach ID are required' })
       };
     }
@@ -37,6 +52,7 @@ exports.handler = async (event, context) => {
     if (clientError || !client) {
       return {
         statusCode: 404,
+        headers,
         body: JSON.stringify({ error: 'Client not found' })
       };
     }
@@ -45,6 +61,7 @@ exports.handler = async (event, context) => {
     if (client.user_id) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({
           error: 'Client already has portal access',
           message: 'This client has already been invited and has portal access.'
@@ -56,6 +73,7 @@ exports.handler = async (event, context) => {
     if (!client.email) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({
           error: 'Client email required',
           message: 'Please add an email address to this client before inviting them.'
@@ -68,36 +86,81 @@ exports.handler = async (event, context) => {
 
     let authUser = null;
 
-    // First, check if a user with this email already exists
-    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+    // Try to create the user first - this is more reliable than listUsers which has pagination
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: client.email,
+      password: randomPassword,
+      email_confirm: true
+    });
 
-    if (!listError && existingUsers) {
-      const existingUser = existingUsers.users.find(u => u.email === client.email);
-      if (existingUser) {
-        console.log('Found existing auth user for email:', client.email);
-        authUser = existingUser;
-      }
-    }
+    if (authError) {
+      console.log('Create user error:', authError.message);
 
-    // If no existing user, create a new one
-    if (!authUser) {
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: client.email,
-        password: randomPassword,
-        email_confirm: true
-      });
+      // If user already exists, try to find them
+      if (authError.message.includes('already') || authError.message.includes('exists') || authError.message.includes('registered')) {
+        console.log('User may already exist, searching with pagination...');
 
-      if (authError) {
+        // Search through all users with pagination
+        let page = 1;
+        let perPage = 100;
+        let found = false;
+
+        while (!found) {
+          const { data: usersPage, error: listError } = await supabase.auth.admin.listUsers({
+            page: page,
+            perPage: perPage
+          });
+
+          if (listError || !usersPage || !usersPage.users || usersPage.users.length === 0) {
+            break;
+          }
+
+          const existingUser = usersPage.users.find(u => u.email === client.email);
+          if (existingUser) {
+            console.log('Found existing auth user for email:', client.email);
+            authUser = existingUser;
+            found = true;
+            break;
+          }
+
+          // If we got fewer users than requested, we've reached the end
+          if (usersPage.users.length < perPage) {
+            break;
+          }
+
+          page++;
+          // Safety limit to prevent infinite loops
+          if (page > 100) {
+            break;
+          }
+        }
+
+        if (!authUser) {
+          console.error('Could not find or create user for email:', client.email);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+              error: 'Failed to create user account',
+              details: 'User may already exist but could not be found. Please contact support.'
+            })
+          };
+        }
+      } else {
+        // Some other error
         console.error('Auth error:', authError);
         return {
           statusCode: 500,
+          headers,
           body: JSON.stringify({
             error: 'Failed to create user account',
             details: authError.message
           })
         };
       }
+    } else {
       authUser = authData.user;
+      console.log('Created new auth user:', authUser.id);
     }
 
     // Send password reset email so client can set their own password
@@ -125,10 +188,10 @@ exports.handler = async (event, context) => {
 
     if (updateError) {
       console.error('Update error:', updateError);
-      // Try to clean up the created user
-      await supabase.auth.admin.deleteUser(authUser.id);
+      // Don't delete the user - they might need it later
       return {
         statusCode: 500,
+        headers,
         body: JSON.stringify({
           error: 'Failed to update client record',
           details: updateError.message
@@ -140,11 +203,7 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      },
+      headers,
       body: JSON.stringify({
         success: true,
         email: client.email,
@@ -157,6 +216,7 @@ exports.handler = async (event, context) => {
     console.error('Function error:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({
         error: 'Internal server error',
         message: error.message
