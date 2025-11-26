@@ -1075,6 +1075,10 @@
             const changeParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
             const reviseParam = dayIndex !== null ? `'${index}', ${dayIndex}, ${mealIndex}` : index;
 
+            // Check if client view
+            const urlParams = new URLSearchParams(window.location.search);
+            const isClientView = urlParams.get('clientView') === 'true' || urlParams.get('share');
+
             // Check if meal is already favorited
             const isFavorited = clientFavorites.some(f => f.meal_name === meal.name);
             const favoriteClass = isFavorited ? 'active' : '';
@@ -1083,13 +1087,53 @@
             // Escape meal name for use in onclick
             const escapedMealName = meal.name.replace(/'/g, "\\'").replace(/"/g, '\\"');
 
+            // Get existing note for this meal
+            const mealNote = meal.coach_note || '';
+
+            // Build notes section based on view type
+            let notesSection = '';
+            if (isClientView) {
+                // Client view: show note if exists (read-only)
+                if (mealNote) {
+                    notesSection = `
+                        <div class="meal-note-display" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 15px; margin-top: 15px; border-radius: 0 8px 8px 0;">
+                            <div style="font-weight: 600; color: #92400e; font-size: 0.85em; margin-bottom: 6px;">📝 Coach Note:</div>
+                            <div style="color: #78350f; font-size: 0.95em; line-height: 1.5;">${mealNote}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                // Coach view: show editable note field
+                notesSection = `
+                    <div class="meal-note-section" style="margin-top: 15px; background: #f0f9ff; padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: #0369a1; font-size: 0.85em;">📝 Note for Client:</span>
+                            <button class="btn" onclick="saveMealNote('${index}', ${dayIndex}, ${mealIndex})" style="background: #0284c7; color: white; padding: 4px 12px; font-size: 0.8em; border-radius: 4px;">Save Note</button>
+                        </div>
+                        <textarea id="meal-note-${index}" style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid #7dd3fc; border-radius: 6px; font-size: 0.9em; resize: vertical;" placeholder="Add a note for your client about this meal...">${mealNote}</textarea>
+                    </div>
+                `;
+            }
+
+            // Build action buttons - hide change/revise for clients
+            let actionButtons = '';
+            if (isClientView) {
+                actionButtons = `
+                    <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
+                `;
+            } else {
+                actionButtons = `
+                    <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
+                    <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
+                    <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
+                `;
+            }
+
             card.innerHTML = `
                 <div class="meal-header">
                     <div class="meal-name">${meal.name}</div>
                     <div class="meal-actions">
-                        <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
-                        <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
-                        <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
+                        ${actionButtons}
                     </div>
                 </div>
                 <div class="macro-grid">
@@ -1114,6 +1158,7 @@
                     <span class="instructions-label">📝 Instructions:</span>
                     ${meal.instructions}
                 </div>
+                ${notesSection}
                 <div id="revise-${index}" class="revise-section" style="display:none;">
                     <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
                     <button class="btn btn-revise" onclick="submitRevision(${changeParam})">Apply Changes</button>
@@ -1128,6 +1173,80 @@
                 reviseSection.style.display = 'block';
             } else {
                 reviseSection.style.display = 'none';
+            }
+        }
+
+        async function saveMealNote(index, dayIndex = null, mealIndex = null) {
+            const textarea = document.getElementById(`meal-note-${index}`);
+            const note = textarea.value.trim();
+            const saveBtn = textarea.parentElement.querySelector('button');
+
+            // Update the meal in currentPlan
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                // Multi-day plan
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else if (currentPlan.meals) {
+                // Single-day plan
+                meal = currentPlan.meals[index];
+            } else if (currentPlan.days) {
+                // Fallback for days structure
+                const parts = index.split('-');
+                if (parts.length === 2) {
+                    meal = currentPlan.days[parseInt(parts[0])].plan[parseInt(parts[1])];
+                }
+            }
+
+            if (!meal) {
+                alert('Error: Could not find meal to save note');
+                return;
+            }
+
+            // Save the note to the meal
+            meal.coach_note = note;
+
+            // Show saving state
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                // Get planId from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const planId = urlParams.get('planId');
+
+                if (planId) {
+                    // Save to database
+                    const { error } = await supabaseClient
+                        .from('coach_meal_plans')
+                        .update({ plan_data: currentPlan })
+                        .eq('id', planId);
+
+                    if (error) throw error;
+                }
+
+                // Also update localStorage if available
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+                saveBtn.textContent = 'Saved!';
+                saveBtn.style.background = '#16a34a';
+
+                setTimeout(() => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.style.background = '#0284c7';
+                    saveBtn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error saving note:', error);
+                saveBtn.textContent = 'Error';
+                saveBtn.style.background = '#dc2626';
+
+                setTimeout(() => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.style.background = '#0284c7';
+                    saveBtn.disabled = false;
+                }, 2000);
             }
         }
 
