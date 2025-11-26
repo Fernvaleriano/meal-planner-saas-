@@ -1419,6 +1419,11 @@ This meal should fit into a day's plan with the following targets.`;
     console.log('✅ All validation passed - plan is accurate');
 
     lastPlanQuery.currentPlan = allDays;
+
+    // Generate a summary of what's in the plan for client display
+    lastPlanQuery.summary = generatePlanSummary(lastPlanQuery);
+    console.log('📋 Plan summary:', lastPlanQuery.summary);
+
     displayDietPlan(allDays);
 
     // Save plan to coach's history (only if valid)
@@ -2276,6 +2281,151 @@ function formatQuantity(quantity) {
         // If no clean fraction match, show decimal
         return quantity.toFixed(1);
     }
+}
+
+// Generate a summary of the meal plan for client display
+function generatePlanSummary(planData) {
+    if (!planData || !planData.currentPlan || !Array.isArray(planData.currentPlan)) {
+        return null;
+    }
+
+    // Collect all meal names
+    const allMealNames = [];
+    planData.currentPlan.forEach(dayData => {
+        if (dayData.plan && Array.isArray(dayData.plan)) {
+            dayData.plan.forEach(meal => {
+                if (meal.name) {
+                    allMealNames.push(meal.name.toLowerCase());
+                }
+            });
+        }
+    });
+
+    if (allMealNames.length === 0) return null;
+
+    const mealText = allMealNames.join(' ');
+
+    // Detect protein sources
+    const proteinSources = [];
+    const proteinKeywords = {
+        'chicken': 'chicken',
+        'beef': 'beef',
+        'steak': 'beef',
+        'salmon': 'salmon',
+        'fish': 'fish',
+        'tuna': 'tuna',
+        'shrimp': 'shrimp',
+        'turkey': 'turkey',
+        'pork': 'pork',
+        'tofu': 'tofu',
+        'tempeh': 'tempeh',
+        'eggs': 'eggs',
+        'egg': 'eggs',
+        'greek yogurt': 'Greek yogurt',
+        'cottage cheese': 'cottage cheese',
+        'beans': 'beans',
+        'lentils': 'lentils',
+        'quinoa': 'quinoa'
+    };
+
+    for (const [keyword, label] of Object.entries(proteinKeywords)) {
+        if (mealText.includes(keyword) && !proteinSources.includes(label)) {
+            proteinSources.push(label);
+        }
+    }
+
+    // Detect carb sources
+    const carbSources = [];
+    const carbKeywords = {
+        'rice': 'rice',
+        'oatmeal': 'oatmeal',
+        'oats': 'oats',
+        'sweet potato': 'sweet potatoes',
+        'potato': 'potatoes',
+        'pasta': 'pasta',
+        'bread': 'bread',
+        'quinoa': 'quinoa',
+        'whole grain': 'whole grains'
+    };
+
+    for (const [keyword, label] of Object.entries(carbKeywords)) {
+        if (mealText.includes(keyword) && !carbSources.includes(label)) {
+            carbSources.push(label);
+        }
+    }
+
+    // Detect vegetables
+    const veggies = [];
+    const veggieKeywords = {
+        'broccoli': 'broccoli',
+        'spinach': 'spinach',
+        'salad': 'salads',
+        'vegetables': 'vegetables',
+        'asparagus': 'asparagus',
+        'green beans': 'green beans',
+        'kale': 'kale',
+        'zucchini': 'zucchini',
+        'peppers': 'peppers',
+        'carrots': 'carrots',
+        'avocado': 'avocado'
+    };
+
+    for (const [keyword, label] of Object.entries(veggieKeywords)) {
+        if (mealText.includes(keyword) && !veggies.includes(label)) {
+            veggies.push(label);
+        }
+    }
+
+    // Build summary based on macro targets
+    const targets = planData.currentPlan[0]?.targets || {};
+    let planStyle = '';
+
+    if (targets.protein && targets.calories) {
+        const proteinRatio = (targets.protein * 4) / targets.calories;
+        if (proteinRatio > 0.35) {
+            planStyle = 'High-protein';
+        } else if (proteinRatio > 0.25) {
+            planStyle = 'Protein-focused';
+        }
+    }
+
+    if (targets.carbs && targets.calories) {
+        const carbRatio = (targets.carbs * 4) / targets.calories;
+        if (carbRatio < 0.25) {
+            planStyle = planStyle ? planStyle + ', low-carb' : 'Low-carb';
+        }
+    }
+
+    // Build the summary string
+    let summary = '';
+
+    if (planStyle) {
+        summary = planStyle + ' meals';
+    } else {
+        summary = 'Balanced meals';
+    }
+
+    if (proteinSources.length > 0) {
+        const topProteins = proteinSources.slice(0, 3);
+        summary += ' featuring ' + topProteins.join(', ');
+    }
+
+    if (veggies.length > 0 && veggies.length <= 2) {
+        summary += ' with ' + veggies.join(' and ');
+    } else if (veggies.length > 2) {
+        summary += ' with fresh vegetables';
+    }
+
+    if (carbSources.length > 0 && carbSources.length <= 2) {
+        summary += ' and ' + carbSources.join(', ');
+    }
+
+    // Truncate if too long
+    if (summary.length > 120) {
+        summary = summary.substring(0, 117) + '...';
+    }
+
+    return summary;
 }
 
 function showGroceryList() {

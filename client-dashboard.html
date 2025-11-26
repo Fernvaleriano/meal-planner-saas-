@@ -192,6 +192,17 @@
             font-weight: 600;
         }
 
+        .plan-summary {
+            font-size: 13px;
+            color: #4a5568;
+            padding: 10px 12px;
+            background: linear-gradient(135deg, #f0fdfa 0%, #e6fffa 100%);
+            border-left: 3px solid #0d9488;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
         .view-btn {
             width: 100%;
             padding: 10px;
@@ -1445,6 +1456,9 @@
             };
             const goal = planData.goal ? (goalLabels[planData.goal.toLowerCase()] || planData.goal) : '-';
 
+            // Get plan summary if available
+            const summary = planData.summary || null;
+
             return `
                 <div class="plan-card" onclick="viewPlan(${plan.id})">
                     <div class="plan-header">
@@ -1453,6 +1467,7 @@
                             <div class="plan-date">${formattedDate} at ${formattedTime}</div>
                         </div>
                     </div>
+                    ${summary ? `<div class="plan-summary">${summary}</div>` : ''}
                     <div class="plan-details">
                         <div class="plan-detail-item">
                             <span class="plan-detail-label">Duration</span>
