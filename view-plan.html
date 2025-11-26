@@ -54,6 +54,15 @@
             margin-bottom: 30px;
         }
 
+        .section-title {
+            color: #0d9488;
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e7ff;
+        }
+
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -379,9 +388,10 @@
         </div>
 
         <div class="client-info">
+            <div class="section-title">Your Daily Targets</div>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Daily Calories</div>
+                    <div class="info-label">Calories</div>
                     <div class="info-value" id="totalCalories">Loading...</div>
                 </div>
                 <div class="info-item">
