@@ -44,15 +44,57 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // If client has a user_id, delete the auth user first
+    // Delete auth user if client has a user_id
     if (client.user_id) {
-      console.log(`🔑 Deleting auth user: ${client.user_id}`);
+      console.log(`🔑 Deleting auth user by user_id: ${client.user_id}`);
       const { error: authDeleteError } = await supabase.auth.admin.deleteUser(client.user_id);
       if (authDeleteError) {
         console.warn('⚠️ Warning: Could not delete auth user:', authDeleteError.message);
         // Continue with client deletion even if auth user deletion fails
       } else {
         console.log(`✅ Auth user deleted: ${client.user_id}`);
+      }
+    } else if (client.email) {
+      // No user_id set, but check for orphaned auth users with same email
+      // This handles cases where auth user was created but DB update failed
+      console.log(`🔍 Checking for orphaned auth user with email: ${client.email}`);
+
+      let page = 1;
+      const perPage = 100;
+      let orphanedUser = null;
+
+      while (!orphanedUser) {
+        const { data: usersPage, error: listError } = await supabase.auth.admin.listUsers({
+          page: page,
+          perPage: perPage
+        });
+
+        if (listError || !usersPage || !usersPage.users || usersPage.users.length === 0) {
+          break;
+        }
+
+        orphanedUser = usersPage.users.find(u => u.email === client.email);
+
+        if (orphanedUser) {
+          console.log(`🔑 Found orphaned auth user for email ${client.email}: ${orphanedUser.id}`);
+          const { error: authDeleteError } = await supabase.auth.admin.deleteUser(orphanedUser.id);
+          if (authDeleteError) {
+            console.warn('⚠️ Warning: Could not delete orphaned auth user:', authDeleteError.message);
+          } else {
+            console.log(`✅ Orphaned auth user deleted: ${orphanedUser.id}`);
+          }
+          break;
+        }
+
+        if (usersPage.users.length < perPage) {
+          break;
+        }
+
+        page++;
+        if (page > 100) {
+          console.warn('⚠️ Reached pagination limit while searching for orphaned user');
+          break;
+        }
       }
     }
 
