@@ -657,18 +657,23 @@
                 // FIXED: Store multi-day structure instead of flattening
                 if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
                     // Multi-day plan structure - keep it organized by day
+                    // Get nutrition from top-level OR from first day's targets
+                    const dayTargets = planData.currentPlan[0]?.targets || {};
+                    const nutrition = {
+                        calories: planData.calories || dayTargets.calories || 0,
+                        protein: planData.protein || dayTargets.protein || 0,
+                        carbs: planData.carbs || dayTargets.carbs || 0,
+                        fat: planData.fat || dayTargets.fat || 0
+                    };
+                    console.log('📊 Extracted nutrition for Daily Targets:', nutrition);
+
                     currentPlan = {
                         planId: data.id, // Store the coach plan ID for linking shared plans
                         clientName: planData.clientName || data.client_name,
                         preferences: planData.preferences || {},
                         multiDay: true,
                         days: planData.currentPlan, // Store all days with structure
-                        nutrition: {
-                            calories: planData.calories,
-                            protein: planData.protein,
-                            carbs: planData.carbs,
-                            fat: planData.fat
-                        },
+                        nutrition: nutrition,
                         coachNotes: data.coach_notes || null
                     };
                 } else {
@@ -758,18 +763,21 @@
 
                 // Update the currentPlan with new data
                 if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
+                    // Get nutrition from top-level OR from first day's targets
+                    const dayTargets = planData.currentPlan[0]?.targets || {};
+                    const nutrition = {
+                        calories: planData.calories || dayTargets.calories || 0,
+                        protein: planData.protein || dayTargets.protein || 0,
+                        carbs: planData.carbs || dayTargets.carbs || 0,
+                        fat: planData.fat || dayTargets.fat || 0
+                    };
                     currentPlan = {
                         planId: newRecord.id,
                         clientName: planData.clientName || newRecord.client_name,
                         preferences: planData.preferences || {},
                         multiDay: true,
                         days: planData.currentPlan,
-                        nutrition: {
-                            calories: planData.calories,
-                            protein: planData.protein,
-                            carbs: planData.carbs,
-                            fat: planData.fat
-                        }
+                        nutrition: nutrition
                     };
                 } else {
                     currentPlan = {
@@ -932,44 +940,45 @@
         }
 
         function displayMealPlan() {
-            // FIXED: Handle both multi-day and single-day plans
-            let nutrition = currentPlan.nutrition;
+            console.log('📋 displayMealPlan called, currentPlan:', currentPlan);
 
-            if (!nutrition || !nutrition.calories) {
-                console.warn('⚠️ Nutrition object missing or invalid, calculating...');
-                nutrition = {
-                    calories: 0,
-                    protein: 0,
-                    carbs: 0,
-                    fat: 0
-                };
+            // FIXED: Handle both multi-day and single-day plans
+            let nutrition = currentPlan.nutrition || {};
+
+            // Check if nutrition values are missing or zero
+            if (!nutrition.calories && !nutrition.protein && !nutrition.carbs && !nutrition.fat) {
+                console.warn('⚠️ Nutrition object empty or all zeros, calculating from plan...');
 
                 // Calculate based on plan type
-                if (currentPlan.multiDay && currentPlan.days) {
-                    // For multi-day, show DAILY targets (not total across all days)
-                    if (currentPlan.days[0] && currentPlan.days[0].targets) {
-                        nutrition = currentPlan.days[0].targets;
+                if (currentPlan.multiDay && currentPlan.days && currentPlan.days.length > 0) {
+                    // For multi-day, get from first day's targets
+                    if (currentPlan.days[0].targets) {
+                        nutrition = { ...currentPlan.days[0].targets };
+                        console.log('✅ Got nutrition from day 1 targets:', nutrition);
                     }
-                } else if (currentPlan.meals) {
-                    // For single-day, calculate totals
+                } else if (currentPlan.meals && currentPlan.meals.length > 0) {
+                    // For single-day, calculate totals from meals
+                    nutrition = { calories: 0, protein: 0, carbs: 0, fat: 0 };
                     currentPlan.meals.forEach(meal => {
                         nutrition.calories += parseInt(meal.calories) || 0;
                         nutrition.protein += parseInt(meal.protein) || 0;
                         nutrition.carbs += parseInt(meal.carbs) || 0;
                         nutrition.fat += parseInt(meal.fat) || 0;
                     });
+                    console.log('✅ Calculated nutrition from meals:', nutrition);
                 }
 
                 currentPlan.nutrition = nutrition;
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
-                console.log('✅ Calculated nutrition:', nutrition);
             }
 
+            console.log('📊 Displaying Daily Targets:', nutrition);
+
             // Display DAILY nutrition totals
-            document.getElementById('totalCalories').textContent = nutrition.calories || 'N/A';
-            document.getElementById('totalProtein').textContent = nutrition.protein ? nutrition.protein + 'g' : 'N/A';
-            document.getElementById('totalCarbs').textContent = nutrition.carbs ? nutrition.carbs + 'g' : 'N/A';
-            document.getElementById('totalFat').textContent = nutrition.fat ? nutrition.fat + 'g' : 'N/A';
+            document.getElementById('totalCalories').textContent = nutrition.calories || 0;
+            document.getElementById('totalProtein').textContent = (nutrition.protein || 0) + 'g';
+            document.getElementById('totalCarbs').textContent = (nutrition.carbs || 0) + 'g';
+            document.getElementById('totalFat').textContent = (nutrition.fat || 0) + 'g';
 
             // Display coach notes if present
             const existingNotesSection = document.getElementById('coachNotesSection');
