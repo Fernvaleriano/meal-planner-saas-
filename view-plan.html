@@ -462,6 +462,32 @@
         let realtimeChannel = null;
         let currentPlanId = null;
 
+        // Helper function to escape HTML and convert URLs to clickable links
+        function linkifyText(text) {
+            if (!text) return '';
+
+            // First escape HTML to prevent XSS
+            const escaped = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            // URL regex pattern - matches http, https, and www URLs
+            const urlPattern = /(\b(https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?"'\])}>])/gi;
+
+            // Convert URLs to clickable links
+            return escaped.replace(urlPattern, (url) => {
+                let href = url;
+                // Add https:// if URL starts with www.
+                if (url.toLowerCase().startsWith('www.')) {
+                    href = 'https://' + url;
+                }
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: underline;">${url}</a>`;
+            });
+        }
+
         // Detect if page was loaded from back/forward cache and force reload
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
@@ -950,7 +976,7 @@
                         <span style="font-size: 20px;">📝</span>
                         <h3 style="margin: 0; color: #0369a1; font-size: 16px; font-weight: 600;">Message from Your Coach</h3>
                     </div>
-                    <p style="margin: 0; color: #334155; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${currentPlan.coachNotes}</p>
+                    <p style="margin: 0; color: #334155; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${linkifyText(currentPlan.coachNotes)}</p>
                 `;
                 document.getElementById('mealsContainer').parentNode.insertBefore(notesSection, document.getElementById('mealsContainer'));
             }
@@ -1098,7 +1124,7 @@
                     notesSection = `
                         <div class="meal-note-display" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 15px; margin-top: 15px; border-radius: 0 8px 8px 0;">
                             <div style="font-weight: 600; color: #92400e; font-size: 0.85em; margin-bottom: 6px;">📝 Coach Note:</div>
-                            <div style="color: #78350f; font-size: 0.95em; line-height: 1.5;">${mealNote}</div>
+                            <div style="color: #78350f; font-size: 0.95em; line-height: 1.5; white-space: pre-wrap;">${linkifyText(mealNote)}</div>
                         </div>
                     `;
                 }
