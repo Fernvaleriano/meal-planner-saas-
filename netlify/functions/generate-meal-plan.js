@@ -322,7 +322,25 @@ const FOOD_DATABASE = {
   // ===== COCONUT PRODUCTS =====
   'coconut_milk': { per: '100ml', cal: 197, protein: 2, carbs: 3, fat: 21 },
   'coconut_cream': { per: '100ml', cal: 330, protein: 3, carbs: 7, fat: 35 },
-  'coconut_milk_light': { per: '100ml', cal: 74, protein: 1, carbs: 2, fat: 7 }
+  'coconut_milk_light': { per: '100ml', cal: 74, protein: 1, carbs: 2, fat: 7 },
+
+  // ===== GENERIC CATEGORY FALLBACKS =====
+  // Used when specific food item is not in database - provides reasonable estimate
+  'beef_generic': { per: '100g', cal: 200, protein: 26, carbs: 0, fat: 10 },
+  'chicken_generic': { per: '100g', cal: 165, protein: 31, carbs: 0, fat: 4 },
+  'pork_generic': { per: '100g', cal: 180, protein: 25, carbs: 0, fat: 8 },
+  'lamb_generic': { per: '100g', cal: 250, protein: 25, carbs: 0, fat: 17 },
+  'fish_generic': { per: '100g', cal: 120, protein: 22, carbs: 0, fat: 3 },
+  'shellfish_generic': { per: '100g', cal: 90, protein: 18, carbs: 2, fat: 1 },
+  'poultry_generic': { per: '100g', cal: 170, protein: 28, carbs: 0, fat: 6 },
+  'vegetable_generic': { per: '100g', cal: 30, protein: 2, carbs: 5, fat: 0 },
+  'fruit_generic': { per: '100g', cal: 50, protein: 1, carbs: 12, fat: 0 },
+  'grain_generic': { per: '100g cooked', cal: 130, protein: 4, carbs: 27, fat: 1 },
+  'legume_generic': { per: '100g cooked', cal: 130, protein: 9, carbs: 22, fat: 1 },
+  'nut_generic': { per: '28g', cal: 170, protein: 5, carbs: 6, fat: 15 },
+  'seed_generic': { per: '28g', cal: 150, protein: 5, carbs: 5, fat: 13 },
+  'cheese_generic': { per: '28g', cal: 100, protein: 7, carbs: 1, fat: 8 },
+  'dairy_generic': { per: '100g', cal: 70, protein: 8, carbs: 5, fat: 2 }
 };
 
 /**
@@ -797,8 +815,91 @@ function matchFoodToDatabase(foodName, amount = "") {
     }
   }
 
+  // ===== SMARTER FUZZY MATCHING =====
+  // Strip common cooking methods and descriptors, then try matching again
+  const cookingMethods = [
+    'grilled', 'pan-seared', 'pan seared', 'seared', 'broiled', 'baked', 'roasted',
+    'fried', 'deep-fried', 'deep fried', 'air-fried', 'air fried', 'steamed',
+    'poached', 'braised', 'sauteed', 'sautéed', 'blackened', 'smoked', 'bbq',
+    'barbecued', 'charred', 'griddled', 'stir-fried', 'stir fried', 'raw',
+    'blanched', 'boiled', 'slow-cooked', 'slow cooked', 'pressure-cooked'
+  ];
+
+  const descriptors = [
+    'organic', 'fresh', 'frozen', 'canned', 'dried', 'raw', 'cooked',
+    'boneless', 'skinless', 'bone-in', 'skin-on', 'lean', 'extra lean',
+    'grass-fed', 'grass fed', 'free-range', 'free range', 'wild-caught', 'wild caught',
+    'farm-raised', 'farm raised', 'marinated', 'seasoned', 'plain', 'unseasoned',
+    'thick-cut', 'thick cut', 'thin-sliced', 'thin sliced', 'diced', 'chopped',
+    'sliced', 'cubed', 'minced', 'shredded', 'pulled', 'ground', 'whole'
+  ];
+
+  // Combine and sort by length (longest first) to avoid partial replacements
+  const allPrefixes = [...cookingMethods, ...descriptors].sort((a, b) => b.length - a.length);
+
+  let strippedName = normalizedName;
+  for (const prefix of allPrefixes) {
+    // Remove prefix if at start of string (with optional space after)
+    const prefixPattern = new RegExp(`^${prefix}\\s+`, 'i');
+    strippedName = strippedName.replace(prefixPattern, '');
+    // Also remove if in middle with spaces around it
+    const middlePattern = new RegExp(`\\s+${prefix}\\s+`, 'gi');
+    strippedName = strippedName.replace(middlePattern, ' ');
+  }
+  strippedName = strippedName.trim();
+
+  // If we stripped something, try matching the simplified name
+  if (strippedName !== normalizedName && strippedName.length > 0) {
+    console.log(`🔄 Stripped "${normalizedName}" → "${strippedName}"`);
+
+    // Try exact match with stripped name
+    if (nameMap.hasOwnProperty(strippedName)) {
+      console.log(`✅ Matched stripped name "${strippedName}" → "${nameMap[strippedName]}"`);
+      return nameMap[strippedName];
+    }
+
+    // Try fuzzy match with stripped name
+    for (const [key, value] of Object.entries(nameMap)) {
+      if (value === null) continue;
+      if (strippedName.includes(key) || key.includes(strippedName)) {
+        console.log(`✅ Fuzzy matched stripped "${strippedName}" → "${value}"`);
+        return value;
+      }
+    }
+  }
+
+  // ===== GENERIC CATEGORY FALLBACKS =====
+  // If still no match, try to categorize by keywords and use generic fallback
+  const categoryKeywords = {
+    'beef_generic': ['beef', 'steak', 'ribeye', 'sirloin', 'tenderloin', 'brisket', 'roast beef', 'prime rib', 'short rib', 't-bone', 'porterhouse', 'tri-tip', 'chuck', 'round'],
+    'chicken_generic': ['chicken', 'hen', 'cornish'],
+    'pork_generic': ['pork', 'bacon', 'ham', 'prosciutto', 'pancetta', 'chorizo', 'sausage'],
+    'lamb_generic': ['lamb', 'mutton'],
+    'fish_generic': ['fish', 'salmon', 'tuna', 'cod', 'tilapia', 'halibut', 'trout', 'bass', 'snapper', 'grouper', 'flounder', 'sole', 'perch', 'catfish', 'swordfish', 'mahi', 'wahoo', 'barramundi', 'branzino'],
+    'shellfish_generic': ['shrimp', 'prawn', 'crab', 'lobster', 'scallop', 'clam', 'mussel', 'oyster', 'crawfish', 'crayfish', 'calamari', 'squid', 'octopus'],
+    'poultry_generic': ['turkey', 'duck', 'goose', 'quail', 'pheasant'],
+    'vegetable_generic': ['vegetable', 'veggie', 'greens', 'salad', 'slaw', 'sprout'],
+    'fruit_generic': ['fruit', 'berry', 'berries', 'melon'],
+    'grain_generic': ['rice', 'grain', 'wheat', 'bread', 'pasta', 'noodle', 'couscous', 'orzo'],
+    'legume_generic': ['bean', 'lentil', 'pea', 'chickpea', 'hummus'],
+    'nut_generic': ['nut', 'almond', 'walnut', 'pecan', 'cashew', 'pistachio', 'hazelnut', 'macadamia', 'peanut'],
+    'seed_generic': ['seed', 'chia', 'flax', 'hemp', 'sunflower', 'pumpkin seed', 'sesame'],
+    'cheese_generic': ['cheese', 'brie', 'gouda', 'swiss', 'provolone', 'gruyere', 'manchego', 'goat cheese', 'blue cheese'],
+    'dairy_generic': ['yogurt', 'milk', 'cream', 'dairy', 'kefir']
+  };
+
+  const searchText = strippedName || normalizedName;
+  for (const [genericKey, keywords] of Object.entries(categoryKeywords)) {
+    for (const keyword of keywords) {
+      if (searchText.includes(keyword)) {
+        console.log(`🔶 Using generic fallback: "${foodName}" → "${genericKey}" (matched keyword: "${keyword}")`);
+        return genericKey;
+      }
+    }
+  }
+
   // If no match found, warn and return null
-  console.warn(`⚠️ Could not match food "${foodName}" to database`);
+  console.warn(`⚠️ Could not match food "${foodName}" to database (no generic fallback found)`);
   return null;
 }
 
