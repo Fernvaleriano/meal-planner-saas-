@@ -1067,10 +1067,12 @@ function updateMealNamePortions(mealName, scaleFactor) {
 /**
  * Optimize meal portions to hit target macros using deterministic algorithm
  * NO LLM - Pure math optimization
+ * @param {boolean} skipAutoScale - If true, don't auto-scale portions (used for revisions where user controls portions)
  */
-function optimizeMealMacros(geminiMeal, mealTargets) {
+function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
   console.log(`🔍 JS optimizing portions for: ${geminiMeal.name}`);
   console.log(`🎯 Targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+  if (skipAutoScale) console.log(`⏭️ Auto-scaling DISABLED for this request (user controls portions)`);
 
   // Check if meal has ingredients array
   if (!geminiMeal.ingredients || !Array.isArray(geminiMeal.ingredients)) {
@@ -1102,9 +1104,10 @@ function optimizeMealMacros(geminiMeal, mealTargets) {
   console.log(`📈 Adjustments needed: ${calDiff}cal, ${proteinDiff}P, ${carbsDiff}C, ${fatDiff}F`);
 
   // Step 3: AUTO-SCALE portions if calories are off by more than 10%
+  // Skip auto-scaling for revisions where user explicitly controls portions
   const calVariance = Math.abs(calDiff) / mealTargets.calories;
 
-  if (calVariance > 0.10 && current.totals.calories > 0) {
+  if (!skipAutoScale && calVariance > 0.10 && current.totals.calories > 0) {
     const scaleFactor = mealTargets.calories / current.totals.calories;
 
     // Only scale if factor is reasonable (between 0.5x and 2x)
@@ -1179,7 +1182,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt, targets, mealsPerDay, previousAttempt, isJson } = JSON.parse(event.body);
+    const { prompt, targets, mealsPerDay, previousAttempt, isJson, skipAutoScale } = JSON.parse(event.body);
 
     if (!prompt) {
       return {
@@ -1308,8 +1311,8 @@ exports.handler = async (event, context) => {
       for (let i = 0; i < jsonData.plan.length; i++) {
         console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.plan.length}...`);
         const optimizedMeal = mealTargets
-          ? optimizeMealMacros(jsonData.plan[i], mealTargets)
-          : optimizeMealMacros(jsonData.plan[i], { calories: 0, protein: 0, carbs: 0, fat: 0 });
+          ? optimizeMealMacros(jsonData.plan[i], mealTargets, skipAutoScale)
+          : optimizeMealMacros(jsonData.plan[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
         optimizedMeals.push(optimizedMeal);
       }
       console.log(`✅ All ${jsonData.plan.length} meals optimized!`);
@@ -1360,8 +1363,8 @@ exports.handler = async (event, context) => {
       for (let i = 0; i < jsonData.length; i++) {
         console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.length}...`);
         const optimizedMeal = mealTargets
-          ? optimizeMealMacros(jsonData[i], mealTargets)
-          : optimizeMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 });
+          ? optimizeMealMacros(jsonData[i], mealTargets, skipAutoScale)
+          : optimizeMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
         correctedData.push(optimizedMeal);
       }
       console.log(`✅ All ${jsonData.length} meals optimized!`);
@@ -1402,8 +1405,8 @@ exports.handler = async (event, context) => {
       // Single meal object with structured ingredients
       console.log('📊 Optimizing single meal with JS algorithm...');
       correctedData = mealTargets
-        ? optimizeMealMacros(jsonData, mealTargets)
-        : optimizeMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        ? optimizeMealMacros(jsonData, mealTargets, skipAutoScale)
+        : optimizeMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
       console.log('✅ Meal optimized!');
     } else if (jsonData.name && !jsonData.ingredients && mealTargets) {
       // Single meal WITHOUT ingredients - AI didn't follow format

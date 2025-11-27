@@ -1317,7 +1317,7 @@
 
             try {
                 // NEW: Prompt asks for ingredients array - backend will calculate macros from USDA database
-                const prompt = `Revise this meal based on user request while MAINTAINING SIMILAR SIZE:
+                const prompt = `Revise this meal based on user request:
 
 CURRENT MEAL:
 Name: ${meal.name}
@@ -1326,15 +1326,25 @@ Current Calories: ${meal.calories}
 Current Protein: ${meal.protein}g
 Current Carbs: ${meal.carbs}g
 Current Fat: ${meal.fat}g
+Current Ingredients: ${meal.ingredients ? (Array.isArray(meal.ingredients) ? meal.ingredients.join(', ') : meal.ingredients) : 'N/A'}
 Instructions: ${meal.instructions || 'N/A'}
 
 USER REQUEST: ${revisionText}
 
-IMPORTANT RULES:
-1. MAINTAIN SIMILAR MEAL SIZE - the revised meal should have similar calories (within ±50) to the original
-2. If user request is vague (e.g., "add chicken", "make it healthier"), add/adjust reasonable portions that keep the meal similar in size
-3. If user specifies exact amounts, use those amounts
-4. Example: If original meal is 450 cal and user says "add chicken", add ~100g chicken and reduce other ingredients proportionally to stay near 450 cal
+REVISION RULES - Follow these carefully:
+
+1. EXPLICIT AMOUNTS: If user specifies exact amount (e.g., "make salmon 200g", "use 2 eggs"),
+   use EXACTLY that amount even if it changes the meal's total calories.
+
+2. VAGUE INCREASE: If user says "increase salmon" or "more protein" (no specific amount),
+   increase by a reasonable amount (~30-50%) AND reduce other ingredients to keep total calories similar.
+
+3. SWAP INGREDIENT: If user says "swap salmon for chicken" or "replace rice with quinoa",
+   calculate the NEW ingredient amount to match the CALORIES of the original ingredient.
+   Example: 130g salmon (230 cal) → ~140g chicken breast to match ~230 cal
+
+4. ADD NEW INGREDIENT: If user says "add chicken" to a meal that has none,
+   ADD it on top - the meal will be bigger. Don't reduce other ingredients.
 
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
@@ -1349,7 +1359,6 @@ Fruits: Blueberries, Strawberries, Banana, Apple
 CRITICAL:
 1. Return ingredients as ARRAY OF STRINGS with amounts in parentheses
 2. DO NOT include calories/protein/carbs/fat values - the backend will calculate them
-3. Keep meal size SIMILAR to original (${meal.calories} calories) unless user explicitly requests larger/smaller
 
 Return ONLY valid JSON (NO markdown, NO backticks):
 {
@@ -1359,13 +1368,14 @@ Return ONLY valid JSON (NO markdown, NO backticks):
   "instructions": "Cooking instructions"
 }`;
 
-                // NEW: Send isJson and targets to trigger backend USDA calculation
+                // Send isJson and targets, but skipAutoScale for revise (user controls portions)
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         prompt,
                         isJson: true,
+                        skipAutoScale: true, // Don't auto-scale revisions - user controls the portions
                         targets: {
                             calories: meal.calories || 500,
                             protein: meal.protein || 30,

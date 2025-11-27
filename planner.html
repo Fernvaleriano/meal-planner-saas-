@@ -637,7 +637,7 @@ async function callClaude(prompt, targets, previousAttempt = null) {
 }
 
 // Backwards compatibility wrapper - gradually replace callGemini with callClaude
-async function callGemini(prompt, isJson = true, targets = null, previousAttempt = null, mealsPerDay = null) {
+async function callGemini(prompt, isJson = true, targets = null, previousAttempt = null, mealsPerDay = null, skipAutoScale = false) {
     // Use hybrid Gemini + Claude approach (Gemini creates, Claude optimizes)
     try {
         const requestBody = {
@@ -646,6 +646,7 @@ async function callGemini(prompt, isJson = true, targets = null, previousAttempt
         };
         if (targets) requestBody.targets = targets;
         if (mealsPerDay) requestBody.mealsPerDay = mealsPerDay;
+        if (skipAutoScale) requestBody.skipAutoScale = true; // Don't auto-scale for revisions
 
         const response = await fetch('/.netlify/functions/generate-meal-plan', {
             method: 'POST',
@@ -2136,22 +2137,31 @@ async function reviseMeal(dayIndex, mealIndex) {
         targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Revising meal...</p>';
     }
 
-    const aiPrompt = `Revise this meal based on user request while MAINTAINING SIMILAR SIZE: "${meal.name}" (${meal.type})
+    const aiPrompt = `Revise this meal based on user request: "${meal.name}" (${meal.type})
 
 USER REQUEST: ${userRequest}
 
-CURRENT MEAL (must maintain similar calories):
+CURRENT MEAL:
 - Calories: ${meal.calories}
 - Protein: ${meal.protein}g
 - Carbs: ${meal.carbs}g
 - Fat: ${meal.fat}g
 - Ingredients: ${meal.ingredients ? meal.ingredients.map(ing => typeof ing === 'string' ? ing : `${ing.amount} ${ing.food}`).join(', ') : 'N/A'}
 
-IMPORTANT RULES:
-1. MAINTAIN SIMILAR MEAL SIZE - revised meal should have similar calories (within ±50) to original
-2. If user request is vague (e.g., "add chicken", "make it healthier"), add/adjust reasonable portions that keep the meal similar in size
-3. If user specifies exact amounts, use those amounts
-4. Example: If original meal is 450 cal and user says "add chicken", add ~100g chicken and reduce other ingredients proportionally to stay near 450 cal
+REVISION RULES - Follow these carefully:
+
+1. EXPLICIT AMOUNTS: If user specifies exact amount (e.g., "make salmon 200g", "use 2 eggs"),
+   use EXACTLY that amount even if it changes the meal's total calories.
+
+2. VAGUE INCREASE: If user says "increase salmon" or "more protein" (no specific amount),
+   increase by a reasonable amount (~30-50%) AND reduce other ingredients to keep total calories similar.
+
+3. SWAP INGREDIENT: If user says "swap salmon for chicken" or "replace rice with quinoa",
+   calculate the NEW ingredient amount to match the CALORIES of the original ingredient.
+   Example: 130g salmon (230 cal) → ~140g chicken breast to match ~230 cal
+
+4. ADD NEW INGREDIENT: If user says "add chicken" to a meal that has none,
+   ADD it on top - the meal will be bigger. Don't reduce other ingredients.
 
 Diet: ${lastPlanQuery.preference}
 Macro Preference: ${lastPlanQuery.macroPreference}
@@ -2170,7 +2180,6 @@ Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
 CRITICAL:
 1. Return ingredients as ARRAY OF STRINGS with amounts in parentheses
 2. DO NOT include calories/protein/carbs/fat - backend will calculate from database
-3. Keep meal size SIMILAR to original (${meal.calories} calories) unless user explicitly requests larger/smaller
 MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
 
 EXAMPLE FORMAT:
@@ -2178,7 +2187,7 @@ EXAMPLE FORMAT:
 
 Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
-    // Pass current meal macros as targets so Claude can optimize portions to match
+    // Pass current meal macros as targets, with skipAutoScale for revisions
     const mealTargets = {
         calories: meal.calories,
         protein: meal.protein,
@@ -2186,7 +2195,7 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
         fat: meal.fat
     };
 
-    const revisedMeal = await callGemini(aiPrompt, true, mealTargets, null, 1);
+    const revisedMeal = await callGemini(aiPrompt, true, mealTargets, null, 1, true); // true = skipAutoScale
 
     if (!revisedMeal.error) {
         // Validate that backend returned complete meal with macros
