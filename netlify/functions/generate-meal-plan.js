@@ -1253,6 +1253,208 @@ function estimateUnmatchedIngredient(ingredientString, amountStr) {
   };
 }
 
+// Simple in-memory cache for Spoonacular results (persists during function execution)
+const spoonacularCache = new Map();
+
+/**
+ * Call Spoonacular API for ONLY the ingredients not found in local database
+ * This minimizes API calls and costs
+ */
+async function getSpoonacularForUnknowns(unknownIngredients) {
+  if (!SPOONACULAR_API_KEY || unknownIngredients.length === 0) {
+    return null;
+  }
+
+  // Check cache first
+  const uncachedIngredients = [];
+  const cachedResults = [];
+
+  for (const ing of unknownIngredients) {
+    const cacheKey = ing.toLowerCase().trim();
+    if (spoonacularCache.has(cacheKey)) {
+      console.log(`📦 Cache hit for: ${ing}`);
+      cachedResults.push(spoonacularCache.get(cacheKey));
+    } else {
+      uncachedIngredients.push(ing);
+    }
+  }
+
+  // If all were cached, return cached results
+  if (uncachedIngredients.length === 0) {
+    console.log(`✅ All ${unknownIngredients.length} unknown ingredients found in cache`);
+    return cachedResults;
+  }
+
+  try {
+    console.log(`🥄 Calling Spoonacular for ${uncachedIngredients.length} unknown ingredients...`);
+    const ingredientList = uncachedIngredients.join('\n');
+
+    const response = await fetch(`${SPOONACULAR_API_URL}/recipes/parseIngredients?apiKey=${SPOONACULAR_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `ingredientList=${encodeURIComponent(ingredientList)}&servings=1&includeNutrition=true`
+    });
+
+    if (!response.ok) {
+      console.error(`❌ Spoonacular API error: ${response.status}`);
+      return cachedResults.length > 0 ? cachedResults : null;
+    }
+
+    const data = await response.json();
+    const results = [...cachedResults];
+
+    for (const item of data) {
+      const nutrition = item.nutrition;
+      if (!nutrition || !nutrition.nutrients) continue;
+
+      const findNutrient = (name) => {
+        const nutrient = nutrition.nutrients.find(n => n.name.toLowerCase() === name.toLowerCase());
+        return nutrient ? Math.round(nutrient.amount) : 0;
+      };
+
+      const result = {
+        food: item.name || item.original,
+        original: item.original,
+        amount: item.amount ? `${item.amount} ${item.unit}` : '',
+        macros: {
+          calories: findNutrient('Calories'),
+          protein: findNutrient('Protein'),
+          carbs: findNutrient('Carbohydrates'),
+          fat: findNutrient('Fat')
+        },
+        source: 'spoonacular'
+      };
+
+      // Cache the result
+      const cacheKey = item.original.toLowerCase().trim();
+      spoonacularCache.set(cacheKey, result);
+      console.log(`💾 Cached: ${item.original} → ${result.macros.calories}cal`);
+
+      results.push(result);
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error('❌ Spoonacular API call failed:', error.message);
+    return cachedResults.length > 0 ? cachedResults : null;
+  }
+}
+
+/**
+ * HYBRID APPROACH: Local database first, Spoonacular only for unknowns
+ * This minimizes API calls while maintaining accuracy
+ */
+async function calculateMacrosWithSpoonacular(ingredients) {
+  let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  const breakdown = [];
+  const unknownIngredients = [];
+
+  console.log(`🔍 Processing ${ingredients.length} ingredients (local DB first)...`);
+
+  // STEP 1: Try local database for each ingredient
+  for (const ing of ingredients) {
+    if (typeof ing !== 'string') continue;
+
+    const parsed = parseIngredientString(ing);
+    const matched = matchFoodToDatabase(parsed.name, parsed.amount);
+
+    if (matched) {
+      // Found in local database!
+      const foodData = FOOD_DATABASE[matched];
+      const multiplier = parseAmount(parsed.amount, foodData);
+
+      const macros = {
+        calories: Math.round(foodData.cal * multiplier),
+        protein: Math.round(foodData.protein * multiplier),
+        carbs: Math.round(foodData.carbs * multiplier),
+        fat: Math.round(foodData.fat * multiplier)
+      };
+
+      totals.calories += macros.calories;
+      totals.protein += macros.protein;
+      totals.carbs += macros.carbs;
+      totals.fat += macros.fat;
+
+      breakdown.push({
+        food: matched,
+        original: ing,
+        amount: parsed.amount,
+        macros: macros,
+        source: 'local_db'
+      });
+
+      console.log(`📚 Local DB: ${ing} → ${macros.calories}cal`);
+    } else {
+      // Not in local database - add to unknown list
+      unknownIngredients.push(ing);
+    }
+  }
+
+  console.log(`📊 Local DB matched: ${breakdown.length}/${ingredients.length} ingredients`);
+  console.log(`❓ Unknown ingredients: ${unknownIngredients.length}`);
+
+  // STEP 2: Call Spoonacular ONLY for unknown ingredients
+  if (unknownIngredients.length > 0 && SPOONACULAR_API_KEY) {
+    const spoonacularResults = await getSpoonacularForUnknowns(unknownIngredients);
+
+    if (spoonacularResults && spoonacularResults.length > 0) {
+      for (const result of spoonacularResults) {
+        totals.calories += result.macros.calories;
+        totals.protein += result.macros.protein;
+        totals.carbs += result.macros.carbs;
+        totals.fat += result.macros.fat;
+        breakdown.push(result);
+        console.log(`🥄 Spoonacular: ${result.original} → ${result.macros.calories}cal`);
+      }
+    } else {
+      // Spoonacular failed - use estimates for unknowns
+      for (const ing of unknownIngredients) {
+        const parsed = parseIngredientString(ing);
+        const estimated = estimateUnmatchedIngredient(ing, parsed.amount);
+
+        totals.calories += estimated.calories;
+        totals.protein += estimated.protein;
+        totals.carbs += estimated.carbs;
+        totals.fat += estimated.fat;
+
+        breakdown.push({
+          food: parsed.name,
+          original: ing,
+          amount: parsed.amount,
+          macros: estimated,
+          source: 'estimated'
+        });
+        console.log(`📏 Estimated: ${ing} → ${estimated.calories}cal`);
+      }
+    }
+  } else if (unknownIngredients.length > 0) {
+    // No Spoonacular key - use estimates
+    console.log('⚠️ No Spoonacular API key - using estimates for unknown ingredients');
+    for (const ing of unknownIngredients) {
+      const parsed = parseIngredientString(ing);
+      const estimated = estimateUnmatchedIngredient(ing, parsed.amount);
+
+      totals.calories += estimated.calories;
+      totals.protein += estimated.protein;
+      totals.carbs += estimated.carbs;
+      totals.fat += estimated.fat;
+
+      breakdown.push({
+        food: parsed.name,
+        original: ing,
+        amount: parsed.amount,
+        macros: estimated,
+        source: 'estimated'
+      });
+    }
+  }
+
+  console.log(`✅ Final totals: ${totals.calories}cal, ${totals.protein}P, ${totals.carbs}C, ${totals.fat}F`);
+
+  return { totals, breakdown };
+}
+
 /**
  * Call Spoonacular API to parse ingredients and get accurate nutrition data
  * Uses their natural language parsing which handles "6oz chicken breast" etc.
@@ -1345,28 +1547,6 @@ async function getSpoonacularNutrition(ingredients) {
     console.error('❌ Spoonacular API call failed:', error.message);
     return null;
   }
-}
-
-/**
- * Calculate macros from ingredients - tries Spoonacular first, falls back to local database
- * @param {string[]} ingredients - Array of ingredient strings
- * @param {boolean} useSpoonacular - Whether to try Spoonacular API first (default: true)
- * @returns {Promise<{totals: object, breakdown: array}>}
- */
-async function calculateMacrosWithSpoonacular(ingredients, useSpoonacular = true) {
-  // Try Spoonacular first for accurate data
-  if (useSpoonacular && SPOONACULAR_API_KEY) {
-    const spoonacularResult = await getSpoonacularNutrition(ingredients);
-    if (spoonacularResult && spoonacularResult.totals.calories > 0) {
-      console.log('✅ Using Spoonacular nutrition data');
-      return spoonacularResult;
-    }
-    console.log('⚠️ Spoonacular failed or returned no data, falling back to local database');
-  }
-
-  // Fall back to local database calculation
-  console.log('📚 Using local database for nutrition calculation');
-  return calculateMacrosFromIngredients(ingredients);
 }
 
 /**
