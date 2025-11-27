@@ -1420,11 +1420,15 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 revisedMeal.name = revisedMeal.name || 'Revised Meal';
                 revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
 
-                // Use calculated macros, or fallback to original if calculation failed
-                revisedMeal.calories = revisedMeal.calories || meal.calories;
-                revisedMeal.protein = revisedMeal.protein || meal.protein;
-                revisedMeal.carbs = revisedMeal.carbs || meal.carbs;
-                revisedMeal.fat = revisedMeal.fat || meal.fat;
+                // Use calculated macros - only fallback if truly undefined/null (not 0)
+                // Note: 0 is a valid value if ingredient wasn't found, so log warning
+                if (revisedMeal.calories === 0 || revisedMeal.calories === undefined || revisedMeal.calories === null) {
+                    console.warn('⚠️ Backend returned 0/missing calories - ingredient may not be in database');
+                }
+                revisedMeal.calories = revisedMeal.calories !== undefined && revisedMeal.calories !== null ? revisedMeal.calories : meal.calories;
+                revisedMeal.protein = revisedMeal.protein !== undefined && revisedMeal.protein !== null ? revisedMeal.protein : meal.protein;
+                revisedMeal.carbs = revisedMeal.carbs !== undefined && revisedMeal.carbs !== null ? revisedMeal.carbs : meal.carbs;
+                revisedMeal.fat = revisedMeal.fat !== undefined && revisedMeal.fat !== null ? revisedMeal.fat : meal.fat;
 
                 // Save the revised meal to the correct location
                 if (dayIndex !== null && mealIndex !== null) {
@@ -1549,11 +1553,14 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 newMeal.name = newMeal.name || 'New Meal';
                 newMeal.instructions = newMeal.instructions || '';
 
-                // Use calculated macros, or fallback to original if calculation failed
-                newMeal.calories = newMeal.calories || meal.calories;
-                newMeal.protein = newMeal.protein || meal.protein;
-                newMeal.carbs = newMeal.carbs || meal.carbs;
-                newMeal.fat = newMeal.fat || meal.fat;
+                // Use calculated macros - only fallback if truly undefined/null (not 0)
+                if (newMeal.calories === 0 || newMeal.calories === undefined || newMeal.calories === null) {
+                    console.warn('⚠️ Backend returned 0/missing calories - ingredient may not be in database');
+                }
+                newMeal.calories = newMeal.calories !== undefined && newMeal.calories !== null ? newMeal.calories : meal.calories;
+                newMeal.protein = newMeal.protein !== undefined && newMeal.protein !== null ? newMeal.protein : meal.protein;
+                newMeal.carbs = newMeal.carbs !== undefined && newMeal.carbs !== null ? newMeal.carbs : meal.carbs;
+                newMeal.fat = newMeal.fat !== undefined && newMeal.fat !== null ? newMeal.fat : meal.fat;
 
                 // Save the new meal to the correct location
                 if (dayIndex !== null && mealIndex !== null) {
