@@ -1164,19 +1164,12 @@
                 `;
             }
 
-            // Build action buttons - hide change/revise for clients
-            let actionButtons = '';
-            if (isClientView) {
-                actionButtons = `
-                    <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
-                `;
-            } else {
-                actionButtons = `
-                    <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
-                    <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
-                    <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
-                `;
-            }
+            // Build action buttons - clients can also change/revise meals
+            let actionButtons = `
+                <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
+                <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
+                <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
+            `;
 
             card.innerHTML = `
                 <div class="meal-header">

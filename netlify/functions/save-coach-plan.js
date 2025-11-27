@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Prepare insert data
+    // Prepare insert data (status column may not exist in older schemas)
     const insertData = {
       coach_id: coachId,
       client_name: clientName || 'Unnamed Client',
@@ -70,12 +70,25 @@ exports.handler = async (event, context) => {
       insertData.client_id = clientId;
     }
 
-    // Insert the meal plan into the database
-    const { data, error } = await supabase
+    // Try to insert with status column first
+    let { data, error } = await supabase
       .from('coach_meal_plans')
       .insert([insertData])
       .select()
       .single();
+
+    // If error mentions status column doesn't exist, retry without it
+    if (error && (error.message.includes('status') || error.code === '42703')) {
+      console.log('⚠️ Status column not found, retrying without it...');
+      delete insertData.status;
+      const retryResult = await supabase
+        .from('coach_meal_plans')
+        .insert([insertData])
+        .select()
+        .single();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
 
     if (error) {
       console.error('❌ Supabase error:', error);
@@ -99,7 +112,7 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         planId: data.id,
-        status: data.status,
+        status: data.status || 'draft', // Default to draft if status column doesn't exist
         message: 'Plan saved as draft. Use "Submit to Client" to make it visible.'
       })
     };
