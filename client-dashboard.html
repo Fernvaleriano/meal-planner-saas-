@@ -2361,6 +2361,11 @@
                 const response = await fetch(`/.netlify/functions/notifications?clientId=${currentClientId}`);
                 const data = await response.json();
 
+                // Log warning if notifications table doesn't exist
+                if (data.warning) {
+                    console.warn('Notifications warning:', data.warning);
+                }
+
                 if (data.unreadCount > 0) {
                     notificationBadge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
                     notificationBadge.style.display = 'flex';
