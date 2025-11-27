@@ -19,19 +19,39 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === 'GET') {
       const clientId = event.queryStringParameters?.clientId;
+      const limit = parseInt(event.queryStringParameters?.limit) || 10;
+      const offset = parseInt(event.queryStringParameters?.offset) || 0;
 
+      // Get check-ins with pagination
       const { data, error } = await supabase
         .from('client_checkins')
         .select('*')
         .eq('client_id', clientId)
-        .limit(10);
+        .order('checkin_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
+
+      // Get total count for pagination
+      const { count } = await supabase
+        .from('client_checkins')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', clientId);
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ checkins: data || [], stats: {} })
+        body: JSON.stringify({
+          checkins: data || [],
+          stats: {},
+          pagination: {
+            total: count || 0,
+            offset,
+            limit,
+            hasMore: (offset + limit) < (count || 0)
+          }
+        })
       };
     }
 
