@@ -158,6 +158,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-custom {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .btn-custom:hover {
+            background: #6d28d9;
+            transform: translateY(-2px);
+        }
+
         .btn-favorite {
             background: transparent;
             color: #e53e3e;
@@ -1406,6 +1416,7 @@
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
                 <button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>
+                <button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>
                 ${undoButton}
             `;
 
@@ -1623,11 +1634,14 @@ REVISION RULES - Follow these carefully:
 4. ADD NEW INGREDIENT: If user says "add chicken" to a meal that has none,
    ADD it on top - the meal will be bigger. Don't reduce other ingredients.
 
-5. COMPLETE REPLACEMENT: If user specifies an entirely new meal or uses words like
-   "just", "only", "make it", "change to", or "replace with", use ONLY the ingredients
-   they specify. Do NOT add extra ingredients to match the original meal's calories.
-   The new calorie total will be whatever the specified ingredients naturally add up to.
-   Example: "just a protein shake with creatine" = ONLY protein powder + creatine, nothing else.
+5. COMPLETE REPLACEMENT: If user specifies a simple meal or uses words like
+   "just", "only", "make it", "change to", or "replace with":
+   - Return ONLY the EXACT ingredients they specify - NOTHING ELSE
+   - Do NOT add milk, water, banana, oats, peanut butter or ANY other ingredients
+   - Do NOT try to make it a "complete meal" or "balanced"
+   - Example: "just protein shake 2 scoops" = {"ingredients": ["Whey Protein (2 scoops)"]} - ONLY ONE INGREDIENT
+   - Example: "only eggs and toast" = {"ingredients": ["Eggs (2 whole)", "Whole Wheat Bread (2 slices)"]} - ONLY TWO INGREDIENTS
+   - The user WANTS a simple/small meal - this is intentional, not a mistake
 
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
@@ -1729,6 +1743,124 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
             } catch (error) {
                 console.error('❌ Revision error:', error);
                 alert('Failed to revise meal. Please try again.');
+                displayMealPlan();
+            }
+        }
+
+        // CUSTOM MEAL - Create exact meal from user input, no AI interpretation
+        async function customMeal(index, dayIndex = null, mealIndex = null) {
+            // Get the current meal for reference
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else {
+                meal = currentPlan.meals[index];
+            }
+
+            // Prompt user for their custom meal
+            const userInput = window.prompt(
+                `🎯 Custom Meal - Enter EXACTLY what you want to eat:\n\n` +
+                `Examples:\n` +
+                `• "2 scoops whey protein"\n` +
+                `• "3 eggs, 2 toast, 1 tbsp butter"\n` +
+                `• "200g chicken breast, 150g rice, 100g broccoli"\n\n` +
+                `We'll calculate the exact calories and macros for you.`,
+                ''
+            );
+
+            if (!userInput || !userInput.trim()) {
+                return; // User cancelled
+            }
+
+            const mealCard = document.getElementById(`meal-${index}`);
+
+            // Save current meal state for undo
+            const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
+            previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+            console.log(`💾 Saved previous state for custom meal:`, previousMealStates[stateKey]);
+
+            // Show loading
+            mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Creating custom meal...</p>';
+
+            try {
+                // Parse user input into ingredients array
+                // Split by comma, "and", or newline
+                const rawIngredients = userInput
+                    .split(/,|\band\b|\n/)
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+
+                // Format ingredients properly (capitalize, add parentheses if needed)
+                const ingredients = rawIngredients.map(ing => {
+                    // If already has parentheses, use as-is
+                    if (ing.includes('(') && ing.includes(')')) {
+                        return ing;
+                    }
+                    // Try to extract amount and food
+                    const amountMatch = ing.match(/^(\d+\.?\d*\s*(?:g|oz|cup|cups|tbsp|tsp|ml|scoop|scoops|slice|slices|piece|pieces|whole|large|medium|small)?)\s+(.+)$/i);
+                    if (amountMatch) {
+                        const amount = amountMatch[1].trim();
+                        const food = amountMatch[2].trim();
+                        // Capitalize first letter of each word
+                        const foodCapitalized = food.replace(/\b\w/g, c => c.toUpperCase());
+                        return `${foodCapitalized} (${amount})`;
+                    }
+                    // No amount found, just capitalize
+                    return ing.replace(/\b\w/g, c => c.toUpperCase());
+                });
+
+                console.log('🎯 Custom meal ingredients:', ingredients);
+
+                // Create meal name from ingredients
+                const mealName = ingredients.length <= 2
+                    ? ingredients.join(' with ')
+                    : `${ingredients[0]} with ${ingredients.length - 1} more`;
+
+                // Send to backend for macro calculation ONLY (no AI)
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: `Return this exact meal as JSON, no changes:\n{"type":"${meal.type || 'meal'}","name":"${mealName}","ingredients":${JSON.stringify(ingredients)},"instructions":"Prepare as desired."}`,
+                        isJson: true,
+                        skipAutoScale: true,
+                        targets: { calories: 0, protein: 0, carbs: 0, fat: 0 }, // No targets - just calculate what's there
+                        mealsPerDay: 1
+                    })
+                });
+
+                if (!response.ok) throw new Error('API request failed');
+
+                const data = await response.json();
+
+                let customMealData;
+                if (data.success && data.data) {
+                    customMealData = data.data;
+                    console.log('✅ Custom meal created:', customMealData);
+                } else {
+                    throw new Error('Failed to calculate macros');
+                }
+
+                // Ensure required fields
+                customMealData.type = meal.type || 'meal';
+                customMealData.name = customMealData.name || mealName;
+
+                // Save the custom meal
+                if (dayIndex !== null && mealIndex !== null) {
+                    currentPlan.days[dayIndex].plan[mealIndex] = customMealData;
+                } else {
+                    currentPlan.meals[index] = customMealData;
+                }
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+                await savePlanToDatabase();
+                displayMealPlan();
+
+                showNotification(`Custom meal created: ${customMealData.calories} cal`, 'success');
+
+            } catch (error) {
+                console.error('❌ Custom meal error:', error);
+                alert('Failed to create custom meal. Please try again.');
                 displayMealPlan();
             }
         }

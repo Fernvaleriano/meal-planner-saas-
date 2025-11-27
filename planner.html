@@ -76,6 +76,15 @@
             background-color: #D3DBF0;
         }
 
+        .btn-custom {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .btn-custom:hover:not(:disabled) {
+            background: #6d28d9;
+        }
+
         .hidden {
             display: none;
         }
@@ -1611,6 +1620,7 @@ function displayDietPlan(multiDayData) {
                     <div class="flex gap-2 mt-2">
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                         <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
+                        <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
                         ${undoButton}
                     </div>
@@ -2273,6 +2283,88 @@ function undoMeal(dayIndex, mealIndex) {
 
     // Show success message
     alert('Undo successful! Meal restored to previous state.');
+}
+
+// CUSTOM MEAL - User enters exact ingredients without AI interpretation
+async function customMeal(dayIndex, mealIndex) {
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+
+    const userInput = window.prompt(
+        `🎯 Custom Meal - Enter EXACTLY what you want to eat:\n\n` +
+        `Examples:\n` +
+        `• "2 scoops whey protein"\n` +
+        `• "3 eggs, 2 toast, 1 tbsp butter"\n` +
+        `• "200g chicken breast, 150g rice, 100g broccoli"\n\n` +
+        `We'll calculate the exact calories and macros for you.`,
+        ''
+    );
+
+    if (!userInput || !userInput.trim()) return;
+
+    // Save current meal state for undo functionality
+    const stateKey = `${dayIndex}-${mealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+    console.log(`💾 Saved previous state for undo (custom):`, previousMealStates[stateKey]);
+
+    // Show loading
+    displayDietPlan(lastPlanQuery.currentPlan);
+    const mealCards = document.querySelectorAll('.meal-card');
+    let cardIndex = 0;
+    for (let d = 0; d < dayIndex; d++) {
+        cardIndex += lastPlanQuery.currentPlan[d].plan.length;
+    }
+    cardIndex += mealIndex;
+    const targetCard = mealCards[cardIndex];
+    if (targetCard) {
+        targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Creating custom meal...</p>';
+    }
+
+    // Parse user input into ingredients array
+    const rawIngredients = userInput
+        .split(/,|\band\b|\n/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+    // Format ingredients properly (capitalize, add parentheses if needed)
+    const ingredients = rawIngredients.map(ing => {
+        // Try to parse amount + food pattern
+        const amountMatch = ing.match(/^(\d+\.?\d*\s*(?:g|oz|cup|cups|tbsp|tsp|ml|scoop|scoops|slice|slices|piece|pieces|whole|large|medium|small)?)\s+(.+)$/i);
+        if (amountMatch) {
+            const amount = amountMatch[1].trim();
+            const food = amountMatch[2].trim();
+            const foodCapitalized = food.replace(/\b\w/g, c => c.toUpperCase());
+            return `${foodCapitalized} (${amount})`;
+        }
+        // If no amount pattern matched, just capitalize
+        return ing.replace(/\b\w/g, c => c.toUpperCase());
+    });
+
+    // Create meal name from ingredients
+    const mealName = ingredients.length <= 2
+        ? ingredients.join(' & ')
+        : ingredients.slice(0, 2).join(' & ') + ' + More';
+
+    // Send to backend for macro calculation ONLY (no AI interpretation)
+    const aiPrompt = `Return this exact meal as JSON, no changes:\n{"type":"${meal.type || 'meal'}","name":"${mealName}","ingredients":${JSON.stringify(ingredients)},"instructions":"Prepare as desired."}`;
+
+    const customResult = await callGemini(aiPrompt, true, { calories: 0, protein: 0, carbs: 0, fat: 0 }, null, 1, true);
+
+    if (!customResult.error) {
+        // Backend calculated accurate macros from our exact ingredients
+        if (!customResult.calories || !customResult.protein || !customResult.carbs || customResult.fat === undefined) {
+            console.error('❌ Backend returned incomplete meal:', customResult);
+            alert('Error: Backend did not calculate macros. Check console for details.');
+            displayDietPlan(lastPlanQuery.currentPlan);
+            return;
+        }
+
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = customResult;
+        displayDietPlan(lastPlanQuery.currentPlan);
+        console.log(`✅ Custom meal created:`, customResult);
+    } else {
+        alert('Error creating custom meal: ' + customResult.error);
+        displayDietPlan(lastPlanQuery.currentPlan);
+    }
 }
 
 // REGENERATE ENTIRE DAY - Generate all new meals for a specific day
@@ -3443,6 +3535,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             reviseMeal(dayIndex, mealIndex);
+        },
+        'custom-meal': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            customMeal(dayIndex, mealIndex);
         },
         'undo-meal': () => {
             const target = event.target.closest('[data-day-index]');
