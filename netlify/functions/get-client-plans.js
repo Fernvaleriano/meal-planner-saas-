@@ -27,13 +27,13 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Fetch all published plans for this client (only published plans are visible to clients)
+    // For coaches: Show ALL plans (drafts + published) so they can manage them
+    // The frontend (client-profile.html) is used by coaches to view/manage client plans
     const { data, error } = await supabase
       .from('coach_meal_plans')
       .select('*')
       .eq('client_id', clientId)
       .eq('coach_id', coachId)
-      .eq('status', 'published')
       .order('created_at', { ascending: false });
 
     if (error) {

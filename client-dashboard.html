@@ -1436,11 +1436,13 @@
             const plansContainer = document.getElementById('plansContainer');
 
             try {
-                // Fetch plans for this client
+                // Fetch ONLY PUBLISHED plans for this client
+                // (Draft plans should not be visible to clients until coach submits them)
                 const { data: plans, error } = await supabaseClient
                     .from('coach_meal_plans')
                     .select('*')
                     .eq('client_id', currentClientId)
+                    .eq('status', 'published')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
