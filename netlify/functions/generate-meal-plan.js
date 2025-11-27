@@ -1226,37 +1226,45 @@ function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
   const calVariance = Math.abs(calDiff) / mealTargets.calories;
 
   if (!skipAutoScale && calVariance > 0.10 && current.totals.calories > 0) {
-    const scaleFactor = mealTargets.calories / current.totals.calories;
+    let scaleFactor = mealTargets.calories / current.totals.calories;
 
-    // Only scale if factor is reasonable (between 0.5x and 2x)
-    if (scaleFactor >= 0.5 && scaleFactor <= 2.0) {
-      console.log(`⚖️ AUTO-SCALING portions by ${(scaleFactor * 100).toFixed(0)}% to match target calories`);
-
-      // Scale all ingredient portions
-      const scaledIngredients = scaleIngredientPortions(geminiMeal.ingredients, scaleFactor);
-
-      // Recalculate macros with scaled portions
-      const scaled = calculateMacrosFromIngredients(scaledIngredients);
-
-      console.log(`✅ Scaled totals: ${scaled.totals.calories}cal, ${scaled.totals.protein}P, ${scaled.totals.carbs}C, ${scaled.totals.fat}F`);
-      console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
-
-      // Return meal with scaled portions and recalculated macros
-      return {
-        type: geminiMeal.type || 'meal',
-        name: updateMealNamePortions(geminiMeal.name, scaleFactor),
-        ingredients: scaledIngredients,
-        calories: scaled.totals.calories,
-        protein: scaled.totals.protein,
-        carbs: scaled.totals.carbs,
-        fat: scaled.totals.fat,
-        instructions: geminiMeal.instructions,
-        breakdown: scaled.breakdown,
-        calculation_notes: `Auto-scaled by ${(scaleFactor * 100).toFixed(0)}% to match ${mealTargets.calories}cal target`
-      };
-    } else {
-      console.log(`⚠️ Scale factor ${scaleFactor.toFixed(2)}x outside safe range (0.5-2.0), skipping auto-scale`);
+    // Cap scale factor at boundaries instead of skipping entirely
+    // This ensures we at least get closer to target even if we can't hit it exactly
+    const originalScaleFactor = scaleFactor;
+    if (scaleFactor < 0.5) {
+      console.log(`⚠️ Scale factor ${scaleFactor.toFixed(2)}x too low, capping at 0.5x`);
+      scaleFactor = 0.5;
+    } else if (scaleFactor > 2.0) {
+      console.log(`⚠️ Scale factor ${scaleFactor.toFixed(2)}x too high, capping at 2.0x`);
+      scaleFactor = 2.0;
     }
+
+    console.log(`⚖️ AUTO-SCALING portions by ${(scaleFactor * 100).toFixed(0)}% to match target calories`);
+
+    // Scale all ingredient portions
+    const scaledIngredients = scaleIngredientPortions(geminiMeal.ingredients, scaleFactor);
+
+    // Recalculate macros with scaled portions
+    const scaled = calculateMacrosFromIngredients(scaledIngredients);
+
+    console.log(`✅ Scaled totals: ${scaled.totals.calories}cal, ${scaled.totals.protein}P, ${scaled.totals.carbs}C, ${scaled.totals.fat}F`);
+    console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+
+    // Return meal with scaled portions and recalculated macros
+    return {
+      type: geminiMeal.type || 'meal',
+      name: updateMealNamePortions(geminiMeal.name, scaleFactor),
+      ingredients: scaledIngredients,
+      calories: scaled.totals.calories,
+      protein: scaled.totals.protein,
+      carbs: scaled.totals.carbs,
+      fat: scaled.totals.fat,
+      instructions: geminiMeal.instructions,
+      breakdown: scaled.breakdown,
+      calculation_notes: originalScaleFactor !== scaleFactor
+        ? `Auto-scaled by ${(scaleFactor * 100).toFixed(0)}% (capped from ${(originalScaleFactor * 100).toFixed(0)}%) toward ${mealTargets.calories}cal target`
+        : `Auto-scaled by ${(scaleFactor * 100).toFixed(0)}% to match ${mealTargets.calories}cal target`
+    };
   } else {
     console.log(`✅ Calories within 10% of target, no scaling needed`);
   }
