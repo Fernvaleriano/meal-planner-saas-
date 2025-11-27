@@ -1140,13 +1140,13 @@
             </div>
         </div>
 
-        <!-- Weekly Check-in Section -->
+        <!-- Check-in Section -->
         <div class="checkin-section">
             <div class="checkin-header">
-                <h2 class="checkin-title">Weekly Check-in</h2>
+                <h2 class="checkin-title">Check-in</h2>
                 <div id="checkinStreak" class="checkin-streak" style="display: none;">
                     <span>🔥</span>
-                    <span id="streakCount">0</span> week streak
+                    <span id="streakCount">0</span> check-ins
                 </div>
             </div>
             <div id="checkinContainer">
@@ -2169,78 +2169,76 @@
                 document.getElementById('streakCount').textContent = stats.currentStreak;
             }
 
-            // Check if already submitted this week
-            const lastCheckin = clientCheckins[0];
-            const canSubmit = !lastCheckin || daysSinceCheckin(lastCheckin.checkin_date) >= 5;
+            // Clients can always submit check-ins (no time restriction)
+            let formHTML = `
+                <div class="checkin-form">
+                    <h4>How are things going?</h4>
 
-            let formHTML = '';
-            if (canSubmit) {
-                formHTML = `
-                    <div class="checkin-form">
-                        <h4>How's your week going?</h4>
-
-                        <div class="rating-group">
-                            <span class="rating-label">Energy Level</span>
-                            <div class="rating-buttons" data-rating="energy">
-                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('energy', ${n})">${n}</button>`).join('')}
-                            </div>
+                    <div class="rating-group">
+                        <span class="rating-label">Energy Level</span>
+                        <div class="rating-buttons" data-rating="energy">
+                            ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('energy', ${n})">${n}</button>`).join('')}
                         </div>
-
-                        <div class="rating-group">
-                            <span class="rating-label">Sleep Quality</span>
-                            <div class="rating-buttons" data-rating="sleep">
-                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('sleep', ${n})">${n}</button>`).join('')}
-                            </div>
-                        </div>
-
-                        <div class="rating-group">
-                            <span class="rating-label">Hunger Level (1=always hungry, 5=satisfied)</span>
-                            <div class="rating-buttons" data-rating="hunger">
-                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('hunger', ${n})">${n}</button>`).join('')}
-                            </div>
-                        </div>
-
-                        <div class="rating-group">
-                            <span class="rating-label">Stress Level (1=low, 5=high)</span>
-                            <div class="rating-buttons" data-rating="stress">
-                                ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('stress', ${n})">${n}</button>`).join('')}
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Meal Plan Adherence</label>
-                            <input type="range" id="adherenceSlider" class="adherence-slider" min="0" max="100" value="80" oninput="updateAdherence(this.value)">
-                            <div class="adherence-value"><span id="adherenceValue">80</span>%</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>What went well this week? (Wins)</label>
-                            <textarea id="checkinWins" placeholder="Share your victories, big or small..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>What was challenging?</label>
-                            <textarea id="checkinChallenges" placeholder="Any struggles or obstacles..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Questions for your coach?</label>
-                            <textarea id="checkinQuestions" placeholder="Anything you'd like to ask..."></textarea>
-                        </div>
-
-                        <button class="btn btn-primary" onclick="submitCheckin()" id="submitCheckinBtn" style="width: 100%;">Submit Check-in</button>
                     </div>
-                `;
-            } else {
-                const daysUntil = 7 - daysSinceCheckin(lastCheckin.checkin_date);
-                formHTML = `
-                    <div class="checkin-form" style="text-align: center; padding: 30px;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
-                        <h4 style="color: #38a169;">Check-in submitted!</h4>
-                        <p style="color: #718096;">Next check-in available in ${daysUntil > 0 ? daysUntil + ' days' : 'soon'}</p>
+
+                    <div class="rating-group">
+                        <span class="rating-label">Sleep Quality</span>
+                        <div class="rating-buttons" data-rating="sleep">
+                            ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('sleep', ${n})">${n}</button>`).join('')}
+                        </div>
                     </div>
-                `;
-            }
+
+                    <div class="rating-group">
+                        <span class="rating-label">Hunger Level (1=always hungry, 5=satisfied)</span>
+                        <div class="rating-buttons" data-rating="hunger">
+                            ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('hunger', ${n})">${n}</button>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="rating-group">
+                        <span class="rating-label">Stress Level (1=low, 5=high)</span>
+                        <div class="rating-buttons" data-rating="stress">
+                            ${[1,2,3,4,5].map(n => `<button type="button" class="rating-btn" onclick="setRating('stress', ${n})">${n}</button>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Meal Plan Adherence</label>
+                        <input type="range" id="adherenceSlider" class="adherence-slider" min="0" max="100" value="80" oninput="updateAdherence(this.value)">
+                        <div class="adherence-value"><span id="adherenceValue">80</span>%</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>What went well? (Wins)</label>
+                        <textarea id="checkinWins" placeholder="Share your victories, big or small..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>What was challenging?</label>
+                        <textarea id="checkinChallenges" placeholder="Any struggles or obstacles..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Questions for your coach?</label>
+                        <textarea id="checkinQuestions" placeholder="Anything you'd like to ask..."></textarea>
+                    </div>
+
+                    <!-- Diet Request Section -->
+                    <div class="form-group" style="background: linear-gradient(135deg, #f0fdfa 0%, #e6fffa 100%); padding: 16px; border-radius: 8px; border-left: 4px solid #0d9488; margin-top: 20px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;">
+                            <input type="checkbox" id="requestNewDiet" onchange="toggleDietRequestReason()" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-weight: 600; color: #0d9488;">Request a New Meal Plan</span>
+                        </label>
+                        <p style="font-size: 13px; color: #718096; margin-bottom: 10px;">Check this if you'd like your coach to create a new meal plan for you.</p>
+                        <div id="dietRequestReasonContainer" style="display: none;">
+                            <label style="font-size: 14px;">Why do you need a new plan? (optional)</label>
+                            <textarea id="dietRequestReason" placeholder="e.g., My goals have changed, I want more variety, current plan isn't working for me..." style="margin-top: 8px;"></textarea>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="submitCheckin()" id="submitCheckinBtn" style="width: 100%; margin-top: 20px;">Submit Check-in</button>
+                </div>
+            `;
 
             // Build history
             let historyHTML = '';
@@ -2249,11 +2247,13 @@
                     <div class="checkin-history">
                         <h4>Recent Check-ins</h4>
                         ${clientCheckins.map(c => `
-                            <div class="checkin-entry" id="checkin-${c.id}">
+                            <div class="checkin-entry" id="checkin-${c.id}" style="${c.request_new_diet ? 'border-left-color: #f59e0b;' : ''}">
                                 <div class="checkin-entry-header">
                                     <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString()}</span>
+                                    ${c.request_new_diet ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Diet Requested</span>' : ''}
                                     ${c.meal_plan_adherence !== null ? `<span class="checkin-adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
                                 </div>
+                                ${c.request_new_diet && c.diet_request_reason ? `<div class="checkin-notes" style="color: #92400e; background: #fef3c7; padding: 8px; border-radius: 4px; margin-bottom: 8px;">Diet request: ${c.diet_request_reason}</div>` : ''}
                                 <div class="checkin-ratings">
                                     ${c.energy_level ? `<span>Energy: ${c.energy_level}/5</span>` : ''}
                                     ${c.sleep_quality ? `<span>Sleep: ${c.sleep_quality}/5</span>` : ''}
@@ -2299,9 +2299,17 @@
             checkinFormData.mealPlanAdherence = parseInt(value);
         }
 
+        function toggleDietRequestReason() {
+            const checkbox = document.getElementById('requestNewDiet');
+            const reasonContainer = document.getElementById('dietRequestReasonContainer');
+            reasonContainer.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
         async function submitCheckin() {
             const btn = document.getElementById('submitCheckinBtn');
-            btn.textContent = 'Submitting...';
+            const requestNewDiet = document.getElementById('requestNewDiet')?.checked || false;
+
+            btn.textContent = requestNewDiet ? 'Sending Request...' : 'Submitting...';
             btn.disabled = true;
 
             try {
@@ -2318,13 +2326,21 @@
                         mealPlanAdherence: checkinFormData.mealPlanAdherence,
                         wins: document.getElementById('checkinWins').value || null,
                         challenges: document.getElementById('checkinChallenges').value || null,
-                        questions: document.getElementById('checkinQuestions').value || null
+                        questions: document.getElementById('checkinQuestions').value || null,
+                        requestNewDiet: requestNewDiet,
+                        dietRequestReason: document.getElementById('dietRequestReason')?.value || null
                     })
                 });
 
                 if (!response.ok) throw new Error('Failed to submit check-in');
 
                 console.log('Check-in submitted successfully');
+
+                // Show success message
+                if (requestNewDiet) {
+                    alert('Your check-in and diet request have been sent to your coach!');
+                }
+
                 await loadCheckins();
 
             } catch (error) {

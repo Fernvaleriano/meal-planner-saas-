@@ -52,7 +52,9 @@ exports.handler = async (event) => {
           meal_plan_adherence: body.mealPlanAdherence,
           wins: body.wins,
           challenges: body.challenges,
-          questions: body.questions
+          questions: body.questions,
+          request_new_diet: body.requestNewDiet || false,
+          diet_request_reason: body.dietRequestReason || null
         }])
         .select()
         .single();
@@ -67,22 +69,36 @@ exports.handler = async (event) => {
         .single();
 
       const clientName = client?.client_name || 'A client';
+      const hasDietRequest = body.requestNewDiet === true;
 
       // Create notification for coach
       console.log('Creating notification for coach:', {
         coachId: body.coachId,
         clientId: body.clientId,
         checkinId: checkinData?.id,
-        clientName
+        clientName,
+        hasDietRequest
       });
+
+      // Build notification message
+      let notificationTitle = 'New Check-in';
+      let notificationMessage = `${clientName} submitted a check-in`;
+
+      if (hasDietRequest) {
+        notificationTitle = 'New Diet Request';
+        notificationMessage = `${clientName} is requesting a new meal plan`;
+        if (body.dietRequestReason) {
+          notificationMessage += `: "${body.dietRequestReason}"`;
+        }
+      }
 
       const { data: notificationData, error: notificationError } = await supabase
         .from('notifications')
         .insert([{
           user_id: body.coachId,
-          type: 'checkin_submitted',
-          title: 'New Check-in',
-          message: `${clientName} submitted their weekly check-in`,
+          type: hasDietRequest ? 'diet_request' : 'checkin_submitted',
+          title: notificationTitle,
+          message: notificationMessage,
           related_checkin_id: checkinData?.id,
           related_client_id: body.clientId
         }])
