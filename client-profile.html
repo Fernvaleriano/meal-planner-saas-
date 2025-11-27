@@ -2503,6 +2503,22 @@
                 clientCheckins = data.checkins || [];
                 displayCheckins();
 
+                // Scroll to specific check-in if URL has a hash (e.g., #checkin-123)
+                if (window.location.hash && window.location.hash.startsWith('#checkin-')) {
+                    const checkinElement = document.querySelector(window.location.hash);
+                    if (checkinElement) {
+                        // Small delay to ensure DOM is fully rendered
+                        setTimeout(() => {
+                            checkinElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Add highlight effect
+                            checkinElement.style.boxShadow = '0 0 0 3px #3182ce';
+                            setTimeout(() => {
+                                checkinElement.style.boxShadow = '';
+                            }, 3000);
+                        }, 100);
+                    }
+                }
+
             } catch (error) {
                 console.error('Error loading check-ins:', error);
                 document.getElementById('checkinsContainer').innerHTML = `
@@ -2529,7 +2545,7 @@
                 const needsResponse = !c.coach_feedback && !c.coach_responded_at;
 
                 return `
-                    <div class="checkin-card ${needsResponse ? 'needs-response' : ''}">
+                    <div class="checkin-card ${needsResponse ? 'needs-response' : ''}" id="checkin-${c.id}">
                         <div class="checkin-card-header">
                             <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                             <div>

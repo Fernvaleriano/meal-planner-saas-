@@ -716,7 +716,7 @@
 
                 if (data.notifications && data.notifications.length > 0) {
                     notificationList.innerHTML = data.notifications.map(n => `
-                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}">
+                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
                             <div class="notification-title">${n.title}</div>
                             <div class="notification-message">${n.message}</div>
                             <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
@@ -728,6 +728,8 @@
                         item.addEventListener('click', async () => {
                             const notifId = item.dataset.id;
                             const clientId = item.dataset.clientId;
+                            const notifType = item.dataset.type;
+                            const checkinId = item.dataset.checkinId;
 
                             // Mark as read
                             await fetch('/.netlify/functions/notifications', {
@@ -736,9 +738,12 @@
                                 body: JSON.stringify({ notificationIds: [parseInt(notifId)] })
                             });
 
-                            // Navigate to client if applicable
-                            if (clientId) {
-                                window.location.href = `manage-clients.html?client=${clientId}`;
+                            // Navigate based on notification type
+                            if (notifType === 'checkin_submitted' && clientId && checkinId) {
+                                // Navigate directly to the check-in on client profile
+                                window.location.href = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
+                            } else if (clientId) {
+                                window.location.href = `client-profile.html?clientId=${clientId}`;
                             } else {
                                 item.classList.remove('unread');
                                 loadNotifications(currentUserId);
