@@ -1020,6 +1020,7 @@
         const USDA_SEARCH_ENDPOINT = '/.netlify/functions/usda-search';
         let selectedIngredients = [];
         let usdaSearchTimeout = null;
+        let usdaSearchResults = []; // Store search results for safe onclick handling
 
         // Simple notification function
         function showNotification(message, type = 'info') {
@@ -1715,6 +1716,7 @@
             if (query.trim().length < 2) {
                 resultsDiv.classList.remove('active');
                 resultsDiv.innerHTML = '';
+                usdaSearchResults = [];
                 return;
             }
 
@@ -1733,8 +1735,11 @@
                     }
 
                     if (data.foods && data.foods.length > 0) {
-                        resultsDiv.innerHTML = data.foods.map(food => `
-                            <div class="usda-search-item" onclick='addIngredientFromUsda(${JSON.stringify(food).replace(/'/g, "&#39;")})'>
+                        // Store results for safe onclick handling
+                        usdaSearchResults = data.foods;
+
+                        resultsDiv.innerHTML = data.foods.map((food, index) => `
+                            <div class="usda-search-item" onclick="selectUsdaFood(${index})">
                                 <div class="usda-food-name">${escapeHtml(food.name)}</div>
                                 <div class="usda-food-macros">
                                     Per 100g: ${food.caloriesPer100g} cal | ${food.proteinPer100g}g protein | ${food.carbsPer100g}g carbs | ${food.fatPer100g}g fat
@@ -1742,10 +1747,12 @@
                             </div>
                         `).join('');
                     } else {
+                        usdaSearchResults = [];
                         resultsDiv.innerHTML = '<div class="usda-search-empty">No foods found. Try a different search term.</div>';
                     }
                 } catch (error) {
                     console.error('USDA search error:', error);
+                    usdaSearchResults = [];
                     resultsDiv.innerHTML = '<div class="usda-search-empty">Search failed. Please try again.</div>';
                 }
             }, 300);
@@ -1757,7 +1764,18 @@
             return div.innerHTML;
         }
 
+        function selectUsdaFood(index) {
+            const food = usdaSearchResults[index];
+            if (!food) {
+                console.error('Food not found at index:', index);
+                return;
+            }
+            addIngredientFromUsda(food);
+        }
+
         function addIngredientFromUsda(food) {
+            console.log('Adding ingredient:', food); // Debug log
+
             // Add ingredient with default 100g quantity
             selectedIngredients.push({
                 fdcId: food.fdcId,
