@@ -2043,6 +2043,16 @@ async function getAIRecipe(mealName) {
 async function changeMeal(dayIndex, mealIndex) {
     const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
 
+    // IMPORTANT: Calculate CONSISTENT per-meal targets from daily nutrition
+    // This prevents calorie drift after multiple exchanges
+    const mealsPerDay = lastPlanQuery.currentPlan[dayIndex].plan.length || 3;
+    const targetCalories = Math.round((lastPlanQuery.calories || 2000) / mealsPerDay);
+    const targetProtein = Math.round((lastPlanQuery.protein || 150) / mealsPerDay);
+    const targetCarbs = Math.round((lastPlanQuery.carbs || 200) / mealsPerDay);
+    const targetFat = Math.round((lastPlanQuery.fat || 70) / mealsPerDay);
+
+    console.log(`🎯 Exchange targets (from daily ${lastPlanQuery.calories}cal / ${mealsPerDay} meals): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
+
     // Show loading
     displayDietPlan(lastPlanQuery.currentPlan);
     const mealCards = document.querySelectorAll('.meal-card');
@@ -2066,10 +2076,10 @@ Budget: ${lastPlanQuery.budget}
 Available Equipment: ${lastPlanQuery.equipmentStr}
 
 STRICT TARGET MACROS - the new meal MUST closely match:
-- Calories: ${meal.calories} (stay within ±50 calories)
-- Protein: ${meal.protein}g (stay within ±5g)
-- Carbs: ${meal.carbs}g (stay within ±10g)
-- Fat: ${meal.fat}g (stay within ±5g)
+- Calories: ${targetCalories} (stay within ±50 calories)
+- Protein: ${targetProtein}g (stay within ±5g)
+- Carbs: ${targetCarbs}g (stay within ±10g)
+- Fat: ${targetFat}g (stay within ±5g)
 
 Use ONLY foods from USDA database - you can choose from 200+ foods including:
 Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Shrimp, Tofu, Greek Yogurt
@@ -2089,12 +2099,12 @@ EXAMPLE FORMAT:
 
 Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
-    // Call backend with targets so it calculates accurate macros
+    // Call backend with CONSISTENT targets (not current meal's drifted values)
     const mealTargets = {
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat
+        calories: targetCalories,
+        protein: targetProtein,
+        carbs: targetCarbs,
+        fat: targetFat
     };
 
     const newMeal = await callGemini(aiPrompt, true, mealTargets, null, 1);
