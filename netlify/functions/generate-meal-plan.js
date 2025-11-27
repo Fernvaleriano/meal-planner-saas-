@@ -1036,6 +1036,35 @@ function calculateMacrosFromIngredients(ingredients) {
 }
 
 /**
+ * Scale ingredient portions by a factor
+ * e.g., "Chicken Breast (200g)" with factor 1.25 becomes "Chicken Breast (250g)"
+ */
+function scaleIngredientPortions(ingredients, scaleFactor) {
+  return ingredients.map(ing => {
+    if (typeof ing !== 'string') return ing;
+
+    // Match patterns like (200g), (1 cup), (2 large), (1 tbsp), etc.
+    return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?\)/gi, (match, num, unit) => {
+      const scaledNum = Math.round(parseFloat(num) * scaleFactor);
+      return unit ? `(${scaledNum}${unit})` : `(${scaledNum})`;
+    });
+  });
+}
+
+/**
+ * Update portion sizes in meal name to reflect scaling
+ * e.g., "Chicken Breast (200g) with Rice (150g)" becomes "Chicken Breast (250g) with Rice (188g)"
+ */
+function updateMealNamePortions(mealName, scaleFactor) {
+  if (!mealName) return mealName;
+
+  return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?\)/gi, (match, num, unit) => {
+    const scaledNum = Math.round(parseFloat(num) * scaleFactor);
+    return unit ? `(${scaledNum}${unit})` : `(${scaledNum})`;
+  });
+}
+
+/**
  * Optimize meal portions to hit target macros using deterministic algorithm
  * NO LLM - Pure math optimization
  */
@@ -1072,11 +1101,44 @@ function optimizeMealMacros(geminiMeal, mealTargets) {
 
   console.log(`📈 Adjustments needed: ${calDiff}cal, ${proteinDiff}P, ${carbsDiff}C, ${fatDiff}F`);
 
-  // Step 3: DISABLED - Gemini with database should get close enough
-  // Just calculate macros from what Gemini provided, don't adjust portions
-  // The optimizer was too aggressive and caused macro explosions
-  console.log('⚠️ Portion optimization DISABLED - using Gemini portions as-is');
-  console.log('   (Gemini has USDA database, should choose appropriate portions)');
+  // Step 3: AUTO-SCALE portions if calories are off by more than 10%
+  const calVariance = Math.abs(calDiff) / mealTargets.calories;
+
+  if (calVariance > 0.10 && current.totals.calories > 0) {
+    const scaleFactor = mealTargets.calories / current.totals.calories;
+
+    // Only scale if factor is reasonable (between 0.5x and 2x)
+    if (scaleFactor >= 0.5 && scaleFactor <= 2.0) {
+      console.log(`⚖️ AUTO-SCALING portions by ${(scaleFactor * 100).toFixed(0)}% to match target calories`);
+
+      // Scale all ingredient portions
+      const scaledIngredients = scaleIngredientPortions(geminiMeal.ingredients, scaleFactor);
+
+      // Recalculate macros with scaled portions
+      const scaled = calculateMacrosFromIngredients(scaledIngredients);
+
+      console.log(`✅ Scaled totals: ${scaled.totals.calories}cal, ${scaled.totals.protein}P, ${scaled.totals.carbs}C, ${scaled.totals.fat}F`);
+      console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+
+      // Return meal with scaled portions and recalculated macros
+      return {
+        type: geminiMeal.type || 'meal',
+        name: updateMealNamePortions(geminiMeal.name, scaleFactor),
+        ingredients: scaledIngredients,
+        calories: scaled.totals.calories,
+        protein: scaled.totals.protein,
+        carbs: scaled.totals.carbs,
+        fat: scaled.totals.fat,
+        instructions: geminiMeal.instructions,
+        breakdown: scaled.breakdown,
+        calculation_notes: `Auto-scaled by ${(scaleFactor * 100).toFixed(0)}% to match ${mealTargets.calories}cal target`
+      };
+    } else {
+      console.log(`⚠️ Scale factor ${scaleFactor.toFixed(2)}x outside safe range (0.5-2.0), skipping auto-scale`);
+    }
+  } else {
+    console.log(`✅ Calories within 10% of target, no scaling needed`);
+  }
 
   const optimized = current; // Use current calculated macros without adjustment
 
