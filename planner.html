@@ -357,6 +357,7 @@ let lastPlanQuery = {};
 let currentShareUrl = '';
 let currentCoach = null;
 let clientsList = [];
+let previousMealStates = {}; // Store previous meal states for undo functionality
 
 // Load clients from database
 async function loadClients() {
@@ -1590,6 +1591,13 @@ function displayDietPlan(multiDayData) {
                     <p class="text-xs text-gray-500 italic">${meal.instructions || 'Mix with water or milk as directed.'}</p>
                 </div>`;
             } else {
+                // Check if there's a previous state for undo
+                const undoStateKey = `${dayIndex}-${mealIndex}`;
+                const hasUndoState = previousMealStates[undoStateKey] !== undefined;
+                const undoButton = hasUndoState
+                    ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs" style="background: #dc2626; color: white;" title="Undo last change">↩️ Undo</button>`
+                    : '';
+
                 planHTML += `
                 <div class="meal-card">
                     <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
@@ -1604,6 +1612,7 @@ function displayDietPlan(multiDayData) {
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                         <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
+                        ${undoButton}
                     </div>
                     <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -2043,6 +2052,11 @@ async function getAIRecipe(mealName) {
 async function changeMeal(dayIndex, mealIndex) {
     const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
 
+    // Save current meal state for undo functionality
+    const stateKey = `${dayIndex}-${mealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
+    console.log(`💾 Saved previous state for undo (change):`, previousMealStates[stateKey]);
+
     // IMPORTANT: Calculate CONSISTENT per-meal targets from daily nutrition
     // This prevents calorie drift after multiple exchanges
     const mealsPerDay = lastPlanQuery.currentPlan[dayIndex].plan.length || 3;
@@ -2130,9 +2144,14 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 // REVISE MEAL - Custom user modifications
 async function reviseMeal(dayIndex, mealIndex) {
     const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
-    const userRequest = window.prompt(`Revise "${meal.name}"?\n\nEnter your specific request (e.g., "make it vegetarian", "swap rice for sweet potato", "add more protein"):`, '');
+    const userRequest = window.prompt(`Revise "${meal.name}"?\n\nEnter your specific request (e.g., "make it vegetarian", "swap rice for sweet potato", "just protein shake with creatine"):`, '');
 
     if (!userRequest || !userRequest.trim()) return;
+
+    // Save current meal state for undo functionality
+    const stateKey = `${dayIndex}-${mealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
+    console.log(`💾 Saved previous state for undo (revise):`, previousMealStates[stateKey]);
 
     // Show loading
     displayDietPlan(lastPlanQuery.currentPlan);
@@ -2172,6 +2191,12 @@ REVISION RULES - Follow these carefully:
 
 4. ADD NEW INGREDIENT: If user says "add chicken" to a meal that has none,
    ADD it on top - the meal will be bigger. Don't reduce other ingredients.
+
+5. COMPLETE REPLACEMENT: If user specifies an entirely new meal or uses words like
+   "just", "only", "make it", "change to", or "replace with", use ONLY the ingredients
+   they specify. Do NOT add extra ingredients to match the original meal's calories.
+   The new calorie total will be whatever the specified ingredients naturally add up to.
+   Example: "just a protein shake with creatine" = ONLY protein powder + creatine, nothing else.
 
 Diet: ${lastPlanQuery.preference}
 Macro Preference: ${lastPlanQuery.macroPreference}
@@ -2223,6 +2248,31 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
         alert('Error revising meal: ' + revisedMeal.error);
         displayDietPlan(lastPlanQuery.currentPlan);
     }
+}
+
+// UNDO MEAL - Restore previous meal state
+function undoMeal(dayIndex, mealIndex) {
+    const stateKey = `${dayIndex}-${mealIndex}`;
+    const previousState = previousMealStates[stateKey];
+
+    if (!previousState) {
+        alert('No previous state to undo');
+        return;
+    }
+
+    console.log(`↩️ Undoing meal change for ${stateKey}:`, previousState);
+
+    // Restore the previous meal state
+    lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = JSON.parse(JSON.stringify(previousState));
+
+    // Remove the undo state (can only undo once)
+    delete previousMealStates[stateKey];
+
+    // Re-render the plan
+    displayDietPlan(lastPlanQuery.currentPlan);
+
+    // Show success message
+    alert('Undo successful! Meal restored to previous state.');
 }
 
 // REGENERATE ENTIRE DAY - Generate all new meals for a specific day
@@ -3393,6 +3443,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             reviseMeal(dayIndex, mealIndex);
+        },
+        'undo-meal': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            undoMeal(dayIndex, mealIndex);
         },
         'regenerate-day': () => {
             const target = event.target.closest('[data-day-index]');

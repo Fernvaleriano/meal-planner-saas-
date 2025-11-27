@@ -1405,7 +1405,7 @@
             let actionButtons = `
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
-                <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
+                <button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>
                 ${undoButton}
             `;
 
@@ -1439,21 +1439,8 @@
                     ${meal.instructions}
                 </div>
                 ${notesSection}
-                <div id="revise-${index}" class="revise-section" style="display:none;">
-                    <input type="text" id="revise-input-${index}" class="revise-input" placeholder="What would you like to change? e.g., make it vegetarian">
-                    <button class="btn btn-revise" onclick="submitRevision(${changeParam})">Apply Changes</button>
-                </div>
             `;
             return card;
-        }
-
-        function toggleRevise(index, dayIndex = null, mealIndex = null) {
-            const reviseSection = document.getElementById(`revise-${index}`);
-            if (reviseSection.style.display === 'none') {
-                reviseSection.style.display = 'block';
-            } else {
-                reviseSection.style.display = 'none';
-            }
         }
 
         async function undoRevision(index, dayIndex = null, mealIndex = null) {
@@ -1577,15 +1564,7 @@
             }
         }
 
-        async function submitRevision(index, dayIndex = null, mealIndex = null) {
-            const input = document.getElementById(`revise-input-${index}`);
-            const revisionText = input.value.trim();
-
-            if (!revisionText) {
-                alert('Please enter what you want to change');
-                return;
-            }
-
+        async function reviseMeal(index, dayIndex = null, mealIndex = null) {
             // Get the meal based on plan structure
             let meal;
             if (dayIndex !== null && mealIndex !== null) {
@@ -1595,6 +1574,17 @@
                 // Single-day plan
                 meal = currentPlan.meals[index];
             }
+
+            // Use window.prompt() like planner.html does
+            const revisionText = window.prompt(
+                `Revise "${meal.name}"?\n\nEnter your specific request (e.g., "make it vegetarian", "swap rice for sweet potato", "just protein shake with creatine"):`,
+                ''
+            );
+
+            if (!revisionText || !revisionText.trim()) {
+                return; // User cancelled or entered empty string
+            }
+
             const mealCard = document.getElementById(`meal-${index}`);
 
             // Save current meal state for undo functionality
@@ -1787,6 +1777,11 @@ Return ONLY valid JSON (NO markdown, NO backticks):
             console.log(`🚫 Meals to avoid (${allMealNames.length}):`, allMealNames);
 
             const mealCard = document.getElementById(`meal-${index}`);
+
+            // Save current meal state for undo functionality
+            const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
+            previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
+            console.log(`💾 Saved previous state for undo (change):`, previousMealStates[stateKey]);
 
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Generating new meal...</p>';
 
