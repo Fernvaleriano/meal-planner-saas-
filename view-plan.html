@@ -1305,6 +1305,7 @@
 
                     // Day totals section
                     const dayTotalsDiv = document.createElement('div');
+                    dayTotalsDiv.id = `day-totals-${dayIndex}`;
                     dayTotalsDiv.style.cssText = 'background: #f8f9ff; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e0e7ff;';
                     dayTotalsDiv.innerHTML = `
                         <p style="font-size: 0.85em; font-weight: 600; color: #666; margin-bottom: 10px;">Day ${dayData.day} Totals:</p>
@@ -1452,6 +1453,93 @@
                 ${notesSection}
             `;
             return card;
+        }
+
+        // Update day totals after meal changes (undo, revise, change, custom)
+        function updateDayTotals(dayIndex) {
+            if (!currentPlan.multiDay || !currentPlan.days || !currentPlan.days[dayIndex]) {
+                console.log('⚠️ updateDayTotals: Not a multi-day plan or invalid dayIndex');
+                return;
+            }
+
+            const dayData = currentPlan.days[dayIndex];
+            const dayTotalsDiv = document.getElementById(`day-totals-${dayIndex}`);
+
+            if (!dayTotalsDiv) {
+                console.log('⚠️ updateDayTotals: Could not find day-totals div for day', dayIndex);
+                return;
+            }
+
+            // Recalculate totals from meals
+            let dayTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+            if (dayData.plan && Array.isArray(dayData.plan)) {
+                dayData.plan.forEach(meal => {
+                    dayTotals.calories += parseInt(meal.calories) || 0;
+                    dayTotals.protein += parseInt(meal.protein) || 0;
+                    dayTotals.carbs += parseInt(meal.carbs) || 0;
+                    dayTotals.fat += parseInt(meal.fat) || 0;
+                });
+            }
+
+            // Get targets (use day targets if available, otherwise use plan nutrition)
+            const nutrition = currentPlan.nutrition || {};
+            const targets = dayData.targets || nutrition;
+
+            // Calculate variance
+            const dayVariance = {
+                calories: targets.calories ? ((dayTotals.calories - targets.calories) / targets.calories * 100) : 0,
+                protein: targets.protein ? ((dayTotals.protein - targets.protein) / targets.protein * 100) : 0,
+                carbs: targets.carbs ? ((dayTotals.carbs - targets.carbs) / targets.carbs * 100) : 0,
+                fat: targets.fat ? ((dayTotals.fat - targets.fat) / targets.fat * 100) : 0
+            };
+
+            // Helper functions for display
+            const getVarianceColor = (variancePercent) => {
+                const abs = Math.abs(variancePercent);
+                if (abs <= 10) return '#16a34a'; // green - within ±10%
+                if (abs <= 20) return '#ca8a04'; // yellow - within ±20%
+                return '#dc2626'; // red - over ±20%
+            };
+
+            const formatVariance = (actual, target, variancePercent) => {
+                const diff = actual - target;
+                const sign = diff >= 0 ? '+' : '';
+                return `${sign}${diff} (${sign}${variancePercent.toFixed(1)}%)`;
+            };
+
+            // Update the day totals div
+            dayTotalsDiv.innerHTML = `
+                <p style="font-size: 0.85em; font-weight: 600; color: #666; margin-bottom: 10px;">Day ${dayData.day} Totals:</p>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center;">
+                    <div>
+                        <p style="font-size: 0.75em; color: #888;">Calories</p>
+                        <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.calories)}">${dayTotals.calories}</span>
+                        <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.calories)}">${formatVariance(dayTotals.calories, targets.calories, dayVariance.calories)}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.75em; color: #888;">Protein</p>
+                        <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.protein)}">${dayTotals.protein}g</span>
+                        <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.75em; color: #888;">Carbs</p>
+                        <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.carbs)}">${dayTotals.carbs}g</span>
+                        <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.75em; color: #888;">Fat</p>
+                        <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
+                        <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; text-align: center; font-size: 0.7em; color: #888;">
+                    <span style="color: #16a34a;">●</span> Within ±10% |
+                    <span style="color: #ca8a04;">●</span> Within ±20% |
+                    <span style="color: #dc2626;">●</span> Over ±20%
+                </div>
+            `;
+
+            console.log(`✅ Updated day ${dayIndex} totals:`, dayTotals);
         }
 
         async function undoRevision(index, dayIndex = null, mealIndex = null) {
