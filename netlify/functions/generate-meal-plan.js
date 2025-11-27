@@ -1152,6 +1152,104 @@ function parseAmount(amountStr, foodData) {
 }
 
 /**
+ * Estimate macros for ingredients that don't match the database
+ * This prevents underreporting which causes over-scaling
+ * Uses conservative estimates based on ingredient type and amount
+ */
+function estimateUnmatchedIngredient(ingredientString, amountStr) {
+  const lowerIng = ingredientString.toLowerCase();
+  const lowerAmt = (amountStr || '').toLowerCase();
+
+  // Extract numeric amount if present
+  let quantity = 1;
+  const numMatch = lowerAmt.match(/(\d+(?:\.\d+)?)/);
+  if (numMatch) {
+    quantity = parseFloat(numMatch[1]);
+  }
+
+  // Determine ingredient category and estimate per-unit values
+  let baseCalories = 50;  // Default per serving
+  let baseProtein = 2;
+  let baseCarbs = 5;
+  let baseFat = 2;
+
+  // HIGH CALORIE: Oils, sauces, dressings, cheese, nuts
+  if (lowerIng.includes('oil') || lowerIng.includes('butter') || lowerIng.includes('ghee')) {
+    baseCalories = 120; baseProtein = 0; baseCarbs = 0; baseFat = 14; // per tbsp
+    if (lowerAmt.includes('tbsp') || lowerAmt.includes('tablespoon')) quantity *= 1;
+    else if (lowerAmt.includes('tsp') || lowerAmt.includes('teaspoon')) quantity *= 0.33;
+  } else if (lowerIng.includes('cheese')) {
+    baseCalories = 110; baseProtein = 7; baseCarbs = 1; baseFat = 9; // per oz
+    if (lowerAmt.includes('g')) quantity = quantity / 28;
+  } else if (lowerIng.includes('sauce') || lowerIng.includes('dressing') || lowerIng.includes('mayo')) {
+    baseCalories = 80; baseProtein = 0; baseCarbs = 3; baseFat = 7; // per tbsp
+  } else if (lowerIng.includes('nut') || lowerIng.includes('almond') || lowerIng.includes('walnut') || lowerIng.includes('cashew') || lowerIng.includes('peanut')) {
+    baseCalories = 170; baseProtein = 6; baseCarbs = 6; baseFat = 15; // per oz
+    if (lowerAmt.includes('g')) quantity = quantity / 28;
+  }
+  // PROTEIN SOURCES
+  else if (lowerIng.includes('meat') || lowerIng.includes('beef') || lowerIng.includes('steak') || lowerIng.includes('pork') || lowerIng.includes('lamb')) {
+    baseCalories = 75; baseProtein = 8; baseCarbs = 0; baseFat = 4; // per oz
+    if (lowerAmt.includes('g')) quantity = quantity / 28;
+    else if (lowerAmt.includes('oz')) quantity *= 1;
+  } else if (lowerIng.includes('chicken') || lowerIng.includes('turkey') || lowerIng.includes('poultry')) {
+    baseCalories = 50; baseProtein = 9; baseCarbs = 0; baseFat = 1; // per oz
+    if (lowerAmt.includes('g')) quantity = quantity / 28;
+  } else if (lowerIng.includes('fish') || lowerIng.includes('salmon') || lowerIng.includes('tuna') || lowerIng.includes('shrimp') || lowerIng.includes('seafood')) {
+    baseCalories = 40; baseProtein = 7; baseCarbs = 0; baseFat = 1; // per oz
+    if (lowerAmt.includes('g')) quantity = quantity / 28;
+  } else if (lowerIng.includes('egg')) {
+    baseCalories = 70; baseProtein = 6; baseCarbs = 0; baseFat = 5; // per egg
+  } else if (lowerIng.includes('tofu') || lowerIng.includes('tempeh')) {
+    baseCalories = 80; baseProtein = 8; baseCarbs = 2; baseFat = 4; // per 100g
+    if (lowerAmt.includes('g')) quantity = quantity / 100;
+  }
+  // CARB SOURCES
+  else if (lowerIng.includes('rice') || lowerIng.includes('pasta') || lowerIng.includes('noodle') || lowerIng.includes('grain')) {
+    baseCalories = 200; baseProtein = 4; baseCarbs = 42; baseFat = 1; // per cup cooked
+    if (lowerAmt.includes('g')) quantity = quantity / 150;
+  } else if (lowerIng.includes('bread') || lowerIng.includes('tortilla') || lowerIng.includes('wrap')) {
+    baseCalories = 80; baseProtein = 3; baseCarbs = 15; baseFat = 1; // per slice/piece
+  } else if (lowerIng.includes('potato') || lowerIng.includes('sweet potato')) {
+    baseCalories = 100; baseProtein = 2; baseCarbs = 23; baseFat = 0; // per medium
+    if (lowerAmt.includes('g')) quantity = quantity / 150;
+  }
+  // VEGETABLES (low calorie)
+  else if (lowerIng.includes('vegetable') || lowerIng.includes('broccoli') || lowerIng.includes('spinach') ||
+           lowerIng.includes('lettuce') || lowerIng.includes('kale') || lowerIng.includes('pepper') ||
+           lowerIng.includes('onion') || lowerIng.includes('tomato') || lowerIng.includes('cucumber') ||
+           lowerIng.includes('zucchini') || lowerIng.includes('mushroom') || lowerIng.includes('carrot')) {
+    baseCalories = 25; baseProtein = 1; baseCarbs = 5; baseFat = 0; // per cup
+    if (lowerAmt.includes('g')) quantity = quantity / 100;
+  }
+  // FRUITS
+  else if (lowerIng.includes('fruit') || lowerIng.includes('apple') || lowerIng.includes('banana') ||
+           lowerIng.includes('berry') || lowerIng.includes('orange') || lowerIng.includes('grape')) {
+    baseCalories = 60; baseProtein = 1; baseCarbs = 15; baseFat = 0; // per serving
+    if (lowerAmt.includes('g')) quantity = quantity / 100;
+  }
+  // DAIRY
+  else if (lowerIng.includes('milk') || lowerIng.includes('yogurt') || lowerIng.includes('cream')) {
+    baseCalories = 100; baseProtein = 8; baseCarbs = 12; baseFat = 2; // per cup (assuming low-fat)
+    if (lowerAmt.includes('g') || lowerAmt.includes('ml')) quantity = quantity / 240;
+  }
+  // SEASONINGS/SPICES (negligible)
+  else if (lowerIng.includes('salt') || lowerIng.includes('pepper') || lowerIng.includes('spice') ||
+           lowerIng.includes('herb') || lowerIng.includes('garlic') || lowerIng.includes('ginger') ||
+           lowerIng.includes('seasoning')) {
+    baseCalories = 5; baseProtein = 0; baseCarbs = 1; baseFat = 0;
+  }
+
+  // Apply quantity multiplier
+  return {
+    calories: Math.round(baseCalories * quantity),
+    protein: Math.round(baseProtein * quantity),
+    carbs: Math.round(baseCarbs * quantity),
+    fat: Math.round(baseFat * quantity)
+  };
+}
+
+/**
  * Calculate exact macros from ingredients using deterministic math
  * NO AI GUESSING - Pure JavaScript calculation
  * Supports both string-based ("Chicken Breast (200g)") and structured ({food: "chicken_breast", amount: "200g"}) formats
@@ -1171,7 +1269,24 @@ function calculateMacrosFromIngredients(ingredients) {
       const matched = matchFoodToDatabase(parsed.name, parsed.amount);
 
       if (!matched) {
-        console.warn(`⚠️ Could not match ingredient "${ing}" to database - skipping`);
+        // IMPROVED: Estimate calories for unmatched ingredients instead of skipping
+        // This prevents underreporting which causes over-scaling
+        const estimated = estimateUnmatchedIngredient(ing, parsed.amount);
+        console.warn(`⚠️ Could not match "${ing}" - using estimate: ${estimated.calories}cal`);
+
+        totals.calories += estimated.calories;
+        totals.protein += estimated.protein;
+        totals.carbs += estimated.carbs;
+        totals.fat += estimated.fat;
+
+        breakdown.push({
+          food: parsed.name,
+          amount: parsed.amount,
+          original: originalString,
+          multiplier: 'estimated',
+          macros: estimated,
+          estimated: true
+        });
         continue;
       }
 
@@ -1190,7 +1305,23 @@ function calculateMacrosFromIngredients(ingredients) {
     const foodData = FOOD_DATABASE[foodKey];
 
     if (!foodData) {
-      console.warn(`⚠️ Food not in database: ${foodKey}`);
+      // IMPROVED: Estimate for foods not in database
+      const estimated = estimateUnmatchedIngredient(originalString, amount);
+      console.warn(`⚠️ Food "${foodKey}" not in database - using estimate: ${estimated.calories}cal`);
+
+      totals.calories += estimated.calories;
+      totals.protein += estimated.protein;
+      totals.carbs += estimated.carbs;
+      totals.fat += estimated.fat;
+
+      breakdown.push({
+        food: foodKey,
+        amount: amount,
+        original: originalString,
+        multiplier: 'estimated',
+        macros: estimated,
+        estimated: true
+      });
       continue;
     }
 
