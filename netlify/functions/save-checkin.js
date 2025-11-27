@@ -69,7 +69,7 @@ exports.handler = async (event) => {
       const clientName = client?.client_name || 'A client';
 
       // Create notification for coach
-      await supabase
+      const { error: notificationError } = await supabase
         .from('notifications')
         .insert([{
           user_id: body.coachId,
@@ -79,6 +79,17 @@ exports.handler = async (event) => {
           related_checkin_id: checkinData?.id,
           related_client_id: body.clientId
         }]);
+
+      if (notificationError) {
+        console.error('Failed to create notification for coach:', notificationError);
+        // Don't fail the check-in if notification fails
+        // Log the details for debugging
+        if (notificationError.code === '42P01') {
+          console.error('Notifications table does not exist. Please run the notifications migration in Supabase.');
+        }
+      } else {
+        console.log('Notification created for coach:', body.coachId);
+      }
 
       return {
         statusCode: 200,

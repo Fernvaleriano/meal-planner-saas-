@@ -47,7 +47,22 @@ exports.handler = async (event) => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        // Check if table doesn't exist
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              notifications: [],
+              unreadCount: 0,
+              warning: 'Notifications table not yet created. Please run the notifications migration.'
+            })
+          };
+        }
+        throw error;
+      }
 
       // Count unread
       let countQuery = supabase
@@ -61,7 +76,11 @@ exports.handler = async (event) => {
         countQuery = countQuery.eq('client_id', clientId);
       }
 
-      const { count } = await countQuery;
+      const { count, error: countError } = await countQuery;
+
+      if (countError) {
+        console.error('Error counting unread notifications:', countError);
+      }
 
       return {
         statusCode: 200,

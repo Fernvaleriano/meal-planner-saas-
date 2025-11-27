@@ -54,7 +54,7 @@ exports.handler = async (event) => {
 
     // Create notification for client
     if (checkin?.client_id) {
-      await supabase
+      const { error: notificationError } = await supabase
         .from('notifications')
         .insert([{
           client_id: checkin.client_id,
@@ -64,6 +64,17 @@ exports.handler = async (event) => {
           related_checkin_id: checkinId,
           related_client_id: checkin.client_id
         }]);
+
+      if (notificationError) {
+        console.error('Failed to create notification for client:', notificationError);
+        // Don't fail the response if notification fails
+        // Log the details for debugging
+        if (notificationError.code === '42P01') {
+          console.error('Notifications table does not exist. Please run the notifications migration in Supabase.');
+        }
+      } else {
+        console.log('Notification created for client:', checkin.client_id);
+      }
     }
 
     return {
