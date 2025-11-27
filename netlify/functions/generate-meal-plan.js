@@ -7,6 +7,10 @@ const AnthropicModule = require('@anthropic-ai/sdk');
 const Anthropic = AnthropicModule.default || AnthropicModule;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// Spoonacular API for accurate nutrition data
+const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
+const SPOONACULAR_API_URL = 'https://api.spoonacular.com';
+
 // USDA-verified food database for Claude corrections - Comprehensive Fitness Database
 const FOOD_DATABASE = {
   // ===== PROTEINS - POULTRY =====
@@ -1250,7 +1254,123 @@ function estimateUnmatchedIngredient(ingredientString, amountStr) {
 }
 
 /**
- * Calculate exact macros from ingredients using deterministic math
+ * Call Spoonacular API to parse ingredients and get accurate nutrition data
+ * Uses their natural language parsing which handles "6oz chicken breast" etc.
+ * @param {string[]} ingredients - Array of ingredient strings
+ * @returns {Promise<{totals: object, breakdown: array}|null>} - Nutrition data or null if API fails
+ */
+async function getSpoonacularNutrition(ingredients) {
+  if (!SPOONACULAR_API_KEY) {
+    console.log('⚠️ Spoonacular API key not configured, skipping');
+    return null;
+  }
+
+  try {
+    // Join ingredients into newline-separated string for the API
+    const ingredientList = ingredients
+      .filter(ing => typeof ing === 'string')
+      .join('\n');
+
+    if (!ingredientList) {
+      console.log('⚠️ No string ingredients to parse');
+      return null;
+    }
+
+    console.log('🥄 Calling Spoonacular API for nutrition data...');
+
+    const response = await fetch(`${SPOONACULAR_API_URL}/recipes/parseIngredients?apiKey=${SPOONACULAR_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `ingredientList=${encodeURIComponent(ingredientList)}&servings=1&includeNutrition=true`
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Spoonacular API error (${response.status}):`, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log(`✅ Spoonacular returned data for ${data.length} ingredients`);
+
+    // Process the response and calculate totals
+    let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    const breakdown = [];
+
+    for (const item of data) {
+      const nutrition = item.nutrition;
+      if (!nutrition || !nutrition.nutrients) {
+        console.warn(`⚠️ No nutrition data for: ${item.original}`);
+        continue;
+      }
+
+      // Extract macros from nutrients array
+      const findNutrient = (name) => {
+        const nutrient = nutrition.nutrients.find(n =>
+          n.name.toLowerCase() === name.toLowerCase()
+        );
+        return nutrient ? Math.round(nutrient.amount) : 0;
+      };
+
+      const macros = {
+        calories: findNutrient('Calories'),
+        protein: findNutrient('Protein'),
+        carbs: findNutrient('Carbohydrates'),
+        fat: findNutrient('Fat')
+      };
+
+      totals.calories += macros.calories;
+      totals.protein += macros.protein;
+      totals.carbs += macros.carbs;
+      totals.fat += macros.fat;
+
+      breakdown.push({
+        food: item.name || item.original,
+        amount: item.amount ? `${item.amount} ${item.unit}` : '',
+        original: item.original,
+        macros: macros,
+        source: 'spoonacular'
+      });
+
+      console.log(`  📊 ${item.original}: ${macros.calories}cal, ${macros.protein}P, ${macros.carbs}C, ${macros.fat}F`);
+    }
+
+    console.log(`🥄 Spoonacular totals: ${totals.calories}cal, ${totals.protein}P, ${totals.carbs}C, ${totals.fat}F`);
+
+    return { totals, breakdown };
+
+  } catch (error) {
+    console.error('❌ Spoonacular API call failed:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Calculate macros from ingredients - tries Spoonacular first, falls back to local database
+ * @param {string[]} ingredients - Array of ingredient strings
+ * @param {boolean} useSpoonacular - Whether to try Spoonacular API first (default: true)
+ * @returns {Promise<{totals: object, breakdown: array}>}
+ */
+async function calculateMacrosWithSpoonacular(ingredients, useSpoonacular = true) {
+  // Try Spoonacular first for accurate data
+  if (useSpoonacular && SPOONACULAR_API_KEY) {
+    const spoonacularResult = await getSpoonacularNutrition(ingredients);
+    if (spoonacularResult && spoonacularResult.totals.calories > 0) {
+      console.log('✅ Using Spoonacular nutrition data');
+      return spoonacularResult;
+    }
+    console.log('⚠️ Spoonacular failed or returned no data, falling back to local database');
+  }
+
+  // Fall back to local database calculation
+  console.log('📚 Using local database for nutrition calculation');
+  return calculateMacrosFromIngredients(ingredients);
+}
+
+/**
+ * Calculate exact macros from ingredients using LOCAL database (fallback)
  * NO AI GUESSING - Pure JavaScript calculation
  * Supports both string-based ("Chicken Breast (200g)") and structured ({food: "chicken_breast", amount: "200g"}) formats
  */
@@ -1391,7 +1511,7 @@ function updateMealNamePortions(mealName, scaleFactor) {
  * NO LLM - Pure math optimization
  * @param {boolean} skipAutoScale - If true, don't auto-scale portions (used for revisions where user controls portions)
  */
-function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
+async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
   console.log(`🔍 JS optimizing portions for: ${geminiMeal.name}`);
   console.log(`🎯 Targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
   if (skipAutoScale) console.log(`⏭️ Auto-scaling DISABLED for this request (user controls portions)`);
@@ -1412,8 +1532,8 @@ function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
     };
   }
 
-  // Step 1: Calculate current macros from ingredients
-  const current = calculateMacrosFromIngredients(geminiMeal.ingredients);
+  // Step 1: Calculate current macros from ingredients (using Spoonacular if available)
+  const current = await calculateMacrosWithSpoonacular(geminiMeal.ingredients);
   console.log(`📊 Current totals: ${current.totals.calories}cal, ${current.totals.protein}P, ${current.totals.carbs}C, ${current.totals.fat}F`);
   console.log(`📝 Breakdown:`, current.breakdown);
 
@@ -1448,7 +1568,7 @@ function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
     // Scale all ingredient portions
     const scaledIngredients = scaleIngredientPortions(geminiMeal.ingredients, scaleFactor);
 
-    // Recalculate macros with scaled portions
+    // Recalculate macros with scaled portions (use local DB for speed since we just scaled)
     const scaled = calculateMacrosFromIngredients(scaledIngredients);
 
     console.log(`✅ Scaled totals: ${scaled.totals.calories}cal, ${scaled.totals.protein}P, ${scaled.totals.carbs}C, ${scaled.totals.fat}F`);
@@ -1641,8 +1761,8 @@ exports.handler = async (event, context) => {
       for (let i = 0; i < jsonData.plan.length; i++) {
         console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.plan.length}...`);
         const optimizedMeal = mealTargets
-          ? optimizeMealMacros(jsonData.plan[i], mealTargets, skipAutoScale)
-          : optimizeMealMacros(jsonData.plan[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
+          ? await optimizeMealMacros(jsonData.plan[i], mealTargets, skipAutoScale)
+          : await optimizeMealMacros(jsonData.plan[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
         optimizedMeals.push(optimizedMeal);
       }
       console.log(`✅ All ${jsonData.plan.length} meals optimized!`);
@@ -1693,8 +1813,8 @@ exports.handler = async (event, context) => {
       for (let i = 0; i < jsonData.length; i++) {
         console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.length}...`);
         const optimizedMeal = mealTargets
-          ? optimizeMealMacros(jsonData[i], mealTargets, skipAutoScale)
-          : optimizeMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
+          ? await optimizeMealMacros(jsonData[i], mealTargets, skipAutoScale)
+          : await optimizeMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
         correctedData.push(optimizedMeal);
       }
       console.log(`✅ All ${jsonData.length} meals optimized!`);
@@ -1735,8 +1855,8 @@ exports.handler = async (event, context) => {
       // Single meal object with structured ingredients
       console.log('📊 Optimizing single meal with JS algorithm...');
       correctedData = mealTargets
-        ? optimizeMealMacros(jsonData, mealTargets, skipAutoScale)
-        : optimizeMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
+        ? await optimizeMealMacros(jsonData, mealTargets, skipAutoScale)
+        : await optimizeMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
       console.log('✅ Meal optimized!');
     } else if (jsonData.name && !jsonData.ingredients && mealTargets) {
       // Single meal WITHOUT ingredients - AI didn't follow format
