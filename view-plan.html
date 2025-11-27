@@ -1639,14 +1639,26 @@ Return ONLY valid JSON (NO markdown, NO backticks):
             // Get the meal based on plan structure
             let meal;
             let mealsPerDay = 1;
+            let allMealNames = []; // Collect all meal names to avoid repetition
+
             if (dayIndex !== null && mealIndex !== null) {
                 // Multi-day plan
                 meal = currentPlan.days[dayIndex].plan[mealIndex];
                 mealsPerDay = currentPlan.days[dayIndex].plan.length;
+                // Collect ALL meal names from ALL days
+                currentPlan.days.forEach(day => {
+                    day.plan.forEach(m => {
+                        if (m.name) allMealNames.push(m.name);
+                    });
+                });
             } else {
                 // Single-day plan
                 meal = currentPlan.meals[index];
                 mealsPerDay = currentPlan.meals.length;
+                // Collect all meal names
+                currentPlan.meals.forEach(m => {
+                    if (m.name) allMealNames.push(m.name);
+                });
             }
 
             // IMPORTANT: Calculate CONSISTENT per-meal targets from daily nutrition
@@ -1658,15 +1670,21 @@ Return ONLY valid JSON (NO markdown, NO backticks):
             const targetFat = Math.round((dailyNutrition.fat || 70) / mealsPerDay);
 
             console.log(`🎯 Exchange targets (from daily ${dailyNutrition.calories}cal / ${mealsPerDay} meals): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
+            console.log(`🚫 Meals to avoid (${allMealNames.length}):`, allMealNames);
 
             const mealCard = document.getElementById(`meal-${index}`);
 
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Generating new meal...</p>';
 
             try {
+                // Build the "avoid these meals" list for variety
+                const avoidMealsList = allMealNames.length > 0
+                    ? `\n\nNEVER generate any of these meals (they're already in the plan):\n${allMealNames.map(n => `- ${n}`).join('\n')}\n`
+                    : '';
+
                 // NEW: Prompt asks for ingredients array - backend will calculate macros from USDA database
                 const prompt = `Generate a DIFFERENT ${meal.type || 'meal'} (not "${meal.name}"):
-
+${avoidMealsList}
 STRICT Target Nutrition - the new meal MUST closely match these values:
 - Calories: ${targetCalories} (stay within ±50 calories)
 - Protein: ${targetProtein}g (stay within ±5g)
@@ -1676,12 +1694,14 @@ STRICT Target Nutrition - the new meal MUST closely match these values:
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
 
+IMPORTANT: Be CREATIVE and suggest a UNIQUE meal. Try different cuisines (Mexican, Asian, Mediterranean, American, Indian) and cooking styles.
+
 Use ONLY foods from USDA database including:
-Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Egg Whites, Shrimp, Tofu, Greek Yogurt
-Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
-Fats: Olive Oil, Avocado, Almonds, Peanut Butter
-Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
-Fruits: Blueberries, Strawberries, Banana, Apple
+Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Egg Whites, Shrimp, Tofu, Greek Yogurt, Tilapia, Cod, Tuna, Lean Beef, Pork Tenderloin
+Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta, White Rice, Couscous, Black Beans, Chickpeas
+Fats: Olive Oil, Avocado, Almonds, Peanut Butter, Walnuts, Cashews, Coconut Oil
+Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, Zucchini, Mushrooms, Onions, Tomatoes, Carrots, Green Beans
+Fruits: Blueberries, Strawberries, Banana, Apple, Mango, Pineapple, Orange
 
 CRITICAL:
 1. Return ingredients as ARRAY OF STRINGS with amounts in parentheses
