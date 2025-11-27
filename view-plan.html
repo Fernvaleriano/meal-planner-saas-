@@ -519,6 +519,7 @@
         const GET_PLAN_ENDPOINT = '/.netlify/functions/get-shared-plan';
         const TOGGLE_FAVORITE_ENDPOINT = '/.netlify/functions/toggle-favorite';
         const SAVE_CLIENT_MODIFICATION_ENDPOINT = '/.netlify/functions/save-client-modification';
+        const RESET_CLIENT_MODIFICATION_ENDPOINT = '/.netlify/functions/reset-client-modification';
         let currentPlan = null;
         let clientFavorites = [];
         let currentShareUrl = '';
@@ -982,25 +983,32 @@
             }
 
             try {
-                console.log('🔄 Resetting to original plan...');
+                console.log('🔄 Resetting to original plan...', { planId: currentPlanId, clientId: currentClientId });
 
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-                // Clear the client_modified_data to revert to coach's original
-                const { error } = await supabase
-                    .from('coach_meal_plans')
-                    .update({
-                        client_modified_data: null,
-                        client_modified_at: null
+                // Use backend function to reset (bypasses RLS)
+                const response = await fetch(RESET_CLIENT_MODIFICATION_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        planId: currentPlanId,
+                        clientId: currentClientId
                     })
-                    .eq('id', currentPlanId);
+                });
 
-                if (error) {
-                    console.error('Failed to reset plan:', error);
-                    throw error;
+                const result = await response.json();
+
+                if (!response.ok) {
+                    console.error('❌ Reset error:', result);
+                    throw new Error(result.error || 'Failed to reset plan');
                 }
 
-                console.log('✅ Plan reset to original');
+                console.log('✅ Plan reset to original:', result);
+
+                if (result.alreadyOriginal) {
+                    alert('Plan is already at the original version.');
+                    return;
+                }
+
                 alert('Plan has been reset to the original version from your coach.');
 
                 // Reload the page to show the original plan
