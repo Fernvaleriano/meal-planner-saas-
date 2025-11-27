@@ -1029,11 +1029,74 @@ function parseAmount(amountStr, foodData) {
   // Determine what unit the database uses
   const dbUnit = foodData.per.toLowerCase();
 
-  // Extract number from amount string
-  const numMatch = amount.match(/(\d+\.?\d*)/);
-  if (!numMatch) return 1; // Default to 1 if no number found
+  // Handle fractions like 1/2, 1/4, 3/4 first
+  const fractionMatch = amount.match(/(\d+)\/(\d+)/);
+  let quantity;
 
-  const quantity = parseFloat(numMatch[1]);
+  if (fractionMatch) {
+    // Found a fraction like 1/4 or 1/2
+    const numerator = parseFloat(fractionMatch[1]);
+    const denominator = parseFloat(fractionMatch[2]);
+    quantity = numerator / denominator;
+    console.log(`📐 Parsed fraction ${fractionMatch[0]} as ${quantity}`);
+  } else {
+    // Extract number from amount string
+    const numMatch = amount.match(/(\d+\.?\d*)/);
+    if (!numMatch) return 1; // Default to 1 if no number found
+    quantity = parseFloat(numMatch[1]);
+  }
+
+  // OUNCES CONVERSION: 1 oz = 28.35g
+  if (amount.includes('oz')) {
+    // Convert oz to grams for gram-based database entries
+    if (dbUnit.includes('g')) {
+      const grams = quantity * 28.35;
+      // Extract base grams from database unit
+      if (dbUnit.includes('100g')) {
+        const multiplier = grams / 100;
+        console.log(`🔄 Converted ${quantity}oz → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x multiplier (per 100g)`);
+        return multiplier;
+      }
+      const dbGramMatch = dbUnit.match(/(\d+)g/);
+      if (dbGramMatch) {
+        const dbGrams = parseFloat(dbGramMatch[1]);
+        const multiplier = grams / dbGrams;
+        console.log(`🔄 Converted ${quantity}oz → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x multiplier (per ${dbGrams}g)`);
+        return multiplier;
+      }
+    }
+  }
+
+  // CUPS CONVERSION for common foods (approximate gram equivalents)
+  if (amount.includes('cup')) {
+    // Leafy greens: 1 cup raw ≈ 30g
+    const leafyGreens = ['spinach', 'kale', 'arugula', 'lettuce', 'greens', 'chard'];
+    const foodName = foodData.per.toLowerCase();
+
+    // Check if this might be a leafy green by looking for common database entries
+    if (leafyGreens.some(green => amount.includes(green)) ||
+        dbUnit.includes('100g') && foodData.cal < 50) { // Low cal per 100g suggests leafy
+      const grams = quantity * 30; // 1 cup leafy ≈ 30g
+      if (dbUnit.includes('100g')) {
+        const multiplier = grams / 100;
+        console.log(`🥬 Converted ${quantity} cup(s) leafy greens → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x`);
+        return multiplier;
+      }
+    }
+
+    // Chopped vegetables: 1 cup ≈ 150g
+    if (dbUnit.includes('100g') && foodData.cal < 100) {
+      const grams = quantity * 150; // 1 cup chopped veg ≈ 150g
+      const multiplier = grams / 100;
+      console.log(`🥕 Converted ${quantity} cup(s) vegetables → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x`);
+      return multiplier;
+    }
+
+    // If database already uses cups, just use quantity
+    if (dbUnit.includes('cup')) {
+      return quantity;
+    }
+  }
 
   // If database is "per 100g" and amount is in grams
   if (dbUnit.includes('100g') && (amount.includes('g') || amount.includes('gram'))) {
@@ -1050,6 +1113,12 @@ function parseAmount(amountStr, foodData) {
     }
   }
 
+  // Handle "medium", "large", "small" for whole foods
+  if (amount.includes('medium') || amount.includes('large') || amount.includes('small')) {
+    // These are typically 1x for "1 medium" or the fraction for "1/4 medium"
+    return quantity; // Already parsed as fraction if applicable
+  }
+
   // If database is "per 1 egg" / "per 1 slice" / "per 1 cake" and amount is in count
   if (dbUnit.includes('1 ') && !amount.includes('tbsp') && !amount.includes('g')) {
     return quantity; // e.g., "3 eggs" → 3x multiplier
@@ -1058,6 +1127,10 @@ function parseAmount(amountStr, foodData) {
   // If database is "per 1 tbsp" / "per 1 cup" and amount matches
   if (dbUnit.includes('tbsp') && amount.includes('tbsp')) {
     return quantity; // e.g., "2 tbsp" → 2x multiplier
+  }
+
+  if (dbUnit.includes('tsp') && amount.includes('tsp')) {
+    return quantity;
   }
 
   if (dbUnit.includes('cup') && amount.includes('cup')) {
