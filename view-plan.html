@@ -1872,9 +1872,13 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
             try {
                 // Parse user input into ingredients array
-                // Split by comma, "and", or newline
-                const rawIngredients = userInput
-                    .split(/,|\band\b|\n/)
+                // First, insert commas where we see ") CapitalLetter" pattern (e.g., "(250g) Sweet" → "(250g), Sweet")
+                // This handles inputs like "Chicken (200g) Rice (150g) Broccoli (100g)"
+                const normalizedInput = userInput.replace(/\)\s+([A-Z])/g, '), $1');
+
+                // Split by comma, "and", "with", or newline
+                const rawIngredients = normalizedInput
+                    .split(/\s*,\s*|\s+and\s+|\s+with\s+|\n/)
                     .map(s => s.trim())
                     .filter(s => s.length > 0);
 
