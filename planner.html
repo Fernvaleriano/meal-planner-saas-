@@ -2063,7 +2063,12 @@ Disliked Foods: ${lastPlanQuery.dislikedFoods}
 Preferred Foods: ${lastPlanQuery.preferredFoods}
 Budget: ${lastPlanQuery.budget}
 Available Equipment: ${lastPlanQuery.equipmentStr}
-Target macros: ${meal.calories} cal, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat
+
+STRICT TARGET MACROS - the new meal MUST closely match:
+- Calories: ${meal.calories} (stay within ±50 calories)
+- Protein: ${meal.protein}g (stay within ±5g)
+- Carbs: ${meal.carbs}g (stay within ±10g)
+- Fat: ${meal.fat}g (stay within ±5g)
 
 Use ONLY foods from USDA database - you can choose from 200+ foods including:
 Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Shrimp, Tofu, Greek Yogurt
@@ -2071,11 +2076,12 @@ Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
 Fats: Olive Oil, Avocado, Almonds, Peanut Butter
 Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
 
-CRITICAL: Return ingredients as ARRAY OF STRINGS in natural language format.
-Include food name AND amount in parentheses.
-DO NOT include calories/protein/carbs/fat - backend will calculate from database.
+CRITICAL:
+1. Return ingredients as ARRAY OF STRINGS with amounts in parentheses
+2. DO NOT include calories/protein/carbs/fat - backend will calculate from database
+3. Choose portions that CLOSELY MATCH the target macros - this is ESSENTIAL
+4. If original meal was small (under 400 cal), keep new meal small. If large (over 600 cal), keep it large.
 MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
-Example: "Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)"
 
 EXAMPLE FORMAT:
 {"type":"${meal.type}","name":"Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)","ingredients":["Chicken Breast (200g)","Quinoa (150g cooked)","Broccoli (100g)","Olive Oil (1 tbsp)"],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
@@ -2130,16 +2136,22 @@ async function reviseMeal(dayIndex, mealIndex) {
         targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Revising meal...</p>';
     }
 
-    const aiPrompt = `Revise this meal based on user request: "${meal.name}" (${meal.type})
+    const aiPrompt = `Revise this meal based on user request while MAINTAINING SIMILAR SIZE: "${meal.name}" (${meal.type})
 
 USER REQUEST: ${userRequest}
 
-Current meal details:
+CURRENT MEAL (must maintain similar calories):
 - Calories: ${meal.calories}
 - Protein: ${meal.protein}g
 - Carbs: ${meal.carbs}g
 - Fat: ${meal.fat}g
 - Ingredients: ${meal.ingredients ? meal.ingredients.map(ing => typeof ing === 'string' ? ing : `${ing.amount} ${ing.food}`).join(', ') : 'N/A'}
+
+IMPORTANT RULES:
+1. MAINTAIN SIMILAR MEAL SIZE - revised meal should have similar calories (within ±50) to original
+2. If user request is vague (e.g., "add chicken", "make it healthier"), add/adjust reasonable portions that keep the meal similar in size
+3. If user specifies exact amounts, use those amounts
+4. Example: If original meal is 450 cal and user says "add chicken", add ~100g chicken and reduce other ingredients proportionally to stay near 450 cal
 
 Diet: ${lastPlanQuery.preference}
 Macro Preference: ${lastPlanQuery.macroPreference}
@@ -2155,11 +2167,11 @@ Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta
 Fats: Olive Oil, Avocado, Almonds, Peanut Butter
 Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, etc.
 
-CRITICAL: Return ingredients as ARRAY OF STRINGS in natural language format.
-Include food name AND amount in parentheses.
-DO NOT include calories/protein/carbs/fat - backend will calculate from database.
+CRITICAL:
+1. Return ingredients as ARRAY OF STRINGS with amounts in parentheses
+2. DO NOT include calories/protein/carbs/fat - backend will calculate from database
+3. Keep meal size SIMILAR to original (${meal.calories} calories) unless user explicitly requests larger/smaller
 MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
-Example: "Baked Turkey Breast (200g) with Sweet Potato (150g) and Green Beans (100g)"
 
 EXAMPLE FORMAT:
 {"type":"${meal.type}","name":"Baked Turkey Breast (200g) with Sweet Potato (150g) and Green Beans (100g)","ingredients":["Turkey Breast (200g)","Sweet Potato (150g)","Green Beans (100g)","Olive Oil (1 tsp)"],"instructions":"Bake turkey at 375F for 25 mins. Roast sweet potato. Steam green beans."}
