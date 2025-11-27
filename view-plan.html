@@ -910,19 +910,19 @@
                     <div class="totals-header">📊 Total Nutrition</div>
                     <div class="totals-grid">
                         <div class="total-item">
-                            <span class="total-value" id="totalCalories">0</span>
+                            <span class="total-value" id="modalTotalCalories">0</span>
                             <span class="total-label">Calories</span>
                         </div>
                         <div class="total-item">
-                            <span class="total-value" id="totalProtein">0g</span>
+                            <span class="total-value" id="modalTotalProtein">0g</span>
                             <span class="total-label">Protein</span>
                         </div>
                         <div class="total-item">
-                            <span class="total-value" id="totalCarbs">0g</span>
+                            <span class="total-value" id="modalTotalCarbs">0g</span>
                             <span class="total-label">Carbs</span>
                         </div>
                         <div class="total-item">
-                            <span class="total-value" id="totalFat">0g</span>
+                            <span class="total-value" id="modalTotalFat">0g</span>
                             <span class="total-label">Fat</span>
                         </div>
                     </div>
@@ -1851,18 +1851,26 @@
             let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
 
             selectedIngredients.forEach(ing => {
+                console.log('Ingredient data:', ing); // Debug
                 const multiplier = ing.quantity / 100;
-                totalCal += ing.caloriesPer100g * multiplier;
-                totalProtein += ing.proteinPer100g * multiplier;
-                totalCarbs += ing.carbsPer100g * multiplier;
-                totalFat += ing.fatPer100g * multiplier;
+                const cal = (ing.caloriesPer100g || 0) * multiplier;
+                const prot = (ing.proteinPer100g || 0) * multiplier;
+                const carb = (ing.carbsPer100g || 0) * multiplier;
+                const fatVal = (ing.fatPer100g || 0) * multiplier;
+                console.log(`Calculated: ${cal} cal, ${prot}g protein, ${carb}g carbs, ${fatVal}g fat`);
+                totalCal += cal;
+                totalProtein += prot;
+                totalCarbs += carb;
+                totalFat += fatVal;
             });
 
-            // Update display
-            document.getElementById('totalCalories').textContent = Math.round(totalCal);
-            document.getElementById('totalProtein').textContent = Math.round(totalProtein) + 'g';
-            document.getElementById('totalCarbs').textContent = Math.round(totalCarbs) + 'g';
-            document.getElementById('totalFat').textContent = Math.round(totalFat) + 'g';
+            console.log('Total:', totalCal, totalProtein, totalCarbs, totalFat);
+
+            // Update display (use modal-specific IDs to avoid conflict with main page)
+            document.getElementById('modalTotalCalories').textContent = Math.round(totalCal);
+            document.getElementById('modalTotalProtein').textContent = Math.round(totalProtein) + 'g';
+            document.getElementById('modalTotalCarbs').textContent = Math.round(totalCarbs) + 'g';
+            document.getElementById('modalTotalFat').textContent = Math.round(totalFat) + 'g';
 
             totalsDiv.style.display = 'block';
             createBtn.disabled = false;
