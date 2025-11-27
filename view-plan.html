@@ -166,6 +166,57 @@
             color: #c53030;
         }
 
+        .modified-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: 10px;
+            vertical-align: middle;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+
+        .btn-reset:hover {
+            background: linear-gradient(135deg, #4b5563, #374151);
+            transform: translateY(-1px);
+        }
+
+        .modified-notice {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modified-notice p {
+            margin: 0;
+            color: #92400e;
+            font-size: 0.9em;
+        }
+
         .macro-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -385,6 +436,7 @@
                 <span style="font-size: 1.2em;">←</span> Back
             </a>
             <h1 id="planHeader">Your Meal Plan</h1>
+            <button id="resetToOriginalBtn" class="btn-reset" onclick="resetToOriginal()" style="display: none;">↺ Reset to Original</button>
         </div>
 
         <div class="client-info">
@@ -466,11 +518,15 @@
         const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
         const GET_PLAN_ENDPOINT = '/.netlify/functions/get-shared-plan';
         const TOGGLE_FAVORITE_ENDPOINT = '/.netlify/functions/toggle-favorite';
+        const SAVE_CLIENT_MODIFICATION_ENDPOINT = '/.netlify/functions/save-client-modification';
         let currentPlan = null;
         let clientFavorites = [];
         let currentShareUrl = '';
         let realtimeChannel = null;
         let currentPlanId = null;
+        let currentClientId = null; // Track client ID for saving modifications
+        let isClientModified = false; // Track if client has modified the plan
+        let isClientView = false; // Track if viewing as client
 
         // Helper function to escape HTML and convert URLs to clickable links
         function linkifyText(text) {
@@ -595,7 +651,10 @@
         }
 
         // Load coach plan from database by ID
-        async function loadCoachPlan(planId, isClientView = false) {
+        async function loadCoachPlan(planId, clientView = false) {
+            // Store in global variable
+            isClientView = clientView;
+
             try {
                 console.log('Loading plan:', planId, 'Client view:', isClientView);
 
@@ -632,6 +691,9 @@
                         return;
                     }
 
+                    // Store client ID for saving modifications later
+                    currentClientId = clientData.id;
+
                     // Load favorites for the client
                     await loadFavorites(clientData.id);
 
@@ -655,8 +717,18 @@
                 console.log('Loaded plan:', data);
                 currentPlanId = planId;
 
-                // Extract and transform plan_data from the response
-                const planData = data.plan_data;
+                // For client view: Use client_modified_data if it exists (client's personalized version)
+                // Otherwise use plan_data (coach's original)
+                let planData;
+                if (isClientView && data.client_modified_data) {
+                    console.log('📝 Loading CLIENT MODIFIED version of plan');
+                    planData = data.client_modified_data;
+                    isClientModified = true;
+                } else {
+                    console.log('📋 Loading ORIGINAL coach plan');
+                    planData = data.plan_data;
+                    isClientModified = false;
+                }
 
                 // FIXED: Store multi-day structure instead of flattening
                 if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
@@ -701,6 +773,12 @@
                 }
 
                 displayMealPlan();
+
+                // Show modified indicator and reset button if client has modified the plan
+                if (isClientModified) {
+                    updateModifiedIndicator();
+                    document.getElementById('resetToOriginalBtn').style.display = 'inline-block';
+                }
 
                 // Update header with client name
                 const clientName = currentPlan.clientName || 'Client';
@@ -815,8 +893,6 @@
             }
 
             try {
-                console.log('💾 Saving plan changes to database...', currentPlanId);
-
                 // Prepare the plan data in the format the database expects
                 const planData = {
                     clientName: currentPlan.clientName,
@@ -835,7 +911,40 @@
                     planData.meals = currentPlan.meals;
                 }
 
-                // Update the database record
+                // CLIENT VIEW: Save to client_modified_data (preserves coach's original)
+                if (isClientView && currentClientId) {
+                    console.log('💾 Saving CLIENT modifications to database...', currentPlanId);
+
+                    const response = await fetch(SAVE_CLIENT_MODIFICATION_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            planId: currentPlanId,
+                            clientId: currentClientId,
+                            modifiedPlanData: planData
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        console.error('❌ Client modification save error:', result);
+                        throw new Error(result.error || 'Failed to save modifications');
+                    }
+
+                    // Mark as modified
+                    isClientModified = true;
+                    console.log('✅ Client modifications saved to database');
+
+                    // Update UI to show modified indicator and reset button
+                    updateModifiedIndicator();
+                    document.getElementById('resetToOriginalBtn').style.display = 'inline-block';
+                    return;
+                }
+
+                // COACH VIEW: Save directly to plan_data
+                console.log('💾 Saving plan changes to database...', currentPlanId);
+
                 const { error } = await supabaseClient
                     .from('coach_meal_plans')
                     .update({ plan_data: planData })
@@ -849,7 +958,57 @@
                 console.log('✅ Plan saved to database successfully');
             } catch (error) {
                 console.error('❌ Failed to save plan to database:', error);
-                alert('Warning: Changes saved locally but failed to sync to database. Your coach may not see your changes.');
+                alert('Warning: Changes saved locally but failed to sync to database.');
+            }
+        }
+
+        // Update UI to show that client has modified the plan
+        function updateModifiedIndicator() {
+            const header = document.getElementById('planHeader');
+            if (header && isClientModified && !header.innerHTML.includes('modified-badge')) {
+                header.innerHTML += ' <span class="modified-badge">Modified</span>';
+            }
+        }
+
+        // Reset to coach's original plan (remove client modifications)
+        async function resetToOriginal() {
+            if (!currentPlanId || !currentClientId) {
+                alert('Cannot reset: Plan information not available');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to reset to the original plan from your coach? All your modifications will be lost.')) {
+                return;
+            }
+
+            try {
+                console.log('🔄 Resetting to original plan...');
+
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+                // Clear the client_modified_data to revert to coach's original
+                const { error } = await supabase
+                    .from('coach_meal_plans')
+                    .update({
+                        client_modified_data: null,
+                        client_modified_at: null
+                    })
+                    .eq('id', currentPlanId);
+
+                if (error) {
+                    console.error('Failed to reset plan:', error);
+                    throw error;
+                }
+
+                console.log('✅ Plan reset to original');
+                alert('Plan has been reset to the original version from your coach.');
+
+                // Reload the page to show the original plan
+                window.location.reload();
+
+            } catch (error) {
+                console.error('Error resetting plan:', error);
+                alert('Failed to reset plan. Please try again.');
             }
         }
 
