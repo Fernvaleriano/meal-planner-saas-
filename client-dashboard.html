@@ -819,6 +819,53 @@
             font-size: 14px;
         }
 
+        .checkin-date-group {
+            margin-bottom: 16px;
+        }
+
+        .checkin-group-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 0 6px 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 10px;
+        }
+
+        .load-more-checkins-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            color: #718096;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .load-more-checkins-btn:hover {
+            border-color: #0d9488;
+            color: #0d9488;
+            background: #f0fdfa;
+        }
+
+        .load-more-checkins-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .checkin-end-message {
+            text-align: center;
+            padding: 12px;
+            color: #a0aec0;
+            font-size: 13px;
+            font-style: italic;
+        }
+
         .checkin-entry {
             background: #f7fafc;
             border-radius: 8px;
@@ -2142,14 +2189,29 @@
 
         // ========== CHECK-IN FUNCTIONS ==========
 
-        async function loadCheckins() {
+        let checkinPagination = { total: 0, offset: 0, limit: 3, hasMore: false };
+        const INITIAL_CHECKINS_LIMIT = 3;
+        const LOAD_MORE_LIMIT = 5;
+
+        async function loadCheckins(loadMore = false) {
             try {
-                const response = await fetch(`${CHECKIN_ENDPOINT}?clientId=${currentClientId}&limit=5`);
+                const offset = loadMore ? clientCheckins.length : 0;
+                const limit = loadMore ? LOAD_MORE_LIMIT : INITIAL_CHECKINS_LIMIT;
+
+                const response = await fetch(`${CHECKIN_ENDPOINT}?clientId=${currentClientId}&limit=${limit}&offset=${offset}`);
 
                 if (!response.ok) throw new Error('Failed to load check-ins');
 
                 const data = await response.json();
-                clientCheckins = data.checkins || [];
+
+                if (loadMore) {
+                    // Append to existing check-ins
+                    clientCheckins = [...clientCheckins, ...(data.checkins || [])];
+                } else {
+                    clientCheckins = data.checkins || [];
+                }
+
+                checkinPagination = data.pagination || { total: 0, offset: 0, limit: 3, hasMore: false };
                 displayCheckins(data.stats);
 
             } catch (error) {
@@ -2240,39 +2302,125 @@
                 </div>
             `;
 
-            // Build history
+            // Build history with date grouping
             let historyHTML = '';
             if (clientCheckins.length > 0) {
+                const groupedCheckins = groupCheckinsByDate(clientCheckins);
+                const hasMore = clientCheckins.length < checkinPagination.total;
+
                 historyHTML = `
                     <div class="checkin-history">
                         <h4>Recent Check-ins</h4>
-                        ${clientCheckins.map(c => `
-                            <div class="checkin-entry" id="checkin-${c.id}" style="${c.request_new_diet ? 'border-left-color: #f59e0b;' : ''}">
-                                <div class="checkin-entry-header">
-                                    <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString()}</span>
-                                    ${c.request_new_diet ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Diet Requested</span>' : ''}
-                                    ${c.meal_plan_adherence !== null ? `<span class="checkin-adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
-                                </div>
-                                ${c.request_new_diet && c.diet_request_reason ? `<div class="checkin-notes" style="color: #92400e; background: #fef3c7; padding: 8px; border-radius: 4px; margin-bottom: 8px;">Diet request: ${c.diet_request_reason}</div>` : ''}
-                                <div class="checkin-ratings">
-                                    ${c.energy_level ? `<span>Energy: ${c.energy_level}/5</span>` : ''}
-                                    ${c.sleep_quality ? `<span>Sleep: ${c.sleep_quality}/5</span>` : ''}
-                                    ${c.stress_level ? `<span>Stress: ${c.stress_level}/5</span>` : ''}
-                                </div>
-                                ${c.wins ? `<div class="checkin-notes">✨ ${c.wins}</div>` : ''}
-                                ${c.coach_feedback ? `
-                                    <div class="coach-response">
-                                        <div class="coach-response-label">Coach's Response:</div>
-                                        ${c.coach_feedback}
+                        ${Object.entries(groupedCheckins).map(([groupLabel, checkins]) => `
+                            <div class="checkin-date-group">
+                                <div class="checkin-group-label">${groupLabel}</div>
+                                ${checkins.map(c => `
+                                    <div class="checkin-entry" id="checkin-${c.id}" style="${c.request_new_diet ? 'border-left-color: #f59e0b;' : ''}">
+                                        <div class="checkin-entry-header">
+                                            <span class="checkin-date">${formatCheckinDate(c.checkin_date)}</span>
+                                            ${c.request_new_diet ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Diet Requested</span>' : ''}
+                                            ${c.meal_plan_adherence !== null ? `<span class="checkin-adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
+                                        </div>
+                                        ${c.request_new_diet && c.diet_request_reason ? `<div class="checkin-notes" style="color: #92400e; background: #fef3c7; padding: 8px; border-radius: 4px; margin-bottom: 8px;">Diet request: ${c.diet_request_reason}</div>` : ''}
+                                        <div class="checkin-ratings">
+                                            ${c.energy_level ? `<span>Energy: ${c.energy_level}/5</span>` : ''}
+                                            ${c.sleep_quality ? `<span>Sleep: ${c.sleep_quality}/5</span>` : ''}
+                                            ${c.stress_level ? `<span>Stress: ${c.stress_level}/5</span>` : ''}
+                                        </div>
+                                        ${c.wins ? `<div class="checkin-notes">✨ ${c.wins}</div>` : ''}
+                                        ${c.coach_feedback ? `
+                                            <div class="coach-response">
+                                                <div class="coach-response-label">Coach's Response:</div>
+                                                ${c.coach_feedback}
+                                            </div>
+                                        ` : ''}
                                     </div>
-                                ` : ''}
+                                `).join('')}
                             </div>
                         `).join('')}
+                        ${hasMore ? `
+                            <button class="load-more-checkins-btn" onclick="loadMoreCheckins()">
+                                View older check-ins (${checkinPagination.total - clientCheckins.length} more)
+                            </button>
+                        ` : clientCheckins.length > INITIAL_CHECKINS_LIMIT ? `
+                            <div class="checkin-end-message">You've seen all your check-ins</div>
+                        ` : ''}
                     </div>
                 `;
             }
 
             container.innerHTML = formHTML + historyHTML;
+        }
+
+        function groupCheckinsByDate(checkins) {
+            const groups = {};
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+
+            checkins.forEach(c => {
+                const checkinDate = new Date(c.checkin_date);
+                checkinDate.setHours(0, 0, 0, 0);
+
+                let groupLabel;
+                if (checkinDate.getTime() === today.getTime()) {
+                    groupLabel = 'Today';
+                } else if (checkinDate.getTime() === yesterday.getTime()) {
+                    groupLabel = 'Yesterday';
+                } else if (checkinDate >= weekAgo) {
+                    groupLabel = 'This Week';
+                } else {
+                    groupLabel = 'Earlier';
+                }
+
+                if (!groups[groupLabel]) {
+                    groups[groupLabel] = [];
+                }
+                groups[groupLabel].push(c);
+            });
+
+            // Return in order: Today, Yesterday, This Week, Earlier
+            const orderedGroups = {};
+            ['Today', 'Yesterday', 'This Week', 'Earlier'].forEach(label => {
+                if (groups[label]) {
+                    orderedGroups[label] = groups[label];
+                }
+            });
+
+            return orderedGroups;
+        }
+
+        function formatCheckinDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            date.setHours(0, 0, 0, 0);
+
+            if (date.getTime() === today.getTime()) {
+                return 'Today';
+            }
+
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (date.getTime() === yesterday.getTime()) {
+                return 'Yesterday';
+            }
+
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+
+        async function loadMoreCheckins() {
+            const btn = document.querySelector('.load-more-checkins-btn');
+            if (btn) {
+                btn.textContent = 'Loading...';
+                btn.disabled = true;
+            }
+            await loadCheckins(true);
         }
 
         function daysSinceCheckin(dateStr) {
