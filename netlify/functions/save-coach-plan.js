@@ -4,21 +4,51 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+// Common CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
 exports.handler = async (event, context) => {
+  // Handle CORS preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: ''
+    };
+  }
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
+    // Check for required environment variables
+    if (!SUPABASE_SERVICE_KEY) {
+      console.error('❌ SUPABASE_SERVICE_KEY is not configured');
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Server configuration error: Missing database credentials' })
+      };
+    }
+
     const { coachId, clientName, planData, clientId } = JSON.parse(event.body);
+
+    console.log('📝 Saving plan for coach:', coachId, 'client:', clientName, 'clientId:', clientId);
 
     if (!coachId || !planData) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Coach ID and plan data are required' })
       };
     }
@@ -51,6 +81,7 @@ exports.handler = async (event, context) => {
       console.error('❌ Supabase error:', error);
       return {
         statusCode: 500,
+        headers: corsHeaders,
         body: JSON.stringify({
           error: 'Failed to save meal plan',
           details: error.message
@@ -63,9 +94,8 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type'
+        ...corsHeaders,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         planId: data.id,
@@ -78,6 +108,7 @@ exports.handler = async (event, context) => {
     console.error('❌ Function error:', error);
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({
         error: 'Internal server error',
         message: error.message
