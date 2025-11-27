@@ -350,6 +350,42 @@
             opacity: 0.9;
         }
 
+        .plan-status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .plan-status-badge.draft {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .plan-status-badge.published {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .publish-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+            width: 100%;
+        }
+
+        .publish-btn:hover {
+            background: #059669;
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px;
@@ -1378,6 +1414,7 @@
 
         const GET_CLIENT_PLANS_ENDPOINT = '/.netlify/functions/get-client-plans';
         const DELETE_PLAN_ENDPOINT = '/.netlify/functions/delete-coach-plan';
+        const PUBLISH_PLAN_ENDPOINT = '/.netlify/functions/publish-plan';
         const UPLOAD_PHOTO_ENDPOINT = '/.netlify/functions/upload-progress-photo';
         const GET_PHOTOS_ENDPOINT = '/.netlify/functions/get-progress-photos';
         const DELETE_PHOTO_ENDPOINT = '/.netlify/functions/delete-progress-photo';
@@ -1766,6 +1803,18 @@
                 firstMealName = firstMealName.substring(0, 35) + '...';
             }
 
+            // Get plan status (default to 'draft' for backwards compatibility)
+            const planStatus = plan.status || 'draft';
+            const isDraft = planStatus === 'draft';
+            const statusBadge = isDraft
+                ? '<span class="plan-status-badge draft">Draft</span>'
+                : '<span class="plan-status-badge published">Published</span>';
+
+            // Publish button only shows for draft plans
+            const publishButton = isDraft
+                ? `<button class="publish-btn" onclick="publishPlan(${plan.id}, event)">📤 Submit to Client</button>`
+                : '';
+
             return `
                 <div class="plan-card" id="plan-card-${plan.id}" onclick="viewPlan(${plan.id})">
                     <input type="checkbox" class="plan-card-checkbox"
@@ -1774,7 +1823,10 @@
                            ${selectedPlans.has(plan.id) ? 'checked' : ''}>
                     <div class="plan-card-header">
                         <div>
-                            <div style="font-weight: 600; color: #0d9488; margin-bottom: 4px;">${planSummary}</div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="font-weight: 600; color: #0d9488;">${planSummary}</span>
+                                ${statusBadge}
+                            </div>
                             ${summaryDescription ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${summaryDescription}</div>` : ''}
                             ${firstMealName ? `<div style="font-size: 11px; color: #94a3b8; font-style: italic;">🍽️ ${firstMealName}</div>` : ''}
                             <div class="plan-date">${formattedDate} at ${formattedTime}</div>
@@ -1784,6 +1836,7 @@
                         </div>
                     </div>
                     <button class="view-btn" onclick="viewPlan(${plan.id})">View Plan</button>
+                    ${publishButton}
                 </div>
             `;
         }
@@ -1814,6 +1867,39 @@
             } catch (error) {
                 console.error('Error deleting plan:', error);
                 alert('Failed to delete plan. Please try again.');
+            }
+        }
+
+        async function publishPlan(planId, event) {
+            event.stopPropagation();
+
+            if (!confirm('Submit this meal plan to the client? They will be able to see it in their dashboard.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(PUBLISH_PLAN_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        planId: planId,
+                        coachId: currentUser.id
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to publish plan');
+
+                console.log('Plan published successfully');
+                alert('Meal plan submitted to client successfully!');
+
+                // Reload plans to reflect the status change
+                await loadPlans(currentClient.id);
+
+            } catch (error) {
+                console.error('Error publishing plan:', error);
+                alert('Failed to publish plan. Please try again.');
             }
         }
 
