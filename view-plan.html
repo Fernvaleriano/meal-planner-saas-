@@ -1456,13 +1456,26 @@ Return ONLY valid JSON (NO markdown, NO backticks):
         async function changeMeal(index, dayIndex = null, mealIndex = null) {
             // Get the meal based on plan structure
             let meal;
+            let mealsPerDay = 1;
             if (dayIndex !== null && mealIndex !== null) {
                 // Multi-day plan
                 meal = currentPlan.days[dayIndex].plan[mealIndex];
+                mealsPerDay = currentPlan.days[dayIndex].plan.length;
             } else {
                 // Single-day plan
                 meal = currentPlan.meals[index];
+                mealsPerDay = currentPlan.meals.length;
             }
+
+            // IMPORTANT: Calculate CONSISTENT per-meal targets from daily nutrition
+            // This prevents calorie drift after multiple exchanges
+            const dailyNutrition = currentPlan.nutrition || {};
+            const targetCalories = Math.round((dailyNutrition.calories || 2000) / mealsPerDay);
+            const targetProtein = Math.round((dailyNutrition.protein || 150) / mealsPerDay);
+            const targetCarbs = Math.round((dailyNutrition.carbs || 200) / mealsPerDay);
+            const targetFat = Math.round((dailyNutrition.fat || 70) / mealsPerDay);
+
+            console.log(`🎯 Exchange targets (from daily ${dailyNutrition.calories}cal / ${mealsPerDay} meals): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
 
             const mealCard = document.getElementById(`meal-${index}`);
 
@@ -1473,10 +1486,10 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 const prompt = `Generate a DIFFERENT ${meal.type || 'meal'} (not "${meal.name}"):
 
 STRICT Target Nutrition - the new meal MUST closely match these values:
-- Calories: ${meal.calories} (stay within ±50 calories)
-- Protein: ${meal.protein}g (stay within ±5g)
-- Carbs: ${meal.carbs}g (stay within ±10g)
-- Fat: ${meal.fat}g (stay within ±5g)
+- Calories: ${targetCalories} (stay within ±50 calories)
+- Protein: ${targetProtein}g (stay within ±5g)
+- Carbs: ${targetCarbs}g (stay within ±10g)
+- Fat: ${targetFat}g (stay within ±5g)
 
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
@@ -1510,10 +1523,10 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                         prompt,
                         isJson: true,
                         targets: {
-                            calories: meal.calories || 500,
-                            protein: meal.protein || 30,
-                            carbs: meal.carbs || 50,
-                            fat: meal.fat || 15
+                            calories: targetCalories,
+                            protein: targetProtein,
+                            carbs: targetCarbs,
+                            fat: targetFat
                         },
                         mealsPerDay: 1
                     })
