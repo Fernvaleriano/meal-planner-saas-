@@ -148,6 +148,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-undo {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-undo:hover {
+            background: #b91c1c;
+            transform: translateY(-2px);
+        }
+
         .btn-favorite {
             background: transparent;
             color: #e53e3e;
@@ -318,6 +328,16 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
         }
 
         .modal-overlay {
@@ -528,6 +548,34 @@
         let currentClientId = null; // Track client ID for saving modifications
         let isClientModified = false; // Track if client has modified the plan
         let isClientView = false; // Track if viewing as client
+        let previousMealStates = {}; // Store previous meal states for undo functionality
+
+        // Simple notification function
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            notification.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
 
         // Helper function to escape HTML and convert URLs to clickable links
         function linkifyText(text) {
@@ -1347,10 +1395,18 @@
             }
 
             // Build action buttons - clients can also change/revise meals
+            // Check if there's a previous state for undo
+            const undoStateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
+            const hasUndoState = previousMealStates[undoStateKey] !== undefined;
+            const undoButton = hasUndoState
+                ? `<button class="btn btn-undo" onclick="undoRevision(${changeParam})" title="Undo last revision">↩️ Undo</button>`
+                : '';
+
             let actionButtons = `
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
                 <button class="btn btn-revise" onclick="toggleRevise(${reviseParam})">✏️ Revise</button>
+                ${undoButton}
             `;
 
             card.innerHTML = `
@@ -1398,6 +1454,53 @@
             } else {
                 reviseSection.style.display = 'none';
             }
+        }
+
+        async function undoRevision(index, dayIndex = null, mealIndex = null) {
+            // Get the state key
+            const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
+            const previousState = previousMealStates[stateKey];
+
+            if (!previousState) {
+                alert('No previous state to undo');
+                return;
+            }
+
+            console.log(`↩️ Undoing revision for meal ${stateKey}:`, previousState);
+
+            // Restore the previous meal state
+            if (dayIndex !== null && mealIndex !== null) {
+                // Multi-day plan
+                currentPlan.days[dayIndex].plan[mealIndex] = JSON.parse(JSON.stringify(previousState));
+            } else {
+                // Single-day plan
+                currentPlan.meals[index] = JSON.parse(JSON.stringify(previousState));
+            }
+
+            // Remove the undo state (can only undo once)
+            delete previousMealStates[stateKey];
+
+            // Re-render the meal card
+            const mealCard = document.getElementById(`meal-${index}`);
+            const newCard = createMealCard(previousState, index, dayIndex, mealIndex);
+            mealCard.innerHTML = newCard.innerHTML;
+
+            // Recalculate day totals if multi-day plan
+            if (dayIndex !== null) {
+                updateDayTotals(dayIndex);
+            }
+
+            // Save to database if client view
+            if (isClientView && currentPlanId) {
+                try {
+                    await saveClientModification();
+                    console.log('✅ Undo saved to database');
+                } catch (err) {
+                    console.error('Failed to save undo:', err);
+                }
+            }
+
+            showNotification('Revision undone successfully!', 'success');
         }
 
         async function saveMealNote(index, dayIndex = null, mealIndex = null) {
@@ -1494,6 +1597,11 @@
             }
             const mealCard = document.getElementById(`meal-${index}`);
 
+            // Save current meal state for undo functionality
+            const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
+            previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
+            console.log(`💾 Saved previous state for meal ${stateKey}:`, previousMealStates[stateKey]);
+
             // Show loading
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Revising meal...</p>';
 
@@ -1527,6 +1635,12 @@ REVISION RULES - Follow these carefully:
 
 4. ADD NEW INGREDIENT: If user says "add chicken" to a meal that has none,
    ADD it on top - the meal will be bigger. Don't reduce other ingredients.
+
+5. COMPLETE REPLACEMENT: If user specifies an entirely new meal or uses words like
+   "just", "only", "make it", "change to", or "replace with", use ONLY the ingredients
+   they specify. Do NOT add extra ingredients to match the original meal's calories.
+   The new calorie total will be whatever the specified ingredients naturally add up to.
+   Example: "just a protein shake with creatine" = ONLY protein powder + creatine, nothing else.
 
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
