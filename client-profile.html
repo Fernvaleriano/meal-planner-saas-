@@ -1774,7 +1774,7 @@
         }
 
         function viewPlan(planId) {
-            window.location.href = `view-plan.html?planId=${planId}`;
+            window.location.href = `view-plan.html?planId=${planId}&fromClient=${currentClient.id}`;
         }
 
         async function deletePlan(planId, event) {

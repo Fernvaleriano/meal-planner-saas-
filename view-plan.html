@@ -514,13 +514,17 @@
             const shareId = urlParams.get('share');
             const planId = urlParams.get('planId');
             const clientView = urlParams.get('clientView') === 'true';
+            const fromClientId = urlParams.get('fromClient');
 
             // Set back button URL based on view type
             const backButton = document.getElementById('backButton');
-            if (clientView || shareId) {
+            if (fromClientId) {
+                // Coach viewing from client profile - go back to client profile
+                backButton.href = `client-profile.html?clientId=${fromClientId}`;
+            } else if (clientView || shareId) {
                 backButton.href = 'client-dashboard.html';
             } else {
-                backButton.href = 'past-plans.html';
+                backButton.href = 'dashboard.html';
             }
 
             if (shareId) {
@@ -714,7 +718,7 @@
             } catch (error) {
                 console.error('Error loading plan:', error);
                 alert('Failed to load plan. Please try again.');
-                const redirectUrl = isClientView ? 'client-dashboard.html' : 'past-plans.html';
+                const redirectUrl = isClientView ? 'client-dashboard.html' : 'dashboard.html';
                 window.location.href = redirectUrl;
             }
         }
@@ -753,7 +757,7 @@
                 // Plan was deleted by coach
                 console.log('Plan deleted');
                 alert('This meal plan has been removed by your coach.');
-                const redirectUrl = isClientView ? 'client-dashboard.html' : 'past-plans.html';
+                const redirectUrl = isClientView ? 'client-dashboard.html' : 'dashboard.html';
                 window.location.href = redirectUrl;
             } else if (eventType === 'UPDATE') {
                 // Plan was updated - reload and display
