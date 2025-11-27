@@ -1407,6 +1407,16 @@
         // Get clientId from URL
         const urlParams = new URLSearchParams(window.location.search);
         const clientId = urlParams.get('clientId');
+        const urlHash = window.location.hash;
+
+        // Debug: log URL parameters for notification deep linking
+        console.log('Client Profile URL parsed:', {
+            fullUrl: window.location.href,
+            clientId: clientId,
+            clientIdType: typeof clientId,
+            hash: urlHash,
+            searchParams: window.location.search
+        });
 
         // Detect if page was loaded from back/forward cache and force reload
         window.addEventListener('pageshow', function(event) {
@@ -1519,6 +1529,7 @@
         }
 
         async function loadClient(clientId) {
+            console.log('loadClient called with:', { clientId, clientIdType: typeof clientId, currentUserId: currentUser?.id });
             try {
                 // Force fresh data by using maybeSingle() and re-fetching
                 const { data, error } = await supabaseClient
@@ -1528,8 +1539,11 @@
                     .eq('coach_id', currentUser.id)
                     .maybeSingle();
 
+                console.log('Client query result:', { data, error, clientId, coachId: currentUser?.id });
+
                 if (error) throw error;
                 if (!data) {
+                    console.warn('Client not found - redirecting to manage-clients. Query params:', { clientId, coachId: currentUser?.id });
                     alert('Client not found');
                     window.location.href = 'manage-clients.html';
                     return;
@@ -1542,6 +1556,7 @@
 
             } catch (error) {
                 console.error('Error loading client:', error);
+                console.warn('loadClient error - redirecting to manage-clients:', { clientId, error: error.message });
                 alert('Failed to load client');
                 window.location.href = 'manage-clients.html';
             }
@@ -2503,6 +2518,22 @@
                 clientCheckins = data.checkins || [];
                 displayCheckins();
 
+                // Scroll to specific check-in if URL has a hash (e.g., #checkin-123)
+                if (window.location.hash && window.location.hash.startsWith('#checkin-')) {
+                    const checkinElement = document.querySelector(window.location.hash);
+                    if (checkinElement) {
+                        // Small delay to ensure DOM is fully rendered
+                        setTimeout(() => {
+                            checkinElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Add highlight effect
+                            checkinElement.style.boxShadow = '0 0 0 3px #3182ce';
+                            setTimeout(() => {
+                                checkinElement.style.boxShadow = '';
+                            }, 3000);
+                        }, 100);
+                    }
+                }
+
             } catch (error) {
                 console.error('Error loading check-ins:', error);
                 document.getElementById('checkinsContainer').innerHTML = `
@@ -2529,7 +2560,7 @@
                 const needsResponse = !c.coach_feedback && !c.coach_responded_at;
 
                 return `
-                    <div class="checkin-card ${needsResponse ? 'needs-response' : ''}">
+                    <div class="checkin-card ${needsResponse ? 'needs-response' : ''}" id="checkin-${c.id}">
                         <div class="checkin-card-header">
                             <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                             <div>

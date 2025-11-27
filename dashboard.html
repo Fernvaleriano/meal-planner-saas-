@@ -715,8 +715,17 @@
                 }
 
                 if (data.notifications && data.notifications.length > 0) {
+                    // Debug: log notification data from API
+                    console.log('Notifications loaded from API:', data.notifications.map(n => ({
+                        id: n.id,
+                        type: n.type,
+                        related_client_id: n.related_client_id,
+                        related_checkin_id: n.related_checkin_id,
+                        title: n.title
+                    })));
+
                     notificationList.innerHTML = data.notifications.map(n => `
-                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}">
+                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
                             <div class="notification-title">${n.title}</div>
                             <div class="notification-message">${n.message}</div>
                             <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
@@ -728,6 +737,17 @@
                         item.addEventListener('click', async () => {
                             const notifId = item.dataset.id;
                             const clientId = item.dataset.clientId;
+                            const notifType = item.dataset.type;
+                            const checkinId = item.dataset.checkinId;
+
+                            // Debug logging for notification click
+                            console.log('Notification clicked:', {
+                                notifId,
+                                clientId,
+                                notifType,
+                                checkinId,
+                                rawDataset: { ...item.dataset }
+                            });
 
                             // Mark as read
                             await fetch('/.netlify/functions/notifications', {
@@ -736,10 +756,22 @@
                                 body: JSON.stringify({ notificationIds: [parseInt(notifId)] })
                             });
 
-                            // Navigate to client if applicable
-                            if (clientId) {
-                                window.location.href = `manage-clients.html?client=${clientId}`;
+                            // Validate clientId is a real value (not empty string, "null", "undefined", etc.)
+                            const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
+                            const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
+
+                            console.log('Navigation validation:', { isValidClientId, isValidCheckinId });
+
+                            // Navigate based on notification type
+                            if (notifType === 'checkin_submitted' && isValidClientId && isValidCheckinId) {
+                                // Navigate directly to the check-in on client profile
+                                console.log('Navigating to check-in:', `client-profile.html?clientId=${clientId}#checkin-${checkinId}`);
+                                window.location.href = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
+                            } else if (isValidClientId) {
+                                console.log('Navigating to client profile:', `client-profile.html?clientId=${clientId}`);
+                                window.location.href = `client-profile.html?clientId=${clientId}`;
                             } else {
+                                console.warn('No valid clientId for navigation, staying on page');
                                 item.classList.remove('unread');
                                 loadNotifications(currentUserId);
                             }

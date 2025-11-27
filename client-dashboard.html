@@ -2249,7 +2249,7 @@
                     <div class="checkin-history">
                         <h4>Recent Check-ins</h4>
                         ${clientCheckins.map(c => `
-                            <div class="checkin-entry">
+                            <div class="checkin-entry" id="checkin-${c.id}">
                                 <div class="checkin-entry-header">
                                     <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString()}</span>
                                     ${c.meal_plan_adherence !== null ? `<span class="checkin-adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
@@ -2375,17 +2375,19 @@
 
                 if (data.notifications && data.notifications.length > 0) {
                     notificationList.innerHTML = data.notifications.map(n => `
-                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}">
+                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
                             <div class="notification-title">${n.title}</div>
                             <div class="notification-message">${n.message}</div>
                             <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
                         </div>
                     `).join('');
 
-                    // Add click handlers to mark as read
+                    // Add click handlers to mark as read and navigate
                     document.querySelectorAll('.notification-item').forEach(item => {
                         item.addEventListener('click', async () => {
                             const notifId = item.dataset.id;
+                            const notifType = item.dataset.type;
+                            const checkinId = item.dataset.checkinId;
 
                             await fetch('/.netlify/functions/notifications', {
                                 method: 'POST',
@@ -2394,6 +2396,23 @@
                             });
 
                             item.classList.remove('unread');
+
+                            // Close dropdown
+                            notificationDropdown.classList.remove('show');
+
+                            // Navigate to check-in if it's a coach response notification
+                            if (notifType === 'coach_responded' && checkinId) {
+                                const checkinElement = document.getElementById(`checkin-${checkinId}`);
+                                if (checkinElement) {
+                                    checkinElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    // Add highlight effect
+                                    checkinElement.style.boxShadow = '0 0 0 3px #3182ce';
+                                    setTimeout(() => {
+                                        checkinElement.style.boxShadow = '';
+                                    }, 3000);
+                                }
+                            }
+
                             loadNotifications();
                         });
                     });
