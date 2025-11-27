@@ -721,6 +721,11 @@
                 // For client view: Use client_modified_data if it exists (client's personalized version)
                 // Otherwise use plan_data (coach's original)
                 let planData;
+                console.log('🔍 Plan data check:', {
+                    isClientView: isClientView,
+                    hasClientModifiedData: !!data.client_modified_data,
+                    clientModifiedDataType: typeof data.client_modified_data
+                });
                 if (isClientView && data.client_modified_data) {
                     console.log('📝 Loading CLIENT MODIFIED version of plan');
                     planData = data.client_modified_data;
@@ -1004,6 +1009,14 @@
 
                 console.log('✅ Plan reset to original:', result);
 
+                // Verify the reset worked by checking returned data
+                if (result.plan) {
+                    console.log('📋 Returned plan client_modified_data:', result.plan.client_modified_data);
+                    if (result.plan.client_modified_data !== null) {
+                        console.error('⚠️ WARNING: client_modified_data was not cleared!');
+                    }
+                }
+
                 if (result.alreadyOriginal) {
                     alert('Plan is already at the original version.');
                     return;
@@ -1011,8 +1024,10 @@
 
                 alert('Plan has been reset to the original version from your coach.');
 
-                // Reload the page to show the original plan
-                window.location.reload();
+                // Force a hard reload with cache busting to ensure fresh data
+                const url = new URL(window.location.href);
+                url.searchParams.set('_reset', Date.now());
+                window.location.href = url.toString();
 
             } catch (error) {
                 console.error('Error resetting plan:', error);
