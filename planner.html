@@ -755,6 +755,11 @@ const FOOD_DATABASE = {
 function validateMeal(meal, mealType) {
     const issues = [];
 
+    // Skip validation for supplement items (user-defined values)
+    if (mealType === 'supplement' || meal.type === 'supplement') {
+        return { valid: true, issues: [] };
+    }
+
     // Validation 1: Macro math check - ALIGNED with Claude's 8% tolerance
     const calculatedCalories = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
     const calorieDifference = Math.abs(meal.calories - calculatedCalories);
@@ -1008,8 +1013,16 @@ async function generateDietPlan() {
     let carbs = Math.round((calories * carbRatio) / 4);
     let fat = Math.round((calories * fatRatio) / 9);
 
-    // Add protein powder if selected
-    let proteinPowderNote = '';
+    // Store original targets (before any protein powder subtraction)
+    const originalTargets = {
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat
+    };
+
+    // Store protein powder info if selected (will be added as supplement item)
+    let proteinPowderInfo = null;
     if (document.getElementById('dp_use_protein').checked) {
         const proteinCals = parseInt(document.getElementById('dp_protein_cals').value) || 0;
         const proteinProtein = parseInt(document.getElementById('dp_protein_protein').value) || 0;
@@ -1017,12 +1030,20 @@ async function generateDietPlan() {
         const proteinFat = parseInt(document.getElementById('dp_protein_fat').value) || 0;
         const proteinBrand = document.getElementById('dp_protein_brand').value || 'Protein Powder';
 
+        // Store protein powder info to add as supplement item later
+        proteinPowderInfo = {
+            brand: proteinBrand,
+            calories: proteinCals,
+            protein: proteinProtein,
+            carbs: proteinCarbs,
+            fat: proteinFat
+        };
+
+        // Subtract from targets for meal generation (meals + supplement = original targets)
         calories -= proteinCals;
         protein -= proteinProtein;
         carbs -= proteinCarbs;
         fat -= proteinFat;
-
-        proteinPowderNote = `\n\nIMPORTANT: Client uses ${proteinBrand} (${proteinCals} cal, ${proteinProtein}g protein, ${proteinCarbs}g carbs, ${proteinFat}g fat). This is ALREADY included in daily totals, so DO NOT add extra protein shakes to the plan.`;
     }
 
     lastPlanQuery = {
@@ -1040,7 +1061,8 @@ async function generateDietPlan() {
         budget,
         equipmentStr,
         meals,
-        proteinPowderNote
+        originalTargets,
+        proteinPowderInfo
     };
 
     // Generate each day separately
@@ -1371,6 +1393,25 @@ This meal should fit into a day's plan with the following targets.`;
             console.log(`✅ Day ${day} totals validated successfully`);
         }
 
+        // Add protein powder as supplement item if configured
+        if (proteinPowderInfo) {
+            const supplementItem = {
+                type: 'supplement',
+                name: proteinPowderInfo.brand,
+                calories: proteinPowderInfo.calories,
+                protein: proteinPowderInfo.protein,
+                carbs: proteinPowderInfo.carbs,
+                fat: proteinPowderInfo.fat,
+                ingredients: [`${proteinPowderInfo.brand} (1 serving)`],
+                instructions: 'Mix with water or milk as directed.'
+            };
+            dayData.plan.push(supplementItem);
+            console.log(`✅ Added protein powder supplement to Day ${day}`);
+        }
+
+        // Update targets to show original values (including protein powder)
+        dayData.targets = originalTargets;
+
         allDays.push(dayData);
     }
 
@@ -1518,7 +1559,24 @@ function displayDietPlan(multiDayData) {
         dayData.plan.forEach((meal, mealIndex) => {
             const mealNoteId = `meal-note-${dayIndex}-${mealIndex}`;
             const existingNote = meal.coach_note || '';
-            planHTML += `
+            const isSupplement = meal.type === 'supplement';
+
+            if (isSupplement) {
+                // Special styling for supplement items
+                planHTML += `
+                <div class="meal-card" style="background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border: 2px solid #0ea5e9;">
+                    <h4 class="font-bold text-lg capitalize" style="color: #0369a1;">💊 Supplement</h4>
+                    <p class="text-blue-700">${meal.name}</p>
+                    <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 my-2">
+                        <span>${meal.calories} cal</span>
+                        <span>${meal.protein}g P</span>
+                        <span>${meal.carbs}g C</span>
+                        <span>${meal.fat}g F</span>
+                    </div>
+                    <p class="text-xs text-gray-500 italic">${meal.instructions || 'Mix with water or milk as directed.'}</p>
+                </div>`;
+            } else {
+                planHTML += `
                 <div class="meal-card">
                     <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
                     <p class="text-blue-700">${meal.name}</p>
@@ -1541,6 +1599,7 @@ function displayDietPlan(multiDayData) {
                         <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical;" placeholder="Add a note about this meal...">${existingNote}</textarea>
                     </div>
                 </div>`;
+            }
         });
     });
 
@@ -1938,11 +1997,16 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 async function regenerateDay(dayIndex) {
     const dayData = lastPlanQuery.currentPlan[dayIndex];
     const dayNumber = dayData.day;
-    const numMeals = dayData.plan.length;
+
+    // Filter out supplements - they are added back after regeneration
+    const mealsOnly = dayData.plan.filter(m => m.type !== 'supplement');
+    const supplementItem = dayData.plan.find(m => m.type === 'supplement');
+
+    const numMeals = mealsOnly.length;
     const targets = dayData.targets;
 
-    // Get meal structure from original day
-    const mealTypes = dayData.plan.map(m => m.type);
+    // Get meal structure from original day (excluding supplements)
+    const mealTypes = mealsOnly.map(m => m.type);
     let mealStructure = '';
     let expectedMealTypes = mealTypes;
 
@@ -2040,6 +2104,12 @@ NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
         // Validate we got the right number of meals
         if (newMeals.length !== numMeals) {
             console.warn(`Expected ${numMeals} meals, got ${newMeals.length}. Using what we got.`);
+        }
+
+        // Add back the supplement if there was one
+        if (supplementItem) {
+            newMeals.push(supplementItem);
+            console.log(`✅ Re-added protein powder supplement to Day ${dayNumber}`);
         }
 
         // Update the day's meals
@@ -2501,6 +2571,32 @@ function showMathCheck() {
 
         // Analyze each meal
         dayData.plan.forEach((meal, mealIndex) => {
+            const isSupplement = meal.type === 'supplement';
+
+            // Supplements get special display (user-defined, no validation needed)
+            if (isSupplement) {
+                html += `
+                <div class="p-3 rounded-lg mb-3" style="background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border: 2px solid #0ea5e9;">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-bold capitalize" style="color: #0369a1;">💊 Supplement: ${meal.name}</h5>
+                        <span class="text-blue-600 font-semibold">✅ User Defined</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 text-sm mb-2">
+                        <div><span class="text-gray-600">Calories:</span> <strong>${meal.calories}</strong></div>
+                        <div><span class="text-gray-600">Protein:</span> <strong>${meal.protein}g</strong></div>
+                        <div><span class="text-gray-600">Carbs:</span> <strong>${meal.carbs}g</strong></div>
+                        <div><span class="text-gray-600">Fat:</span> <strong>${meal.fat}g</strong></div>
+                    </div>
+                </div>`;
+
+                // Add to daily totals
+                dayCalories += meal.calories;
+                dayProtein += meal.protein;
+                dayCarbs += meal.carbs;
+                dayFat += meal.fat;
+                return; // Skip normal validation for supplements
+            }
+
             const validation = validateMeal(meal, meal.type);
             const calculatedCalories = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
             const calorieDifference = Math.abs(meal.calories - calculatedCalories);
@@ -2628,19 +2724,25 @@ function downloadPlanAsPDF() {
         y += 12;
     }
 
-    // Daily Nutrition Summary
+    // Daily Nutrition Summary - use original targets (includes protein powder)
+    const displayTargets = lastPlanQuery.originalTargets || {
+        calories: lastPlanQuery.calories,
+        protein: lastPlanQuery.protein,
+        carbs: lastPlanQuery.carbs,
+        fat: lastPlanQuery.fat
+    };
     pdf.setFontSize(14);
     pdf.setTextColor(0, 0, 0);
     pdf.text('Daily Nutrition Targets:', margin, y);
     y += 8;
     pdf.setFontSize(11);
-    pdf.text(`Calories: ${lastPlanQuery.calories} | Protein: ${lastPlanQuery.protein}g | Carbs: ${lastPlanQuery.carbs}g | Fat: ${lastPlanQuery.fat}g`, margin, y);
+    pdf.text(`Calories: ${displayTargets.calories} | Protein: ${displayTargets.protein}g | Carbs: ${displayTargets.carbs}g | Fat: ${displayTargets.fat}g`, margin, y);
     y += 8;
     pdf.text(`Macro Split: ${lastPlanQuery.macroPreference}`, margin, y);
     y += 15;
 
     // Supplement Protocol Section
-    if (lastPlanQuery.proteinPowderNote && lastPlanQuery.proteinPowderNote.trim()) {
+    if (lastPlanQuery.proteinPowderInfo) {
         if (y > 240) {
             pdf.addPage();
             y = 20;
@@ -2651,7 +2753,9 @@ function downloadPlanAsPDF() {
         y += 8;
         pdf.setFontSize(10);
         pdf.setTextColor(0, 0, 0);
-        const supplementLines = pdf.splitTextToSize(lastPlanQuery.proteinPowderNote.replace(/\n/g, ' ').trim(), maxWidth);
+        const pp = lastPlanQuery.proteinPowderInfo;
+        const supplementText = `${pp.brand}: ${pp.calories} cal, ${pp.protein}g protein, ${pp.carbs}g carbs, ${pp.fat}g fat (included in daily totals)`;
+        const supplementLines = pdf.splitTextToSize(supplementText, maxWidth);
         pdf.text(supplementLines, margin, y);
         y += supplementLines.length * 5 + 10;
     }
