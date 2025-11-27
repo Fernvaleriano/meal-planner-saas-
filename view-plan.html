@@ -427,6 +427,143 @@
             background: #5a6268;
         }
 
+        /* Custom Meal Modal Styles */
+        .custom-meal-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .custom-meal-tab {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            background: #f8f9ff;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .custom-meal-tab:hover {
+            border-color: #0d9488;
+        }
+
+        .custom-meal-tab.active {
+            background: #0d9488;
+            color: white;
+            border-color: #0d9488;
+        }
+
+        .custom-meal-tab-icon {
+            font-size: 1.5em;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .custom-meal-tab-label {
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .custom-meal-panel {
+            display: none;
+        }
+
+        .custom-meal-panel.active {
+            display: block;
+        }
+
+        .custom-meal-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .custom-meal-input:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+
+        .custom-meal-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 15px;
+            min-height: 100px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .custom-meal-textarea:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+
+        .macro-inputs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .macro-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .macro-input-group label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .macro-input-group input {
+            padding: 10px 12px;
+            border: 2px solid #e0e7ff;
+            border-radius: 8px;
+            font-size: 1em;
+            text-align: center;
+        }
+
+        .macro-input-group input:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+
+        .custom-meal-hint {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+
+        .btn-submit-custom {
+            background: #0d9488;
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-submit-custom:hover {
+            background: #0b7a6e;
+        }
+
         .btn-share {
             background: #28a745;
             color: white;
@@ -535,6 +672,86 @@
         </div>
     </div>
 
+    <!-- Custom Meal Modal -->
+    <div id="customMealModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>🎯 Custom Meal</h2>
+                <p style="color: #666;">Create your own meal</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="custom-meal-tabs">
+                <div class="custom-meal-tab active" onclick="switchCustomMealTab('calculate')">
+                    <span class="custom-meal-tab-icon">🧮</span>
+                    <span class="custom-meal-tab-label">Calculate from Ingredients</span>
+                </div>
+                <div class="custom-meal-tab" onclick="switchCustomMealTab('manual')">
+                    <span class="custom-meal-tab-icon">✏️</span>
+                    <span class="custom-meal-tab-label">Enter Macros Manually</span>
+                </div>
+            </div>
+
+            <!-- Calculate Panel -->
+            <div id="calculatePanel" class="custom-meal-panel active">
+                <div class="custom-meal-hint">
+                    💡 Enter ingredients with amounts. We'll calculate the macros automatically.<br>
+                    <strong>Examples:</strong> "200g chicken breast, 150g rice, 100g broccoli"
+                </div>
+                <textarea
+                    id="customMealIngredients"
+                    class="custom-meal-textarea"
+                    placeholder="Enter your ingredients...&#10;&#10;Examples:&#10;• 200g chicken breast, 150g rice&#10;• 2 eggs, 2 slices whole wheat bread&#10;• 1 scoop whey protein, 1 banana"
+                ></textarea>
+                <button class="btn-submit-custom" onclick="submitCalculatedMeal()">
+                    🧮 Calculate & Create Meal
+                </button>
+            </div>
+
+            <!-- Manual Panel -->
+            <div id="manualPanel" class="custom-meal-panel">
+                <div class="custom-meal-hint">
+                    💡 Enter the meal name and macros directly. Use nutrition labels or apps like MyFitnessPal.
+                </div>
+                <input
+                    type="text"
+                    id="customMealName"
+                    class="custom-meal-input"
+                    placeholder="Meal name (e.g., Protein Shake, Chipotle Bowl)"
+                >
+                <div class="macro-inputs">
+                    <div class="macro-input-group">
+                        <label>Calories</label>
+                        <input type="number" id="customMealCalories" placeholder="0">
+                    </div>
+                    <div class="macro-input-group">
+                        <label>Protein (g)</label>
+                        <input type="number" id="customMealProtein" placeholder="0">
+                    </div>
+                    <div class="macro-input-group">
+                        <label>Carbs (g)</label>
+                        <input type="number" id="customMealCarbs" placeholder="0">
+                    </div>
+                    <div class="macro-input-group">
+                        <label>Fat (g)</label>
+                        <input type="number" id="customMealFat" placeholder="0">
+                    </div>
+                </div>
+                <input
+                    type="text"
+                    id="customMealInstructions"
+                    class="custom-meal-input"
+                    placeholder="Instructions (optional)"
+                >
+                <button class="btn-submit-custom" onclick="submitManualMeal()">
+                    ✅ Create Meal
+                </button>
+            </div>
+
+            <button class="btn btn-close-modal" onclick="closeCustomMealModal()" style="margin-top: 15px;">Cancel</button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase client
@@ -559,6 +776,11 @@
         let isClientModified = false; // Track if client has modified the plan
         let isClientView = false; // Track if viewing as client
         let previousMealStates = {}; // Store previous meal states for undo functionality
+
+        // Custom meal modal state
+        let currentCustomMealIndex = null;
+        let currentCustomMealDayIndex = null;
+        let currentCustomMealMealIndex = null;
 
         // Simple notification function
         function showNotification(message, type = 'info') {
@@ -1181,6 +1403,241 @@
         function closeShareModal() {
             const modal = document.getElementById('shareModal');
             modal.classList.remove('show');
+        }
+
+        // ===== CUSTOM MEAL MODAL FUNCTIONS =====
+
+        function openCustomMealModal(index, dayIndex = null, mealIndex = null) {
+            // Store the current meal context
+            currentCustomMealIndex = index;
+            currentCustomMealDayIndex = dayIndex;
+            currentCustomMealMealIndex = mealIndex;
+
+            // Reset the form
+            document.getElementById('customMealIngredients').value = '';
+            document.getElementById('customMealName').value = '';
+            document.getElementById('customMealCalories').value = '';
+            document.getElementById('customMealProtein').value = '';
+            document.getElementById('customMealCarbs').value = '';
+            document.getElementById('customMealFat').value = '';
+            document.getElementById('customMealInstructions').value = '';
+
+            // Reset to calculate tab
+            switchCustomMealTab('calculate');
+
+            // Show modal
+            document.getElementById('customMealModal').classList.add('show');
+        }
+
+        function closeCustomMealModal() {
+            document.getElementById('customMealModal').classList.remove('show');
+            currentCustomMealIndex = null;
+            currentCustomMealDayIndex = null;
+            currentCustomMealMealIndex = null;
+        }
+
+        function switchCustomMealTab(tab) {
+            // Update tab styles
+            const tabs = document.querySelectorAll('.custom-meal-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+
+            // Update panel visibility
+            document.getElementById('calculatePanel').classList.remove('active');
+            document.getElementById('manualPanel').classList.remove('active');
+
+            if (tab === 'calculate') {
+                tabs[0].classList.add('active');
+                document.getElementById('calculatePanel').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('manualPanel').classList.add('active');
+            }
+        }
+
+        async function submitManualMeal() {
+            const mealName = document.getElementById('customMealName').value.trim();
+            const calories = parseInt(document.getElementById('customMealCalories').value) || 0;
+            const protein = parseInt(document.getElementById('customMealProtein').value) || 0;
+            const carbs = parseInt(document.getElementById('customMealCarbs').value) || 0;
+            const fat = parseInt(document.getElementById('customMealFat').value) || 0;
+            const instructions = document.getElementById('customMealInstructions').value.trim() || 'Prepare as desired.';
+
+            if (!mealName) {
+                alert('Please enter a meal name');
+                return;
+            }
+
+            if (calories === 0 && protein === 0 && carbs === 0 && fat === 0) {
+                alert('Please enter at least some macro values');
+                return;
+            }
+
+            // Get the current meal for type reference
+            let meal;
+            if (currentCustomMealDayIndex !== null && currentCustomMealMealIndex !== null) {
+                meal = currentPlan.days[currentCustomMealDayIndex].plan[currentCustomMealMealIndex];
+            } else {
+                meal = currentPlan.meals[currentCustomMealIndex];
+            }
+
+            // Save current meal state for undo
+            const stateKey = currentCustomMealDayIndex !== null ? `${currentCustomMealDayIndex}-${currentCustomMealMealIndex}` : `${currentCustomMealIndex}`;
+            previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+            console.log(`💾 Saved previous state for manual custom meal:`, previousMealStates[stateKey]);
+
+            // Create the custom meal object
+            const customMealData = {
+                type: meal.type || 'meal',
+                name: mealName,
+                ingredients: [`${mealName} (manual entry)`],
+                calories: calories,
+                protein: protein,
+                carbs: carbs,
+                fat: fat,
+                instructions: instructions
+            };
+
+            // Save the custom meal
+            if (currentCustomMealDayIndex !== null && currentCustomMealMealIndex !== null) {
+                currentPlan.days[currentCustomMealDayIndex].plan[currentCustomMealMealIndex] = customMealData;
+            } else {
+                currentPlan.meals[currentCustomMealIndex] = customMealData;
+            }
+            localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+            // Save to database
+            await savePlanToDatabase();
+
+            // Update day totals if multi-day
+            if (currentCustomMealDayIndex !== null) {
+                updateDayTotals(currentCustomMealDayIndex);
+            }
+
+            // Close modal and refresh display
+            closeCustomMealModal();
+            displayMealPlan();
+
+            showNotification(`Custom meal created: ${calories} cal, ${protein}g protein`, 'success');
+        }
+
+        async function submitCalculatedMeal() {
+            const userInput = document.getElementById('customMealIngredients').value.trim();
+
+            if (!userInput) {
+                alert('Please enter some ingredients');
+                return;
+            }
+
+            // Close modal and show loading on the meal card
+            closeCustomMealModal();
+
+            const mealCard = document.getElementById(`meal-${currentCustomMealIndex}`);
+            const index = currentCustomMealIndex;
+            const dayIndex = currentCustomMealDayIndex;
+            const mealIndex = currentCustomMealMealIndex;
+
+            // Get the current meal for reference
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else {
+                meal = currentPlan.meals[index];
+            }
+
+            // Save current meal state for undo
+            const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
+            previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+            console.log(`💾 Saved previous state for calculated custom meal:`, previousMealStates[stateKey]);
+
+            // Show loading
+            mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Creating custom meal...</p>';
+
+            try {
+                // Parse user input into ingredients array
+                // First, insert commas where we see ") CapitalLetter" pattern
+                const normalizedInput = userInput.replace(/\)\s+([A-Z])/g, '), $1');
+
+                // Split by comma, "and", "with", or newline
+                const rawIngredients = normalizedInput
+                    .split(/\s*,\s*|\s+and\s+|\s+with\s+|\n/)
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+
+                // Format ingredients properly
+                const ingredients = rawIngredients.map(ing => {
+                    if (ing.includes('(') && ing.includes(')')) {
+                        return ing;
+                    }
+                    const amountMatch = ing.match(/^(\d+\.?\d*\s*(?:g|oz|cup|cups|tbsp|tsp|ml|scoop|scoops|slice|slices|piece|pieces|whole|large|medium|small)?)\s+(.+)$/i);
+                    if (amountMatch) {
+                        const amount = amountMatch[1].trim();
+                        const food = amountMatch[2].trim();
+                        const foodCapitalized = food.replace(/\b\w/g, c => c.toUpperCase());
+                        return `${foodCapitalized} (${amount})`;
+                    }
+                    return ing.replace(/\b\w/g, c => c.toUpperCase());
+                });
+
+                console.log('🎯 Custom meal ingredients:', ingredients);
+
+                // Create meal name from ingredients
+                const mealName = ingredients.length <= 2
+                    ? ingredients.join(' with ')
+                    : `${ingredients[0]} with ${ingredients.length - 1} more`;
+
+                // Send to backend for macro calculation
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: `Return this exact meal as JSON, no changes:\n{"type":"${meal.type || 'meal'}","name":"${mealName}","ingredients":${JSON.stringify(ingredients)},"instructions":"Prepare as desired."}`,
+                        isJson: true,
+                        skipAutoScale: true,
+                        targets: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                        mealsPerDay: 1
+                    })
+                });
+
+                if (!response.ok) throw new Error('API request failed');
+
+                const data = await response.json();
+
+                let customMealData;
+                if (data.success && data.data) {
+                    customMealData = data.data;
+                    console.log('✅ Custom meal created:', customMealData);
+                } else {
+                    throw new Error('Failed to calculate macros');
+                }
+
+                // Ensure required fields
+                customMealData.type = meal.type || 'meal';
+                customMealData.name = customMealData.name || mealName;
+
+                // Save the custom meal
+                if (dayIndex !== null && mealIndex !== null) {
+                    currentPlan.days[dayIndex].plan[mealIndex] = customMealData;
+                } else {
+                    currentPlan.meals[index] = customMealData;
+                }
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+                await savePlanToDatabase();
+
+                // Update day totals if multi-day
+                if (dayIndex !== null) {
+                    updateDayTotals(dayIndex);
+                }
+
+                displayMealPlan();
+
+                showNotification(`Custom meal created: ${customMealData.calories} cal`, 'success');
+
+            } catch (error) {
+                console.error('❌ Custom meal error:', error);
+                alert('Failed to create custom meal. Please try again.');
+                displayMealPlan();
+            }
         }
 
         function displayMealPlan() {
@@ -1835,122 +2292,9 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
             }
         }
 
-        // CUSTOM MEAL - Create exact meal from user input, no AI interpretation
-        async function customMeal(index, dayIndex = null, mealIndex = null) {
-            // Get the current meal for reference
-            let meal;
-            if (dayIndex !== null && mealIndex !== null) {
-                meal = currentPlan.days[dayIndex].plan[mealIndex];
-            } else {
-                meal = currentPlan.meals[index];
-            }
-
-            // Prompt user for their custom meal
-            const userInput = window.prompt(
-                `🎯 Custom Meal - Enter EXACTLY what you want to eat:\n\n` +
-                `Examples:\n` +
-                `• "2 scoops whey protein"\n` +
-                `• "3 eggs, 2 toast, 1 tbsp butter"\n` +
-                `• "200g chicken breast, 150g rice, 100g broccoli"\n\n` +
-                `We'll calculate the exact calories and macros for you.`,
-                ''
-            );
-
-            if (!userInput || !userInput.trim()) {
-                return; // User cancelled
-            }
-
-            const mealCard = document.getElementById(`meal-${index}`);
-
-            // Save current meal state for undo
-            const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
-            previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
-            console.log(`💾 Saved previous state for custom meal:`, previousMealStates[stateKey]);
-
-            // Show loading
-            mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Creating custom meal...</p>';
-
-            try {
-                // Parse user input into ingredients array
-                // Split by comma, "and", or newline
-                const rawIngredients = userInput
-                    .split(/,|\band\b|\n/)
-                    .map(s => s.trim())
-                    .filter(s => s.length > 0);
-
-                // Format ingredients properly (capitalize, add parentheses if needed)
-                const ingredients = rawIngredients.map(ing => {
-                    // If already has parentheses, use as-is
-                    if (ing.includes('(') && ing.includes(')')) {
-                        return ing;
-                    }
-                    // Try to extract amount and food
-                    const amountMatch = ing.match(/^(\d+\.?\d*\s*(?:g|oz|cup|cups|tbsp|tsp|ml|scoop|scoops|slice|slices|piece|pieces|whole|large|medium|small)?)\s+(.+)$/i);
-                    if (amountMatch) {
-                        const amount = amountMatch[1].trim();
-                        const food = amountMatch[2].trim();
-                        // Capitalize first letter of each word
-                        const foodCapitalized = food.replace(/\b\w/g, c => c.toUpperCase());
-                        return `${foodCapitalized} (${amount})`;
-                    }
-                    // No amount found, just capitalize
-                    return ing.replace(/\b\w/g, c => c.toUpperCase());
-                });
-
-                console.log('🎯 Custom meal ingredients:', ingredients);
-
-                // Create meal name from ingredients
-                const mealName = ingredients.length <= 2
-                    ? ingredients.join(' with ')
-                    : `${ingredients[0]} with ${ingredients.length - 1} more`;
-
-                // Send to backend for macro calculation ONLY (no AI)
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        prompt: `Return this exact meal as JSON, no changes:\n{"type":"${meal.type || 'meal'}","name":"${mealName}","ingredients":${JSON.stringify(ingredients)},"instructions":"Prepare as desired."}`,
-                        isJson: true,
-                        skipAutoScale: true,
-                        targets: { calories: 0, protein: 0, carbs: 0, fat: 0 }, // No targets - just calculate what's there
-                        mealsPerDay: 1
-                    })
-                });
-
-                if (!response.ok) throw new Error('API request failed');
-
-                const data = await response.json();
-
-                let customMealData;
-                if (data.success && data.data) {
-                    customMealData = data.data;
-                    console.log('✅ Custom meal created:', customMealData);
-                } else {
-                    throw new Error('Failed to calculate macros');
-                }
-
-                // Ensure required fields
-                customMealData.type = meal.type || 'meal';
-                customMealData.name = customMealData.name || mealName;
-
-                // Save the custom meal
-                if (dayIndex !== null && mealIndex !== null) {
-                    currentPlan.days[dayIndex].plan[mealIndex] = customMealData;
-                } else {
-                    currentPlan.meals[index] = customMealData;
-                }
-                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
-
-                await savePlanToDatabase();
-                displayMealPlan();
-
-                showNotification(`Custom meal created: ${customMealData.calories} cal`, 'success');
-
-            } catch (error) {
-                console.error('❌ Custom meal error:', error);
-                alert('Failed to create custom meal. Please try again.');
-                displayMealPlan();
-            }
+        // CUSTOM MEAL - Opens modal for custom meal creation
+        function customMeal(index, dayIndex = null, mealIndex = null) {
+            openCustomMealModal(index, dayIndex, mealIndex);
         }
 
         async function changeMeal(index, dayIndex = null, mealIndex = null) {
