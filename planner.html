@@ -1081,6 +1081,12 @@ async function generateDietPlan() {
             previousMealsText = `\n\nPREVIOUS DAYS MEALS (DO NOT REPEAT):\n${previousMeals.join('\n')}\n\nIMPORTANT: Create COMPLETELY DIFFERENT meals from the previous days listed above. Provide variety in proteins, cuisines, and cooking methods.`;
         }
 
+        // Build protein powder note if applicable
+        let proteinPowderNote = '';
+        if (proteinPowderInfo) {
+            proteinPowderNote = `\nNote: Client uses protein powder (${proteinPowderInfo.brand || 'protein supplement'}) which will be added separately. Meal targets already account for this.`;
+        }
+
         // Parse meal structure to be explicit
         let mealStructure = '';
         let expectedMealTypes = [];
