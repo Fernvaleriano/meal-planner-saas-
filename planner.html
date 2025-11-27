@@ -351,6 +351,7 @@ async function getClientFavorites(clientId) {
 const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
 const SAVE_COACH_PLAN_ENDPOINT = '/.netlify/functions/save-coach-plan';
 const UPDATE_PLAN_NOTES_ENDPOINT = '/.netlify/functions/update-plan-notes';
+const PUBLISH_PLAN_ENDPOINT = '/.netlify/functions/publish-plan';
 let lastMealQuery = {};
 let lastPlanQuery = {};
 let currentShareUrl = '';
@@ -1080,6 +1081,12 @@ async function generateDietPlan() {
             previousMealsText = `\n\nPREVIOUS DAYS MEALS (DO NOT REPEAT):\n${previousMeals.join('\n')}\n\nIMPORTANT: Create COMPLETELY DIFFERENT meals from the previous days listed above. Provide variety in proteins, cuisines, and cooking methods.`;
         }
 
+        // Build protein powder note if applicable
+        let proteinPowderNote = '';
+        if (proteinPowderInfo) {
+            proteinPowderNote = `\nNote: Client uses protein powder (${proteinPowderInfo.brand || 'protein supplement'}) which will be added separately. Meal targets already account for this.`;
+        }
+
         // Parse meal structure to be explicit
         let mealStructure = '';
         let expectedMealTypes = [];
@@ -1615,6 +1622,21 @@ function displayDietPlan(multiDayData) {
         </div>
     `;
 
+    // Plan Status Banner and Submit Button
+    planHTML += `
+        <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="font-size: 14px; font-weight: 600; color: #92400e;">📝 Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
+                </div>
+                <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                    ✅ Submit to Client
+                </button>
+            </div>
+        </div>
+    `;
+
     planHTML += `
         <div class="flex gap-2 mt-4">
             <button data-action="check-math" class="btn btn-secondary w-full" style="background:#6c757d;">🔍 Check Math</button>
@@ -1625,6 +1647,86 @@ function displayDietPlan(multiDayData) {
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
+}
+
+// UPDATE PLAN STATUS UI
+function updatePlanStatusUI() {
+    const banner = document.getElementById('plan-status-banner');
+    const statusText = document.getElementById('plan-status-text');
+    const submitBtn = document.getElementById('submitToClientBtn');
+
+    if (!banner || !statusText) return;
+
+    if (lastPlanQuery.status === 'published') {
+        banner.style.background = '#d1fae5';
+        banner.style.borderColor = '#10b981';
+        statusText.textContent = 'Published';
+        statusText.style.background = '#10b981';
+        banner.querySelector('p').textContent = 'This plan is visible to your client.';
+        banner.querySelector('p').style.color = '#065f46';
+        banner.querySelector('div > span').style.color = '#065f46';
+        if (submitBtn) {
+            submitBtn.style.display = 'none';
+        }
+    } else {
+        banner.style.background = '#fef3c7';
+        banner.style.borderColor = '#f59e0b';
+        statusText.textContent = 'Draft';
+        statusText.style.background = '#f59e0b';
+        banner.querySelector('p').textContent = 'This plan is saved but not yet visible to your client.';
+        banner.querySelector('p').style.color = '#92400e';
+        banner.querySelector('div > span').style.color = '#92400e';
+        if (submitBtn) {
+            submitBtn.style.display = 'block';
+        }
+    }
+}
+
+// PUBLISH PLAN TO CLIENT
+async function publishPlanToClient() {
+    if (!currentCoach || !lastPlanQuery.planId) {
+        alert('Please generate and save a plan first.');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitToClientBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = 'Submitting...';
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch(PUBLISH_PLAN_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                planId: lastPlanQuery.planId,
+                coachId: currentCoach.id
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to submit plan');
+        }
+
+        const data = await response.json();
+        console.log('✅ Plan submitted to client:', data);
+
+        // Update local status
+        lastPlanQuery.status = 'published';
+
+        // Update UI
+        updatePlanStatusUI();
+
+        // Show success message
+        alert('Plan submitted to client successfully! They can now see this plan.');
+
+    } catch (error) {
+        console.error('Error submitting plan:', error);
+        alert('Failed to submit plan: ' + error.message);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }
 
 // SAVE COACH PLAN TO DATABASE
@@ -1664,10 +1766,14 @@ async function saveCoachPlan(planData, clientName) {
         const data = await response.json();
         console.log('Plan saved to history with ID:', data.planId);
 
-        // Store the planId in lastPlanQuery so it can be used when sharing
+        // Store the planId and status in lastPlanQuery so it can be used when sharing
         if (lastPlanQuery) {
             lastPlanQuery.planId = data.planId;
-            console.log('✅ Plan ID stored for sharing:', data.planId);
+            lastPlanQuery.status = data.status || 'draft';
+            console.log('✅ Plan ID stored for sharing:', data.planId, 'Status:', lastPlanQuery.status);
+
+            // Update the UI to show draft status
+            updatePlanStatusUI();
         }
 
         return data.planId; // Return the planId in case caller needs it
@@ -3185,7 +3291,8 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             saveMealNote(dayIndex, mealIndex);
-        }
+        },
+        'submit-to-client': publishPlanToClient
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
