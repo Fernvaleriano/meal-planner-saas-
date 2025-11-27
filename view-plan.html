@@ -564,6 +564,189 @@
             background: #0b7a6e;
         }
 
+        .btn-submit-custom:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* USDA Search Styles */
+        .usda-search-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .usda-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e0e7ff;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .usda-search-results.active {
+            display: block;
+        }
+
+        .usda-search-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .usda-search-item:hover {
+            background: #f0fdf4;
+        }
+
+        .usda-search-item:last-child {
+            border-bottom: none;
+        }
+
+        .usda-food-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+
+        .usda-food-macros {
+            font-size: 0.75em;
+            color: #666;
+        }
+
+        .usda-search-loading, .usda-search-empty {
+            padding: 15px;
+            text-align: center;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        /* Selected Ingredients Styles */
+        .selected-ingredients {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .selected-ingredients-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .ingredients-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .no-ingredients {
+            color: #aaa;
+            font-size: 0.85em;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .ingredient-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+        }
+
+        .ingredient-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .ingredient-name {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .ingredient-qty {
+            width: 60px;
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .ingredient-unit {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .ingredient-remove {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ingredient-remove:hover {
+            background: #fecaca;
+        }
+
+        /* Calculated Totals Styles */
+        .calculated-totals {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .totals-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .total-item {
+            text-align: center;
+        }
+
+        .total-value {
+            display: block;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .total-label {
+            font-size: 0.75em;
+            opacity: 0.9;
+        }
+
         .btn-share {
             background: #28a745;
             color: white;
@@ -695,16 +878,67 @@
             <!-- Calculate Panel -->
             <div id="calculatePanel" class="custom-meal-panel active">
                 <div class="custom-meal-hint">
-                    💡 Enter ingredients with amounts. We'll calculate the macros automatically.<br>
-                    <strong>Examples:</strong> "200g chicken breast, 150g rice, 100g broccoli"
+                    💡 Search USDA database for ingredients. Add them with quantities to calculate macros.
                 </div>
-                <textarea
-                    id="customMealIngredients"
-                    class="custom-meal-textarea"
-                    placeholder="Enter your ingredients...&#10;&#10;Examples:&#10;• 200g chicken breast, 150g rice&#10;• 2 eggs, 2 slices whole wheat bread&#10;• 1 scoop whey protein, 1 banana"
-                ></textarea>
-                <button class="btn-submit-custom" onclick="submitCalculatedMeal()">
-                    🧮 Calculate & Create Meal
+
+                <!-- USDA Search Input -->
+                <div class="usda-search-container">
+                    <input
+                        type="text"
+                        id="usdaSearchInput"
+                        class="custom-meal-input"
+                        placeholder="Search foods (e.g., chicken breast, rice, broccoli)..."
+                        oninput="handleUsdaSearch(this.value)"
+                        autocomplete="off"
+                    >
+                    <div id="usdaSearchResults" class="usda-search-results"></div>
+                </div>
+
+                <!-- Selected Ingredients List -->
+                <div id="selectedIngredients" class="selected-ingredients">
+                    <div class="selected-ingredients-header">
+                        <span>Selected Ingredients</span>
+                        <span id="ingredientCount">(0)</span>
+                    </div>
+                    <div id="ingredientsList" class="ingredients-list">
+                        <div class="no-ingredients">No ingredients added yet</div>
+                    </div>
+                </div>
+
+                <!-- Calculated Totals -->
+                <div id="calculatedTotals" class="calculated-totals" style="display: none;">
+                    <div class="totals-header">📊 Total Nutrition</div>
+                    <div class="totals-grid">
+                        <div class="total-item">
+                            <span class="total-value" id="totalCalories">0</span>
+                            <span class="total-label">Calories</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-value" id="totalProtein">0g</span>
+                            <span class="total-label">Protein</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-value" id="totalCarbs">0g</span>
+                            <span class="total-label">Carbs</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-value" id="totalFat">0g</span>
+                            <span class="total-label">Fat</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meal Name Input -->
+                <input
+                    type="text"
+                    id="calculatedMealName"
+                    class="custom-meal-input"
+                    placeholder="Meal name (optional - auto-generated if blank)"
+                    style="margin-top: 10px;"
+                >
+
+                <button class="btn-submit-custom" onclick="submitCalculatedMeal()" id="createCalculatedMealBtn" disabled>
+                    🧮 Create Meal
                 </button>
             </div>
 
@@ -781,6 +1015,11 @@
         let currentCustomMealIndex = null;
         let currentCustomMealDayIndex = null;
         let currentCustomMealMealIndex = null;
+
+        // USDA search state
+        const USDA_SEARCH_ENDPOINT = '/.netlify/functions/usda-search';
+        let selectedIngredients = [];
+        let usdaSearchTimeout = null;
 
         // Simple notification function
         function showNotification(message, type = 'info') {
@@ -1413,14 +1652,22 @@
             currentCustomMealDayIndex = dayIndex;
             currentCustomMealMealIndex = mealIndex;
 
-            // Reset the form
-            document.getElementById('customMealIngredients').value = '';
+            // Reset manual panel form
             document.getElementById('customMealName').value = '';
             document.getElementById('customMealCalories').value = '';
             document.getElementById('customMealProtein').value = '';
             document.getElementById('customMealCarbs').value = '';
             document.getElementById('customMealFat').value = '';
             document.getElementById('customMealInstructions').value = '';
+
+            // Reset USDA search/calculate panel
+            document.getElementById('usdaSearchInput').value = '';
+            document.getElementById('usdaSearchResults').classList.remove('active');
+            document.getElementById('usdaSearchResults').innerHTML = '';
+            document.getElementById('calculatedMealName').value = '';
+            selectedIngredients = [];
+            renderSelectedIngredients();
+            updateCalculatedTotals();
 
             // Reset to calculate tab
             switchCustomMealTab('calculate');
@@ -1452,6 +1699,155 @@
                 tabs[1].classList.add('active');
                 document.getElementById('manualPanel').classList.add('active');
             }
+        }
+
+        // ===== USDA SEARCH FUNCTIONS =====
+
+        function handleUsdaSearch(query) {
+            // Clear previous timeout
+            if (usdaSearchTimeout) {
+                clearTimeout(usdaSearchTimeout);
+            }
+
+            const resultsDiv = document.getElementById('usdaSearchResults');
+
+            // If query is too short, hide results
+            if (query.trim().length < 2) {
+                resultsDiv.classList.remove('active');
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            // Show loading state
+            resultsDiv.classList.add('active');
+            resultsDiv.innerHTML = '<div class="usda-search-loading">Searching USDA database...</div>';
+
+            // Debounce the search (wait 300ms after user stops typing)
+            usdaSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${USDA_SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Search failed');
+                    }
+
+                    if (data.foods && data.foods.length > 0) {
+                        resultsDiv.innerHTML = data.foods.map(food => `
+                            <div class="usda-search-item" onclick='addIngredientFromUsda(${JSON.stringify(food).replace(/'/g, "&#39;")})'>
+                                <div class="usda-food-name">${escapeHtml(food.name)}</div>
+                                <div class="usda-food-macros">
+                                    Per 100g: ${food.caloriesPer100g} cal | ${food.proteinPer100g}g protein | ${food.carbsPer100g}g carbs | ${food.fatPer100g}g fat
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        resultsDiv.innerHTML = '<div class="usda-search-empty">No foods found. Try a different search term.</div>';
+                    }
+                } catch (error) {
+                    console.error('USDA search error:', error);
+                    resultsDiv.innerHTML = '<div class="usda-search-empty">Search failed. Please try again.</div>';
+                }
+            }, 300);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addIngredientFromUsda(food) {
+            // Add ingredient with default 100g quantity
+            selectedIngredients.push({
+                fdcId: food.fdcId,
+                name: food.name,
+                quantity: 100,
+                caloriesPer100g: food.caloriesPer100g,
+                proteinPer100g: food.proteinPer100g,
+                carbsPer100g: food.carbsPer100g,
+                fatPer100g: food.fatPer100g
+            });
+
+            // Clear search
+            document.getElementById('usdaSearchInput').value = '';
+            document.getElementById('usdaSearchResults').classList.remove('active');
+            document.getElementById('usdaSearchResults').innerHTML = '';
+
+            // Update UI
+            renderSelectedIngredients();
+            updateCalculatedTotals();
+        }
+
+        function removeIngredient(index) {
+            selectedIngredients.splice(index, 1);
+            renderSelectedIngredients();
+            updateCalculatedTotals();
+        }
+
+        function updateIngredientQuantity(index, quantity) {
+            const qty = parseFloat(quantity) || 0;
+            selectedIngredients[index].quantity = qty;
+            updateCalculatedTotals();
+        }
+
+        function renderSelectedIngredients() {
+            const listDiv = document.getElementById('ingredientsList');
+            const countSpan = document.getElementById('ingredientCount');
+
+            countSpan.textContent = `(${selectedIngredients.length})`;
+
+            if (selectedIngredients.length === 0) {
+                listDiv.innerHTML = '<div class="no-ingredients">No ingredients added yet</div>';
+                return;
+            }
+
+            listDiv.innerHTML = selectedIngredients.map((ing, index) => `
+                <div class="ingredient-item">
+                    <span class="ingredient-name" title="${escapeHtml(ing.name)}">${truncateName(ing.name, 25)}</span>
+                    <input type="number" class="ingredient-qty" value="${ing.quantity}" min="1"
+                           onchange="updateIngredientQuantity(${index}, this.value)"
+                           onclick="event.stopPropagation()">
+                    <span class="ingredient-unit">g</span>
+                    <button class="ingredient-remove" onclick="removeIngredient(${index})" title="Remove">×</button>
+                </div>
+            `).join('');
+        }
+
+        function truncateName(name, maxLength) {
+            if (name.length <= maxLength) return name;
+            return name.substring(0, maxLength) + '...';
+        }
+
+        function updateCalculatedTotals() {
+            const totalsDiv = document.getElementById('calculatedTotals');
+            const createBtn = document.getElementById('createCalculatedMealBtn');
+
+            if (selectedIngredients.length === 0) {
+                totalsDiv.style.display = 'none';
+                createBtn.disabled = true;
+                return;
+            }
+
+            // Calculate totals based on quantities
+            let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+            selectedIngredients.forEach(ing => {
+                const multiplier = ing.quantity / 100;
+                totalCal += ing.caloriesPer100g * multiplier;
+                totalProtein += ing.proteinPer100g * multiplier;
+                totalCarbs += ing.carbsPer100g * multiplier;
+                totalFat += ing.fatPer100g * multiplier;
+            });
+
+            // Update display
+            document.getElementById('totalCalories').textContent = Math.round(totalCal);
+            document.getElementById('totalProtein').textContent = Math.round(totalProtein) + 'g';
+            document.getElementById('totalCarbs').textContent = Math.round(totalCarbs) + 'g';
+            document.getElementById('totalFat').textContent = Math.round(totalFat) + 'g';
+
+            totalsDiv.style.display = 'block';
+            createBtn.disabled = false;
         }
 
         async function submitManualMeal() {
@@ -1521,17 +1917,12 @@
         }
 
         async function submitCalculatedMeal() {
-            const userInput = document.getElementById('customMealIngredients').value.trim();
-
-            if (!userInput) {
-                alert('Please enter some ingredients');
+            // Check if we have selected ingredients
+            if (selectedIngredients.length === 0) {
+                alert('Please search and add some ingredients first');
                 return;
             }
 
-            // Close modal and show loading on the meal card
-            closeCustomMealModal();
-
-            const mealCard = document.getElementById(`meal-${currentCustomMealIndex}`);
             const index = currentCustomMealIndex;
             const dayIndex = currentCustomMealDayIndex;
             const mealIndex = currentCustomMealMealIndex;
@@ -1547,97 +1938,75 @@
             // Save current meal state for undo
             const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
             previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
-            console.log(`💾 Saved previous state for calculated custom meal:`, previousMealStates[stateKey]);
+            console.log(`💾 Saved previous state for USDA custom meal:`, previousMealStates[stateKey]);
 
-            // Show loading
-            mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Creating custom meal...</p>';
+            // Calculate totals from selected ingredients
+            let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+            const ingredients = [];
 
-            try {
-                // Parse user input into ingredients array
-                // First, insert commas where we see ") CapitalLetter" pattern
-                const normalizedInput = userInput.replace(/\)\s+([A-Z])/g, '), $1');
+            selectedIngredients.forEach(ing => {
+                const multiplier = ing.quantity / 100;
+                totalCal += ing.caloriesPer100g * multiplier;
+                totalProtein += ing.proteinPer100g * multiplier;
+                totalCarbs += ing.carbsPer100g * multiplier;
+                totalFat += ing.fatPer100g * multiplier;
 
-                // Split by comma, "and", "with", or newline
-                const rawIngredients = normalizedInput
-                    .split(/\s*,\s*|\s+and\s+|\s+with\s+|\n/)
-                    .map(s => s.trim())
-                    .filter(s => s.length > 0);
+                // Format ingredient name with quantity
+                const shortName = ing.name.length > 40 ? ing.name.substring(0, 40) + '...' : ing.name;
+                ingredients.push(`${shortName} (${ing.quantity}g)`);
+            });
 
-                // Format ingredients properly
-                const ingredients = rawIngredients.map(ing => {
-                    if (ing.includes('(') && ing.includes(')')) {
-                        return ing;
-                    }
-                    const amountMatch = ing.match(/^(\d+\.?\d*\s*(?:g|oz|cup|cups|tbsp|tsp|ml|scoop|scoops|slice|slices|piece|pieces|whole|large|medium|small)?)\s+(.+)$/i);
-                    if (amountMatch) {
-                        const amount = amountMatch[1].trim();
-                        const food = amountMatch[2].trim();
-                        const foodCapitalized = food.replace(/\b\w/g, c => c.toUpperCase());
-                        return `${foodCapitalized} (${amount})`;
-                    }
-                    return ing.replace(/\b\w/g, c => c.toUpperCase());
-                });
-
-                console.log('🎯 Custom meal ingredients:', ingredients);
-
-                // Create meal name from ingredients
-                const mealName = ingredients.length <= 2
-                    ? ingredients.join(' with ')
-                    : `${ingredients[0]} with ${ingredients.length - 1} more`;
-
-                // Send to backend for macro calculation
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        prompt: `Return this exact meal as JSON, no changes:\n{"type":"${meal.type || 'meal'}","name":"${mealName}","ingredients":${JSON.stringify(ingredients)},"instructions":"Prepare as desired."}`,
-                        isJson: true,
-                        skipAutoScale: true,
-                        targets: { calories: 0, protein: 0, carbs: 0, fat: 0 },
-                        mealsPerDay: 1
-                    })
-                });
-
-                if (!response.ok) throw new Error('API request failed');
-
-                const data = await response.json();
-
-                let customMealData;
-                if (data.success && data.data) {
-                    customMealData = data.data;
-                    console.log('✅ Custom meal created:', customMealData);
+            // Generate meal name
+            let mealName = document.getElementById('calculatedMealName').value.trim();
+            if (!mealName) {
+                // Auto-generate name from first ingredient(s)
+                if (selectedIngredients.length === 1) {
+                    const firstName = selectedIngredients[0].name.split(',')[0];
+                    mealName = firstName.length > 30 ? firstName.substring(0, 30) : firstName;
                 } else {
-                    throw new Error('Failed to calculate macros');
+                    const firstName = selectedIngredients[0].name.split(',')[0];
+                    const shortFirst = firstName.length > 20 ? firstName.substring(0, 20) : firstName;
+                    mealName = `${shortFirst} + ${selectedIngredients.length - 1} more`;
                 }
-
-                // Ensure required fields
-                customMealData.type = meal.type || 'meal';
-                customMealData.name = customMealData.name || mealName;
-
-                // Save the custom meal
-                if (dayIndex !== null && mealIndex !== null) {
-                    currentPlan.days[dayIndex].plan[mealIndex] = customMealData;
-                } else {
-                    currentPlan.meals[index] = customMealData;
-                }
-                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
-
-                await savePlanToDatabase();
-
-                // Update day totals if multi-day
-                if (dayIndex !== null) {
-                    updateDayTotals(dayIndex);
-                }
-
-                displayMealPlan();
-
-                showNotification(`Custom meal created: ${customMealData.calories} cal`, 'success');
-
-            } catch (error) {
-                console.error('❌ Custom meal error:', error);
-                alert('Failed to create custom meal. Please try again.');
-                displayMealPlan();
             }
+
+            // Create the custom meal object
+            const customMealData = {
+                type: meal.type || 'meal',
+                name: mealName,
+                ingredients: ingredients,
+                calories: Math.round(totalCal),
+                protein: Math.round(totalProtein),
+                carbs: Math.round(totalCarbs),
+                fat: Math.round(totalFat),
+                instructions: 'Prepare as desired.',
+                source: 'USDA FoodData Central'
+            };
+
+            console.log('✅ USDA Custom meal created:', customMealData);
+
+            // Save the custom meal
+            if (dayIndex !== null && mealIndex !== null) {
+                currentPlan.days[dayIndex].plan[mealIndex] = customMealData;
+            } else {
+                currentPlan.meals[index] = customMealData;
+            }
+            localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+            // Close modal
+            closeCustomMealModal();
+
+            // Save to database
+            await savePlanToDatabase();
+
+            // Update day totals if multi-day
+            if (dayIndex !== null) {
+                updateDayTotals(dayIndex);
+            }
+
+            displayMealPlan();
+
+            showNotification(`Custom meal created: ${customMealData.calories} cal, ${customMealData.protein}g protein`, 'success');
         }
 
         function displayMealPlan() {
