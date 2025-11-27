@@ -1623,11 +1623,14 @@ REVISION RULES - Follow these carefully:
 4. ADD NEW INGREDIENT: If user says "add chicken" to a meal that has none,
    ADD it on top - the meal will be bigger. Don't reduce other ingredients.
 
-5. COMPLETE REPLACEMENT: If user specifies an entirely new meal or uses words like
-   "just", "only", "make it", "change to", or "replace with", use ONLY the ingredients
-   they specify. Do NOT add extra ingredients to match the original meal's calories.
-   The new calorie total will be whatever the specified ingredients naturally add up to.
-   Example: "just a protein shake with creatine" = ONLY protein powder + creatine, nothing else.
+5. COMPLETE REPLACEMENT: If user specifies a simple meal or uses words like
+   "just", "only", "make it", "change to", or "replace with":
+   - Return ONLY the EXACT ingredients they specify - NOTHING ELSE
+   - Do NOT add milk, water, banana, oats, peanut butter or ANY other ingredients
+   - Do NOT try to make it a "complete meal" or "balanced"
+   - Example: "just protein shake 2 scoops" = {"ingredients": ["Whey Protein (2 scoops)"]} - ONLY ONE INGREDIENT
+   - Example: "only eggs and toast" = {"ingredients": ["Eggs (2 whole)", "Whole Wheat Bread (2 slices)"]} - ONLY TWO INGREDIENTS
+   - The user WANTS a simple/small meal - this is intentional, not a mistake
 
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
