@@ -2543,49 +2543,62 @@ function matchFoodToDatabase(foodName, amount = "") {
  * Examples: "200g" × 1.15 → "230g", "2 whole" × 1.15 → "2 whole" (rounded)
  */
 function scaleAmountString(amountStr, factor) {
-  // Extract number from amount string
-  const numberMatch = amountStr.match(/([\d\.]+)/);
-  if (!numberMatch) return amountStr;
+  // Parse number from amount string - handle fractions and mixed numbers
+  // Examples: "2", "0.5", "1/2", "2 1/2", "1.5"
+  let originalNumber = 0;
+  let restOfString = amountStr;
 
-  const originalNumber = parseFloat(numberMatch[1]);
+  // Pattern 1: Mixed number like "2 1/2" or "1 1/4"
+  const mixedMatch = amountStr.match(/^(\d+)\s+(\d+)\/(\d+)(.*)$/);
+  if (mixedMatch) {
+    const whole = parseInt(mixedMatch[1]);
+    const numerator = parseInt(mixedMatch[2]);
+    const denominator = parseInt(mixedMatch[3]);
+    originalNumber = whole + (numerator / denominator);
+    restOfString = mixedMatch[4];
+  } else {
+    // Pattern 2: Simple fraction like "1/2" or "3/4"
+    const fractionMatch = amountStr.match(/^(\d+)\/(\d+)(.*)$/);
+    if (fractionMatch) {
+      const numerator = parseInt(fractionMatch[1]);
+      const denominator = parseInt(fractionMatch[2]);
+      originalNumber = numerator / denominator;
+      restOfString = fractionMatch[3];
+    } else {
+      // Pattern 3: Decimal or whole number like "2.5" or "3"
+      const numberMatch = amountStr.match(/^([\d\.]+)(.*)$/);
+      if (numberMatch) {
+        originalNumber = parseFloat(numberMatch[1]);
+        restOfString = numberMatch[2];
+      } else {
+        // Can't parse number, return as-is
+        return amountStr;
+      }
+    }
+  }
+
   const scaledNumber = originalNumber * factor;
 
-  // Get the rest of the string (unit + descriptors)
-  const restOfString = amountStr.substring(numberMatch.index + numberMatch[1].length);
-
-  // For count units (whole, medium, slices, pieces, scoop, bottle, bar, stick, etc.), use intelligent rounding
-  if (restOfString.match(/\s*(whole|medium|large|small|slices?|pieces?|scoops?|servings?|bottles?|bars?|sticks?|cans?|packets?|pouches?)/i)) {
-    // For small counts (< 3), round to nearest 0.5
-    if (scaledNumber < 3) {
-      let rounded = Math.round(scaledNumber * 2) / 2;
-      // PREVENT ZERO: minimum 0.5 (displayed as 1/2)
-      if (rounded < 0.5) rounded = 0.5;
-      // If rounded to 0.5, show as "1/2"
-      if (rounded === 0.5) return `1/2${restOfString}`;
-      // If it has .5, show as "X 1/2" format (e.g., "2.5 slices" → "2 1/2 slices")
-      if (rounded % 1 === 0.5) {
-        const whole = Math.floor(rounded);
-        return `${whole} 1/2${restOfString}`;
-      }
-      return `${rounded}${restOfString}`;
-    }
-    // For larger counts, round to whole number (minimum 1)
+  // For count units (shake, bottle, bar, stick, container, etc.), ALWAYS round to whole numbers >= 1
+  // These are discrete items that can't be split
+  if (restOfString.match(/\s*(shake|shakes|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches|container|containers|tortilla|tortillas|whole|medium|large|small|slices?|pieces?|scoops?|servings?)/i)) {
     let rounded = Math.round(scaledNumber);
+    // MINIMUM 1 for countable items - you can't have 0.5 bottles or 0.3 bars
     if (rounded < 1) rounded = 1;
     return `${rounded}${restOfString}`;
   }
 
   // For weight/volume units (g, oz, tbsp, cups, ml), round to whole numbers
-  if (restOfString.match(/\s*(g|oz|tbsp|tsp|cup|ml|kg)/i)) {
+  if (restOfString.match(/\s*(g|oz|tbsp|tsp|cup|ml|kg|lbs?|pounds?)/i)) {
     let rounded = Math.round(scaledNumber);
     // PREVENT ZERO: minimum 1g, 1oz, etc.
     if (rounded < 1) rounded = 1;
     return `${rounded}${restOfString}`;
   }
 
-  // Default: round to 1 decimal place (minimum 0.1)
-  let rounded = Math.round(scaledNumber * 10) / 10;
-  if (rounded < 0.1) rounded = 0.1;
+  // Default: round to whole number (minimum 1)
+  let rounded = Math.round(scaledNumber);
+  if (rounded < 1) rounded = 1;
   return `${rounded}${restOfString}`;
 }
 
@@ -3405,12 +3418,21 @@ function scaleIngredientPortions(ingredients, scaleFactor) {
   return ingredients.map(ing => {
     if (typeof ing !== 'string') return ing;
 
-    // Match patterns like (200g), (1 cup), (2 large), (1 bottle), (1 bar), etc.
-    return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches)?\)/gi, (match, num, unit) => {
+    // Match patterns like (200g), (1 cup), (2 large), (1 bottle), (70g dry), (150g cooked), etc.
+    // Updated pattern to capture optional descriptor after the unit (dry, cooked, raw, etc.)
+    return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches|tortilla|tortillas|container|containers)?(\s+(?:dry|cooked|raw|whole|uncooked))?\)/gi, (match, num, unit, descriptor) => {
       let scaledNum = Math.round(parseFloat(num) * scaleFactor);
       // PREVENT ZERO: minimum value of 1
       if (scaledNum < 1) scaledNum = 1;
-      return unit ? `(${scaledNum} ${unit})` : `(${scaledNum})`;
+      if (unit && descriptor) {
+        return `(${scaledNum} ${unit}${descriptor})`;
+      } else if (unit) {
+        return `(${scaledNum} ${unit})`;
+      } else if (descriptor) {
+        return `(${scaledNum}${descriptor})`;
+      } else {
+        return `(${scaledNum})`;
+      }
     });
   });
 }
@@ -3418,15 +3440,26 @@ function scaleIngredientPortions(ingredients, scaleFactor) {
 /**
  * Update portion sizes in meal name to reflect scaling
  * e.g., "Chicken Breast (200g) with Rice (150g)" becomes "Chicken Breast (250g) with Rice (188g)"
+ * Also handles descriptors like "Oatmeal (70g dry)" becomes "Oatmeal (88g dry)"
  */
 function updateMealNamePortions(mealName, scaleFactor) {
   if (!mealName) return mealName;
 
-  return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches)?\)/gi, (match, num, unit) => {
+  // Match patterns like (200g), (1 cup), (2 large), (1 bottle), (70g dry), (150g cooked), etc.
+  // Updated pattern to capture optional descriptor after the unit (dry, cooked, raw, etc.)
+  return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches|tortilla|tortillas|container|containers)?(\s+(?:dry|cooked|raw|whole|uncooked))?\)/gi, (match, num, unit, descriptor) => {
     let scaledNum = Math.round(parseFloat(num) * scaleFactor);
     // PREVENT ZERO: minimum value of 1
     if (scaledNum < 1) scaledNum = 1;
-    return unit ? `(${scaledNum} ${unit})` : `(${scaledNum})`;
+    if (unit && descriptor) {
+      return `(${scaledNum} ${unit}${descriptor})`;
+    } else if (unit) {
+      return `(${scaledNum} ${unit})`;
+    } else if (descriptor) {
+      return `(${scaledNum}${descriptor})`;
+    } else {
+      return `(${scaledNum})`;
+    }
   });
 }
 
@@ -3844,21 +3877,43 @@ exports.handler = async (event, context) => {
               return scaleIngredientString(ing, finalScale);
             }
             return ing;
-          }) : meal.ingredients;
+          }) : [];
 
-          // Recalculate macros from scaled ingredients for accuracy
-          const recalculated = scaledIngredients ? calculateMacrosFromIngredients(scaledIngredients) : null;
+          // CRITICAL: Always recalculate macros from scaled ingredients
+          // Never fall back to multiplying old macros - this causes desync!
+          if (!scaledIngredients || scaledIngredients.length === 0) {
+            console.error(`❌ FINAL SAFETY CHECK: Meal "${meal.name}" has no ingredients! Cannot scale properly.`);
+            console.error('This will cause macro/ingredient desync. Keeping original meal unchanged.');
+            return meal; // Return unchanged to avoid desync
+          }
+
+          const recalculated = calculateMacrosFromIngredients(scaledIngredients);
+
+          // Verify recalculation succeeded
+          if (!recalculated || !recalculated.totals) {
+            console.error(`❌ FINAL SAFETY CHECK: Failed to recalculate macros for "${meal.name}"`);
+            console.error('Ingredients:', scaledIngredients);
+            console.error('This will cause macro/ingredient desync. Keeping original meal unchanged.');
+            return meal; // Return unchanged to avoid desync
+          }
+
+          // Sync check: Ensure ingredients and macros match
+          const syncCheck = Math.abs(recalculated.totals.calories - (meal.calories * finalScale));
+          if (syncCheck > 100) {
+            console.warn(`⚠️ SYNC WARNING: ${meal.name} - Recalculated ${recalculated.totals.calories}cal vs expected ${Math.round(meal.calories * finalScale)}cal (diff: ${Math.round(syncCheck)}cal)`);
+          }
 
           return {
             ...meal,
             name: updateMealNamePortions(meal.name, finalScale),
             ingredients: scaledIngredients,
-            calories: recalculated ? recalculated.totals.calories : Math.round(meal.calories * finalScale),
-            protein: recalculated ? recalculated.totals.protein : Math.round(meal.protein * finalScale),
-            carbs: recalculated ? recalculated.totals.carbs : Math.round(meal.carbs * finalScale),
-            fat: recalculated ? recalculated.totals.fat : Math.round(meal.fat * finalScale),
-            breakdown: recalculated ? recalculated.breakdown : meal.breakdown,
-            _forcedScale: finalScale.toFixed(2)
+            calories: recalculated.totals.calories,
+            protein: recalculated.totals.protein,
+            carbs: recalculated.totals.carbs,
+            fat: recalculated.totals.fat,
+            breakdown: recalculated.breakdown,
+            _forcedScale: finalScale.toFixed(2),
+            _syncVerified: syncCheck < 100 // Flag to indicate if sync check passed
           };
         });
 
@@ -3867,6 +3922,55 @@ exports.handler = async (event, context) => {
           protein: acc.protein + meal.protein
         }), { calories: 0, protein: 0 });
         console.log(`✅ After forced scaling: ${newTotals.calories} cal, ${newTotals.protein}g protein`);
+      }
+    }
+
+    // ===== FINAL VALIDATION: Check for macro/ingredient desync =====
+    if (correctedData.plan && Array.isArray(correctedData.plan)) {
+      console.log('\n🔍 FINAL VALIDATION: Checking for macro/ingredient desync...');
+      let hasDesyncIssues = false;
+
+      correctedData.plan.forEach((meal, idx) => {
+        if (!meal.ingredients || meal.ingredients.length === 0) {
+          console.warn(`⚠️ Meal ${idx + 1} "${meal.name}" has no ingredients but has ${meal.calories}cal`);
+          hasDesyncIssues = true;
+          return;
+        }
+
+        // Recalculate macros from ingredients as final check
+        const verification = calculateMacrosFromIngredients(meal.ingredients);
+        if (!verification || !verification.totals) {
+          console.warn(`⚠️ Meal ${idx + 1} "${meal.name}" - Failed to verify macros`);
+          return;
+        }
+
+        const calorieDiff = Math.abs(meal.calories - verification.totals.calories);
+        const proteinDiff = Math.abs(meal.protein - verification.totals.protein);
+
+        // Allow small rounding differences (up to 10 cal or 2g protein)
+        if (calorieDiff > 10 || proteinDiff > 2) {
+          console.error(`❌ DESYNC DETECTED in Meal ${idx + 1} "${meal.name}":`);
+          console.error(`   Displayed: ${meal.calories}cal, ${meal.protein}g protein`);
+          console.error(`   Actual from ingredients: ${verification.totals.calories}cal, ${verification.totals.protein}g protein`);
+          console.error(`   Difference: ${calorieDiff}cal, ${proteinDiff}g protein`);
+          console.error(`   Ingredients:`, meal.ingredients);
+          hasDesyncIssues = true;
+
+          // Auto-fix: Replace with verified values
+          console.log(`   🔧 AUTO-FIX: Correcting macros to match ingredients`);
+          meal.calories = verification.totals.calories;
+          meal.protein = verification.totals.protein;
+          meal.carbs = verification.totals.carbs;
+          meal.fat = verification.totals.fat;
+          meal.breakdown = verification.breakdown;
+          meal._autoFixed = true;
+        }
+      });
+
+      if (!hasDesyncIssues) {
+        console.log('✅ FINAL VALIDATION PASSED: All meals have matching macros and ingredients');
+      } else {
+        console.log('⚠️ FINAL VALIDATION: Some issues detected and auto-fixed');
       }
     }
 
