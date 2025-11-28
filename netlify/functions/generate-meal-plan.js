@@ -3807,6 +3807,43 @@ exports.handler = async (event, context) => {
       correctedData.calculation_notes = 'WARNING: Original calculation was unreasonable, using target macros';
     }
 
+    // FINAL SAFETY CHECK: Ensure day plan totals are within acceptable range
+    if (correctedData.plan && Array.isArray(correctedData.plan) && targets) {
+      const finalTotals = correctedData.plan.reduce((acc, meal) => ({
+        calories: acc.calories + (meal.calories || 0),
+        protein: acc.protein + (meal.protein || 0),
+        carbs: acc.carbs + (meal.carbs || 0),
+        fat: acc.fat + (meal.fat || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+      const calorieVariance = (finalTotals.calories - targets.calories) / targets.calories;
+
+      // If total is off by more than 15%, force proportional scaling
+      if (Math.abs(calorieVariance) > 0.15) {
+        console.log(`⚠️ FINAL SAFETY CHECK: Total ${finalTotals.calories} cal is ${(calorieVariance * 100).toFixed(1)}% off target ${targets.calories}`);
+        const finalScale = targets.calories / finalTotals.calories;
+        console.log(`🔧 FORCING final scale of ${finalScale.toFixed(2)}x on all meals`);
+
+        correctedData.plan = correctedData.plan.map(meal => {
+          // Scale macros directly (ingredients already processed)
+          return {
+            ...meal,
+            calories: Math.round(meal.calories * finalScale),
+            protein: Math.round(meal.protein * finalScale),
+            carbs: Math.round(meal.carbs * finalScale),
+            fat: Math.round(meal.fat * finalScale),
+            _forcedScale: finalScale.toFixed(2)
+          };
+        });
+
+        const newTotals = correctedData.plan.reduce((acc, meal) => ({
+          calories: acc.calories + meal.calories,
+          protein: acc.protein + meal.protein
+        }), { calories: 0, protein: 0 });
+        console.log(`✅ After forced scaling: ${newTotals.calories} cal, ${newTotals.protein}g protein`);
+      }
+    }
+
     return {
       statusCode: 200,
       headers: {
