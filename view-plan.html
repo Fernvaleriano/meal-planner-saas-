@@ -2341,7 +2341,6 @@
             // Calculate totals from selected ingredients
             let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
             const ingredients = [];
-            const ingredientNames = [];
 
             selectedIngredients.forEach(ing => {
                 // Use quantityGrams for accurate calculation
@@ -2355,24 +2354,25 @@
                 // Format ingredient with unit (e.g., "Chicken (1 Cup)" or "Rice (150g)")
                 const unitDisplay = ing.selectedUnit === 'g' ? `${Math.round(grams)}g` : `${ing.quantity} ${ing.selectedUnit}`;
                 ingredients.push(`${ing.name} (${unitDisplay})`);
-
-                // Store short name for meal title
-                const shortName = ing.name.split(',')[0].trim();
-                ingredientNames.push(shortName.length > 25 ? shortName.substring(0, 22) + '...' : shortName);
             });
 
-            // Generate meal name - show all ingredients
+            // Generate meal name - show ALL ingredients with servings
+            // e.g., "200g Sirloin Steak, 1 Cup Brown Rice, 2 Tbsp Olive Oil"
             let mealName = document.getElementById('calculatedMealName').value.trim();
             if (!mealName) {
-                // Show all ingredients joined, or truncate if too long
-                if (ingredientNames.length === 1) {
-                    mealName = ingredientNames[0];
-                } else if (ingredientNames.length === 2) {
-                    mealName = ingredientNames.join(' & ');
-                } else {
-                    // Show first two and count
-                    mealName = `${ingredientNames[0]}, ${ingredientNames[1]} + ${ingredientNames.length - 2} more`;
-                }
+                const ingredientParts = selectedIngredients.map(ing => {
+                    const grams = ing.quantityGrams || ing.quantity;
+                    const shortName = ing.name.split(',')[0].trim();
+                    const displayName = shortName.length > 30 ? shortName.substring(0, 27) + '...' : shortName;
+
+                    if (ing.selectedUnit === 'g') {
+                        return `${Math.round(grams)}g ${displayName}`;
+                    } else {
+                        return `${ing.quantity} ${ing.selectedUnit} ${displayName}`;
+                    }
+                });
+
+                mealName = ingredientParts.join(', ');
             }
 
             // Create the custom meal object
