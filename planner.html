@@ -3900,22 +3900,44 @@ function parseFraction(str) {
 
 function parseIngredient(ingredientStr) {
     // NEW FORMAT: "Food Name (amount)" - e.g., "Chicken Breast (200g)" or "Eggs (2 whole)"
-    // Pattern 1: "Food Name (quantity unit)" - e.g., "Chicken Breast (200g)" or "Olive Oil (1 tbsp)"
-    const parenthesesPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|whole|slices?|scoops?|servings?|dry|cooked|ml|l|liters?|bars?|bottles?|sticks?|cans?|packets?|pouches?|containers?|tortillas?)?\)$/i;
+    // Pattern 1: "Food Name (quantity unit descriptor)" - handles formats like:
+    //   - "Chicken Breast (200g)"
+    //   - "Olive Oil (1 tbsp)"
+    //   - "Quinoa (200g cooked)"
+    //   - "Oats (80g dry)"
+    const parenthesesPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|whole|slices?|scoops?|servings?|ml|l|liters?|bars?|bottles?|sticks?|cans?|packets?|pouches?|containers?|tortillas?)?(?:\s+(dry|cooked|raw|uncooked))?\)$/i;
     const parenthesesMatch = ingredientStr.match(parenthesesPattern);
 
     if (parenthesesMatch) {
         const name = parenthesesMatch[1].trim();
         const quantityStr = parenthesesMatch[2].trim();
         const quantity = parseFraction(quantityStr);
-        const unit = (parenthesesMatch[3] || 'unit').toLowerCase();
+        let unit = (parenthesesMatch[3] || 'unit').toLowerCase();
+        const descriptor = parenthesesMatch[4] ? parenthesesMatch[4].toLowerCase() : null;
 
-        // Filter out descriptors like "dry", "cooked", and non-measurement units
-        const filteredUnit = ['dry', 'cooked', 'whole'].includes(unit) ? 'unit' : unit;
+        // If descriptor was captured as the unit (old format fallback), treat as 'unit'
+        const filteredUnit = ['dry', 'cooked', 'whole', 'raw', 'uncooked'].includes(unit) ? 'unit' : unit;
 
         return {
             quantity: quantity,
             unit: filteredUnit,
+            name: name.toLowerCase().trim()
+        };
+    }
+
+    // Pattern 2: Handle "dry" or "cooked" appearing as standalone unit (fallback for edge cases)
+    // e.g., "Quinoa (200 cooked)" where no unit like 'g' is present
+    const descriptorOnlyPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(dry|cooked|raw|uncooked)\)$/i;
+    const descriptorMatch = ingredientStr.match(descriptorOnlyPattern);
+
+    if (descriptorMatch) {
+        const name = descriptorMatch[1].trim();
+        const quantityStr = descriptorMatch[2].trim();
+        const quantity = parseFraction(quantityStr);
+        // Assume grams when descriptor is used without unit
+        return {
+            quantity: quantity,
+            unit: 'g',
             name: name.toLowerCase().trim()
         };
     }

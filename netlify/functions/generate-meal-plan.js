@@ -753,6 +753,11 @@ const FOOD_DATABASE = {
   'lifeway_kefir_blueberry': { per: '1 cup 240ml', cal: 140, protein: 11, carbs: 20, fat: 2 },
   'fairlife_nutrition_plan_chocolate': { per: '1 bottle 340ml', cal: 150, protein: 30, carbs: 3, fat: 2.5 },
   'fairlife_nutrition_plan_vanilla': { per: '1 bottle 340ml', cal: 150, protein: 30, carbs: 2, fat: 2.5 },
+  'fairlife_chocolate_milk': { per: '240ml', cal: 140, protein: 13, carbs: 13, fat: 4.5 },
+  'fairlife_chocolate': { per: '240ml', cal: 140, protein: 13, carbs: 13, fat: 4.5 },
+  'fairlife_2_percent_milk': { per: '240ml', cal: 120, protein: 13, carbs: 6, fat: 4.5 },
+  'fairlife_whole_milk': { per: '240ml', cal: 150, protein: 13, carbs: 6, fat: 8 },
+  'fairlife_skim_milk': { per: '240ml', cal: 80, protein: 13, carbs: 6, fat: 0 },
   'daisy_cottage_cheese_low_fat': { per: '1/2 cup 113g', cal: 90, protein: 13, carbs: 4, fat: 2.5 },
   'good_culture_cottage_cheese_classic': { per: '1 container 150g', cal: 140, protein: 19, carbs: 5, fat: 5 },
   'good_culture_cottage_cheese_strawberry': { per: '1 container 150g', cal: 150, protein: 15, carbs: 12, fat: 4 },
@@ -954,6 +959,10 @@ const FOOD_DATABASE = {
   'quaker_steel_cut_oats': { per: '1/4 cup dry 40g', cal: 150, protein: 5, carbs: 27, fat: 2.5 },
   'kodiak_cakes_oatmeal_chocolate_chip': { per: '1 cup prepared 53g dry', cal: 190, protein: 12, carbs: 30, fat: 4 },
   'kodiak_cakes_oatmeal_maple_brown_sugar': { per: '1 cup prepared 53g dry', cal: 190, protein: 12, carbs: 32, fat: 3 },
+  'kodiak_cakes_protein_pancake_mix': { per: '100g dry', cal: 333, protein: 23, carbs: 53, fat: 3 },
+  'kodiak_cakes_pancake_mix': { per: '100g dry', cal: 333, protein: 23, carbs: 53, fat: 3 },
+  'kodiak_cakes_muffin_mix': { per: '100g dry', cal: 350, protein: 17, carbs: 58, fat: 5 },
+  'kodiak_cakes_muffin': { per: '1 muffin 57g', cal: 190, protein: 9, carbs: 30, fat: 4 },
   'rxbar_oats_chocolate': { per: '1 cup 74g', cal: 280, protein: 11, carbs: 41, fat: 9 },
   'rxbar_oats_apple_cinnamon': { per: '1 cup 74g', cal: 280, protein: 11, carbs: 42, fat: 8 },
   'better_oats_oat_fit_cinnamon_roll': { per: '1 packet 28g', cal: 100, protein: 7, carbs: 19, fat: 2 },
@@ -2127,6 +2136,15 @@ function matchFoodToDatabase(foodName, amount = "") {
     'lifeway kefir blueberry': 'lifeway_kefir_blueberry',
     'fairlife nutrition plan chocolate': 'fairlife_nutrition_plan_chocolate',
     'fairlife nutrition plan vanilla': 'fairlife_nutrition_plan_vanilla',
+    'fairlife chocolate milk': 'fairlife_chocolate_milk',
+    'fairlife chocolate': 'fairlife_chocolate',
+    'fairlife milk chocolate': 'fairlife_chocolate_milk',
+    'fairlife 2% milk': 'fairlife_2_percent_milk',
+    'fairlife 2 percent milk': 'fairlife_2_percent_milk',
+    'fairlife whole milk': 'fairlife_whole_milk',
+    'fairlife skim milk': 'fairlife_skim_milk',
+    'fairlife fat free milk': 'fairlife_skim_milk',
+    'fairlife milk': 'fairlife_2_percent_milk',
     'daisy cottage cheese low fat': 'daisy_cottage_cheese_low_fat',
     'good culture cottage cheese classic': 'good_culture_cottage_cheese_classic',
     'good culture cottage cheese strawberry': 'good_culture_cottage_cheese_strawberry',
@@ -2345,6 +2363,14 @@ function matchFoodToDatabase(foodName, amount = "") {
     'kodiak cakes oatmeal cups chocolate chip': 'kodiak_cakes_oatmeal_chocolate_chip',
     'kodiak cakes oatmeal cups maple brown sugar': 'kodiak_cakes_oatmeal_maple_brown_sugar',
     'kodiak cakes oatmeal': 'kodiak_cakes_oatmeal_maple_brown_sugar',
+    'kodiak cakes protein pancakes': 'kodiak_cakes_protein_pancake_mix',
+    'kodiak cakes protein pancake mix': 'kodiak_cakes_protein_pancake_mix',
+    'kodiak cakes pancakes': 'kodiak_cakes_pancake_mix',
+    'kodiak cakes pancake mix': 'kodiak_cakes_pancake_mix',
+    'kodiak cakes': 'kodiak_cakes_pancake_mix',
+    'kodiak cakes muffin': 'kodiak_cakes_muffin',
+    'kodiak cakes muffin mix': 'kodiak_cakes_muffin_mix',
+    'kodiak muffin': 'kodiak_cakes_muffin',
     'rxbar oats chocolate': 'rxbar_oats_chocolate',
     'rxbar oats apple cinnamon': 'rxbar_oats_apple_cinnamon',
     'better oats oat fit cinnamon roll': 'better_oats_oat_fit_cinnamon_roll',
@@ -2996,14 +3022,59 @@ function estimateUnmatchedIngredient(ingredientString, amountStr) {
            lowerIng.includes('seasoning')) {
     baseCalories = 5; baseProtein = 0; baseCarbs = 1; baseFat = 0;
   }
+  // BRANDED FITNESS FOODS - Protein pancake/muffin mixes, bars, shakes
+  else if (lowerIng.includes('kodiak') || lowerIng.includes('pancake mix') || lowerIng.includes('muffin mix')) {
+    // Kodiak Cakes and similar protein mixes: ~3.3 cal per gram dry
+    baseCalories = 330; baseProtein = 20; baseCarbs = 50; baseFat = 3; // per 100g dry
+    if (lowerAmt.includes('g')) quantity = quantity / 100;
+  } else if (lowerIng.includes('protein shake') || lowerIng.includes('premier protein') ||
+             lowerIng.includes('fairlife') || lowerIng.includes('core power')) {
+    // Protein shakes: ~0.5 cal per ml
+    baseCalories = 150; baseProtein = 30; baseCarbs = 3; baseFat = 2; // per 300ml
+    if (lowerAmt.includes('ml')) quantity = quantity / 300;
+  } else if (lowerIng.includes('quest') || lowerIng.includes('rxbar') || lowerIng.includes('protein bar')) {
+    // Protein bars: ~200 cal per bar
+    baseCalories = 200; baseProtein = 20; baseCarbs = 20; baseFat = 7; // per bar
+  } else if (lowerIng.includes('oikos') || lowerIng.includes('greek yogurt') || lowerIng.includes('triple zero')) {
+    // Greek yogurt: ~0.6 cal per gram
+    baseCalories = 60; baseProtein = 10; baseCarbs = 4; baseFat = 0; // per 100g
+    if (lowerAmt.includes('g')) quantity = quantity / 100;
+  }
+  // DEFAULT: If amount is in grams, assume moderate calorie density (2 cal/g)
+  else if (lowerAmt.includes('g')) {
+    // For unrecognized ingredients measured in grams, use moderate estimate
+    const grams = quantity;
+    quantity = grams / 100; // Convert to per-100g basis
+    baseCalories = 200; baseProtein = 5; baseCarbs = 25; baseFat = 8; // per 100g
+  }
 
   // Apply quantity multiplier
-  return {
-    calories: Math.round(baseCalories * quantity),
-    protein: Math.round(baseProtein * quantity),
-    carbs: Math.round(baseCarbs * quantity),
-    fat: Math.round(baseFat * quantity)
-  };
+  let calories = Math.round(baseCalories * quantity);
+  let protein = Math.round(baseProtein * quantity);
+  let carbs = Math.round(baseCarbs * quantity);
+  let fat = Math.round(baseFat * quantity);
+
+  // SANITY CHECK: Maximum realistic calorie density is ~9 cal/g (pure fat)
+  // If calculated calories seem unreasonably high, cap them
+  if (lowerAmt.includes('g')) {
+    const grams = parseFloat(lowerAmt.match(/(\d+(?:\.\d+)?)/)?.[1] || 1);
+    const caloriesPerGram = calories / grams;
+    if (caloriesPerGram > 9) {
+      console.warn(`⚠️ SANITY CHECK: ${calories}cal for ${grams}g is ${caloriesPerGram.toFixed(1)} cal/g - capping at 9 cal/g`);
+      calories = Math.round(grams * 5); // Use moderate 5 cal/g estimate
+      protein = Math.round(grams * 0.1); // ~10% protein
+      carbs = Math.round(grams * 0.5); // ~50% carbs
+      fat = Math.round(grams * 0.2); // ~20% fat
+    }
+  }
+
+  // SANITY CHECK: Maximum 150g protein per meal (even for large bodybuilders)
+  if (protein > 150) {
+    console.warn(`⚠️ SANITY CHECK: ${protein}g protein is impossible - capping at 50g`);
+    protein = 50;
+  }
+
+  return { calories, protein, carbs, fat };
 }
 
 // Simple in-memory cache for Spoonacular results (persists during function execution)
@@ -3972,6 +4043,71 @@ exports.handler = async (event, context) => {
       } else {
         console.log('⚠️ FINAL VALIDATION: Some issues detected and auto-fixed');
       }
+
+      // ===== FINAL SANITY CHECK: Catch impossible macro values =====
+      console.log('\n🔍 FINAL SANITY CHECK: Checking for impossible macro values...');
+      correctedData.plan.forEach((meal, idx) => {
+        let needsReset = false;
+        const issues = [];
+
+        // Check for impossible protein (>100g per meal is very rare, >150g is impossible)
+        if (meal.protein > 150) {
+          issues.push(`protein ${meal.protein}g is impossible (max ~100g per meal)`);
+          needsReset = true;
+        }
+
+        // Check for impossible calories (>2000 per meal is extreme)
+        if (meal.calories > 2000) {
+          issues.push(`calories ${meal.calories} is too high for a single meal`);
+          needsReset = true;
+        }
+
+        // Check macro math: protein*4 + carbs*4 + fat*9 should ~= calories
+        const calculatedCal = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
+        const mathDiff = Math.abs(meal.calories - calculatedCal);
+        if (mathDiff > meal.calories * 0.15) { // >15% difference
+          issues.push(`macro math doesn't add up: ${meal.calories}cal vs ${calculatedCal}cal calculated`);
+          needsReset = true;
+        }
+
+        // Check for tiny portions with huge macros (calorie density check)
+        if (meal.ingredients && meal.ingredients.length > 0) {
+          const totalGrams = meal.ingredients.reduce((sum, ing) => {
+            if (typeof ing === 'string') {
+              const gramMatch = ing.match(/(\d+)\s*g/i);
+              return sum + (gramMatch ? parseInt(gramMatch[1]) : 0);
+            }
+            return sum;
+          }, 0);
+
+          if (totalGrams > 0 && meal.calories > 0) {
+            const caloriesPerGram = meal.calories / totalGrams;
+            if (caloriesPerGram > 9) { // Pure fat is 9 cal/g, nothing is higher
+              issues.push(`calorie density ${caloriesPerGram.toFixed(1)} cal/g is impossible (max 9 cal/g)`);
+              needsReset = true;
+            }
+          }
+        }
+
+        if (needsReset) {
+          console.error(`❌ SANITY CHECK FAILED for Meal ${idx + 1} "${meal.name}":`);
+          issues.forEach(issue => console.error(`   - ${issue}`));
+          console.log('   🔧 AUTO-FIX: Recalculating macros from ingredients with sanity checks');
+
+          // Force recalculation with sanity-checked estimates
+          const recalculated = calculateMacrosFromIngredients(meal.ingredients);
+          if (recalculated && recalculated.totals) {
+            // Apply caps to recalculated values
+            meal.calories = Math.min(recalculated.totals.calories, 1500);
+            meal.protein = Math.min(recalculated.totals.protein, 100);
+            meal.carbs = Math.min(recalculated.totals.carbs, 200);
+            meal.fat = Math.min(recalculated.totals.fat, 80);
+            meal.breakdown = recalculated.breakdown;
+            meal._sanityCapped = true;
+            console.log(`   ✅ Capped values: ${meal.calories}cal, ${meal.protein}g protein`);
+          }
+        }
+      });
     }
 
     return {
