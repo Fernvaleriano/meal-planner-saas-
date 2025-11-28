@@ -1145,7 +1145,8 @@
         let isClientView = false; // Track if viewing as client
 
         // Store previous meal states for undo functionality - persisted to localStorage
-        const UNDO_STATES_KEY = 'viewPlanUndoStates';
+        // Use same key as planner.html so undo states are shared between pages
+        const UNDO_STATES_KEY = 'plannerUndoStates';
         let previousMealStates = {};
 
         // Load undo states from localStorage
