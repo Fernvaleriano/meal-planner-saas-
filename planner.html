@@ -976,7 +976,57 @@ let lastPlanQuery = {};
 let currentShareUrl = '';
 let currentCoach = null;
 let clientsList = [];
-let previousMealStates = {}; // Store previous meal states for undo functionality
+// Store previous meal states for undo functionality - persisted to localStorage
+const UNDO_STATES_KEY = 'plannerUndoStates';
+let previousMealStates = {};
+
+// Load undo states from localStorage
+function loadUndoStates() {
+    try {
+        const saved = localStorage.getItem(UNDO_STATES_KEY);
+        if (saved) {
+            previousMealStates = JSON.parse(saved);
+            console.log('📂 Loaded undo states from localStorage');
+        }
+    } catch (e) {
+        console.error('Error loading undo states:', e);
+        previousMealStates = {};
+    }
+}
+
+// Save undo states to localStorage
+function saveUndoStates() {
+    try {
+        localStorage.setItem(UNDO_STATES_KEY, JSON.stringify(previousMealStates));
+    } catch (e) {
+        console.error('Error saving undo states:', e);
+    }
+}
+
+// Load undo states on page load
+loadUndoStates();
+
+// Warn user before leaving page with unsaved changes
+let hasUnsavedChanges = false;
+
+window.addEventListener('beforeunload', function(e) {
+    // Check if there's a plan that hasn't been saved to database
+    if (hasUnsavedChanges && lastPlanQuery.currentPlan && !lastPlanQuery.planId) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+});
+
+// Track when changes are made
+function markUnsavedChanges() {
+    hasUnsavedChanges = true;
+}
+
+// Clear unsaved changes flag after save
+function clearUnsavedChanges() {
+    hasUnsavedChanges = false;
+}
 
 // Load clients from database
 async function loadClients() {
@@ -2119,6 +2169,7 @@ This meal should fit into a day's plan with the following targets.`;
     console.log('✅ All validation passed - plan is accurate');
 
     lastPlanQuery.currentPlan = allDays;
+    markUnsavedChanges(); // Track that there are unsaved changes
 
     // Generate a summary of what's in the plan for client display
     lastPlanQuery.summary = generatePlanSummary(lastPlanQuery);
@@ -2528,6 +2579,9 @@ async function saveCoachPlan(planData, clientName) {
 
             // Hide retry button if it was showing
             hideSaveRetryButton();
+
+            // Clear unsaved changes flag
+            clearUnsavedChanges();
         }
 
         return true; // Return success
@@ -2706,6 +2760,7 @@ async function changeMeal(dayIndex, mealIndex) {
     // Save current meal state for undo functionality
     const stateKey = `${dayIndex}-${mealIndex}`;
     previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
+    saveUndoStates(); // Persist to localStorage
     console.log(`💾 Saved previous state for undo (change):`, previousMealStates[stateKey]);
 
     // IMPORTANT: Calculate CONSISTENT per-meal targets from daily nutrition
@@ -2808,6 +2863,7 @@ async function reviseMeal(dayIndex, mealIndex) {
     // Save current meal state for undo functionality
     const stateKey = `${dayIndex}-${mealIndex}`;
     previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
+    saveUndoStates(); // Persist to localStorage
     console.log(`💾 Saved previous state for undo (revise):`, previousMealStates[stateKey]);
 
     // Show loading
@@ -2930,6 +2986,7 @@ function undoMeal(dayIndex, mealIndex) {
 
     // Remove the undo state (can only undo once)
     delete previousMealStates[stateKey];
+    saveUndoStates(); // Persist to localStorage
 
     // Auto-save if plan already exists in database
     if (lastPlanQuery.planId) {
@@ -3079,6 +3136,7 @@ function useSavedMeal(mealId) {
     // Save for undo
     const stateKey = `${customMealDayIndex}-${customMealMealIndex}`;
     previousMealStates[stateKey] = JSON.parse(JSON.stringify(originalMeal));
+    saveUndoStates(); // Persist to localStorage
 
     // Create the meal (without id and savedAt)
     const newMeal = {
@@ -3090,7 +3148,8 @@ function useSavedMeal(mealId) {
         carbs: meal.carbs,
         fat: meal.fat,
         instructions: meal.instructions || 'Prepare as desired.',
-        source: meal.source || 'Saved Meal'
+        source: meal.source || 'Saved Meal',
+        isCustom: true
     };
 
     // Update the meal in the plan
@@ -3319,6 +3378,7 @@ async function submitCalculatedMeal() {
     // Save for undo
     const stateKey = `${customMealDayIndex}-${customMealMealIndex}`;
     previousMealStates[stateKey] = JSON.parse(JSON.stringify(originalMeal));
+    saveUndoStates(); // Persist to localStorage
 
     // Create the custom meal
     const customMealData = {
@@ -3330,7 +3390,8 @@ async function submitCalculatedMeal() {
         carbs: Math.round(totalCarbs),
         fat: Math.round(totalFat),
         instructions: 'Prepare as desired.',
-        source: 'Food Database'
+        source: 'Food Database',
+        isCustom: true
     };
 
     // Save to library if checkbox is checked
@@ -3371,6 +3432,25 @@ function submitManualMeal() {
         return;
     }
 
+    // Validate macro math (calories should roughly equal P*4 + C*4 + F*9)
+    if (calories > 0 && (protein > 0 || carbs > 0 || fat > 0)) {
+        const calculatedCal = (protein * 4) + (carbs * 4) + (fat * 9);
+        const variance = Math.abs(calories - calculatedCal);
+        const variancePercent = (variance / calories) * 100;
+
+        if (variancePercent > 25) {
+            const proceed = confirm(
+                `⚠️ Macro Math Check\n\n` +
+                `Entered: ${calories} calories\n` +
+                `Calculated from macros: ${calculatedCal} cal\n` +
+                `(Protein×4 + Carbs×4 + Fat×9)\n\n` +
+                `Difference: ${variance} cal (${Math.round(variancePercent)}%)\n\n` +
+                `This seems off. Continue anyway?`
+            );
+            if (!proceed) return;
+        }
+    }
+
     // Get meal type from original meal
     const originalMeal = lastPlanQuery.currentPlan[customMealDayIndex].plan[customMealMealIndex];
     const mealType = originalMeal.type || 'meal';
@@ -3378,6 +3458,7 @@ function submitManualMeal() {
     // Save for undo
     const stateKey = `${customMealDayIndex}-${customMealMealIndex}`;
     previousMealStates[stateKey] = JSON.parse(JSON.stringify(originalMeal));
+    saveUndoStates(); // Persist to localStorage
 
     // Create the custom meal
     const customMealData = {
@@ -3389,7 +3470,8 @@ function submitManualMeal() {
         carbs: carbs,
         fat: fat,
         instructions: instructions,
-        source: 'Manual Entry'
+        source: 'Manual Entry',
+        isCustom: true
     };
 
     // Save to library if checkbox is checked
@@ -3417,15 +3499,40 @@ async function regenerateDay(dayIndex) {
     const dayData = lastPlanQuery.currentPlan[dayIndex];
     const dayNumber = dayData.day;
 
-    // Filter out supplements - they are added back after regeneration
-    const mealsOnly = dayData.plan.filter(m => m.type !== 'supplement');
+    // Filter out supplements and custom meals - they are preserved
+    const mealsToRegenerate = dayData.plan.filter(m => m.type !== 'supplement' && !m.isCustom);
     const supplementItem = dayData.plan.find(m => m.type === 'supplement');
+    const customMeals = dayData.plan.filter(m => m.isCustom);
 
-    const numMeals = mealsOnly.length;
-    const targets = dayData.targets;
+    // If all meals are custom, nothing to regenerate
+    if (mealsToRegenerate.length === 0) {
+        alert('All meals in this day are custom meals. Nothing to regenerate!');
+        return;
+    }
 
-    // Get meal structure from original day (excluding supplements)
-    const mealTypes = mealsOnly.map(m => m.type);
+    // Calculate targets for meals to regenerate (subtract custom meal macros)
+    let customCalories = 0, customProtein = 0, customCarbs = 0, customFat = 0;
+    customMeals.forEach(m => {
+        customCalories += m.calories || 0;
+        customProtein += m.protein || 0;
+        customCarbs += m.carbs || 0;
+        customFat += m.fat || 0;
+    });
+
+    const numMeals = mealsToRegenerate.length;
+    const targets = {
+        calories: Math.max(0, dayData.targets.calories - customCalories),
+        protein: Math.max(0, dayData.targets.protein - customProtein),
+        carbs: Math.max(0, dayData.targets.carbs - customCarbs),
+        fat: Math.max(0, dayData.targets.fat - customFat)
+    };
+
+    if (customMeals.length > 0) {
+        console.log(`📌 Preserving ${customMeals.length} custom meal(s), regenerating ${numMeals} meal(s)`);
+    }
+
+    // Get meal structure from meals to regenerate (excluding supplements and custom)
+    const mealTypes = mealsToRegenerate.map(m => m.type);
     let mealStructure = '';
     let expectedMealTypes = mealTypes;
 
@@ -3523,6 +3630,12 @@ NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
         // Validate we got the right number of meals
         if (newMeals.length !== numMeals) {
             console.warn(`Expected ${numMeals} meals, got ${newMeals.length}. Using what we got.`);
+        }
+
+        // Add back custom meals (preserved)
+        if (customMeals.length > 0) {
+            newMeals = [...newMeals, ...customMeals];
+            console.log(`📌 Restored ${customMeals.length} custom meal(s) to Day ${dayNumber}`);
         }
 
         // Add back the supplement if there was one

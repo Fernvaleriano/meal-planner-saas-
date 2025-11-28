@@ -781,6 +781,107 @@
                 padding: 25px;
             }
         }
+
+        /* Saved Meals Styles */
+        .saved-meals-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .saved-meal-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: #fafafa;
+        }
+
+        .saved-meal-item:hover {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        .saved-meal-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .saved-meal-name {
+            font-weight: 600;
+            color: #1f2937;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .saved-meal-macros {
+            font-size: 0.8em;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .saved-meal-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 10px;
+        }
+
+        .btn-use-saved {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .btn-delete-saved {
+            padding: 6px 10px;
+            background: #fee2e2;
+            border: none;
+            border-radius: 6px;
+            color: #dc2626;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .btn-delete-saved:hover {
+            background: #fecaca;
+        }
+
+        .no-saved-meals {
+            text-align: center;
+            padding: 30px;
+            color: #9ca3af;
+        }
+
+        .save-for-later-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 10px;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+        }
+
+        .save-for-later-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .save-for-later-row label {
+            font-size: 0.9em;
+            color: #92400e;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -871,11 +972,15 @@
             <div class="custom-meal-tabs">
                 <div class="custom-meal-tab active" onclick="switchCustomMealTab('calculate')">
                     <span class="custom-meal-tab-icon">🧮</span>
-                    <span class="custom-meal-tab-label">Calculate from Ingredients</span>
+                    <span class="custom-meal-tab-label">Calculate</span>
                 </div>
                 <div class="custom-meal-tab" onclick="switchCustomMealTab('manual')">
                     <span class="custom-meal-tab-icon">✏️</span>
-                    <span class="custom-meal-tab-label">Enter Macros Manually</span>
+                    <span class="custom-meal-tab-label">Manual</span>
+                </div>
+                <div class="custom-meal-tab" onclick="switchCustomMealTab('saved')">
+                    <span class="custom-meal-tab-icon">📚</span>
+                    <span class="custom-meal-tab-label">My Saved</span>
                 </div>
             </div>
 
@@ -941,6 +1046,11 @@
                     style="margin-top: 10px;"
                 >
 
+                <div class="save-for-later-row">
+                    <input type="checkbox" id="saveCalculatedForLater">
+                    <label for="saveCalculatedForLater">💾 Save this meal for future use</label>
+                </div>
+
                 <button class="btn-submit-custom" onclick="submitCalculatedMeal()" id="createCalculatedMealBtn" disabled>
                     🧮 Create Meal
                 </button>
@@ -981,9 +1091,25 @@
                     class="custom-meal-input"
                     placeholder="Instructions (optional)"
                 >
+
+                <div class="save-for-later-row">
+                    <input type="checkbox" id="saveManualForLater">
+                    <label for="saveManualForLater">💾 Save this meal for future use</label>
+                </div>
+
                 <button class="btn-submit-custom" onclick="submitManualMeal()">
                     ✅ Create Meal
                 </button>
+            </div>
+
+            <!-- Saved Meals Panel -->
+            <div id="savedPanel" class="custom-meal-panel">
+                <div class="custom-meal-hint">
+                    📚 Your saved custom meals. Click "Use" to add to your plan.
+                </div>
+                <div id="savedMealsList" class="saved-meals-list">
+                    <div class="no-saved-meals">No saved meals yet. Create a meal and check "Save for future use" to add it here.</div>
+                </div>
             </div>
 
             <button class="btn btn-close-modal" onclick="closeCustomMealModal()" style="margin-top: 15px;">Cancel</button>
@@ -1686,6 +1812,24 @@
             currentCustomMealIndex = null;
             currentCustomMealDayIndex = null;
             currentCustomMealMealIndex = null;
+
+            // Reset form fields
+            document.getElementById('usdaSearchInput').value = '';
+            document.getElementById('usdaSearchResults').classList.remove('active');
+            document.getElementById('calculatedMealName').value = '';
+            document.getElementById('customMealName').value = '';
+            document.getElementById('customMealCalories').value = '';
+            document.getElementById('customMealProtein').value = '';
+            document.getElementById('customMealCarbs').value = '';
+            document.getElementById('customMealFat').value = '';
+            document.getElementById('customMealInstructions').value = '';
+
+            // Reset save for later checkboxes
+            document.getElementById('saveCalculatedForLater').checked = false;
+            document.getElementById('saveManualForLater').checked = false;
+
+            // Reset to first tab
+            switchCustomMealTab('calculate');
         }
 
         function switchCustomMealTab(tab) {
@@ -1696,14 +1840,126 @@
             // Update panel visibility
             document.getElementById('calculatePanel').classList.remove('active');
             document.getElementById('manualPanel').classList.remove('active');
+            document.getElementById('savedPanel').classList.remove('active');
 
             if (tab === 'calculate') {
                 tabs[0].classList.add('active');
                 document.getElementById('calculatePanel').classList.add('active');
-            } else {
+            } else if (tab === 'manual') {
                 tabs[1].classList.add('active');
                 document.getElementById('manualPanel').classList.add('active');
+            } else if (tab === 'saved') {
+                tabs[2].classList.add('active');
+                document.getElementById('savedPanel').classList.add('active');
+                renderSavedMeals();
             }
+        }
+
+        // ===== SAVED MEALS FUNCTIONS =====
+        const SAVED_MEALS_KEY = 'savedCustomMeals';
+
+        function getSavedMeals() {
+            try {
+                const saved = localStorage.getItem(SAVED_MEALS_KEY);
+                return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                console.error('Error loading saved meals:', e);
+                return [];
+            }
+        }
+
+        function saveMealToLibrary(meal) {
+            const savedMeals = getSavedMeals();
+            const mealWithId = {
+                ...meal,
+                id: Date.now().toString(),
+                savedAt: new Date().toISOString()
+            };
+            savedMeals.unshift(mealWithId);
+            localStorage.setItem(SAVED_MEALS_KEY, JSON.stringify(savedMeals));
+            console.log('💾 Meal saved to library:', mealWithId.name);
+            return mealWithId;
+        }
+
+        function deleteSavedMeal(mealId) {
+            const savedMeals = getSavedMeals();
+            const filtered = savedMeals.filter(m => m.id !== mealId);
+            localStorage.setItem(SAVED_MEALS_KEY, JSON.stringify(filtered));
+            renderSavedMeals();
+            console.log('🗑️ Meal deleted from library:', mealId);
+        }
+
+        function useSavedMeal(mealId) {
+            const savedMeals = getSavedMeals();
+            const meal = savedMeals.find(m => m.id === mealId);
+            if (!meal) {
+                alert('Meal not found');
+                return;
+            }
+
+            // Get meal type and index info
+            const mealType = currentPlan.multiDay
+                ? currentPlan.days[currentCustomMealDayIndex].plan[currentCustomMealMealIndex]?.type || 'meal'
+                : currentPlan.meals[currentCustomMealIndex]?.type || 'meal';
+
+            // Create the meal
+            const newMeal = {
+                type: mealType,
+                name: meal.name,
+                ingredients: meal.ingredients,
+                calories: meal.calories,
+                protein: meal.protein,
+                carbs: meal.carbs,
+                fat: meal.fat,
+                instructions: meal.instructions || 'Prepare as desired.',
+                source: meal.source || 'Saved Meal',
+                isCustom: true
+            };
+
+            // Update the meal in the plan
+            if (currentPlan.multiDay) {
+                currentPlan.days[currentCustomMealDayIndex].plan[currentCustomMealMealIndex] = newMeal;
+            } else {
+                currentPlan.meals[currentCustomMealIndex] = newMeal;
+            }
+
+            // Save changes
+            localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+            savePlanToDatabase();
+
+            // Close modal and refresh display
+            closeCustomMealModal();
+            displayMealPlan();
+            console.log('✅ Used saved meal:', newMeal.name);
+        }
+
+        function renderSavedMeals() {
+            const container = document.getElementById('savedMealsList');
+            const savedMeals = getSavedMeals();
+
+            if (savedMeals.length === 0) {
+                container.innerHTML = '<div class="no-saved-meals">No saved meals yet. Create a meal and check "Save for future use" to add it here.</div>';
+                return;
+            }
+
+            container.innerHTML = savedMeals.map(meal => `
+                <div class="saved-meal-item">
+                    <div class="saved-meal-info">
+                        <div class="saved-meal-name">${escapeHtml(meal.name)}</div>
+                        <div class="saved-meal-macros">${meal.calories} cal | ${meal.protein}g P | ${meal.carbs}g C | ${meal.fat}g F</div>
+                    </div>
+                    <div class="saved-meal-actions">
+                        <button class="btn-use-saved" onclick="useSavedMeal('${meal.id}')">Use</button>
+                        <button class="btn-delete-saved" onclick="deleteSavedMeal('${meal.id}')">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // ===== USDA SEARCH FUNCTIONS =====
@@ -1917,6 +2173,25 @@
                 return;
             }
 
+            // Validate macro math (calories should roughly equal P*4 + C*4 + F*9)
+            if (calories > 0 && (protein > 0 || carbs > 0 || fat > 0)) {
+                const calculatedCal = (protein * 4) + (carbs * 4) + (fat * 9);
+                const variance = Math.abs(calories - calculatedCal);
+                const variancePercent = (variance / calories) * 100;
+
+                if (variancePercent > 25) {
+                    const proceed = confirm(
+                        `⚠️ Macro Math Check\n\n` +
+                        `Entered: ${calories} calories\n` +
+                        `Calculated from macros: ${calculatedCal} cal\n` +
+                        `(Protein×4 + Carbs×4 + Fat×9)\n\n` +
+                        `Difference: ${variance} cal (${Math.round(variancePercent)}%)\n\n` +
+                        `This seems off. Continue anyway?`
+                    );
+                    if (!proceed) return;
+                }
+            }
+
             // Get the current meal for type reference
             let meal;
             if (currentCustomMealDayIndex !== null && currentCustomMealMealIndex !== null) {
@@ -1939,8 +2214,16 @@
                 protein: protein,
                 carbs: carbs,
                 fat: fat,
-                instructions: instructions
+                instructions: instructions,
+                source: 'Manual Entry',
+                isCustom: true
             };
+
+            // Save to library if checkbox is checked
+            const saveForLater = document.getElementById('saveManualForLater').checked;
+            if (saveForLater) {
+                saveMealToLibrary(customMealData);
+            }
 
             // Save the custom meal
             if (currentCustomMealDayIndex !== null && currentCustomMealMealIndex !== null) {
@@ -2029,8 +2312,15 @@
                 carbs: Math.round(totalCarbs),
                 fat: Math.round(totalFat),
                 instructions: 'Prepare as desired.',
-                source: 'Food Database'
+                source: 'Food Database',
+                isCustom: true
             };
+
+            // Save to library if checkbox is checked
+            const saveForLater = document.getElementById('saveCalculatedForLater').checked;
+            if (saveForLater) {
+                saveMealToLibrary(customMealData);
+            }
 
             console.log('✅ Custom meal created:', customMealData);
 
