@@ -2468,6 +2468,13 @@
                     `;
                     container.appendChild(dayHeader);
 
+                    // Calculate macro distribution percentages (% of total calories from each macro)
+                    const macroPercent = {
+                        protein: dayTotals.calories > 0 ? Math.round((dayTotals.protein * 4) / dayTotals.calories * 100) : 0,
+                        carbs: dayTotals.calories > 0 ? Math.round((dayTotals.carbs * 4) / dayTotals.calories * 100) : 0,
+                        fat: dayTotals.calories > 0 ? Math.round((dayTotals.fat * 9) / dayTotals.calories * 100) : 0
+                    };
+
                     // Day totals section
                     const dayTotalsDiv = document.createElement('div');
                     dayTotalsDiv.id = `day-totals-${dayIndex}`;
@@ -2483,16 +2490,19 @@
                             <div>
                                 <p style="font-size: 0.75em; color: #888;">Protein</p>
                                 <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.protein)}">${dayTotals.protein}g</span>
+                                <span style="font-size: 0.7em; font-weight: 500; color: #10b981; display: block;">${macroPercent.protein}%</span>
                                 <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</p>
                             </div>
                             <div>
                                 <p style="font-size: 0.75em; color: #888;">Carbs</p>
                                 <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.carbs)}">${dayTotals.carbs}g</span>
+                                <span style="font-size: 0.7em; font-weight: 500; color: #f59e0b; display: block;">${macroPercent.carbs}%</span>
                                 <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</p>
                             </div>
                             <div>
                                 <p style="font-size: 0.75em; color: #888;">Fat</p>
                                 <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
+                                <span style="font-size: 0.7em; font-weight: 500; color: #3b82f6; display: block;">${macroPercent.fat}%</span>
                                 <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
                             </div>
                         </div>
@@ -2658,6 +2668,13 @@
                 fat: targets.fat ? ((dayTotals.fat - targets.fat) / targets.fat * 100) : 0
             };
 
+            // Calculate macro distribution percentages
+            const macroPercent = {
+                protein: dayTotals.calories > 0 ? Math.round((dayTotals.protein * 4) / dayTotals.calories * 100) : 0,
+                carbs: dayTotals.calories > 0 ? Math.round((dayTotals.carbs * 4) / dayTotals.calories * 100) : 0,
+                fat: dayTotals.calories > 0 ? Math.round((dayTotals.fat * 9) / dayTotals.calories * 100) : 0
+            };
+
             // Helper functions for display
             const getVarianceColor = (variancePercent) => {
                 const abs = Math.abs(variancePercent);
@@ -2684,16 +2701,19 @@
                     <div>
                         <p style="font-size: 0.75em; color: #888;">Protein</p>
                         <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.protein)}">${dayTotals.protein}g</span>
+                        <span style="font-size: 0.7em; font-weight: 500; color: #10b981; display: block;">${macroPercent.protein}%</span>
                         <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</p>
                     </div>
                     <div>
                         <p style="font-size: 0.75em; color: #888;">Carbs</p>
                         <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.carbs)}">${dayTotals.carbs}g</span>
+                        <span style="font-size: 0.7em; font-weight: 500; color: #f59e0b; display: block;">${macroPercent.carbs}%</span>
                         <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</p>
                     </div>
                     <div>
                         <p style="font-size: 0.75em; color: #888;">Fat</p>
                         <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
+                        <span style="font-size: 0.7em; font-weight: 500; color: #3b82f6; display: block;">${macroPercent.fat}%</span>
                         <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
                     </div>
                 </div>

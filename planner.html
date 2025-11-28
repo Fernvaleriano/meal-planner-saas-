@@ -2242,6 +2242,13 @@ function displayDietPlan(multiDayData) {
             fat: ((dayTotals.fat - targets.fat) / targets.fat * 100)
         };
 
+        // Calculate macro distribution percentages (% of total calories from each macro)
+        const macroPercent = {
+            protein: dayTotals.calories > 0 ? Math.round((dayTotals.protein * 4) / dayTotals.calories * 100) : 0,
+            carbs: dayTotals.calories > 0 ? Math.round((dayTotals.carbs * 4) / dayTotals.calories * 100) : 0,
+            fat: dayTotals.calories > 0 ? Math.round((dayTotals.fat * 9) / dayTotals.calories * 100) : 0
+        };
+
         planHTML += `
             <div class="day-divider" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem;">
                 <span>Day ${dayData.day}</span>
@@ -2258,16 +2265,19 @@ function displayDietPlan(multiDayData) {
                     <div>
                         <p class="text-xs text-gray-500">Protein</p>
                         <span class="text-sm font-bold ${getVarianceColor(dayVariance.protein)}">${dayTotals.protein}g</span>
+                        <span class="text-xs font-medium" style="color: #10b981; display: block;">${macroPercent.protein}%</span>
                         <p class="text-xs ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</p>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500">Carbs</p>
                         <span class="text-sm font-bold ${getVarianceColor(dayVariance.carbs)}">${dayTotals.carbs}g</span>
+                        <span class="text-xs font-medium" style="color: #f59e0b; display: block;">${macroPercent.carbs}%</span>
                         <p class="text-xs ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</p>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500">Fat</p>
                         <span class="text-sm font-bold ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
+                        <span class="text-xs font-medium" style="color: #3b82f6; display: block;">${macroPercent.fat}%</span>
                         <p class="text-xs ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
                     </div>
                 </div>
