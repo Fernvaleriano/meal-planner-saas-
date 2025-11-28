@@ -2557,7 +2557,9 @@ function scaleAmountString(amountStr, factor) {
   if (restOfString.match(/\s*(whole|medium|large|small|slices?|pieces?|scoops?|servings?)/i)) {
     // For small counts (< 3), round to nearest 0.5
     if (scaledNumber < 3) {
-      const rounded = Math.round(scaledNumber * 2) / 2;
+      let rounded = Math.round(scaledNumber * 2) / 2;
+      // PREVENT ZERO: minimum 0.5 (displayed as 1/2)
+      if (rounded < 0.5) rounded = 0.5;
       // If rounded to 0.5, show as "1/2"
       if (rounded === 0.5) return `1/2${restOfString}`;
       // If it has .5, show as "X 1/2" format (e.g., "2.5 slices" → "2 1/2 slices")
@@ -2567,19 +2569,23 @@ function scaleAmountString(amountStr, factor) {
       }
       return `${rounded}${restOfString}`;
     }
-    // For larger counts, round to whole number
-    const rounded = Math.round(scaledNumber);
+    // For larger counts, round to whole number (minimum 1)
+    let rounded = Math.round(scaledNumber);
+    if (rounded < 1) rounded = 1;
     return `${rounded}${restOfString}`;
   }
 
   // For weight/volume units (g, oz, tbsp, cups, ml), round to whole numbers
   if (restOfString.match(/\s*(g|oz|tbsp|tsp|cup|ml|kg)/i)) {
-    const rounded = Math.round(scaledNumber);
+    let rounded = Math.round(scaledNumber);
+    // PREVENT ZERO: minimum 1g, 1oz, etc.
+    if (rounded < 1) rounded = 1;
     return `${rounded}${restOfString}`;
   }
 
-  // Default: round to 1 decimal place
-  const rounded = Math.round(scaledNumber * 10) / 10;
+  // Default: round to 1 decimal place (minimum 0.1)
+  let rounded = Math.round(scaledNumber * 10) / 10;
+  if (rounded < 0.1) rounded = 0.1;
   return `${rounded}${restOfString}`;
 }
 
@@ -2646,6 +2652,7 @@ function validateAndFixMealDistribution(meals, targetDailyCalories) {
 
       return {
         ...meal,
+        name: updateMealNamePortions(meal.name, scaleFactor),
         ingredients: scaledIngredients,
         calories: recalculated.totals.calories,
         protein: recalculated.totals.protein,
@@ -2684,6 +2691,7 @@ function validateAndFixMealDistribution(meals, targetDailyCalories) {
 
           adjustedMeals[idx] = {
             ...meal,
+            name: updateMealNamePortions(meal.name, scaleFactor),
             ingredients: scaledIngredients,
             calories: recalculated.totals.calories,
             protein: recalculated.totals.protein,
@@ -2741,6 +2749,7 @@ function scalePortionsToTargets(meals, actualTotals, targetTotals) {
 
     return {
       ...meal,
+      name: updateMealNamePortions(meal.name, scalingFactor),
       ingredients: scaledIngredients,
       calories: recalculated.totals.calories,
       protein: recalculated.totals.protein,
@@ -3398,7 +3407,9 @@ function scaleIngredientPortions(ingredients, scaleFactor) {
 
     // Match patterns like (200g), (1 cup), (2 large), (1 tbsp), etc.
     return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?\)/gi, (match, num, unit) => {
-      const scaledNum = Math.round(parseFloat(num) * scaleFactor);
+      let scaledNum = Math.round(parseFloat(num) * scaleFactor);
+      // PREVENT ZERO: minimum value of 1
+      if (scaledNum < 1) scaledNum = 1;
       return unit ? `(${scaledNum}${unit})` : `(${scaledNum})`;
     });
   });
@@ -3412,7 +3423,9 @@ function updateMealNamePortions(mealName, scaleFactor) {
   if (!mealName) return mealName;
 
   return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?\)/gi, (match, num, unit) => {
-    const scaledNum = Math.round(parseFloat(num) * scaleFactor);
+    let scaledNum = Math.round(parseFloat(num) * scaleFactor);
+    // PREVENT ZERO: minimum value of 1
+    if (scaledNum < 1) scaledNum = 1;
     return unit ? `(${scaledNum}${unit})` : `(${scaledNum})`;
   });
 }
