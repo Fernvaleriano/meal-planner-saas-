@@ -252,6 +252,15 @@
                     </div>
                 </div>
 
+                <!-- Branded Fitness Foods Preference -->
+                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="dp_use_branded_foods" class="mr-2 h-5 w-5">
+                        <label for="dp_use_branded_foods" class="font-bold text-purple-900">🏋️ Use Branded Fitness Foods</label>
+                    </div>
+                    <p class="text-sm text-purple-700 mt-1">Include popular fitness brands like Quest Bars, Premier Protein, Fairlife, Oikos, Halo Top, and more in meal plans.</p>
+                </div>
+
                 <!-- Protein Powder Integration -->
                 <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
                     <div class="flex items-center mb-2">
@@ -489,6 +498,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     document.getElementById('dp_use_protein').checked = false;
                     document.getElementById('protein-powder-fields').style.display = 'none';
+                }
+
+                // Branded fitness foods preference
+                if (client.use_branded_foods) {
+                    document.getElementById('dp_use_branded_foods').checked = true;
+                } else {
+                    document.getElementById('dp_use_branded_foods').checked = false;
                 }
 
                 console.log('✅ All fields auto-populated from client profile');
@@ -979,6 +995,9 @@ async function generateDietPlan() {
     if (document.getElementById('equip_blender').checked) equipment.push('Blender');
     const equipmentStr = equipment.length > 0 ? equipment.join(', ') : 'basic kitchen tools';
 
+    // Get branded fitness foods preference
+    const useBrandedFoods = document.getElementById('dp_use_branded_foods').checked;
+
     // Calculate nutrition (Mifflin-St Jeor)
     let weightKg, heightCm;
     if (currentUnitSystem === 'imperial') {
@@ -1074,7 +1093,8 @@ async function generateDietPlan() {
         equipmentStr,
         meals,
         originalTargets,
-        proteinPowderInfo
+        proteinPowderInfo,
+        useBrandedFoods
     };
 
     // Generate each day separately
@@ -1096,6 +1116,26 @@ async function generateDietPlan() {
         let proteinPowderNote = '';
         if (proteinPowderInfo) {
             proteinPowderNote = `\nNote: Client uses protein powder (${proteinPowderInfo.brand || 'protein supplement'}) which will be added separately. Meal targets already account for this.`;
+        }
+
+        // Build branded fitness foods note if applicable
+        let brandedFoodsNote = '';
+        if (useBrandedFoods) {
+            brandedFoodsNote = `
+
+BRANDED FITNESS FOODS PREFERENCE:
+This client PREFERS branded fitness foods. Please ACTIVELY incorporate these popular fitness-friendly products into their meal plan:
+- Protein bars as snacks: Quest Bars, RXBars, Built Bars, ONE Bars, Barebells
+- Ready-to-drink protein: Premier Protein shakes, Fairlife protein shakes, Core Power
+- Greek yogurt: Oikos Triple Zero, Chobani Zero Sugar, Two Good, Siggi's
+- Healthy ice cream: Halo Top, Enlightened, Rebel (as occasional treat/dessert)
+- Healthy snacks: Smart Sweets, Chomps beef sticks, Epic bars
+- High-protein bread: Dave's Killer Bread, Ezekiel bread
+- Protein oatmeal: Kodiak Cakes, Magic Spoon cereal
+- Nut butters: Justin's almond butter, PB2 powdered peanut butter
+
+Use database keys like: quest_bar_original, premier_protein_chocolate, oikos_triple_zero_vanilla, fairlife_chocolate, halo_top_vanilla, chomps_original, daves_killer_bread_21grain, etc.
+Include at least 1-2 branded fitness foods per day in this meal plan.`;
         }
 
         // Parse meal structure to be explicit
@@ -1129,7 +1169,7 @@ Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
 Preferred Foods/Cuisines: ${preferredFoods}
 Budget: ${budget}
-Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}${favoriteMealsText}
+Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}${favoriteMealsText}${brandedFoodsNote}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 

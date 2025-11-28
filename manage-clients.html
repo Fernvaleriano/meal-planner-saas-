@@ -622,6 +622,16 @@
                     </div>
                 </div>
 
+                <!-- Branded Fitness Foods -->
+                <h3 style="margin: 25px 0 15px 0; color: #9333ea;">🏋️ Branded Fitness Foods</h3>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="useBrandedFoods"> Include branded fitness foods in meal plans
+                    </label>
+                    <p style="margin-top: 8px; font-size: 13px; color: #666;">When enabled, meal plans will include popular fitness brands like Quest Bars, Premier Protein, Fairlife, Oikos Triple Zero, Halo Top, and more.</p>
+                </div>
+
                 <!-- Notes -->
                 <h3 style="margin: 25px 0 15px 0; color: #0d9488;">📝 Notes</h3>
 
@@ -970,6 +980,9 @@
                 document.getElementById('proteinFat').value = client.protein_powder_fat || '';
             }
 
+            // Branded fitness foods
+            document.getElementById('useBrandedFoods').checked = client.use_branded_foods || false;
+
             // Notes
             document.getElementById('clientNotes').value = client.notes || '';
 
@@ -1041,6 +1054,9 @@
                     proteinPowderProtein: parseInt(document.getElementById('proteinProtein').value) || null,
                     proteinPowderCarbs: parseInt(document.getElementById('proteinCarbs').value) || null,
                     proteinPowderFat: parseInt(document.getElementById('proteinFat').value) || null,
+
+                    // Branded fitness foods
+                    useBrandedFoods: document.getElementById('useBrandedFoods').checked,
 
                     // Notes
                     notes: document.getElementById('clientNotes').value.trim() || null,
