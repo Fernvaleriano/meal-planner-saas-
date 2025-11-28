@@ -2819,27 +2819,17 @@
             delete previousMealStates[stateKey];
             saveUndoStates(); // Persist to localStorage
 
-            // Re-render the meal card
-            const mealCard = document.getElementById(`meal-${index}`);
-            const newCard = createMealCard(previousState, index, dayIndex, mealIndex);
-            mealCard.innerHTML = newCard.innerHTML;
+            // Save to localStorage
+            localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
 
-            // Recalculate day totals if multi-day plan
-            if (dayIndex !== null) {
-                updateDayTotals(dayIndex);
-            }
+            // Save to database
+            await savePlanToDatabase();
 
-            // Save to database if client view
-            if (isClientView && currentPlanId) {
-                try {
-                    await saveClientModification();
-                    console.log('✅ Undo saved to database');
-                } catch (err) {
-                    console.error('Failed to save undo:', err);
-                }
-            }
+            // Re-render the FULL plan (like planner.html does)
+            displayMealPlan();
 
-            showNotification('Revision undone successfully!', 'success');
+            // Show success message
+            alert('Undo successful! Meal restored to previous state.');
         }
 
         async function saveMealNote(index, dayIndex = null, mealIndex = null) {
