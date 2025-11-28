@@ -1024,19 +1024,19 @@
                     <div class="totals-header">📊 Calculated Totals</div>
                     <div class="totals-grid">
                         <div class="total-item">
-                            <div class="total-value" id="totalCalories">0</div>
+                            <div class="total-value" id="calcTotalCalories">0</div>
                             <div class="total-label">Calories</div>
                         </div>
                         <div class="total-item">
-                            <div class="total-value" id="totalProtein">0g</div>
+                            <div class="total-value" id="calcTotalProtein">0g</div>
                             <div class="total-label">Protein</div>
                         </div>
                         <div class="total-item">
-                            <div class="total-value" id="totalCarbs">0g</div>
+                            <div class="total-value" id="calcTotalCarbs">0g</div>
                             <div class="total-label">Carbs</div>
                         </div>
                         <div class="total-item">
-                            <div class="total-value" id="totalFat">0g</div>
+                            <div class="total-value" id="calcTotalFat">0g</div>
                             <div class="total-label">Fat</div>
                         </div>
                     </div>
@@ -2174,10 +2174,10 @@
                 totalFat += ing.fatPer100g * factor;
             });
 
-            document.getElementById('totalCalories').textContent = Math.round(totalCal);
-            document.getElementById('totalProtein').textContent = Math.round(totalProtein) + 'g';
-            document.getElementById('totalCarbs').textContent = Math.round(totalCarbs) + 'g';
-            document.getElementById('totalFat').textContent = Math.round(totalFat) + 'g';
+            document.getElementById('calcTotalCalories').textContent = Math.round(totalCal);
+            document.getElementById('calcTotalProtein').textContent = Math.round(totalProtein) + 'g';
+            document.getElementById('calcTotalCarbs').textContent = Math.round(totalCarbs) + 'g';
+            document.getElementById('calcTotalFat').textContent = Math.round(totalFat) + 'g';
 
             // Enable/disable create button
             const createBtn = document.getElementById('createCalculatedMealBtn');
