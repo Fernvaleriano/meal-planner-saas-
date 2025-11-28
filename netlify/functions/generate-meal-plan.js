@@ -2553,8 +2553,8 @@ function scaleAmountString(amountStr, factor) {
   // Get the rest of the string (unit + descriptors)
   const restOfString = amountStr.substring(numberMatch.index + numberMatch[1].length);
 
-  // For count units (whole, medium, slices, pieces, scoop), use intelligent rounding
-  if (restOfString.match(/\s*(whole|medium|large|small|slices?|pieces?|scoops?|servings?)/i)) {
+  // For count units (whole, medium, slices, pieces, scoop, bottle, bar, stick, etc.), use intelligent rounding
+  if (restOfString.match(/\s*(whole|medium|large|small|slices?|pieces?|scoops?|servings?|bottles?|bars?|sticks?|cans?|packets?|pouches?)/i)) {
     // For small counts (< 3), round to nearest 0.5
     if (scaledNumber < 3) {
       let rounded = Math.round(scaledNumber * 2) / 2;
@@ -3405,12 +3405,12 @@ function scaleIngredientPortions(ingredients, scaleFactor) {
   return ingredients.map(ing => {
     if (typeof ing !== 'string') return ing;
 
-    // Match patterns like (200g), (1 cup), (2 large), (1 tbsp), etc.
-    return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?\)/gi, (match, num, unit) => {
+    // Match patterns like (200g), (1 cup), (2 large), (1 bottle), (1 bar), etc.
+    return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches)?\)/gi, (match, num, unit) => {
       let scaledNum = Math.round(parseFloat(num) * scaleFactor);
       // PREVENT ZERO: minimum value of 1
       if (scaledNum < 1) scaledNum = 1;
-      return unit ? `(${scaledNum}${unit})` : `(${scaledNum})`;
+      return unit ? `(${scaledNum} ${unit})` : `(${scaledNum})`;
     });
   });
 }
@@ -3422,11 +3422,11 @@ function scaleIngredientPortions(ingredients, scaleFactor) {
 function updateMealNamePortions(mealName, scaleFactor) {
   if (!mealName) return mealName;
 
-  return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?\)/gi, (match, num, unit) => {
+  return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches)?\)/gi, (match, num, unit) => {
     let scaledNum = Math.round(parseFloat(num) * scaleFactor);
     // PREVENT ZERO: minimum value of 1
     if (scaledNum < 1) scaledNum = 1;
-    return unit ? `(${scaledNum}${unit})` : `(${scaledNum})`;
+    return unit ? `(${scaledNum} ${unit})` : `(${scaledNum})`;
   });
 }
 
@@ -3838,13 +3838,26 @@ exports.handler = async (event, context) => {
         console.log(`🔧 FORCING final scale of ${finalScale.toFixed(2)}x on all meals`);
 
         correctedData.plan = correctedData.plan.map(meal => {
-          // Scale macros directly (ingredients already processed)
+          // Scale ingredients AND meal name to match scaled macros
+          const scaledIngredients = meal.ingredients ? meal.ingredients.map(ing => {
+            if (typeof ing === 'string') {
+              return scaleIngredientString(ing, finalScale);
+            }
+            return ing;
+          }) : meal.ingredients;
+
+          // Recalculate macros from scaled ingredients for accuracy
+          const recalculated = scaledIngredients ? calculateMacrosFromIngredients(scaledIngredients) : null;
+
           return {
             ...meal,
-            calories: Math.round(meal.calories * finalScale),
-            protein: Math.round(meal.protein * finalScale),
-            carbs: Math.round(meal.carbs * finalScale),
-            fat: Math.round(meal.fat * finalScale),
+            name: updateMealNamePortions(meal.name, finalScale),
+            ingredients: scaledIngredients,
+            calories: recalculated ? recalculated.totals.calories : Math.round(meal.calories * finalScale),
+            protein: recalculated ? recalculated.totals.protein : Math.round(meal.protein * finalScale),
+            carbs: recalculated ? recalculated.totals.carbs : Math.round(meal.carbs * finalScale),
+            fat: recalculated ? recalculated.totals.fat : Math.round(meal.fat * finalScale),
+            breakdown: recalculated ? recalculated.breakdown : meal.breakdown,
             _forcedScale: finalScale.toFixed(2)
           };
         });
