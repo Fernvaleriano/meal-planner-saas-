@@ -714,6 +714,51 @@
             border-radius: 6px;
             text-align: center;
             font-size: 0.9em;
+            -moz-appearance: textfield;
+        }
+
+        .ingredient-qty::-webkit-outer-spin-button,
+        .ingredient-qty::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .qty-stepper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .qty-step-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #e0e7ff;
+            border-radius: 6px;
+            background: white;
+            color: #6366f1;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .qty-step-btn:hover {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+
+        .qty-step-btn:active {
+            transform: scale(0.95);
+        }
+
+        .qty-step-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         .ingredient-unit {
@@ -2263,6 +2308,39 @@
             updateCustomMealTotals();
         }
 
+        // Step ingredient quantity up or down with +/- buttons
+        function stepIngredientQty(index, direction) {
+            const ing = customMealSelectedIngredients[index];
+            if (!ing) return;
+
+            const isGrams = ing.selectedUnit === 'g';
+            const stepAmount = isGrams ? 10 : 0.5; // 10g for grams, 0.5 for servings
+
+            let newQty = ing.quantity + (stepAmount * direction);
+
+            // Minimum value
+            if (newQty < 0.1) newQty = 0.1;
+
+            // Round appropriately
+            if (isGrams) {
+                newQty = Math.round(newQty);
+            } else {
+                newQty = Math.round(newQty * 10) / 10;
+            }
+
+            ing.quantity = newQty;
+
+            // Recalculate grams
+            const measure = ing.measures.find(m => m.label === ing.selectedUnit);
+            if (measure) {
+                ing.quantityGrams = measure.isGrams ? newQty : newQty * measure.weight;
+            }
+
+            // Re-render to update the input field and update totals
+            renderCustomMealIngredients();
+            updateCustomMealTotals();
+        }
+
         function updateCustomMealIngredientUnit(index, unitLabel) {
             const ing = customMealSelectedIngredients[index];
             const newMeasure = ing.measures.find(m => m.label === unitLabel);
@@ -2311,12 +2389,20 @@
                     return `<option value="${escapeHtmlCustomMeal(m.label)}" ${selected}>${escapeHtmlCustomMeal(m.label)}${weightInfo}</option>`;
                 }).join('');
 
+                const isGrams = ing.selectedUnit === 'g';
+                const stepAmount = isGrams ? 10 : 0.5;
+
                 return `
                 <div class="ingredient-item">
                     <span class="ingredient-name" title="${titleText}">${escapeHtmlCustomMeal(displayName)}</span>
-                    <input type="number" class="ingredient-qty" value="${ing.quantity}" min="0.1" step="0.1"
-                           onchange="updateCustomMealIngredientQty(${index}, this.value)"
-                           onclick="event.stopPropagation()">
+                    <div class="qty-stepper">
+                        <button class="qty-step-btn" onclick="stepIngredientQty(${index}, -1)" title="Decrease">−</button>
+                        <input type="number" class="ingredient-qty" value="${ing.quantity}" min="0.1" step="${stepAmount}"
+                               onchange="updateCustomMealIngredientQty(${index}, this.value)"
+                               oninput="updateCustomMealIngredientQty(${index}, this.value)"
+                               onclick="event.stopPropagation()">
+                        <button class="qty-step-btn" onclick="stepIngredientQty(${index}, 1)" title="Increase">+</button>
+                    </div>
                     <select class="ingredient-unit-select" onchange="updateCustomMealIngredientUnit(${index}, this.value)">
                         ${unitOptions}
                     </select>
@@ -2342,6 +2428,23 @@
             document.getElementById('calcTotalProtein').textContent = Math.round(totalProtein) + 'g';
             document.getElementById('calcTotalCarbs').textContent = Math.round(totalCarbs) + 'g';
             document.getElementById('calcTotalFat').textContent = Math.round(totalFat) + 'g';
+
+            // Update meal name placeholder with auto-generated name
+            const mealNameInput = document.getElementById('calculatedMealName');
+            if (customMealSelectedIngredients.length > 0) {
+                const autoName = customMealSelectedIngredients.map(ing => {
+                    const grams = ing.quantityGrams || ing.quantity;
+                    const shortName = ing.name.split(',')[0].trim();
+                    if (ing.selectedUnit === 'g') {
+                        return `${Math.round(grams)}g ${shortName}`;
+                    } else {
+                        return `${ing.quantity} ${ing.selectedUnit} ${shortName}`;
+                    }
+                }).join(', ');
+                mealNameInput.placeholder = autoName;
+            } else {
+                mealNameInput.placeholder = 'Meal name (optional - auto-generated if blank)';
+            }
 
             // Enable/disable create button
             const createBtn = document.getElementById('createCalculatedMealBtn');
