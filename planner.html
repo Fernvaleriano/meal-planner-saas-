@@ -169,6 +169,350 @@
         .prose h3 { margin-bottom: 0.5em; }
         .prose ul { list-style-type: disc; padding-left: 1.5em; }
         .prose ol { list-style-type: decimal; padding-left: 1.5em; }
+
+        /* Custom Meal Modal Styles */
+        .custom-meal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .custom-meal-overlay.show {
+            display: flex;
+        }
+
+        .custom-meal-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            overflow: hidden;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .custom-meal-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .custom-meal-header h2 {
+            color: #0d9488;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .custom-meal-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .custom-meal-tab {
+            flex: 1;
+            padding: 15px 10px;
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .custom-meal-tab:hover {
+            border-color: #0d9488;
+        }
+
+        .custom-meal-tab.active {
+            background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .custom-meal-tab-icon {
+            display: block;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .custom-meal-tab-label {
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .custom-meal-panel {
+            display: none;
+        }
+
+        .custom-meal-panel.active {
+            display: block;
+        }
+
+        .custom-meal-hint {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #166534;
+        }
+
+        .custom-meal-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .custom-meal-input:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+
+        .food-search-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .food-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e0e7ff;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .food-search-results.active {
+            display: block;
+        }
+
+        .food-search-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .food-search-item:hover {
+            background: #f0fdf4;
+        }
+
+        .food-search-item:last-child {
+            border-bottom: none;
+        }
+
+        .food-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .food-macros {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .food-search-loading, .food-search-empty {
+            padding: 15px;
+            text-align: center;
+            color: #888;
+        }
+
+        .selected-ingredients {
+            margin-bottom: 15px;
+        }
+
+        .selected-ingredients-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e7ff;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .ingredients-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .ingredient-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .ingredient-name {
+            flex: 1;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ingredient-qty {
+            width: 60px;
+            padding: 4px 8px;
+            border: 1px solid #e0e7ff;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .ingredient-unit {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .ingredient-remove {
+            background: #fee2e2;
+            border: none;
+            color: #dc2626;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .no-ingredients {
+            text-align: center;
+            color: #888;
+            padding: 15px;
+            font-style: italic;
+        }
+
+        .calculated-totals {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .totals-header {
+            font-weight: 700;
+            color: #065f46;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .total-item {
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .total-value {
+            font-weight: 700;
+            color: #0d9488;
+            font-size: 1.1em;
+        }
+
+        .total-label {
+            font-size: 0.75em;
+            color: #666;
+        }
+
+        .macro-inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .macro-input-group label {
+            display: block;
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .macro-input-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e7ff;
+            border-radius: 8px;
+            font-size: 1em;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .macro-input-group input:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+
+        .btn-submit-custom {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-submit-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+        }
+
+        .btn-submit-custom:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-cancel-custom {
+            width: 100%;
+            padding: 12px;
+            background: #6b7280;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -340,6 +684,137 @@
                 <button data-action="close-math-modal" class="btn btn-secondary">Close</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Custom Meal Modal -->
+<div id="customMealModal" class="custom-meal-overlay">
+    <div class="custom-meal-modal">
+        <div class="custom-meal-header">
+            <h2>🎯 Custom Meal</h2>
+            <p style="color: #666; margin: 0;">Create your own meal</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="custom-meal-tabs">
+            <div class="custom-meal-tab active" onclick="switchCustomMealTab('calculate')">
+                <span class="custom-meal-tab-icon">🧮</span>
+                <span class="custom-meal-tab-label">Calculate from Ingredients</span>
+            </div>
+            <div class="custom-meal-tab" onclick="switchCustomMealTab('manual')">
+                <span class="custom-meal-tab-icon">✏️</span>
+                <span class="custom-meal-tab-label">Enter Macros Manually</span>
+            </div>
+        </div>
+
+        <!-- Calculate Panel -->
+        <div id="calculatePanel" class="custom-meal-panel active">
+            <div class="custom-meal-hint">
+                💡 Search our food database for ingredients. Add them with quantities to calculate macros.
+            </div>
+
+            <!-- Food Search Input -->
+            <div class="food-search-container">
+                <input
+                    type="text"
+                    id="foodSearchInput"
+                    class="custom-meal-input"
+                    placeholder="Search foods (e.g., chicken breast, rice, Quest bar)..."
+                    oninput="handleFoodSearch(this.value)"
+                    autocomplete="off"
+                    style="margin-bottom: 0;"
+                >
+                <div id="foodSearchResults" class="food-search-results"></div>
+            </div>
+
+            <!-- Selected Ingredients List -->
+            <div class="selected-ingredients">
+                <div class="selected-ingredients-header">
+                    <span>Selected Ingredients</span>
+                    <span id="ingredientCount">(0)</span>
+                </div>
+                <div id="ingredientsList" class="ingredients-list">
+                    <div class="no-ingredients">No ingredients added yet</div>
+                </div>
+            </div>
+
+            <!-- Calculated Totals -->
+            <div class="calculated-totals">
+                <div class="totals-header">📊 Calculated Totals</div>
+                <div class="totals-grid">
+                    <div class="total-item">
+                        <div class="total-value" id="totalCalories">0</div>
+                        <div class="total-label">Calories</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-value" id="totalProtein">0g</div>
+                        <div class="total-label">Protein</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-value" id="totalCarbs">0g</div>
+                        <div class="total-label">Carbs</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-value" id="totalFat">0g</div>
+                        <div class="total-label">Fat</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meal Name -->
+            <input
+                type="text"
+                id="calculatedMealName"
+                class="custom-meal-input"
+                placeholder="Meal name (optional - auto-generated if blank)"
+            >
+
+            <button class="btn-submit-custom" onclick="submitCalculatedMeal()" id="createCalculatedMealBtn" disabled>
+                🧮 Create Meal
+            </button>
+        </div>
+
+        <!-- Manual Panel -->
+        <div id="manualPanel" class="custom-meal-panel">
+            <div class="custom-meal-hint">
+                💡 Enter the meal name and macros directly. Use nutrition labels or apps like MyFitnessPal.
+            </div>
+            <input
+                type="text"
+                id="manualMealName"
+                class="custom-meal-input"
+                placeholder="Meal name (e.g., Protein Shake, Chipotle Bowl)"
+            >
+            <div class="macro-inputs-grid">
+                <div class="macro-input-group">
+                    <label>Calories</label>
+                    <input type="number" id="manualCalories" placeholder="0">
+                </div>
+                <div class="macro-input-group">
+                    <label>Protein (g)</label>
+                    <input type="number" id="manualProtein" placeholder="0">
+                </div>
+                <div class="macro-input-group">
+                    <label>Carbs (g)</label>
+                    <input type="number" id="manualCarbs" placeholder="0">
+                </div>
+                <div class="macro-input-group">
+                    <label>Fat (g)</label>
+                    <input type="number" id="manualFat" placeholder="0">
+                </div>
+            </div>
+            <input
+                type="text"
+                id="manualInstructions"
+                class="custom-meal-input"
+                placeholder="Instructions (optional)"
+            >
+            <button class="btn-submit-custom" onclick="submitManualMeal()">
+                ✅ Create Meal
+            </button>
+        </div>
+
+        <button class="btn-cancel-custom" onclick="closeCustomMealModal()">Cancel</button>
     </div>
 </div>
 
@@ -2325,86 +2800,323 @@ function undoMeal(dayIndex, mealIndex) {
     alert('Undo successful! Meal restored to previous state.');
 }
 
-// CUSTOM MEAL - User enters exact ingredients without AI interpretation
-async function customMeal(dayIndex, mealIndex) {
-    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+// ========================================
+// CUSTOM MEAL MODAL FUNCTIONALITY
+// ========================================
 
-    const userInput = window.prompt(
-        `🎯 Custom Meal - Enter EXACTLY what you want to eat:\n\n` +
-        `Examples:\n` +
-        `• "2 scoops whey protein"\n` +
-        `• "3 eggs, 2 toast, 1 tbsp butter"\n` +
-        `• "200g chicken breast, 150g rice, 100g broccoli"\n\n` +
-        `We'll calculate the exact calories and macros for you.`,
-        ''
-    );
+// State for custom meal modal
+let customMealDayIndex = null;
+let customMealMealIndex = null;
+let customMealSelectedIngredients = [];
+let foodSearchTimeout = null;
+let foodSearchResults = [];
+const FOOD_SEARCH_ENDPOINT = '/.netlify/functions/usda-search';
 
-    if (!userInput || !userInput.trim()) return;
+// CUSTOM MEAL - Opens the modal instead of prompt
+function customMeal(dayIndex, mealIndex) {
+    customMealDayIndex = dayIndex;
+    customMealMealIndex = mealIndex;
+    customMealSelectedIngredients = [];
 
-    // Save current meal state for undo functionality
-    const stateKey = `${dayIndex}-${mealIndex}`;
-    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
-    console.log(`💾 Saved previous state for undo (custom):`, previousMealStates[stateKey]);
+    // Reset modal state
+    document.getElementById('foodSearchInput').value = '';
+    document.getElementById('foodSearchResults').classList.remove('active');
+    document.getElementById('foodSearchResults').innerHTML = '';
+    document.getElementById('calculatedMealName').value = '';
+    document.getElementById('manualMealName').value = '';
+    document.getElementById('manualCalories').value = '';
+    document.getElementById('manualProtein').value = '';
+    document.getElementById('manualCarbs').value = '';
+    document.getElementById('manualFat').value = '';
+    document.getElementById('manualInstructions').value = '';
 
-    // Show loading
-    displayDietPlan(lastPlanQuery.currentPlan);
-    const mealCards = document.querySelectorAll('.meal-card');
-    let cardIndex = 0;
-    for (let d = 0; d < dayIndex; d++) {
-        cardIndex += lastPlanQuery.currentPlan[d].plan.length;
-    }
-    cardIndex += mealIndex;
-    const targetCard = mealCards[cardIndex];
-    if (targetCard) {
-        targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Creating custom meal...</p>';
-    }
+    // Reset to calculate tab
+    switchCustomMealTab('calculate');
 
-    // Parse user input into ingredients array
-    const rawIngredients = userInput
-        .split(/,|\band\b|\n/)
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
+    // Update UI
+    renderCustomMealIngredients();
+    updateCustomMealTotals();
 
-    // Format ingredients properly (capitalize, add parentheses if needed)
-    const ingredients = rawIngredients.map(ing => {
-        // Try to parse amount + food pattern
-        const amountMatch = ing.match(/^(\d+\.?\d*\s*(?:g|oz|cup|cups|tbsp|tsp|ml|scoop|scoops|slice|slices|piece|pieces|whole|large|medium|small)?)\s+(.+)$/i);
-        if (amountMatch) {
-            const amount = amountMatch[1].trim();
-            const food = amountMatch[2].trim();
-            const foodCapitalized = food.replace(/\b\w/g, c => c.toUpperCase());
-            return `${foodCapitalized} (${amount})`;
-        }
-        // If no amount pattern matched, just capitalize
-        return ing.replace(/\b\w/g, c => c.toUpperCase());
+    // Show modal
+    document.getElementById('customMealModal').classList.add('show');
+}
+
+function closeCustomMealModal() {
+    document.getElementById('customMealModal').classList.remove('show');
+    customMealDayIndex = null;
+    customMealMealIndex = null;
+    customMealSelectedIngredients = [];
+}
+
+function switchCustomMealTab(tab) {
+    // Update tab active states
+    document.querySelectorAll('.custom-meal-tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'calculate' && i === 0) || (tab === 'manual' && i === 1));
     });
 
-    // Create meal name from ingredients
-    const mealName = ingredients.length <= 2
-        ? ingredients.join(' & ')
-        : ingredients.slice(0, 2).join(' & ') + ' + More';
+    // Update panel visibility
+    document.getElementById('calculatePanel').classList.toggle('active', tab === 'calculate');
+    document.getElementById('manualPanel').classList.toggle('active', tab === 'manual');
+}
 
-    // Send to backend for macro calculation ONLY (no AI interpretation)
-    const aiPrompt = `Return this exact meal as JSON, no changes:\n{"type":"${meal.type || 'meal'}","name":"${mealName}","ingredients":${JSON.stringify(ingredients)},"instructions":"Prepare as desired."}`;
+// Food search functionality
+function handleFoodSearch(query) {
+    const resultsDiv = document.getElementById('foodSearchResults');
 
-    const customResult = await callGemini(aiPrompt, true, { calories: 0, protein: 0, carbs: 0, fat: 0 }, null, 1, true);
-
-    if (!customResult.error) {
-        // Backend calculated accurate macros from our exact ingredients
-        if (!customResult.calories || !customResult.protein || !customResult.carbs || customResult.fat === undefined) {
-            console.error('❌ Backend returned incomplete meal:', customResult);
-            alert('Error: Backend did not calculate macros. Check console for details.');
-            displayDietPlan(lastPlanQuery.currentPlan);
-            return;
-        }
-
-        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = customResult;
-        displayDietPlan(lastPlanQuery.currentPlan);
-        console.log(`✅ Custom meal created:`, customResult);
-    } else {
-        alert('Error creating custom meal: ' + customResult.error);
-        displayDietPlan(lastPlanQuery.currentPlan);
+    if (foodSearchTimeout) {
+        clearTimeout(foodSearchTimeout);
     }
+
+    if (!query || query.trim().length < 2) {
+        resultsDiv.classList.remove('active');
+        resultsDiv.innerHTML = '';
+        foodSearchResults = [];
+        return;
+    }
+
+    // Show loading state
+    resultsDiv.classList.add('active');
+    resultsDiv.innerHTML = '<div class="food-search-loading">Searching foods...</div>';
+
+    // Debounce the search
+    foodSearchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`${FOOD_SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Search failed');
+            }
+
+            if (data.foods && data.foods.length > 0) {
+                foodSearchResults = data.foods;
+
+                resultsDiv.innerHTML = data.foods.map((food, index) => {
+                    let macroDisplay;
+                    if (food.servingSize && food.caloriesPerServing !== undefined) {
+                        macroDisplay = `${escapeHtmlCustomMeal(food.servingSize)}: ${food.caloriesPerServing} cal | ${food.proteinPerServing}g P | ${food.carbsPerServing}g C | ${food.fatPerServing}g F`;
+                    } else {
+                        macroDisplay = `Per 100g: ${food.caloriesPer100g} cal | ${food.proteinPer100g}g P | ${food.carbsPer100g}g C | ${food.fatPer100g}g F`;
+                    }
+
+                    return `
+                    <div class="food-search-item" onclick="selectFoodItem(${index})">
+                        <div class="food-name">${escapeHtmlCustomMeal(food.name)}${food.brand ? ` <span style="color: #888; font-size: 12px;">(${escapeHtmlCustomMeal(food.brand)})</span>` : ''}</div>
+                        <div class="food-macros">${macroDisplay}</div>
+                    </div>
+                `}).join('');
+            } else {
+                foodSearchResults = [];
+                resultsDiv.innerHTML = '<div class="food-search-empty">No foods found. Try a different search term.</div>';
+            }
+        } catch (error) {
+            console.error('Food search error:', error);
+            foodSearchResults = [];
+            resultsDiv.innerHTML = '<div class="food-search-empty">Search failed. Please try again.</div>';
+        }
+    }, 300);
+}
+
+function escapeHtmlCustomMeal(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function selectFoodItem(index) {
+    const food = foodSearchResults[index];
+    if (!food) return;
+
+    // Use serving size if available, otherwise default to 100g
+    const hasServing = food.servingSize && food.servingGrams;
+    const defaultQty = hasServing ? food.servingGrams : 100;
+
+    customMealSelectedIngredients.push({
+        fdcId: food.fdcId,
+        name: food.name,
+        quantity: defaultQty,
+        caloriesPer100g: food.caloriesPer100g,
+        proteinPer100g: food.proteinPer100g,
+        carbsPer100g: food.carbsPer100g,
+        fatPer100g: food.fatPer100g,
+        servingSize: food.servingSize || null,
+        servingGrams: food.servingGrams || null
+    });
+
+    // Clear search
+    document.getElementById('foodSearchInput').value = '';
+    document.getElementById('foodSearchResults').classList.remove('active');
+    document.getElementById('foodSearchResults').innerHTML = '';
+
+    // Update UI
+    renderCustomMealIngredients();
+    updateCustomMealTotals();
+}
+
+function removeCustomMealIngredient(index) {
+    customMealSelectedIngredients.splice(index, 1);
+    renderCustomMealIngredients();
+    updateCustomMealTotals();
+}
+
+function updateCustomMealIngredientQty(index, quantity) {
+    const qty = parseFloat(quantity) || 0;
+    customMealSelectedIngredients[index].quantity = qty;
+    updateCustomMealTotals();
+}
+
+function renderCustomMealIngredients() {
+    const listDiv = document.getElementById('ingredientsList');
+    const countSpan = document.getElementById('ingredientCount');
+
+    countSpan.textContent = `(${customMealSelectedIngredients.length})`;
+
+    if (customMealSelectedIngredients.length === 0) {
+        listDiv.innerHTML = '<div class="no-ingredients">No ingredients added yet</div>';
+        return;
+    }
+
+    listDiv.innerHTML = customMealSelectedIngredients.map((ing, index) => {
+        const servingHint = ing.servingSize ? ` (${ing.servingSize} = ${ing.servingGrams}g)` : '';
+        const titleText = `${escapeHtmlCustomMeal(ing.name)}${servingHint}`;
+        const displayName = ing.name.length > 25 ? ing.name.substring(0, 22) + '...' : ing.name;
+
+        return `
+        <div class="ingredient-item">
+            <span class="ingredient-name" title="${titleText}">${escapeHtmlCustomMeal(displayName)}</span>
+            <input type="number" class="ingredient-qty" value="${ing.quantity}" min="1"
+                   onchange="updateCustomMealIngredientQty(${index}, this.value)"
+                   onclick="event.stopPropagation()">
+            <span class="ingredient-unit">g</span>
+            <button class="ingredient-remove" onclick="removeCustomMealIngredient(${index})" title="Remove">×</button>
+        </div>
+    `}).join('');
+}
+
+function updateCustomMealTotals() {
+    let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+    customMealSelectedIngredients.forEach(ing => {
+        const factor = ing.quantity / 100;
+        totalCal += ing.caloriesPer100g * factor;
+        totalProtein += ing.proteinPer100g * factor;
+        totalCarbs += ing.carbsPer100g * factor;
+        totalFat += ing.fatPer100g * factor;
+    });
+
+    document.getElementById('totalCalories').textContent = Math.round(totalCal);
+    document.getElementById('totalProtein').textContent = Math.round(totalProtein) + 'g';
+    document.getElementById('totalCarbs').textContent = Math.round(totalCarbs) + 'g';
+    document.getElementById('totalFat').textContent = Math.round(totalFat) + 'g';
+
+    // Enable/disable create button
+    const createBtn = document.getElementById('createCalculatedMealBtn');
+    createBtn.disabled = customMealSelectedIngredients.length === 0;
+}
+
+async function submitCalculatedMeal() {
+    if (customMealSelectedIngredients.length === 0) {
+        alert('Please add at least one ingredient');
+        return;
+    }
+
+    // Calculate totals
+    let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+    const ingredients = [];
+
+    customMealSelectedIngredients.forEach(ing => {
+        const factor = ing.quantity / 100;
+        totalCal += ing.caloriesPer100g * factor;
+        totalProtein += ing.proteinPer100g * factor;
+        totalCarbs += ing.carbsPer100g * factor;
+        totalFat += ing.fatPer100g * factor;
+        ingredients.push(`${ing.name} (${ing.quantity}g)`);
+    });
+
+    // Get meal name
+    let mealName = document.getElementById('calculatedMealName').value.trim();
+    if (!mealName) {
+        mealName = ingredients.length <= 2
+            ? ingredients.map(i => i.split(' (')[0]).join(' & ')
+            : ingredients.slice(0, 2).map(i => i.split(' (')[0]).join(' & ') + ' + More';
+    }
+
+    // Get meal type from original meal
+    const originalMeal = lastPlanQuery.currentPlan[customMealDayIndex].plan[customMealMealIndex];
+    const mealType = originalMeal.type || 'meal';
+
+    // Save for undo
+    const stateKey = `${customMealDayIndex}-${customMealMealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(originalMeal));
+
+    // Create the custom meal
+    const customMealData = {
+        type: mealType,
+        name: mealName,
+        ingredients: ingredients,
+        calories: Math.round(totalCal),
+        protein: Math.round(totalProtein),
+        carbs: Math.round(totalCarbs),
+        fat: Math.round(totalFat),
+        instructions: 'Prepare as desired.',
+        source: 'Food Database'
+    };
+
+    // Update the meal in the plan
+    lastPlanQuery.currentPlan[customMealDayIndex].plan[customMealMealIndex] = customMealData;
+
+    // Close modal and refresh display
+    closeCustomMealModal();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    console.log('✅ Custom meal created:', customMealData);
+}
+
+function submitManualMeal() {
+    const mealName = document.getElementById('manualMealName').value.trim();
+    const calories = parseInt(document.getElementById('manualCalories').value) || 0;
+    const protein = parseInt(document.getElementById('manualProtein').value) || 0;
+    const carbs = parseInt(document.getElementById('manualCarbs').value) || 0;
+    const fat = parseInt(document.getElementById('manualFat').value) || 0;
+    const instructions = document.getElementById('manualInstructions').value.trim() || 'Prepare as desired.';
+
+    if (!mealName) {
+        alert('Please enter a meal name');
+        return;
+    }
+
+    if (calories === 0 && protein === 0 && carbs === 0 && fat === 0) {
+        alert('Please enter at least some nutritional information');
+        return;
+    }
+
+    // Get meal type from original meal
+    const originalMeal = lastPlanQuery.currentPlan[customMealDayIndex].plan[customMealMealIndex];
+    const mealType = originalMeal.type || 'meal';
+
+    // Save for undo
+    const stateKey = `${customMealDayIndex}-${customMealMealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(originalMeal));
+
+    // Create the custom meal
+    const customMealData = {
+        type: mealType,
+        name: mealName,
+        ingredients: [mealName],
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+        instructions: instructions,
+        source: 'Manual Entry'
+    };
+
+    // Update the meal in the plan
+    lastPlanQuery.currentPlan[customMealDayIndex].plan[customMealMealIndex] = customMealData;
+
+    // Close modal and refresh display
+    closeCustomMealModal();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    console.log('✅ Manual meal created:', customMealData);
 }
 
 // REGENERATE ENTIRE DAY - Generate all new meals for a specific day
