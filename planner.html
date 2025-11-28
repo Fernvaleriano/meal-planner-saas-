@@ -1851,6 +1851,14 @@ Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}${fa
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
+CRITICAL MEAL DISTRIBUTION - HARD LIMITS:
+- BREAKFAST: ${Math.round(calories * 0.25)}-${Math.round(calories * 0.30)} calories (25-30% of daily)
+- LUNCH: ${Math.round(calories * 0.30)}-${Math.round(calories * 0.35)} calories (30-35% of daily)
+- DINNER: ${Math.round(calories * 0.25)}-${Math.round(calories * 0.30)} calories (25-30% of daily)
+- SNACKS: ${Math.round(calories * 0.10)}-${Math.round(calories * 0.15)} calories each (10-15% of daily)
+- ABSOLUTE MAXIMUM: No single meal can exceed ${Math.round(calories * 0.40)} calories (40% of daily)
+- Violating these limits is UNACCEPTABLE and will cause errors
+
 CRITICAL TARGET REQUIREMENT:
 Your meals MUST add up to approximately these daily targets. This is NOT optional.
 - Acceptable variance: ±10% for calories, ±15% for macros
@@ -2800,15 +2808,27 @@ async function changeMeal(dayIndex, mealIndex) {
     saveUndoStates(); // Persist to localStorage
     console.log(`💾 Saved previous state for undo (change):`, previousMealStates[stateKey]);
 
-    // IMPORTANT: Calculate CONSISTENT per-meal targets from daily nutrition
-    // This prevents calorie drift after multiple exchanges
-    const mealsPerDay = lastPlanQuery.currentPlan[dayIndex].plan.length || 3;
-    const targetCalories = Math.round((lastPlanQuery.calories || 2000) / mealsPerDay);
-    const targetProtein = Math.round((lastPlanQuery.protein || 150) / mealsPerDay);
-    const targetCarbs = Math.round((lastPlanQuery.carbs || 200) / mealsPerDay);
-    const targetFat = Math.round((lastPlanQuery.fat || 70) / mealsPerDay);
+    // Calculate per-meal targets based on MEAL TYPE (not equal distribution)
+    // This ensures proper calorie distribution across the day
+    const dailyCal = lastPlanQuery.calories || 2000;
+    const dailyProtein = lastPlanQuery.protein || 150;
+    const dailyCarbs = lastPlanQuery.carbs || 200;
+    const dailyFat = lastPlanQuery.fat || 70;
+    const mealType = meal.type?.toLowerCase() || 'meal';
 
-    console.log(`🎯 Exchange targets (from daily ${lastPlanQuery.calories}cal / ${mealsPerDay} meals): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
+    // Meal-type specific distribution percentages
+    let calPercent = 0.25; // Default
+    if (mealType === 'breakfast') calPercent = 0.27;
+    else if (mealType === 'lunch') calPercent = 0.32;
+    else if (mealType === 'dinner') calPercent = 0.28;
+    else if (mealType === 'snack' || mealType === 'snack 1' || mealType === 'snack 2') calPercent = 0.13;
+
+    const targetCalories = Math.round(dailyCal * calPercent);
+    const targetProtein = Math.round(dailyProtein * calPercent);
+    const targetCarbs = Math.round(dailyCarbs * calPercent);
+    const targetFat = Math.round(dailyFat * calPercent);
+
+    console.log(`🎯 Exchange targets for ${mealType} (${Math.round(calPercent * 100)}% of daily): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
 
     // Show loading
     displayDietPlan(lastPlanQuery.currentPlan);
