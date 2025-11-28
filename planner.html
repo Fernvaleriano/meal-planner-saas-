@@ -2782,6 +2782,7 @@ async function getAIRecipe(mealName) {
         } else {
             console.log('✅ Recipe generated successfully');
             let html = recipe
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
                 .replace(/^\* (.*$)/gim, '<li>$1</li>')
                 .replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>')
@@ -3341,7 +3342,15 @@ function handleFoodSearch(query) {
     // Debounce the search
     foodSearchTimeout = setTimeout(async () => {
         try {
-            const response = await fetch(`${FOOD_SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}`);
+            // Add 8-second timeout to prevent long-hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(`${FOOD_SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
             const data = await response.json();
 
             if (!response.ok) {
