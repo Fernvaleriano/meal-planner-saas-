@@ -3458,9 +3458,19 @@ async function submitCalculatedMeal() {
     // Get meal name
     let mealName = document.getElementById('calculatedMealName').value.trim();
     if (!mealName) {
-        mealName = ingredients.length <= 2
-            ? ingredients.map(i => i.split(' (')[0]).join(' & ')
-            : ingredients.slice(0, 2).map(i => i.split(' (')[0]).join(' & ') + ' + More';
+        // Extract short ingredient names
+        const shortNames = ingredients.map(i => {
+            const name = i.split(' (')[0].split(',')[0].trim();
+            return name.length > 25 ? name.substring(0, 22) + '...' : name;
+        });
+
+        if (shortNames.length === 1) {
+            mealName = shortNames[0];
+        } else if (shortNames.length === 2) {
+            mealName = shortNames.join(' & ');
+        } else {
+            mealName = `${shortNames[0]}, ${shortNames[1]} + ${shortNames.length - 2} more`;
+        }
     }
 
     // Get meal type from original meal

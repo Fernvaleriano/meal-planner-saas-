@@ -697,6 +697,21 @@
             font-size: 0.9em;
         }
 
+        .ingredient-unit-select {
+            padding: 4px 6px;
+            border: 1px solid #e0e7ff;
+            border-radius: 6px;
+            font-size: 0.8em;
+            background: white;
+            cursor: pointer;
+            max-width: 100px;
+        }
+
+        .ingredient-unit-select:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
         .ingredient-remove {
             background: #fee2e2;
             color: #dc2626;
@@ -962,7 +977,7 @@
 
     <!-- Custom Meal Modal -->
     <div id="customMealModal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content" style="max-width: 450px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h2>🎯 Custom Meal</h2>
                 <p style="color: #666;">Create your own meal</p>
@@ -2043,22 +2058,38 @@
         function addIngredientFromUsda(food) {
             console.log('Adding ingredient:', food); // Debug log
 
-            // Use serving size if available, otherwise default to 100g
-            const hasServing = food.servingSize && food.servingGrams;
-            const defaultQty = hasServing ? food.servingGrams : 100;
+            // Build measures array - always include grams as default
+            let measures = [{ label: 'g', weight: 1, isGrams: true }];
+
+            // Add measures from API if available
+            if (food.measures && food.measures.length > 0) {
+                food.measures.forEach(m => {
+                    if (m.label && m.weight && m.label.toLowerCase() !== 'gram') {
+                        measures.push({
+                            label: m.label,
+                            weight: m.weight,
+                            isGrams: false
+                        });
+                    }
+                });
+            }
+
+            // Use first non-gram serving as default if available, otherwise 100g
+            const defaultMeasure = measures.length > 1 ? measures[1] : measures[0];
+            const defaultQty = defaultMeasure.isGrams ? 100 : 1;
+            const defaultGrams = defaultMeasure.isGrams ? 100 : defaultMeasure.weight;
 
             selectedIngredients.push({
                 fdcId: food.fdcId,
                 name: food.name,
                 quantity: defaultQty,
+                quantityGrams: defaultGrams,
+                selectedUnit: defaultMeasure.label,
+                measures: measures,
                 caloriesPer100g: food.caloriesPer100g,
                 proteinPer100g: food.proteinPer100g,
                 carbsPer100g: food.carbsPer100g,
-                fatPer100g: food.fatPer100g,
-                // Store serving info for display
-                servingSize: food.servingSize || null,
-                servingGrams: food.servingGrams || null,
-                measures: food.measures || []
+                fatPer100g: food.fatPer100g
             });
 
             // Clear search
@@ -2079,7 +2110,40 @@
 
         function updateIngredientQuantity(index, quantity) {
             const qty = parseFloat(quantity) || 0;
-            selectedIngredients[index].quantity = qty;
+            const ing = selectedIngredients[index];
+            ing.quantity = qty;
+
+            // Recalculate grams based on current unit
+            const measure = ing.measures.find(m => m.label === ing.selectedUnit);
+            if (measure) {
+                ing.quantityGrams = measure.isGrams ? qty : qty * measure.weight;
+            }
+
+            updateCalculatedTotals();
+        }
+
+        function updateIngredientUnit(index, unitLabel) {
+            const ing = selectedIngredients[index];
+            const newMeasure = ing.measures.find(m => m.label === unitLabel);
+
+            if (!newMeasure) return;
+
+            // Convert current grams to new unit quantity
+            if (newMeasure.isGrams) {
+                // Switching to grams - quantity becomes the gram value
+                ing.quantity = Math.round(ing.quantityGrams);
+            } else {
+                // Switching to a serving unit - calculate how many servings
+                ing.quantity = Math.round((ing.quantityGrams / newMeasure.weight) * 10) / 10;
+                if (ing.quantity < 0.1) ing.quantity = 0.1;
+            }
+
+            ing.selectedUnit = unitLabel;
+
+            // Recalculate grams to ensure consistency
+            ing.quantityGrams = newMeasure.isGrams ? ing.quantity : ing.quantity * newMeasure.weight;
+
+            renderSelectedIngredients();
             updateCalculatedTotals();
         }
 
@@ -2095,17 +2159,25 @@
             }
 
             listDiv.innerHTML = selectedIngredients.map((ing, index) => {
-                // Show serving hint if available
-                const servingHint = ing.servingSize ? ` (${ing.servingSize} = ${ing.servingGrams}g)` : '';
-                const titleText = `${escapeHtml(ing.name)}${servingHint}`;
+                const gramsInfo = ing.selectedUnit !== 'g' ? ` (${Math.round(ing.quantityGrams)}g)` : '';
+                const titleText = `${escapeHtml(ing.name)}${gramsInfo}`;
+
+                // Build unit dropdown options
+                const unitOptions = ing.measures.map(m => {
+                    const selected = m.label === ing.selectedUnit ? 'selected' : '';
+                    const weightInfo = m.isGrams ? '' : ` (${m.weight}g)`;
+                    return `<option value="${escapeHtml(m.label)}" ${selected}>${escapeHtml(m.label)}${weightInfo}</option>`;
+                }).join('');
 
                 return `
                 <div class="ingredient-item">
-                    <span class="ingredient-name" title="${titleText}">${truncateName(ing.name, 25)}</span>
-                    <input type="number" class="ingredient-qty" value="${ing.quantity}" min="1"
+                    <span class="ingredient-name" title="${titleText}">${truncateName(ing.name, 20)}</span>
+                    <input type="number" class="ingredient-qty" value="${ing.quantity}" min="0.1" step="0.1"
                            onchange="updateIngredientQuantity(${index}, this.value)"
                            onclick="event.stopPropagation()">
-                    <span class="ingredient-unit">g</span>
+                    <select class="ingredient-unit-select" onchange="updateIngredientUnit(${index}, this.value)">
+                        ${unitOptions}
+                    </select>
                     <button class="ingredient-remove" onclick="removeIngredient(${index})" title="Remove">×</button>
                 </div>
             `}).join('');
@@ -2126,24 +2198,18 @@
                 return;
             }
 
-            // Calculate totals based on quantities
+            // Calculate totals based on quantityGrams (accurate gram values)
             let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
 
             selectedIngredients.forEach(ing => {
-                console.log('Ingredient data:', ing); // Debug
-                const multiplier = ing.quantity / 100;
-                const cal = (ing.caloriesPer100g || 0) * multiplier;
-                const prot = (ing.proteinPer100g || 0) * multiplier;
-                const carb = (ing.carbsPer100g || 0) * multiplier;
-                const fatVal = (ing.fatPer100g || 0) * multiplier;
-                console.log(`Calculated: ${cal} cal, ${prot}g protein, ${carb}g carbs, ${fatVal}g fat`);
-                totalCal += cal;
-                totalProtein += prot;
-                totalCarbs += carb;
-                totalFat += fatVal;
+                // Use quantityGrams for accurate calculation
+                const grams = ing.quantityGrams || ing.quantity;
+                const multiplier = grams / 100;
+                totalCal += (ing.caloriesPer100g || 0) * multiplier;
+                totalProtein += (ing.proteinPer100g || 0) * multiplier;
+                totalCarbs += (ing.carbsPer100g || 0) * multiplier;
+                totalFat += (ing.fatPer100g || 0) * multiplier;
             });
-
-            console.log('Total:', totalCal, totalProtein, totalCarbs, totalFat);
 
             // Update display (use modal-specific IDs to avoid conflict with main page)
             document.getElementById('modalTotalCalories').textContent = Math.round(totalCal);
@@ -2275,30 +2341,37 @@
             // Calculate totals from selected ingredients
             let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
             const ingredients = [];
+            const ingredientNames = [];
 
             selectedIngredients.forEach(ing => {
-                const multiplier = ing.quantity / 100;
+                // Use quantityGrams for accurate calculation
+                const grams = ing.quantityGrams || ing.quantity;
+                const multiplier = grams / 100;
                 totalCal += ing.caloriesPer100g * multiplier;
                 totalProtein += ing.proteinPer100g * multiplier;
                 totalCarbs += ing.carbsPer100g * multiplier;
                 totalFat += ing.fatPer100g * multiplier;
 
-                // Format ingredient name with quantity
-                const shortName = ing.name.length > 40 ? ing.name.substring(0, 40) + '...' : ing.name;
-                ingredients.push(`${shortName} (${ing.quantity}g)`);
+                // Format ingredient with unit (e.g., "Chicken (1 Cup)" or "Rice (150g)")
+                const unitDisplay = ing.selectedUnit === 'g' ? `${Math.round(grams)}g` : `${ing.quantity} ${ing.selectedUnit}`;
+                ingredients.push(`${ing.name} (${unitDisplay})`);
+
+                // Store short name for meal title
+                const shortName = ing.name.split(',')[0].trim();
+                ingredientNames.push(shortName.length > 25 ? shortName.substring(0, 22) + '...' : shortName);
             });
 
-            // Generate meal name
+            // Generate meal name - show all ingredients
             let mealName = document.getElementById('calculatedMealName').value.trim();
             if (!mealName) {
-                // Auto-generate name from first ingredient(s)
-                if (selectedIngredients.length === 1) {
-                    const firstName = selectedIngredients[0].name.split(',')[0];
-                    mealName = firstName.length > 30 ? firstName.substring(0, 30) : firstName;
+                // Show all ingredients joined, or truncate if too long
+                if (ingredientNames.length === 1) {
+                    mealName = ingredientNames[0];
+                } else if (ingredientNames.length === 2) {
+                    mealName = ingredientNames.join(' & ');
                 } else {
-                    const firstName = selectedIngredients[0].name.split(',')[0];
-                    const shortFirst = firstName.length > 20 ? firstName.substring(0, 20) : firstName;
-                    mealName = `${shortFirst} + ${selectedIngredients.length - 1} more`;
+                    // Show first two and count
+                    mealName = `${ingredientNames[0]}, ${ingredientNames[1]} + ${ingredientNames.length - 2} more`;
                 }
             }
 
