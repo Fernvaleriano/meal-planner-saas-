@@ -168,7 +168,12 @@ exports.handler = async (event, context) => {
 
       console.log(`🔍 Searching Edamam for: "${query}"`);
 
-      const response = await fetch(searchUrl);
+      // Add 5-second timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(searchUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -266,7 +271,11 @@ exports.handler = async (event, context) => {
       };
 
     } catch (edamamError) {
-      console.error('❌ Edamam search failed, falling back to local database:', edamamError.message);
+      if (edamamError.name === 'AbortError') {
+        console.error('❌ Edamam search timed out after 5s, falling back to local database');
+      } else {
+        console.error('❌ Edamam search failed, falling back to local database:', edamamError.message);
+      }
       // Fall through to local database
     }
   } else {
