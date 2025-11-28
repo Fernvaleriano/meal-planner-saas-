@@ -21,7 +21,8 @@ exports.handler = async (event, context) => {
       calorieAdjustment, dietType, macroPreference, mealCount, budget,
       allergies, dislikedFoods, preferredFoods, cookingEquipment,
       useProteinPowder, proteinPowderBrand, proteinPowderCalories,
-      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat
+      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
+      useBrandedFoods
     } = body;
 
     // Validate required fields
@@ -71,6 +72,8 @@ exports.handler = async (event, context) => {
     if (proteinPowderProtein !== undefined) updateData.protein_powder_protein = proteinPowderProtein;
     if (proteinPowderCarbs !== undefined) updateData.protein_powder_carbs = proteinPowderCarbs;
     if (proteinPowderFat !== undefined) updateData.protein_powder_fat = proteinPowderFat;
+    // Branded fitness foods
+    if (useBrandedFoods !== undefined) updateData.use_branded_foods = useBrandedFoods;
 
     // Update client (verify it belongs to this coach)
     const { data, error } = await supabase

@@ -44,5 +44,9 @@ ALTER TABLE clients
   ADD COLUMN IF NOT EXISTS protein_powder_carbs INTEGER,
   ADD COLUMN IF NOT EXISTS protein_powder_fat INTEGER;
 
+-- Add branded fitness foods preference
+ALTER TABLE clients
+  ADD COLUMN IF NOT EXISTS use_branded_foods BOOLEAN DEFAULT false;
+
 -- Add comment explaining the schema expansion
 COMMENT ON TABLE clients IS 'Stores complete client profiles including physical stats, dietary preferences, and meal planning settings for auto-population';

@@ -21,7 +21,8 @@ exports.handler = async (event, context) => {
       calorieAdjustment, dietType, macroPreference, mealCount, budget,
       allergies, dislikedFoods, preferredFoods, cookingEquipment,
       useProteinPowder, proteinPowderBrand, proteinPowderCalories,
-      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat
+      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
+      useBrandedFoods
     } = body;
 
     // Validate required fields
@@ -73,7 +74,9 @@ exports.handler = async (event, context) => {
           protein_powder_calories: proteinPowderCalories || null,
           protein_powder_protein: proteinPowderProtein || null,
           protein_powder_carbs: proteinPowderCarbs || null,
-          protein_powder_fat: proteinPowderFat || null
+          protein_powder_fat: proteinPowderFat || null,
+          // Branded fitness foods
+          use_branded_foods: useBrandedFoods || false
         }
       ])
       .select()
