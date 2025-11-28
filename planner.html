@@ -5166,7 +5166,7 @@ document.addEventListener('click', function(event) {
             const mealIndex = parseInt(target.dataset.mealIndex);
             customMeal(dayIndex, mealIndex);
         },
-        'adjust-portions': (event) => {
+        'adjust-portions': () => {
             const target = event.target.closest('[data-day-index]');
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
