@@ -3249,7 +3249,9 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
                     : '';
 
                 // NEW: Prompt asks for ingredients array - backend will calculate macros from USDA database
-                const prompt = `Generate a DIFFERENT ${meal.type || 'meal'} (not "${meal.name}"):
+                const variationSeed = Math.floor(Math.random() * 1000000);
+                const prompt = `Generate a DIFFERENT ${meal.type || 'meal'} (not "${meal.name}").
+[Variation: ${variationSeed}] - Generate something UNIQUE and CREATIVE.
 ${avoidMealsList}
 STRICT Target Nutrition - the new meal MUST closely match these values:
 - Calories: ${targetCalories} (stay within ±50 calories)
@@ -3413,7 +3415,9 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 // Generate all meals for the day in one request
                 // NEW: Ask for ingredients arrays - backend will calculate macros from USDA database
                 const dailyCal = targets.calories || 2000;
+                const variationSeed = Math.floor(Math.random() * 1000000);
                 const prompt = `Generate a COMPLETELY NEW ${numMeals}-meal plan for Day ${dayNumber}.
+[Variation: ${variationSeed}] - Generate UNIQUE meals different from any previous generation.
 
 Daily Nutrition Targets:
 - Calories: ${dailyCal}
