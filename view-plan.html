@@ -1143,6 +1143,7 @@
         let realtimeChannel = null;
         let currentPlanId = null;
         let currentClientId = null; // Track client ID for saving modifications
+        let currentCoachId = null; // Track coach ID for coach view
         let isClientModified = false; // Track if client has modified the plan
         let isClientView = false; // Track if viewing as client
 
@@ -1389,6 +1390,11 @@
                     query = query.eq('client_id', clientData.id);
                 } else {
                     // For coach view, verify the coach owns this plan
+                    currentCoachId = currentUser.id;
+
+                    // Load saved meals for the coach
+                    await loadSavedMeals();
+
                     query = query.eq('coach_id', currentUser.id);
                 }
 
@@ -1893,19 +1899,26 @@
             }
         }
 
-        // ===== SAVED MEALS FUNCTIONS (Database backed - per client) =====
+        // ===== SAVED MEALS FUNCTIONS (Database backed - per account) =====
         const SAVED_MEALS_ENDPOINT = '/.netlify/functions/saved-meals';
-        let savedMealsCache = []; // In-memory cache of client's saved meals
+        let savedMealsCache = []; // In-memory cache of saved meals
 
         async function loadSavedMeals() {
-            if (!currentClientId) {
-                console.log('⚠️ Cannot load saved meals - no client ID');
+            // Determine which ID to use based on view type
+            const queryParam = currentClientId
+                ? `clientId=${currentClientId}`
+                : currentCoachId
+                    ? `coachId=${currentCoachId}`
+                    : null;
+
+            if (!queryParam) {
+                console.log('⚠️ Cannot load saved meals - no user ID');
                 savedMealsCache = [];
                 return [];
             }
 
             try {
-                const response = await fetch(`${SAVED_MEALS_ENDPOINT}?clientId=${currentClientId}`);
+                const response = await fetch(`${SAVED_MEALS_ENDPOINT}?${queryParam}`);
                 const data = await response.json();
 
                 if (data.meals) {
@@ -1932,8 +1945,15 @@
         }
 
         async function saveMealToLibrary(meal) {
-            if (!currentClientId) {
-                alert('Cannot save meal - client not identified');
+            // Determine which ID to use based on view type
+            const payload = currentClientId
+                ? { clientId: currentClientId, mealData: meal }
+                : currentCoachId
+                    ? { coachId: currentCoachId, mealData: meal }
+                    : null;
+
+            if (!payload) {
+                alert('Cannot save meal - not logged in');
                 return null;
             }
 
@@ -1941,10 +1961,7 @@
                 const response = await fetch(SAVED_MEALS_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: currentClientId,
-                        mealData: meal
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();
@@ -1970,13 +1987,20 @@
         }
 
         async function deleteSavedMeal(mealId) {
-            if (!currentClientId) {
-                alert('Cannot delete meal - client not identified');
+            // Determine which ID to use based on view type
+            const queryParam = currentClientId
+                ? `clientId=${currentClientId}`
+                : currentCoachId
+                    ? `coachId=${currentCoachId}`
+                    : null;
+
+            if (!queryParam) {
+                alert('Cannot delete meal - not logged in');
                 return;
             }
 
             try {
-                const response = await fetch(`${SAVED_MEALS_ENDPOINT}?mealId=${mealId}&clientId=${currentClientId}`, {
+                const response = await fetch(`${SAVED_MEALS_ENDPOINT}?mealId=${mealId}&${queryParam}`, {
                     method: 'DELETE'
                 });
 
