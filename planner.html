@@ -85,6 +85,42 @@
             background: #6d28d9;
         }
 
+        .btn-portions {
+            background: #0891b2;
+            color: white;
+        }
+
+        .btn-portions:hover:not(:disabled) {
+            background: #0e7490;
+        }
+
+        .portions-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 120px;
+            overflow: hidden;
+        }
+
+        .portions-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px 16px;
+            text-align: left;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .portions-dropdown button:hover {
+            background: #f0f9ff;
+        }
+
         .hidden {
             display: none;
         }
@@ -2359,6 +2395,7 @@ function displayDietPlan(multiDayData) {
                     <div class="flex gap-2 mt-2">
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                         <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
+                        <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Adjust serving size">⚖️ Portions</button>
                         <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
                         ${undoButton}
@@ -3060,6 +3097,87 @@ function undoMeal(dayIndex, mealIndex) {
 
     // Show success message
     alert('Undo successful! Meal restored to previous state.');
+}
+
+// ADJUST PORTIONS - Quick serving size adjustment
+function showPortionsDropdown(buttonElement, dayIndex, mealIndex) {
+    // Remove any existing dropdown
+    const existingDropdown = document.querySelector('.portions-dropdown');
+    if (existingDropdown) {
+        existingDropdown.remove();
+    }
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'portions-dropdown';
+
+    const options = [
+        { label: '0.5x (Half)', multiplier: 0.5 },
+        { label: '0.75x', multiplier: 0.75 },
+        { label: '1.25x', multiplier: 1.25 },
+        { label: '1.5x', multiplier: 1.5 },
+        { label: '2x (Double)', multiplier: 2 }
+    ];
+
+    options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.textContent = option.label;
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            adjustPortions(dayIndex, mealIndex, option.multiplier);
+            dropdown.remove();
+        };
+        dropdown.appendChild(btn);
+    });
+
+    // Position the dropdown below the button
+    const rect = buttonElement.getBoundingClientRect();
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = `${rect.bottom + 5}px`;
+    dropdown.style.left = `${rect.left}px`;
+
+    document.body.appendChild(dropdown);
+
+    // Close dropdown when clicking outside
+    const closeDropdown = (e) => {
+        if (!dropdown.contains(e.target) && e.target !== buttonElement) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+}
+
+function adjustPortions(dayIndex, mealIndex, multiplier) {
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+
+    // Save current meal state for undo functionality
+    const stateKey = `${dayIndex}-${mealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+    saveUndoStates();
+    console.log(`💾 Saved previous state for undo (portions):`, previousMealStates[stateKey]);
+
+    // Scale macros proportionally
+    meal.calories = Math.round(meal.calories * multiplier);
+    meal.protein = Math.round(meal.protein * multiplier);
+    meal.carbs = Math.round(meal.carbs * multiplier);
+    meal.fat = Math.round(meal.fat * multiplier);
+
+    // Update meal name to reflect portion change
+    const portionLabel = multiplier < 1 ? `${multiplier}x portion` : `${multiplier}x portion`;
+    if (!meal.name.includes('portion')) {
+        meal.name = `${meal.name} (${portionLabel})`;
+    } else {
+        // Replace existing portion label
+        meal.name = meal.name.replace(/\s*\([0-9.]+x portion\)/, ` (${portionLabel})`);
+    }
+
+    // Auto-save if plan already exists in database
+    if (lastPlanQuery.planId) {
+        saveCoachPlan();
+    }
+
+    displayDietPlan(lastPlanQuery.currentPlan);
+    console.log(`⚖️ Adjusted portions for ${meal.type}: ${multiplier}x`);
 }
 
 // ========================================
@@ -4944,6 +5062,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             customMeal(dayIndex, mealIndex);
+        },
+        'adjust-portions': (event) => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            showPortionsDropdown(event.target, dayIndex, mealIndex);
         },
         'undo-meal': () => {
             const target = event.target.closest('[data-day-index]');

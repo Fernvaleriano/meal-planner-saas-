@@ -170,6 +170,43 @@
             transform: translateY(-2px);
         }
 
+        .btn-portions {
+            background: #0891b2;
+            color: white;
+        }
+
+        .btn-portions:hover {
+            background: #0e7490;
+            transform: translateY(-2px);
+        }
+
+        .portions-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 120px;
+            overflow: hidden;
+        }
+
+        .portions-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px 16px;
+            text-align: left;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .portions-dropdown button:hover {
+            background: #f0f9ff;
+        }
+
         .btn-favorite {
             background: transparent;
             color: #e53e3e;
@@ -2753,10 +2790,14 @@
                 ? `<button class="btn btn-undo" onclick="undoRevision(${changeParam})" title="Undo last revision">↩️ Undo</button>`
                 : '';
 
+            // Build portions param - same pattern as change/revise
+            const portionsParam = dayIndex !== null ? `event, '${index}', ${dayIndex}, ${mealIndex}` : `event, ${index}`;
+
             let actionButtons = `
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
                 <button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>
+                <button class="btn btn-portions" onclick="showPortionsDropdown(${portionsParam})" title="Adjust serving size">⚖️ Portions</button>
                 <button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>
                 ${undoButton}
             `;
@@ -2928,6 +2969,99 @@
 
             // Show success message
             alert('Undo successful! Meal restored to previous state.');
+        }
+
+        // ADJUST PORTIONS - Quick serving size adjustment
+        function showPortionsDropdown(event, index, dayIndex = null, mealIndex = null) {
+            // Remove any existing dropdown
+            const existingDropdown = document.querySelector('.portions-dropdown');
+            if (existingDropdown) {
+                existingDropdown.remove();
+            }
+
+            const buttonElement = event.target;
+            const dropdown = document.createElement('div');
+            dropdown.className = 'portions-dropdown';
+
+            const options = [
+                { label: '0.5x (Half)', multiplier: 0.5 },
+                { label: '0.75x', multiplier: 0.75 },
+                { label: '1.25x', multiplier: 1.25 },
+                { label: '1.5x', multiplier: 1.5 },
+                { label: '2x (Double)', multiplier: 2 }
+            ];
+
+            options.forEach(option => {
+                const btn = document.createElement('button');
+                btn.textContent = option.label;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    adjustPortions(index, dayIndex, mealIndex, option.multiplier);
+                    dropdown.remove();
+                };
+                dropdown.appendChild(btn);
+            });
+
+            // Position the dropdown below the button
+            const rect = buttonElement.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = `${rect.bottom + 5}px`;
+            dropdown.style.left = `${rect.left}px`;
+
+            document.body.appendChild(dropdown);
+
+            // Close dropdown when clicking outside
+            const closeDropdown = (e) => {
+                if (!dropdown.contains(e.target) && e.target !== buttonElement) {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeDropdown);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+        }
+
+        async function adjustPortions(index, dayIndex, mealIndex, multiplier) {
+            // Get the meal based on plan structure
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                // Multi-day plan
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else {
+                // Single-day plan
+                meal = currentPlan.meals[index];
+            }
+
+            // Save current meal state for undo functionality
+            const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
+            previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+            saveUndoStates();
+            console.log(`💾 Saved previous state for undo (portions):`, previousMealStates[stateKey]);
+
+            // Scale macros proportionally
+            meal.calories = Math.round(meal.calories * multiplier);
+            meal.protein = Math.round(meal.protein * multiplier);
+            meal.carbs = Math.round(meal.carbs * multiplier);
+            meal.fat = Math.round(meal.fat * multiplier);
+
+            // Update meal name to reflect portion change
+            const portionLabel = `${multiplier}x portion`;
+            if (!meal.name.includes('portion')) {
+                meal.name = `${meal.name} (${portionLabel})`;
+            } else {
+                // Replace existing portion label
+                meal.name = meal.name.replace(/\s*\([0-9.]+x portion\)/, ` (${portionLabel})`);
+            }
+
+            // Save to localStorage
+            localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+
+            // Save to database
+            await savePlanToDatabase();
+
+            // Re-render the plan
+            displayMealPlan();
+
+            console.log(`⚖️ Adjusted portions for ${meal.type}: ${multiplier}x`);
         }
 
         async function saveMealNote(index, dayIndex = null, mealIndex = null) {
