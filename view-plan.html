@@ -1722,7 +1722,7 @@
 
             // Show loading state
             resultsDiv.classList.add('active');
-            resultsDiv.innerHTML = '<div class="usda-search-loading">Searching USDA database...</div>';
+            resultsDiv.innerHTML = '<div class="usda-search-loading">Searching foods...</div>';
 
             // Debounce the search (wait 300ms after user stops typing)
             usdaSearchTimeout = setTimeout(async () => {
@@ -2006,10 +2006,10 @@
                 carbs: Math.round(totalCarbs),
                 fat: Math.round(totalFat),
                 instructions: 'Prepare as desired.',
-                source: 'USDA FoodData Central'
+                source: 'Food Database'
             };
 
-            console.log('✅ USDA Custom meal created:', customMealData);
+            console.log('✅ Custom meal created:', customMealData);
 
             // Save the custom meal
             if (dayIndex !== null && mealIndex !== null) {
