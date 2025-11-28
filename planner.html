@@ -1235,6 +1235,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Load clients for the dropdown
             await loadClients();
+
+            // Load saved meals for this coach
+            await loadSavedMeals();
         } else {
             console.warn("No active session - plans will not be saved to history");
             // If no session, just show a simple text input
@@ -3121,38 +3124,107 @@ function switchCustomMealTab(tab) {
     }
 }
 
-// Saved Meals Management
-const SAVED_MEALS_KEY = 'savedCustomMeals';
+// Saved Meals Management - Database backed (per coach)
+const SAVED_MEALS_ENDPOINT = '/.netlify/functions/saved-meals';
+let savedMealsCache = []; // In-memory cache of coach's saved meals
 
-function getSavedMeals() {
+async function loadSavedMeals() {
+    if (!currentCoach) {
+        console.log('⚠️ Cannot load saved meals - no coach logged in');
+        savedMealsCache = [];
+        return [];
+    }
+
     try {
-        const saved = localStorage.getItem(SAVED_MEALS_KEY);
-        return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-        console.error('Error loading saved meals:', e);
+        const response = await fetch(`${SAVED_MEALS_ENDPOINT}?coachId=${currentCoach.id}`);
+        const data = await response.json();
+
+        if (data.meals) {
+            // Transform database format to match expected format
+            savedMealsCache = data.meals.map(m => ({
+                id: m.id.toString(),
+                savedAt: m.created_at,
+                ...m.meal_data
+            }));
+            console.log(`📚 Loaded ${savedMealsCache.length} saved meals from database`);
+        } else {
+            savedMealsCache = [];
+        }
+        return savedMealsCache;
+    } catch (error) {
+        console.error('Error loading saved meals:', error);
+        savedMealsCache = [];
         return [];
     }
 }
 
-function saveMealToLibrary(meal) {
-    const savedMeals = getSavedMeals();
-    const mealWithId = {
-        ...meal,
-        id: Date.now().toString(),
-        savedAt: new Date().toISOString()
-    };
-    savedMeals.unshift(mealWithId); // Add to beginning
-    localStorage.setItem(SAVED_MEALS_KEY, JSON.stringify(savedMeals));
-    console.log('💾 Meal saved to library:', mealWithId.name);
-    return mealWithId;
+function getSavedMeals() {
+    return savedMealsCache;
 }
 
-function deleteSavedMeal(mealId) {
-    const savedMeals = getSavedMeals();
-    const filtered = savedMeals.filter(m => m.id !== mealId);
-    localStorage.setItem(SAVED_MEALS_KEY, JSON.stringify(filtered));
-    renderSavedMeals();
-    console.log('🗑️ Meal deleted from library:', mealId);
+async function saveMealToLibrary(meal) {
+    if (!currentCoach) {
+        alert('Please log in to save meals to your library');
+        return null;
+    }
+
+    try {
+        const response = await fetch(SAVED_MEALS_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                coachId: currentCoach.id,
+                mealData: meal
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.meal) {
+            // Add to cache
+            const newMeal = {
+                id: data.meal.id.toString(),
+                savedAt: data.meal.created_at,
+                ...data.meal.meal_data
+            };
+            savedMealsCache.unshift(newMeal);
+            console.log('💾 Meal saved to library:', newMeal.name);
+            return newMeal;
+        } else {
+            throw new Error(data.error || 'Failed to save meal');
+        }
+    } catch (error) {
+        console.error('Error saving meal to library:', error);
+        alert('Failed to save meal to library. Please try again.');
+        return null;
+    }
+}
+
+async function deleteSavedMeal(mealId) {
+    if (!currentCoach) {
+        alert('Please log in to manage your meal library');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${SAVED_MEALS_ENDPOINT}?mealId=${mealId}&coachId=${currentCoach.id}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Remove from cache
+            savedMealsCache = savedMealsCache.filter(m => m.id !== mealId);
+            renderSavedMeals();
+            console.log('🗑️ Meal deleted from library:', mealId);
+        } else {
+            throw new Error(data.error || 'Failed to delete meal');
+        }
+    } catch (error) {
+        console.error('Error deleting saved meal:', error);
+        alert('Failed to delete meal. Please try again.');
+    }
 }
 
 function useSavedMeal(mealId) {
