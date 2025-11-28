@@ -3405,12 +3405,21 @@ function scaleIngredientPortions(ingredients, scaleFactor) {
   return ingredients.map(ing => {
     if (typeof ing !== 'string') return ing;
 
-    // Match patterns like (200g), (1 cup), (2 large), (1 bottle), (1 bar), etc.
-    return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches)?\)/gi, (match, num, unit) => {
+    // Match patterns like (200g), (1 cup), (2 large), (1 bottle), (70g dry), (150g cooked), etc.
+    // Updated pattern to capture optional descriptor after the unit (dry, cooked, raw, etc.)
+    return ing.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches|tortilla|tortillas|container|containers)?(\s+(?:dry|cooked|raw|whole|uncooked))?\)/gi, (match, num, unit, descriptor) => {
       let scaledNum = Math.round(parseFloat(num) * scaleFactor);
       // PREVENT ZERO: minimum value of 1
       if (scaledNum < 1) scaledNum = 1;
-      return unit ? `(${scaledNum} ${unit})` : `(${scaledNum})`;
+      if (unit && descriptor) {
+        return `(${scaledNum} ${unit}${descriptor})`;
+      } else if (unit) {
+        return `(${scaledNum} ${unit})`;
+      } else if (descriptor) {
+        return `(${scaledNum}${descriptor})`;
+      } else {
+        return `(${scaledNum})`;
+      }
     });
   });
 }
@@ -3418,15 +3427,26 @@ function scaleIngredientPortions(ingredients, scaleFactor) {
 /**
  * Update portion sizes in meal name to reflect scaling
  * e.g., "Chicken Breast (200g) with Rice (150g)" becomes "Chicken Breast (250g) with Rice (188g)"
+ * Also handles descriptors like "Oatmeal (70g dry)" becomes "Oatmeal (88g dry)"
  */
 function updateMealNamePortions(mealName, scaleFactor) {
   if (!mealName) return mealName;
 
-  return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches)?\)/gi, (match, num, unit) => {
+  // Match patterns like (200g), (1 cup), (2 large), (1 bottle), (70g dry), (150g cooked), etc.
+  // Updated pattern to capture optional descriptor after the unit (dry, cooked, raw, etc.)
+  return mealName.replace(/\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops|bottle|bottles|bar|bars|stick|sticks|can|cans|packet|packets|pouch|pouches|tortilla|tortillas|container|containers)?(\s+(?:dry|cooked|raw|whole|uncooked))?\)/gi, (match, num, unit, descriptor) => {
     let scaledNum = Math.round(parseFloat(num) * scaleFactor);
     // PREVENT ZERO: minimum value of 1
     if (scaledNum < 1) scaledNum = 1;
-    return unit ? `(${scaledNum} ${unit})` : `(${scaledNum})`;
+    if (unit && descriptor) {
+      return `(${scaledNum} ${unit}${descriptor})`;
+    } else if (unit) {
+      return `(${scaledNum} ${unit})`;
+    } else if (descriptor) {
+      return `(${scaledNum}${descriptor})`;
+    } else {
+      return `(${scaledNum})`;
+    }
   });
 }
 

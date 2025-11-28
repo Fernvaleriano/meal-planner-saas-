@@ -3901,7 +3901,7 @@ function parseFraction(str) {
 function parseIngredient(ingredientStr) {
     // NEW FORMAT: "Food Name (amount)" - e.g., "Chicken Breast (200g)" or "Eggs (2 whole)"
     // Pattern 1: "Food Name (quantity unit)" - e.g., "Chicken Breast (200g)" or "Olive Oil (1 tbsp)"
-    const parenthesesPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|whole|slices?|scoops?|servings?|dry|cooked|ml|l|liters?)?\)$/i;
+    const parenthesesPattern = /^(.+?)\s*\(([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|whole|slices?|scoops?|servings?|dry|cooked|ml|l|liters?|bars?|bottles?|sticks?|cans?|packets?|pouches?|containers?|tortillas?)?\)$/i;
     const parenthesesMatch = ingredientStr.match(parenthesesPattern);
 
     if (parenthesesMatch) {
@@ -3923,7 +3923,7 @@ function parseIngredient(ingredientStr) {
     // OLD FORMAT FALLBACK: "quantity unit food" - e.g., "200g chicken breast" or "2 eggs"
     const patterns = [
         // Pattern 1: Fractions or decimals with units - e.g., "1/4 cup" or "1 1/2 cups" or "2.5 tbsp"
-        /([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|scoops?|servings?)\s+(.+)/i,
+        /([\d\s\/\.]+)\s*(oz|ounces?|pounds?|lbs?|g|grams?|kg|cups?|tbsp|tsp|teaspoons?|tablespoons?|pieces?|medium|large|small|scoops?|servings?|bars?|bottles?|sticks?|cans?|packets?|pouches?|containers?|tortillas?)\s+(.+)/i,
         // Pattern 2: Just number with rest of string - e.g., "2 bananas"
         /([\d\s\/\.]+)\s+(.+)/i
     ];
