@@ -573,13 +573,13 @@
             cursor: not-allowed;
         }
 
-        /* USDA Search Styles */
-        .usda-search-container {
+        /* Food Search Styles - synced with planner.html */
+        .food-search-container {
             position: relative;
             margin-bottom: 15px;
         }
 
-        .usda-search-results {
+        .food-search-results {
             position: absolute;
             top: 100%;
             left: 0;
@@ -590,64 +590,59 @@
             border-radius: 0 0 10px 10px;
             max-height: 250px;
             overflow-y: auto;
-            z-index: 1000;
+            z-index: 100;
             display: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        .usda-search-results.active {
+        .food-search-results.active {
             display: block;
         }
 
-        .usda-search-item {
+        .food-search-item {
             padding: 10px 12px;
             cursor: pointer;
             border-bottom: 1px solid #f0f0f0;
-            transition: background 0.2s;
         }
 
-        .usda-search-item:hover {
+        .food-search-item:hover {
             background: #f0fdf4;
         }
 
-        .usda-search-item:last-child {
+        .food-search-item:last-child {
             border-bottom: none;
         }
 
-        .usda-food-name {
+        .food-name {
             font-weight: 600;
             color: #333;
-            font-size: 0.9em;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
-        .usda-food-macros {
-            font-size: 0.75em;
+        .food-macros {
+            font-size: 0.8em;
             color: #666;
         }
 
-        .usda-search-loading, .usda-search-empty {
+        .food-search-loading, .food-search-empty {
             padding: 15px;
             text-align: center;
             color: #888;
-            font-size: 0.9em;
         }
 
-        /* Selected Ingredients Styles */
+        /* Selected Ingredients Styles - synced with planner.html */
         .selected-ingredients {
-            background: #f8f9ff;
-            border-radius: 10px;
-            padding: 12px;
             margin-bottom: 15px;
         }
 
         .selected-ingredients-header {
             display: flex;
             justify-content: space-between;
-            font-weight: 600;
-            color: #555;
-            font-size: 0.9em;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e7ff;
             margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
         }
 
         .ingredients-list {
@@ -655,46 +650,36 @@
             overflow-y: auto;
         }
 
-        .no-ingredients {
-            color: #aaa;
-            font-size: 0.85em;
-            text-align: center;
-            padding: 10px;
-        }
-
         .ingredient-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 10px;
-            background: white;
+            padding: 8px;
+            background: #f8fafc;
             border-radius: 8px;
             margin-bottom: 6px;
-            font-size: 0.85em;
-        }
-
-        .ingredient-item:last-child {
-            margin-bottom: 0;
         }
 
         .ingredient-name {
             flex: 1;
-            font-weight: 500;
-            color: #333;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .ingredient-qty {
             width: 60px;
-            padding: 5px 8px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 4px 8px;
+            border: 1px solid #e0e7ff;
+            border-radius: 6px;
             text-align: center;
             font-size: 0.9em;
         }
 
         .ingredient-unit {
-            color: #888;
-            font-size: 0.9em;
+            font-size: 0.85em;
+            color: #666;
         }
 
         .ingredient-unit-select {
@@ -704,7 +689,7 @@
             font-size: 0.8em;
             background: white;
             cursor: pointer;
-            max-width: 100px;
+            max-width: 90px;
         }
 
         .ingredient-unit-select:focus {
@@ -714,56 +699,60 @@
 
         .ingredient-remove {
             background: #fee2e2;
-            color: #dc2626;
             border: none;
+            color: #dc2626;
             width: 24px;
             height: 24px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 1em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-weight: bold;
         }
 
-        .ingredient-remove:hover {
-            background: #fecaca;
+        .no-ingredients {
+            text-align: center;
+            color: #888;
+            padding: 15px;
+            font-style: italic;
         }
 
-        /* Calculated Totals Styles */
+        /* Calculated Totals Styles - synced with planner.html */
         .calculated-totals {
-            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
-            border-radius: 10px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 2px solid #10b981;
+            border-radius: 12px;
             padding: 15px;
             margin-bottom: 15px;
-            color: white;
         }
 
         .totals-header {
-            font-weight: 600;
+            font-weight: 700;
+            color: #065f46;
             margin-bottom: 10px;
-            font-size: 0.95em;
+            font-size: 0.9em;
         }
 
         .totals-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
-        }
-
-        .total-item {
             text-align: center;
         }
 
+        .total-item {
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
         .total-value {
-            display: block;
-            font-size: 1.3em;
             font-weight: 700;
+            color: #0d9488;
+            font-size: 1.1em;
         }
 
         .total-label {
             font-size: 0.75em;
-            opacity: 0.9;
+            color: #666;
         }
 
         .btn-share {
@@ -1006,20 +995,21 @@
                 </div>
 
                 <!-- Food Search Input -->
-                <div class="usda-search-container">
+                <div class="food-search-container">
                     <input
                         type="text"
-                        id="usdaSearchInput"
+                        id="foodSearchInput"
                         class="custom-meal-input"
                         placeholder="Search foods (e.g., chicken breast, rice, Quest bar)..."
-                        oninput="handleUsdaSearch(this.value)"
+                        oninput="handleFoodSearch(this.value)"
                         autocomplete="off"
+                        style="margin-bottom: 0;"
                     >
-                    <div id="usdaSearchResults" class="usda-search-results"></div>
+                    <div id="foodSearchResults" class="food-search-results"></div>
                 </div>
 
                 <!-- Selected Ingredients List -->
-                <div id="selectedIngredients" class="selected-ingredients">
+                <div class="selected-ingredients">
                     <div class="selected-ingredients-header">
                         <span>Selected Ingredients</span>
                         <span id="ingredientCount">(0)</span>
@@ -1030,35 +1020,34 @@
                 </div>
 
                 <!-- Calculated Totals -->
-                <div id="calculatedTotals" class="calculated-totals" style="display: none;">
-                    <div class="totals-header">📊 Total Nutrition</div>
+                <div class="calculated-totals">
+                    <div class="totals-header">📊 Calculated Totals</div>
                     <div class="totals-grid">
                         <div class="total-item">
-                            <span class="total-value" id="modalTotalCalories">0</span>
-                            <span class="total-label">Calories</span>
+                            <div class="total-value" id="totalCalories">0</div>
+                            <div class="total-label">Calories</div>
                         </div>
                         <div class="total-item">
-                            <span class="total-value" id="modalTotalProtein">0g</span>
-                            <span class="total-label">Protein</span>
+                            <div class="total-value" id="totalProtein">0g</div>
+                            <div class="total-label">Protein</div>
                         </div>
                         <div class="total-item">
-                            <span class="total-value" id="modalTotalCarbs">0g</span>
-                            <span class="total-label">Carbs</span>
+                            <div class="total-value" id="totalCarbs">0g</div>
+                            <div class="total-label">Carbs</div>
                         </div>
                         <div class="total-item">
-                            <span class="total-value" id="modalTotalFat">0g</span>
-                            <span class="total-label">Fat</span>
+                            <div class="total-value" id="totalFat">0g</div>
+                            <div class="total-label">Fat</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Meal Name Input -->
+                <!-- Meal Name -->
                 <input
                     type="text"
                     id="calculatedMealName"
                     class="custom-meal-input"
                     placeholder="Meal name (optional - auto-generated if blank)"
-                    style="margin-top: 10px;"
                 >
 
                 <div class="save-for-later-row">
@@ -1161,11 +1150,11 @@
         let currentCustomMealDayIndex = null;
         let currentCustomMealMealIndex = null;
 
-        // USDA search state
-        const USDA_SEARCH_ENDPOINT = '/.netlify/functions/usda-search';
-        let selectedIngredients = [];
-        let usdaSearchTimeout = null;
-        let usdaSearchResults = []; // Store search results for safe onclick handling
+        // Food search state - synced with planner.html
+        const FOOD_SEARCH_ENDPOINT = '/.netlify/functions/usda-search';
+        let customMealSelectedIngredients = [];
+        let foodSearchTimeout = null;
+        let foodSearchResults = [];
 
         // Simple notification function
         function showNotification(message, type = 'info') {
@@ -1807,11 +1796,11 @@
             document.getElementById('customMealInstructions').value = '';
 
             // Reset USDA search/calculate panel
-            document.getElementById('usdaSearchInput').value = '';
-            document.getElementById('usdaSearchResults').classList.remove('active');
-            document.getElementById('usdaSearchResults').innerHTML = '';
+            document.getElementById('foodSearchInput').value = '';
+            document.getElementById('foodSearchResults').classList.remove('active');
+            document.getElementById('foodSearchResults').innerHTML = '';
             document.getElementById('calculatedMealName').value = '';
-            selectedIngredients = [];
+            customMealSelectedIngredients = [];
             renderSelectedIngredients();
             updateCalculatedTotals();
 
@@ -1829,8 +1818,8 @@
             currentCustomMealMealIndex = null;
 
             // Reset form fields
-            document.getElementById('usdaSearchInput').value = '';
-            document.getElementById('usdaSearchResults').classList.remove('active');
+            document.getElementById('foodSearchInput').value = '';
+            document.getElementById('foodSearchResults').classList.remove('active');
             document.getElementById('calculatedMealName').value = '';
             document.getElementById('customMealName').value = '';
             document.getElementById('customMealCalories').value = '';
@@ -1977,32 +1966,30 @@
             return div.innerHTML;
         }
 
-        // ===== USDA SEARCH FUNCTIONS =====
+        // ===== FOOD SEARCH FUNCTIONS - synced with planner.html =====
 
-        function handleUsdaSearch(query) {
-            // Clear previous timeout
-            if (usdaSearchTimeout) {
-                clearTimeout(usdaSearchTimeout);
+        function handleFoodSearch(query) {
+            const resultsDiv = document.getElementById('foodSearchResults');
+
+            if (foodSearchTimeout) {
+                clearTimeout(foodSearchTimeout);
             }
 
-            const resultsDiv = document.getElementById('usdaSearchResults');
-
-            // If query is too short, hide results
-            if (query.trim().length < 2) {
+            if (!query || query.trim().length < 2) {
                 resultsDiv.classList.remove('active');
                 resultsDiv.innerHTML = '';
-                usdaSearchResults = [];
+                foodSearchResults = [];
                 return;
             }
 
             // Show loading state
             resultsDiv.classList.add('active');
-            resultsDiv.innerHTML = '<div class="usda-search-loading">Searching foods...</div>';
+            resultsDiv.innerHTML = '<div class="food-search-loading">Searching foods...</div>';
 
-            // Debounce the search (wait 300ms after user stops typing)
-            usdaSearchTimeout = setTimeout(async () => {
+            // Debounce the search
+            foodSearchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`${USDA_SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}`);
+                    const response = await fetch(`${FOOD_SEARCH_ENDPOINT}?query=${encodeURIComponent(query)}`);
                     const data = await response.json();
 
                     if (!response.ok) {
@@ -2010,53 +1997,43 @@
                     }
 
                     if (data.foods && data.foods.length > 0) {
-                        // Store results for safe onclick handling
-                        usdaSearchResults = data.foods;
+                        foodSearchResults = data.foods;
 
                         resultsDiv.innerHTML = data.foods.map((food, index) => {
-                            // Prefer serving size display, fall back to per 100g
                             let macroDisplay;
                             if (food.servingSize && food.caloriesPerServing !== undefined) {
-                                macroDisplay = `${escapeHtml(food.servingSize)}: ${food.caloriesPerServing} cal | ${food.proteinPerServing}g P | ${food.carbsPerServing}g C | ${food.fatPerServing}g F`;
+                                macroDisplay = `${escapeHtmlCustomMeal(food.servingSize)}: ${food.caloriesPerServing} cal | ${food.proteinPerServing}g P | ${food.carbsPerServing}g C | ${food.fatPerServing}g F`;
                             } else {
                                 macroDisplay = `Per 100g: ${food.caloriesPer100g} cal | ${food.proteinPer100g}g P | ${food.carbsPer100g}g C | ${food.fatPer100g}g F`;
                             }
 
                             return `
-                            <div class="usda-search-item" onclick="selectUsdaFood(${index})">
-                                <div class="usda-food-name">${escapeHtml(food.name)}${food.brand ? ` <span style="color: #888; font-size: 12px;">(${escapeHtml(food.brand)})</span>` : ''}</div>
-                                <div class="usda-food-macros">${macroDisplay}</div>
+                            <div class="food-search-item" onclick="selectFoodItem(${index})">
+                                <div class="food-name">${escapeHtmlCustomMeal(food.name)}${food.brand ? ` <span style="color: #888; font-size: 12px;">(${escapeHtmlCustomMeal(food.brand)})</span>` : ''}</div>
+                                <div class="food-macros">${macroDisplay}</div>
                             </div>
                         `}).join('');
                     } else {
-                        usdaSearchResults = [];
-                        resultsDiv.innerHTML = '<div class="usda-search-empty">No foods found. Try a different search term.</div>';
+                        foodSearchResults = [];
+                        resultsDiv.innerHTML = '<div class="food-search-empty">No foods found. Try a different search term.</div>';
                     }
                 } catch (error) {
-                    console.error('USDA search error:', error);
-                    usdaSearchResults = [];
-                    resultsDiv.innerHTML = '<div class="usda-search-empty">Search failed. Please try again.</div>';
+                    console.error('Food search error:', error);
+                    foodSearchResults = [];
+                    resultsDiv.innerHTML = '<div class="food-search-empty">Search failed. Please try again.</div>';
                 }
             }, 300);
         }
 
-        function escapeHtml(text) {
+        function escapeHtmlCustomMeal(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        function selectUsdaFood(index) {
-            const food = usdaSearchResults[index];
-            if (!food) {
-                console.error('Food not found at index:', index);
-                return;
-            }
-            addIngredientFromUsda(food);
-        }
-
-        function addIngredientFromUsda(food) {
-            console.log('Adding ingredient:', food); // Debug log
+        function selectFoodItem(index) {
+            const food = foodSearchResults[index];
+            if (!food) return;
 
             // Build measures array - always include grams as default
             let measures = [{ label: 'g', weight: 1, isGrams: true }];
@@ -2079,7 +2056,7 @@
             const defaultQty = defaultMeasure.isGrams ? 100 : 1;
             const defaultGrams = defaultMeasure.isGrams ? 100 : defaultMeasure.weight;
 
-            selectedIngredients.push({
+            customMealSelectedIngredients.push({
                 fdcId: food.fdcId,
                 name: food.name,
                 quantity: defaultQty,
@@ -2093,24 +2070,24 @@
             });
 
             // Clear search
-            document.getElementById('usdaSearchInput').value = '';
-            document.getElementById('usdaSearchResults').classList.remove('active');
-            document.getElementById('usdaSearchResults').innerHTML = '';
+            document.getElementById('foodSearchInput').value = '';
+            document.getElementById('foodSearchResults').classList.remove('active');
+            document.getElementById('foodSearchResults').innerHTML = '';
 
             // Update UI
-            renderSelectedIngredients();
-            updateCalculatedTotals();
+            renderCustomMealIngredients();
+            updateCustomMealTotals();
         }
 
-        function removeIngredient(index) {
-            selectedIngredients.splice(index, 1);
-            renderSelectedIngredients();
-            updateCalculatedTotals();
+        function removeCustomMealIngredient(index) {
+            customMealSelectedIngredients.splice(index, 1);
+            renderCustomMealIngredients();
+            updateCustomMealTotals();
         }
 
-        function updateIngredientQuantity(index, quantity) {
+        function updateCustomMealIngredientQty(index, quantity) {
             const qty = parseFloat(quantity) || 0;
-            const ing = selectedIngredients[index];
+            const ing = customMealSelectedIngredients[index];
             ing.quantity = qty;
 
             // Recalculate grams based on current unit
@@ -2119,11 +2096,11 @@
                 ing.quantityGrams = measure.isGrams ? qty : qty * measure.weight;
             }
 
-            updateCalculatedTotals();
+            updateCustomMealTotals();
         }
 
-        function updateIngredientUnit(index, unitLabel) {
-            const ing = selectedIngredients[index];
+        function updateCustomMealIngredientUnit(index, unitLabel) {
+            const ing = customMealSelectedIngredients[index];
             const newMeasure = ing.measures.find(m => m.label === unitLabel);
 
             if (!newMeasure) return;
@@ -2143,82 +2120,68 @@
             // Recalculate grams to ensure consistency
             ing.quantityGrams = newMeasure.isGrams ? ing.quantity : ing.quantity * newMeasure.weight;
 
-            renderSelectedIngredients();
-            updateCalculatedTotals();
+            renderCustomMealIngredients();
+            updateCustomMealTotals();
         }
 
-        function renderSelectedIngredients() {
+        function renderCustomMealIngredients() {
             const listDiv = document.getElementById('ingredientsList');
             const countSpan = document.getElementById('ingredientCount');
 
-            countSpan.textContent = `(${selectedIngredients.length})`;
+            countSpan.textContent = `(${customMealSelectedIngredients.length})`;
 
-            if (selectedIngredients.length === 0) {
+            if (customMealSelectedIngredients.length === 0) {
                 listDiv.innerHTML = '<div class="no-ingredients">No ingredients added yet</div>';
                 return;
             }
 
-            listDiv.innerHTML = selectedIngredients.map((ing, index) => {
+            listDiv.innerHTML = customMealSelectedIngredients.map((ing, index) => {
+                const displayName = ing.name.length > 25 ? ing.name.substring(0, 22) + '...' : ing.name;
                 const gramsInfo = ing.selectedUnit !== 'g' ? ` (${Math.round(ing.quantityGrams)}g)` : '';
-                const titleText = `${escapeHtml(ing.name)}${gramsInfo}`;
+                const titleText = `${escapeHtmlCustomMeal(ing.name)}${gramsInfo}`;
 
                 // Build unit dropdown options
                 const unitOptions = ing.measures.map(m => {
                     const selected = m.label === ing.selectedUnit ? 'selected' : '';
                     const weightInfo = m.isGrams ? '' : ` (${m.weight}g)`;
-                    return `<option value="${escapeHtml(m.label)}" ${selected}>${escapeHtml(m.label)}${weightInfo}</option>`;
+                    return `<option value="${escapeHtmlCustomMeal(m.label)}" ${selected}>${escapeHtmlCustomMeal(m.label)}${weightInfo}</option>`;
                 }).join('');
 
                 return `
                 <div class="ingredient-item">
-                    <span class="ingredient-name" title="${titleText}">${truncateName(ing.name, 20)}</span>
+                    <span class="ingredient-name" title="${titleText}">${escapeHtmlCustomMeal(displayName)}</span>
                     <input type="number" class="ingredient-qty" value="${ing.quantity}" min="0.1" step="0.1"
-                           onchange="updateIngredientQuantity(${index}, this.value)"
+                           onchange="updateCustomMealIngredientQty(${index}, this.value)"
                            onclick="event.stopPropagation()">
-                    <select class="ingredient-unit-select" onchange="updateIngredientUnit(${index}, this.value)">
+                    <select class="ingredient-unit-select" onchange="updateCustomMealIngredientUnit(${index}, this.value)">
                         ${unitOptions}
                     </select>
-                    <button class="ingredient-remove" onclick="removeIngredient(${index})" title="Remove">×</button>
+                    <button class="ingredient-remove" onclick="removeCustomMealIngredient(${index})" title="Remove">×</button>
                 </div>
             `}).join('');
         }
 
-        function truncateName(name, maxLength) {
-            if (name.length <= maxLength) return name;
-            return name.substring(0, maxLength) + '...';
-        }
-
-        function updateCalculatedTotals() {
-            const totalsDiv = document.getElementById('calculatedTotals');
-            const createBtn = document.getElementById('createCalculatedMealBtn');
-
-            if (selectedIngredients.length === 0) {
-                totalsDiv.style.display = 'none';
-                createBtn.disabled = true;
-                return;
-            }
-
-            // Calculate totals based on quantityGrams (accurate gram values)
+        function updateCustomMealTotals() {
             let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
 
-            selectedIngredients.forEach(ing => {
+            customMealSelectedIngredients.forEach(ing => {
                 // Use quantityGrams for accurate calculation
                 const grams = ing.quantityGrams || ing.quantity;
-                const multiplier = grams / 100;
-                totalCal += (ing.caloriesPer100g || 0) * multiplier;
-                totalProtein += (ing.proteinPer100g || 0) * multiplier;
-                totalCarbs += (ing.carbsPer100g || 0) * multiplier;
-                totalFat += (ing.fatPer100g || 0) * multiplier;
+                const factor = grams / 100;
+                totalCal += ing.caloriesPer100g * factor;
+                totalProtein += ing.proteinPer100g * factor;
+                totalCarbs += ing.carbsPer100g * factor;
+                totalFat += ing.fatPer100g * factor;
             });
 
-            // Update display (use modal-specific IDs to avoid conflict with main page)
-            document.getElementById('modalTotalCalories').textContent = Math.round(totalCal);
-            document.getElementById('modalTotalProtein').textContent = Math.round(totalProtein) + 'g';
-            document.getElementById('modalTotalCarbs').textContent = Math.round(totalCarbs) + 'g';
-            document.getElementById('modalTotalFat').textContent = Math.round(totalFat) + 'g';
+            document.getElementById('totalCalories').textContent = Math.round(totalCal);
+            document.getElementById('totalProtein').textContent = Math.round(totalProtein) + 'g';
+            document.getElementById('totalCarbs').textContent = Math.round(totalCarbs) + 'g';
+            document.getElementById('totalFat').textContent = Math.round(totalFat) + 'g';
 
-            totalsDiv.style.display = 'block';
-            createBtn.disabled = false;
+            // Enable/disable create button
+            const createBtn = document.getElementById('createCalculatedMealBtn');
+            createBtn.disabled = customMealSelectedIngredients.length === 0;
         }
 
         async function submitManualMeal() {
@@ -2316,7 +2279,7 @@
 
         async function submitCalculatedMeal() {
             // Check if we have selected ingredients
-            if (selectedIngredients.length === 0) {
+            if (customMealSelectedIngredients.length === 0) {
                 alert('Please search and add some ingredients first');
                 return;
             }
@@ -2342,7 +2305,7 @@
             let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
             const ingredients = [];
 
-            selectedIngredients.forEach(ing => {
+            customMealSelectedIngredients.forEach(ing => {
                 // Use quantityGrams for accurate calculation
                 const grams = ing.quantityGrams || ing.quantity;
                 const multiplier = grams / 100;
@@ -2360,7 +2323,7 @@
             // e.g., "200g Sirloin Steak, 1 Cup Brown Rice, 2 Tbsp Olive Oil"
             let mealName = document.getElementById('calculatedMealName').value.trim();
             if (!mealName) {
-                const ingredientParts = selectedIngredients.map(ing => {
+                const ingredientParts = customMealSelectedIngredients.map(ing => {
                     const grams = ing.quantityGrams || ing.quantity;
                     const shortName = ing.name.split(',')[0].trim();
                     const displayName = shortName.length > 30 ? shortName.substring(0, 27) + '...' : shortName;
