@@ -207,6 +207,115 @@
             background: #f0f9ff;
         }
 
+        /* Portions Stepper Styles */
+        .portions-stepper {
+            position: fixed;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .portions-stepper-label {
+            font-size: 11px;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .portions-stepper-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .portions-step-btn {
+            width: 36px;
+            height: 36px;
+            border: 2px solid #0891b2;
+            background: white;
+            color: #0891b2;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .portions-step-btn:hover {
+            background: #0891b2;
+            color: white;
+        }
+
+        .portions-step-btn:disabled {
+            border-color: #d1d5db;
+            color: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .portions-step-btn:disabled:hover {
+            background: white;
+            color: #d1d5db;
+        }
+
+        .portions-value {
+            min-width: 60px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #0891b2;
+        }
+
+        .portions-stepper-apply {
+            width: 100%;
+            padding: 8px 16px;
+            background: #0891b2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 4px;
+        }
+
+        .portions-stepper-apply:hover {
+            background: #0e7490;
+        }
+
+        .portions-presets {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .portions-preset-btn {
+            padding: 4px 10px;
+            background: #f0f9ff;
+            border: 1px solid #0891b2;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #0891b2;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .portions-preset-btn:hover {
+            background: #0891b2;
+            color: white;
+        }
+
         .btn-favorite {
             background: transparent;
             color: #e53e3e;
@@ -3074,53 +3183,108 @@
             alert('Undo successful! Meal restored to previous state.');
         }
 
-        // ADJUST PORTIONS - Quick serving size adjustment
+        // ADJUST PORTIONS - Quick serving size adjustment with stepper
+        let currentPortionMultiplier = 1.0;
+        const PORTION_STEP = 0.25;
+        const PORTION_MIN = 0.25;
+        const PORTION_MAX = 3.0;
+
         function showPortionsDropdown(event, index, dayIndex = null, mealIndex = null) {
-            // Remove any existing dropdown
+            // Remove any existing stepper/dropdown
+            const existingStepper = document.querySelector('.portions-stepper');
+            if (existingStepper) {
+                existingStepper.remove();
+            }
             const existingDropdown = document.querySelector('.portions-dropdown');
             if (existingDropdown) {
                 existingDropdown.remove();
             }
 
+            // Reset to 1.0x when opening
+            currentPortionMultiplier = 1.0;
+
             const buttonElement = event.target;
-            const dropdown = document.createElement('div');
-            dropdown.className = 'portions-dropdown';
+            const stepper = document.createElement('div');
+            stepper.className = 'portions-stepper';
 
-            const options = [
-                { label: '0.5x (Half)', multiplier: 0.5 },
-                { label: '0.75x', multiplier: 0.75 },
-                { label: '1.25x', multiplier: 1.25 },
-                { label: '1.5x', multiplier: 1.5 },
-                { label: '2x (Double)', multiplier: 2 }
-            ];
+            stepper.innerHTML = `
+                <span class="portions-stepper-label">Adjust Portions</span>
+                <div class="portions-stepper-controls">
+                    <button class="portions-step-btn" id="portions-decrease" title="Decrease">−</button>
+                    <span class="portions-value" id="portions-value">1.0x</span>
+                    <button class="portions-step-btn" id="portions-increase" title="Increase">+</button>
+                </div>
+                <div class="portions-presets">
+                    <button class="portions-preset-btn" data-multiplier="0.5">½</button>
+                    <button class="portions-preset-btn" data-multiplier="0.75">¾</button>
+                    <button class="portions-preset-btn" data-multiplier="1.5">1.5x</button>
+                    <button class="portions-preset-btn" data-multiplier="2">2x</button>
+                </div>
+                <button class="portions-stepper-apply" id="portions-apply">Apply</button>
+            `;
 
-            options.forEach(option => {
-                const btn = document.createElement('button');
-                btn.textContent = option.label;
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    adjustPortions(index, dayIndex, mealIndex, option.multiplier);
-                    dropdown.remove();
-                };
-                dropdown.appendChild(btn);
-            });
-
-            // Position the dropdown below the button
+            // Position the stepper below the button
             const rect = buttonElement.getBoundingClientRect();
-            dropdown.style.position = 'fixed';
-            dropdown.style.top = `${rect.bottom + 5}px`;
-            dropdown.style.left = `${rect.left}px`;
+            stepper.style.top = `${rect.bottom + 5}px`;
+            stepper.style.left = `${rect.left}px`;
 
-            document.body.appendChild(dropdown);
+            document.body.appendChild(stepper);
 
-            // Close dropdown when clicking outside
-            const closeDropdown = (e) => {
-                if (!dropdown.contains(e.target) && e.target !== buttonElement) {
-                    dropdown.remove();
-                    document.removeEventListener('click', closeDropdown);
+            // Update display function
+            const updateDisplay = () => {
+                const valueEl = document.getElementById('portions-value');
+                const decreaseBtn = document.getElementById('portions-decrease');
+                const increaseBtn = document.getElementById('portions-increase');
+
+                valueEl.textContent = `${currentPortionMultiplier.toFixed(2).replace(/\.?0+$/, '')}x`;
+                decreaseBtn.disabled = currentPortionMultiplier <= PORTION_MIN;
+                increaseBtn.disabled = currentPortionMultiplier >= PORTION_MAX;
+            };
+
+            // Decrease button
+            document.getElementById('portions-decrease').onclick = (e) => {
+                e.stopPropagation();
+                if (currentPortionMultiplier > PORTION_MIN) {
+                    currentPortionMultiplier = Math.max(PORTION_MIN, currentPortionMultiplier - PORTION_STEP);
+                    updateDisplay();
                 }
             };
-            setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+
+            // Increase button
+            document.getElementById('portions-increase').onclick = (e) => {
+                e.stopPropagation();
+                if (currentPortionMultiplier < PORTION_MAX) {
+                    currentPortionMultiplier = Math.min(PORTION_MAX, currentPortionMultiplier + PORTION_STEP);
+                    updateDisplay();
+                }
+            };
+
+            // Preset buttons
+            stepper.querySelectorAll('.portions-preset-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    currentPortionMultiplier = parseFloat(btn.dataset.multiplier);
+                    updateDisplay();
+                };
+            });
+
+            // Apply button
+            document.getElementById('portions-apply').onclick = (e) => {
+                e.stopPropagation();
+                if (currentPortionMultiplier !== 1.0) {
+                    adjustPortions(index, dayIndex, mealIndex, currentPortionMultiplier);
+                }
+                stepper.remove();
+            };
+
+            // Close stepper when clicking outside
+            const closeStepper = (e) => {
+                if (!stepper.contains(e.target) && e.target !== buttonElement) {
+                    stepper.remove();
+                    document.removeEventListener('click', closeStepper);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeStepper), 0);
         }
 
         async function adjustPortions(index, dayIndex, mealIndex, multiplier) {
