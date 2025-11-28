@@ -1839,7 +1839,9 @@ Include at least 1-2 branded fitness foods per day in this meal plan.`;
             expectedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
         }
 
+        const variationSeed = Math.floor(Math.random() * 1000000);
         const dayPrompt = `Create 1-day meal plan for Day ${day} of ${numDays}.
+[Variation: ${variationSeed}] - Generate UNIQUE meals different from any previous generation.
 Stats: ${age}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
 Goal: ${goal}, Diet: ${preference}
 Macro Preference: ${macroPreference}
@@ -2843,7 +2845,9 @@ async function changeMeal(dayIndex, mealIndex) {
         targetCard.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div><p class="text-center">Generating different meal...</p>';
     }
 
+    const variationSeed = Math.floor(Math.random() * 1000000);
     const aiPrompt = `Generate a COMPLETELY DIFFERENT ${meal.type} meal (NOT "${meal.name}").
+[Variation: ${variationSeed}] - Generate something UNIQUE and CREATIVE.
 Diet: ${lastPlanQuery.preference}
 Macro Preference: ${lastPlanQuery.macroPreference}
 Avoid: ${lastPlanQuery.allergies}
