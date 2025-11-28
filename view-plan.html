@@ -665,9 +665,9 @@
         .ingredient-name {
             flex: 1;
             font-size: 0.9em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
         }
 
         .ingredient-qty {
@@ -819,9 +819,9 @@
         .saved-meal-name {
             font-weight: 600;
             color: #1f2937;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
         }
 
         .saved-meal-macros {
@@ -2167,7 +2167,7 @@
             }
 
             listDiv.innerHTML = customMealSelectedIngredients.map((ing, index) => {
-                const displayName = ing.name.length > 25 ? ing.name.substring(0, 22) + '...' : ing.name;
+                const displayName = ing.name;
                 const gramsInfo = ing.selectedUnit !== 'g' ? ` (${Math.round(ing.quantityGrams)}g)` : '';
                 const titleText = `${escapeHtmlCustomMeal(ing.name)}${gramsInfo}`;
 
@@ -2359,7 +2359,7 @@
                 const ingredientParts = customMealSelectedIngredients.map(ing => {
                     const grams = ing.quantityGrams || ing.quantity;
                     const shortName = ing.name.split(',')[0].trim();
-                    const displayName = shortName.length > 30 ? shortName.substring(0, 27) + '...' : shortName;
+                    const displayName = shortName;
 
                     if (ing.selectedUnit === 'g') {
                         return `${Math.round(grams)}g ${displayName}`;
