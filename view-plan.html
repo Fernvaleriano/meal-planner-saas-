@@ -1738,14 +1738,21 @@
                         // Store results for safe onclick handling
                         usdaSearchResults = data.foods;
 
-                        resultsDiv.innerHTML = data.foods.map((food, index) => `
+                        resultsDiv.innerHTML = data.foods.map((food, index) => {
+                            // Prefer serving size display, fall back to per 100g
+                            let macroDisplay;
+                            if (food.servingSize && food.caloriesPerServing !== undefined) {
+                                macroDisplay = `${escapeHtml(food.servingSize)}: ${food.caloriesPerServing} cal | ${food.proteinPerServing}g P | ${food.carbsPerServing}g C | ${food.fatPerServing}g F`;
+                            } else {
+                                macroDisplay = `Per 100g: ${food.caloriesPer100g} cal | ${food.proteinPer100g}g P | ${food.carbsPer100g}g C | ${food.fatPer100g}g F`;
+                            }
+
+                            return `
                             <div class="usda-search-item" onclick="selectUsdaFood(${index})">
-                                <div class="usda-food-name">${escapeHtml(food.name)}</div>
-                                <div class="usda-food-macros">
-                                    Per 100g: ${food.caloriesPer100g} cal | ${food.proteinPer100g}g protein | ${food.carbsPer100g}g carbs | ${food.fatPer100g}g fat
-                                </div>
+                                <div class="usda-food-name">${escapeHtml(food.name)}${food.brand ? ` <span style="color: #888; font-size: 12px;">(${escapeHtml(food.brand)})</span>` : ''}</div>
+                                <div class="usda-food-macros">${macroDisplay}</div>
                             </div>
-                        `).join('');
+                        `}).join('');
                     } else {
                         usdaSearchResults = [];
                         resultsDiv.innerHTML = '<div class="usda-search-empty">No foods found. Try a different search term.</div>';
@@ -1776,15 +1783,22 @@
         function addIngredientFromUsda(food) {
             console.log('Adding ingredient:', food); // Debug log
 
-            // Add ingredient with default 100g quantity
+            // Use serving size if available, otherwise default to 100g
+            const hasServing = food.servingSize && food.servingGrams;
+            const defaultQty = hasServing ? food.servingGrams : 100;
+
             selectedIngredients.push({
                 fdcId: food.fdcId,
                 name: food.name,
-                quantity: 100,
+                quantity: defaultQty,
                 caloriesPer100g: food.caloriesPer100g,
                 proteinPer100g: food.proteinPer100g,
                 carbsPer100g: food.carbsPer100g,
-                fatPer100g: food.fatPer100g
+                fatPer100g: food.fatPer100g,
+                // Store serving info for display
+                servingSize: food.servingSize || null,
+                servingGrams: food.servingGrams || null,
+                measures: food.measures || []
             });
 
             // Clear search
@@ -1820,16 +1834,21 @@
                 return;
             }
 
-            listDiv.innerHTML = selectedIngredients.map((ing, index) => `
+            listDiv.innerHTML = selectedIngredients.map((ing, index) => {
+                // Show serving hint if available
+                const servingHint = ing.servingSize ? ` (${ing.servingSize} = ${ing.servingGrams}g)` : '';
+                const titleText = `${escapeHtml(ing.name)}${servingHint}`;
+
+                return `
                 <div class="ingredient-item">
-                    <span class="ingredient-name" title="${escapeHtml(ing.name)}">${truncateName(ing.name, 25)}</span>
+                    <span class="ingredient-name" title="${titleText}">${truncateName(ing.name, 25)}</span>
                     <input type="number" class="ingredient-qty" value="${ing.quantity}" min="1"
                            onchange="updateIngredientQuantity(${index}, this.value)"
                            onclick="event.stopPropagation()">
                     <span class="ingredient-unit">g</span>
                     <button class="ingredient-remove" onclick="removeIngredient(${index})" title="Remove">×</button>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function truncateName(name, maxLength) {
