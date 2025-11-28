@@ -2600,6 +2600,106 @@ function scaleIngredientString(ingredientStr, factor) {
 }
 
 /**
+ * Validate and fix meal distribution - no meal should exceed 40% of daily calories
+ * If a meal is too large, scale it down and redistribute calories to other meals
+ */
+function validateAndFixMealDistribution(meals, targetDailyCalories) {
+  const MAX_MEAL_PERCENT = 0.40; // 40% max per meal
+  const maxMealCalories = targetDailyCalories * MAX_MEAL_PERCENT;
+
+  let needsRedistribution = false;
+  let excessCalories = 0;
+
+  // Check for oversized meals
+  meals.forEach((meal, idx) => {
+    if (meal.calories > maxMealCalories) {
+      console.log(`⚠️ OVERSIZED MEAL DETECTED: ${meal.type} has ${meal.calories} cal (${((meal.calories / targetDailyCalories) * 100).toFixed(1)}% of daily)`);
+      needsRedistribution = true;
+    }
+  });
+
+  if (!needsRedistribution) {
+    console.log('✅ Meal distribution valid - all meals within 40% limit');
+    return meals;
+  }
+
+  console.log('🔧 REDISTRIBUTING oversized meals...');
+
+  // Scale down oversized meals and track excess
+  const adjustedMeals = meals.map((meal, idx) => {
+    if (meal.calories > maxMealCalories) {
+      const scaleFactor = maxMealCalories / meal.calories;
+      excessCalories += meal.calories - maxMealCalories;
+
+      console.log(`   Scaling ${meal.type} from ${meal.calories} to ${Math.round(maxMealCalories)} cal (factor: ${scaleFactor.toFixed(2)})`);
+
+      // Scale down ingredients
+      const scaledIngredients = meal.ingredients.map(ing => {
+        if (typeof ing === 'string') {
+          return scaleIngredientString(ing, scaleFactor);
+        }
+        return ing;
+      });
+
+      // Recalculate macros
+      const recalculated = calculateMacrosFromIngredients(scaledIngredients);
+
+      return {
+        ...meal,
+        ingredients: scaledIngredients,
+        calories: recalculated.totals.calories,
+        protein: recalculated.totals.protein,
+        carbs: recalculated.totals.carbs,
+        fat: recalculated.totals.fat,
+        breakdown: recalculated.breakdown
+      };
+    }
+    return meal;
+  });
+
+  // Distribute excess calories to smaller meals (those under 30% of daily)
+  if (excessCalories > 0) {
+    const smallMealThreshold = targetDailyCalories * 0.30;
+    const smallMealIndices = adjustedMeals
+      .map((m, idx) => ({ idx, calories: m.calories }))
+      .filter(m => m.calories < smallMealThreshold);
+
+    if (smallMealIndices.length > 0) {
+      const excessPerMeal = excessCalories / smallMealIndices.length;
+      console.log(`   Distributing ${Math.round(excessCalories)} excess cal to ${smallMealIndices.length} smaller meals`);
+
+      smallMealIndices.forEach(({ idx }) => {
+        const meal = adjustedMeals[idx];
+        const scaleFactor = (meal.calories + excessPerMeal) / meal.calories;
+
+        if (scaleFactor > 1 && scaleFactor < 2) { // Reasonable scaling
+          const scaledIngredients = meal.ingredients.map(ing => {
+            if (typeof ing === 'string') {
+              return scaleIngredientString(ing, scaleFactor);
+            }
+            return ing;
+          });
+
+          const recalculated = calculateMacrosFromIngredients(scaledIngredients);
+
+          adjustedMeals[idx] = {
+            ...meal,
+            ingredients: scaledIngredients,
+            calories: recalculated.totals.calories,
+            protein: recalculated.totals.protein,
+            carbs: recalculated.totals.carbs,
+            fat: recalculated.totals.fat,
+            breakdown: recalculated.breakdown
+          };
+        }
+      });
+    }
+  }
+
+  return adjustedMeals;
+}
+
+/**
  * Scale all portions in meals to hit target macros
  * Returns scaled meals with recalculated macros
  */
@@ -3601,17 +3701,20 @@ exports.handler = async (event, context) => {
 
         // Scale portions to hit targets
         const scaledMeals = scalePortionsToTargets(optimizedMeals, dailyTotals, targets);
-        correctedData.plan = scaledMeals;
 
-        // Recalculate totals after scaling
-        const scaledTotals = scaledMeals.reduce((acc, meal) => ({
+        // Validate meal distribution - no meal should exceed 40% of daily calories
+        const validatedMeals = validateAndFixMealDistribution(scaledMeals, targets.calories);
+        correctedData.plan = validatedMeals;
+
+        // Recalculate totals after scaling and validation
+        const scaledTotals = validatedMeals.reduce((acc, meal) => ({
           calories: acc.calories + (meal.calories || 0),
           protein: acc.protein + (meal.protein || 0),
           carbs: acc.carbs + (meal.carbs || 0),
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS (after scaling):');
+        console.log('📊 DAILY TOTALS vs TARGETS (after scaling & validation):');
         console.log(`   Calories: ${scaledTotals.calories} / ${targets.calories} (${((scaledTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
         console.log(`   Protein:  ${scaledTotals.protein}g / ${targets.protein}g (${((scaledTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
         console.log(`   Carbs:    ${scaledTotals.carbs}g / ${targets.carbs}g (${((scaledTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
@@ -3646,9 +3749,12 @@ exports.handler = async (event, context) => {
         console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
 
         // Scale portions to hit targets
-        correctedData = scalePortionsToTargets(correctedData, dailyTotals, targets);
+        let scaledData = scalePortionsToTargets(correctedData, dailyTotals, targets);
 
-        // Recalculate totals after scaling
+        // Validate meal distribution - no meal should exceed 40% of daily calories
+        correctedData = validateAndFixMealDistribution(scaledData, targets.calories);
+
+        // Recalculate totals after scaling and validation
         const scaledTotals = correctedData.reduce((acc, meal) => ({
           calories: acc.calories + (meal.calories || 0),
           protein: acc.protein + (meal.protein || 0),
@@ -3656,7 +3762,7 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS (after scaling):');
+        console.log('📊 DAILY TOTALS vs TARGETS (after scaling & validation):');
         console.log(`   Calories: ${scaledTotals.calories} / ${targets.calories} (${((scaledTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
         console.log(`   Protein:  ${scaledTotals.protein}g / ${targets.protein}g (${((scaledTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
         console.log(`   Carbs:    ${scaledTotals.carbs}g / ${targets.carbs}g (${((scaledTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);

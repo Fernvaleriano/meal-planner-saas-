@@ -3208,15 +3208,28 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
                 });
             }
 
-            // IMPORTANT: Calculate CONSISTENT per-meal targets from daily nutrition
-            // This prevents calorie drift after multiple exchanges
+            // Calculate per-meal targets based on MEAL TYPE (not equal distribution)
+            // This ensures proper calorie distribution across the day
             const dailyNutrition = currentPlan.nutrition || {};
-            const targetCalories = Math.round((dailyNutrition.calories || 2000) / mealsPerDay);
-            const targetProtein = Math.round((dailyNutrition.protein || 150) / mealsPerDay);
-            const targetCarbs = Math.round((dailyNutrition.carbs || 200) / mealsPerDay);
-            const targetFat = Math.round((dailyNutrition.fat || 70) / mealsPerDay);
+            const dailyCal = dailyNutrition.calories || 2000;
+            const dailyProtein = dailyNutrition.protein || 150;
+            const dailyCarbs = dailyNutrition.carbs || 200;
+            const dailyFat = dailyNutrition.fat || 70;
+            const mealType = meal.type?.toLowerCase() || 'meal';
 
-            console.log(`🎯 Exchange targets (from daily ${dailyNutrition.calories}cal / ${mealsPerDay} meals): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
+            // Meal-type specific distribution percentages
+            let calPercent = 0.25; // Default
+            if (mealType === 'breakfast') calPercent = 0.27;
+            else if (mealType === 'lunch') calPercent = 0.32;
+            else if (mealType === 'dinner') calPercent = 0.28;
+            else if (mealType === 'snack' || mealType === 'snack 1' || mealType === 'snack 2') calPercent = 0.13;
+
+            const targetCalories = Math.round(dailyCal * calPercent);
+            const targetProtein = Math.round(dailyProtein * calPercent);
+            const targetCarbs = Math.round(dailyCarbs * calPercent);
+            const targetFat = Math.round(dailyFat * calPercent);
+
+            console.log(`🎯 Exchange targets for ${mealType} (${Math.round(calPercent * 100)}% of daily): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
             console.log(`🚫 Meals to avoid (${allMealNames.length}):`, allMealNames);
 
             const mealCard = document.getElementById(`meal-${index}`);
@@ -3399,13 +3412,22 @@ Return ONLY valid JSON (NO markdown, NO backticks):
             try {
                 // Generate all meals for the day in one request
                 // NEW: Ask for ingredients arrays - backend will calculate macros from USDA database
+                const dailyCal = targets.calories || 2000;
                 const prompt = `Generate a COMPLETELY NEW ${numMeals}-meal plan for Day ${dayNumber}.
 
 Daily Nutrition Targets:
-- Calories: ${targets.calories || 2000}
+- Calories: ${dailyCal}
 - Protein: ${targets.protein || 150}g
 - Carbs: ${targets.carbs || 200}g
 - Fat: ${targets.fat || 70}g
+
+CRITICAL MEAL DISTRIBUTION - HARD LIMITS:
+- BREAKFAST: ${Math.round(dailyCal * 0.25)}-${Math.round(dailyCal * 0.30)} calories (25-30% of daily)
+- LUNCH: ${Math.round(dailyCal * 0.30)}-${Math.round(dailyCal * 0.35)} calories (30-35% of daily)
+- DINNER: ${Math.round(dailyCal * 0.25)}-${Math.round(dailyCal * 0.30)} calories (25-30% of daily)
+- SNACKS: ${Math.round(dailyCal * 0.10)}-${Math.round(dailyCal * 0.15)} calories each (10-15% of daily)
+- ABSOLUTE MAXIMUM: No single meal can exceed ${Math.round(dailyCal * 0.40)} calories
+- Violating these limits will cause errors
 
 Required meal types (in order): ${mealTypes.join(', ')}
 
