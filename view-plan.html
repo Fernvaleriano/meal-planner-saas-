@@ -99,10 +99,8 @@
 
         .meal-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
             margin-bottom: 20px;
-            flex-wrap: wrap;
             gap: 15px;
         }
 
@@ -110,6 +108,10 @@
             color: #0d9488;
             font-size: 1.8em;
             font-weight: 700;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            flex: 1;
+            min-width: 0;
         }
 
         .meal-actions {
