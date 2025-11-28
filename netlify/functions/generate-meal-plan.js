@@ -3411,173 +3411,6 @@ function calculateMacrosFromIngredients(ingredients) {
 }
 
 /**
- * NEW APPROACH: Calculate optimal portions from ingredient list
- * LLM suggests ingredients (database keys), we calculate exact portions mathematically
- * NO SCALING - One calculation to hit targets
- *
- * @param {Array<string>} ingredientKeys - Database keys like ['chicken_breast', 'brown_rice_cooked', 'broccoli']
- * @param {Object} targets - {calories, protein, carbs, fat}
- * @param {string} mealName - Name for display
- * @param {string} mealType - 'breakfast', 'lunch', 'dinner', 'snack'
- * @returns {Object} - Complete meal object with ingredients and macros
- */
-function calculateOptimalPortions(ingredientKeys, targets, mealName, mealType) {
-  console.log(`🧮 CALCULATING OPTIMAL PORTIONS for ${mealType}`);
-  console.log(`   Targets: ${targets.calories}cal, ${targets.protein}P, ${targets.carbs}C, ${targets.fat}F`);
-  console.log(`   Ingredients:`, ingredientKeys);
-
-  // Step 1: Identify branded foods (must be whole units)
-  const brandedFoodPatterns = [
-    'quest_bar', 'rxbar', 'built_bar', 'one_bar', 'barebell',
-    'premier_protein', 'fairlife', 'core_power',
-    'oikos', 'chobani', 'two_good', 'siggi',
-    'halo_top', 'enlightened', 'rebel_ice_cream',
-    'chomps', 'epic_bar',
-    'daves_killer_bread', 'ezekiel_bread',
-    'kodiak_cakes', 'magic_spoon'
-  ];
-
-  const brandedIngredients = [];
-  const scalableIngredients = [];
-
-  ingredientKeys.forEach(key => {
-    const isBranded = brandedFoodPatterns.some(pattern => key.includes(pattern));
-    if (isBranded) {
-      brandedIngredients.push(key);
-    } else {
-      scalableIngredients.push(key);
-    }
-  });
-
-  console.log(`   Branded (whole units): ${brandedIngredients.length}, Scalable: ${scalableIngredients.length}`);
-
-  // Step 2: Add branded foods as 1 unit each
-  let currentMacros = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-  const finalIngredients = [];
-
-  brandedIngredients.forEach(key => {
-    const foodData = FOOD_DATABASE[key];
-    if (!foodData) {
-      console.warn(`⚠️ Branded food "${key}" not in database, skipping`);
-      return;
-    }
-
-    // Branded foods are locked to their standard serving
-    const servingInfo = foodData.per || '1 serving';
-    finalIngredients.push({
-      food: key,
-      amount: servingInfo,
-      calories: foodData.cal,
-      protein: foodData.protein,
-      carbs: foodData.carbs,
-      fat: foodData.fat
-    });
-
-    currentMacros.calories += foodData.cal;
-    currentMacros.protein += foodData.protein;
-    currentMacros.carbs += foodData.carbs;
-    currentMacros.fat += foodData.fat;
-  });
-
-  console.log(`   After branded foods: ${currentMacros.calories}cal, ${currentMacros.protein}P, ${currentMacros.carbs}C, ${currentMacros.fat}F`);
-
-  // Step 3: Calculate remaining needs
-  const remaining = {
-    calories: targets.calories - currentMacros.calories,
-    protein: targets.protein - currentMacros.protein,
-    carbs: targets.carbs - currentMacros.carbs,
-    fat: targets.fat - currentMacros.fat
-  };
-
-  console.log(`   Remaining needs: ${remaining.calories}cal, ${remaining.protein}P, ${remaining.carbs}C, ${remaining.fat}F`);
-
-  // Step 4: Distribute remaining macros across scalable ingredients
-  if (scalableIngredients.length > 0 && remaining.calories > 0) {
-    // Simple algorithm: prioritize protein sources, then carbs, then fats
-    const proteinSources = scalableIngredients.filter(key => {
-      const food = FOOD_DATABASE[key];
-      return food && food.protein >= 20; // High protein per 100g
-    });
-
-    const carbSources = scalableIngredients.filter(key => {
-      const food = FOOD_DATABASE[key];
-      return food && food.carbs >= 20; // High carbs per 100g
-    });
-
-    const fatSources = scalableIngredients.filter(key => {
-      const food = FOOD_DATABASE[key];
-      return food && food.fat >= 10; // High fat per 100g
-    });
-
-    const otherSources = scalableIngredients.filter(key => {
-      return !proteinSources.includes(key) && !carbSources.includes(key) && !fatSources.includes(key);
-    });
-
-    // Allocate portions to hit remaining targets
-    [...proteinSources, ...carbSources, ...fatSources, ...otherSources].forEach(key => {
-      const foodData = FOOD_DATABASE[key];
-      if (!foodData) {
-        console.warn(`⚠️ Food "${key}" not in database, skipping`);
-        return;
-      }
-
-      // Calculate portion based on calorie needs (simple approach)
-      const caloriesPer100g = foodData.cal;
-      const targetPortion = Math.round((remaining.calories / scalableIngredients.length) / caloriesPer100g * 100);
-      const portion = Math.max(50, Math.min(300, targetPortion)); // Clamp to realistic range
-
-      const multiplier = portion / 100;
-      const portionMacros = {
-        calories: Math.round(foodData.cal * multiplier),
-        protein: Math.round(foodData.protein * multiplier),
-        carbs: Math.round(foodData.carbs * multiplier),
-        fat: Math.round(foodData.fat * multiplier)
-      };
-
-      finalIngredients.push({
-        food: key,
-        amount: `${portion}g`,
-        calories: portionMacros.calories,
-        protein: portionMacros.protein,
-        carbs: portionMacros.carbs,
-        fat: portionMacros.fat
-      });
-
-      currentMacros.calories += portionMacros.calories;
-      currentMacros.protein += portionMacros.protein;
-      currentMacros.carbs += portionMacros.carbs;
-      currentMacros.fat += portionMacros.fat;
-    });
-  }
-
-  console.log(`✅ Final macros: ${currentMacros.calories}cal, ${currentMacros.protein}P, ${currentMacros.carbs}C, ${currentMacros.fat}F`);
-
-  // Step 5: Format ingredients as strings for display
-  const ingredientStrings = finalIngredients.map(ing => {
-    const foodData = FOOD_DATABASE[ing.food];
-    const displayName = (foodData && foodData.display_name) || ing.food.replace(/_/g, ' ');
-    return `${displayName} (${ing.amount})`;
-  });
-
-  // Step 6: Generate meal name with portions
-  const mealNameWithPortions = mealName || `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} Meal`;
-
-  // Return complete meal
-  return {
-    type: mealType,
-    name: mealNameWithPortions,
-    ingredients: ingredientStrings,
-    calories: currentMacros.calories,
-    protein: currentMacros.protein,
-    carbs: currentMacros.carbs,
-    fat: currentMacros.fat,
-    breakdown: finalIngredients,
-    instructions: 'Cook as desired.',
-    _calculatedOptimally: true // Flag to indicate this was calculated, not scaled
-  };
-}
-
-/**
  * Scale ingredient portions by a factor
  * e.g., "Chicken Breast (200g)" with factor 1.25 becomes "Chicken Breast (250g)"
  */
@@ -3884,35 +3717,9 @@ exports.handler = async (event, context) => {
       const optimizedMeals = [];
       for (let i = 0; i < jsonData.plan.length; i++) {
         console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.plan.length}...`);
-
-        const meal = jsonData.plan[i];
-        let optimizedMeal;
-
-        // 🆕 NEW FORMAT: Check if meal has ingredient_keys instead of ingredients
-        if (meal.ingredient_keys && Array.isArray(meal.ingredient_keys)) {
-          console.log(`🆕 NEW FORMAT DETECTED: Using calculateOptimalPortions() for ${meal.type}`);
-          console.log(`   Ingredient keys:`, meal.ingredient_keys);
-
-          // Use new approach: Calculate portions mathematically from ingredient keys
-          optimizedMeal = calculateOptimalPortions(
-            meal.ingredient_keys,
-            mealTargets || { calories: 500, protein: 40, carbs: 50, fat: 15 },
-            meal.name || `${meal.type} meal`,
-            meal.type || 'meal'
-          );
-
-          // Add instructions from Gemini if provided
-          if (meal.description || meal.instructions) {
-            optimizedMeal.instructions = meal.description || meal.instructions;
-          }
-        } else {
-          // OLD FORMAT: Traditional ingredients with portions - use existing flow
-          console.log(`📝 OLD FORMAT: Using optimizeMealMacros() for ${meal.type}`);
-          optimizedMeal = mealTargets
-            ? await optimizeMealMacros(meal, mealTargets, skipAutoScale)
-            : await optimizeMealMacros(meal, { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
-        }
-
+        const optimizedMeal = mealTargets
+          ? await optimizeMealMacros(jsonData.plan[i], mealTargets, skipAutoScale)
+          : await optimizeMealMacros(jsonData.plan[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
         optimizedMeals.push(optimizedMeal);
       }
       console.log(`✅ All ${jsonData.plan.length} meals optimized!`);
@@ -3932,43 +3739,32 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS:');
+        console.log('📊 DAILY TOTALS vs TARGETS (before scaling):');
         console.log(`   Calories: ${dailyTotals.calories} / ${targets.calories} (${((dailyTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
         console.log(`   Protein:  ${dailyTotals.protein}g / ${targets.protein}g (${((dailyTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
         console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
         console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
 
-        // Check if all meals were calculated optimally (new approach)
-        const allOptimallyCalculated = optimizedMeals.every(meal => meal._calculatedOptimally);
+        // Scale portions to hit targets
+        const scaledMeals = scalePortionsToTargets(optimizedMeals, dailyTotals, targets);
 
-        if (allOptimallyCalculated) {
-          console.log('🆕 ALL MEALS CALCULATED OPTIMALLY - Skipping scaling operations');
-          console.log('   Macros and portions are already accurate from mathematical calculation');
-          correctedData.plan = optimizedMeals;
-        } else {
-          console.log('📝 OLD FORMAT MEALS DETECTED - Applying scaling operations');
+        // Validate meal distribution - no meal should exceed 40% of daily calories
+        const validatedMeals = validateAndFixMealDistribution(scaledMeals, targets.calories);
+        correctedData.plan = validatedMeals;
 
-          // Scale portions to hit targets (only for old-format meals)
-          const scaledMeals = scalePortionsToTargets(optimizedMeals, dailyTotals, targets);
+        // Recalculate totals after scaling and validation
+        const scaledTotals = validatedMeals.reduce((acc, meal) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein || 0),
+          carbs: acc.carbs + (meal.carbs || 0),
+          fat: acc.fat + (meal.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-          // Validate meal distribution - no meal should exceed 40% of daily calories
-          const validatedMeals = validateAndFixMealDistribution(scaledMeals, targets.calories);
-          correctedData.plan = validatedMeals;
-
-          // Recalculate totals after scaling and validation
-          const scaledTotals = validatedMeals.reduce((acc, meal) => ({
-            calories: acc.calories + (meal.calories || 0),
-            protein: acc.protein + (meal.protein || 0),
-            carbs: acc.carbs + (meal.carbs || 0),
-            fat: acc.fat + (meal.fat || 0)
-          }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-
-          console.log('📊 DAILY TOTALS vs TARGETS (after scaling & validation):');
-          console.log(`   Calories: ${scaledTotals.calories} / ${targets.calories} (${((scaledTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
-          console.log(`   Protein:  ${scaledTotals.protein}g / ${targets.protein}g (${((scaledTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
-          console.log(`   Carbs:    ${scaledTotals.carbs}g / ${targets.carbs}g (${((scaledTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
-          console.log(`   Fat:      ${scaledTotals.fat}g / ${targets.fat}g (${((scaledTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
-        }
+        console.log('📊 DAILY TOTALS vs TARGETS (after scaling & validation):');
+        console.log(`   Calories: ${scaledTotals.calories} / ${targets.calories} (${((scaledTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Protein:  ${scaledTotals.protein}g / ${targets.protein}g (${((scaledTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Carbs:    ${scaledTotals.carbs}g / ${targets.carbs}g (${((scaledTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
+        console.log(`   Fat:      ${scaledTotals.fat}g / ${targets.fat}g (${((scaledTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
       }
     } else if (Array.isArray(jsonData)) {
       // Array of meals: [meal1, meal2, meal3]

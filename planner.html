@@ -1984,41 +1984,40 @@ ${day > 1 ? 'ENSURE VARIETY: This is Day ' + day + ', so make sure meals are dif
 CRITICAL: Return ONLY valid JSON with NO special characters, NO quotes in text, NO newlines in strings.
 Use only alphanumeric characters and basic punctuation (periods, commas) in text fields.
 Replace all quotes with apostrophes. Keep instructions simple and brief.
+Include detailed ingredients list and full cooking instructions.
 
-🆕 NEW INGREDIENT FORMAT - DATABASE KEYS ONLY:
-You MUST return ingredients as an ARRAY OF DATABASE KEYS (snake_case format).
-DO NOT include amounts or portions - backend will calculate optimal portions mathematically.
+CRITICAL INGREDIENTS FORMAT:
+You MUST return ingredients as an ARRAY OF STRINGS in natural language format.
+Include the food name AND amount/portion in parentheses.
 
 EXAMPLES:
-["chicken_breast", "brown_rice_cooked", "broccoli"] ✅
-["eggs_large", "whole_wheat_bread", "avocado"] ✅
-["kodiak_cakes_oatmeal", "banana", "almond_butter"] ✅
-["premier_protein_chocolate", "quest_bar_original"] ✅
+"Chicken Breast (200g)" ✅
+"Eggs (3 whole)" ✅
+"Rolled Oats (80g dry)" ✅
+"Egg Whites (200g)" ✅
+"Brown Rice (150g cooked)" ✅
+"Whole Wheat Bread (2 slices)" ✅
+"Olive Oil (1 tbsp)" ✅
+"Greek Yogurt (170g)" ✅
 
 FULL EXAMPLE (use this EXACT format):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"High-Protein Pancakes with Banana","ingredient_keys":["kodiak_cakes_oatmeal","banana","premier_protein_chocolate"],"description":"Protein-packed breakfast with Kodiak Cakes, banana, and protein shake"}]}
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Whole Wheat Toast (2 slices) and Avocado (50g)","ingredients":["Eggs (3 whole)","Whole Wheat Bread (2 slices)","Butter (1 tbsp)","Avocado (50g)"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with sliced avocado."}]}
 
 CRITICAL REQUIREMENTS:
-1. Ingredients MUST be "ingredient_keys": ["database_key1", "database_key2", ...]
-2. Use EXACT database keys from the list above (snake_case format)
-3. DO NOT include amounts - backend calculates optimal portions to hit targets
-4. DO NOT include macros - backend calculates from database
-5. Each meal MUST have "type", "name", "ingredient_keys", "description"
-6. Suggest 3-5 ingredient keys per meal that work well together
-7. Mix proteins, carbs, fats, and vegetables for balanced meals
+1. Ingredients MUST be array of strings: ["Food Name (amount)", "Food Name (amount)"]
+2. Use natural language names: "Chicken Breast" not "chicken_breast"
+3. ALWAYS include amount in parentheses: "Chicken Breast (200g)" not just "Chicken Breast"
+4. DO NOT include calories/protein/carbs/fat - backend calculates from database
+5. Portions: "100g", "150g", "200g", "1 tbsp", "2 slices", "3 whole", etc.
+6. Each meal MUST have "type", "name", "ingredients", "instructions"
+7. For descriptors like dry/cooked, include in parentheses: "Oats (80g dry)" or "Rice (200g cooked)"
 
 STEP-BY-STEP:
-1. Choose 3-5 foods from database for each meal (use database keys)
-2. Pick ingredients that complement each other (protein + carb + fat + veg)
-3. Return ONLY database keys - NO amounts, NO portions
-4. Backend will calculate exact portions to hit meal targets perfectly
-5. For branded foods, backend will use whole units (1 bar, 1 shake, etc.)
-
-WHY THIS WORKS BETTER:
-- You focus on creative meal combinations (what you're good at)
-- Backend does precise math (what it's good at)
-- No more portion guessing or macro math errors
-- Branded foods automatically get whole units (no 0.7 protein bars!)`;
+1. Choose 3-5 foods from database for each meal
+2. Use natural language food names
+3. Specify realistic portions to hit meal targets
+4. Format as string array with amounts in parentheses
+5. Backend will match to database and calculate exact macros`;
 
         // Build targets object for hybrid Gemini + JS optimizer
         const dayTargets = {
