@@ -1143,7 +1143,35 @@
         let currentClientId = null; // Track client ID for saving modifications
         let isClientModified = false; // Track if client has modified the plan
         let isClientView = false; // Track if viewing as client
-        let previousMealStates = {}; // Store previous meal states for undo functionality
+
+        // Store previous meal states for undo functionality - persisted to localStorage
+        const UNDO_STATES_KEY = 'viewPlanUndoStates';
+        let previousMealStates = {};
+
+        // Load undo states from localStorage
+        function loadUndoStates() {
+            try {
+                const stored = localStorage.getItem(UNDO_STATES_KEY);
+                if (stored) {
+                    previousMealStates = JSON.parse(stored);
+                    console.log('📂 Loaded undo states from localStorage');
+                }
+            } catch (e) {
+                console.error('Error loading undo states:', e);
+            }
+        }
+
+        // Save undo states to localStorage
+        function saveUndoStates() {
+            try {
+                localStorage.setItem(UNDO_STATES_KEY, JSON.stringify(previousMealStates));
+            } catch (e) {
+                console.error('Error saving undo states:', e);
+            }
+        }
+
+        // Load undo states on page load
+        loadUndoStates();
 
         // Custom meal modal state
         let currentCustomMealIndex = null;
@@ -2233,6 +2261,7 @@
             const stateKey = currentCustomMealDayIndex !== null ? `${currentCustomMealDayIndex}-${currentCustomMealMealIndex}` : `${currentCustomMealIndex}`;
             previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
             console.log(`💾 Saved previous state for manual custom meal:`, previousMealStates[stateKey]);
+            saveUndoStates(); // Persist to localStorage
 
             // Create the custom meal object
             const customMealData = {
@@ -2300,6 +2329,7 @@
             const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
             previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
             console.log(`💾 Saved previous state for USDA custom meal:`, previousMealStates[stateKey]);
+            saveUndoStates(); // Persist to localStorage
 
             // Calculate totals from selected ingredients
             let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
@@ -2786,6 +2816,7 @@
 
             // Remove the undo state (can only undo once)
             delete previousMealStates[stateKey];
+            saveUndoStates(); // Persist to localStorage
 
             // Re-render the meal card
             const mealCard = document.getElementById(`meal-${index}`);
@@ -2911,6 +2942,7 @@
             const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
             previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
             console.log(`💾 Saved previous state for meal ${stateKey}:`, previousMealStates[stateKey]);
+            saveUndoStates(); // Persist to localStorage
 
             // Show loading
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Revising meal...</p>';
@@ -3104,6 +3136,7 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
             const stateKey = dayIndex !== null ? `${dayIndex}-${mealIndex}` : `${index}`;
             previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal)); // Deep copy
             console.log(`💾 Saved previous state for undo (change):`, previousMealStates[stateKey]);
+            saveUndoStates(); // Persist to localStorage
 
             mealCard.innerHTML = '<div class="spinner"></div><p style="text-align:center;">Generating new meal...</p>';
 
