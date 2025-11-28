@@ -3458,19 +3458,21 @@ async function submitCalculatedMeal() {
     // Get meal name
     let mealName = document.getElementById('calculatedMealName').value.trim();
     if (!mealName) {
-        // Extract short ingredient names
-        const shortNames = ingredients.map(i => {
-            const name = i.split(' (')[0].split(',')[0].trim();
-            return name.length > 25 ? name.substring(0, 22) + '...' : name;
+        // Build full meal name with all ingredients and servings
+        // e.g., "200g Sirloin Steak, 1 Cup Brown Rice, 2 Tbsp Olive Oil"
+        const ingredientParts = customMealSelectedIngredients.map(ing => {
+            const grams = ing.quantityGrams || ing.quantity;
+            const shortName = ing.name.split(',')[0].trim();
+            const displayName = shortName.length > 30 ? shortName.substring(0, 27) + '...' : shortName;
+
+            if (ing.selectedUnit === 'g') {
+                return `${Math.round(grams)}g ${displayName}`;
+            } else {
+                return `${ing.quantity} ${ing.selectedUnit} ${displayName}`;
+            }
         });
 
-        if (shortNames.length === 1) {
-            mealName = shortNames[0];
-        } else if (shortNames.length === 2) {
-            mealName = shortNames.join(' & ');
-        } else {
-            mealName = `${shortNames[0]}, ${shortNames[1]} + ${shortNames.length - 2} more`;
-        }
+        mealName = ingredientParts.join(', ');
     }
 
     // Get meal type from original meal
