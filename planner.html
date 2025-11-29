@@ -1088,6 +1088,15 @@
                 placeholder="Meal name (optional - auto-generated if blank)"
             >
 
+            <!-- Instructions -->
+            <textarea
+                id="calculatedMealInstructions"
+                class="custom-meal-input"
+                placeholder="Cooking instructions (optional)"
+                rows="3"
+                style="resize: vertical; min-height: 60px;"
+            ></textarea>
+
             <div class="save-for-later-row">
                 <input type="checkbox" id="saveCalculatedForLater">
                 <label for="saveCalculatedForLater">💾 Save this meal for future use</label>
@@ -1127,12 +1136,13 @@
                     <input type="number" id="manualFat" placeholder="0">
                 </div>
             </div>
-            <input
-                type="text"
+            <textarea
                 id="manualInstructions"
                 class="custom-meal-input"
-                placeholder="Instructions (optional)"
-            >
+                placeholder="Cooking instructions (optional)"
+                rows="3"
+                style="resize: vertical; min-height: 60px;"
+            ></textarea>
 
             <div class="save-for-later-row">
                 <input type="checkbox" id="saveManualForLater">
@@ -3669,6 +3679,7 @@ function customMeal(dayIndex, mealIndex) {
     document.getElementById('foodSearchResults').classList.remove('active');
     document.getElementById('foodSearchResults').innerHTML = '';
     document.getElementById('calculatedMealName').value = '';
+    document.getElementById('calculatedMealInstructions').value = '';
     document.getElementById('manualMealName').value = '';
     document.getElementById('manualCalories').value = '';
     document.getElementById('manualProtein').value = '';
@@ -3697,6 +3708,7 @@ function closeCustomMealModal() {
     document.getElementById('foodSearchInput').value = '';
     document.getElementById('foodSearchResults').classList.remove('active');
     document.getElementById('calculatedMealName').value = '';
+    document.getElementById('calculatedMealInstructions').value = '';
     document.getElementById('manualMealName').value = '';
     document.getElementById('manualCalories').value = '';
     document.getElementById('manualProtein').value = '';
@@ -4240,6 +4252,9 @@ async function submitCalculatedMeal() {
     previousMealStates[stateKey] = JSON.parse(JSON.stringify(originalMeal));
     saveUndoStates(); // Persist to localStorage
 
+    // Get custom instructions from the textarea
+    const customInstructions = document.getElementById('calculatedMealInstructions').value.trim() || 'Prepare as desired.';
+
     // Create the custom meal
     const customMealData = {
         type: mealType,
@@ -4249,7 +4264,7 @@ async function submitCalculatedMeal() {
         protein: Math.round(totalProtein),
         carbs: Math.round(totalCarbs),
         fat: Math.round(totalFat),
-        instructions: 'Prepare as desired.',
+        instructions: customInstructions,
         source: 'Food Database',
         isCustom: true
     };
