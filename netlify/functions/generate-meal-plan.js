@@ -1049,6 +1049,164 @@ const FOOD_DATABASE = {
 };
 
 /**
+ * PORTION_LIMITS - Realistic portion size ranges per meal
+ * Prevents unrealistic portions (e.g., 160g dry oats)
+ * Philosophy: Add more foods instead of scaling portions beyond realistic limits
+ */
+const PORTION_LIMITS = {
+  // PROTEINS - MEATS (per meal)
+  'chicken_breast': { min: 120, max: 250, unit: 'g', type: 'protein' },
+  'chicken_thigh_skinless': { min: 120, max: 250, unit: 'g', type: 'protein' },
+  'turkey_breast': { min: 120, max: 250, unit: 'g', type: 'protein' },
+  'ground_turkey': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'ground_chicken': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'sirloin_steak': { min: 120, max: 250, unit: 'g', type: 'protein' },
+  'ground_beef_90': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'ground_beef_93': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'ground_beef_96': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'ribeye_steak': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'ny_strip_steak': { min: 120, max: 220, unit: 'g', type: 'protein' },
+  'flank_steak': { min: 120, max: 220, unit: 'g', type: 'protein' },
+  'pork_tenderloin': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'pork_chop': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'salmon': { min: 120, max: 220, unit: 'g', type: 'protein' },
+  'cod': { min: 120, max: 250, unit: 'g', type: 'protein' },
+  'tilapia': { min: 120, max: 250, unit: 'g', type: 'protein' },
+  'tuna': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'shrimp': { min: 100, max: 200, unit: 'g', type: 'protein' },
+
+  // PROTEINS - EGGS & DAIRY
+  'eggs_whole': { min: 1, max: 4, unit: 'whole', type: 'protein' },
+  'egg_whites': { min: 100, max: 300, unit: 'g', type: 'protein' },
+  'greek_yogurt_nonfat': { min: 150, max: 250, unit: 'g', type: 'protein' },
+  'greek_yogurt_2': { min: 150, max: 250, unit: 'g', type: 'protein' },
+  'cottage_cheese': { min: 100, max: 250, unit: 'g', type: 'protein' },
+
+  // PROTEINS - PLANT-BASED
+  'tofu_firm': { min: 100, max: 200, unit: 'g', type: 'protein' },
+  'tempeh': { min: 100, max: 200, unit: 'g', type: 'protein' },
+  'edamame': { min: 100, max: 200, unit: 'g', type: 'protein' },
+
+  // CARBS - GRAINS (DRY)
+  'oats_rolled_dry': { min: 30, max: 80, unit: 'g', type: 'carbs', meal_type: { breakfast: { max: 80 }, lunch: { max: 60 }, dinner: { max: 50 } } },
+  'steel_cut_oats_dry': { min: 30, max: 80, unit: 'g', type: 'carbs' },
+  'brown_rice_dry': { min: 50, max: 80, unit: 'g', type: 'carbs' },
+  'white_rice_dry': { min: 50, max: 80, unit: 'g', type: 'carbs' },
+  'quinoa_dry': { min: 40, max: 80, unit: 'g', type: 'carbs' },
+  'pasta_dry': { min: 50, max: 80, unit: 'g', type: 'carbs' },
+
+  // CARBS - GRAINS (COOKED)
+  'oats_cooked': { min: 100, max: 250, unit: 'g', type: 'carbs' },
+  'brown_rice_cooked': { min: 150, max: 300, unit: 'g', type: 'carbs' },
+  'white_rice_cooked': { min: 150, max: 300, unit: 'g', type: 'carbs' },
+  'quinoa_cooked': { min: 120, max: 250, unit: 'g', type: 'carbs' },
+  'pasta_cooked': { min: 150, max: 300, unit: 'g', type: 'carbs' },
+  'whole_wheat_pasta_cooked': { min: 150, max: 300, unit: 'g', type: 'carbs' },
+
+  // CARBS - POTATOES
+  'sweet_potato': { min: 100, max: 300, unit: 'g', type: 'carbs' },
+  'russet_potato': { min: 100, max: 300, unit: 'g', type: 'carbs' },
+  'red_potato': { min: 100, max: 300, unit: 'g', type: 'carbs' },
+
+  // CARBS - BREAD & WRAPS
+  'whole_wheat_bread': { min: 1, max: 3, unit: 'slices', type: 'carbs' },
+  'ezekiel_bread': { min: 1, max: 3, unit: 'slices', type: 'carbs' },
+  'tortilla_flour': { min: 1, max: 2, unit: 'tortilla', type: 'carbs' },
+  'bagel_plain': { min: 1, max: 1, unit: 'bagel', type: 'carbs' },
+
+  // FATS - OILS
+  'olive_oil': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+  'avocado_oil': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+  'coconut_oil': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+  'butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+
+  // FATS - NUT BUTTERS
+  'peanut_butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+  'almond_butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+  'cashew_butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+
+  // FATS - NUTS & SEEDS
+  'almonds': { min: 14, max: 56, unit: 'g', type: 'fats' },
+  'walnuts': { min: 14, max: 42, unit: 'g', type: 'fats' },
+  'cashews': { min: 14, max: 42, unit: 'g', type: 'fats' },
+  'chia_seeds': { min: 1, max: 3, unit: 'tbsp', type: 'fats' },
+  'flax_seeds': { min: 1, max: 3, unit: 'tbsp', type: 'fats' },
+
+  // FATS - WHOLE FOODS
+  'avocado': { min: 50, max: 150, unit: 'g', type: 'fats' },
+
+  // VEGETABLES
+  'broccoli': { min: 50, max: 250, unit: 'g', type: 'vegetables' },
+  'spinach': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'bell_pepper': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'asparagus': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'green_beans': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'zucchini': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'mushrooms_white': { min: 50, max: 150, unit: 'g', type: 'vegetables' },
+  'mixed_greens': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+
+  // FRUITS
+  'banana': { min: 1, max: 2, unit: 'medium', type: 'fruits' },
+  'apple': { min: 1, max: 1, unit: 'medium', type: 'fruits' },
+  'blueberries': { min: 50, max: 150, unit: 'g', type: 'fruits' },
+  'strawberries': { min: 50, max: 150, unit: 'g', type: 'fruits' },
+
+  // SUPPLEMENTS
+  'whey_protein': { min: 0.5, max: 2, unit: 'scoop', type: 'protein' },
+  'casein_protein': { min: 0.5, max: 2, unit: 'scoop', type: 'protein' },
+  'plant_protein': { min: 0.5, max: 2, unit: 'scoop', type: 'protein' }
+};
+
+/**
+ * Validate portion size against limits
+ * Returns { valid: boolean, suggestion: string, exceeded: boolean }
+ */
+function validatePortionSize(foodKey, amount, mealType = null) {
+  const limits = PORTION_LIMITS[foodKey];
+
+  if (!limits) {
+    // No limits defined - allow it but flag for review
+    return { valid: true, suggestion: null, exceeded: false };
+  }
+
+  // Extract numeric value from amount string
+  const numMatch = amount.match(/^([\d.]+)/);
+  if (!numMatch) {
+    return { valid: true, suggestion: null, exceeded: false };
+  }
+
+  const numericAmount = parseFloat(numMatch[1]);
+
+  // Check meal-type-specific limits if available
+  let maxLimit = limits.max;
+  if (mealType && limits.meal_type && limits.meal_type[mealType]) {
+    maxLimit = limits.meal_type[mealType].max;
+  }
+
+  if (numericAmount > maxLimit) {
+    return {
+      valid: false,
+      exceeded: true,
+      suggestion: `Reduce ${foodKey} to max ${maxLimit}${limits.unit} per meal. Add complementary foods instead.`,
+      maxAllowed: maxLimit,
+      type: limits.type
+    };
+  }
+
+  if (numericAmount < limits.min) {
+    return {
+      valid: false,
+      exceeded: false,
+      suggestion: `Increase ${foodKey} to at least ${limits.min}${limits.unit} or remove it.`,
+      minAllowed: limits.min,
+      type: limits.type
+    };
+  }
+
+  return { valid: true, suggestion: null, exceeded: false };
+}
+
+/**
  * Parse string-based ingredient into food name and amount
  * Examples: "Chicken Breast (200g)" → { name: "Chicken Breast", amount: "200g" }
  *           "Eggs (2 whole)" → { name: "Eggs", amount: "2 whole" }
