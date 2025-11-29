@@ -4588,14 +4588,42 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
 
         // Helper functions for grocery list aggregation
         function parseIngredient(ingredient) {
-            const match = ingredient.match(/^([\d.\/]+)?\s*([a-zA-Z]+)?\s*(.+)$/);
-            if (!match) return { quantity: 1, unit: 'unit', name: ingredient };
+            // Handle "FoodName (amount unit)" format - e.g., "Chicken Breast (122 g)"
+            const parenMatch = ingredient.match(/^(.+?)\s*\((\d+(?:\.\d+)?)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\)$/);
+            if (parenMatch) {
+                const name = parenMatch[1].trim();
+                const quantity = parseFloat(parenMatch[2]);
+                const unit = parenMatch[3].toLowerCase();
+                return { quantity, unit, name };
+            }
 
-            const quantity = match[1] ? eval(match[1]) : 1;
-            const unit = match[2] || 'unit';
-            const name = match[3] || ingredient;
+            // Handle "FoodName (count descriptor)" format - e.g., "Apple (2 medium)"
+            const countMatch = ingredient.match(/^(.+?)\s*\((\d+)\s+([a-zA-Z]+)\)$/);
+            if (countMatch) {
+                const name = countMatch[1].trim();
+                const quantity = parseInt(countMatch[2]);
+                const unit = countMatch[3].toLowerCase();
+                return { quantity, unit, name };
+            }
 
-            return { quantity, unit: unit.toLowerCase(), name: name.trim() };
+            // Handle simple formats like "Olive Oil (1 tbsp)"
+            const simpleMatch = ingredient.match(/^(.+?)\s*\((.+?)\)$/);
+            if (simpleMatch) {
+                const name = simpleMatch[1].trim();
+                const amountStr = simpleMatch[2].trim();
+                const amountParts = amountStr.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+                if (amountParts) {
+                    return {
+                        quantity: parseFloat(amountParts[1]),
+                        unit: amountParts[2] || 'unit',
+                        name
+                    };
+                }
+                return { quantity: 1, unit: amountStr, name };
+            }
+
+            // Fallback for other formats
+            return { quantity: 1, unit: 'unit', name: ingredient.trim() };
         }
 
         function normalizeUnit(quantity, unit) {
