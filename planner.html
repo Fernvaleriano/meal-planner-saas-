@@ -94,6 +94,15 @@
             background: #0e7490;
         }
 
+        .btn-edit {
+            background: #0d9488;
+            color: white;
+        }
+
+        .btn-edit:hover:not(:disabled) {
+            background: #0f766e;
+        }
+
         .portions-dropdown {
             position: absolute;
             background: white;
@@ -2803,6 +2812,11 @@ function displayDietPlan(multiDayData) {
                     ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs" style="background: #dc2626; color: white;" title="Undo last change">↩️ Undo</button>`
                     : '';
 
+                // Edit button for custom meals only
+                const editButton = meal.isCustom
+                    ? `<button data-action="edit-custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-edit text-xs flex-1" title="Edit this custom meal">✎ Edit</button>`
+                    : '';
+
                 planHTML += `
                 <div class="meal-card">
                     <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
@@ -2819,6 +2833,7 @@ function displayDietPlan(multiDayData) {
                         <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Adjust serving size">⚖️ Portions</button>
                         <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
+                        ${editButton}
                         ${undoButton}
                     </div>
                     <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
@@ -3689,6 +3704,47 @@ function customMeal(dayIndex, mealIndex) {
 
     // Reset to calculate tab
     switchCustomMealTab('calculate');
+
+    // Update UI
+    renderCustomMealIngredients();
+    updateCustomMealTotals();
+
+    // Show modal
+    document.getElementById('customMealModal').classList.add('show');
+}
+
+// EDIT CUSTOM MEAL - Opens modal pre-populated with existing meal data
+function editCustomMeal(dayIndex, mealIndex) {
+    // Get the existing meal data
+    const meal = lastPlanQuery.currentPlan[dayIndex]?.plan[mealIndex];
+
+    if (!meal) {
+        console.error('Could not find meal to edit');
+        return;
+    }
+
+    // Set up the indices
+    customMealDayIndex = dayIndex;
+    customMealMealIndex = mealIndex;
+    customMealSelectedIngredients = [];
+
+    // Reset modal state first
+    document.getElementById('foodSearchInput').value = '';
+    document.getElementById('foodSearchResults').classList.remove('active');
+    document.getElementById('foodSearchResults').innerHTML = '';
+    document.getElementById('calculatedMealName').value = '';
+    document.getElementById('calculatedMealInstructions').value = '';
+
+    // Switch to the manual tab (since we have aggregated macros, not individual ingredients)
+    switchCustomMealTab('manual');
+
+    // Pre-populate the manual panel fields with existing meal data
+    document.getElementById('manualMealName').value = meal.name || '';
+    document.getElementById('manualCalories').value = meal.calories || '';
+    document.getElementById('manualProtein').value = meal.protein || '';
+    document.getElementById('manualCarbs').value = meal.carbs || '';
+    document.getElementById('manualFat').value = meal.fat || '';
+    document.getElementById('manualInstructions').value = meal.instructions || '';
 
     // Update UI
     renderCustomMealIngredients();
@@ -5601,6 +5657,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             customMeal(dayIndex, mealIndex);
+        },
+        'edit-custom-meal': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            editCustomMeal(dayIndex, mealIndex);
         },
         'adjust-portions': () => {
             const target = event.target.closest('[data-day-index]');
