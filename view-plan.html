@@ -3689,6 +3689,28 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
             console.log(`🎯 Exchange targets for ${mealType} (${Math.round(calPercent * 100)}% of daily): ${targetCalories}cal, ${targetProtein}P, ${targetCarbs}C, ${targetFat}F`);
             console.log(`🚫 Meals to avoid (${allMealNames.length}):`, allMealNames);
 
+            // Determine if high-protein strategy is needed
+            const isHighProtein = targetProtein >= 40;
+            const minIngredients = isHighProtein ? 5 : 4;
+
+            // Build protein stacking guidance for high-protein meals
+            let proteinStackingGuide = '';
+            if (isHighProtein) {
+                if (mealType === 'breakfast') {
+                    proteinStackingGuide = `
+PROTEIN STACKING (required for ${targetProtein}g protein):
+Use 5+ ingredients. Example: Oats (75g) + Whey Protein (1 scoop) + Eggs (2 whole) + Egg Whites (150g) + Banana (1 medium) + Almonds (30g) = ~65g protein
+Mix whey INTO oats after cooking (Proats technique).`;
+                } else {
+                    proteinStackingGuide = `
+PROTEIN STACKING (required for ${targetProtein}g protein):
+Use 5+ ingredients. Stack protein sources:
+- Main protein: Chicken/Beef/Fish (200g) = 40-50g protein
+- Add: Eggs, Greek Yogurt, or Cheese for extra protein
+- Include: Carbs (rice/potato 250-280g), vegetables (150g), fat (1 tbsp oil or 30g nuts)`;
+                }
+            }
+
             const mealCard = document.getElementById(`meal-${index}`);
 
             // Save current meal state for undo functionality
@@ -3715,24 +3737,29 @@ STRICT Target Nutrition - the new meal MUST closely match these values:
 - Protein: ${targetProtein}g (stay within ±5g)
 - Carbs: ${targetCarbs}g (stay within ±10g)
 - Fat: ${targetFat}g (stay within ±5g)
-
+${proteinStackingGuide}
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}
 
 IMPORTANT: Be CREATIVE and suggest a UNIQUE meal. Try different cuisines (Mexican, Asian, Mediterranean, American, Indian) and cooking styles.
 
 Use ONLY foods from USDA database including:
-Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Egg Whites, Shrimp, Tofu, Greek Yogurt, Tilapia, Cod, Tuna, Lean Beef, Pork Tenderloin
+Proteins: Chicken Breast, Salmon, Ground Turkey, Eggs, Egg Whites, Whey Protein, Shrimp, Tofu, Greek Yogurt, Tilapia, Cod, Tuna, Lean Beef, Pork Tenderloin
 Carbs: Brown Rice, Quinoa, Sweet Potato, Oats, Whole Wheat Bread, Pasta, White Rice, Couscous, Black Beans, Chickpeas
-Fats: Olive Oil, Avocado, Almonds, Peanut Butter, Walnuts, Cashews, Coconut Oil
+Fats: Olive Oil, Avocado, Almonds, Peanut Butter, Walnuts, Cashews, Butter
 Vegetables: Broccoli, Spinach, Bell Pepper, Asparagus, Zucchini, Mushrooms, Onions, Tomatoes, Carrots, Green Beans
-Fruits: Blueberries, Strawberries, Banana, Apple, Mango, Pineapple, Orange
+Fruits: Blueberries, Strawberries, Banana, Apple, Orange
+
+PORTION LIMITS (never exceed):
+- Chicken/Fish: MAX 250g | Ground meat: MAX 200g | Eggs: MAX 4 whole
+- Oats dry: MAX 80g | Rice/Pasta cooked: MAX 300g | Vegetables: MAX 200g
 
 CRITICAL:
 1. Return ingredients as ARRAY OF STRINGS with amounts in parentheses
 2. DO NOT include calories/protein/carbs/fat values - the backend will calculate them
-3. Choose portions that CLOSELY MATCH the target nutrition above - this is essential
-4. If original meal was small (under 400 cal), keep new meal small. If large (over 600 cal), keep it large.
+3. Use ${minIngredients}+ ingredients to hit targets - stack proteins if needed
+4. Stay within portion limits - add more ingredients instead of exceeding limits
+5. If original meal was small (under 400 cal), keep new meal small. If large (over 600 cal), keep it large.
 
 Return ONLY valid JSON (NO markdown, NO backticks):
 {
