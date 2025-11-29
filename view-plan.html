@@ -4323,24 +4323,29 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
 
                 // Meal Type Badge (if available)
                 if (meal.type) {
+                    // Use lowercase keys for case-insensitive matching
                     const typeColors = {
-                        'Breakfast': { r: 255, g: 193, b: 7 },
-                        'Lunch': { r: 40, g: 167, b: 69 },
-                        'Dinner': { r: 0, g: 123, b: 255 },
-                        'Snack': { r: 108, g: 117, b: 125 },
-                        'Pre-Workout': { r: 220, g: 53, b: 69 },
-                        'Post-Workout': { r: 23, g: 162, b: 184 }
+                        'breakfast': { r: 255, g: 152, b: 0 },    // Orange
+                        'lunch': { r: 76, g: 175, b: 80 },        // Green
+                        'dinner': { r: 63, g: 81, b: 181 },       // Indigo
+                        'snack': { r: 156, g: 39, b: 176 },       // Purple
+                        'pre-workout': { r: 244, g: 67, b: 54 },  // Red
+                        'post-workout': { r: 0, g: 188, b: 212 }  // Cyan
                     };
-                    const typeColor = typeColors[meal.type] || { r: 108, g: 117, b: 125 };
+                    const mealTypeLower = meal.type.toLowerCase();
+                    const typeColor = typeColors[mealTypeLower] || { r: 96, g: 125, b: 139 };
+
+                    // Display meal type with proper title case
+                    const displayType = meal.type.charAt(0).toUpperCase() + meal.type.slice(1).toLowerCase();
 
                     doc.setFillColor(typeColor.r, typeColor.g, typeColor.b);
-                    const badgeWidth = doc.getTextWidth(meal.type) + 6;
-                    doc.roundedRect(margin, y - 4, badgeWidth + 4, 6, 1, 1, 'F');
                     doc.setFontSize(8);
+                    const badgeWidth = doc.getTextWidth(displayType) + 8;
+                    doc.roundedRect(margin, y - 4, badgeWidth, 6, 1.5, 1.5, 'F');
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(255, 255, 255);
-                    doc.text(meal.type, margin + 3, y);
-                    y += 5;
+                    doc.text(displayType, margin + 4, y);
+                    y += 6;
                 }
 
                 // Meal Name
