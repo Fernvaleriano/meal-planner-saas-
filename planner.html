@@ -2043,10 +2043,17 @@ Include at least 1-2 branded fitness foods per day in this meal plan.`;
    - Oils/Butter: MAX 1 tsp per meal (5g fat)
    - DO NOT STACK: If meal has eggs, skip nuts. If meal has salmon, skip avocado.
 
+   🍳 BREAKFAST FAT STACKING PREVENTION:
+   - Eggs + Ground Meat = ALREADY HIGH FAT → NO butter/oil allowed!
+   - Eggs (2) = 10g fat + Ground Turkey (100g) = 10g fat = 20g already!
+   - If using eggs + meat: cook with spray or non-stick, NOT butter/oil
+   - CHOOSE: Eggs alone (can use 1 tsp butter) OR Eggs + lean meat (no added fat)
+
    CHOOSE ONE FAT SOURCE PER MEAL:
    ✅ Eggs (3 whole) = 15g fat - no other fat needed
    ✅ Salmon (150g) = 17g fat - no other fat needed
    ✅ Nuts (28g) = 14g fat - don't add with eggs
+   ❌ Eggs + Ground Meat + Butter = 25g+ fat - TOO MUCH!
    ❌ Eggs + Avocado + Nuts = TOO MUCH FAT!`
             : `4. FATS - STRICT LIMITS (STAY WITHIN ${fat}g DAILY):
    🚨 DAILY FAT BUDGET: ${fat}g total = ~${fatPerMeal}g per meal MAX
@@ -2057,36 +2064,51 @@ Include at least 1-2 branded fitness foods per day in this meal plan.`;
    - Oils/Butter: MAX 1 tsp per meal
    - Eggs: Count 5g fat per egg
 
+   🍳 BREAKFAST FAT STACKING PREVENTION:
+   - Eggs + Ground Meat = HIGH FAT COMBO → limit or skip butter/oil!
+   - Eggs (2) = 10g fat + Ground Turkey (100g) = 10g fat = 20g already!
+   - Eggs (3) + Ground Beef (100g) = 25g fat → NO room for oil!
+   - If using eggs + any ground meat: use cooking spray, NOT butter/oil
+   - BETTER: Eggs + lean meat (turkey breast, chicken breast) = can add 1 tsp oil
+
    DO NOT STACK MULTIPLE FAT SOURCES:
    ❌ WRONG: Eggs (4) + Almonds (50g) + Avocado = 60g+ fat in one meal!
+   ❌ WRONG: Eggs (3) + Ground Turkey (130g) + Butter (1 tbsp) = 35g+ fat!
    ✅ RIGHT: Eggs (3) + vegetables + carbs = balanced meal
+   ✅ RIGHT: Eggs (2) + Ground Turkey (100g) + veggies = 20g fat (no oil needed)
 
    FAT BUDGET CHECK:
    - Eggs (3 whole) = 15g fat → leaves room for 1 tsp oil only
    - Salmon (150g) = 17g fat → NO added fat needed
    - Nuts (35g) = 18g fat → don't combine with fatty protein
+   - Eggs + Ground Meat = 20-25g fat → NO added fat!
    - If protein is lean (chicken breast, cod, tilapia) → can add ONE fat source`;
 
         // Goal-based meal examples
         const mealExamples = goal === 'lose weight'
             ? `EXAMPLES OF WINNING MEALS (WEIGHT LOSS - FAT CONTROLLED):
-Breakfast: ["Eggs (3 whole)", "Oats (50g dry)", "Blueberries (100g)"] - 15g fat from eggs ONLY
+Breakfast Option A: ["Eggs (3 whole)", "Oats (50g dry)", "Blueberries (100g)"] - 15g fat from eggs ONLY
+Breakfast Option B: ["Eggs (2 whole)", "Ground Turkey (100g)", "Spinach (100g)", "Bell Peppers (80g)"] - 20g fat total, NO butter needed!
 Lunch: ["Chicken Breast (150g)", "Brown Rice (200g cooked)", "Broccoli (150g)", "Olive Oil (1 tsp)"] - lean protein + small oil
 Dinner: ["Salmon (150g)", "Sweet Potato (200g)", "Asparagus (150g)"] - 17g fat from salmon, NO added fat
 Snack: ["Greek Yogurt Nonfat (200g)", "Strawberries (100g)", "Almonds (28g)"] - 14g fat from nuts only
 
-🚨 WRONG EXAMPLES (TOO MUCH FAT):
-❌ ["Eggs (4)", "Avocado (100g)", "Almonds (50g)"] = 55g fat in ONE meal!
+🚨 WRONG BREAKFAST EXAMPLES (TOO MUCH FAT):
+❌ ["Eggs (3)", "Ground Turkey (130g)", "Butter (1 tbsp)"] = 35g fat - WRONG! No butter with eggs + meat!
+❌ ["Eggs (4)", "Avocado (100g)", "Almonds (50g)"] = 55g fat - TOO MUCH!
 ❌ ["Salmon (200g)", "Walnuts (42g)"] = 50g fat - don't stack fatty fish + nuts!`
             : `EXAMPLES OF WINNING MEALS (FAT CONTROLLED - MAX ${fatPerMeal}g per meal):
-Breakfast: ["Eggs (3 whole)", "Oats (60g dry)", "Banana (1 medium)"] - 15g fat from eggs, no extra needed
+Breakfast Option A: ["Eggs (3 whole)", "Oats (60g dry)", "Banana (1 medium)"] - 15g fat from eggs, no extra needed
+Breakfast Option B: ["Eggs (2 whole)", "Ground Turkey (100g)", "Bell Peppers (100g)", "Onion (50g)"] - 20g fat, cook with spray NOT butter!
 Lunch: ["Chicken Breast (180g)", "Quinoa (200g cooked)", "Broccoli (150g)", "Olive Oil (1 tsp)"] - lean + small fat
 Dinner: ["Salmon (170g)", "Brown Rice (200g cooked)", "Asparagus (150g)"] - fatty fish, NO added fat
 Snack: ["Cottage Cheese Nonfat (200g)", "Walnuts (28g)", "Apple (1 medium)"] - 18g fat from nuts only
 
 🚨 FAT STACKING ERRORS TO AVOID:
+❌ Eggs (3) + Ground Turkey (130g) + Butter (1 tbsp) = 35g fat - WRONG!
 ❌ Eggs (4) + Almonds (54g) = 50g fat - WRONG!
 ❌ Salmon + Avocado + Nuts = 55g+ fat - WRONG!
+✅ Eggs + Ground Meat = 20g fat → NO added butter/oil
 ✅ ONE fat source per meal + lean protein OR fatty protein alone`;
 
 

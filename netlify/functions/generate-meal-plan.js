@@ -1440,6 +1440,73 @@ function validateAndFixInstructions(instructions, ingredients) {
 }
 
 /**
+ * Detect and fix breakfast fat stacking
+ * Problem: Eggs + Ground Meat + Butter/Oil = 30-40g fat in one meal
+ * Solution: If breakfast has eggs + ground meat, remove butter/oil
+ *
+ * Fat math:
+ * - Eggs (2-3) = 10-15g fat
+ * - Ground Turkey/Chicken (100g) = 8-10g fat
+ * - Ground Beef (100g) = 7-10g fat
+ * - Butter (1 tbsp) = 12g fat
+ * - Oil (1 tbsp) = 14g fat
+ *
+ * Eggs + Ground Meat already = 18-25g fat, no room for butter/oil!
+ */
+function detectAndFixBreakfastFatStacking(ingredients, mealType) {
+  // Only apply to breakfast meals
+  if (!mealType || !mealType.toLowerCase().includes('breakfast')) {
+    return { ingredients, fixed: false, removed: [] };
+  }
+
+  const lowerIngredients = ingredients.map(ing => ing.toLowerCase());
+
+  // Check for eggs
+  const hasEggs = lowerIngredients.some(ing =>
+    ing.includes('egg') && !ing.includes('egg white')
+  );
+
+  // Check for ground meat (high fat content)
+  const groundMeatPatterns = [
+    'ground turkey', 'ground chicken', 'ground beef', 'ground pork',
+    'ground lamb', 'turkey sausage', 'chicken sausage', 'breakfast sausage',
+    'pork sausage', 'sausage link', 'italian sausage'
+  ];
+  const hasGroundMeat = lowerIngredients.some(ing =>
+    groundMeatPatterns.some(pattern => ing.includes(pattern))
+  );
+
+  // If both eggs AND ground meat are present, remove butter/oil
+  if (hasEggs && hasGroundMeat) {
+    console.log(`🍳 BREAKFAST FAT STACK DETECTED: Eggs + Ground Meat found`);
+
+    // Patterns for butter/oil to remove
+    const fatToRemove = [
+      'butter', 'olive oil', 'avocado oil', 'coconut oil', 'vegetable oil',
+      'canola oil', 'cooking oil', 'ghee', 'lard', 'bacon fat'
+    ];
+
+    const removed = [];
+    const fixedIngredients = ingredients.filter(ing => {
+      const lowerIng = ing.toLowerCase();
+      const shouldRemove = fatToRemove.some(fat => lowerIng.includes(fat));
+      if (shouldRemove) {
+        removed.push(ing);
+        console.log(`🚫 REMOVING from breakfast: "${ing}" (eggs + ground meat = enough fat)`);
+      }
+      return !shouldRemove;
+    });
+
+    if (removed.length > 0) {
+      console.log(`✅ BREAKFAST FAT FIX: Removed ${removed.length} oil/butter items - eggs + meat provide sufficient fat`);
+      return { ingredients: fixedIngredients, fixed: true, removed };
+    }
+  }
+
+  return { ingredients, fixed: false, removed: [] };
+}
+
+/**
  * Parse string-based ingredient into food name and amount
  * Examples: "Chicken Breast (200g)" → { name: "Chicken Breast", amount: "200g" }
  *           "Eggs (2 whole)" → { name: "Eggs", amount: "2 whole" }
@@ -4812,6 +4879,12 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
     console.log(`📋 Violations capped:`, validatedResult.violations.map(v =>
       `${v.ingredient} → ${v.capped}${v.unit}`
     ).join(', '));
+  }
+
+  // Step 0.5: FIX BREAKFAST FAT STACKING (eggs + ground meat = no butter/oil)
+  const breakfastFatFix = detectAndFixBreakfastFatStacking(geminiMeal.ingredients, geminiMeal.type);
+  if (breakfastFatFix.fixed) {
+    geminiMeal.ingredients = breakfastFatFix.ingredients;
   }
 
   // ALWAYS sync meal name with ingredients to fix:
