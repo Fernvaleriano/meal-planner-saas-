@@ -3691,7 +3691,7 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
             // Determine if high-protein strategy is needed
             const isHighProtein = targetProtein >= 40;
-            const minIngredients = isHighProtein ? 5 : 4;
+            const minIngredients = isHighProtein ? 4 : 3;
 
             // Build protein stacking guidance for high-protein meals
             let proteinStackingGuide = '';
@@ -3699,15 +3699,17 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
                 if (mealType === 'breakfast') {
                     proteinStackingGuide = `
 PROTEIN STACKING (required for ${targetProtein}g protein):
-Use 5+ ingredients. Example: Oats (75g) + Whey Protein (1 scoop) + Eggs (2 whole) + Egg Whites (150g) + Banana (1 medium) + Almonds (30g) = ~65g protein
-Mix whey INTO oats after cooking (Proats technique).`;
+Use 3-4 main ingredients with LARGER portions. Example: Eggs (3 whole) + Oats (60g dry) + Whey Protein (1 scoop) + Berries (100g) = ~45g protein
+Keep it SIMPLE - fewer ingredients, bigger portions.`;
                 } else {
                     proteinStackingGuide = `
 PROTEIN STACKING (required for ${targetProtein}g protein):
-Use 5+ ingredients. Stack protein sources:
-- Main protein: Chicken/Beef/Fish (200g) = 40-50g protein
-- Add: Eggs, Greek Yogurt, or Cheese for extra protein
-- Include: Carbs (rice/potato 250-280g), vegetables (150g), fat (1 tbsp oil or 30g nuts)`;
+Use 3-4 main ingredients with LARGER portions:
+- Main protein: Chicken/Beef/Fish (150-200g) = 35-50g protein
+- Carb: Rice/Potato (1 cup cooked or 150g)
+- Vegetables: 1-2 cups (150-200g)
+- Cooking fat: 1 tsp oil only (not 1 tbsp)
+Keep it SIMPLE - fewer ingredients, bigger portions.`;
                 }
             }
 
@@ -3924,7 +3926,8 @@ ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergi
 
 CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses for EACH meal.
 DO NOT include calories/protein/carbs/fat values - the backend will calculate them from the USDA database.
-Use common foods with specific amounts like: "Chicken Breast (200g)", "Brown Rice (150g)", "Olive Oil (1 tbsp)"
+Use common foods with specific amounts like: "Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Olive Oil (1 tsp)"
+Keep meals SIMPLE: 3-4 main ingredients with LARGER portions. One protein + one carb + 1-2 vegetables + minimal cooking fat.
 
 Return ONLY a valid JSON array with ${numMeals} meal objects:
 [
