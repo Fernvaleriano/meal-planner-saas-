@@ -1440,70 +1440,100 @@ function validateAndFixInstructions(instructions, ingredients) {
 }
 
 /**
- * Detect and fix breakfast fat stacking
- * Problem: Eggs + Ground Meat + Butter/Oil = 30-40g fat in one meal
- * Solution: If breakfast has eggs + ground meat, remove butter/oil
+ * Detect and fix fat stacking issues
+ *
+ * Problem 1: Eggs + Ground Meat + Butter/Oil = 30-40g fat in one meal
+ * Problem 2: Fatty Fish (salmon, mackerel, sardines) + Butter/Oil = 25-35g fat
+ *
+ * Solution: Remove butter/oil from meals that already have high-fat protein combos
  *
  * Fat math:
  * - Eggs (2-3) = 10-15g fat
  * - Ground Turkey/Chicken (100g) = 8-10g fat
  * - Ground Beef (100g) = 7-10g fat
+ * - Salmon (150g) = 17g fat
+ * - Mackerel (150g) = 21g fat
+ * - Sardines (100g) = 11g fat
  * - Butter (1 tbsp) = 12g fat
  * - Oil (1 tbsp) = 14g fat
- *
- * Eggs + Ground Meat already = 18-25g fat, no room for butter/oil!
  */
-function detectAndFixBreakfastFatStacking(ingredients, mealType) {
-  // Only apply to breakfast meals
-  if (!mealType || !mealType.toLowerCase().includes('breakfast')) {
-    return { ingredients, fixed: false, removed: [] };
+function detectAndFixFatStacking(ingredients, mealType) {
+  if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+    return { ingredients, fixed: false, removed: [], reason: null };
   }
 
   const lowerIngredients = ingredients.map(ing => ing.toLowerCase());
 
-  // Check for eggs
-  const hasEggs = lowerIngredients.some(ing =>
-    ing.includes('egg') && !ing.includes('egg white')
-  );
-
-  // Check for ground meat (high fat content)
-  const groundMeatPatterns = [
-    'ground turkey', 'ground chicken', 'ground beef', 'ground pork',
-    'ground lamb', 'turkey sausage', 'chicken sausage', 'breakfast sausage',
-    'pork sausage', 'sausage link', 'italian sausage'
+  // Patterns for butter/oil to remove
+  const fatToRemove = [
+    'butter', 'olive oil', 'avocado oil', 'coconut oil', 'vegetable oil',
+    'canola oil', 'cooking oil', 'ghee', 'lard', 'bacon fat', 'sesame oil'
   ];
-  const hasGroundMeat = lowerIngredients.some(ing =>
-    groundMeatPatterns.some(pattern => ing.includes(pattern))
+
+  let shouldRemoveFat = false;
+  let reason = null;
+
+  // Check 1: Breakfast with eggs + ground meat
+  if (mealType && mealType.toLowerCase().includes('breakfast')) {
+    const hasEggs = lowerIngredients.some(ing =>
+      ing.includes('egg') && !ing.includes('egg white')
+    );
+
+    const groundMeatPatterns = [
+      'ground turkey', 'ground chicken', 'ground beef', 'ground pork',
+      'ground lamb', 'turkey sausage', 'chicken sausage', 'breakfast sausage',
+      'pork sausage', 'sausage link', 'italian sausage'
+    ];
+    const hasGroundMeat = lowerIngredients.some(ing =>
+      groundMeatPatterns.some(pattern => ing.includes(pattern))
+    );
+
+    if (hasEggs && hasGroundMeat) {
+      shouldRemoveFat = true;
+      reason = 'eggs + ground meat';
+      console.log(`🍳 BREAKFAST FAT STACK DETECTED: Eggs + Ground Meat found`);
+    }
+  }
+
+  // Check 2: Fatty fish (applies to ALL meal types)
+  const fattyFishPatterns = [
+    'salmon', 'mackerel', 'sardines', 'sardine', 'herring', 'anchovies', 'anchovy'
+  ];
+  const hasFattyFish = lowerIngredients.some(ing =>
+    fattyFishPatterns.some(fish => ing.includes(fish))
   );
 
-  // If both eggs AND ground meat are present, remove butter/oil
-  if (hasEggs && hasGroundMeat) {
-    console.log(`🍳 BREAKFAST FAT STACK DETECTED: Eggs + Ground Meat found`);
+  if (hasFattyFish) {
+    shouldRemoveFat = true;
+    reason = reason ? `${reason} + fatty fish` : 'fatty fish';
+    console.log(`🐟 FATTY FISH FAT STACK DETECTED: ${fattyFishPatterns.find(f => lowerIngredients.some(ing => ing.includes(f)))} found`);
+  }
 
-    // Patterns for butter/oil to remove
-    const fatToRemove = [
-      'butter', 'olive oil', 'avocado oil', 'coconut oil', 'vegetable oil',
-      'canola oil', 'cooking oil', 'ghee', 'lard', 'bacon fat'
-    ];
-
+  // If we detected a fat stacking issue, remove butter/oil
+  if (shouldRemoveFat) {
     const removed = [];
     const fixedIngredients = ingredients.filter(ing => {
       const lowerIng = ing.toLowerCase();
       const shouldRemove = fatToRemove.some(fat => lowerIng.includes(fat));
       if (shouldRemove) {
         removed.push(ing);
-        console.log(`🚫 REMOVING from breakfast: "${ing}" (eggs + ground meat = enough fat)`);
+        console.log(`🚫 REMOVING: "${ing}" (${reason} = enough fat)`);
       }
       return !shouldRemove;
     });
 
     if (removed.length > 0) {
-      console.log(`✅ BREAKFAST FAT FIX: Removed ${removed.length} oil/butter items - eggs + meat provide sufficient fat`);
-      return { ingredients: fixedIngredients, fixed: true, removed };
+      console.log(`✅ FAT STACKING FIX: Removed ${removed.length} oil/butter items - ${reason} provides sufficient fat`);
+      return { ingredients: fixedIngredients, fixed: true, removed, reason };
     }
   }
 
-  return { ingredients, fixed: false, removed: [] };
+  return { ingredients, fixed: false, removed: [], reason: null };
+}
+
+// Keep old function name as alias for backward compatibility
+function detectAndFixBreakfastFatStacking(ingredients, mealType) {
+  return detectAndFixFatStacking(ingredients, mealType);
 }
 
 /**
