@@ -4033,30 +4033,55 @@ function syncMealNameWithIngredients(mealName, ingredients) {
   }
 
   // Pattern 0: Handle comma-separated lists inside parentheses
-  // e.g., "Proats with Berries and Nuts (Oats 70g dry, Whey Protein 1 scoop, Blueberries 100g)"
+  // Handles BOTH formats:
+  // - "Oats 70g dry, Blueberries 100g" (food then amount)
+  // - "70g dry oats, 100g blueberries" (amount then food)
   let updatedName = mealName.replace(
     /\(([^)]+,\s*[^)]+)\)/g,
     (match, listContent) => {
       // Split by comma and process each item
       const items = listContent.split(/,\s*/);
       const updatedItems = items.map(item => {
-        // Match "FoodName Xg" or "FoodName X scoop" or "FoodName Xg dry" formats
-        const itemMatch = item.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(g|scoop|scoops?|tbsp|medium|large|small)?\s*(dry|cooked|raw)?$/i);
-        if (itemMatch) {
-          const foodInItem = itemMatch[1].trim();
-          const oldNum = itemMatch[2];
-          const unit = itemMatch[3] || 'g';
-          const descriptor = itemMatch[4];
+        let foodInItem, oldNum, unit, descriptor;
 
+        // Format A: "FoodName Xg descriptor" (food first)
+        const formatA = item.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(g|scoop|scoops?|tbsp|medium|large|small)?\s*(dry|cooked|raw)?$/i);
+
+        // Format B: "Xg descriptor FoodName" or "X scoop FoodName" (amount first)
+        const formatB = item.match(/^(\d+(?:\.\d+)?)\s*(g|scoop|scoops?|tbsp)?\s*(dry|cooked|raw)?\s+(.+)$/i);
+
+        if (formatA) {
+          foodInItem = formatA[1].trim();
+          oldNum = formatA[2];
+          unit = formatA[3] || 'g';
+          descriptor = formatA[4];
+        } else if (formatB) {
+          oldNum = formatB[1];
+          unit = formatB[2] || 'g';
+          descriptor = formatB[3];
+          foodInItem = formatB[4].trim();
+        }
+
+        if (foodInItem && oldNum) {
           const actualAmount = findAmount(foodInItem);
           if (actualAmount) {
             const numMatch = actualAmount.match(/^([\d.]+)/);
             if (numMatch) {
               const newNum = numMatch[1];
-              if (descriptor) {
-                return `${foodInItem} ${newNum}${unit} ${descriptor}`;
+              // Keep original format (amount-first or food-first)
+              if (formatB) {
+                // Amount was first, keep it that way
+                if (descriptor) {
+                  return `${newNum}${unit} ${descriptor} ${foodInItem}`;
+                }
+                return `${newNum}${unit} ${foodInItem}`;
+              } else {
+                // Food was first
+                if (descriptor) {
+                  return `${foodInItem} ${newNum}${unit} ${descriptor}`;
+                }
+                return `${foodInItem} ${newNum}${unit}`;
               }
-              return `${foodInItem} ${newNum}${unit}`;
             }
           }
         }
@@ -4079,6 +4104,22 @@ function syncMealNameWithIngredients(mealName, ingredients) {
             return `${foodInName} (${newNum}${unit} ${descriptor})`;
           }
           return `${foodInName} (${newNum}${unit})`;
+        }
+      }
+      return match;
+    }
+  );
+
+  // Pattern 1b: Match "(Xg food)" format - amount before food inside parens
+  // e.g., "(200g chicken breast)" -> "(122g chicken breast)"
+  updatedName = updatedName.replace(
+    /\((\d+(?:\.\d+)?)\s*(g|oz|ml)\s+([^)]+)\)/gi,
+    (match, oldNum, unit, foodInParens) => {
+      const actualAmount = findAmount(foodInParens.trim());
+      if (actualAmount) {
+        const numMatch = actualAmount.match(/^([\d.]+)/);
+        if (numMatch) {
+          return `(${numMatch[1]}${unit} ${foodInParens.trim()})`;
         }
       }
       return match;
