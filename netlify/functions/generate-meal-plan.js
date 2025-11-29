@@ -4032,8 +4032,42 @@ function syncMealNameWithIngredients(mealName, ingredients) {
     return null;
   }
 
-  // Pattern 1: Match "(Xg)" or "(X g)" formats with optional descriptors
+  // Pattern 0: Handle comma-separated lists inside parentheses
+  // e.g., "Proats with Berries and Nuts (Oats 70g dry, Whey Protein 1 scoop, Blueberries 100g)"
   let updatedName = mealName.replace(
+    /\(([^)]+,\s*[^)]+)\)/g,
+    (match, listContent) => {
+      // Split by comma and process each item
+      const items = listContent.split(/,\s*/);
+      const updatedItems = items.map(item => {
+        // Match "FoodName Xg" or "FoodName X scoop" or "FoodName Xg dry" formats
+        const itemMatch = item.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(g|scoop|scoops?|tbsp|medium|large|small)?\s*(dry|cooked|raw)?$/i);
+        if (itemMatch) {
+          const foodInItem = itemMatch[1].trim();
+          const oldNum = itemMatch[2];
+          const unit = itemMatch[3] || 'g';
+          const descriptor = itemMatch[4];
+
+          const actualAmount = findAmount(foodInItem);
+          if (actualAmount) {
+            const numMatch = actualAmount.match(/^([\d.]+)/);
+            if (numMatch) {
+              const newNum = numMatch[1];
+              if (descriptor) {
+                return `${foodInItem} ${newNum}${unit} ${descriptor}`;
+              }
+              return `${foodInItem} ${newNum}${unit}`;
+            }
+          }
+        }
+        return item; // Return unchanged if no match
+      });
+      return `(${updatedItems.join(', ')})`;
+    }
+  );
+
+  // Pattern 1: Match "Food (Xg)" or "Food (X g)" formats with optional descriptors
+  updatedName = updatedName.replace(
     /(\b\w[\w\s]*?)\s*\((\d+(?:\.\d+)?)\s*(g|oz|ml)\s*(dry|cooked|raw)?\)/gi,
     (match, foodInName, oldNum, unit, descriptor) => {
       const actualAmount = findAmount(foodInName);
