@@ -4279,36 +4279,68 @@ function syncMealNameWithIngredients(mealName, ingredients) {
   // Also validate that foods in title match ingredients (catches "Peach" vs "Apple" mismatches)
   updatedName = validateTitleIngredientMatch(updatedName, ingredients);
 
-  // SIMPLE FIX: Strip ALL parenthetical amounts from titles
-  // The ingredients list has accurate amounts - titles don't need them
-  updatedName = stripAmountsFromTitle(updatedName);
+  // BUILD title from actual ingredients - accurate and useful
+  updatedName = buildTitleFromIngredients(ingredients);
 
   return updatedName;
 }
 
 /**
- * Strip ALL parenthetical amounts from meal titles
- * e.g., "Greek Yogurt (250g) with Strawberries (150g)" → "Greek Yogurt with Strawberries"
- * The ingredients list has accurate amounts - titles don't need potentially wrong ones
+ * Build meal title directly from ingredients with accurate amounts
+ * e.g., "Salmon (87g) with Quinoa (116g cooked), Asparagus (66g) and Olive Oil (1 tbsp)"
+ * This replaces Claude's creative but potentially inaccurate titles with useful, accurate ones
  */
-function stripAmountsFromTitle(mealName) {
-  if (!mealName) return mealName;
-
-  // Remove parenthetical content containing numbers/amounts
-  // Matches: (250g), (1 whole), (128 g), (2 medium), (1 scoop), (33 whole), etc.
-  let cleaned = mealName.replace(/\s*\([^)]*\d[^)]*\)/g, '');
-
-  // Clean up any double spaces or awkward punctuation
-  cleaned = cleaned.replace(/\s+/g, ' ').replace(/\s+,/g, ',').replace(/,\s*,/g, ',').trim();
-
-  // Remove trailing "and" if the last item was stripped
-  cleaned = cleaned.replace(/\s+and\s*$/i, '').trim();
-
-  if (cleaned !== mealName) {
-    console.log(`🧹 TITLE SIMPLIFIED: "${mealName}" → "${cleaned}"`);
+function buildTitleFromIngredients(ingredients) {
+  if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+    return 'Meal';
   }
 
-  return cleaned;
+  // Parse ingredients into name/amount pairs
+  const parsed = [];
+  for (const ing of ingredients) {
+    if (typeof ing === 'string') {
+      const match = ing.match(/^(.+?)\s*\((.+?)\)$/);
+      if (match) {
+        parsed.push({ name: match[1].trim(), amount: match[2].trim() });
+      } else {
+        parsed.push({ name: ing.trim(), amount: null });
+      }
+    } else if (ing.food && ing.amount) {
+      // Handle object format
+      const name = ing.food.replace(/_/g, ' ').split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      parsed.push({ name, amount: ing.amount });
+    }
+  }
+
+  if (parsed.length === 0) return 'Meal';
+
+  // Build title: "First (amount) with Second (amount), Third (amount) and Fourth (amount)"
+  const formatItem = (item) => {
+    if (item.amount) {
+      return `${item.name} (${item.amount})`;
+    }
+    return item.name;
+  };
+
+  if (parsed.length === 1) {
+    return formatItem(parsed[0]);
+  }
+
+  if (parsed.length === 2) {
+    return `${formatItem(parsed[0])} with ${formatItem(parsed[1])}`;
+  }
+
+  // 3+ ingredients: "First with Second, Third and Fourth"
+  const first = formatItem(parsed[0]);
+  const rest = parsed.slice(1);
+  const lastItem = formatItem(rest.pop());
+  const middleItems = rest.map(formatItem).join(', ');
+
+  if (middleItems) {
+    return `${first} with ${middleItems} and ${lastItem}`;
+  }
+  return `${first} with ${lastItem}`;
 }
 
 /**
