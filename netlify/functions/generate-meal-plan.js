@@ -1073,19 +1073,28 @@ const PORTION_LIMITS = {
   'cod': { min: 120, max: 250, unit: 'g', type: 'protein' },
   'tilapia': { min: 120, max: 250, unit: 'g', type: 'protein' },
   'tuna': { min: 120, max: 200, unit: 'g', type: 'protein' },
+  'tuna_canned_water': { min: 100, max: 200, unit: 'g', type: 'protein' },
   'shrimp': { min: 100, max: 200, unit: 'g', type: 'protein' },
 
   // PROTEINS - EGGS & DAIRY
   'eggs_whole': { min: 1, max: 4, unit: 'whole', type: 'protein' },
   'egg_whites': { min: 100, max: 300, unit: 'g', type: 'protein' },
+  'egg_white': { min: 1, max: 6, unit: 'white', type: 'protein' },
+  'egg_large': { min: 1, max: 4, unit: 'whole', type: 'protein' },
   'greek_yogurt_nonfat': { min: 150, max: 250, unit: 'g', type: 'protein' },
-  'greek_yogurt_2': { min: 150, max: 250, unit: 'g', type: 'protein' },
+  'greek_yogurt_2pct': { min: 150, max: 250, unit: 'g', type: 'protein' },
   'cottage_cheese': { min: 100, max: 250, unit: 'g', type: 'protein' },
+  'cottage_cheese_nonfat': { min: 100, max: 250, unit: 'g', type: 'protein' },
+  'cottage_cheese_low': { min: 100, max: 250, unit: 'g', type: 'protein' },
 
   // PROTEINS - PLANT-BASED
   'tofu_firm': { min: 100, max: 200, unit: 'g', type: 'protein' },
+  'tofu_extra_firm': { min: 100, max: 200, unit: 'g', type: 'protein' },
   'tempeh': { min: 100, max: 200, unit: 'g', type: 'protein' },
   'edamame': { min: 100, max: 200, unit: 'g', type: 'protein' },
+  'lentils_cooked': { min: 100, max: 250, unit: 'g', type: 'protein' },
+  'black_beans': { min: 100, max: 250, unit: 'g', type: 'protein' },
+  'chickpeas': { min: 100, max: 250, unit: 'g', type: 'protein' },
 
   // CARBS - GRAINS (DRY)
   'oats_rolled_dry': { min: 30, max: 80, unit: 'g', type: 'carbs', meal_type: { breakfast: { max: 80 }, lunch: { max: 60 }, dinner: { max: 50 } } },
@@ -1110,9 +1119,12 @@ const PORTION_LIMITS = {
 
   // CARBS - BREAD & WRAPS
   'whole_wheat_bread': { min: 1, max: 3, unit: 'slices', type: 'carbs' },
-  'ezekiel_bread': { min: 1, max: 3, unit: 'slices', type: 'carbs' },
-  'tortilla_flour': { min: 1, max: 2, unit: 'tortilla', type: 'carbs' },
+  'white_bread': { min: 1, max: 3, unit: 'slices', type: 'carbs' },
+  'ezekiel_bread': { min: 1, max: 3, unit: 'slice', type: 'carbs' },
+  'tortilla_flour': { min: 1, max: 2, unit: 'tortillas', type: 'carbs' },
+  'tortilla_corn': { min: 1, max: 3, unit: 'tortillas', type: 'carbs' },
   'bagel_plain': { min: 1, max: 1, unit: 'bagel', type: 'carbs' },
+  'english_muffin_whole': { min: 1, max: 2, unit: 'muffin', type: 'carbs' },
 
   // FATS - OILS
   'olive_oil': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
@@ -1136,20 +1148,28 @@ const PORTION_LIMITS = {
   'avocado': { min: 50, max: 150, unit: 'g', type: 'fats' },
 
   // VEGETABLES
-  'broccoli': { min: 50, max: 250, unit: 'g', type: 'vegetables' },
+  'broccoli': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
   'spinach': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
   'bell_pepper': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
   'asparagus': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
   'green_beans': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
   'zucchini': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
   'mushrooms_white': { min: 50, max: 150, unit: 'g', type: 'vegetables' },
+  'mushrooms_portobello': { min: 50, max: 150, unit: 'g', type: 'vegetables' },
   'mixed_greens': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'cauliflower': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'carrots': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'celery': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'tomato': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
+  'cucumber': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
 
   // FRUITS
   'banana': { min: 1, max: 2, unit: 'medium', type: 'fruits' },
-  'apple': { min: 1, max: 1, unit: 'medium', type: 'fruits' },
+  'apple': { min: 1, max: 2, unit: 'medium', type: 'fruits' },
   'blueberries': { min: 50, max: 150, unit: 'g', type: 'fruits' },
   'strawberries': { min: 50, max: 150, unit: 'g', type: 'fruits' },
+  'raspberries': { min: 50, max: 150, unit: 'g', type: 'fruits' },
+  'blackberries': { min: 50, max: 150, unit: 'g', type: 'fruits' },
 
   // SUPPLEMENTS
   'whey_protein': { min: 0.5, max: 2, unit: 'scoop', type: 'protein' },
@@ -3865,6 +3885,84 @@ function updateMealNamePortions(mealName, scaleFactor) {
  * NO LLM - Pure math optimization
  * @param {boolean} skipAutoScale - If true, don't auto-scale portions (used for revisions where user controls portions)
  */
+/**
+ * Validate and cap ingredient portions against PORTION_LIMITS
+ * Enforces hard caps to prevent unrealistic portions
+ * Returns updated ingredients array with capped portions and list of violations
+ */
+function validateAndCapPortions(ingredients, mealType = null) {
+  const cappedIngredients = [];
+  const violations = [];
+
+  for (const ing of ingredients) {
+    let ingredient = typeof ing === 'string' ? ing : `${ing.food} (${ing.amount})`;
+
+    // Parse ingredient to get food name and amount
+    const parsed = parseIngredientString(ingredient);
+    if (!parsed) {
+      cappedIngredients.push(ingredient);
+      continue;
+    }
+
+    const foodName = parsed.name;
+    const amount = parsed.amount;
+
+    // Match to database key
+    const foodKey = matchFoodToDatabase(foodName, amount);
+    if (!foodKey) {
+      cappedIngredients.push(ingredient);
+      continue;
+    }
+
+    // Validate portion size
+    const validation = validatePortionSize(foodKey, amount, mealType);
+
+    if (validation.exceeded) {
+      // Extract numeric value and unit
+      const numMatch = amount.match(/^([\d.]+)\s*(.*)$/);
+      if (numMatch) {
+        const originalAmount = parseFloat(numMatch[1]);
+        const unit = numMatch[2];
+        const maxAllowed = validation.maxAllowed;
+
+        // Cap at maximum
+        const cappedAmount = `${maxAllowed} ${unit}`.trim();
+        const cappedIngredient = `${foodName} (${cappedAmount})`;
+
+        cappedIngredients.push(cappedIngredient);
+
+        violations.push({
+          ingredient: ingredient,
+          original: originalAmount,
+          capped: maxAllowed,
+          unit: unit,
+          foodKey: foodKey,
+          suggestion: validation.suggestion
+        });
+
+        console.warn(`🛑 CAPPED: "${ingredient}" → "${cappedIngredient}" (exceeded ${validation.type} limit)`);
+      } else {
+        // Couldn't parse, keep original
+        cappedIngredients.push(ingredient);
+      }
+    } else {
+      // Within limits, keep original
+      cappedIngredients.push(ingredient);
+    }
+  }
+
+  if (violations.length > 0) {
+    console.log(`⚠️ Portion violations detected and capped: ${violations.length} ingredients`);
+  } else {
+    console.log(`✅ All portions within limits`);
+  }
+
+  return {
+    ingredients: cappedIngredients,
+    violations: violations
+  };
+}
+
 async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
   console.log(`🔍 JS optimizing portions for: ${geminiMeal.name}`);
   console.log(`🎯 Targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
@@ -3884,6 +3982,19 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
       instructions: geminiMeal.instructions || '',
       calculation_notes: 'WARNING: No ingredients provided, using fallback values'
     };
+  }
+
+  // Step 0: VALIDATE AND CAP PORTIONS (enforce hard limits)
+  console.log(`🛡️ Validating portion sizes against limits...`);
+  const validatedResult = validateAndCapPortions(geminiMeal.ingredients, geminiMeal.type);
+
+  // Use capped ingredients for all subsequent calculations
+  geminiMeal.ingredients = validatedResult.ingredients;
+
+  if (validatedResult.violations.length > 0) {
+    console.log(`📋 Violations capped:`, validatedResult.violations.map(v =>
+      `${v.ingredient} → ${v.capped}${v.unit}`
+    ).join(', '));
   }
 
   // Step 1: Calculate current macros from ingredients (using Spoonacular if available)
