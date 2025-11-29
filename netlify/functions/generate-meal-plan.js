@@ -4279,16 +4279,42 @@ function syncMealNameWithIngredients(mealName, ingredients) {
   // Also validate that foods in title match ingredients (catches "Peach" vs "Apple" mismatches)
   updatedName = validateTitleIngredientMatch(updatedName, ingredients);
 
-  // Strip any phantom ingredients from title that aren't in actual ingredients
-  updatedName = stripPhantomIngredientsFromTitle(updatedName, ingredients);
+  // SIMPLE FIX: Strip ALL parenthetical amounts from titles
+  // The ingredients list has accurate amounts - titles don't need them
+  updatedName = stripAmountsFromTitle(updatedName);
 
   return updatedName;
 }
 
 /**
+ * Strip ALL parenthetical amounts from meal titles
+ * e.g., "Greek Yogurt (250g) with Strawberries (150g)" → "Greek Yogurt with Strawberries"
+ * The ingredients list has accurate amounts - titles don't need potentially wrong ones
+ */
+function stripAmountsFromTitle(mealName) {
+  if (!mealName) return mealName;
+
+  // Remove parenthetical content containing numbers/amounts
+  // Matches: (250g), (1 whole), (128 g), (2 medium), (1 scoop), (33 whole), etc.
+  let cleaned = mealName.replace(/\s*\([^)]*\d[^)]*\)/g, '');
+
+  // Clean up any double spaces or awkward punctuation
+  cleaned = cleaned.replace(/\s+/g, ' ').replace(/\s+,/g, ',').replace(/,\s*,/g, ',').trim();
+
+  // Remove trailing "and" if the last item was stripped
+  cleaned = cleaned.replace(/\s+and\s*$/i, '').trim();
+
+  if (cleaned !== mealName) {
+    console.log(`🧹 TITLE SIMPLIFIED: "${mealName}" → "${cleaned}"`);
+  }
+
+  return cleaned;
+}
+
+/**
  * Strip phantom ingredients from title that don't exist in actual ingredients
- * e.g., "Scrambled Eggs (3 whole, 6g whites)" with only "Eggs (2 whole)" in ingredients
- * becomes "Scrambled Eggs (2 whole)"
+ * DEPRECATED: Now using stripAmountsFromTitle instead for simpler, more reliable results
+ * Keeping for reference but not used in main flow
  */
 function stripPhantomIngredientsFromTitle(mealName, ingredients) {
   if (!mealName || !ingredients || !Array.isArray(ingredients)) return mealName;
@@ -4731,11 +4757,11 @@ CRITICAL FORMATTING RULES:
 5. Always put the quantity INSIDE the parentheses, not before the food name
 6. Be precise with measurements - no ambiguous amounts
 
-TITLE/INGREDIENT CONSISTENCY RULES:
-7. The meal "name" field must ONLY mention foods that appear in the "ingredients" array
-8. If title says "Eggs (3 whole)" then ingredients MUST contain "Eggs (3 whole)"
-9. Do NOT mention foods in the title that aren't in the ingredients list
-10. Keep meal titles simple and accurate - don't add extra items not in ingredients
+MEAL TITLE RULES:
+7. Keep meal titles SIMPLE - just food names, NO amounts or measurements
+8. GOOD: "Greek Yogurt with Strawberries and Almonds"
+9. BAD: "Greek Yogurt (250g) with Strawberries (150g)"
+10. The ingredients array has all the accurate amounts - titles should be clean and readable
 
 Your JSON response must be parseable - no trailing commas, proper quotes, valid structure.`
   : `You are a professional nutritionist and meal planning assistant.
