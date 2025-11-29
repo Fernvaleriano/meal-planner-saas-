@@ -1227,21 +1227,61 @@ function validatePortionSize(foodKey, amount, mealType = null) {
 }
 
 /**
+ * Sanitize ingredient string to fix common LLM formatting errors
+ * Fixes:
+ * - "1g medium apple" → "1 medium apple" (spurious 'g' before count units)
+ * - "5g egg whites" → "5 egg whites" (count-based items mislabeled as grams)
+ * - "Apple (2g medium)" → "Apple (2 medium)"
+ */
+function sanitizeIngredient(ingredient) {
+  let sanitized = ingredient;
+
+  // Fix "Xg medium/large/small/whole" → "X medium/large/small/whole"
+  // e.g., "1g medium apple" → "1 medium apple", "Apple (2g medium)" → "Apple (2 medium)"
+  sanitized = sanitized.replace(/(\d+)g\s+(medium|large|small|whole)/gi, '$1 $2');
+
+  // Fix count-based items that shouldn't use grams
+  // Items that are typically counted, not weighed
+  const countBasedItems = [
+    'egg whites?', 'eggs?', 'whole eggs?', 'egg white',
+    'slices?', 'scoops?', 'tbsp', 'tsp', 'cups?',
+    'apples?', 'bananas?', 'oranges?', 'tortillas?'
+  ];
+
+  // Fix "Xg <count-item>" when X is small (1-10) - likely meant as count
+  const countPattern = new RegExp(`(\\d)g\\s+(${countBasedItems.join('|')})`, 'gi');
+  sanitized = sanitized.replace(countPattern, '$1 $2');
+
+  // Fix "(Xg scoop)" → "(X scoop)"
+  sanitized = sanitized.replace(/(\d+)g\s+(scoop)/gi, '$1 $2');
+
+  // Log if we made changes
+  if (sanitized !== ingredient) {
+    console.log(`🔧 SANITIZED: "${ingredient}" → "${sanitized}"`);
+  }
+
+  return sanitized;
+}
+
+/**
  * Parse string-based ingredient into food name and amount
  * Examples: "Chicken Breast (200g)" → { name: "Chicken Breast", amount: "200g" }
  *           "Eggs (2 whole)" → { name: "Eggs", amount: "2 whole" }
  *           "Rolled Oats (80g dry)" → { name: "Rolled Oats", amount: "80g dry" }
  */
 function parseIngredientString(ingredient) {
+  // First, sanitize the ingredient to fix common LLM errors
+  const sanitizedIngredient = sanitizeIngredient(ingredient);
+
   // Pattern 1: "Food Name (amount)" - most common format
   const pattern1 = /^(.+?)\s*\((.+?)\)$/;
-  const match1 = ingredient.match(pattern1);
+  const match1 = sanitizedIngredient.match(pattern1);
 
   if (match1) {
     return {
       name: match1[1].trim(),
       amount: match1[2].trim(),
-      original: ingredient
+      original: sanitizedIngredient
     };
   }
 
@@ -4091,9 +4131,9 @@ function syncMealNameWithIngredients(mealName, ingredients) {
     }
   );
 
-  // Pattern 1: Match "Food (Xg)" or "Food (X g)" formats with optional descriptors
+  // Pattern 1: Match "Food (Xg)" or "Food (X tbsp)" formats with optional descriptors
   updatedName = updatedName.replace(
-    /(\b\w[\w\s]*?)\s*\((\d+(?:\.\d+)?)\s*(g|oz|ml)\s*(dry|cooked|raw)?\)/gi,
+    /(\b\w[\w\s]*?)\s*\((\d+(?:\.\d+)?)\s*(g|oz|ml|tbsp|tsp)\s*(dry|cooked|raw)?\)/gi,
     (match, foodInName, oldNum, unit, descriptor) => {
       const actualAmount = findAmount(foodInName);
       if (actualAmount) {
@@ -4101,9 +4141,9 @@ function syncMealNameWithIngredients(mealName, ingredients) {
         if (numMatch) {
           const newNum = numMatch[1];
           if (descriptor) {
-            return `${foodInName} (${newNum}${unit} ${descriptor})`;
+            return `${foodInName} (${newNum} ${unit} ${descriptor})`;
           }
-          return `${foodInName} (${newNum}${unit})`;
+          return `${foodInName} (${newNum} ${unit})`;
         }
       }
       return match;
@@ -4113,7 +4153,7 @@ function syncMealNameWithIngredients(mealName, ingredients) {
   // Pattern 1b: Match "(Xg food)" format - amount before food inside parens
   // e.g., "(200g chicken breast)" -> "(122g chicken breast)"
   updatedName = updatedName.replace(
-    /\((\d+(?:\.\d+)?)\s*(g|oz|ml)\s+([^)]+)\)/gi,
+    /\((\d+(?:\.\d+)?)\s*(g|oz|ml|tbsp|tsp)\s+([^)]+)\)/gi,
     (match, oldNum, unit, foodInParens) => {
       const actualAmount = findAmount(foodInParens.trim());
       if (actualAmount) {
@@ -4159,14 +4199,72 @@ function syncMealNameWithIngredients(mealName, ingredients) {
     }
   );
 
+  // Also validate that foods in title match ingredients (catches "Peach" vs "Apple" mismatches)
+  updatedName = validateTitleIngredientMatch(updatedName, ingredients);
+
   return updatedName;
 }
 
 /**
- * Optimize meal portions to hit target macros using deterministic algorithm
- * NO LLM - Pure math optimization
- * @param {boolean} skipAutoScale - If true, don't auto-scale portions (used for revisions where user controls portions)
+ * Validate that foods mentioned in meal title exist in ingredients
+ * Detects mismatches like "Peach Slices" in title but "Apple" in ingredients
+ * Returns corrected title if mismatch found, or original if OK
  */
+function validateTitleIngredientMatch(mealName, ingredients) {
+  if (!mealName || !ingredients || !Array.isArray(ingredients)) return mealName;
+
+  // Extract food names from ingredients
+  const ingredientFoods = new Set();
+  for (const ing of ingredients) {
+    let foodName;
+    if (typeof ing === 'string') {
+      const match = ing.match(/^(.+?)\s*\(/);
+      if (match) foodName = match[1].trim().toLowerCase();
+    } else if (ing.food) {
+      foodName = ing.food.replace(/_/g, ' ').toLowerCase();
+    }
+    if (foodName) {
+      ingredientFoods.add(foodName);
+      // Also add individual words for partial matching
+      foodName.split(' ').forEach(word => {
+        if (word.length > 3) ingredientFoods.add(word);
+      });
+    }
+  }
+
+  // Common fruit/food names to check for mismatches
+  const checkFoods = ['peach', 'apple', 'banana', 'strawberr', 'blueberr', 'orange', 'grape', 'mango'];
+
+  let correctedName = mealName;
+
+  for (const food of checkFoods) {
+    const foodRegex = new RegExp(`\\b${food}\\w*\\b`, 'gi');
+    if (foodRegex.test(mealName)) {
+      // Check if this food exists in ingredients
+      const foundInIngredients = Array.from(ingredientFoods).some(ing =>
+        ing.includes(food) || food.includes(ing.substring(0, 4))
+      );
+
+      if (!foundInIngredients) {
+        // Find what fruit IS in the ingredients
+        const actualFruit = Array.from(ingredientFoods).find(ing =>
+          checkFoods.some(f => ing.includes(f))
+        );
+
+        if (actualFruit) {
+          // Capitalize first letter
+          const capitalizedFruit = actualFruit.charAt(0).toUpperCase() + actualFruit.slice(1);
+          // Replace mismatched food in title
+          correctedName = correctedName.replace(foodRegex, capitalizedFruit);
+          console.warn(`🔄 TITLE MISMATCH FIXED: "${food}" in title replaced with "${capitalizedFruit}" (actual ingredient)`);
+        }
+      }
+    }
+  }
+
+  return correctedName;
+}
+
 /**
  * Validate and cap ingredient portions against PORTION_LIMITS
  * Enforces hard caps to prevent unrealistic portions
@@ -4175,6 +4273,10 @@ function syncMealNameWithIngredients(mealName, ingredients) {
 function validateAndCapPortions(ingredients, mealType = null) {
   const cappedIngredients = [];
   const violations = [];
+
+  // Minimum portion thresholds - below these, ingredient is removed as unmeasurable
+  const MIN_PORTION_GRAMS = 20;  // 20g minimum for weight-based items
+  const MIN_PORTION_COUNT = 0.5; // Half unit minimum for count-based items
 
   for (const ing of ingredients) {
     let ingredient = typeof ing === 'string' ? ing : `${ing.food} (${ing.amount})`;
@@ -4188,6 +4290,29 @@ function validateAndCapPortions(ingredients, mealType = null) {
 
     const foodName = parsed.name;
     const amount = parsed.amount;
+
+    // Check for unrealistically small portions and remove them
+    const numMatch = amount.match(/^([\d.]+)\s*(.*)$/);
+    if (numMatch) {
+      const numericAmount = parseFloat(numMatch[1]);
+      const unit = numMatch[2].toLowerCase();
+
+      // Check if portion is below minimum threshold
+      const isWeightBased = unit.includes('g') || unit === '' || unit.includes('oz');
+      const isCountBased = unit.includes('medium') || unit.includes('large') || unit.includes('small') ||
+                           unit.includes('whole') || unit.includes('slice') || unit.includes('scoop') ||
+                           unit.includes('tbsp') || unit.includes('tsp');
+
+      if (isWeightBased && numericAmount < MIN_PORTION_GRAMS) {
+        console.warn(`🗑️ REMOVED: "${ingredient}" - portion too small (${numericAmount}g < ${MIN_PORTION_GRAMS}g minimum)`);
+        continue; // Skip this ingredient entirely
+      }
+
+      if (isCountBased && numericAmount < MIN_PORTION_COUNT) {
+        console.warn(`🗑️ REMOVED: "${ingredient}" - portion too small (${numericAmount} < ${MIN_PORTION_COUNT} minimum)`);
+        continue; // Skip this ingredient entirely
+      }
+    }
 
     // Match to database key
     const foodKey = matchFoodToDatabase(foodName, amount);
