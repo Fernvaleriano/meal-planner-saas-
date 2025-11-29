@@ -506,23 +506,33 @@ THAT'S ${mealsPerDay} MEALS TOTAL.
 Diet Type: ${formData.get('dietType')}
 ${formData.get('allergies') ? `Allergies/Restrictions: ${formData.get('allergies')}` : ''}
 
-## REALISTIC PORTION GUIDELINES (CRITICAL!):
+## 🚨 REALISTIC PORTION GUIDELINES - HARD CAPS (CRITICAL!) 🚨
 **PHILOSOPHY:** Start with realistic portions. Add MORE foods instead of scaling portions beyond natural limits.
 
-**PORTION LIMITS PER MEAL:**
-- Proteins (Meats): 120-250g | Eggs: 1-4 whole or 100-300g whites | Yogurt: 150-250g
-- Carbs (Dry): Oats 30-80g, Rice 50-80g, Quinoa 40-80g, Pasta 50-80g
-- Carbs (Cooked): Oats 100-250g, Rice 150-300g, Quinoa 120-250g, Pasta 150-300g
-- Fats: Oils/Butters 0.5-2 tbsp | Nut Butters 0.5-2 tbsp | Nuts 14-56g | Avocado 50-150g
-- Vegetables: 50-250g | Fruits: 50-150g or 1-2 medium pieces
+**ABSOLUTE MAXIMUM LIMITS PER MEAL (NEVER EXCEED!):**
+- **Proteins:** Chicken/Turkey/Fish MAX 250g | Ground meats MAX 200g | Eggs MAX 4 whole or MAX 300g whites | Yogurt/Cottage Cheese MAX 250g
+- **Carbs (DRY):** Oats MAX 80g | Rice MAX 80g | Quinoa MAX 80g | Pasta MAX 80g - NO EXCEPTIONS!
+- **Carbs (COOKED):** Oats MAX 250g | Rice MAX 300g | Quinoa MAX 250g | Pasta MAX 300g
+- **Fats:** Oils/Butters MAX 2 tbsp | Nut Butters MAX 2 tbsp | Nuts MAX 56g | Avocado MAX 150g
+- **Vegetables:** MAX 200g per meal - NEVER EXCEED!
+- **Fruits:** MAX 150g or MAX 2 medium pieces
+
+**🛑 VIOLATIONS TO AVOID:**
+❌ oats_rolled_dry (84g) - WRONG! Max is 80g
+❌ cod (260g) - WRONG! Max is 250g
+❌ cottage_cheese_nonfat (307g) - WRONG! Max is 250g
+❌ asparagus (213g) - WRONG! Max is 200g
+
+**✅ CORRECT APPROACH:**
+- Have 70g oats + need more carbs? → ADD banana (don't increase oats)
+- Have 200g cottage cheese + need more protein? → ADD egg_white (don't exceed 250g)
+- Have 180g vegetables + need more? → ADD a different vegetable type
 
 **MEAL BUILDING PROCESS:**
-1. Start with 3-4 BASE foods at realistic portions
+1. Start with 3-4 BASE foods WELL BELOW maximums (e.g., 60g dry oats, 180g chicken)
 2. Calculate estimated macros
-3. If short on macros (>15% under), ADD complementary foods (do NOT oversize portions)
-4. NEVER exceed portion limits to hit macros
-   - Example: If you have 50g dry oats and need more carbs, ADD fruit (not more oats)
-   - Example: If you have 200g chicken and need more protein, ADD egg whites or yogurt
+3. If short on macros (>15% under), ADD complementary foods (NEVER exceed portion caps!)
+4. PRIORITY: Portion limits > Hitting exact macros (Better to be 10% under than violate limits)
 5. Better to have 5 foods at realistic portions than 3 foods at unrealistic portions!
 
 ## RESPONSE FORMAT:
