@@ -1292,151 +1292,123 @@ function sanitizeIngredient(ingredient) {
 }
 
 /**
- * Validate and fix cooking instructions to only reference actual ingredients
- * Fixes: hallucinations (almonds in instructions but not ingredients),
- *        quantity mismatches (3 eggs in instructions but 2 in ingredients)
+ * Validate and fix cooking instructions to match ingredients EXACTLY
+ *
+ * SIMPLE RULE: If ingredient says "Oats (80g dry)", instruction must say "80g oats"
+ *
+ * This function:
+ * 1. Parses each ingredient to get food name and quantity
+ * 2. Finds that food in instructions
+ * 3. Replaces ANY wrong quantity with the correct one
  */
 function validateAndFixInstructions(instructions, ingredients) {
   if (!instructions || !ingredients || !Array.isArray(ingredients)) {
     return instructions || '';
   }
 
-  let fixedInstructions = instructions;
+  let fixed = instructions;
 
-  // Extract ingredient names and quantities from the ingredient list
-  const ingredientData = ingredients.map(ing => {
-    const parsed = parseIngredientString(ing);
+  // Parse all ingredients first
+  const parsedIngredients = ingredients.map(ing => {
+    // Match "Food Name (amount)" format
+    const match = ing.match(/^(.+?)\s*\((.+?)\)$/);
+    if (!match) return null;
+
+    const foodName = match[1].trim();
+    const amountStr = match[2].trim();
+
+    // Extract number from amount (e.g., "80" from "80g dry", "4" from "4 whole")
+    const numMatch = amountStr.match(/([\d.]+)/);
+    const correctNum = numMatch ? numMatch[1] : null;
+
+    // Extract unit if present
+    const unitMatch = amountStr.match(/(g|oz|tbsp|tsp|whole|medium|large|slices?|scoops?|cups?|ml)/i);
+    const unit = unitMatch ? unitMatch[1].toLowerCase() : '';
+
     return {
-      original: ing,
-      name: parsed.name.toLowerCase(),
-      amount: parsed.amount,
-      // Extract numbers from amount
-      quantity: parseFloat(parsed.amount.match(/[\d.]+/)?.[0]) || 1
+      foodName: foodName.toLowerCase(),
+      correctNum,
+      unit,
+      original: ing
     };
-  });
+  }).filter(x => x && x.correctNum);
 
-  // Create a set of ingredient keywords for matching
-  const ingredientKeywords = new Set();
-  ingredientData.forEach(ing => {
-    // Add full name and individual words
-    ingredientKeywords.add(ing.name);
-    ing.name.split(/\s+/).forEach(word => {
-      if (word.length > 2) ingredientKeywords.add(word);
+  // For each ingredient, find and fix quantities in instructions
+  parsedIngredients.forEach(ing => {
+    // Get searchable keywords from food name
+    // "Ground Turkey" -> ["ground", "turkey"]
+    // "Greek Yogurt Nonfat" -> ["greek", "yogurt", "nonfat"]
+    const keywords = ing.foodName.split(/\s+/).filter(w => w.length >= 3);
+
+    // Also add common variations
+    const searchWords = [...new Set([
+      ...keywords,
+      keywords[keywords.length - 1], // Last word (e.g., "turkey" from "ground turkey")
+      keywords[0] // First word
+    ])].filter(w => w && w.length >= 3);
+
+    searchWords.forEach(keyword => {
+      // SIMPLE PATTERN: Find any number that appears before this keyword
+      // Matches: "60g oats", "60g dry oats", "60 g oats", "3 whole eggs", "200g chicken"
+      // The [\w\s]{0,15} allows up to 15 chars of modifiers between number and keyword
+      const pattern = new RegExp(
+        `(\\d+\\.?\\d*)\\s*(g|oz|tbsp|tsp|whole|medium|large|slices?|scoops?|cups?|ml)?[\\w\\s]{0,15}\\b${keyword}s?\\b`,
+        'gi'
+      );
+
+      fixed = fixed.replace(pattern, (fullMatch, foundNum, foundUnit) => {
+        // Don't change if the number is already correct
+        if (foundNum === ing.correctNum) {
+          return fullMatch;
+        }
+
+        // Check if this looks like a real quantity (not a temperature like 400F)
+        if (fullMatch.toLowerCase().includes('f') && parseFloat(foundNum) > 200) {
+          return fullMatch; // Skip temperatures
+        }
+
+        console.log(`🔧 QUANTITY FIX: "${foundNum}" -> "${ing.correctNum}" for "${keyword}" (ingredient: ${ing.original})`);
+        return fullMatch.replace(foundNum, ing.correctNum);
+      });
     });
   });
 
-  // Common hallucination foods to check for in instructions
-  const commonHallucinations = [
-    'almonds', 'almond', 'walnuts', 'walnut', 'pecans', 'pecan', 'cashews', 'cashew',
-    'peanuts', 'peanut', 'pine nuts', 'pistachios', 'macadamia',
-    'cheese', 'parmesan', 'feta', 'mozzarella', 'cheddar',
-    'avocado', 'bacon', 'ham', 'sausage',
-    'honey', 'maple syrup', 'agave',
-    'cilantro', 'parsley', 'basil', 'oregano', 'thyme', 'rosemary',
-    'garlic', 'onion', 'shallot', 'leek',
-    'lemon', 'lime', 'orange zest',
-    'cream', 'sour cream', 'cream cheese', 'milk',
-    'egg whites', 'egg white'
-  ];
-
-  // Check for hallucinated ingredients in instructions
-  commonHallucinations.forEach(hallucination => {
-    const regex = new RegExp(`\\b${hallucination}s?\\b`, 'gi');
-    if (regex.test(fixedInstructions)) {
-      // Check if this ingredient is actually in the ingredient list
-      const isInIngredients = ingredientData.some(ing =>
-        ing.name.includes(hallucination.toLowerCase()) ||
-        hallucination.toLowerCase().includes(ing.name)
-      );
-
-      if (!isInIngredients) {
-        console.log(`🚫 REMOVING HALLUCINATION from instructions: "${hallucination}"`);
-        // Remove sentences or phrases mentioning the hallucinated ingredient
-        // Pattern 1: "Add/Top with/Sprinkle [hallucination]..."
-        fixedInstructions = fixedInstructions.replace(
-          new RegExp(`(add|top with|sprinkle|garnish with|finish with|mix in|stir in|toss with|serve with)\\s+[^.]*\\b${hallucination}s?\\b[^.]*\\.?`, 'gi'),
-          ''
-        );
-        // Pattern 2: Simple mention without action verb - just remove the word
-        fixedInstructions = fixedInstructions.replace(
-          new RegExp(`\\s*(and\\s+)?\\b(toasted\\s+|chopped\\s+|sliced\\s+|crushed\\s+)?${hallucination}s?\\b`, 'gi'),
-          ''
-        );
-      }
-    }
-  });
-
-  // Fix egg count mismatches
-  const eggIngredient = ingredientData.find(ing =>
-    ing.name.includes('egg') && !ing.name.includes('egg white')
-  );
-  if (eggIngredient) {
-    const eggCount = eggIngredient.quantity;
-    // Find egg counts in instructions like "Scramble 3 eggs" or "3 eggs"
-    const eggCountPattern = /(\d+)\s*eggs?\b/gi;
-    fixedInstructions = fixedInstructions.replace(eggCountPattern, (match, num) => {
-      const instructionCount = parseInt(num);
-      if (instructionCount !== eggCount) {
-        console.log(`🔧 FIXING EGG COUNT: "${match}" → "${eggCount} eggs" (ingredients say ${eggCount})`);
-        return `${eggCount} egg${eggCount > 1 ? 's' : ''}`;
+  // Also fix egg-specific patterns (handles "scramble 3 eggs" type phrases)
+  const eggIng = parsedIngredients.find(i => i.foodName.includes('egg') && !i.foodName.includes('egg white'));
+  if (eggIng) {
+    // Pattern for "X eggs" anywhere in text
+    fixed = fixed.replace(/(\d+)\s*eggs?\b/gi, (match, num) => {
+      if (num !== eggIng.correctNum) {
+        console.log(`🔧 EGG FIX: "${num} eggs" -> "${eggIng.correctNum} eggs"`);
+        return `${eggIng.correctNum} egg${parseInt(eggIng.correctNum) > 1 ? 's' : ''}`;
       }
       return match;
     });
   }
 
-  // Fix other quantity mismatches for all ingredients
-  ingredientData.forEach(ing => {
-    // Get the main food name (first word or full name for short names)
-    const nameWords = ing.name.toLowerCase().split(/\s+/);
-    const searchTerms = [
-      ing.name.toLowerCase(),
-      nameWords[0],
-      ...nameWords.slice(0, 2).filter(w => w.length > 2)
-    ].filter(t => t && t.length >= 3);
+  // Remove hallucinated ingredients (foods mentioned in instructions but not in ingredients)
+  const hallucinations = [
+    'almonds', 'walnuts', 'pecans', 'cashews', 'pistachios',
+    'parmesan', 'feta', 'mozzarella', 'cheddar', 'cheese',
+    'bacon', 'ham', 'sausage',
+    'honey', 'maple syrup',
+    'cilantro', 'parsley', 'basil',
+    'garlic', 'onion',
+    'cream', 'milk',
+    'egg whites', 'egg white'
+  ];
 
-    searchTerms.forEach(searchTerm => {
-      // Pattern 1: "200g chicken" or "66g oats"
-      const pattern1 = new RegExp(`(\\d+\\.?\\d*)\\s*(g|oz|tbsp|tsp|cups?)\\s+${searchTerm}`, 'gi');
-      fixedInstructions = fixedInstructions.replace(pattern1, (match, qty, unit) => {
-        const instructionQty = parseFloat(qty);
-        // Fix if quantity differs by more than 5% or 5g (whichever is greater)
-        const threshold = Math.max(ing.quantity * 0.05, 5);
-        if (Math.abs(instructionQty - ing.quantity) > threshold) {
-          console.log(`🔧 FIXING QUANTITY: "${match}" → "${ing.quantity}${unit} ${searchTerm}"`);
-          return `${ing.quantity}${unit} ${searchTerm}`;
-        }
-        return match;
-      });
-
-      // Pattern 2: "Cook 200g cod" or "Bake 250g salmon"
-      const pattern2 = new RegExp(`(cook|bake|grill|sear|steam|roast|fry|scramble)\\s+(\\d+\\.?\\d*)\\s*(g|oz)\\s+${searchTerm}`, 'gi');
-      fixedInstructions = fixedInstructions.replace(pattern2, (match, verb, qty, unit) => {
-        const instructionQty = parseFloat(qty);
-        const threshold = Math.max(ing.quantity * 0.05, 5);
-        if (Math.abs(instructionQty - ing.quantity) > threshold) {
-          console.log(`🔧 FIXING QUANTITY: "${match}" → "${verb} ${ing.quantity}${unit} ${searchTerm}"`);
-          return `${verb} ${ing.quantity}${unit} ${searchTerm}`;
-        }
-        return match;
-      });
-    });
+  const ingredientText = ingredients.join(' ').toLowerCase();
+  hallucinations.forEach(food => {
+    if (fixed.toLowerCase().includes(food) && !ingredientText.includes(food)) {
+      console.log(`🚫 REMOVING HALLUCINATION: "${food}" not in ingredients`);
+      // Remove phrases containing the hallucinated food
+      fixed = fixed.replace(new RegExp(`[^.]*\\b${food}s?\\b[^.]*\\.?`, 'gi'), '');
+    }
   });
 
-  // Clean up any double spaces or awkward punctuation from removals
-  fixedInstructions = fixedInstructions
-    .replace(/\s+/g, ' ')
-    .replace(/\.\s*\./g, '.')
-    .replace(/,\s*\./g, '.')
-    .replace(/,\s*,/g, ',')
-    .replace(/\s+\./g, '.')
-    .replace(/\s+,/g, ',')
-    .trim();
-
-  if (fixedInstructions !== instructions) {
-    console.log(`📝 INSTRUCTIONS CLEANED: "${instructions.substring(0, 50)}..." → "${fixedInstructions.substring(0, 50)}..."`);
-  }
-
-  return fixedInstructions;
+  // Clean up
+  return fixed.replace(/\s+/g, ' ').replace(/\.\s*\./g, '.').trim();
 }
 
 /**
