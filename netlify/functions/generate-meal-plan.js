@@ -4176,6 +4176,10 @@ function validateAndCapPortions(ingredients, mealType = null) {
   const cappedIngredients = [];
   const violations = [];
 
+  // Minimum portion thresholds - below these, ingredient is removed as unmeasurable
+  const MIN_PORTION_GRAMS = 20;  // 20g minimum for weight-based items
+  const MIN_PORTION_COUNT = 0.5; // Half unit minimum for count-based items
+
   for (const ing of ingredients) {
     let ingredient = typeof ing === 'string' ? ing : `${ing.food} (${ing.amount})`;
 
@@ -4188,6 +4192,29 @@ function validateAndCapPortions(ingredients, mealType = null) {
 
     const foodName = parsed.name;
     const amount = parsed.amount;
+
+    // Check for unrealistically small portions and remove them
+    const numMatch = amount.match(/^([\d.]+)\s*(.*)$/);
+    if (numMatch) {
+      const numericAmount = parseFloat(numMatch[1]);
+      const unit = numMatch[2].toLowerCase();
+
+      // Check if portion is below minimum threshold
+      const isWeightBased = unit.includes('g') || unit === '' || unit.includes('oz');
+      const isCountBased = unit.includes('medium') || unit.includes('large') || unit.includes('small') ||
+                           unit.includes('whole') || unit.includes('slice') || unit.includes('scoop') ||
+                           unit.includes('tbsp') || unit.includes('tsp');
+
+      if (isWeightBased && numericAmount < MIN_PORTION_GRAMS) {
+        console.warn(`🗑️ REMOVED: "${ingredient}" - portion too small (${numericAmount}g < ${MIN_PORTION_GRAMS}g minimum)`);
+        continue; // Skip this ingredient entirely
+      }
+
+      if (isCountBased && numericAmount < MIN_PORTION_COUNT) {
+        console.warn(`🗑️ REMOVED: "${ingredient}" - portion too small (${numericAmount} < ${MIN_PORTION_COUNT} minimum)`);
+        continue; // Skip this ingredient entirely
+      }
+    }
 
     // Match to database key
     const foodKey = matchFoodToDatabase(foodName, amount);
