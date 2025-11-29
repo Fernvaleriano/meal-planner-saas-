@@ -4279,7 +4279,114 @@ function syncMealNameWithIngredients(mealName, ingredients) {
   // Also validate that foods in title match ingredients (catches "Peach" vs "Apple" mismatches)
   updatedName = validateTitleIngredientMatch(updatedName, ingredients);
 
+  // Strip any phantom ingredients from title that aren't in actual ingredients
+  updatedName = stripPhantomIngredientsFromTitle(updatedName, ingredients);
+
   return updatedName;
+}
+
+/**
+ * Strip phantom ingredients from title that don't exist in actual ingredients
+ * e.g., "Scrambled Eggs (3 whole, 6g whites)" with only "Eggs (2 whole)" in ingredients
+ * becomes "Scrambled Eggs (2 whole)"
+ */
+function stripPhantomIngredientsFromTitle(mealName, ingredients) {
+  if (!mealName || !ingredients || !Array.isArray(ingredients)) return mealName;
+
+  // Build map of actual ingredient amounts
+  const ingredientMap = {};
+  for (const ing of ingredients) {
+    let foodName, amount;
+    if (typeof ing === 'string') {
+      const match = ing.match(/^(.+?)\s*\((.+?)\)$/);
+      if (match) {
+        foodName = match[1].trim().toLowerCase();
+        amount = match[2].trim();
+        ingredientMap[foodName] = amount;
+        // Also map first word
+        const firstWord = foodName.split(' ')[0];
+        if (!ingredientMap[firstWord]) ingredientMap[firstWord] = amount;
+      }
+    }
+  }
+
+  console.log('📋 Ingredient map for title validation:', ingredientMap);
+
+  // Pattern: Match parenthesized content in title like "(3 whole, 6g whites)" or "(81g, 28g almonds)"
+  let correctedName = mealName.replace(
+    /\(([^)]+)\)/g,
+    (match, content) => {
+      // Check if this looks like ingredient details (has numbers)
+      if (!/\d/.test(content)) return match; // No numbers, keep as-is
+
+      // Split by comma and validate each item
+      const items = content.split(/,\s*/);
+      const validItems = [];
+
+      for (const item of items) {
+        // Extract food reference from item
+        // Patterns: "3 whole" (eggs), "81g" (weight), "6g whites" (egg whites), "28g almonds"
+        const itemLower = item.toLowerCase().trim();
+
+        // Check if any ingredient matches this item
+        let isValid = false;
+
+        // Check for food name matches
+        for (const [food, amount] of Object.entries(ingredientMap)) {
+          // Item contains the food name
+          if (itemLower.includes(food) || food.includes(itemLower.split(' ').pop())) {
+            isValid = true;
+            // Replace with actual amount from ingredients
+            validItems.push(amount);
+            break;
+          }
+          // Item is just an amount and might match the food contextually
+          if (/^\d+\s*(g|whole|medium|tbsp|scoop)?\s*$/.test(itemLower)) {
+            // This is just an amount like "81g" - keep if it matches an ingredient amount
+            if (amount.includes(itemLower.replace(/\s/g, '')) || itemLower.includes(amount.split(' ')[0])) {
+              isValid = true;
+              validItems.push(item);
+              break;
+            }
+          }
+        }
+
+        // Special handling for egg-related items
+        if (!isValid && /egg|whites?|whole/.test(itemLower)) {
+          if (ingredientMap['eggs'] || ingredientMap['egg']) {
+            validItems.push(ingredientMap['eggs'] || ingredientMap['egg']);
+            isValid = true;
+          } else if (ingredientMap['egg whites']) {
+            validItems.push(ingredientMap['egg whites']);
+            isValid = true;
+          }
+        }
+
+        if (!isValid) {
+          console.warn(`🚫 PHANTOM INGREDIENT removed from title: "${item}" not found in ingredients`);
+        }
+      }
+
+      if (validItems.length === 0) {
+        // No valid items, remove the entire parenthetical
+        console.warn(`🚫 Removing empty parenthetical from title`);
+        return '';
+      }
+
+      // Deduplicate
+      const uniqueItems = [...new Set(validItems)];
+      return `(${uniqueItems.join(', ')})`;
+    }
+  );
+
+  // Clean up any double spaces or trailing spaces before punctuation
+  correctedName = correctedName.replace(/\s+/g, ' ').replace(/\s+\)/g, ')').replace(/\(\s+/g, '(').trim();
+
+  if (correctedName !== mealName) {
+    console.log(`🔧 TITLE CLEANED: "${mealName}" → "${correctedName}"`);
+  }
+
+  return correctedName;
 }
 
 /**
@@ -4624,8 +4731,23 @@ CRITICAL FORMATTING RULES:
 5. Always put the quantity INSIDE the parentheses, not before the food name
 6. Be precise with measurements - no ambiguous amounts
 
+TITLE/INGREDIENT CONSISTENCY RULES:
+7. The meal "name" field must ONLY mention foods that appear in the "ingredients" array
+8. If title says "Eggs (3 whole)" then ingredients MUST contain "Eggs (3 whole)"
+9. Do NOT mention foods in the title that aren't in the ingredients list
+10. Keep meal titles simple and accurate - don't add extra items not in ingredients
+
 Your JSON response must be parseable - no trailing commas, proper quotes, valid structure.`
-  : `You are a professional nutritionist and meal planning assistant. Provide helpful, detailed responses.`;
+  : `You are a professional nutritionist and meal planning assistant.
+
+IMPORTANT FORMATTING RULES:
+- Use plain ASCII text only - NO fancy Unicode characters, symbols, or emojis
+- Use standard markdown headers: # for h1, ## for h2, etc.
+- Use simple dashes (-) for bullet points, not special bullet characters
+- Keep formatting clean and simple for PDF generation
+- Do not use decorative characters or special fonts
+
+Provide helpful, detailed meal prep guidance.`;
 
   try {
     const message = await anthropic.messages.create({
