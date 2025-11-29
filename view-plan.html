@@ -4320,26 +4320,62 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                 y += 5; // Space between meals
             });
 
-            // Grocery List
-            const groceryList = aggregateGroceryList();
-            if (groceryList && groceryList.length > 0) {
+            // Grocery List - organized by category
+            const groceryByCategory = aggregateGroceryListByCategory();
+            const categoryOrder = ['proteins', 'carbs', 'vegetables', 'fruits', 'fats', 'dairy', 'condiments', 'other'];
+            const categoryLabels = {
+                proteins: '🥩 Proteins',
+                carbs: '🍚 Carbs & Grains',
+                vegetables: '🥦 Vegetables',
+                fruits: '🍎 Fruits',
+                fats: '🥑 Fats & Nuts',
+                dairy: '🧀 Dairy',
+                condiments: '🧂 Condiments & Seasonings',
+                other: '📦 Other'
+            };
+
+            const hasItems = Object.values(groceryByCategory).some(items => items && items.length > 0);
+            if (hasItems) {
                 doc.addPage();
                 y = 20;
                 doc.setFontSize(20);
                 doc.setTextColor(102, 126, 234);
                 doc.text('Shopping List', margin, y);
-                y += 12;
+                y += 15;
 
-                doc.setFontSize(10);
-                doc.setTextColor(0, 0, 0);
-                groceryList.forEach(item => {
-                    if (y > 270) {
+                categoryOrder.forEach(category => {
+                    const items = groceryByCategory[category];
+                    if (!items || items.length === 0) return;
+
+                    // Check if we need a new page
+                    if (y > 250) {
                         doc.addPage();
                         y = 20;
                     }
-                    const itemText = `- ${item.quantity.toFixed(1)} ${item.unit} ${item.name}`;
-                    doc.text(itemText, margin, y);
-                    y += 6;
+
+                    // Category header
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(80, 80, 80);
+                    doc.text(categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1), margin, y);
+                    y += 7;
+
+                    // Items in this category
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
+                    items.forEach(item => {
+                        if (y > 270) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        const qty = item.quantity < 10 ? item.quantity.toFixed(1) : Math.round(item.quantity);
+                        const itemText = `  • ${qty} ${item.unit} ${item.name}`;
+                        doc.text(itemText, margin, y);
+                        y += 5;
+                    });
+
+                    y += 5; // Space between categories
                 });
             }
 
@@ -4586,6 +4622,29 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             return { quantity, unit };
         }
 
+        // Food category classification for organized shopping list
+        const FOOD_CATEGORIES = {
+            proteins: ['chicken', 'turkey', 'beef', 'pork', 'steak', 'bison', 'lamb', 'cod', 'salmon', 'tilapia', 'tuna', 'shrimp', 'fish', 'egg', 'greek yogurt', 'cottage cheese', 'whey protein', 'tofu', 'tempeh', 'lentils', 'beans', 'chickpeas'],
+            carbs: ['rice', 'quinoa', 'oats', 'oatmeal', 'bread', 'pasta', 'potato', 'sweet potato', 'tortilla', 'couscous', 'barley', 'farro'],
+            vegetables: ['broccoli', 'spinach', 'asparagus', 'zucchini', 'bell pepper', 'pepper', 'mushroom', 'onion', 'garlic', 'tomato', 'carrot', 'celery', 'lettuce', 'kale', 'cabbage', 'cauliflower', 'green beans', 'cucumber', 'eggplant'],
+            fruits: ['apple', 'banana', 'blueberr', 'strawberr', 'raspberr', 'blackberr', 'orange', 'grape', 'mango', 'pineapple', 'peach', 'pear', 'cherry', 'kiwi', 'watermelon', 'cantaloupe'],
+            fats: ['olive oil', 'avocado oil', 'coconut oil', 'butter', 'ghee', 'peanut butter', 'almond butter', 'almonds', 'walnuts', 'cashews', 'pecans', 'pistachios', 'chia', 'flax', 'avocado', 'seeds'],
+            dairy: ['milk', 'cheese', 'cream'],
+            condiments: ['soy sauce', 'hot sauce', 'salsa', 'mustard', 'vinegar', 'honey', 'maple syrup', 'ketchup']
+        };
+
+        function categorizeFood(foodName) {
+            const lower = foodName.toLowerCase();
+            for (const [category, keywords] of Object.entries(FOOD_CATEGORIES)) {
+                for (const keyword of keywords) {
+                    if (lower.includes(keyword)) {
+                        return category;
+                    }
+                }
+            }
+            return 'other';
+        }
+
         function aggregateGroceryList() {
             if (!currentPlan) return [];
 
@@ -4620,13 +4679,34 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                         aggregated[key] = {
                             name: parsed.name,
                             quantity: normalized.quantity,
-                            unit: normalized.unit
+                            unit: normalized.unit,
+                            category: categorizeFood(parsed.name)
                         };
                     }
                 });
             });
 
-            return Object.values(aggregated).sort((a, b) => a.name.localeCompare(b.name));
+            // Sort by category, then alphabetically within category
+            const categoryOrder = ['proteins', 'carbs', 'vegetables', 'fruits', 'fats', 'dairy', 'condiments', 'other'];
+            return Object.values(aggregated).sort((a, b) => {
+                const catA = categoryOrder.indexOf(a.category);
+                const catB = categoryOrder.indexOf(b.category);
+                if (catA !== catB) return catA - catB;
+                return a.name.localeCompare(b.name);
+            });
+        }
+
+        function aggregateGroceryListByCategory() {
+            const items = aggregateGroceryList();
+            const byCategory = {};
+
+            items.forEach(item => {
+                const cat = item.category || 'other';
+                if (!byCategory[cat]) byCategory[cat] = [];
+                byCategory[cat].push(item);
+            });
+
+            return byCategory;
         }
 
         // ========== FAVORITES FUNCTIONS ==========

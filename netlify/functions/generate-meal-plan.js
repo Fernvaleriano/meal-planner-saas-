@@ -3920,92 +3920,169 @@ function updateMealNamePortions(mealName, scaleFactor) {
 function syncMealNameWithIngredients(mealName, ingredients) {
   if (!mealName || !ingredients || !Array.isArray(ingredients)) return mealName;
 
-  let updatedName = mealName;
-
-  // Build a map of food name -> actual amount from ingredients
+  // Build a comprehensive map of food name variations -> actual amount
   const ingredientAmounts = {};
+
   for (const ing of ingredients) {
     let foodName, amount;
+
     if (typeof ing === 'string') {
-      // Parse "Chicken Breast (200g)" format
+      // Parse "Chicken Breast (200g)" or "Chicken Breast (200 g)" format
       const match = ing.match(/^(.+?)\s*\((.+?)\)$/);
       if (match) {
-        foodName = match[1].trim().toLowerCase();
+        foodName = match[1].trim();
         amount = match[2].trim();
       }
     } else if (ing.food && ing.amount) {
       // Parse {food: "chicken_breast", amount: "200g"} format
-      foodName = ing.food.replace(/_/g, ' ').toLowerCase();
+      foodName = ing.food.replace(/_/g, ' ');
       amount = ing.amount;
     }
+
     if (foodName && amount) {
-      ingredientAmounts[foodName] = amount;
-      // Also store variants (e.g., "oats rolled dry" -> "oats")
-      const simpleName = foodName.split(' ')[0];
-      if (!ingredientAmounts[simpleName]) {
-        ingredientAmounts[simpleName] = amount;
+      const lowerName = foodName.toLowerCase();
+
+      // Store multiple variations for matching
+      ingredientAmounts[lowerName] = amount;
+
+      // Store without common suffixes
+      const withoutSuffix = lowerName
+        .replace(/\s*(nonfat|low|lean|skinless|cooked|dry|raw|canned|water|fresh)$/gi, '')
+        .trim();
+      if (withoutSuffix && !ingredientAmounts[withoutSuffix]) {
+        ingredientAmounts[withoutSuffix] = amount;
+      }
+
+      // Store first word only (e.g., "chicken" from "chicken breast")
+      const firstWord = lowerName.split(' ')[0];
+      if (firstWord && !ingredientAmounts[firstWord]) {
+        ingredientAmounts[firstWord] = amount;
+      }
+
+      // Store without "cooked" or "dry" descriptors
+      const withoutDescriptor = lowerName.replace(/\s+(cooked|dry|raw)$/i, '').trim();
+      if (withoutDescriptor !== lowerName && !ingredientAmounts[withoutDescriptor]) {
+        ingredientAmounts[withoutDescriptor] = amount;
       }
     }
   }
 
-  // Common food name mappings for meal title matching
+  // Expanded food name mappings (title word -> possible ingredient names)
   const foodMappings = {
-    'oatmeal': ['oats', 'oats_rolled_dry', 'oats rolled dry'],
-    'oats': ['oats_rolled_dry', 'oats rolled dry'],
-    'chicken': ['chicken_breast', 'chicken breast'],
-    'beef': ['ground_beef_93', 'ground beef 93', 'ground_beef_90', 'ground beef'],
+    'oatmeal': ['oats', 'oats rolled dry', 'rolled oats'],
+    'oats': ['oats', 'oats rolled dry', 'rolled oats'],
+    'proats': ['oats', 'oats rolled dry'],
+    'chicken': ['chicken breast', 'chicken', 'chicken thigh'],
+    'turkey': ['turkey breast', 'turkey', 'ground turkey'],
+    'beef': ['ground beef 93', 'ground beef', 'sirloin steak', 'beef'],
+    'steak': ['sirloin steak', 'sirloin', 'flank steak', 'bison'],
+    'pork': ['pork tenderloin', 'pork chop', 'pork'],
     'cod': ['cod'],
     'salmon': ['salmon'],
-    'yogurt': ['greek_yogurt_nonfat', 'greek yogurt nonfat', 'greek_yogurt', 'greek yogurt'],
-    'greek yogurt': ['greek_yogurt_nonfat', 'greek yogurt nonfat'],
-    'sweet potato': ['sweet_potato'],
-    'rice': ['white_rice_cooked', 'white rice cooked', 'brown_rice_cooked', 'brown rice cooked'],
-    'quinoa': ['quinoa_cooked', 'quinoa cooked'],
+    'tilapia': ['tilapia'],
+    'tuna': ['tuna canned water', 'tuna'],
+    'shrimp': ['shrimp'],
+    'bison': ['bison'],
+    'yogurt': ['greek yogurt nonfat', 'greek yogurt', 'yogurt'],
+    'cottage': ['cottage cheese nonfat', 'cottage cheese'],
+    'cheese': ['cottage cheese nonfat', 'cottage cheese', 'cheese'],
+    'sweet': ['sweet potato'],
+    'potato': ['sweet potato', 'russet potato', 'potato'],
+    'rice': ['white rice cooked', 'brown rice cooked', 'rice', 'brown rice'],
+    'quinoa': ['quinoa cooked', 'quinoa'],
     'broccoli': ['broccoli'],
     'asparagus': ['asparagus'],
-    'green beans': ['green_beans', 'green beans'],
+    'zucchini': ['zucchini'],
+    'spinach': ['spinach'],
+    'pepper': ['bell pepper'],
+    'bell': ['bell pepper'],
+    'beans': ['green beans', 'black beans'],
+    'green': ['green beans'],
     'blueberries': ['blueberries'],
-    'strawberries': ['strawberries']
+    'strawberries': ['strawberries'],
+    'apple': ['apple'],
+    'banana': ['banana'],
+    'walnuts': ['walnuts'],
+    'almonds': ['almonds'],
+    'whey': ['whey protein'],
+    'protein': ['whey protein']
   };
 
-  // Update each portion in the meal name with actual ingredient amounts
-  updatedName = updatedName.replace(/(\w[\w\s]*?)\s*\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?(\s+(?:dry|cooked|raw|whole|uncooked))?\)/gi,
-    (match, foodInName, oldNum, unit, descriptor) => {
-      const normalizedFood = foodInName.trim().toLowerCase();
+  // Helper to find amount for a food name
+  function findAmount(foodName) {
+    const lower = foodName.toLowerCase().trim();
 
-      // Try to find matching ingredient
-      let actualAmount = ingredientAmounts[normalizedFood];
+    // Direct match
+    if (ingredientAmounts[lower]) return ingredientAmounts[lower];
 
-      // Try mappings if direct match fails
-      if (!actualAmount && foodMappings[normalizedFood]) {
-        for (const variant of foodMappings[normalizedFood]) {
-          if (ingredientAmounts[variant]) {
-            actualAmount = ingredientAmounts[variant];
-            break;
-          }
-        }
+    // Try mappings
+    if (foodMappings[lower]) {
+      for (const variant of foodMappings[lower]) {
+        if (ingredientAmounts[variant]) return ingredientAmounts[variant];
       }
+    }
 
+    // Try partial match (ingredient contains the food name)
+    for (const [ingName, amt] of Object.entries(ingredientAmounts)) {
+      if (ingName.includes(lower) || lower.includes(ingName)) {
+        return amt;
+      }
+    }
+
+    return null;
+  }
+
+  // Pattern 1: Match "(Xg)" or "(X g)" formats with optional descriptors
+  let updatedName = mealName.replace(
+    /(\b\w[\w\s]*?)\s*\((\d+(?:\.\d+)?)\s*(g|oz|ml)\s*(dry|cooked|raw)?\)/gi,
+    (match, foodInName, oldNum, unit, descriptor) => {
+      const actualAmount = findAmount(foodInName);
       if (actualAmount) {
-        // Extract just the numeric part from actual amount
         const numMatch = actualAmount.match(/^([\d.]+)/);
         if (numMatch) {
           const newNum = numMatch[1];
-          if (unit && descriptor) {
-            return `${foodInName} (${newNum} ${unit}${descriptor})`;
-          } else if (unit) {
-            return `${foodInName} (${newNum} ${unit})`;
-          } else if (descriptor) {
-            return `${foodInName} (${newNum}${descriptor})`;
-          } else {
-            return `${foodInName} (${newNum}g)`;
+          if (descriptor) {
+            return `${foodInName} (${newNum}${unit} ${descriptor})`;
           }
+          return `${foodInName} (${newNum}${unit})`;
         }
       }
-
-      // No match found, return original
       return match;
-    });
+    }
+  );
+
+  // Pattern 2: Match "(X medium)" or "(X large)" count-based formats
+  updatedName = updatedName.replace(
+    /(\b\w[\w\s]*?)\s*\((\d+)\s*(medium|large|small|whole|slices?|scoops?)\)/gi,
+    (match, foodInName, oldNum, unit) => {
+      const actualAmount = findAmount(foodInName);
+      if (actualAmount) {
+        // Handle count-based amounts like "2 medium" or "1 scoop"
+        const countMatch = actualAmount.match(/^(\d+)\s*(medium|large|small|whole|slices?|scoops?)?/i);
+        if (countMatch) {
+          const newNum = countMatch[1];
+          const newUnit = countMatch[2] || unit;
+          return `${foodInName} (${newNum} ${newUnit})`;
+        }
+      }
+      return match;
+    }
+  );
+
+  // Pattern 3: Match standalone "(Xg dry)" or "(Xg cooked)" with space
+  updatedName = updatedName.replace(
+    /(\b\w+)\s*\((\d+)\s*g\s+(dry|cooked)\)/gi,
+    (match, foodInName, oldNum, descriptor) => {
+      const actualAmount = findAmount(foodInName);
+      if (actualAmount) {
+        const numMatch = actualAmount.match(/^([\d.]+)/);
+        if (numMatch) {
+          return `${foodInName} (${numMatch[1]}g ${descriptor})`;
+        }
+      }
+      return match;
+    }
+  );
 
   return updatedName;
 }
