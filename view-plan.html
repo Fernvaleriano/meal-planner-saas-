@@ -4651,6 +4651,10 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
         }
 
         function normalizeUnit(quantity, unit) {
+            // Strip "cooked", "dry", "raw" descriptors from unit
+            // e.g., "g cooked" -> "g", "g dry" -> "g"
+            let cleanUnit = unit.replace(/\s*(cooked|dry|raw)$/i, '').trim();
+
             // Only convert to larger units if quantity is large enough
             const conversions = {
                 'tbsp': { base: 'tbsp', factor: 1 }, // Keep tbsp as-is for readability
@@ -4668,22 +4672,22 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             };
 
             // For grams, only convert to kg if >= 1000g
-            if ((unit === 'g' || unit === 'gram') && quantity >= 1000) {
+            if ((cleanUnit === 'g' || cleanUnit === 'gram') && quantity >= 1000) {
                 return { quantity: quantity / 1000, unit: 'kg' };
             }
             // Keep grams as grams
-            if (unit === 'g' || unit === 'gram') {
+            if (cleanUnit === 'g' || cleanUnit === 'gram') {
                 return { quantity, unit: 'g' };
             }
 
-            if (conversions[unit]) {
+            if (conversions[cleanUnit]) {
                 return {
-                    quantity: quantity * conversions[unit].factor,
-                    unit: conversions[unit].base
+                    quantity: quantity * conversions[cleanUnit].factor,
+                    unit: conversions[cleanUnit].base
                 };
             }
 
-            return { quantity, unit };
+            return { quantity, unit: cleanUnit };
         }
 
         // Food category classification for organized shopping list
@@ -4718,6 +4722,9 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             // First, convert underscores to spaces
             let std = name.trim().replace(/_/g, ' ');
 
+            // Strip trailing "cooked", "dry", "raw" from name
+            std = std.replace(/\s+(cooked|dry|raw)$/i, '');
+
             // Standardize common variations
             const replacements = {
                 'bell peppers': 'Bell Pepper',
@@ -4729,14 +4736,18 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 'strawberries': 'Strawberries',
                 'eggs': 'Eggs',
                 'egg whites': 'Egg Whites',
-                // Handle underscore variations
+                // Grains - all variations to base form
                 'brown rice cooked': 'Brown Rice',
                 'brown rice': 'Brown Rice',
+                'quinoa cooked': 'Quinoa',
+                'quinoa': 'Quinoa',
                 'lentils cooked': 'Lentils',
                 'lentils': 'Lentils',
-                'quinoa cooked': 'Quinoa',
+                'oats': 'Oats',
+                // Oils and sauces
                 'olive oil': 'Olive Oil',
                 'soy sauce': 'Soy Sauce',
+                // Dairy
                 'cottage cheese nonfat': 'Cottage Cheese Nonfat',
                 'cottage cheese': 'Cottage Cheese',
                 'greek yogurt nonfat': 'Greek Yogurt Nonfat',
