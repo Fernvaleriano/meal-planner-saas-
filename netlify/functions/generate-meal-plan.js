@@ -1290,6 +1290,136 @@ function sanitizeIngredient(ingredient) {
 }
 
 /**
+ * Validate and fix cooking instructions to only reference actual ingredients
+ * Fixes: hallucinations (almonds in instructions but not ingredients),
+ *        quantity mismatches (3 eggs in instructions but 2 in ingredients)
+ */
+function validateAndFixInstructions(instructions, ingredients) {
+  if (!instructions || !ingredients || !Array.isArray(ingredients)) {
+    return instructions || '';
+  }
+
+  let fixedInstructions = instructions;
+
+  // Extract ingredient names and quantities from the ingredient list
+  const ingredientData = ingredients.map(ing => {
+    const parsed = parseIngredientString(ing);
+    return {
+      original: ing,
+      name: parsed.name.toLowerCase(),
+      amount: parsed.amount,
+      // Extract numbers from amount
+      quantity: parseFloat(parsed.amount.match(/[\d.]+/)?.[0]) || 1
+    };
+  });
+
+  // Create a set of ingredient keywords for matching
+  const ingredientKeywords = new Set();
+  ingredientData.forEach(ing => {
+    // Add full name and individual words
+    ingredientKeywords.add(ing.name);
+    ing.name.split(/\s+/).forEach(word => {
+      if (word.length > 2) ingredientKeywords.add(word);
+    });
+  });
+
+  // Common hallucination foods to check for in instructions
+  const commonHallucinations = [
+    'almonds', 'almond', 'walnuts', 'walnut', 'pecans', 'pecan', 'cashews', 'cashew',
+    'peanuts', 'peanut', 'pine nuts', 'pistachios', 'macadamia',
+    'cheese', 'parmesan', 'feta', 'mozzarella', 'cheddar',
+    'avocado', 'bacon', 'ham', 'sausage',
+    'honey', 'maple syrup', 'agave',
+    'cilantro', 'parsley', 'basil', 'oregano', 'thyme', 'rosemary',
+    'garlic', 'onion', 'shallot', 'leek',
+    'lemon', 'lime', 'orange zest',
+    'cream', 'sour cream', 'cream cheese', 'milk',
+    'egg whites', 'egg white'
+  ];
+
+  // Check for hallucinated ingredients in instructions
+  commonHallucinations.forEach(hallucination => {
+    const regex = new RegExp(`\\b${hallucination}s?\\b`, 'gi');
+    if (regex.test(fixedInstructions)) {
+      // Check if this ingredient is actually in the ingredient list
+      const isInIngredients = ingredientData.some(ing =>
+        ing.name.includes(hallucination.toLowerCase()) ||
+        hallucination.toLowerCase().includes(ing.name)
+      );
+
+      if (!isInIngredients) {
+        console.log(`🚫 REMOVING HALLUCINATION from instructions: "${hallucination}"`);
+        // Remove sentences or phrases mentioning the hallucinated ingredient
+        // Pattern 1: "Add/Top with/Sprinkle [hallucination]..."
+        fixedInstructions = fixedInstructions.replace(
+          new RegExp(`(add|top with|sprinkle|garnish with|finish with|mix in|stir in|toss with|serve with)\\s+[^.]*\\b${hallucination}s?\\b[^.]*\\.?`, 'gi'),
+          ''
+        );
+        // Pattern 2: Simple mention without action verb - just remove the word
+        fixedInstructions = fixedInstructions.replace(
+          new RegExp(`\\s*(and\\s+)?\\b(toasted\\s+|chopped\\s+|sliced\\s+|crushed\\s+)?${hallucination}s?\\b`, 'gi'),
+          ''
+        );
+      }
+    }
+  });
+
+  // Fix egg count mismatches
+  const eggIngredient = ingredientData.find(ing =>
+    ing.name.includes('egg') && !ing.name.includes('egg white')
+  );
+  if (eggIngredient) {
+    const eggCount = eggIngredient.quantity;
+    // Find egg counts in instructions like "Scramble 3 eggs" or "3 eggs"
+    const eggCountPattern = /(\d+)\s*eggs?\b/gi;
+    fixedInstructions = fixedInstructions.replace(eggCountPattern, (match, num) => {
+      const instructionCount = parseInt(num);
+      if (instructionCount !== eggCount) {
+        console.log(`🔧 FIXING EGG COUNT: "${match}" → "${eggCount} eggs" (ingredients say ${eggCount})`);
+        return `${eggCount} egg${eggCount > 1 ? 's' : ''}`;
+      }
+      return match;
+    });
+  }
+
+  // Fix other quantity mismatches for common items
+  ingredientData.forEach(ing => {
+    // Look for quantity mentions of this ingredient in instructions
+    const simpleNameMatch = ing.name.match(/^(\w+)/);
+    if (simpleNameMatch) {
+      const simpleName = simpleNameMatch[1];
+      // Pattern like "200g chicken" or "2 slices bread"
+      const quantityPattern = new RegExp(`(\\d+\\.?\\d*)\\s*(g|oz|tbsp|tsp|cup|slices?|scoops?)\\s*${simpleName}`, 'gi');
+      fixedInstructions = fixedInstructions.replace(quantityPattern, (match, qty, unit) => {
+        // Only fix if the quantity is significantly different
+        const instructionQty = parseFloat(qty);
+        if (Math.abs(instructionQty - ing.quantity) > ing.quantity * 0.2) {
+          console.log(`🔧 FIXING QUANTITY: "${match}" → "${ing.amount} ${simpleName}"`);
+          return `${ing.amount} ${simpleName}`;
+        }
+        return match;
+      });
+    }
+  });
+
+  // Clean up any double spaces or awkward punctuation from removals
+  fixedInstructions = fixedInstructions
+    .replace(/\s+/g, ' ')
+    .replace(/\.\s*\./g, '.')
+    .replace(/,\s*\./g, '.')
+    .replace(/,\s*,/g, ',')
+    .replace(/\s+\./g, '.')
+    .replace(/\s+,/g, ',')
+    .trim();
+
+  if (fixedInstructions !== instructions) {
+    console.log(`📝 INSTRUCTIONS CLEANED: "${instructions.substring(0, 50)}..." → "${fixedInstructions.substring(0, 50)}..."`);
+  }
+
+  return fixedInstructions;
+}
+
+/**
  * Parse string-based ingredient into food name and amount
  * Examples: "Chicken Breast (200g)" → { name: "Chicken Breast", amount: "200g" }
  *           "Eggs (2 whole)" → { name: "Eggs", amount: "2 whole" }
@@ -4733,6 +4863,9 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
       scaledIngredients
     );
 
+    // Validate and fix instructions to match actual ingredients
+    const validatedInstructions = validateAndFixInstructions(geminiMeal.instructions, scaledIngredients);
+
     // Return meal with scaled portions and recalculated macros
     return {
       type: geminiMeal.type || 'meal',
@@ -4742,7 +4875,7 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
       protein: scaled.totals.protein,
       carbs: scaled.totals.carbs,
       fat: scaled.totals.fat,
-      instructions: geminiMeal.instructions,
+      instructions: validatedInstructions,
       breakdown: scaled.breakdown,
       calculation_notes: originalScaleFactor !== scaleFactor
         ? `Auto-scaled by ${(scaleFactor * 100).toFixed(0)}% (capped from ${(originalScaleFactor * 100).toFixed(0)}%) toward ${mealTargets.calories}cal target`
@@ -4757,6 +4890,9 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
   console.log(`✅ Optimized totals: ${optimized.totals.calories}cal, ${optimized.totals.protein}P, ${optimized.totals.carbs}C, ${optimized.totals.fat}F`);
   console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
 
+  // Validate and fix instructions to match actual ingredients
+  const validatedInstructions = validateAndFixInstructions(geminiMeal.instructions, geminiMeal.ingredients);
+
   // Return meal with calculated macros (no portion adjustments)
   return {
     type: geminiMeal.type || 'meal',
@@ -4766,7 +4902,7 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
     protein: optimized.totals.protein,
     carbs: optimized.totals.carbs,
     fat: optimized.totals.fat,
-    instructions: geminiMeal.instructions,
+    instructions: validatedInstructions,
     breakdown: optimized.breakdown,
     calculation_notes: `Calculated from ${geminiMeal.ingredients.length} ingredients using USDA database`
   };
