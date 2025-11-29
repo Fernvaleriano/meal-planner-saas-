@@ -2673,6 +2673,9 @@ function matchFoodToDatabase(foodName, amount = "") {
     'boneless', 'skinless', 'bone-in', 'skin-on', 'lean', 'extra lean',
     'grass-fed', 'grass fed', 'free-range', 'free range', 'wild-caught', 'wild caught',
     'farm-raised', 'farm raised', 'marinated', 'seasoned', 'plain', 'unseasoned',
+    // Dairy descriptors (CRITICAL for cottage cheese, greek yogurt, etc.)
+    'nonfat', 'non-fat', 'lowfat', 'low-fat', 'low fat', 'fat-free', 'fat free',
+    'skim', 'whole', '2%', '2 percent', '2 pct', '1%', '1 percent', '1 pct',
     'thick-cut', 'thick cut', 'thin-sliced', 'thin sliced', 'diced', 'chopped',
     'sliced', 'cubed', 'minced', 'shredded', 'pulled', 'ground', 'whole'
   ];
