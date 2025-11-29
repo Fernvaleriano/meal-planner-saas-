@@ -3902,6 +3902,19 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 // NEW: Ask for ingredients arrays - backend will calculate macros from USDA database
                 const dailyCal = targets.calories || 2000;
                 const variationSeed = Math.floor(Math.random() * 1000000);
+
+                // Goal-based fat/oil guidance
+                const userGoal = currentPlan.preferences?.goal || 'maintain';
+                const fatGuidance = userGoal === 'lose weight'
+                    ? `WEIGHT LOSS FAT RULES:
+- ZERO cooking oils - use non-stick spray or dry cooking methods
+- Get fats from WHOLE FOODS only: eggs, salmon, avocado, nuts
+- DO NOT include olive oil, butter, or any cooking fats
+- Fatty fish and eggs provide enough fat naturally`
+                    : `FAT RULES:
+- Maximum 1-2 meals should have cooking oil (1 tsp each)
+- Skip oil if meal has natural fats (salmon, eggs, avocado)`;
+
                 const prompt = `Generate a COMPLETELY NEW ${numMeals}-meal plan for Day ${dayNumber}.
 [Variation: ${variationSeed}] - Generate UNIQUE meals different from any previous generation.
 
@@ -3924,10 +3937,12 @@ Required meal types (in order): ${mealTypes.join(', ')}
 Diet: ${currentPlan.preferences?.dietType || 'any'}
 ${currentPlan.preferences?.allergies ? `Avoid: ${currentPlan.preferences.allergies}` : ''}${avoidMealsText}
 
+${fatGuidance}
+
 CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses for EACH meal.
 DO NOT include calories/protein/carbs/fat values - the backend will calculate them from the USDA database.
-Use common foods with specific amounts like: "Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Olive Oil (1 tsp)"
-Keep meals SIMPLE: 3-4 main ingredients with LARGER portions. One protein + one carb + 1-2 vegetables + minimal cooking fat.
+Use common foods with specific amounts like: "Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)"
+Keep meals SIMPLE: 3-4 main ingredients with LARGER portions. One protein + one carb + 1-2 vegetables.
 
 Return ONLY a valid JSON array with ${numMeals} meal objects:
 [
