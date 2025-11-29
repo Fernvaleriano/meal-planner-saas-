@@ -4324,14 +4324,14 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
             const groceryByCategory = aggregateGroceryListByCategory();
             const categoryOrder = ['proteins', 'carbs', 'vegetables', 'fruits', 'fats', 'dairy', 'condiments', 'other'];
             const categoryLabels = {
-                proteins: '🥩 Proteins',
-                carbs: '🍚 Carbs & Grains',
-                vegetables: '🥦 Vegetables',
-                fruits: '🍎 Fruits',
-                fats: '🥑 Fats & Nuts',
-                dairy: '🧀 Dairy',
-                condiments: '🧂 Condiments & Seasonings',
-                other: '📦 Other'
+                proteins: 'PROTEINS',
+                carbs: 'CARBS & GRAINS',
+                vegetables: 'VEGETABLES',
+                fruits: 'FRUITS',
+                fats: 'FATS & NUTS',
+                dairy: 'DAIRY',
+                condiments: 'CONDIMENTS',
+                other: 'OTHER'
             };
 
             const hasItems = Object.values(groceryByCategory).some(items => items && items.length > 0);
