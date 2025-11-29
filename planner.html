@@ -2034,30 +2034,29 @@ Include at least 1-2 branded fitness foods per day in this meal plan.`;
         // Goal-based fat/oil guidance
         const fatGuidance = goal === 'lose weight'
             ? `4. FATS (WEIGHT LOSS - SATIETY FOCUS):
-   - AVOID added cooking oils - use non-stick spray or dry cooking methods
-   - Get fats from WHOLE FOODS only: eggs, salmon, avocado, nuts
+   - PREFER whole food fats: eggs, salmon, avocado, nuts
    - Nuts: 28-35g max (natural fats, filling)
-   - Nut butters: 1 tbsp max (calorie-dense)
-   - NO olive oil, butter, or cooking fats - every calorie counts!
-   - Fatty fish and eggs provide enough fat naturally`
+   - Nut butters: ONLY for breakfast/snacks (NOT lunch/dinner!)
+   - If lunch/dinner needs fat: use 1 tsp olive oil or butter (NOT peanut butter!)
+   - SKIP added fat if meal has salmon, eggs, or avocado`
             : `4. ADD fats for satiety (NOT every meal needs added fat!):
    - Nuts: 28-45g (variety, not just almonds)
    - Oils: ONLY 1-2 meals MAX should have cooking oil (1 tsp each)
-   - Nut butters: 1-2 tbsp (great for breakfast/snack)
+   - Nut butters: 1-2 tbsp (great for breakfast/snack ONLY - not lunch/dinner)
    - SKIP oil if meal already has fat (salmon, eggs, avocado, nuts)`;
 
         // Goal-based meal examples
         const mealExamples = goal === 'lose weight'
-            ? `EXAMPLES OF WINNING MEALS (WEIGHT LOSS - NO COOKING OILS):
-Breakfast: ["Eggs (3 whole)", "Oats (50g dry)", "Blueberries (100g)"] - eggs provide fat, no oil needed
-Lunch: ["Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)"] - dry-grilled chicken, NO oil
-Dinner: ["Salmon (150g)", "Sweet Potato (200g)", "Asparagus (150g)"] - salmon is fatty, NO added oil
-Snack: ["Greek Yogurt (200g)", "Strawberries (100g)", "Almonds (28g)"] - whole food fats only
+            ? `EXAMPLES OF WINNING MEALS (WEIGHT LOSS):
+Breakfast: ["Eggs (3 whole)", "Oats (50g dry)", "Peanut Butter (1 tbsp)"] - PB is okay for breakfast
+Lunch: ["Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)", "Olive Oil (1 tsp)"] - use oil NOT peanut butter
+Dinner: ["Salmon (150g)", "Sweet Potato (200g)", "Asparagus (150g)"] - salmon is fatty, no added fat needed
+Snack: ["Greek Yogurt (200g)", "Banana (1 medium)", "Almonds (28g)"] - whole food fats
 
-REMEMBER (WEIGHT LOSS):
-- ZERO cooking oils - use non-stick spray or dry cooking
-- Get fats from whole foods: eggs, salmon, nuts, avocado
-- Every calorie counts - satiety matters most!`
+CRITICAL FAT RULES:
+- Peanut butter / nut butters: ONLY for breakfast and snacks
+- Lunch/Dinner fat gap filler: use olive oil or butter (1 tsp), NEVER peanut butter
+- Skip added fat if meal has salmon, eggs, or avocado`
             : `EXAMPLES OF WINNING MEALS (3-4 ingredients, LARGER portions, NOT every meal has oil):
 Breakfast: ["Eggs (3 whole)", "Oats (60g dry)", "Blueberries (100g)"] - NO added oil needed, eggs have fat
 Lunch: ["Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)", "Olive Oil (1 tsp)"] - only meal with oil
@@ -2067,6 +2066,7 @@ Snack: ["Greek Yogurt (200g)", "Strawberries (150g)"] - simple, no oil
 REMEMBER:
 - FEWER ingredients with LARGER portions!
 - NOT every meal needs cooking oil - max 1-2 per day!
+- Nut butters: breakfast/snacks ONLY (not lunch/dinner)
 - Fatty fish (salmon), eggs, avocado, and nuts provide natural fats`;
 
         const dayPrompt = `Create 1-day meal plan for Day ${day} of ${numDays}.

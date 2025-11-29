@@ -3907,12 +3907,13 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 const userGoal = currentPlan.preferences?.goal || 'maintain';
                 const fatGuidance = userGoal === 'lose weight'
                     ? `WEIGHT LOSS FAT RULES:
-- ZERO cooking oils - use non-stick spray or dry cooking methods
-- Get fats from WHOLE FOODS only: eggs, salmon, avocado, nuts
-- DO NOT include olive oil, butter, or any cooking fats
-- Fatty fish and eggs provide enough fat naturally`
+- PREFER whole food fats: eggs, salmon, avocado, nuts
+- Nut butters (peanut butter): ONLY for breakfast/snacks - NEVER lunch/dinner!
+- If lunch/dinner needs fat: use 1 tsp olive oil or butter (NOT peanut butter!)
+- Skip added fat if meal has salmon, eggs, or avocado`
                     : `FAT RULES:
 - Maximum 1-2 meals should have cooking oil (1 tsp each)
+- Nut butters: breakfast/snacks ONLY (not lunch/dinner)
 - Skip oil if meal has natural fats (salmon, eggs, avocado)`;
 
                 const prompt = `Generate a COMPLETELY NEW ${numMeals}-meal plan for Day ${dayNumber}.
