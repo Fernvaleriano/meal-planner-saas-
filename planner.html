@@ -2289,11 +2289,11 @@ EXAMPLES:
 "Egg Whites (200g)" ✅
 "Brown Rice (150g cooked)" ✅
 "Whole Wheat Bread (2 slices)" ✅
-"Olive Oil (1 tbsp)" ✅
-"Greek Yogurt (170g)" ✅
+"Olive Oil (1 tsp)" ✅
+"Greek Yogurt (200g)" ✅
 
-FULL EXAMPLE (use this EXACT format):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Whole Wheat Toast (2 slices) and Avocado (50g)","ingredients":["Eggs (3 whole)","Whole Wheat Bread (2 slices)","Butter (1 tbsp)","Avocado (50g)"],"instructions":"Scramble 3 eggs in 1 tbsp butter. Toast 2 slices bread. Serve with sliced avocado."}]}
+FULL EXAMPLE (use this EXACT format - 3-4 ingredients with larger portions):
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Oatmeal (1 cup cooked) and Berries (100g)","ingredients":["Eggs (3 whole)","Oats (50g dry)","Blueberries (100g)","Butter (1 tsp)"],"instructions":"Scramble 3 eggs in 1 tsp butter. Cook oatmeal. Serve with fresh berries."}]}
 
 CRITICAL REQUIREMENTS:
 1. Ingredients MUST be array of strings: ["Food Name (amount)", "Food Name (amount)"]
@@ -2321,27 +2321,28 @@ STEP-BY-STEP FOR EACH MEAL:
 
 4. ADD fats for satiety:
    - Nuts: 28-45g (variety, not just almonds)
-   - Oils: 1 tbsp (enough to cook)
+   - Oils: 1 tsp only (minimal for cooking - NOT 1 tbsp)
    - Nut butters: 1-2 tbsp
 
 5. ADD vegetables/fruits:
-   - Vegetables: 150g portions (NOT maxed at 200g)
+   - Vegetables: 150-200g portions
    - Fruits: 1 medium or 100g berries
 
-6. CALCULATE total macros from 5-6 ingredients
+6. CALCULATE total macros from 3-4 main ingredients
 
 7. IF still short (>10% under):
-   ✅ ADD another complementary food (banana, almonds, bread slice)
-   ❌ DO NOT increase existing portions
+   ✅ INCREASE existing protein/carb portions first
+   ✅ Or ADD one complementary food (banana, almonds, bread slice)
+   ❌ DO NOT add more cooking oil
 
 8. Format as string array with amounts in parentheses
 
-EXAMPLES OF WINNING MEALS:
-Breakfast: ["Oats (75g dry)", "Whey Protein (1 scoop)", "Eggs (2 whole)", "Egg Whites (150g)", "Banana (1 medium)", "Almonds (30g)"]
-Lunch: ["Chicken Breast (200g)", "White Rice (280g cooked)", "Broccoli (150g)", "Olive Oil (1 tbsp)"]
-Dinner: ["Ground Beef (200g)", "Sweet Potato (280g)", "Asparagus (150g)", "Butter (1 tbsp)", "Apple (1 large)"]
+EXAMPLES OF WINNING MEALS (3-4 ingredients, LARGER portions):
+Breakfast: ["Eggs (3 whole)", "Oats (60g dry)", "Whey Protein (1 scoop)", "Blueberries (100g)"]
+Lunch: ["Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)", "Olive Oil (1 tsp)"]
+Dinner: ["Ground Turkey (150g)", "Sweet Potato (200g)", "Green Beans (150g)", "Olive Oil (1 tsp)"]
 
-REMEMBER: Stack proteins, leave headroom, add variety! Better to have 6 foods at 170g than 3 foods at 250g!`;
+REMEMBER: FEWER ingredients with LARGER portions! Better to have 3-4 foods at 150g each than 6 foods at 70g each!`;
 
         // Build targets object for hybrid Gemini + JS optimizer
         const dayTargets = {
@@ -3201,8 +3202,8 @@ CRITICAL:
 4. If original meal was small (under 400 cal), keep new meal small. If large (over 600 cal), keep it large.
 MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
 
-EXAMPLE FORMAT:
-{"type":"${meal.type}","name":"Grilled Chicken Breast (200g) with Quinoa (150g cooked) and Broccoli (100g)","ingredients":["Chicken Breast (200g)","Quinoa (150g cooked)","Broccoli (100g)","Olive Oil (1 tbsp)"],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
+EXAMPLE FORMAT (3-4 ingredients with larger portions):
+{"type":"${meal.type}","name":"Grilled Chicken Breast (150g) with Quinoa (1 cup cooked) and Broccoli (150g)","ingredients":["Chicken Breast (150g)","Quinoa (1 cup cooked)","Broccoli (150g)","Olive Oil (1 tsp)"],"instructions":"Grill chicken breast. Cook quinoa. Steam broccoli. Drizzle with olive oil."}
 
 Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
