@@ -3947,6 +3947,12 @@ DO NOT include calories/protein/carbs/fat values - the backend will calculate th
 Use common foods with specific amounts like: "Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)"
 Keep meals SIMPLE: 3-4 main ingredients with LARGER portions. One protein + one carb + 1-2 vegetables.
 
+🚨 INSTRUCTION RULES:
+- ONLY mention ingredients from your ingredients array - nothing else!
+- Match EXACT quantities: "Eggs (2 whole)" in ingredients = "2 eggs" in instructions (NOT 3!)
+- NO garnishes or toppings not in ingredients (no "top with almonds" unless almonds listed)
+- Keep instructions simple - just cooking steps
+
 Return ONLY a valid JSON array with ${numMeals} meal objects:
 [
   {"type":"breakfast","name":"Meal Name (with portions)","ingredients":["Ingredient 1 (amount)","Ingredient 2 (amount)"],"instructions":"Cooking steps"},
@@ -4871,7 +4877,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
         const FOOD_CATEGORIES = {
             // Check vegetables FIRST to catch "green beans" before "beans"
             vegetables: ['green beans', 'broccoli', 'spinach', 'asparagus', 'zucchini', 'bell pepper', 'pepper', 'mushroom', 'onion', 'garlic', 'tomato', 'carrot', 'celery', 'lettuce', 'kale', 'cabbage', 'cauliflower', 'cucumber', 'eggplant'],
-            proteins: ['chicken', 'turkey', 'beef', 'pork', 'steak', 'bison', 'lamb', 'cod', 'salmon', 'tilapia', 'tuna', 'shrimp', 'fish', 'egg', 'greek yogurt', 'cottage cheese', 'whey protein', 'tofu', 'tempeh', 'lentils', 'beans', 'chickpeas'],
+            proteins: ['chicken', 'turkey', 'beef', 'pork', 'steak', 'bison', 'lamb', 'cod', 'salmon', 'tilapia', 'tuna', 'shrimp', 'fish', 'mackerel', 'sardines', 'trout', 'halibut', 'mahi', 'sea bass', 'snapper', 'egg', 'greek yogurt', 'cottage cheese', 'whey protein', 'tofu', 'tempeh', 'lentils', 'beans', 'chickpeas', 'black beans'],
             carbs: ['rice', 'quinoa', 'oats', 'oatmeal', 'bread', 'pasta', 'potato', 'sweet potato', 'tortilla', 'couscous', 'barley', 'farro'],
             fruits: ['apple', 'banana', 'blueberr', 'strawberr', 'raspberr', 'blackberr', 'orange', 'grape', 'mango', 'pineapple', 'peach', 'pear', 'cherry', 'kiwi', 'watermelon', 'cantaloupe'],
             fats: ['olive oil', 'avocado oil', 'coconut oil', 'butter', 'ghee', 'peanut butter', 'almond butter', 'almonds', 'walnuts', 'cashews', 'pecans', 'pistachios', 'chia', 'flax', 'avocado', 'seeds'],

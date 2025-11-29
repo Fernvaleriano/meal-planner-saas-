@@ -2107,14 +2107,33 @@ PORTION SIZING GUIDANCE:
 - Adjust carb portions: 150-300g cooked rice/pasta, 200-400g potatoes
 - Don't be timid with portions - hitting targets is more important than "small portions"
 
-CRITICAL VARIETY REQUIREMENT:
-Create UNIQUE and CREATIVE meals. DO NOT default to common patterns like eggs/toast/avocado.
-Vary your meal choices across:
-- Different protein sources (chicken, beef, fish, turkey, tofu, eggs, legumes)
-- Different cuisines (Italian, Mexican, Asian, Mediterranean, American)
-- Different cooking styles (grilled, baked, stir-fried, slow-cooked)
-- Different carb sources (rice, pasta, quinoa, sweet potato, bread, oats)
-Think creatively and provide interesting variety!
+🚨 CRITICAL VARIETY RULES - HARD LIMITS (VIOLATION = PLAN REJECTION):
+
+CARB VARIETY (STRICT ENFORCEMENT):
+- Sweet potato: MAX 2-3 times per WEEK (NOT every day!)
+- Each carb source MAX 3x per week: rice, quinoa, pasta, oats, potatoes, bread
+- ROTATE carbs: Day 1 rice → Day 2 quinoa → Day 3 pasta → Day 4 oats → etc.
+- NEVER use same carb source in breakfast AND dinner on same day
+
+BREAKFAST VARIETY (STRICT ENFORCEMENT):
+- DIFFERENT main protein each day: Day 1 eggs → Day 2 turkey → Day 3 oats+whey → Day 4 yogurt
+- NEVER use "ground turkey + eggs + sweet potato" more than 1x per week
+- Breakfast options to rotate: eggs, Greek yogurt, cottage cheese, oats+whey, turkey, smoked salmon
+
+PROTEIN VARIETY (STRICT ENFORCEMENT):
+- Use DIFFERENT protein source for lunch vs dinner each day
+- Rotate weekly: chicken, beef, fish, pork, turkey, shrimp, eggs
+- Fish should appear 2-3x per week minimum (salmon, tilapia, cod, tuna)
+
+SNACK VARIETY:
+- NOT just "Greek yogurt + fruit" every day
+- Rotate: yogurt, cottage cheese, protein shake, nuts+fruit, hard boiled eggs, tuna
+
+MACRO BALANCE PRIORITY (when short on macros):
+1. SHORT on CARBS? → Add MORE carbs (rice, bread, banana, oats) - NOT fat!
+2. SHORT on PROTEIN? → Add more protein (chicken, eggs, yogurt) - NOT fat!
+3. SHORT on FAT? → Only THEN add fat sources
+4. NEVER fill calorie gaps with oil/butter - use whole foods!
 
 CRITICAL MEAL STRUCTURE:
 Generate ${mealStructure}. DO NOT generate more or fewer items.
@@ -2316,8 +2335,16 @@ ${day > 1 ? 'ENSURE VARIETY: This is Day ' + day + ', so make sure meals are dif
 
 CRITICAL: Return ONLY valid JSON with NO special characters, NO quotes in text, NO newlines in strings.
 Use only alphanumeric characters and basic punctuation (periods, commas) in text fields.
-Replace all quotes with apostrophes. Keep instructions simple and brief.
-Include detailed ingredients list and full cooking instructions.
+Replace all quotes with apostrophes.
+
+🚨 CRITICAL INSTRUCTION RULES (MUST FOLLOW):
+1. ONLY mention ingredients that are in your ingredients array - NO extras!
+2. If ingredients say "Eggs (2 whole)", instructions must say "2 eggs" - NOT "3 eggs"!
+3. DO NOT add garnishes, toppings, or extras not in the ingredients list
+4. NO "top with almonds" unless almonds are in ingredients
+5. NO "garnish with parsley" unless parsley is in ingredients
+6. Match EXACT quantities: if ingredients say "1 tsp olive oil", don't say "2 tbsp oil" in instructions
+7. Keep instructions simple: just cooking steps, no imaginary ingredients
 
 CRITICAL INGREDIENTS FORMAT:
 You MUST return ingredients as an ARRAY OF STRINGS in natural language format.
