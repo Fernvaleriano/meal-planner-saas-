@@ -1129,11 +1129,11 @@ const PORTION_LIMITS = {
   'bagel_plain': { min: 1, max: 1, unit: 'bagel', type: 'carbs' },
   'english_muffin_whole': { min: 1, max: 2, unit: 'muffin', type: 'carbs' },
 
-  // FATS - OILS
-  'olive_oil': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
-  'avocado_oil': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
-  'coconut_oil': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
-  'butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+  // FATS - OILS (keep minimal - 1 tsp = 0.33 tbsp, 1 tbsp = 1)
+  'olive_oil': { min: 0.33, max: 1, unit: 'tbsp', type: 'fats' },
+  'avocado_oil': { min: 0.33, max: 1, unit: 'tbsp', type: 'fats' },
+  'coconut_oil': { min: 0.33, max: 1, unit: 'tbsp', type: 'fats' },
+  'butter': { min: 0.33, max: 1, unit: 'tbsp', type: 'fats' },
 
   // FATS - NUT BUTTERS
   'peanut_butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
@@ -1269,6 +1269,16 @@ function sanitizeIngredient(ingredient) {
   if (fruitPattern.test(sanitized)) {
     // If ingredient contains a fruit name and has very small gram amount, convert to count
     sanitized = sanitized.replace(/\(([1-5])g\)$/i, '($1 medium)');
+  }
+
+  // REDUCE COOKING FATS: Convert 1 tbsp → 1 tsp for cooking oils/butter
+  // This saves ~80 calories per occurrence (120 cal → 40 cal)
+  const cookingFatPattern = /\b(olive oil|avocado oil|coconut oil|vegetable oil|canola oil|sesame oil|butter|ghee)\s*\(1\s*tbsp\)/gi;
+  if (cookingFatPattern.test(sanitized)) {
+    // Reset regex lastIndex before replace
+    const replacePattern = /\b(olive oil|avocado oil|coconut oil|vegetable oil|canola oil|sesame oil|butter|ghee)\s*\(1\s*tbsp\)/gi;
+    sanitized = sanitized.replace(replacePattern, '$1 (1 tsp)');
+    console.log(`🛢️ REDUCED COOKING FAT: 1 tbsp → 1 tsp to save ~80 calories`);
   }
 
   // Log if we made changes
