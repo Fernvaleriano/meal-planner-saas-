@@ -2030,6 +2030,45 @@ Include at least 1-2 branded fitness foods per day in this meal plan.`;
         }
 
         const variationSeed = Math.floor(Math.random() * 1000000);
+
+        // Goal-based fat/oil guidance
+        const fatGuidance = goal === 'lose weight'
+            ? `4. FATS (WEIGHT LOSS - SATIETY FOCUS):
+   - AVOID added cooking oils - use non-stick spray or dry cooking methods
+   - Get fats from WHOLE FOODS only: eggs, salmon, avocado, nuts
+   - Nuts: 28-35g max (natural fats, filling)
+   - Nut butters: 1 tbsp max (calorie-dense)
+   - NO olive oil, butter, or cooking fats - every calorie counts!
+   - Fatty fish and eggs provide enough fat naturally`
+            : `4. ADD fats for satiety (NOT every meal needs added fat!):
+   - Nuts: 28-45g (variety, not just almonds)
+   - Oils: ONLY 1-2 meals MAX should have cooking oil (1 tsp each)
+   - Nut butters: 1-2 tbsp (great for breakfast/snack)
+   - SKIP oil if meal already has fat (salmon, eggs, avocado, nuts)`;
+
+        // Goal-based meal examples
+        const mealExamples = goal === 'lose weight'
+            ? `EXAMPLES OF WINNING MEALS (WEIGHT LOSS - NO COOKING OILS):
+Breakfast: ["Eggs (3 whole)", "Oats (50g dry)", "Blueberries (100g)"] - eggs provide fat, no oil needed
+Lunch: ["Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)"] - dry-grilled chicken, NO oil
+Dinner: ["Salmon (150g)", "Sweet Potato (200g)", "Asparagus (150g)"] - salmon is fatty, NO added oil
+Snack: ["Greek Yogurt (200g)", "Strawberries (100g)", "Almonds (28g)"] - whole food fats only
+
+REMEMBER (WEIGHT LOSS):
+- ZERO cooking oils - use non-stick spray or dry cooking
+- Get fats from whole foods: eggs, salmon, nuts, avocado
+- Every calorie counts - satiety matters most!`
+            : `EXAMPLES OF WINNING MEALS (3-4 ingredients, LARGER portions, NOT every meal has oil):
+Breakfast: ["Eggs (3 whole)", "Oats (60g dry)", "Blueberries (100g)"] - NO added oil needed, eggs have fat
+Lunch: ["Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)", "Olive Oil (1 tsp)"] - only meal with oil
+Dinner: ["Salmon (150g)", "Sweet Potato (200g)", "Asparagus (150g)"] - NO oil needed, salmon is fatty
+Snack: ["Greek Yogurt (200g)", "Strawberries (150g)"] - simple, no oil
+
+REMEMBER:
+- FEWER ingredients with LARGER portions!
+- NOT every meal needs cooking oil - max 1-2 per day!
+- Fatty fish (salmon), eggs, avocado, and nuts provide natural fats`;
+
         const dayPrompt = `Create 1-day meal plan for Day ${day} of ${numDays}.
 [Variation: ${variationSeed}] - Generate UNIQUE meals different from any previous generation.
 Stats: ${age}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
@@ -2319,10 +2358,7 @@ STEP-BY-STEP FOR EACH MEAL:
    - Use 70-80g dry oats (NOT always maxed)
    - Use 250-280g potatoes (NOT 300g max)
 
-4. ADD fats for satiety:
-   - Nuts: 28-45g (variety, not just almonds)
-   - Oils: 1 tsp only (minimal for cooking - NOT 1 tbsp)
-   - Nut butters: 1-2 tbsp
+${fatGuidance}
 
 5. ADD vegetables/fruits:
    - Vegetables: 150-200g portions
@@ -2337,12 +2373,7 @@ STEP-BY-STEP FOR EACH MEAL:
 
 8. Format as string array with amounts in parentheses
 
-EXAMPLES OF WINNING MEALS (3-4 ingredients, LARGER portions):
-Breakfast: ["Eggs (3 whole)", "Oats (60g dry)", "Whey Protein (1 scoop)", "Blueberries (100g)"]
-Lunch: ["Chicken Breast (150g)", "Brown Rice (1 cup cooked)", "Broccoli (150g)", "Olive Oil (1 tsp)"]
-Dinner: ["Ground Turkey (150g)", "Sweet Potato (200g)", "Green Beans (150g)", "Olive Oil (1 tsp)"]
-
-REMEMBER: FEWER ingredients with LARGER portions! Better to have 3-4 foods at 150g each than 6 foods at 70g each!`;
+${mealExamples}`;
 
         // Build targets object for hybrid Gemini + JS optimizer
         const dayTargets = {
