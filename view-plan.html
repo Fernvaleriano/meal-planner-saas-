@@ -4715,18 +4715,32 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
 
         // Standardize food names for consistent aggregation
         function standardizeFoodName(name) {
-            let std = name.trim();
-            // Standardize common variations to singular form
+            // First, convert underscores to spaces
+            let std = name.trim().replace(/_/g, ' ');
+
+            // Standardize common variations
             const replacements = {
                 'bell peppers': 'Bell Pepper',
                 'bell pepper': 'Bell Pepper',
-                'green beans': 'Green Beans', // Keep plural for this one
+                'green beans': 'Green Beans',
                 'almonds': 'Almonds',
                 'walnuts': 'Walnuts',
                 'blueberries': 'Blueberries',
                 'strawberries': 'Strawberries',
                 'eggs': 'Eggs',
-                'egg whites': 'Egg Whites'
+                'egg whites': 'Egg Whites',
+                // Handle underscore variations
+                'brown rice cooked': 'Brown Rice',
+                'brown rice': 'Brown Rice',
+                'lentils cooked': 'Lentils',
+                'lentils': 'Lentils',
+                'quinoa cooked': 'Quinoa',
+                'olive oil': 'Olive Oil',
+                'soy sauce': 'Soy Sauce',
+                'cottage cheese nonfat': 'Cottage Cheese Nonfat',
+                'cottage cheese': 'Cottage Cheese',
+                'greek yogurt nonfat': 'Greek Yogurt Nonfat',
+                'greek yogurt': 'Greek Yogurt'
             };
             const lower = std.toLowerCase();
             if (replacements[lower]) {
