@@ -528,12 +528,86 @@ ${formData.get('allergies') ? `Allergies/Restrictions: ${formData.get('allergies
 - Have 200g cottage cheese + need more protein? → ADD egg_white (don't exceed 250g)
 - Have 180g vegetables + need more? → ADD a different vegetable type
 
-**MEAL BUILDING PROCESS:**
-1. Start with 3-4 BASE foods WELL BELOW maximums (e.g., 60g dry oats, 180g chicken)
-2. Calculate estimated macros
-3. If short on macros (>15% under), ADD complementary foods (NEVER exceed portion caps!)
-4. PRIORITY: Portion limits > Hitting exact macros (Better to be 10% under than violate limits)
-5. Better to have 5 foods at realistic portions than 3 foods at unrealistic portions!
+## ===== STRATEGIC PROTEIN DISTRIBUTION (ADVANCED!) =====
+DO NOT rely on giant dairy snacks to hit protein! Use these proven strategies:
+
+**STRATEGY 1: PROTEIN STACKING (Multiple sources in one meal)**
+Instead of: greek_yogurt_nonfat (400g) = 40g protein ❌
+Do this: greek_yogurt_nonfat (200g) + egg_white (100g) + almonds (28g) = 40g protein ✅
+
+**STRATEGY 2: "PROATS" TECHNIQUE (Mix whey into oats)**
+oats_rolled_dry (75g) + whey_protein (1 scoop 30g) = 35g protein base ✅
+Then ADD: egg_large (2 whole) + egg_white (100g) + almonds (30g) = 66g total!
+
+**STRATEGY 3: LEAVE HEADROOM (Don't max every portion)**
+Chicken: Use 170-200g (not 250g max) - Saves room for variety
+Rice: Use 220-280g (not 300g max) - Leaves stomach space
+
+**STRATEGY 4: SMART COMBINATIONS**
+✅ egg_large (2 whole) + egg_white (150g) = 28g protein, not too heavy
+✅ chicken_breast (170g) + white_rice_cooked (280g) = 70g protein + carbs
+
+**STRATEGY 5: 3-MEAL APPROACH FOR HIGH TARGETS**
+If user needs 2500+ calories OR 180+ protein:
+- Each meal: 800-900 calories, 60-65g protein
+- Use 5-6 ingredients per meal (stack proteins!)
+
+**MEAL BUILDING PROCESS (STEP-BY-STEP):**
+
+STEP 1: DETERMINE meal protein target:
+   - Standard meals (4-6 per day): 35-50g protein each
+   - High-protein plan (3 meals/day): 60-70g protein each
+
+STEP 2: START with protein foundation (use STACKING strategy):
+   - Breakfast: egg_large (2 whole) + egg_white (100-150g) + whey_protein (1 scoop) = 40g base
+   - Lunch: chicken_breast (170-200g) = 50g base
+   - Dinner: ground_beef_93 (170-200g) = 40-50g base
+
+STEP 3: ADD carbs (leave headroom!):
+   - Use 220-280g cooked rice (NOT 300g max)
+   - Use 70-80g dry oats (NOT always maxed)
+
+STEP 4: ADD fats for satiety:
+   - olive_oil (1 tbsp), almonds (28g), avocado (50-100g)
+
+STEP 5: ADD vegetables for volume:
+   - broccoli (150g), spinach (100g), bell_pepper (100g)
+
+STEP 6: Calculate and add complementary foods if short:
+   - Short on protein? → ADD egg_white or greek_yogurt_nonfat
+   - Short on carbs? → ADD banana or sweet_potato
+   - Short on fats? → ADD almonds or peanut_butter
+
+**EXAMPLES OF WINNING MEALS:**
+
+Breakfast: [
+  {"food": "oats_rolled_dry", "amount": "75g"},
+  {"food": "whey_protein", "amount": "1 scoop"},
+  {"food": "egg_large", "amount": "2 eggs"},
+  {"food": "egg_white", "amount": "150g"},
+  {"food": "banana", "amount": "1 medium"},
+  {"food": "almonds", "amount": "30g"}
+]
+
+Lunch: [
+  {"food": "chicken_breast", "amount": "200g"},
+  {"food": "white_rice_cooked", "amount": "280g"},
+  {"food": "broccoli", "amount": "150g"},
+  {"food": "olive_oil", "amount": "1 tbsp"}
+]
+
+Dinner: [
+  {"food": "ground_beef_93", "amount": "200g"},
+  {"food": "sweet_potato", "amount": "280g"},
+  {"food": "asparagus", "amount": "150g"},
+  {"food": "butter", "amount": "1 tbsp"},
+  {"food": "apple", "amount": "1 large"}
+]
+
+**REMEMBER:**
+- Better to be 10% under than violate limits
+- Portion limits > Hitting exact macros
+- 5 foods at realistic portions > 3 foods at unrealistic portions
 
 ## RESPONSE FORMAT:
 Return ONLY a JSON array with EXACTLY ${mealsPerDay} meal objects like this:
