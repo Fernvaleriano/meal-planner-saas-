@@ -3906,15 +3906,17 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 // Goal-based fat/oil guidance
                 const userGoal = currentPlan.preferences?.goal || 'maintain';
                 const fatGuidance = userGoal === 'lose weight'
-                    ? `WEIGHT LOSS FAT RULES:
-- PREFER whole food fats: eggs, salmon, avocado, nuts
-- Nut butters (peanut butter): ONLY for breakfast/snacks - NEVER lunch/dinner!
-- If lunch/dinner needs fat: use 1 tsp olive oil or butter (NOT peanut butter!)
-- Skip added fat if meal has salmon, eggs, or avocado`
-                    : `FAT RULES:
-- Maximum 1-2 meals should have cooking oil (1 tsp each)
-- Nut butters: breakfast/snacks ONLY (not lunch/dinner)
-- Skip oil if meal has natural fats (salmon, eggs, avocado)`;
+                    ? `FAT RULES (BE CREATIVE - VARY SOURCES):
+- Use FATTY PROTEINS: salmon, mackerel, beef 80/20, pork, chicken thighs, whole eggs
+- WHOLE FOOD FATS: avocado, olives, cheese, full-fat dairy, nuts, seeds
+- Rotate fat sources daily - don't repeat the same one
+- Minimal added oils (1 tsp max if needed)
+- Skip added fat if protein is already fatty`
+                    : `FAT RULES (VARY YOUR SOURCES):
+- FATTY PROTEINS: salmon, beef, pork, chicken thighs, whole eggs
+- WHOLE FOODS: avocado, olives, cheese, nuts (almonds, walnuts, pecans)
+- Cooking oil: 1 tsp when needed, not every meal
+- Be creative - rotate fat sources daily`;
 
                 const prompt = `Generate a COMPLETELY NEW ${numMeals}-meal plan for Day ${dayNumber}.
 [Variation: ${variationSeed}] - Generate UNIQUE meals different from any previous generation.
