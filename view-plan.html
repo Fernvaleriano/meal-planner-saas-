@@ -4082,10 +4082,8 @@ ${mealsList}
 
 Create a detailed, actionable meal prep guide with the following sections:
 
-## 📝 Shopping List
-Group all ingredients by category (Proteins, Vegetables, Fruits, Grains/Carbs, Dairy, Pantry Items, etc.)
-Combine quantities where meals share ingredients
-Be specific with quantities and measurements
+## 📝 Shopping List Tips
+Provide tips for efficient shopping based on this meal plan (best stores, what to buy in bulk, what to buy fresh, etc.)
 
 ## ⏰ Meal Prep Timeline
 Provide a prep schedule (e.g., "Sunday: Cook all proteins", "Monday: Prep vegetables")
@@ -4208,29 +4206,77 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
             const maxWidth = pageWidth - (margin * 2);
             let y = 20;
 
-            // Title
-            doc.setFontSize(24);
+            // === TITLE PAGE ===
+            // Main Title with accent color
+            doc.setFontSize(28);
+            doc.setFont(undefined, 'bold');
             doc.setTextColor(102, 126, 234);
             doc.text('Personalized Meal Plan', margin, y);
-            y += 10;
+            y += 4;
 
-            // Client Name
+            // Decorative line under title
+            doc.setDrawColor(102, 126, 234);
+            doc.setLineWidth(1);
+            doc.line(margin, y, margin + 85, y);
+            y += 12;
+
+            // Client Name (if available)
             if (currentPlan.clientName) {
-                doc.setFontSize(16);
-                doc.setTextColor(0, 0, 0);
-                doc.text(`For: ${currentPlan.clientName}`, margin, y);
-                y += 12;
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(60, 60, 60);
+                doc.text(`Prepared for: ${currentPlan.clientName}`, margin, y);
+                y += 10;
             }
 
-            // Daily Nutrition Summary
-            doc.setFontSize(14);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Daily Nutrition Targets:', margin, y);
-            y += 8;
-            doc.setFontSize(11);
+            // Daily Nutrition Summary Box
             const nutrition = currentPlan.nutrition;
-            doc.text(`Calories: ${nutrition.calories} | Protein: ${nutrition.protein}g | Carbs: ${nutrition.carbs}g | Fat: ${nutrition.fat}g`, margin, y);
-            y += 15;
+            const boxY = y;
+            const boxHeight = 28;
+
+            // Background box
+            doc.setFillColor(248, 249, 250);
+            doc.setDrawColor(220, 220, 220);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(margin, boxY, maxWidth, boxHeight, 3, 3, 'FD');
+
+            // Box title
+            y = boxY + 7;
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(80, 80, 80);
+            doc.text('Daily Nutrition Targets', margin + 5, y);
+            y += 8;
+
+            // Macro values in colored boxes
+            const macros = [
+                { label: 'Calories', value: nutrition.calories, color: { r: 231, g: 76, b: 60 } },
+                { label: 'Protein', value: `${nutrition.protein}g`, color: { r: 46, g: 204, b: 113 } },
+                { label: 'Carbs', value: `${nutrition.carbs}g`, color: { r: 241, g: 196, b: 15 } },
+                { label: 'Fat', value: `${nutrition.fat}g`, color: { r: 230, g: 126, b: 34 } }
+            ];
+
+            let macroX = margin + 5;
+            doc.setFontSize(10);
+            macros.forEach((macro, i) => {
+                // Colored dot
+                doc.setFillColor(macro.color.r, macro.color.g, macro.color.b);
+                doc.circle(macroX + 3, y - 2, 2, 'F');
+
+                // Label and value
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(macro.color.r, macro.color.g, macro.color.b);
+                doc.text(macro.value, macroX + 8, y);
+
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(100, 100, 100);
+                const valueWidth = doc.getTextWidth(macro.value);
+                doc.text(` ${macro.label}`, macroX + 8 + valueWidth, y);
+
+                macroX += 45;
+            });
+
+            y = boxY + boxHeight + 12;
 
             // Collect all meals (handles both single-day and multi-day plans)
             let allMeals = [];
@@ -4248,7 +4294,7 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                 allMeals = currentPlan.meals;
             }
 
-            // Meals
+            // === MEALS SECTION ===
             allMeals.forEach((meal, index) => {
                 // Add day header for multi-day plans
                 if (meal.dayNumber && (index === 0 || meal.dayNumber !== allMeals[index - 1].dayNumber)) {
@@ -4256,68 +4302,110 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                         doc.addPage();
                         y = 20;
                     }
-                    doc.setFontSize(16);
-                    doc.setTextColor(102, 126, 234);
-                    doc.text(`Day ${meal.dayNumber}`, margin, y);
-                    y += 10;
+
+                    // Day header with background
+                    doc.setFillColor(102, 126, 234);
+                    doc.roundedRect(margin, y - 5, 35, 10, 2, 2, 'F');
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    doc.text(`Day ${meal.dayNumber}`, margin + 5, y + 2);
+                    y += 12;
                 }
-                if (y > 230) {
+
+                if (y > 220) {
                     doc.addPage();
                     y = 20;
                 }
 
+                // Meal card background
+                const cardStartY = y - 3;
+
+                // Meal Type Badge (if available)
+                if (meal.type) {
+                    const typeColors = {
+                        'Breakfast': { r: 255, g: 193, b: 7 },
+                        'Lunch': { r: 40, g: 167, b: 69 },
+                        'Dinner': { r: 0, g: 123, b: 255 },
+                        'Snack': { r: 108, g: 117, b: 125 },
+                        'Pre-Workout': { r: 220, g: 53, b: 69 },
+                        'Post-Workout': { r: 23, g: 162, b: 184 }
+                    };
+                    const typeColor = typeColors[meal.type] || { r: 108, g: 117, b: 125 };
+
+                    doc.setFillColor(typeColor.r, typeColor.g, typeColor.b);
+                    const badgeWidth = doc.getTextWidth(meal.type) + 6;
+                    doc.roundedRect(margin, y - 4, badgeWidth + 4, 6, 1, 1, 'F');
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    doc.text(meal.type, margin + 3, y);
+                    y += 5;
+                }
+
                 // Meal Name
-                doc.setFontSize(14);
-                doc.setTextColor(102, 126, 234);
+                doc.setFontSize(13);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(50, 50, 50);
                 const mealNameLines = doc.splitTextToSize(meal.name, maxWidth);
                 doc.text(mealNameLines, margin, y);
-                y += mealNameLines.length * 6;
+                y += mealNameLines.length * 5.5;
 
-                // Macros
-                doc.setFontSize(10);
-                doc.setTextColor(100, 100, 100);
-                doc.text(`${meal.calories} cal | ${meal.protein}g protein | ${meal.carbs}g carbs | ${meal.fat}g fat`, margin + 5, y);
-                y += 7;
+                // Macros inline with icons
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                const macroText = `${meal.calories} cal  |  ${meal.protein}g protein  |  ${meal.carbs}g carbs  |  ${meal.fat}g fat`;
+                doc.setTextColor(120, 120, 120);
+                doc.text(macroText, margin, y);
+                y += 6;
 
                 // Ingredients (if available)
                 if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
-                    doc.setFontSize(11);
-                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    doc.setTextColor(70, 70, 70);
                     doc.setFont(undefined, 'bold');
-                    doc.text('Ingredients:', margin + 5, y);
+                    doc.text('Ingredients:', margin, y);
                     y += 5;
                     doc.setFont(undefined, 'normal');
                     doc.setFontSize(9);
+                    doc.setTextColor(50, 50, 50);
                     meal.ingredients.forEach(ingredient => {
                         if (y > 270) {
                             doc.addPage();
                             y = 20;
                         }
-                        const ingredientLines = doc.splitTextToSize(`• ${ingredient}`, maxWidth - 10);
-                        doc.text(ingredientLines, margin + 10, y);
+                        const ingredientLines = doc.splitTextToSize(`• ${ingredient}`, maxWidth - 5);
+                        doc.text(ingredientLines, margin + 5, y);
                         y += ingredientLines.length * 4;
                     });
-                    y += 3;
+                    y += 2;
                 }
 
                 // Cooking Instructions
                 if (meal.instructions) {
-                    if (y > 260) {
+                    if (y > 255) {
                         doc.addPage();
                         y = 20;
                     }
-                    doc.setFontSize(11);
+                    doc.setFontSize(10);
                     doc.setFont(undefined, 'bold');
-                    doc.text('Cooking Instructions:', margin + 5, y);
+                    doc.setTextColor(70, 70, 70);
+                    doc.text('Instructions:', margin, y);
                     y += 5;
                     doc.setFont(undefined, 'normal');
                     doc.setFontSize(9);
-                    const instructionLines = doc.splitTextToSize(meal.instructions, maxWidth - 10);
-                    doc.text(instructionLines, margin + 10, y);
-                    y += instructionLines.length * 4 + 8;
+                    doc.setTextColor(50, 50, 50);
+                    const instructionLines = doc.splitTextToSize(meal.instructions, maxWidth - 5);
+                    doc.text(instructionLines, margin + 5, y);
+                    y += instructionLines.length * 4;
                 }
 
-                y += 5; // Space between meals
+                // Separator line between meals
+                y += 4;
+                doc.setDrawColor(230, 230, 230);
+                doc.setLineWidth(0.3);
+                doc.line(margin, y, pageWidth - margin, y);
+                y += 8;
             });
 
             // Grocery List - organized by category
@@ -4338,32 +4426,63 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
             if (hasItems) {
                 doc.addPage();
                 y = 20;
-                doc.setFontSize(20);
+
+                // Shopping List Title with decorative styling
+                doc.setFontSize(22);
+                doc.setFont(undefined, 'bold');
                 doc.setTextColor(102, 126, 234);
                 doc.text('Shopping List', margin, y);
-                y += 15;
+                y += 3;
+
+                // Underline for title
+                doc.setDrawColor(102, 126, 234);
+                doc.setLineWidth(0.5);
+                doc.line(margin, y, margin + 45, y);
+                y += 12;
+
+                // Category colors for visual distinction
+                const categoryColors = {
+                    proteins: { r: 231, g: 76, b: 60 },     // Red
+                    carbs: { r: 241, g: 196, b: 15 },       // Yellow
+                    vegetables: { r: 46, g: 204, b: 113 },  // Green
+                    fruits: { r: 155, g: 89, b: 182 },      // Purple
+                    fats: { r: 230, g: 126, b: 34 },        // Orange
+                    dairy: { r: 52, g: 152, b: 219 },       // Blue
+                    condiments: { r: 149, g: 165, b: 166 }, // Gray
+                    other: { r: 127, g: 140, b: 141 }       // Dark gray
+                };
 
                 categoryOrder.forEach(category => {
                     const items = groceryByCategory[category];
                     if (!items || items.length === 0) return;
 
                     // Check if we need a new page
-                    if (y > 250) {
+                    if (y > 245) {
                         doc.addPage();
                         y = 20;
                     }
 
-                    // Category header
-                    doc.setFontSize(12);
+                    // Category header with colored background
+                    const color = categoryColors[category] || categoryColors.other;
+                    const headerLabel = categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1);
+
+                    // Draw colored rectangle behind category name
+                    doc.setFillColor(color.r, color.g, color.b);
+                    const headerWidth = doc.getTextWidth(headerLabel) + 8;
+                    doc.roundedRect(margin, y - 4, headerWidth, 7, 1, 1, 'F');
+
+                    // Category text (white on colored background)
+                    doc.setFontSize(11);
                     doc.setFont(undefined, 'bold');
-                    doc.setTextColor(80, 80, 80);
-                    doc.text(categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1), margin, y);
-                    y += 7;
+                    doc.setTextColor(255, 255, 255);
+                    doc.text(headerLabel, margin + 4, y);
+                    y += 8;
 
                     // Items in this category
                     doc.setFontSize(10);
                     doc.setFont(undefined, 'normal');
-                    doc.setTextColor(0, 0, 0);
+                    doc.setTextColor(40, 40, 40);
+
                     items.forEach(item => {
                         if (y > 270) {
                             doc.addPage();
@@ -4391,15 +4510,13 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                             if (unit === 'scoop') unit = 'scoops';
                         }
 
-                        // Standardize food names (remove trailing 's' inconsistencies)
-                        let name = item.name;
-
-                        const itemText = `  • ${qty} ${unit} ${name}`;
-                        doc.text(itemText, margin, y);
-                        y += 5;
+                        // Format: checkbox + quantity + unit + name
+                        const itemText = `[ ]  ${qty} ${unit} ${item.name}`;
+                        doc.text(itemText, margin + 3, y);
+                        y += 5.5;
                     });
 
-                    y += 5; // Space between categories
+                    y += 8; // Space between categories
                 });
             }
 
@@ -4502,11 +4619,27 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 doc.addPage();
                 y = 20;
 
-                // Title
-                doc.setFontSize(20);
+                // Title with decorative styling
+                doc.setFontSize(22);
+                doc.setFont(undefined, 'bold');
                 doc.setTextColor(255, 107, 107);
                 doc.text('Meal Prep Guide', margin, y);
+                y += 3;
+
+                // Decorative line under title
+                doc.setDrawColor(255, 107, 107);
+                doc.setLineWidth(0.5);
+                doc.line(margin, y, margin + 50, y);
                 y += 12;
+
+                // Section icon colors for visual variety
+                const sectionColors = {
+                    'Shopping List Tips': { r: 46, g: 204, b: 113 },
+                    'Meal Prep Timeline': { r: 52, g: 152, b: 219 },
+                    'Storage Instructions': { r: 155, g: 89, b: 182 },
+                    'Reheating Instructions': { r: 231, g: 76, b: 60 },
+                    'Time-Saving Tips': { r: 241, g: 196, b: 15 }
+                };
 
                 // Parse and format the meal prep guide for PDF
                 const lines = response.split('\n');
@@ -4516,7 +4649,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                     const line = lines[i].trim();
 
                     if (!line) {
-                        y += 4; // Blank line spacing
+                        y += 3; // Blank line spacing
                         continue;
                     }
 
@@ -4528,19 +4661,33 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
 
                     // Section headers (## )
                     if (line.startsWith('## ')) {
-                        y += 5;
-                        if (y > 265) {
+                        y += 6;
+                        if (y > 260) {
                             doc.addPage();
                             y = 20;
                         }
                         const headerText = line.replace('## ', '').replace(/[📝⏰🥡🔥💡]/g, '').trim();
-                        doc.setFontSize(14);
+
+                        // Get section color or use default
+                        let sectionColor = { r: 102, g: 126, b: 234 };
+                        for (const [key, color] of Object.entries(sectionColors)) {
+                            if (headerText.toLowerCase().includes(key.toLowerCase().split(' ')[0])) {
+                                sectionColor = color;
+                                break;
+                            }
+                        }
+
+                        // Colored accent bar
+                        doc.setFillColor(sectionColor.r, sectionColor.g, sectionColor.b);
+                        doc.rect(margin, y - 4, 3, 8, 'F');
+
+                        doc.setFontSize(13);
                         doc.setFont(undefined, 'bold');
-                        doc.setTextColor(102, 126, 234);
-                        doc.text(headerText, margin, y);
+                        doc.setTextColor(sectionColor.r, sectionColor.g, sectionColor.b);
+                        doc.text(headerText, margin + 6, y);
                         y += 8;
                         doc.setFont(undefined, 'normal');
-                        doc.setTextColor(0, 0, 0);
+                        doc.setTextColor(50, 50, 50);
                         continue;
                     }
 
@@ -4552,10 +4699,11 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                             y = 20;
                         }
                         const subheaderText = line.replace('### ', '');
-                        doc.setFontSize(11);
+                        doc.setFontSize(10);
                         doc.setFont(undefined, 'bold');
+                        doc.setTextColor(70, 70, 70);
                         doc.text(subheaderText, margin + 5, y);
-                        y += 6;
+                        y += 5;
                         doc.setFont(undefined, 'normal');
                         continue;
                     }
@@ -4563,6 +4711,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                     // Bullet points
                     if (line.startsWith('* ') || line.startsWith('- ')) {
                         doc.setFontSize(9);
+                        doc.setTextColor(50, 50, 50);
                         const bulletText = line.replace(/^[*-] /, '').replace(/\*\*/g, '');
                         const bulletLines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 15);
 
@@ -4571,7 +4720,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                                 doc.addPage();
                                 y = 20;
                             }
-                            doc.text(bulletLine, margin + (idx === 0 ? 8 : 12), y);
+                            doc.text(bulletLine, margin + (idx === 0 ? 6 : 10), y);
                             y += 4;
                         });
                         continue;
@@ -4579,6 +4728,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
 
                     // Regular paragraph text
                     doc.setFontSize(9);
+                    doc.setTextColor(50, 50, 50);
                     const textLines = doc.splitTextToSize(line, maxWidth - 5);
                     textLines.forEach(textLine => {
                         if (y > 275) {
