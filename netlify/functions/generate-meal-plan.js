@@ -1136,19 +1136,21 @@ const PORTION_LIMITS = {
   'butter': { min: 0.33, max: 1, unit: 'tbsp', type: 'fats' },
 
   // FATS - NUT BUTTERS
-  'peanut_butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
-  'almond_butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
-  'cashew_butter': { min: 0.5, max: 2, unit: 'tbsp', type: 'fats' },
+  'peanut_butter': { min: 0.5, max: 1, unit: 'tbsp', type: 'fats' },  // Was 2 tbsp, now 1 tbsp max (8g fat)
+  'almond_butter': { min: 0.5, max: 1, unit: 'tbsp', type: 'fats' },  // Was 2 tbsp, now 1 tbsp max
+  'cashew_butter': { min: 0.5, max: 1, unit: 'tbsp', type: 'fats' },  // Was 2 tbsp, now 1 tbsp max
 
-  // FATS - NUTS & SEEDS
-  'almonds': { min: 14, max: 56, unit: 'g', type: 'fats' },
-  'walnuts': { min: 14, max: 42, unit: 'g', type: 'fats' },
-  'cashews': { min: 14, max: 42, unit: 'g', type: 'fats' },
-  'chia_seeds': { min: 1, max: 3, unit: 'tbsp', type: 'fats' },
-  'flax_seeds': { min: 1, max: 3, unit: 'tbsp', type: 'fats' },
+  // FATS - NUTS & SEEDS (REDUCED TO CONTROL FAT!)
+  'almonds': { min: 14, max: 35, unit: 'g', type: 'fats' },  // Was 56g, now 35g max
+  'walnuts': { min: 14, max: 35, unit: 'g', type: 'fats' },  // Was 42g, now 35g max
+  'cashews': { min: 14, max: 35, unit: 'g', type: 'fats' },  // Was 42g, now 35g max
+  'pecans': { min: 14, max: 35, unit: 'g', type: 'fats' },
+  'pistachios': { min: 14, max: 35, unit: 'g', type: 'fats' },
+  'chia_seeds': { min: 1, max: 2, unit: 'tbsp', type: 'fats' },
+  'flax_seeds': { min: 1, max: 2, unit: 'tbsp', type: 'fats' },
 
-  // FATS - WHOLE FOODS
-  'avocado': { min: 50, max: 150, unit: 'g', type: 'fats' },
+  // FATS - WHOLE FOODS (REDUCED)
+  'avocado': { min: 30, max: 75, unit: 'g', type: 'fats' },  // Was 150g, now 75g max
 
   // VEGETABLES
   'broccoli': { min: 50, max: 200, unit: 'g', type: 'vegetables' },
@@ -1382,24 +1384,42 @@ function validateAndFixInstructions(instructions, ingredients) {
     });
   }
 
-  // Fix other quantity mismatches for common items
+  // Fix other quantity mismatches for all ingredients
   ingredientData.forEach(ing => {
-    // Look for quantity mentions of this ingredient in instructions
-    const simpleNameMatch = ing.name.match(/^(\w+)/);
-    if (simpleNameMatch) {
-      const simpleName = simpleNameMatch[1];
-      // Pattern like "200g chicken" or "2 slices bread"
-      const quantityPattern = new RegExp(`(\\d+\\.?\\d*)\\s*(g|oz|tbsp|tsp|cup|slices?|scoops?)\\s*${simpleName}`, 'gi');
-      fixedInstructions = fixedInstructions.replace(quantityPattern, (match, qty, unit) => {
-        // Only fix if the quantity is significantly different
+    // Get the main food name (first word or full name for short names)
+    const nameWords = ing.name.toLowerCase().split(/\s+/);
+    const searchTerms = [
+      ing.name.toLowerCase(),
+      nameWords[0],
+      ...nameWords.slice(0, 2).filter(w => w.length > 2)
+    ].filter(t => t && t.length >= 3);
+
+    searchTerms.forEach(searchTerm => {
+      // Pattern 1: "200g chicken" or "66g oats"
+      const pattern1 = new RegExp(`(\\d+\\.?\\d*)\\s*(g|oz|tbsp|tsp|cups?)\\s+${searchTerm}`, 'gi');
+      fixedInstructions = fixedInstructions.replace(pattern1, (match, qty, unit) => {
         const instructionQty = parseFloat(qty);
-        if (Math.abs(instructionQty - ing.quantity) > ing.quantity * 0.2) {
-          console.log(`🔧 FIXING QUANTITY: "${match}" → "${ing.amount} ${simpleName}"`);
-          return `${ing.amount} ${simpleName}`;
+        // Fix if quantity differs by more than 5% or 5g (whichever is greater)
+        const threshold = Math.max(ing.quantity * 0.05, 5);
+        if (Math.abs(instructionQty - ing.quantity) > threshold) {
+          console.log(`🔧 FIXING QUANTITY: "${match}" → "${ing.quantity}${unit} ${searchTerm}"`);
+          return `${ing.quantity}${unit} ${searchTerm}`;
         }
         return match;
       });
-    }
+
+      // Pattern 2: "Cook 200g cod" or "Bake 250g salmon"
+      const pattern2 = new RegExp(`(cook|bake|grill|sear|steam|roast|fry|scramble)\\s+(\\d+\\.?\\d*)\\s*(g|oz)\\s+${searchTerm}`, 'gi');
+      fixedInstructions = fixedInstructions.replace(pattern2, (match, verb, qty, unit) => {
+        const instructionQty = parseFloat(qty);
+        const threshold = Math.max(ing.quantity * 0.05, 5);
+        if (Math.abs(instructionQty - ing.quantity) > threshold) {
+          console.log(`🔧 FIXING QUANTITY: "${match}" → "${verb} ${ing.quantity}${unit} ${searchTerm}"`);
+          return `${verb} ${ing.quantity}${unit} ${searchTerm}`;
+        }
+        return match;
+      });
+    });
   });
 
   // Clean up any double spaces or awkward punctuation from removals

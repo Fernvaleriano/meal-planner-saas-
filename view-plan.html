@@ -3903,20 +3903,23 @@ Return ONLY valid JSON (NO markdown, NO backticks):
                 const dailyCal = targets.calories || 2000;
                 const variationSeed = Math.floor(Math.random() * 1000000);
 
-                // Goal-based fat/oil guidance
+                // Goal-based fat/oil guidance - STRICT LIMITS
                 const userGoal = currentPlan.preferences?.goal || 'maintain';
+                const dailyFat = targets.fat || 70;
+                const fatPerMeal = Math.round(dailyFat / numMeals);
                 const fatGuidance = userGoal === 'lose weight'
-                    ? `FAT RULES (BE CREATIVE - VARY SOURCES):
-- Use FATTY PROTEINS: salmon, mackerel, beef 80/20, pork, chicken thighs, whole eggs
-- WHOLE FOOD FATS: avocado, olives, cheese, full-fat dairy, nuts, seeds
-- Rotate fat sources daily - don't repeat the same one
-- Minimal added oils (1 tsp max if needed)
-- Skip added fat if protein is already fatty`
-                    : `FAT RULES (VARY YOUR SOURCES):
-- FATTY PROTEINS: salmon, beef, pork, chicken thighs, whole eggs
-- WHOLE FOODS: avocado, olives, cheese, nuts (almonds, walnuts, pecans)
-- Cooking oil: 1 tsp when needed, not every meal
-- Be creative - rotate fat sources daily`;
+                    ? `🚨 FAT RULES - STRICT LIMITS (${dailyFat}g daily = ~${fatPerMeal}g per meal):
+- Nuts: MAX 28g per serving (NEVER 50g+!)
+- Avocado: MAX 50g per meal
+- DO NOT STACK fats: eggs OR nuts OR avocado - pick ONE per meal
+- Eggs (3 whole) = 15g fat - no other fat needed
+- Salmon = 17g fat - no added fat needed`
+                    : `🚨 FAT RULES - STRICT LIMITS (${dailyFat}g daily = ~${fatPerMeal}g per meal):
+- Nuts: MAX 35g per serving (NEVER 50g+!)
+- Avocado: MAX 75g per meal
+- DO NOT STACK multiple fat sources in one meal
+- ONE fat source per meal: eggs OR nuts OR avocado
+- Fatty fish (salmon) needs NO added fat`;
 
                 const prompt = `Generate a COMPLETELY NEW ${numMeals}-meal plan for Day ${dayNumber}.
 [Variation: ${variationSeed}] - Generate UNIQUE meals different from any previous generation.
