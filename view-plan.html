@@ -4385,8 +4385,10 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                             // Singular forms
                             if (unit === 'slices') unit = 'slice';
                             if (unit === 'scoops') unit = 'scoop';
-                            if (unit === 'tbsps') unit = 'tbsp';
-                            if (unit === 'cups') unit = 'cup';
+                        } else if (qty > 1) {
+                            // Plural forms
+                            if (unit === 'slice') unit = 'slices';
+                            if (unit === 'scoop') unit = 'scoops';
                         }
 
                         // Standardize food names (remove trailing 's' inconsistencies)
@@ -4658,7 +4660,11 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 'oz': { base: 'oz', factor: 1 },
                 'ounce': { base: 'oz', factor: 1 },
                 'ml': { base: 'ml', factor: 1 },
-                'milliliter': { base: 'ml', factor: 1 }
+                'milliliter': { base: 'ml', factor: 1 },
+                // Normalize plural to singular for aggregation
+                'slices': { base: 'slice', factor: 1 },
+                'scoops': { base: 'scoop', factor: 1 },
+                'cups': { base: 'cup', factor: 1 }
             };
 
             // For grams, only convert to kg if >= 1000g
