@@ -3134,12 +3134,25 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
       return meal;
     }
 
-    // Recalculate macros with adjusted ingredients
+    // FIX: Re-validate portions after macro balancing adjustments
+    const postBalanceValidation = validateAndCapPortions(adjustedIngredients, meal.type);
+    adjustedIngredients = postBalanceValidation.ingredients;
+
+    if (postBalanceValidation.violations.length > 0) {
+      console.log(`   🛡️ Post-balance violations capped:`, postBalanceValidation.violations.map(v =>
+        `${v.ingredient} → ${v.capped}${v.unit}`
+      ).join(', '));
+    }
+
+    // Recalculate macros with adjusted AND re-validated ingredients
     const recalculated = calculateMacrosFromIngredients(adjustedIngredients);
+
+    // FIX: Sync meal name with final ingredients
+    const finalMealName = syncMealNameWithIngredients(meal.name, adjustedIngredients);
 
     return {
       ...meal,
-      name: meal.name, // Keep original name
+      name: finalMealName,
       ingredients: adjustedIngredients,
       calories: recalculated.totals.calories,
       protein: recalculated.totals.protein,
@@ -4609,7 +4622,7 @@ exports.handler = async (event, context) => {
 
         correctedData.plan = correctedData.plan.map(meal => {
           // Scale ingredients AND meal name to match scaled macros
-          const scaledIngredients = meal.ingredients ? meal.ingredients.map(ing => {
+          let scaledIngredients = meal.ingredients ? meal.ingredients.map(ing => {
             if (typeof ing === 'string') {
               return scaleIngredientString(ing, finalScale);
             }
@@ -4622,6 +4635,16 @@ exports.handler = async (event, context) => {
             console.error(`❌ FINAL SAFETY CHECK: Meal "${meal.name}" has no ingredients! Cannot scale properly.`);
             console.error('This will cause macro/ingredient desync. Keeping original meal unchanged.');
             return meal; // Return unchanged to avoid desync
+          }
+
+          // FIX: Re-validate portions after final scaling
+          const postFinalScaleValidation = validateAndCapPortions(scaledIngredients, meal.type);
+          scaledIngredients = postFinalScaleValidation.ingredients;
+
+          if (postFinalScaleValidation.violations.length > 0) {
+            console.log(`   🛡️ Final scale violations capped in "${meal.name}":`, postFinalScaleValidation.violations.map(v =>
+              `${v.ingredient} → ${v.capped}${v.unit}`
+            ).join(', '));
           }
 
           const recalculated = calculateMacrosFromIngredients(scaledIngredients);
@@ -4640,9 +4663,15 @@ exports.handler = async (event, context) => {
             console.warn(`⚠️ SYNC WARNING: ${meal.name} - Recalculated ${recalculated.totals.calories}cal vs expected ${Math.round(meal.calories * finalScale)}cal (diff: ${Math.round(syncCheck)}cal)`);
           }
 
+          // FIX: Sync meal name with final validated ingredients
+          const finalMealName = syncMealNameWithIngredients(
+            updateMealNamePortions(meal.name, finalScale),
+            scaledIngredients
+          );
+
           return {
             ...meal,
-            name: updateMealNamePortions(meal.name, finalScale),
+            name: finalMealName,
             ingredients: scaledIngredients,
             calories: recalculated.totals.calories,
             protein: recalculated.totals.protein,
