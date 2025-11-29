@@ -1238,22 +1238,35 @@ function sanitizeIngredient(ingredient) {
 
   // Fix "Xg medium/large/small/whole" → "X medium/large/small/whole"
   // e.g., "1g medium apple" → "1 medium apple", "Apple (2g medium)" → "Apple (2 medium)"
-  sanitized = sanitized.replace(/(\d+)g\s+(medium|large|small|whole)/gi, '$1 $2');
+  // Use \s* to also catch cases without space like "1gmedium"
+  sanitized = sanitized.replace(/(\d+)g\s*(medium|large|small|whole)/gi, '$1 $2');
 
   // Fix count-based items that shouldn't use grams
   // Items that are typically counted, not weighed
   const countBasedItems = [
     'egg whites?', 'eggs?', 'whole eggs?', 'egg white',
     'slices?', 'scoops?', 'tbsp', 'tsp', 'cups?',
-    'apples?', 'bananas?', 'oranges?', 'tortillas?'
+    'apples?', 'bananas?', 'oranges?', 'tortillas?',
+    'peaches?', 'pears?', 'plums?', 'mangos?'
   ];
 
   // Fix "Xg <count-item>" when X is small (1-10) - likely meant as count
-  const countPattern = new RegExp(`(\\d)g\\s+(${countBasedItems.join('|')})`, 'gi');
+  const countPattern = new RegExp(`(\\d)g\\s*(${countBasedItems.join('|')})`, 'gi');
   sanitized = sanitized.replace(countPattern, '$1 $2');
 
   // Fix "(Xg scoop)" → "(X scoop)"
-  sanitized = sanitized.replace(/(\d+)g\s+(scoop)/gi, '$1 $2');
+  sanitized = sanitized.replace(/(\d+)g\s*(scoop)/gi, '$1 $2');
+
+  // Fix "Food (Xg medium)" → "Food (X medium)" inside parens
+  sanitized = sanitized.replace(/\((\d+)g\s*(medium|large|small|whole)\)/gi, '($1 $2)');
+
+  // Fix "Food (Xg)" where X is very small (1-5) for count items in food name
+  // e.g., "Apple (1g)" → "Apple (1 medium)" if apple is in name
+  const fruitPattern = /\b(apple|banana|orange|peach|pear|plum|mango)\b/i;
+  if (fruitPattern.test(sanitized)) {
+    // If ingredient contains a fruit name and has very small gram amount, convert to count
+    sanitized = sanitized.replace(/\(([1-5])g\)$/i, '($1 medium)');
+  }
 
   // Log if we made changes
   if (sanitized !== ingredient) {
@@ -4045,7 +4058,22 @@ function syncMealNameWithIngredients(mealName, ingredients) {
     'walnuts': ['walnuts'],
     'almonds': ['almonds'],
     'whey': ['whey protein'],
-    'protein': ['whey protein']
+    'protein': ['whey protein'],
+    'peanut': ['peanut butter', 'peanut butter natural'],
+    'butter': ['peanut butter', 'peanut butter natural', 'almond butter'],
+    'almond': ['almond butter', 'almonds'],
+    'avocado': ['avocado'],
+    'olive': ['olive oil'],
+    'oil': ['olive oil'],
+    'honey': ['honey'],
+    'oat': ['oats', 'oats rolled dry', 'rolled oats'],
+    'egg': ['eggs', 'egg whites', 'whole eggs'],
+    'eggs': ['eggs', 'egg whites', 'whole eggs'],
+    'peach': ['peach', 'peaches'],
+    'toast': ['bread', 'whole wheat bread', 'ezekiel bread'],
+    'bread': ['bread', 'whole wheat bread', 'ezekiel bread'],
+    'tortilla': ['tortilla', 'tortillas'],
+    'wrap': ['tortilla', 'tortillas']
   };
 
   // Helper to find amount for a food name
@@ -4281,12 +4309,16 @@ function validateAndCapPortions(ingredients, mealType = null) {
   for (const ing of ingredients) {
     let ingredient = typeof ing === 'string' ? ing : `${ing.food} (${ing.amount})`;
 
-    // Parse ingredient to get food name and amount
+    // Parse ingredient to get food name and amount (also sanitizes)
     const parsed = parseIngredientString(ingredient);
     if (!parsed) {
-      cappedIngredients.push(ingredient);
+      // Still try to sanitize even if parsing fails
+      cappedIngredients.push(sanitizeIngredient(ingredient));
       continue;
     }
+
+    // Use the sanitized version from parsing
+    const sanitizedIngredient = parsed.original;
 
     const foodName = parsed.name;
     const amount = parsed.amount;
@@ -4304,12 +4336,12 @@ function validateAndCapPortions(ingredients, mealType = null) {
                            unit.includes('tbsp') || unit.includes('tsp');
 
       if (isWeightBased && numericAmount < MIN_PORTION_GRAMS) {
-        console.warn(`🗑️ REMOVED: "${ingredient}" - portion too small (${numericAmount}g < ${MIN_PORTION_GRAMS}g minimum)`);
+        console.warn(`🗑️ REMOVED: "${sanitizedIngredient}" - portion too small (${numericAmount}g < ${MIN_PORTION_GRAMS}g minimum)`);
         continue; // Skip this ingredient entirely
       }
 
       if (isCountBased && numericAmount < MIN_PORTION_COUNT) {
-        console.warn(`🗑️ REMOVED: "${ingredient}" - portion too small (${numericAmount} < ${MIN_PORTION_COUNT} minimum)`);
+        console.warn(`🗑️ REMOVED: "${sanitizedIngredient}" - portion too small (${numericAmount} < ${MIN_PORTION_COUNT} minimum)`);
         continue; // Skip this ingredient entirely
       }
     }
@@ -4317,7 +4349,7 @@ function validateAndCapPortions(ingredients, mealType = null) {
     // Match to database key
     const foodKey = matchFoodToDatabase(foodName, amount);
     if (!foodKey) {
-      cappedIngredients.push(ingredient);
+      cappedIngredients.push(sanitizedIngredient);
       continue;
     }
 
@@ -4339,7 +4371,7 @@ function validateAndCapPortions(ingredients, mealType = null) {
         cappedIngredients.push(cappedIngredient);
 
         violations.push({
-          ingredient: ingredient,
+          ingredient: sanitizedIngredient,
           original: originalAmount,
           capped: maxAllowed,
           unit: unit,
@@ -4347,14 +4379,14 @@ function validateAndCapPortions(ingredients, mealType = null) {
           suggestion: validation.suggestion
         });
 
-        console.warn(`🛑 CAPPED: "${ingredient}" → "${cappedIngredient}" (exceeded ${validation.type} limit)`);
+        console.warn(`🛑 CAPPED: "${sanitizedIngredient}" → "${cappedIngredient}" (exceeded ${validation.type} limit)`);
       } else {
-        // Couldn't parse, keep original
-        cappedIngredients.push(ingredient);
+        // Couldn't parse, keep sanitized
+        cappedIngredients.push(sanitizedIngredient);
       }
     } else {
-      // Within limits, keep original
-      cappedIngredients.push(ingredient);
+      // Within limits, keep sanitized version
+      cappedIngredients.push(sanitizedIngredient);
     }
   }
 
@@ -4398,14 +4430,20 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
   // Use capped ingredients for all subsequent calculations
   geminiMeal.ingredients = validatedResult.ingredients;
 
-  // FIX: Sync meal name with capped ingredients to prevent title/ingredient mismatch
+  // Log violations if any
   if (validatedResult.violations.length > 0) {
     console.log(`📋 Violations capped:`, validatedResult.violations.map(v =>
       `${v.ingredient} → ${v.capped}${v.unit}`
     ).join(', '));
-    // Update meal name to reflect capped portions
-    geminiMeal.name = syncMealNameWithIngredients(geminiMeal.name, geminiMeal.ingredients);
-    console.log(`📝 Updated meal name: ${geminiMeal.name}`);
+  }
+
+  // ALWAYS sync meal name with ingredients to fix:
+  // 1. Portion mismatches (e.g., "3 tbsp" in title vs "2 tbsp" in ingredients)
+  // 2. Food name mismatches (e.g., "Peach Slices" in title vs "Apple" in ingredients)
+  const originalName = geminiMeal.name;
+  geminiMeal.name = syncMealNameWithIngredients(geminiMeal.name, geminiMeal.ingredients);
+  if (geminiMeal.name !== originalName) {
+    console.log(`📝 Synced meal name: "${originalName}" → "${geminiMeal.name}"`);
   }
 
   // Step 1: Calculate current macros from ingredients (using Spoonacular if available)
