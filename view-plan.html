@@ -4627,18 +4627,26 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
         }
 
         function normalizeUnit(quantity, unit) {
+            // Only convert to larger units if quantity is large enough
             const conversions = {
-                'tbsp': { base: 'cup', factor: 1/16 },
-                'tablespoon': { base: 'cup', factor: 1/16 },
-                'tsp': { base: 'cup', factor: 1/48 },
-                'teaspoon': { base: 'cup', factor: 1/48 },
-                'oz': { base: 'lb', factor: 1/16 },
-                'ounce': { base: 'lb', factor: 1/16 },
-                'g': { base: 'kg', factor: 0.001 },
-                'gram': { base: 'kg', factor: 0.001 },
-                'ml': { base: 'l', factor: 0.001 },
-                'milliliter': { base: 'l', factor: 0.001 }
+                'tbsp': { base: 'tbsp', factor: 1 }, // Keep tbsp as-is for readability
+                'tablespoon': { base: 'tbsp', factor: 1 },
+                'tsp': { base: 'tsp', factor: 1 },
+                'teaspoon': { base: 'tsp', factor: 1 },
+                'oz': { base: 'oz', factor: 1 },
+                'ounce': { base: 'oz', factor: 1 },
+                'ml': { base: 'ml', factor: 1 },
+                'milliliter': { base: 'ml', factor: 1 }
             };
+
+            // For grams, only convert to kg if >= 1000g
+            if ((unit === 'g' || unit === 'gram') && quantity >= 1000) {
+                return { quantity: quantity / 1000, unit: 'kg' };
+            }
+            // Keep grams as grams
+            if (unit === 'g' || unit === 'gram') {
+                return { quantity, unit: 'g' };
+            }
 
             if (conversions[unit]) {
                 return {
@@ -4651,10 +4659,12 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
         }
 
         // Food category classification for organized shopping list
+        // Order matters! More specific matches first
         const FOOD_CATEGORIES = {
+            // Check vegetables FIRST to catch "green beans" before "beans"
+            vegetables: ['green beans', 'broccoli', 'spinach', 'asparagus', 'zucchini', 'bell pepper', 'pepper', 'mushroom', 'onion', 'garlic', 'tomato', 'carrot', 'celery', 'lettuce', 'kale', 'cabbage', 'cauliflower', 'cucumber', 'eggplant'],
             proteins: ['chicken', 'turkey', 'beef', 'pork', 'steak', 'bison', 'lamb', 'cod', 'salmon', 'tilapia', 'tuna', 'shrimp', 'fish', 'egg', 'greek yogurt', 'cottage cheese', 'whey protein', 'tofu', 'tempeh', 'lentils', 'beans', 'chickpeas'],
             carbs: ['rice', 'quinoa', 'oats', 'oatmeal', 'bread', 'pasta', 'potato', 'sweet potato', 'tortilla', 'couscous', 'barley', 'farro'],
-            vegetables: ['broccoli', 'spinach', 'asparagus', 'zucchini', 'bell pepper', 'pepper', 'mushroom', 'onion', 'garlic', 'tomato', 'carrot', 'celery', 'lettuce', 'kale', 'cabbage', 'cauliflower', 'green beans', 'cucumber', 'eggplant'],
             fruits: ['apple', 'banana', 'blueberr', 'strawberr', 'raspberr', 'blackberr', 'orange', 'grape', 'mango', 'pineapple', 'peach', 'pear', 'cherry', 'kiwi', 'watermelon', 'cantaloupe'],
             fats: ['olive oil', 'avocado oil', 'coconut oil', 'butter', 'ghee', 'peanut butter', 'almond butter', 'almonds', 'walnuts', 'cashews', 'pecans', 'pistachios', 'chia', 'flax', 'avocado', 'seeds'],
             dairy: ['milk', 'cheese', 'cream'],
@@ -4663,8 +4673,10 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
 
         function categorizeFood(foodName) {
             const lower = foodName.toLowerCase();
-            for (const [category, keywords] of Object.entries(FOOD_CATEGORIES)) {
-                for (const keyword of keywords) {
+            // Check in specific order: vegetables first to catch "green beans"
+            const categoryOrder = ['vegetables', 'proteins', 'carbs', 'fruits', 'fats', 'dairy', 'condiments'];
+            for (const category of categoryOrder) {
+                for (const keyword of FOOD_CATEGORIES[category]) {
                     if (lower.includes(keyword)) {
                         return category;
                     }
