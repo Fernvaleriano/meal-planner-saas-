@@ -1,11 +1,14 @@
-// Netlify Function for secure Gemini API calls with Claude macro correction
+// Netlify Function for meal plan generation with Claude (primary) and Gemini (fallback)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
-// Import Anthropic SDK for macro correction
+// Import Anthropic SDK for meal generation (primary)
 const AnthropicModule = require('@anthropic-ai/sdk');
 const Anthropic = AnthropicModule.default || AnthropicModule;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
+// Use Claude as primary generator (set to false to use Gemini)
+const USE_CLAUDE_FOR_GENERATION = true;
 
 // Spoonacular API for accurate nutrition data
 const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
@@ -4594,6 +4597,116 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
   };
 }
 
+/**
+ * Generate meal plan using Claude API
+ * Claude provides more consistent, well-formatted output compared to Gemini
+ */
+async function generateWithClaude(prompt, isJson = true) {
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
+  console.log('🤖 Calling Claude API for meal generation...');
+
+  const anthropic = new Anthropic({
+    apiKey: ANTHROPIC_API_KEY
+  });
+
+  // System prompt to ensure consistent output format
+  const systemPrompt = isJson ? `You are a professional nutritionist and meal planning assistant.
+You MUST respond with valid JSON only - no markdown, no code blocks, no explanations.
+
+CRITICAL FORMATTING RULES:
+1. Use exact format: "Food Name (Xg)" or "Food Name (X unit)" for ingredients
+2. For count-based items use: "Apple (1 medium)", "Eggs (2 whole)", "Whey Protein (1 scoop)"
+3. For weight-based items use: "Chicken Breast (150g)", "Brown Rice (100g cooked)"
+4. NEVER use formats like "1g medium apple" or "2g whole eggs" - these are WRONG
+5. Always put the quantity INSIDE the parentheses, not before the food name
+6. Be precise with measurements - no ambiguous amounts
+
+Your JSON response must be parseable - no trailing commas, proper quotes, valid structure.`
+  : `You are a professional nutritionist and meal planning assistant. Provide helpful, detailed responses.`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      system: systemPrompt
+    });
+
+    console.log('✅ Claude API Response received');
+
+    // Extract text from response
+    const responseText = message.content[0].text;
+    console.log('🤖 Claude Response preview:', responseText.substring(0, 500));
+
+    return responseText;
+  } catch (error) {
+    console.error('❌ Claude API Error:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Generate meal plan using Gemini API (fallback)
+ */
+async function generateWithGemini(prompt) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  console.log('🤖 Calling Gemini API for meal generation...');
+
+  const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.85,
+        maxOutputTokens: 2048,
+        topP: 0.95,
+        topK: 40
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Gemini API Error:', errorText);
+    throw new Error(`Gemini API request failed: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('✅ Gemini API Response received');
+
+  // Validate response structure
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    throw new Error('Invalid response structure from Gemini API');
+  }
+
+  if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+    throw new Error('Missing parts in Gemini response');
+  }
+
+  const responseText = data.candidates[0].content.parts[0].text;
+  console.log('🤖 Gemini Response preview:', responseText.substring(0, 500));
+
+  return responseText;
+}
+
 exports.handler = async (event, context) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
@@ -4603,9 +4716,12 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Check if API key is configured
-  if (!GEMINI_API_KEY) {
-    console.error('❌ GEMINI_API_KEY not configured in environment variables');
+  // Check if API key is configured (Claude primary, Gemini fallback)
+  const hasClaudeKey = !!ANTHROPIC_API_KEY;
+  const hasGeminiKey = !!GEMINI_API_KEY;
+
+  if (!hasClaudeKey && !hasGeminiKey) {
+    console.error('❌ No API keys configured (need ANTHROPIC_API_KEY or GEMINI_API_KEY)');
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'API key not configured' })
@@ -4613,7 +4729,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt, targets, mealsPerDay, previousAttempt, isJson, skipAutoScale } = JSON.parse(event.body);
+    const { prompt, targets, mealsPerDay, previousAttempt, isJson, skipAutoScale, useGemini } = JSON.parse(event.body);
 
     if (!prompt) {
       return {
@@ -4622,78 +4738,38 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('📤 Calling Gemini API...');
     console.log('isJson flag:', isJson);
     if (targets) {
       console.log('Daily Targets:', targets);
       console.log('Meals per day:', mealsPerDay);
     }
-    
-    // ✅ FIXED: Proper fetch syntax with parentheses
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.85,
-          maxOutputTokens: 2048,
-          topP: 0.95,
-          topK: 40
+
+    // Determine which API to use (Claude by default, Gemini as fallback or if requested)
+    const useClaude = USE_CLAUDE_FOR_GENERATION && hasClaudeKey && !useGemini;
+    let responseText;
+    let generatorUsed;
+
+    if (useClaude) {
+      console.log('📤 Using Claude API for generation...');
+      try {
+        responseText = await generateWithClaude(prompt, isJson !== false);
+        generatorUsed = 'claude';
+      } catch (claudeError) {
+        console.error('❌ Claude failed, falling back to Gemini:', claudeError.message);
+        if (hasGeminiKey) {
+          responseText = await generateWithGemini(prompt);
+          generatorUsed = 'gemini-fallback';
+        } else {
+          throw claudeError;
         }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Gemini API Error:', errorText);
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({ 
-          error: 'Gemini API request failed',
-          details: errorText
-        })
-      };
+      }
+    } else {
+      console.log('📤 Using Gemini API for generation...');
+      responseText = await generateWithGemini(prompt);
+      generatorUsed = 'gemini';
     }
 
-    const data = await response.json();
-    console.log('✅ Gemini API Response received');
-    console.log('Full response structure:', JSON.stringify(data, null, 2));
-
-    // Validate response structure
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      console.error('❌ Invalid response structure:', JSON.stringify(data));
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'Invalid response from Gemini API',
-          data: data
-        })
-      };
-    }
-
-    // Validate parts array exists
-    if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      console.error('❌ Missing parts in response:', JSON.stringify(data));
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'Invalid response structure from Gemini API',
-          message: 'Missing parts array in response',
-          data: data
-        })
-      };
-    }
-
-    // Log first 500 chars of AI response for debugging
-    const responseText = data.candidates[0].content.parts[0].text;
-    console.log('🤖 Gemini Response preview:', responseText.substring(0, 500));
+    console.log(`✅ Generation complete using: ${generatorUsed}`);
 
     // 🆕 NEW: Handle text-only responses (like Recipe or Meal Prep Guide)
     if (isJson === false) {
@@ -5180,8 +5256,8 @@ exports.handler = async (event, context) => {
         success: true,
         data: correctedData,
         rawResponse: responseText,
-        jsOptimized: true, // Using deterministic JS optimizer instead of Claude
-        claudeCorrected: false // No longer using Claude for optimization
+        generator: generatorUsed, // Which API generated the meal plan (claude, gemini, or gemini-fallback)
+        jsOptimized: true // Using deterministic JS optimizer for portion calculations
       })
     };
 
@@ -5194,7 +5270,10 @@ exports.handler = async (event, context) => {
         error: 'Internal server error',
         message: error.message,
         details: error.stack,
-        apiKey: GEMINI_API_KEY ? 'configured' : 'missing'
+        apiKeys: {
+          anthropic: ANTHROPIC_API_KEY ? 'configured' : 'missing',
+          gemini: GEMINI_API_KEY ? 'configured' : 'missing'
+        }
       })
     };
   }
