@@ -3973,6 +3973,28 @@ function updateMealNamePortions(mealName, scaleFactor) {
 function syncMealNameWithIngredients(mealName, ingredients) {
   if (!mealName || !ingredients || !Array.isArray(ingredients)) return mealName;
 
+  // STEP 0: Sanitize meal name to fix malformed LLM patterns BEFORE syncing
+  // Fix "1g medium apple" → "1 medium apple", "2g whole eggs" → "2 whole eggs", etc.
+  let sanitizedName = mealName;
+
+  // Fix "Xg medium/large/small/whole" patterns in title
+  sanitizedName = sanitizedName.replace(/(\d+)g\s*(medium|large|small|whole)/gi, '$1 $2');
+
+  // Fix "Xg scoop" patterns
+  sanitizedName = sanitizedName.replace(/(\d+)g\s*(scoop)/gi, '$1 $2');
+
+  // Fix "(Xg medium)" patterns inside parens
+  sanitizedName = sanitizedName.replace(/\((\d+)g\s*(medium|large|small|whole)\)/gi, '($1 $2)');
+
+  // Fix count-based items that shouldn't use grams in titles
+  const countItems = ['egg whites?', 'eggs?', 'whole eggs?', 'apples?', 'bananas?', 'oranges?', 'peaches?', 'tortillas?', 'scoops?', 'slices?'];
+  const countPattern = new RegExp(`(\\d+)g\\s*(${countItems.join('|')})`, 'gi');
+  sanitizedName = sanitizedName.replace(countPattern, '$1 $2');
+
+  if (sanitizedName !== mealName) {
+    console.log(`🧹 TITLE SANITIZED: "${mealName}" → "${sanitizedName}"`);
+  }
+
   // Build a comprehensive map of food name variations -> actual amount
   const ingredientAmounts = {};
 
@@ -4104,7 +4126,7 @@ function syncMealNameWithIngredients(mealName, ingredients) {
   // Handles BOTH formats:
   // - "Oats 70g dry, Blueberries 100g" (food then amount)
   // - "70g dry oats, 100g blueberries" (amount then food)
-  let updatedName = mealName.replace(
+  let updatedName = sanitizedName.replace(
     /\(([^)]+,\s*[^)]+)\)/g,
     (match, listContent) => {
       // Split by comma and process each item
@@ -4118,6 +4140,10 @@ function syncMealNameWithIngredients(mealName, ingredients) {
         // Format B: "Xg descriptor FoodName" or "X scoop FoodName" (amount first)
         const formatB = item.match(/^(\d+(?:\.\d+)?)\s*(g|scoop|scoops?|tbsp)?\s*(dry|cooked|raw)?\s+(.+)$/i);
 
+        // Format C: "X FoodName" (just number and food, no unit - happens after sanitization)
+        // e.g., "2 apple" after "2g apple" was sanitized
+        const formatC = item.match(/^(\d+)\s+([a-zA-Z][\w\s]*)$/i);
+
         if (formatA) {
           foodInItem = formatA[1].trim();
           oldNum = formatA[2];
@@ -4128,9 +4154,29 @@ function syncMealNameWithIngredients(mealName, ingredients) {
           unit = formatB[2] || 'g';
           descriptor = formatB[3];
           foodInItem = formatB[4].trim();
+        } else if (formatC) {
+          // No unit specified - look up from ingredients
+          oldNum = formatC[1];
+          foodInItem = formatC[2].trim();
+          unit = null; // Will be determined from actual ingredient
         }
 
         if (foodInItem && oldNum) {
+          // For formatC, look up actual unit from ingredient
+          if (!unit) {
+            const actualAmount = findAmount(foodInItem);
+            if (actualAmount) {
+              // Extract unit from actual amount (e.g., "2 medium" → "medium")
+              const unitMatch = actualAmount.match(/^\d+(?:\.\d+)?\s*(.+)$/);
+              if (unitMatch) {
+                return `${actualAmount.match(/^[\d.]+/)[0]} ${unitMatch[1]} ${foodInItem}`;
+              }
+            }
+            return item; // Can't determine unit, keep original
+          }
+        }
+
+        if (foodInItem && oldNum && unit) {
           const actualAmount = findAmount(foodInItem);
           if (actualAmount) {
             const numMatch = actualAmount.match(/^([\d.]+)/);
@@ -4266,8 +4312,10 @@ function validateTitleIngredientMatch(mealName, ingredients) {
   let correctedName = mealName;
 
   for (const food of checkFoods) {
-    const foodRegex = new RegExp(`\\b${food}\\w*\\b`, 'gi');
-    if (foodRegex.test(mealName)) {
+    // Use separate regex for test (without g flag) to avoid lastIndex issues
+    const testRegex = new RegExp(`\\b${food}\\w*\\b`, 'i');
+    // Check correctedName (not mealName) to handle cascading replacements
+    if (testRegex.test(correctedName)) {
       // Check if this food exists in ingredients
       const foundInIngredients = Array.from(ingredientFoods).some(ing =>
         ing.includes(food) || food.includes(ing.substring(0, 4))
@@ -4282,8 +4330,9 @@ function validateTitleIngredientMatch(mealName, ingredients) {
         if (actualFruit) {
           // Capitalize first letter
           const capitalizedFruit = actualFruit.charAt(0).toUpperCase() + actualFruit.slice(1);
-          // Replace mismatched food in title
-          correctedName = correctedName.replace(foodRegex, capitalizedFruit);
+          // Use fresh regex with g flag for replace
+          const replaceRegex = new RegExp(`\\b${food}\\w*\\b`, 'gi');
+          correctedName = correctedName.replace(replaceRegex, capitalizedFruit);
           console.warn(`🔄 TITLE MISMATCH FIXED: "${food}" in title replaced with "${capitalizedFruit}" (actual ingredient)`);
         }
       }
