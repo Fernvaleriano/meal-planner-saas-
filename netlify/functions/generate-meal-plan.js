@@ -2673,6 +2673,9 @@ function matchFoodToDatabase(foodName, amount = "") {
     'boneless', 'skinless', 'bone-in', 'skin-on', 'lean', 'extra lean',
     'grass-fed', 'grass fed', 'free-range', 'free range', 'wild-caught', 'wild caught',
     'farm-raised', 'farm raised', 'marinated', 'seasoned', 'plain', 'unseasoned',
+    // Dairy descriptors (CRITICAL for cottage cheese, greek yogurt, etc.)
+    'nonfat', 'non-fat', 'lowfat', 'low-fat', 'low fat', 'fat-free', 'fat free',
+    'skim', 'whole', '2%', '2 percent', '2 pct', '1%', '1 percent', '1 pct',
     'thick-cut', 'thick cut', 'thin-sliced', 'thin sliced', 'diced', 'chopped',
     'sliced', 'cubed', 'minced', 'shredded', 'pulled', 'ground', 'whole'
   ];
@@ -4256,8 +4259,42 @@ exports.handler = async (event, context) => {
         // Scale portions to hit targets
         const scaledMeals = scalePortionsToTargets(optimizedMeals, dailyTotals, targets);
 
-        // Recalculate totals after scaling
-        const scaledTotals = scaledMeals.reduce((acc, meal) => ({
+        // RE-VALIDATE portion caps after scaling (critical!)
+        // Scaling can push portions beyond limits, so we need to re-cap them
+        console.log(`🛡️ RE-VALIDATING portion caps after scaling...`);
+        const revalidatedMeals = scaledMeals.map(meal => {
+          if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
+            return meal;
+          }
+
+          const validatedResult = validateAndCapPortions(meal.ingredients, meal.type);
+
+          if (validatedResult.violations.length > 0) {
+            console.log(`🛑 POST-SCALING VIOLATIONS in "${meal.name}":`);
+            validatedResult.violations.forEach(v => {
+              console.log(`   ${v.ingredient} → CAPPED to ${v.capped}${v.unit}`);
+            });
+
+            // Recalculate macros with capped ingredients
+            const recalculated = calculateMacrosFromIngredients(validatedResult.ingredients);
+
+            return {
+              ...meal,
+              ingredients: validatedResult.ingredients,
+              calories: recalculated.totals.calories,
+              protein: recalculated.totals.protein,
+              carbs: recalculated.totals.carbs,
+              fat: recalculated.totals.fat,
+              breakdown: recalculated.breakdown,
+              calculation_notes: `${meal.calculation_notes || ''} | Re-capped after scaling (${validatedResult.violations.length} violations fixed)`
+            };
+          }
+
+          return meal;
+        });
+
+        // Recalculate totals after re-validation
+        const scaledTotals = revalidatedMeals.reduce((acc, meal) => ({
           calories: acc.calories + (meal.calories || 0),
           protein: acc.protein + (meal.protein || 0),
           carbs: acc.carbs + (meal.carbs || 0),
@@ -4265,7 +4302,7 @@ exports.handler = async (event, context) => {
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
         // Balance macros to improve protein/carb/fat distribution
-        const balancedMeals = balanceMacrosToTargets(scaledMeals, scaledTotals, targets);
+        const balancedMeals = balanceMacrosToTargets(revalidatedMeals, scaledTotals, targets);
 
         // Validate meal distribution - no meal should exceed 40% of daily calories
         const validatedMeals = validateAndFixMealDistribution(balancedMeals, targets.calories);
@@ -4316,8 +4353,42 @@ exports.handler = async (event, context) => {
         // Scale portions to hit targets
         let scaledData = scalePortionsToTargets(correctedData, dailyTotals, targets);
 
-        // Recalculate totals after scaling
-        const scaledTotals = scaledData.reduce((acc, meal) => ({
+        // RE-VALIDATE portion caps after scaling (critical!)
+        // Scaling can push portions beyond limits, so we need to re-cap them
+        console.log(`🛡️ RE-VALIDATING portion caps after scaling...`);
+        const revalidatedData = scaledData.map(meal => {
+          if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
+            return meal;
+          }
+
+          const validatedResult = validateAndCapPortions(meal.ingredients, meal.type);
+
+          if (validatedResult.violations.length > 0) {
+            console.log(`🛑 POST-SCALING VIOLATIONS in "${meal.name}":`);
+            validatedResult.violations.forEach(v => {
+              console.log(`   ${v.ingredient} → CAPPED to ${v.capped}${v.unit}`);
+            });
+
+            // Recalculate macros with capped ingredients
+            const recalculated = calculateMacrosFromIngredients(validatedResult.ingredients);
+
+            return {
+              ...meal,
+              ingredients: validatedResult.ingredients,
+              calories: recalculated.totals.calories,
+              protein: recalculated.totals.protein,
+              carbs: recalculated.totals.carbs,
+              fat: recalculated.totals.fat,
+              breakdown: recalculated.breakdown,
+              calculation_notes: `${meal.calculation_notes || ''} | Re-capped after scaling (${validatedResult.violations.length} violations fixed)`
+            };
+          }
+
+          return meal;
+        });
+
+        // Recalculate totals after re-validation
+        const scaledTotals = revalidatedData.reduce((acc, meal) => ({
           calories: acc.calories + (meal.calories || 0),
           protein: acc.protein + (meal.protein || 0),
           carbs: acc.carbs + (meal.carbs || 0),
@@ -4325,7 +4396,7 @@ exports.handler = async (event, context) => {
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
         // Balance macros to improve protein/carb/fat distribution
-        let balancedData = balanceMacrosToTargets(scaledData, scaledTotals, targets);
+        let balancedData = balanceMacrosToTargets(revalidatedData, scaledTotals, targets);
 
         // Validate meal distribution - no meal should exceed 40% of daily calories
         correctedData = validateAndFixMealDistribution(balancedData, targets.calories);
