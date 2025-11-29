@@ -4369,8 +4369,30 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                             doc.addPage();
                             y = 20;
                         }
-                        const qty = item.quantity < 10 ? item.quantity.toFixed(1) : Math.round(item.quantity);
-                        const itemText = `  • ${qty} ${item.unit} ${item.name}`;
+                        // Format quantity: whole numbers without decimal, small numbers with 1 decimal
+                        let qty = item.quantity;
+                        if (Number.isInteger(qty) || Math.abs(qty - Math.round(qty)) < 0.01) {
+                            qty = Math.round(qty);
+                        } else if (qty < 10) {
+                            qty = qty.toFixed(1);
+                        } else {
+                            qty = Math.round(qty);
+                        }
+
+                        // Handle singular/plural for common units
+                        let unit = item.unit;
+                        if (qty == 1) {
+                            // Singular forms
+                            if (unit === 'slices') unit = 'slice';
+                            if (unit === 'scoops') unit = 'scoop';
+                            if (unit === 'tbsps') unit = 'tbsp';
+                            if (unit === 'cups') unit = 'cup';
+                        }
+
+                        // Standardize food names (remove trailing 's' inconsistencies)
+                        let name = item.name;
+
+                        const itemText = `  • ${qty} ${unit} ${name}`;
                         doc.text(itemText, margin, y);
                         y += 5;
                     });
@@ -4685,6 +4707,29 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             return 'other';
         }
 
+        // Standardize food names for consistent aggregation
+        function standardizeFoodName(name) {
+            let std = name.trim();
+            // Standardize common variations to singular form
+            const replacements = {
+                'bell peppers': 'Bell Pepper',
+                'bell pepper': 'Bell Pepper',
+                'green beans': 'Green Beans', // Keep plural for this one
+                'almonds': 'Almonds',
+                'walnuts': 'Walnuts',
+                'blueberries': 'Blueberries',
+                'strawberries': 'Strawberries',
+                'eggs': 'Eggs',
+                'egg whites': 'Egg Whites'
+            };
+            const lower = std.toLowerCase();
+            if (replacements[lower]) {
+                return replacements[lower];
+            }
+            // Title case the name
+            return std.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        }
+
         function aggregateGroceryList() {
             if (!currentPlan) return [];
 
@@ -4711,16 +4756,17 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 meal.ingredients.forEach(ingredient => {
                     const parsed = parseIngredient(ingredient);
                     const normalized = normalizeUnit(parsed.quantity, parsed.unit);
+                    const stdName = standardizeFoodName(parsed.name);
 
-                    const key = `${parsed.name}|${normalized.unit}`;
+                    const key = `${stdName.toLowerCase()}|${normalized.unit}`;
                     if (aggregated[key]) {
                         aggregated[key].quantity += normalized.quantity;
                     } else {
                         aggregated[key] = {
-                            name: parsed.name,
+                            name: stdName,
                             quantity: normalized.quantity,
                             unit: normalized.unit,
-                            category: categorizeFood(parsed.name)
+                            category: categorizeFood(stdName)
                         };
                     }
                 });
