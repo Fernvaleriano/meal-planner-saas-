@@ -3287,6 +3287,55 @@
             setTimeout(() => document.addEventListener('click', closeStepper), 0);
         }
 
+        /**
+         * Scale ingredient amount string by multiplier
+         * Examples: "Chicken Breast (200g)" × 1.5 → "Chicken Breast (300g)"
+         *           "Eggs (2 whole)" × 2 → "Eggs (4 whole)"
+         *           "Peanut Butter (1 tbsp)" × 1.5 → "Peanut Butter (1.5 tbsp)"
+         */
+        function scaleIngredientAmount(ingredient, multiplier) {
+            // Parse "Food Name (amount)" format
+            const match = ingredient.match(/^(.+?)\s*\((.+?)\)$/);
+            if (!match) return ingredient;
+
+            const foodName = match[1];
+            const amount = match[2];
+
+            // Try to extract number from amount
+            const numMatch = amount.match(/^([\d.]+(?:\/[\d]+)?)\s*(.*)$/);
+            if (!numMatch) return ingredient;
+
+            let number = numMatch[1];
+            const unit = numMatch[2];
+
+            // Handle fractions like "1/2"
+            if (number.includes('/')) {
+                const [num, denom] = number.split('/').map(parseFloat);
+                number = num / denom;
+            } else {
+                number = parseFloat(number);
+            }
+
+            // Scale the number
+            let scaledNumber = number * multiplier;
+
+            // Round appropriately
+            if (scaledNumber >= 10) {
+                scaledNumber = Math.round(scaledNumber);
+            } else if (scaledNumber >= 1) {
+                scaledNumber = Math.round(scaledNumber * 10) / 10; // 1 decimal place
+            } else {
+                scaledNumber = Math.round(scaledNumber * 100) / 100; // 2 decimal places
+            }
+
+            // Ensure minimum of 1 for count-based units (eggs, slices, etc.)
+            if (unit.match(/whole|slice|slices|tortilla|tortillas|egg|eggs|medium|large|small/i)) {
+                if (scaledNumber < 1) scaledNumber = 1;
+            }
+
+            return `${foodName} (${scaledNumber} ${unit})`.trim();
+        }
+
         async function adjustPortions(index, dayIndex, mealIndex, multiplier) {
             // Get the meal based on plan structure
             let meal;
@@ -3309,6 +3358,13 @@
             meal.protein = Math.round(meal.protein * multiplier);
             meal.carbs = Math.round(meal.carbs * multiplier);
             meal.fat = Math.round(meal.fat * multiplier);
+
+            // Scale ingredients array
+            if (meal.ingredients && Array.isArray(meal.ingredients)) {
+                meal.ingredients = meal.ingredients.map(ingredient => {
+                    return scaleIngredientAmount(ingredient, multiplier);
+                });
+            }
 
             // Update meal name to reflect portion change
             const portionLabel = `${multiplier}x portion`;
