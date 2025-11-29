@@ -395,45 +395,61 @@
         });
 
         async function generateMealPlan(formData, nutrition, mealsPerDay) {
-            const targetCaloriesPerMeal = Math.round(nutrition.calories / mealsPerDay);
-            const targetProteinPerMeal = Math.round(nutrition.protein / mealsPerDay);
-            const targetCarbsPerMeal = Math.round(nutrition.carbs / mealsPerDay);
-            const targetFatPerMeal = Math.round(nutrition.fat / mealsPerDay);
+            // Smart meal count: for high-calorie/high-protein, recommend 3 dense meals
+            const isHighTarget = nutrition.calories >= 2400 || nutrition.protein >= 170;
+            const recommendedMeals = isHighTarget ? Math.min(mealsPerDay, 3) : mealsPerDay;
+            const actualMeals = recommendedMeals;
 
-            // Build example array with STRUCTURED INGREDIENTS
+            const targetCaloriesPerMeal = Math.round(nutrition.calories / actualMeals);
+            const targetProteinPerMeal = Math.round(nutrition.protein / actualMeals);
+            const targetCarbsPerMeal = Math.round(nutrition.carbs / actualMeals);
+            const targetFatPerMeal = Math.round(nutrition.fat / actualMeals);
+
+            // Determine minimum ingredients per meal based on targets
+            const minIngredientsPerMeal = targetProteinPerMeal >= 50 ? 5 : 4;
+
+            // Build strategic example meals that actually hit high targets
+            const highProteinBreakfast = {
+                name: "Power Proats with Eggs",
+                ingredients: [
+                    {food: "oats_rolled_dry", amount: "75g"},
+                    {food: "whey_protein", amount: "1 scoop"},
+                    {food: "egg_large", amount: "2 eggs"},
+                    {food: "egg_white", amount: "150g"},
+                    {food: "banana", amount: "1 medium"},
+                    {food: "almonds", amount: "30g"}
+                ],
+                instr: "Cook oats, let cool 1 min, stir in whey protein. Scramble eggs and egg whites separately. Serve oats topped with banana slices and almonds, eggs on side."
+            };
+
+            const highProteinLunch = {
+                name: "Chicken Rice Bowl with Greens",
+                ingredients: [
+                    {food: "chicken_breast", amount: "200g"},
+                    {food: "white_rice_cooked", amount: "280g"},
+                    {food: "broccoli", amount: "150g"},
+                    {food: "olive_oil", amount: "1 tbsp"},
+                    {food: "bell_pepper", amount: "100g"}
+                ],
+                instr: "Grill chicken breast seasoned with salt and pepper. Steam broccoli and sauté bell pepper. Serve over rice drizzled with olive oil."
+            };
+
+            const highProteinDinner = {
+                name: "Beef and Sweet Potato Plate",
+                ingredients: [
+                    {food: "ground_beef_93", amount: "200g"},
+                    {food: "sweet_potato", amount: "280g"},
+                    {food: "asparagus", amount: "150g"},
+                    {food: "butter", amount: "1 tbsp"},
+                    {food: "apple", amount: "1 large"}
+                ],
+                instr: "Pan-sear ground beef with seasoning. Bake sweet potato and top with butter. Grill or roast asparagus. Apple as dessert."
+            };
+
+            const mealExamples = [highProteinBreakfast, highProteinLunch, highProteinDinner];
             let exampleMeals = [];
-            const mealExamples = [
-                {
-                    name: "Scrambled Eggs with Toast and Avocado",
-                    ingredients: [
-                        {food: "egg_large", amount: "3 eggs"},
-                        {food: "whole_wheat_bread", amount: "2 slices"},
-                        {food: "avocado", amount: "50g"}
-                    ],
-                    instr: "Scramble 3 eggs. Toast 2 slices whole wheat bread. Serve with 50g avocado slices."
-                },
-                {
-                    name: "Grilled Chicken Breast with Brown Rice and Broccoli",
-                    ingredients: [
-                        {food: "chicken_breast", amount: "170g"},
-                        {food: "brown_rice_cooked", amount: "200g"},
-                        {food: "broccoli", amount: "150g"},
-                        {food: "olive_oil", amount: "1 tbsp"}
-                    ],
-                    instr: "Grill 170g chicken breast. Cook 200g brown rice. Steam 150g broccoli. Drizzle with 1 tbsp olive oil."
-                },
-                {
-                    name: "Greek Yogurt with Berries and Almonds",
-                    ingredients: [
-                        {food: "greek_yogurt", amount: "200g"},
-                        {food: "blueberries", amount: "100g"},
-                        {food: "almonds", amount: "28g"}
-                    ],
-                    instr: "Mix 200g Greek yogurt with 100g blueberries. Top with 28g sliced almonds."
-                }
-            ];
 
-            for (let i = 0; i < mealsPerDay; i++) {
+            for (let i = 0; i < actualMeals; i++) {
                 const ex = mealExamples[i % mealExamples.length];
                 const ingredientsStr = ex.ingredients.map(ing =>
                     `      {"food": "${ing.food}", "amount": "${ing.amount}"}`
@@ -450,182 +466,74 @@ ${ingredientsStr}
 
             const exampleArray = `[\n${exampleMeals.join(',\n')}\n]`;
 
-            // CRITICAL: Super explicit prompt with exact meal count shown
-            const prompt = `🚨🚨🚨 CRITICAL: YOU MUST GENERATE EXACTLY ${mealsPerDay} MEALS 🚨🚨🚨
+            // Streamlined, strategic prompt
+            const prompt = `Generate EXACTLY ${actualMeals} meals as a JSON array.
 
-I am counting the meals. There MUST be ${mealsPerDay} meal objects in the JSON array.
+## TARGETS
+Daily: ${nutrition.calories} cal | ${nutrition.protein}g protein | ${nutrition.carbs}g carbs | ${nutrition.fat}g fat
+Per Meal: ~${targetCaloriesPerMeal} cal | ~${targetProteinPerMeal}g protein | ~${targetCarbsPerMeal}g carbs | ~${targetFatPerMeal}g fat
 
-YOU MUST GENERATE:
-${Array.from({length: mealsPerDay}, (_, i) => `- MEAL ${i + 1}`).join('\n')}
+Diet: ${formData.get('dietType')}
+${formData.get('allergies') ? `Avoid: ${formData.get('allergies')}` : ''}
 
-THAT'S ${mealsPerDay} MEALS TOTAL.
+## AVAILABLE FOODS (use ONLY these database keys)
+PROTEINS: chicken_breast, chicken_thigh_skinless, ground_chicken, turkey_breast, ground_turkey, ground_beef_90, ground_beef_93, ground_beef_96, sirloin_steak, flank_steak, pork_tenderloin, pork_chop, salmon, cod, tilapia, tuna_canned_water, shrimp, egg_large, egg_white, greek_yogurt_nonfat, cottage_cheese_nonfat, whey_protein, tofu_firm, tempeh, lentils_cooked, black_beans, chickpeas
 
-## AVAILABLE FOODS - Use ONLY foods from this comprehensive list:
+CARBS: white_rice_cooked, brown_rice_cooked, quinoa_cooked, oats_rolled_dry, sweet_potato, russet_potato, pasta_cooked, whole_wheat_bread, ezekiel_bread, tortilla_flour
 
-**PROTEINS - Poultry:** chicken_breast, chicken_thigh_skinless, chicken_tenderloins, ground_chicken, turkey_breast, ground_turkey, turkey_bacon
-**PROTEINS - Beef:** ground_beef_90, ground_beef_93, ground_beef_96, sirloin_steak, flank_steak, eye_of_round, bison
-**PROTEINS - Pork:** pork_tenderloin, pork_chop, ham_lean, canadian_bacon
-**PROTEINS - Fish:** tilapia, cod, halibut, mahi_mahi, sea_bass, salmon, tuna_fresh, tuna_canned_water, sardines, mackerel
-**PROTEINS - Shellfish:** shrimp, scallops, crab_meat, lobster
-**PROTEINS - Dairy/Eggs:** egg_large, egg_white, greek_yogurt_nonfat, greek_yogurt_2pct, cottage_cheese_low, cottage_cheese_nonfat, skyr, mozzarella_part_skim, parmesan, cheddar_cheese, feta_cheese, string_cheese
-**PROTEINS - Plant:** tofu_firm, tofu_extra_firm, tempeh, edamame, seitan, lentils_cooked, black_beans, kidney_beans, chickpeas, pinto_beans
-**PROTEINS - Powders:** whey_protein, casein_protein, pea_protein, egg_white_protein
+FATS: olive_oil, butter, avocado, peanut_butter, almond_butter, almonds, walnuts, chia_seeds
 
-**CARBS - Rice/Grains:** white_rice_cooked, brown_rice_cooked, jasmine_rice_cooked, basmati_rice_cooked, wild_rice_cooked, quinoa_cooked, couscous_cooked, farro_cooked, barley_cooked
-**CARBS - Oats:** oats_rolled_dry, oats_cooked, steel_cut_oats_dry, cream_of_rice_dry
-**CARBS - Potatoes:** sweet_potato, russet_potato, red_potato, yukon_gold_potato
-**CARBS - Pasta/Bread:** pasta_cooked, whole_wheat_pasta_cooked, whole_wheat_bread, white_bread, ezekiel_bread, english_muffin_whole, tortilla_corn, tortilla_flour, rice_cakes
+VEGETABLES: broccoli, spinach, asparagus, green_beans, bell_pepper, zucchini, mushrooms_white, carrots, cauliflower, mixed_greens
 
-**FATS - Oils:** olive_oil, avocado_oil, coconut_oil, butter, ghee
-**FATS - Nut Butters:** peanut_butter, almond_butter, cashew_butter, tahini
-**FATS - Nuts/Seeds:** almonds, walnuts, cashews, pecans, pistachios, chia_seeds, flax_seeds, hemp_seeds, pumpkin_seeds, sunflower_seeds
-**FATS - Whole Foods:** avocado, coconut_meat, olives_black, dark_chocolate_85
+FRUITS: banana, apple, blueberries, strawberries, orange
 
-**VEGETABLES - Cruciferous:** broccoli, cauliflower, brussels_sprouts, cabbage, kale
-**VEGETABLES - Leafy:** spinach, romaine_lettuce, arugula, swiss_chard, mixed_greens
-**VEGETABLES - Other:** bell_pepper, asparagus, green_beans, zucchini, cucumber, tomato, cherry_tomatoes, mushrooms_white, mushrooms_portobello, onion, garlic, carrots, celery, eggplant, snap_peas, squash_spaghetti
+## HARD PORTION LIMITS (never exceed)
+- Chicken/Fish: MAX 250g
+- Ground meat: MAX 200g
+- Eggs: MAX 4 whole OR 300g whites
+- Yogurt/Cottage cheese: MAX 250g
+- Oats dry: MAX 80g
+- Rice/Pasta cooked: MAX 300g
+- Sweet potato: MAX 300g
+- Vegetables: MAX 200g per type
+- Oils/Butter: MAX 2 tbsp
+- Nuts: MAX 56g
 
-**FRUITS - Berries:** blueberries, strawberries, raspberries, blackberries
-**FRUITS - Common:** banana, apple, orange, grapefruit, grapes, pear, peach, plum, cherries
-**FRUITS - Tropical:** pineapple, mango, papaya, kiwi, watermelon, cantaloupe, honeydew
+## REQUIRED STRATEGIES FOR HIGH-PROTEIN MEALS
 
-**CONDIMENTS (Low Cal):** soy_sauce, hot_sauce, salsa, mustard, vinegar, lemon_juice, lime_juice
+**PROTEIN STACKING (use ${minIngredientsPerMeal}+ ingredients per meal):**
+${targetProteinPerMeal >= 50 ? `Each meal needs 50-70g protein. Stack multiple protein sources:
+- Breakfast: oats + whey_protein + eggs + egg_white + nuts = 60-70g protein
+- Lunch/Dinner: meat (200g) + another protein or eggs = 55-65g protein` :
+`Each meal needs ~${targetProteinPerMeal}g protein. Use 2-3 protein sources per meal.`}
 
-## DAILY NUTRITION TARGETS (distribute across all ${mealsPerDay} meals):
-- Total Calories: ${nutrition.calories} cal
-- Total Protein: ${nutrition.protein}g
-- Total Carbs: ${nutrition.carbs}g
-- Total Fat: ${nutrition.fat}g
+**PROATS TECHNIQUE (breakfast):**
+Mix whey_protein INTO oats after cooking. Combine with eggs for 60+ protein breakfast.
 
-## TARGET PER MEAL (approximately):
-- Calories: ~${targetCaloriesPerMeal} cal
-- Protein: ~${targetProteinPerMeal}g
-- Carbs: ~${targetCarbsPerMeal}g
-- Fat: ~${targetFatPerMeal}g
+**SMART FAT DISTRIBUTION:**
+Add olive_oil (1 tbsp) or butter to each savory meal. Include nuts (28-30g) or avocado for healthy fats.
 
-Diet Type: ${formData.get('dietType')}
-${formData.get('allergies') ? `Allergies/Restrictions: ${formData.get('allergies')}` : ''}
+**FRUIT AS DESSERT:**
+Include banana, apple, or berries in 1-2 meals for natural carbs and satisfaction.
 
-## 🚨 REALISTIC PORTION GUIDELINES - HARD CAPS (CRITICAL!) 🚨
-**PHILOSOPHY:** Start with realistic portions. Add MORE foods instead of scaling portions beyond natural limits.
-
-**ABSOLUTE MAXIMUM LIMITS PER MEAL (NEVER EXCEED!):**
-- **Proteins:** Chicken/Turkey/Fish MAX 250g | Ground meats MAX 200g | Eggs MAX 4 whole or MAX 300g whites | Yogurt/Cottage Cheese MAX 250g
-- **Carbs (DRY):** Oats MAX 80g | Rice MAX 80g | Quinoa MAX 80g | Pasta MAX 80g - NO EXCEPTIONS!
-- **Carbs (COOKED):** Oats MAX 250g | Rice MAX 300g | Quinoa MAX 250g | Pasta MAX 300g
-- **Fats:** Oils/Butters MAX 2 tbsp | Nut Butters MAX 2 tbsp | Nuts MAX 56g | Avocado MAX 150g
-- **Vegetables:** MAX 200g per meal - NEVER EXCEED!
-- **Fruits:** MAX 150g or MAX 2 medium pieces
-
-**🛑 VIOLATIONS TO AVOID:**
-❌ oats_rolled_dry (84g) - WRONG! Max is 80g
-❌ cod (260g) - WRONG! Max is 250g
-❌ cottage_cheese_nonfat (307g) - WRONG! Max is 250g
-❌ asparagus (213g) - WRONG! Max is 200g
-
-**✅ CORRECT APPROACH:**
-- Have 70g oats + need more carbs? → ADD banana (don't increase oats)
-- Have 200g cottage cheese + need more protein? → ADD egg_white (don't exceed 250g)
-- Have 180g vegetables + need more? → ADD a different vegetable type
-
-## ===== STRATEGIC PROTEIN DISTRIBUTION (ADVANCED!) =====
-DO NOT rely on giant dairy snacks to hit protein! Use these proven strategies:
-
-**STRATEGY 1: PROTEIN STACKING (Multiple sources in one meal)**
-Instead of: greek_yogurt_nonfat (400g) = 40g protein ❌
-Do this: greek_yogurt_nonfat (200g) + egg_white (100g) + almonds (28g) = 40g protein ✅
-
-**STRATEGY 2: "PROATS" TECHNIQUE (Mix whey into oats)**
-oats_rolled_dry (75g) + whey_protein (1 scoop 30g) = 35g protein base ✅
-Then ADD: egg_large (2 whole) + egg_white (100g) + almonds (30g) = 66g total!
-
-**STRATEGY 3: LEAVE HEADROOM (Don't max every portion)**
-Chicken: Use 170-200g (not 250g max) - Saves room for variety
-Rice: Use 220-280g (not 300g max) - Leaves stomach space
-
-**STRATEGY 4: SMART COMBINATIONS**
-✅ egg_large (2 whole) + egg_white (150g) = 28g protein, not too heavy
-✅ chicken_breast (170g) + white_rice_cooked (280g) = 70g protein + carbs
-
-**STRATEGY 5: 3-MEAL APPROACH FOR HIGH TARGETS**
-If user needs 2500+ calories OR 180+ protein:
-- Each meal: 800-900 calories, 60-65g protein
-- Use 5-6 ingredients per meal (stack proteins!)
-
-**MEAL BUILDING PROCESS (STEP-BY-STEP):**
-
-STEP 1: DETERMINE meal protein target:
-   - Standard meals (4-6 per day): 35-50g protein each
-   - High-protein plan (3 meals/day): 60-70g protein each
-
-STEP 2: START with protein foundation (use STACKING strategy):
-   - Breakfast: egg_large (2 whole) + egg_white (100-150g) + whey_protein (1 scoop) = 40g base
-   - Lunch: chicken_breast (170-200g) = 50g base
-   - Dinner: ground_beef_93 (170-200g) = 40-50g base
-
-STEP 3: ADD carbs (leave headroom!):
-   - Use 220-280g cooked rice (NOT 300g max)
-   - Use 70-80g dry oats (NOT always maxed)
-
-STEP 4: ADD fats for satiety:
-   - olive_oil (1 tbsp), almonds (28g), avocado (50-100g)
-
-STEP 5: ADD vegetables for volume:
-   - broccoli (150g), spinach (100g), bell_pepper (100g)
-
-STEP 6: Calculate and add complementary foods if short:
-   - Short on protein? → ADD egg_white or greek_yogurt_nonfat
-   - Short on carbs? → ADD banana or sweet_potato
-   - Short on fats? → ADD almonds or peanut_butter
-
-**EXAMPLES OF WINNING MEALS:**
-
-Breakfast: [
-  {"food": "oats_rolled_dry", "amount": "75g"},
-  {"food": "whey_protein", "amount": "1 scoop"},
-  {"food": "egg_large", "amount": "2 eggs"},
-  {"food": "egg_white", "amount": "150g"},
-  {"food": "banana", "amount": "1 medium"},
-  {"food": "almonds", "amount": "30g"}
-]
-
-Lunch: [
-  {"food": "chicken_breast", "amount": "200g"},
-  {"food": "white_rice_cooked", "amount": "280g"},
-  {"food": "broccoli", "amount": "150g"},
-  {"food": "olive_oil", "amount": "1 tbsp"}
-]
-
-Dinner: [
-  {"food": "ground_beef_93", "amount": "200g"},
-  {"food": "sweet_potato", "amount": "280g"},
-  {"food": "asparagus", "amount": "150g"},
-  {"food": "butter", "amount": "1 tbsp"},
-  {"food": "apple", "amount": "1 large"}
-]
-
-**REMEMBER:**
-- Better to be 10% under than violate limits
-- Portion limits > Hitting exact macros
-- 5 foods at realistic portions > 3 foods at unrealistic portions
-
-## RESPONSE FORMAT:
-Return ONLY a JSON array with EXACTLY ${mealsPerDay} meal objects like this:
+## EXAMPLE MEALS THAT HIT TARGETS
 
 ${exampleArray}
 
-🚨 ABSOLUTE REQUIREMENTS 🚨:
-1. The array MUST contain EXACTLY ${mealsPerDay} meal objects
-2. Each meal MUST have: "name" (string), "ingredients" (array), "instructions" (string)
-3. Each ingredient MUST have: "food" (from available foods list above), "amount" (string like "200g", "2 eggs", "1 tbsp")
-4. Use ONLY foods from the available foods list above
-5. NO markdown, NO \`\`\`json blocks, NO backticks
-6. NO explanatory text - ONLY the JSON array
-7. Follow the REALISTIC PORTION GUIDELINES above - NEVER exceed portion limits!`;
+## OUTPUT REQUIREMENTS
+1. Return ONLY a valid JSON array with EXACTLY ${actualMeals} meal objects
+2. Each meal: {"name": string, "ingredients": array, "instructions": string}
+3. Each ingredient: {"food": "database_key", "amount": "Xg" or "X eggs" or "X tbsp"}
+4. Minimum ${minIngredientsPerMeal} ingredients per meal
+5. Use protein stacking - multiple protein sources per meal
+6. Stay within portion limits
+7. No markdown, no backticks, no explanation - ONLY the JSON array`;
+
+            console.log(`📊 Strategy: ${actualMeals} meals, ~${targetProteinPerMeal}g protein each, ${minIngredientsPerMeal}+ ingredients`);
 
 
             try {
-                console.log(`🚀 Requesting ${mealsPerDay} meals from API...`);
+                console.log(`🚀 Requesting ${actualMeals} meals from API (original request: ${mealsPerDay})...`);
 
                 const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
@@ -633,7 +541,7 @@ ${exampleArray}
                     body: JSON.stringify({
                         prompt,
                         targets: nutrition,
-                        mealsPerDay: mealsPerDay
+                        mealsPerDay: actualMeals  // Use smart meal count
                     })
                 });
 

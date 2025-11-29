@@ -2956,7 +2956,7 @@ function scalePortionsToTargets(meals, actualTotals, targetTotals) {
       return meal;
     }
 
-    const scaledIngredients = meal.ingredients.map(ing => {
+    let scaledIngredients = meal.ingredients.map(ing => {
       if (typeof ing === 'string') {
         // String format: "Chicken Breast (200g)"
         return scaleIngredientString(ing, scalingFactor);
@@ -2970,19 +2970,35 @@ function scalePortionsToTargets(meals, actualTotals, targetTotals) {
       return ing;
     });
 
-    // Recalculate macros from scaled ingredients
+    // FIX: RE-VALIDATE after scaling to prevent reintroduced violations
+    const postScaleValidation = validateAndCapPortions(scaledIngredients, meal.type);
+    scaledIngredients = postScaleValidation.ingredients;
+
+    if (postScaleValidation.violations.length > 0) {
+      console.log(`📋 Post-scale violations in "${meal.name}":`, postScaleValidation.violations.map(v =>
+        `${v.ingredient} → ${v.capped}${v.unit}`
+      ).join(', '));
+    }
+
+    // Recalculate macros from scaled AND re-validated ingredients
     const recalculated = calculateMacrosFromIngredients(scaledIngredients);
+
+    // FIX: Sync meal name with final ingredient amounts
+    const finalMealName = syncMealNameWithIngredients(
+      updateMealNamePortions(meal.name, scalingFactor),
+      scaledIngredients
+    );
 
     return {
       ...meal,
-      name: updateMealNamePortions(meal.name, scalingFactor),
+      name: finalMealName,
       ingredients: scaledIngredients,
       calories: recalculated.totals.calories,
       protein: recalculated.totals.protein,
       carbs: recalculated.totals.carbs,
       fat: recalculated.totals.fat,
       breakdown: recalculated.breakdown,
-      calculation_notes: `Scaled by ${scalingFactor.toFixed(3)}x and recalculated from ${scaledIngredients.length} ingredients`
+      calculation_notes: `Scaled by ${scalingFactor.toFixed(3)}x, re-validated, and recalculated from ${scaledIngredients.length} ingredients`
     };
   });
 
@@ -3884,6 +3900,104 @@ function updateMealNamePortions(mealName, scaleFactor) {
 }
 
 /**
+ * Sync meal name with capped ingredients
+ * Extracts portion amounts from ingredients and updates the meal name to match
+ * Fixes the bug where meal title shows original LLM portions but ingredients were capped
+ */
+function syncMealNameWithIngredients(mealName, ingredients) {
+  if (!mealName || !ingredients || !Array.isArray(ingredients)) return mealName;
+
+  let updatedName = mealName;
+
+  // Build a map of food name -> actual amount from ingredients
+  const ingredientAmounts = {};
+  for (const ing of ingredients) {
+    let foodName, amount;
+    if (typeof ing === 'string') {
+      // Parse "Chicken Breast (200g)" format
+      const match = ing.match(/^(.+?)\s*\((.+?)\)$/);
+      if (match) {
+        foodName = match[1].trim().toLowerCase();
+        amount = match[2].trim();
+      }
+    } else if (ing.food && ing.amount) {
+      // Parse {food: "chicken_breast", amount: "200g"} format
+      foodName = ing.food.replace(/_/g, ' ').toLowerCase();
+      amount = ing.amount;
+    }
+    if (foodName && amount) {
+      ingredientAmounts[foodName] = amount;
+      // Also store variants (e.g., "oats rolled dry" -> "oats")
+      const simpleName = foodName.split(' ')[0];
+      if (!ingredientAmounts[simpleName]) {
+        ingredientAmounts[simpleName] = amount;
+      }
+    }
+  }
+
+  // Common food name mappings for meal title matching
+  const foodMappings = {
+    'oatmeal': ['oats', 'oats_rolled_dry', 'oats rolled dry'],
+    'oats': ['oats_rolled_dry', 'oats rolled dry'],
+    'chicken': ['chicken_breast', 'chicken breast'],
+    'beef': ['ground_beef_93', 'ground beef 93', 'ground_beef_90', 'ground beef'],
+    'cod': ['cod'],
+    'salmon': ['salmon'],
+    'yogurt': ['greek_yogurt_nonfat', 'greek yogurt nonfat', 'greek_yogurt', 'greek yogurt'],
+    'greek yogurt': ['greek_yogurt_nonfat', 'greek yogurt nonfat'],
+    'sweet potato': ['sweet_potato'],
+    'rice': ['white_rice_cooked', 'white rice cooked', 'brown_rice_cooked', 'brown rice cooked'],
+    'quinoa': ['quinoa_cooked', 'quinoa cooked'],
+    'broccoli': ['broccoli'],
+    'asparagus': ['asparagus'],
+    'green beans': ['green_beans', 'green beans'],
+    'blueberries': ['blueberries'],
+    'strawberries': ['strawberries']
+  };
+
+  // Update each portion in the meal name with actual ingredient amounts
+  updatedName = updatedName.replace(/(\w[\w\s]*?)\s*\((\d+(?:\.\d+)?)\s*(g|oz|ml|cup|cups|tbsp|tsp|large|medium|small|slice|slices|scoop|scoops)?(\s+(?:dry|cooked|raw|whole|uncooked))?\)/gi,
+    (match, foodInName, oldNum, unit, descriptor) => {
+      const normalizedFood = foodInName.trim().toLowerCase();
+
+      // Try to find matching ingredient
+      let actualAmount = ingredientAmounts[normalizedFood];
+
+      // Try mappings if direct match fails
+      if (!actualAmount && foodMappings[normalizedFood]) {
+        for (const variant of foodMappings[normalizedFood]) {
+          if (ingredientAmounts[variant]) {
+            actualAmount = ingredientAmounts[variant];
+            break;
+          }
+        }
+      }
+
+      if (actualAmount) {
+        // Extract just the numeric part from actual amount
+        const numMatch = actualAmount.match(/^([\d.]+)/);
+        if (numMatch) {
+          const newNum = numMatch[1];
+          if (unit && descriptor) {
+            return `${foodInName} (${newNum} ${unit}${descriptor})`;
+          } else if (unit) {
+            return `${foodInName} (${newNum} ${unit})`;
+          } else if (descriptor) {
+            return `${foodInName} (${newNum}${descriptor})`;
+          } else {
+            return `${foodInName} (${newNum}g)`;
+          }
+        }
+      }
+
+      // No match found, return original
+      return match;
+    });
+
+  return updatedName;
+}
+
+/**
  * Optimize meal portions to hit target macros using deterministic algorithm
  * NO LLM - Pure math optimization
  * @param {boolean} skipAutoScale - If true, don't auto-scale portions (used for revisions where user controls portions)
@@ -3994,10 +4108,14 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
   // Use capped ingredients for all subsequent calculations
   geminiMeal.ingredients = validatedResult.ingredients;
 
+  // FIX: Sync meal name with capped ingredients to prevent title/ingredient mismatch
   if (validatedResult.violations.length > 0) {
     console.log(`📋 Violations capped:`, validatedResult.violations.map(v =>
       `${v.ingredient} → ${v.capped}${v.unit}`
     ).join(', '));
+    // Update meal name to reflect capped portions
+    geminiMeal.name = syncMealNameWithIngredients(geminiMeal.name, geminiMeal.ingredients);
+    console.log(`📝 Updated meal name: ${geminiMeal.name}`);
   }
 
   // Step 1: Calculate current macros from ingredients (using Spoonacular if available)
@@ -4034,18 +4152,36 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
     console.log(`⚖️ AUTO-SCALING portions by ${(scaleFactor * 100).toFixed(0)}% to match target calories`);
 
     // Scale all ingredient portions
-    const scaledIngredients = scaleIngredientPortions(geminiMeal.ingredients, scaleFactor);
+    let scaledIngredients = scaleIngredientPortions(geminiMeal.ingredients, scaleFactor);
 
-    // Recalculate macros with scaled portions (use local DB for speed since we just scaled)
+    // FIX: RE-VALIDATE after scaling to prevent reintroduced violations
+    // Scaling can push portions back over limits (e.g., 300g capped, then scaled 1.08x = 324g)
+    console.log(`🛡️ Re-validating scaled portions against limits...`);
+    const postScaleValidation = validateAndCapPortions(scaledIngredients, geminiMeal.type);
+    scaledIngredients = postScaleValidation.ingredients;
+
+    if (postScaleValidation.violations.length > 0) {
+      console.log(`📋 Post-scale violations capped:`, postScaleValidation.violations.map(v =>
+        `${v.ingredient} → ${v.capped}${v.unit}`
+      ).join(', '));
+    }
+
+    // Recalculate macros with scaled AND re-validated portions
     const scaled = calculateMacrosFromIngredients(scaledIngredients);
 
     console.log(`✅ Scaled totals: ${scaled.totals.calories}cal, ${scaled.totals.protein}P, ${scaled.totals.carbs}C, ${scaled.totals.fat}F`);
     console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
 
+    // FIX: Sync meal name with final ingredient amounts (after scaling AND capping)
+    const finalMealName = syncMealNameWithIngredients(
+      updateMealNamePortions(geminiMeal.name, scaleFactor),
+      scaledIngredients
+    );
+
     // Return meal with scaled portions and recalculated macros
     return {
       type: geminiMeal.type || 'meal',
-      name: updateMealNamePortions(geminiMeal.name, scaleFactor),
+      name: finalMealName,
       ingredients: scaledIngredients,
       calories: scaled.totals.calories,
       protein: scaled.totals.protein,
