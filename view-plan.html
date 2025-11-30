@@ -190,6 +190,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-recipe {
+            background: #ea580c;
+            color: white;
+        }
+
+        .btn-recipe:hover {
+            background: #c2410c;
+            transform: translateY(-2px);
+        }
+
         .portions-dropdown {
             position: absolute;
             background: white;
@@ -1162,6 +1172,25 @@
             </div>
             <div style="padding: 20px; border-top: 1px solid #ddd; text-align: right;">
                 <button class="btn btn-secondary" onclick="closeMealPrepModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipe Modal -->
+    <div id="recipeModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="recipeTitle">📖 Recipe</h2>
+                <button class="close-btn" onclick="closeRecipeModal()">&times;</button>
+            </div>
+            <div id="recipeContent" style="padding: 20px;">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loader" style="margin: 0 auto 20px;"></div>
+                    <p style="color: #666;">Loading recipe...</p>
+                </div>
+            </div>
+            <div style="padding: 20px; border-top: 1px solid #ddd; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeRecipeModal()">Close</button>
             </div>
         </div>
     </div>
@@ -3172,20 +3201,20 @@
                 ? `<button class="btn btn-undo" onclick="undoRevision(${changeParam})" title="Undo last revision">↩️ Undo</button>`
                 : '';
 
-            // Build portions param - same pattern as change/revise
-            const portionsParam = dayIndex !== null ? `event, '${index}', ${dayIndex}, ${mealIndex}` : `event, ${index}`;
+            // Different buttons for custom vs AI-generated meals
+            const isCustomMeal = meal.isCustom === true;
 
-            // Edit button for custom meals only
-            const editButton = meal.isCustom
+            // Edit button for custom meals, Revise button for AI meals
+            const editOrReviseButton = isCustomMeal
                 ? `<button class="btn btn-edit" onclick="editCustomMeal(${changeParam})" title="Edit this custom meal">✎ Edit</button>`
-                : '';
+                : `<button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>`;
 
             let actionButtons = `
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
-                <button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>
+                ${editOrReviseButton}
                 <button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>
-                ${editButton}
+                <button class="btn btn-recipe" onclick="getRecipe('${escapedMealName}')" title="Get cooking instructions">📖 Recipe</button>
                 ${undoButton}
             `;
 
@@ -4438,6 +4467,73 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
 
         function closeMealPrepModal() {
             document.getElementById('mealPrepModal').style.display = 'none';
+        }
+
+        // Recipe Modal Functions
+        async function getRecipe(mealName) {
+            console.log('📖 Getting recipe for:', mealName);
+            const modal = document.getElementById('recipeModal');
+            const content = document.getElementById('recipeContent');
+            const title = document.getElementById('recipeTitle');
+
+            if (!modal || !content) {
+                console.error('❌ Recipe modal elements not found');
+                alert('Error: Recipe modal not found. Please refresh the page.');
+                return;
+            }
+
+            // Show modal with loading state
+            title.textContent = '📖 ' + mealName;
+            modal.style.display = 'flex';
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loader" style="margin: 0 auto 20px;"></div>
+                    <p style="color: #666;">Generating recipe...</p>
+                </div>
+            `;
+
+            try {
+                const prompt = `Create a detailed recipe for "${mealName}".
+
+Format with markdown:
+### Ingredients
+- List each ingredient with exact amounts
+
+### Instructions
+1. Step by step cooking instructions
+2. Include cooking times and temperatures
+3. Add any helpful tips
+
+Keep it concise but complete.`;
+
+                const response = await fetch('/.netlify/functions/generate-meal-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        isRecipe: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    content.innerHTML = `<p style="color: #dc2626;">${data.error}</p>`;
+                } else if (data.recipe || data.text || typeof data === 'string') {
+                    const recipeText = data.recipe || data.text || data;
+                    const html = formatMarkdown(recipeText);
+                    content.innerHTML = `<div style="line-height: 1.6;">${html}</div>`;
+                } else {
+                    content.innerHTML = '<p style="color: #dc2626;">Error: Invalid recipe format received. Please try again.</p>';
+                }
+            } catch (error) {
+                console.error('❌ Error generating recipe:', error);
+                content.innerHTML = `<p style="color: #dc2626;">Error generating recipe: ${error.message}. Please try again.</p>`;
+            }
+        }
+
+        function closeRecipeModal() {
+            document.getElementById('recipeModal').style.display = 'none';
         }
 
         // Simple markdown formatter

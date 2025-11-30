@@ -4015,8 +4015,9 @@ async function editCustomMeal(dayIndex, mealIndex) {
         // Switch to calculate tab
         switchCustomMealTab('calculate');
 
-        // Pre-populate meal name and instructions
-        document.getElementById('calculatedMealName').value = meal.name || '';
+        // Clear meal name so it auto-generates based on current ingredients
+        // (user can still type a custom name if they want)
+        document.getElementById('calculatedMealName').value = '';
         document.getElementById('calculatedMealInstructions').value = meal.instructions || '';
 
         // Render the ingredients and update totals
