@@ -262,6 +262,73 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Supplement Protocol Section */
+        .protocols-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .protocols-section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .protocol-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #0d9488;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .protocol-name {
+            font-weight: 600;
+            color: #0d9488;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .protocol-timing {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 4px;
+        }
+
+        .protocol-schedule {
+            margin: 8px 0 8px 20px;
+            color: #0d9488;
+            font-size: 14px;
+        }
+
+        .protocol-schedule li {
+            margin-bottom: 4px;
+        }
+
+        .protocol-notes {
+            background: #e0f2fe;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #0369a1;
+            margin-top: 10px;
+        }
+
+        .no-protocols {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+
+        .no-protocols-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
         /* Progress Photos Section */
         .photos-section {
             background: white;
@@ -1159,6 +1226,17 @@
             </div>
         </div>
 
+        <!-- Supplement Protocol Section -->
+        <div class="protocols-section" id="protocolsSection" style="display: none;">
+            <h2>💊 Supplement Protocol</h2>
+            <div id="protocolsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading supplements...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Progress Photos Section -->
         <div class="photos-section">
             <div class="photos-header">
@@ -1416,6 +1494,9 @@
             // Load meal plans
             await loadMealPlans();
 
+            // Load supplement protocols
+            await loadProtocols();
+
             // Load progress photos
             await loadPhotos();
 
@@ -1471,6 +1552,94 @@
                         <p>${error.message}</p>
                     </div>
                 `;
+            }
+        }
+
+        // Load supplement protocols for client
+        async function loadProtocols() {
+            const protocolsContainer = document.getElementById('protocolsContainer');
+            const protocolsSection = document.getElementById('protocolsSection');
+
+            try {
+                // Fetch protocols from the API
+                const response = await fetch(`/.netlify/functions/client-protocols?clientId=${currentClientId}&coachId=${currentCoachId}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch protocols');
+                }
+
+                const data = await response.json();
+                const protocols = data.protocols || [];
+
+                if (protocols.length === 0) {
+                    // Hide the section if no protocols
+                    protocolsSection.style.display = 'none';
+                    return;
+                }
+
+                // Show the section and render protocols
+                protocolsSection.style.display = 'block';
+
+                const timingLabels = {
+                    'morning': 'Morning',
+                    'pre_workout': 'Pre-Workout',
+                    'post_workout': 'Post-Workout',
+                    'bedtime': 'Bedtime',
+                    'with_meals': 'With Meals',
+                    'custom': 'Custom'
+                };
+
+                const timingIcons = {
+                    'morning': '🌅',
+                    'pre_workout': '💪',
+                    'post_workout': '🏋️',
+                    'bedtime': '🌙',
+                    'with_meals': '🍽️',
+                    'custom': '⏰'
+                };
+
+                let html = '';
+
+                protocols.forEach(protocol => {
+                    const icon = timingIcons[protocol.timing] || '💊';
+                    const timingText = protocol.timing === 'custom' && protocol.timing_custom
+                        ? protocol.timing_custom
+                        : timingLabels[protocol.timing] || protocol.timing;
+
+                    html += `<div class="protocol-card">`;
+                    html += `<div class="protocol-name">${icon} ${protocol.name}</div>`;
+                    html += `<div class="protocol-timing"><strong>Timing:</strong> ${timingText}</div>`;
+
+                    // Show dose or schedule
+                    if (protocol.has_schedule && protocol.schedule && protocol.schedule.length > 0) {
+                        html += `<div class="protocol-timing"><strong>📅 Scheduled:</strong></div>`;
+                        html += `<ul class="protocol-schedule">`;
+                        protocol.schedule.forEach(phase => {
+                            html += `<li>Week ${phase.weekStart}-${phase.weekEnd}: ${phase.dose}</li>`;
+                        });
+                        html += `</ul>`;
+                        if (protocol.start_date) {
+                            const startDate = new Date(protocol.start_date).toLocaleDateString();
+                            html += `<div class="protocol-timing"><strong>Start Date:</strong> ${startDate}</div>`;
+                        }
+                    } else if (protocol.dose) {
+                        html += `<div class="protocol-timing"><strong>Dose:</strong> ${protocol.dose}</div>`;
+                    }
+
+                    // Show public notes only (not private_notes - those are coach-only)
+                    if (protocol.notes) {
+                        html += `<div class="protocol-notes">📝 ${protocol.notes}</div>`;
+                    }
+
+                    html += `</div>`;
+                });
+
+                protocolsContainer.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading protocols:', error);
+                // Hide the section on error
+                protocolsSection.style.display = 'none';
             }
         }
 

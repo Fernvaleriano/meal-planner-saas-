@@ -263,6 +263,15 @@
             background: #0f766e;
         }
 
+        .protocol-btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .protocol-btn-delete:hover {
+            background: #dc2626;
+        }
+
         /* Protocol Edit Modal */
         .protocol-modal {
             display: none;
@@ -3226,9 +3235,10 @@
                     html += `<div class="protocol-notes" style="background: #fef3c7; color: #92400e;">🔒 Coach Note: ${protocol.private_notes}</div>`;
                 }
 
-                // Add edit button for clients (no delete - only coaches can delete)
+                // Add edit and delete buttons for coach
                 html += `<div class="protocol-actions">`;
                 html += `<button class="protocol-btn protocol-btn-edit" onclick="openEditProtocolModal(${protocol.id})">✏️ Edit</button>`;
+                html += `<button class="protocol-btn protocol-btn-delete" onclick="deleteProtocol(${protocol.id}, '${protocol.name.replace(/'/g, "\\'")}')">🗑️ Delete</button>`;
                 html += `</div>`;
 
                 html += `</div>`;
@@ -3328,6 +3338,29 @@
             } catch (error) {
                 console.error('Error updating protocol:', error);
                 alert('Failed to update supplement: ' + error.message);
+            }
+        }
+
+        // Delete protocol
+        async function deleteProtocol(protocolId, protocolName) {
+            if (!confirm(`Are you sure you want to delete "${protocolName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CLIENT_PROTOCOLS_ENDPOINT}?protocolId=${protocolId}&coachId=${currentUser.id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                await loadProtocols(clientId);
+                alert('Supplement deleted successfully!');
+
+            } catch (error) {
+                console.error('Error deleting protocol:', error);
+                alert('Failed to delete supplement: ' + error.message);
             }
         }
     </script>
