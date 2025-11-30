@@ -1325,6 +1325,18 @@
         </div>
         <div class="ingredient-editor-body">
             <p style="color: #64748b; font-size: 0.9em; margin-bottom: 15px;">Adjust individual ingredient quantities to customize this meal's macros.</p>
+
+            <!-- Original Meal Macros Reference -->
+            <div id="editorOriginalMacros" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 15px; display: none;">
+                <div style="font-size: 0.8em; color: #64748b; margin-bottom: 6px;">📋 Original Meal:</div>
+                <div style="display: flex; gap: 15px; font-size: 0.85em; color: #475569;">
+                    <span><strong id="origCal">0</strong> cal</span>
+                    <span><strong id="origProtein">0</strong>g P</span>
+                    <span><strong id="origCarbs">0</strong>g C</span>
+                    <span><strong id="origFat">0</strong>g F</span>
+                </div>
+            </div>
+
             <div id="ingredientEditorList" class="ingredient-editor-list">
                 <!-- Ingredients will be populated here -->
             </div>
@@ -1348,6 +1360,7 @@
                         <div class="editor-total-label">Fat</div>
                     </div>
                 </div>
+                <p style="font-size: 0.75em; color: #94a3b8; margin-top: 10px; text-align: center;">Macros calculated from USDA database</p>
             </div>
         </div>
         <div class="ingredient-editor-footer">
@@ -4158,6 +4171,14 @@ async function showIngredientEditor(dayIndex, mealIndex) {
     const modal = document.getElementById('ingredientEditorModal');
     const listContainer = document.getElementById('ingredientEditorList');
 
+    // Show original meal macros for reference
+    const origMacrosDiv = document.getElementById('editorOriginalMacros');
+    document.getElementById('origCal').textContent = meal.calories;
+    document.getElementById('origProtein').textContent = meal.protein;
+    document.getElementById('origCarbs').textContent = meal.carbs;
+    document.getElementById('origFat').textContent = meal.fat;
+    origMacrosDiv.style.display = 'block';
+
     // Show modal with loading state
     modal.style.display = 'flex';
     listContainer.innerHTML = `
@@ -4743,7 +4764,9 @@ async function parseAndLookupIngredients(ingredients) {
                 }
 
                 ingredientData.push({
-                    name: food.name,
+                    name: cleanName, // Keep original name from meal
+                    originalName: cleanName,
+                    dbName: food.name, // Store database name for reference
                     caloriesPer100g: food.caloriesPer100g,
                     proteinPer100g: food.proteinPer100g,
                     carbsPer100g: food.carbsPer100g,
@@ -4753,7 +4776,7 @@ async function parseAndLookupIngredients(ingredients) {
                     quantityGrams: quantityGrams,
                     gramsPerServing: food.gramsPerServing
                 });
-                console.log('✅ Found ingredient:', cleanName, '→', food.name);
+                console.log('✅ Found ingredient:', cleanName, '(matched to:', food.name + ')');
             } else {
                 console.log('❌ No match found for:', cleanName);
             }
