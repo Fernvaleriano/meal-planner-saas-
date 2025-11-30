@@ -670,6 +670,230 @@
             color: #666;
         }
 
+        /* Ingredient Editor Modal Styles */
+        .ingredient-editor-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .ingredient-editor-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .ingredient-editor-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ingredient-editor-header h2 {
+            margin: 0;
+            font-size: 1.3em;
+        }
+
+        .ingredient-editor-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+
+        .ingredient-editor-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .ingredient-editor-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .editor-ingredient-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .editor-ingredient-name {
+            flex: 1;
+            font-weight: 500;
+            color: #334155;
+            font-size: 0.95em;
+        }
+
+        .editor-qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .editor-qty-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #e0e7ff;
+            border-radius: 8px;
+            background: white;
+            color: #6366f1;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .editor-qty-btn:hover {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+
+        .editor-qty-input {
+            width: 70px;
+            padding: 6px 8px;
+            border: 2px solid #e0e7ff;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .editor-qty-input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .editor-unit-label {
+            font-size: 0.85em;
+            color: #64748b;
+            min-width: 30px;
+        }
+
+        .editor-totals {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .editor-totals-header {
+            font-weight: 700;
+            color: #065f46;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .editor-totals-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .editor-total-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .editor-total-value {
+            font-weight: 700;
+            color: #0d9488;
+            font-size: 1.2em;
+        }
+
+        .editor-total-label {
+            font-size: 0.75em;
+            color: #666;
+        }
+
+        .ingredient-editor-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .editor-btn-cancel {
+            padding: 10px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #64748b;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .editor-btn-save {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .editor-loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .editor-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: editor-spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes editor-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .editor-no-ingredients {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
         .macro-inputs-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1090,6 +1314,47 @@
         </div>
     </div>
 
+</div>
+
+<!-- Ingredient Editor Modal -->
+<div id="ingredientEditorModal" class="ingredient-editor-overlay" style="display: none;">
+    <div class="ingredient-editor-modal">
+        <div class="ingredient-editor-header">
+            <h2>⚖️ Edit Ingredients</h2>
+            <button class="ingredient-editor-close" onclick="closeIngredientEditor()">×</button>
+        </div>
+        <div class="ingredient-editor-body">
+            <p style="color: #64748b; font-size: 0.9em; margin-bottom: 15px;">Adjust individual ingredient quantities to customize this meal's macros.</p>
+            <div id="ingredientEditorList" class="ingredient-editor-list">
+                <!-- Ingredients will be populated here -->
+            </div>
+            <div class="editor-totals">
+                <div class="editor-totals-header">📊 Updated Totals</div>
+                <div class="editor-totals-grid">
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalCal">0</div>
+                        <div class="editor-total-label">Calories</div>
+                    </div>
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalProtein">0g</div>
+                        <div class="editor-total-label">Protein</div>
+                    </div>
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalCarbs">0g</div>
+                        <div class="editor-total-label">Carbs</div>
+                    </div>
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalFat">0g</div>
+                        <div class="editor-total-label">Fat</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ingredient-editor-footer">
+            <button class="editor-btn-cancel" onclick="closeIngredientEditor()">Cancel</button>
+            <button class="editor-btn-save" onclick="saveIngredientEdits()">💾 Save Changes</button>
+        </div>
+    </div>
 </div>
 
 <!-- Custom Meal Modal -->
@@ -2985,7 +3250,7 @@ function displayDietPlan(multiDayData) {
                     <div class="flex gap-2 mt-2">
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                         <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
-                        <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Adjust serving size">⚖️ Portions</button>
+                        <button data-action="edit-ingredients" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Edit individual ingredient amounts">⚖️ Portions</button>
                         <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
                         ${editButton}
@@ -3874,6 +4139,241 @@ function adjustPortions(dayIndex, mealIndex, multiplier) {
 
     displayDietPlan(lastPlanQuery.currentPlan);
     console.log(`⚖️ Adjusted portions for ${meal.type}: ${multiplier}x`);
+}
+
+// ========================================
+// INGREDIENT EDITOR FUNCTIONALITY
+// ========================================
+
+let ingredientEditorDayIndex = null;
+let ingredientEditorMealIndex = null;
+let ingredientEditorData = [];
+
+async function showIngredientEditor(dayIndex, mealIndex) {
+    ingredientEditorDayIndex = dayIndex;
+    ingredientEditorMealIndex = mealIndex;
+    ingredientEditorData = [];
+
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    const modal = document.getElementById('ingredientEditorModal');
+    const listContainer = document.getElementById('ingredientEditorList');
+
+    // Show modal with loading state
+    modal.style.display = 'flex';
+    listContainer.innerHTML = `
+        <div class="editor-loading">
+            <div class="editor-loading-spinner"></div>
+            <p>Loading ingredients...</p>
+        </div>
+    `;
+
+    // Check if meal already has parsed ingredient data
+    if (meal.ingredientData && Array.isArray(meal.ingredientData) && meal.ingredientData.length > 0) {
+        ingredientEditorData = JSON.parse(JSON.stringify(meal.ingredientData));
+        renderIngredientEditorList();
+        updateIngredientEditorTotals();
+        return;
+    }
+
+    // Parse and lookup ingredients from the ingredients array
+    if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+        try {
+            const parsedData = await parseAndLookupIngredients(meal.ingredients);
+            if (parsedData && parsedData.length > 0) {
+                ingredientEditorData = parsedData;
+                renderIngredientEditorList();
+                updateIngredientEditorTotals();
+                return;
+            }
+        } catch (error) {
+            console.error('Error parsing ingredients:', error);
+        }
+    }
+
+    // Fallback: If no ingredients could be parsed, show the whole meal as one item
+    listContainer.innerHTML = `
+        <div class="editor-no-ingredients">
+            <p>Could not parse individual ingredients for this meal.</p>
+            <p style="margin-top: 10px;">Use the <strong>Custom</strong> button to rebuild this meal with exact ingredients.</p>
+        </div>
+    `;
+
+    // Still show the current meal macros
+    document.getElementById('editorTotalCal').textContent = meal.calories;
+    document.getElementById('editorTotalProtein').textContent = meal.protein + 'g';
+    document.getElementById('editorTotalCarbs').textContent = meal.carbs + 'g';
+    document.getElementById('editorTotalFat').textContent = meal.fat + 'g';
+}
+
+function renderIngredientEditorList() {
+    const listContainer = document.getElementById('ingredientEditorList');
+
+    if (ingredientEditorData.length === 0) {
+        listContainer.innerHTML = '<div class="editor-no-ingredients">No ingredients to edit</div>';
+        return;
+    }
+
+    listContainer.innerHTML = ingredientEditorData.map((ing, index) => {
+        const displayQty = ing.selectedUnit === 'g' ? Math.round(ing.quantityGrams) : ing.quantity;
+        const stepAmount = ing.selectedUnit === 'g' ? 10 : 0.5;
+        const unitLabel = ing.selectedUnit === 'g' ? 'g' : ing.selectedUnit;
+
+        // Get a short display name
+        const shortName = ing.name.split(',')[0].trim();
+
+        return `
+            <div class="editor-ingredient-item">
+                <span class="editor-ingredient-name" title="${ing.name}">${shortName}</span>
+                <div class="editor-qty-controls">
+                    <button class="editor-qty-btn" onclick="stepEditorIngredient(${index}, -1)" title="Decrease">−</button>
+                    <input type="number"
+                           class="editor-qty-input"
+                           value="${displayQty}"
+                           min="0"
+                           step="${stepAmount}"
+                           onchange="updateEditorIngredientQty(${index}, this.value)"
+                           oninput="updateEditorIngredientQty(${index}, this.value)">
+                    <button class="editor-qty-btn" onclick="stepEditorIngredient(${index}, 1)" title="Increase">+</button>
+                </div>
+                <span class="editor-unit-label">${unitLabel}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function stepEditorIngredient(index, direction) {
+    const ing = ingredientEditorData[index];
+    const isGrams = ing.selectedUnit === 'g';
+    const step = isGrams ? 10 : 0.5;
+    const minVal = isGrams ? 10 : 0.5;
+
+    if (isGrams) {
+        ing.quantityGrams = Math.max(minVal, (ing.quantityGrams || ing.quantity) + (direction * step));
+        ing.quantity = ing.quantityGrams;
+    } else {
+        ing.quantity = Math.max(minVal, ing.quantity + (direction * step));
+        // Recalculate grams
+        if (ing.gramsPerServing) {
+            ing.quantityGrams = ing.quantity * ing.gramsPerServing;
+        } else {
+            const conversions = { cup: 240, tbsp: 15, tsp: 5, oz: 28, serving: 100, scoop: 30, whole: 50, medium: 150, large: 200, slice: 30 };
+            ing.quantityGrams = ing.quantity * (conversions[ing.selectedUnit] || 100);
+        }
+    }
+
+    renderIngredientEditorList();
+    updateIngredientEditorTotals();
+}
+
+function updateEditorIngredientQty(index, value) {
+    const ing = ingredientEditorData[index];
+    const newQty = parseFloat(value) || 0;
+    const isGrams = ing.selectedUnit === 'g';
+
+    if (isGrams) {
+        ing.quantityGrams = newQty;
+        ing.quantity = newQty;
+    } else {
+        ing.quantity = newQty;
+        // Recalculate grams
+        if (ing.gramsPerServing) {
+            ing.quantityGrams = newQty * ing.gramsPerServing;
+        } else {
+            const conversions = { cup: 240, tbsp: 15, tsp: 5, oz: 28, serving: 100, scoop: 30, whole: 50, medium: 150, large: 200, slice: 30 };
+            ing.quantityGrams = newQty * (conversions[ing.selectedUnit] || 100);
+        }
+    }
+
+    updateIngredientEditorTotals();
+}
+
+function updateIngredientEditorTotals() {
+    let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+    ingredientEditorData.forEach(ing => {
+        const grams = ing.quantityGrams || ing.quantity;
+        const factor = grams / 100;
+        totalCal += (ing.caloriesPer100g || 0) * factor;
+        totalProtein += (ing.proteinPer100g || 0) * factor;
+        totalCarbs += (ing.carbsPer100g || 0) * factor;
+        totalFat += (ing.fatPer100g || 0) * factor;
+    });
+
+    document.getElementById('editorTotalCal').textContent = Math.round(totalCal);
+    document.getElementById('editorTotalProtein').textContent = Math.round(totalProtein) + 'g';
+    document.getElementById('editorTotalCarbs').textContent = Math.round(totalCarbs) + 'g';
+    document.getElementById('editorTotalFat').textContent = Math.round(totalFat) + 'g';
+}
+
+function closeIngredientEditor() {
+    document.getElementById('ingredientEditorModal').style.display = 'none';
+    ingredientEditorData = [];
+    ingredientEditorDayIndex = null;
+    ingredientEditorMealIndex = null;
+}
+
+function saveIngredientEdits() {
+    if (ingredientEditorDayIndex === null || ingredientEditorMealIndex === null) {
+        closeIngredientEditor();
+        return;
+    }
+
+    if (ingredientEditorData.length === 0) {
+        alert('No ingredients to save');
+        return;
+    }
+
+    const meal = lastPlanQuery.currentPlan[ingredientEditorDayIndex].plan[ingredientEditorMealIndex];
+
+    // Save current state for undo
+    const stateKey = `${ingredientEditorDayIndex}-${ingredientEditorMealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+    saveUndoStates();
+    console.log(`💾 Saved previous state for undo (ingredient edit):`, previousMealStates[stateKey]);
+
+    // Calculate new totals
+    let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+    const newIngredients = [];
+
+    ingredientEditorData.forEach(ing => {
+        const grams = ing.quantityGrams || ing.quantity;
+        const factor = grams / 100;
+        totalCal += (ing.caloriesPer100g || 0) * factor;
+        totalProtein += (ing.proteinPer100g || 0) * factor;
+        totalCarbs += (ing.carbsPer100g || 0) * factor;
+        totalFat += (ing.fatPer100g || 0) * factor;
+
+        // Format ingredient string
+        const shortName = ing.name.split(',')[0].trim();
+        if (ing.selectedUnit === 'g') {
+            newIngredients.push(`${shortName} (${Math.round(grams)}g)`);
+        } else {
+            newIngredients.push(`${shortName} (${ing.quantity} ${ing.selectedUnit})`);
+        }
+    });
+
+    // Update meal data
+    meal.calories = Math.round(totalCal);
+    meal.protein = Math.round(totalProtein);
+    meal.carbs = Math.round(totalCarbs);
+    meal.fat = Math.round(totalFat);
+    meal.ingredients = newIngredients;
+    meal.ingredientData = JSON.parse(JSON.stringify(ingredientEditorData)); // Store for future edits
+
+    // Add "(edited)" to meal name if not already there
+    if (!meal.name.includes('(edited)') && !meal.name.includes('(adjusted)')) {
+        meal.name = `${meal.name} (edited)`;
+    }
+
+    // Auto-save if plan already exists in database
+    if (lastPlanQuery.planId) {
+        saveCoachPlan();
+    }
+
+    // Close modal and refresh display
+    closeIngredientEditor();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    console.log(`✅ Saved ingredient edits for ${meal.type}`);
 }
 
 // ========================================
@@ -5845,11 +6345,11 @@ document.addEventListener('click', function(event) {
             const mealIndex = parseInt(target.dataset.mealIndex);
             editCustomMeal(dayIndex, mealIndex);
         },
-        'adjust-portions': () => {
+        'edit-ingredients': () => {
             const target = event.target.closest('[data-day-index]');
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
-            showPortionsDropdown(event.target, dayIndex, mealIndex);
+            showIngredientEditor(dayIndex, mealIndex);
         },
         'undo-meal': () => {
             const target = event.target.closest('[data-day-index]');
