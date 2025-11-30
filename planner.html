@@ -1322,11 +1322,27 @@ window.addEventListener('beforeunload', function(e) {
 // Track when changes are made
 function markUnsavedChanges() {
     hasUnsavedChanges = true;
+    updateSaveButtonState();
 }
 
 // Clear unsaved changes flag after save
 function clearUnsavedChanges() {
     hasUnsavedChanges = false;
+    updateSaveButtonState();
+}
+
+// Update save button to reflect current state
+function updateSaveButtonState() {
+    const saveBtn = document.getElementById('savePlanBtn');
+    if (!saveBtn) return;
+
+    if (hasUnsavedChanges) {
+        saveBtn.innerHTML = '💾 Save Changes*';
+        saveBtn.style.background = '#f59e0b'; // Orange for unsaved
+    } else {
+        saveBtn.innerHTML = '💾 Saved';
+        saveBtn.style.background = '#10b981'; // Green for saved
+    }
 }
 
 // Load clients from database
@@ -3088,9 +3104,14 @@ function displayDietPlan(multiDayData) {
                     <span style="font-size: 14px; font-weight: 600; color: #92400e;">📝 Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
                 </div>
-                <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                    ✅ Submit to Client
-                </button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="savePlanBtn" data-action="save-plan" class="btn btn-secondary" style="background: #3b82f6; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                        💾 Save Changes
+                    </button>
+                    <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                        ✅ Submit to Client
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -3268,6 +3289,49 @@ async function publishPlanToClient() {
         alert('Failed to submit plan: ' + error.message);
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+    }
+}
+
+// MANUAL SAVE BUTTON HANDLER
+async function savePlanChanges() {
+    if (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0) {
+        alert('No plan to save. Please generate or build a plan first.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('savePlanBtn');
+    if (!saveBtn) return;
+
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '💾 Saving...';
+    saveBtn.disabled = true;
+
+    try {
+        const success = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+
+        if (success) {
+            saveBtn.innerHTML = '✅ Saved!';
+            saveBtn.style.background = '#10b981';
+
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                saveBtn.innerHTML = '💾 Save Changes';
+                saveBtn.style.background = '#3b82f6';
+                saveBtn.disabled = false;
+            }, 2000);
+        } else {
+            throw new Error('Save failed');
+        }
+    } catch (error) {
+        console.error('Error saving plan:', error);
+        saveBtn.innerHTML = '❌ Save Failed';
+        saveBtn.style.background = '#ef4444';
+
+        setTimeout(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.style.background = '#3b82f6';
+            saveBtn.disabled = false;
+        }, 2000);
     }
 }
 
@@ -6086,7 +6150,8 @@ document.addEventListener('click', function(event) {
             saveMealNote(dayIndex, mealIndex);
         },
         'submit-to-client': publishPlanToClient,
-        'save-as-template': saveAsTemplate
+        'save-as-template': saveAsTemplate,
+        'save-plan': savePlanChanges
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
