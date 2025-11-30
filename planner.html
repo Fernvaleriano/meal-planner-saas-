@@ -937,14 +937,45 @@
                             <div>
                                 <label for="dp_custom_protein" class="text-sm font-semibold text-amber-800">Protein (g)</label>
                                 <input type="number" id="dp_custom_protein" class="input-field border-amber-400" placeholder="150">
+                                <span id="protein-pct" class="text-xs text-amber-700"></span>
                             </div>
                             <div>
                                 <label for="dp_custom_carbs" class="text-sm font-semibold text-amber-800">Carbs (g)</label>
                                 <input type="number" id="dp_custom_carbs" class="input-field border-amber-400" placeholder="200">
+                                <span id="carbs-pct" class="text-xs text-amber-700"></span>
                             </div>
                             <div>
                                 <label for="dp_custom_fat" class="text-sm font-semibold text-amber-800">Fat (g)</label>
                                 <input type="number" id="dp_custom_fat" class="input-field border-amber-400" placeholder="65">
+                                <span id="fat-pct" class="text-xs text-amber-700"></span>
+                            </div>
+                        </div>
+                        <!-- Live Macro Validation Display -->
+                        <div id="macro-validation" class="mt-3 p-3 rounded-lg bg-amber-100 border border-amber-300 hidden">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-semibold text-amber-900">Macro Breakdown:</span>
+                                <span id="macro-match-status" class="text-sm font-bold"></span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-center text-sm">
+                                <div class="bg-blue-100 rounded p-2">
+                                    <div class="font-bold text-blue-800" id="protein-display">0%</div>
+                                    <div class="text-xs text-blue-600">Protein (<span id="protein-cals">0</span> cal)</div>
+                                </div>
+                                <div class="bg-green-100 rounded p-2">
+                                    <div class="font-bold text-green-800" id="carbs-display">0%</div>
+                                    <div class="text-xs text-green-600">Carbs (<span id="carbs-cals">0</span> cal)</div>
+                                </div>
+                                <div class="bg-yellow-100 rounded p-2">
+                                    <div class="font-bold text-yellow-800" id="fat-display">0%</div>
+                                    <div class="text-xs text-yellow-600">Fat (<span id="fat-cals">0</span> cal)</div>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-center">
+                                <span class="text-sm text-amber-800">Macro Total: <strong id="macro-total-cals">0</strong> cal</span>
+                                <span class="text-sm text-amber-600 mx-2">|</span>
+                                <span class="text-sm text-amber-800">Target: <strong id="target-cals-display">0</strong> cal</span>
+                                <span class="text-sm text-amber-600 mx-2">|</span>
+                                <span class="text-sm" id="calorie-diff"></span>
                             </div>
                         </div>
                         <p class="text-xs text-amber-600 mt-2">💡 Tip: These targets will be used instead of the calculated values based on client stats.</p>
@@ -1322,11 +1353,27 @@ window.addEventListener('beforeunload', function(e) {
 // Track when changes are made
 function markUnsavedChanges() {
     hasUnsavedChanges = true;
+    updateSaveButtonState();
 }
 
 // Clear unsaved changes flag after save
 function clearUnsavedChanges() {
     hasUnsavedChanges = false;
+    updateSaveButtonState();
+}
+
+// Update save button to reflect current state
+function updateSaveButtonState() {
+    const saveBtn = document.getElementById('savePlanBtn');
+    if (!saveBtn) return;
+
+    if (hasUnsavedChanges) {
+        saveBtn.innerHTML = '💾 Save Changes*';
+        saveBtn.style.background = '#f59e0b'; // Orange for unsaved
+    } else {
+        saveBtn.innerHTML = '💾 Saved';
+        saveBtn.style.background = '#10b981'; // Green for saved
+    }
 }
 
 // Load clients from database
@@ -3088,9 +3135,14 @@ function displayDietPlan(multiDayData) {
                     <span style="font-size: 14px; font-weight: 600; color: #92400e;">📝 Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
                 </div>
-                <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                    ✅ Submit to Client
-                </button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="savePlanBtn" data-action="save-plan" class="btn btn-secondary" style="background: #3b82f6; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                        💾 Save Changes
+                    </button>
+                    <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                        ✅ Submit to Client
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -3268,6 +3320,49 @@ async function publishPlanToClient() {
         alert('Failed to submit plan: ' + error.message);
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+    }
+}
+
+// MANUAL SAVE BUTTON HANDLER
+async function savePlanChanges() {
+    if (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0) {
+        alert('No plan to save. Please generate or build a plan first.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('savePlanBtn');
+    if (!saveBtn) return;
+
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '💾 Saving...';
+    saveBtn.disabled = true;
+
+    try {
+        const success = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+
+        if (success) {
+            saveBtn.innerHTML = '✅ Saved!';
+            saveBtn.style.background = '#10b981';
+
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                saveBtn.innerHTML = '💾 Save Changes';
+                saveBtn.style.background = '#3b82f6';
+                saveBtn.disabled = false;
+            }, 2000);
+        } else {
+            throw new Error('Save failed');
+        }
+    } catch (error) {
+        console.error('Error saving plan:', error);
+        saveBtn.innerHTML = '❌ Save Failed';
+        saveBtn.style.background = '#ef4444';
+
+        setTimeout(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.style.background = '#3b82f6';
+            saveBtn.disabled = false;
+        }, 2000);
     }
 }
 
@@ -6086,7 +6181,8 @@ document.addEventListener('click', function(event) {
             saveMealNote(dayIndex, mealIndex);
         },
         'submit-to-client': publishPlanToClient,
-        'save-as-template': saveAsTemplate
+        'save-as-template': saveAsTemplate,
+        'save-plan': savePlanChanges
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
@@ -6111,9 +6207,91 @@ document.getElementById('dp_custom_targets').addEventListener('change', function
     const fields = document.getElementById('custom-targets-fields');
     if (this.checked) {
         fields.classList.remove('hidden');
+        updateMacroValidation(); // Calculate on open
     } else {
         fields.classList.add('hidden');
     }
+});
+
+// Live macro validation calculator
+function updateMacroValidation() {
+    const calories = parseInt(document.getElementById('dp_custom_calories').value) || 0;
+    const protein = parseInt(document.getElementById('dp_custom_protein').value) || 0;
+    const carbs = parseInt(document.getElementById('dp_custom_carbs').value) || 0;
+    const fat = parseInt(document.getElementById('dp_custom_fat').value) || 0;
+
+    const validationDiv = document.getElementById('macro-validation');
+
+    // Only show validation if at least calories is entered
+    if (calories === 0) {
+        validationDiv.classList.add('hidden');
+        document.getElementById('protein-pct').textContent = '';
+        document.getElementById('carbs-pct').textContent = '';
+        document.getElementById('fat-pct').textContent = '';
+        return;
+    }
+
+    validationDiv.classList.remove('hidden');
+
+    // Calculate calories from macros
+    const proteinCals = protein * 4;
+    const carbsCals = carbs * 4;
+    const fatCals = fat * 9;
+    const totalMacroCals = proteinCals + carbsCals + fatCals;
+
+    // Calculate percentages
+    const proteinPct = totalMacroCals > 0 ? Math.round((proteinCals / totalMacroCals) * 100) : 0;
+    const carbsPct = totalMacroCals > 0 ? Math.round((carbsCals / totalMacroCals) * 100) : 0;
+    const fatPct = totalMacroCals > 0 ? Math.round((fatCals / totalMacroCals) * 100) : 0;
+
+    // Update inline percentages
+    document.getElementById('protein-pct').textContent = protein > 0 ? `${proteinPct}%` : '';
+    document.getElementById('carbs-pct').textContent = carbs > 0 ? `${carbsPct}%` : '';
+    document.getElementById('fat-pct').textContent = fat > 0 ? `${fatPct}%` : '';
+
+    // Update display boxes
+    document.getElementById('protein-display').textContent = `${proteinPct}%`;
+    document.getElementById('carbs-display').textContent = `${carbsPct}%`;
+    document.getElementById('fat-display').textContent = `${fatPct}%`;
+
+    // Update calorie displays
+    document.getElementById('protein-cals').textContent = proteinCals;
+    document.getElementById('carbs-cals').textContent = carbsCals;
+    document.getElementById('fat-cals').textContent = fatCals;
+    document.getElementById('macro-total-cals').textContent = totalMacroCals;
+    document.getElementById('target-cals-display').textContent = calories;
+
+    // Calculate difference and show match status
+    const diff = totalMacroCals - calories;
+    const diffDisplay = document.getElementById('calorie-diff');
+    const matchStatus = document.getElementById('macro-match-status');
+
+    if (totalMacroCals === 0) {
+        diffDisplay.textContent = 'Enter macros';
+        diffDisplay.className = 'text-sm text-gray-500';
+        matchStatus.textContent = '';
+    } else if (Math.abs(diff) <= 20) {
+        // Within 20 cal tolerance = match
+        diffDisplay.textContent = '✓ Balanced';
+        diffDisplay.className = 'text-sm text-green-600 font-semibold';
+        matchStatus.textContent = '✅ Macros match calories!';
+        matchStatus.className = 'text-sm font-bold text-green-600';
+    } else if (diff > 0) {
+        diffDisplay.textContent = `+${diff} cal over`;
+        diffDisplay.className = 'text-sm text-red-600 font-semibold';
+        matchStatus.textContent = `⚠️ ${diff} cal over target`;
+        matchStatus.className = 'text-sm font-bold text-red-600';
+    } else {
+        diffDisplay.textContent = `${diff} cal under`;
+        diffDisplay.className = 'text-sm text-orange-600 font-semibold';
+        matchStatus.textContent = `⚠️ ${Math.abs(diff)} cal under target`;
+        matchStatus.className = 'text-sm font-bold text-orange-600';
+    }
+}
+
+// Add input listeners for live calculation
+['dp_custom_calories', 'dp_custom_protein', 'dp_custom_carbs', 'dp_custom_fat'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateMacroValidation);
 });
 
 // Template checkbox toggle
