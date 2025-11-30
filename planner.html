@@ -3728,7 +3728,7 @@ function customMeal(dayIndex, mealIndex) {
 }
 
 // EDIT CUSTOM MEAL - Opens modal pre-populated with existing meal data
-function editCustomMeal(dayIndex, mealIndex) {
+async function editCustomMeal(dayIndex, mealIndex) {
     // Get the existing meal data
     const meal = lastPlanQuery.currentPlan[dayIndex]?.plan[mealIndex];
 
@@ -3754,10 +3754,21 @@ function editCustomMeal(dayIndex, mealIndex) {
     document.getElementById('manualFat').value = '';
     document.getElementById('manualInstructions').value = '';
 
+    // Show modal first (so user sees something happening)
+    document.getElementById('customMealModal').classList.add('show');
+
     // Check if meal has full ingredient data (from Food Database)
-    if (meal.ingredientData && Array.isArray(meal.ingredientData) && meal.ingredientData.length > 0) {
+    let ingredientData = meal.ingredientData;
+
+    // If no ingredientData, try to parse and look up ingredients
+    if ((!ingredientData || !Array.isArray(ingredientData) || ingredientData.length === 0) && meal.ingredients) {
+        console.log('🔍 No ingredientData found, attempting to parse ingredients...');
+        ingredientData = await parseAndLookupIngredients(meal.ingredients);
+    }
+
+    if (ingredientData && Array.isArray(ingredientData) && ingredientData.length > 0) {
         // Load ingredients into Calculate tab
-        customMealSelectedIngredients = JSON.parse(JSON.stringify(meal.ingredientData));
+        customMealSelectedIngredients = JSON.parse(JSON.stringify(ingredientData));
 
         // Switch to calculate tab
         switchCustomMealTab('calculate');
@@ -3788,9 +3799,6 @@ function editCustomMeal(dayIndex, mealIndex) {
         renderCustomMealIngredients();
         updateCustomMealTotals();
     }
-
-    // Show modal
-    document.getElementById('customMealModal').classList.add('show');
 }
 
 function closeCustomMealModal() {
@@ -3965,6 +3973,7 @@ function useSavedMeal(mealId) {
         type: mealType,
         name: meal.name,
         ingredients: meal.ingredients,
+        ingredientData: meal.ingredientData,  // Include full ingredient data for editing
         calories: meal.calories,
         protein: meal.protein,
         carbs: meal.carbs,
@@ -3988,8 +3997,85 @@ function useSavedMeal(mealId) {
     console.log('✅ Used saved meal:', newMeal.name);
 }
 
+// Parse ingredient string and look up in food database
+async function parseAndLookupIngredients(ingredients) {
+    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+        return null;
+    }
+
+    const ingredientData = [];
+
+    for (const ingStr of ingredients) {
+        // Try to parse formats like "Food Name (150g)" or "Food Name (1 Serving)"
+        // Also handle "150g Food Name" format
+        let match = ingStr.match(/^(.+?)\s*\((\d+\.?\d*)\s*(g|serving|cup|tbsp|tsp|oz|scoop|whole|medium|large|slice)s?\)$/i);
+
+        if (!match) {
+            // Try alternate format: "150g Food Name"
+            match = ingStr.match(/^(\d+\.?\d*)\s*(g|serving|cup|tbsp|tsp|oz)\s+(.+)$/i);
+            if (match) {
+                // Rearrange to [full, name, quantity, unit]
+                match = [match[0], match[3], match[1], match[2]];
+            }
+        }
+
+        if (!match) {
+            console.log('Could not parse ingredient:', ingStr);
+            continue;
+        }
+
+        const [, name, quantity, unit] = match;
+        const cleanName = name.trim();
+        const qty = parseFloat(quantity);
+        const cleanUnit = unit.toLowerCase();
+
+        try {
+            // Look up in food database
+            const response = await fetch(`${FOOD_SEARCH_ENDPOINT}?query=${encodeURIComponent(cleanName)}`);
+            const data = await response.json();
+
+            if (data.foods && data.foods.length > 0) {
+                // Use the first match
+                const food = data.foods[0];
+
+                // Calculate quantity in grams
+                let quantityGrams = qty;
+                if (cleanUnit !== 'g') {
+                    // Use serving size conversion if available
+                    if (food.gramsPerServing) {
+                        quantityGrams = qty * food.gramsPerServing;
+                    } else {
+                        // Default conversions
+                        const conversions = { cup: 240, tbsp: 15, tsp: 5, oz: 28, serving: 100, scoop: 30, whole: 50, medium: 150, large: 200, slice: 30 };
+                        quantityGrams = qty * (conversions[cleanUnit] || 100);
+                    }
+                }
+
+                ingredientData.push({
+                    name: food.name,
+                    caloriesPer100g: food.caloriesPer100g,
+                    proteinPer100g: food.proteinPer100g,
+                    carbsPer100g: food.carbsPer100g,
+                    fatPer100g: food.fatPer100g,
+                    quantity: qty,
+                    selectedUnit: cleanUnit,
+                    quantityGrams: quantityGrams,
+                    gramsPerServing: food.gramsPerServing
+                });
+                console.log('✅ Found ingredient:', cleanName, '→', food.name);
+            } else {
+                console.log('❌ No match found for:', cleanName);
+            }
+        } catch (error) {
+            console.error('Error looking up ingredient:', cleanName, error);
+        }
+    }
+
+    return ingredientData.length > 0 ? ingredientData : null;
+}
+
 // Edit a saved meal before using it
-function editSavedMeal(mealId) {
+async function editSavedMeal(mealId) {
     const savedMeals = getSavedMeals();
     const meal = savedMeals.find(m => m.id === mealId);
     if (!meal) {
@@ -3998,9 +4084,17 @@ function editSavedMeal(mealId) {
     }
 
     // Check if meal has full ingredient data (from Food Database)
-    if (meal.ingredientData && Array.isArray(meal.ingredientData) && meal.ingredientData.length > 0) {
+    let ingredientData = meal.ingredientData;
+
+    // If no ingredientData, try to parse and look up ingredients
+    if ((!ingredientData || !Array.isArray(ingredientData) || ingredientData.length === 0) && meal.ingredients) {
+        console.log('🔍 No ingredientData found, attempting to parse ingredients...');
+        ingredientData = await parseAndLookupIngredients(meal.ingredients);
+    }
+
+    if (ingredientData && Array.isArray(ingredientData) && ingredientData.length > 0) {
         // Load ingredients into Calculate tab
-        customMealSelectedIngredients = JSON.parse(JSON.stringify(meal.ingredientData));
+        customMealSelectedIngredients = JSON.parse(JSON.stringify(ingredientData));
 
         // Switch to calculate tab
         switchCustomMealTab('calculate');
