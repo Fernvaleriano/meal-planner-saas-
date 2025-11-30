@@ -929,73 +929,66 @@
                     </div>
                     <p class="text-sm text-amber-700 mb-3">Override the calculated targets with your own specific macros.</p>
                     <div id="custom-targets-fields" class="hidden">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div>
-                                <label for="dp_custom_calories" class="text-sm font-semibold text-amber-800">Calories</label>
-                                <input type="number" id="dp_custom_calories" class="input-field border-amber-400" placeholder="2000">
-                            </div>
-                            <div>
-                                <label for="dp_custom_protein" class="text-sm font-semibold text-amber-800">Protein (g)</label>
-                                <input type="number" id="dp_custom_protein" class="input-field border-amber-400" placeholder="150">
-                                <span id="protein-pct" class="text-xs text-amber-700"></span>
-                            </div>
-                            <div>
-                                <label for="dp_custom_carbs" class="text-sm font-semibold text-amber-800">Carbs (g)</label>
-                                <input type="number" id="dp_custom_carbs" class="input-field border-amber-400" placeholder="200">
-                                <span id="carbs-pct" class="text-xs text-amber-700"></span>
-                            </div>
-                            <div>
-                                <label for="dp_custom_fat" class="text-sm font-semibold text-amber-800">Fat (g)</label>
-                                <input type="number" id="dp_custom_fat" class="input-field border-amber-400" placeholder="65">
-                                <span id="fat-pct" class="text-xs text-amber-700"></span>
-                            </div>
+                        <!-- Calories Input -->
+                        <div class="mb-4">
+                            <label for="dp_custom_calories" class="text-sm font-semibold text-amber-800">Total Calories</label>
+                            <input type="number" id="dp_custom_calories" class="input-field border-amber-400 text-lg font-bold" placeholder="2200">
                         </div>
-                        <!-- Live Macro Validation Display -->
-                        <div id="macro-validation" class="mt-3 p-3 rounded-lg bg-amber-100 border border-amber-300 hidden">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-sm font-semibold text-amber-900">Macro Breakdown:</span>
-                                <span id="macro-match-status" class="text-sm font-bold"></span>
-                            </div>
-                            <div class="grid grid-cols-3 gap-2 text-center text-sm">
-                                <div class="bg-blue-100 rounded p-2">
-                                    <div class="font-bold text-blue-800" id="protein-display">0%</div>
-                                    <div class="text-xs text-blue-600">Protein (<span id="protein-cals">0</span> cal)</div>
+
+                        <!-- Percentage Inputs -->
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <label for="dp_protein_pct" class="text-sm font-semibold text-blue-800">Protein %</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="dp_protein_pct" class="input-field border-blue-400 text-center font-bold" placeholder="30" min="0" max="100">
+                                    <span class="text-blue-600 font-bold">%</span>
                                 </div>
-                                <div class="bg-green-100 rounded p-2">
-                                    <div class="font-bold text-green-800" id="carbs-display">0%</div>
-                                    <div class="text-xs text-green-600">Carbs (<span id="carbs-cals">0</span> cal)</div>
-                                </div>
-                                <div class="bg-yellow-100 rounded p-2">
-                                    <div class="font-bold text-yellow-800" id="fat-display">0%</div>
-                                    <div class="text-xs text-yellow-600">Fat (<span id="fat-cals">0</span> cal)</div>
+                                <div class="mt-2 text-center">
+                                    <span class="text-lg font-bold text-blue-800" id="protein-grams-display">0g</span>
+                                    <div class="text-xs text-blue-600">(<span id="protein-cals-display">0</span> cal)</div>
                                 </div>
                             </div>
-                            <div class="mt-2 text-center">
-                                <span class="text-sm text-amber-800">Macro Total: <strong id="macro-total-cals">0</strong> cal</span>
-                                <span class="text-sm text-amber-600 mx-2">|</span>
-                                <span class="text-sm text-amber-800">Target: <strong id="target-cals-display">0</strong> cal</span>
-                                <span class="text-sm text-amber-600 mx-2">|</span>
-                                <span class="text-sm" id="calorie-diff"></span>
+                            <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                                <label for="dp_carbs_pct" class="text-sm font-semibold text-green-800">Carbs %</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="dp_carbs_pct" class="input-field border-green-400 text-center font-bold" placeholder="40" min="0" max="100">
+                                    <span class="text-green-600 font-bold">%</span>
+                                </div>
+                                <div class="mt-2 text-center">
+                                    <span class="text-lg font-bold text-green-800" id="carbs-grams-display">0g</span>
+                                    <div class="text-xs text-green-600">(<span id="carbs-cals-display">0</span> cal)</div>
+                                </div>
+                            </div>
+                            <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                                <label for="dp_fat_pct" class="text-sm font-semibold text-yellow-800">Fat %</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="dp_fat_pct" class="input-field border-yellow-400 text-center font-bold" placeholder="30" min="0" max="100">
+                                    <span class="text-yellow-600 font-bold">%</span>
+                                </div>
+                                <div class="mt-2 text-center">
+                                    <span class="text-lg font-bold text-yellow-800" id="fat-grams-display">0g</span>
+                                    <div class="text-xs text-yellow-600">(<span id="fat-cals-display">0</span> cal)</div>
+                                </div>
                             </div>
                         </div>
-                        <!-- Auto-Calculate Helper -->
-                        <div class="mt-3 p-3 rounded-lg bg-white border border-amber-300">
-                            <div class="flex items-center gap-3 flex-wrap">
-                                <span class="text-sm font-semibold text-amber-900">Auto-calculate:</span>
-                                <select id="auto-calc-macro" class="input-field border-amber-400 text-sm py-1 px-2" style="width: auto;">
-                                    <option value="">Select macro to calculate...</option>
-                                    <option value="protein">Calculate Protein</option>
-                                    <option value="carbs">Calculate Carbs</option>
-                                    <option value="fat">Calculate Fat</option>
-                                </select>
-                                <button type="button" id="auto-calc-btn" class="btn text-sm py-1 px-3" style="background: #f59e0b; color: white;">
-                                    🧮 Calculate
-                                </button>
-                                <span id="auto-calc-result" class="text-sm text-amber-700"></span>
+
+                        <!-- Percentage Status Bar -->
+                        <div id="pct-status-bar" class="mt-3 p-3 rounded-lg bg-gray-100 border border-gray-300">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-semibold text-gray-700">Total: <span id="total-pct" class="text-lg">0</span>%</span>
+                                <span id="pct-status" class="text-sm font-bold"></span>
                             </div>
-                            <p class="text-xs text-amber-600 mt-2">Enter calories + 2 macros, then auto-calculate the 3rd to hit your exact calorie target.</p>
+                            <div class="mt-2 h-3 bg-gray-200 rounded-full overflow-hidden">
+                                <div id="pct-progress-bar" class="h-full transition-all duration-300" style="width: 0%; background: linear-gradient(to right, #3b82f6 0%, #3b82f6 33%, #22c55e 33%, #22c55e 66%, #eab308 66%, #eab308 100%);"></div>
+                            </div>
                         </div>
-                        <p class="text-xs text-amber-600 mt-2">💡 Tip: These targets will be used instead of the calculated values based on client stats.</p>
+
+                        <!-- Hidden fields for actual gram values (used by generateDietPlan) -->
+                        <input type="hidden" id="dp_custom_protein" value="">
+                        <input type="hidden" id="dp_custom_carbs" value="">
+                        <input type="hidden" id="dp_custom_fat" value="">
+
+                        <p class="text-xs text-amber-600 mt-3">💡 Enter calories and any 2 percentages - the 3rd will auto-fill to reach 100%.</p>
                     </div>
                 </div>
 
@@ -6237,151 +6230,124 @@ document.getElementById('dp_custom_targets').addEventListener('change', function
     }
 });
 
-// Live macro validation calculator
-function updateMacroValidation() {
+// Percentage-based macro calculator
+let lastEditedMacro = null; // Track which macro was edited last for auto-fill
+
+function updateMacroFromPercentages() {
     const calories = parseInt(document.getElementById('dp_custom_calories').value) || 0;
-    const protein = parseInt(document.getElementById('dp_custom_protein').value) || 0;
-    const carbs = parseInt(document.getElementById('dp_custom_carbs').value) || 0;
-    const fat = parseInt(document.getElementById('dp_custom_fat').value) || 0;
+    const proteinPct = parseFloat(document.getElementById('dp_protein_pct').value) || 0;
+    const carbsPct = parseFloat(document.getElementById('dp_carbs_pct').value) || 0;
+    const fatPct = parseFloat(document.getElementById('dp_fat_pct').value) || 0;
 
-    const validationDiv = document.getElementById('macro-validation');
+    // Calculate total percentage
+    const totalPct = proteinPct + carbsPct + fatPct;
+    document.getElementById('total-pct').textContent = totalPct;
 
-    // Only show validation if at least calories is entered
-    if (calories === 0) {
-        validationDiv.classList.add('hidden');
-        document.getElementById('protein-pct').textContent = '';
-        document.getElementById('carbs-pct').textContent = '';
-        document.getElementById('fat-pct').textContent = '';
-        return;
+    // Update progress bar
+    const progressBar = document.getElementById('pct-progress-bar');
+    progressBar.style.width = Math.min(totalPct, 100) + '%';
+
+    // Update status
+    const pctStatus = document.getElementById('pct-status');
+    if (totalPct === 100) {
+        pctStatus.textContent = '✅ Perfect! 100%';
+        pctStatus.className = 'text-sm font-bold text-green-600';
+        progressBar.style.background = 'linear-gradient(to right, #3b82f6, #22c55e, #eab308)';
+    } else if (totalPct > 100) {
+        pctStatus.textContent = `⚠️ Over by ${totalPct - 100}%`;
+        pctStatus.className = 'text-sm font-bold text-red-600';
+        progressBar.style.background = '#ef4444';
+    } else if (totalPct > 0) {
+        pctStatus.textContent = `${100 - totalPct}% remaining`;
+        pctStatus.className = 'text-sm font-bold text-amber-600';
+        progressBar.style.background = 'linear-gradient(to right, #3b82f6, #22c55e, #eab308)';
+    } else {
+        pctStatus.textContent = 'Enter percentages';
+        pctStatus.className = 'text-sm text-gray-500';
     }
 
-    validationDiv.classList.remove('hidden');
+    // Calculate grams from percentages
+    if (calories > 0) {
+        const proteinCals = (calories * proteinPct) / 100;
+        const carbsCals = (calories * carbsPct) / 100;
+        const fatCals = (calories * fatPct) / 100;
 
-    // Calculate calories from macros
-    const proteinCals = protein * 4;
-    const carbsCals = carbs * 4;
-    const fatCals = fat * 9;
-    const totalMacroCals = proteinCals + carbsCals + fatCals;
+        const proteinGrams = Math.round(proteinCals / 4);
+        const carbsGrams = Math.round(carbsCals / 4);
+        const fatGrams = Math.round(fatCals / 9);
 
-    // Calculate percentages
-    const proteinPct = totalMacroCals > 0 ? Math.round((proteinCals / totalMacroCals) * 100) : 0;
-    const carbsPct = totalMacroCals > 0 ? Math.round((carbsCals / totalMacroCals) * 100) : 0;
-    const fatPct = totalMacroCals > 0 ? Math.round((fatCals / totalMacroCals) * 100) : 0;
+        // Update displays
+        document.getElementById('protein-grams-display').textContent = proteinGrams + 'g';
+        document.getElementById('protein-cals-display').textContent = Math.round(proteinCals);
+        document.getElementById('carbs-grams-display').textContent = carbsGrams + 'g';
+        document.getElementById('carbs-cals-display').textContent = Math.round(carbsCals);
+        document.getElementById('fat-grams-display').textContent = fatGrams + 'g';
+        document.getElementById('fat-cals-display').textContent = Math.round(fatCals);
 
-    // Update inline percentages
-    document.getElementById('protein-pct').textContent = protein > 0 ? `${proteinPct}%` : '';
-    document.getElementById('carbs-pct').textContent = carbs > 0 ? `${carbsPct}%` : '';
-    document.getElementById('fat-pct').textContent = fat > 0 ? `${fatPct}%` : '';
-
-    // Update display boxes
-    document.getElementById('protein-display').textContent = `${proteinPct}%`;
-    document.getElementById('carbs-display').textContent = `${carbsPct}%`;
-    document.getElementById('fat-display').textContent = `${fatPct}%`;
-
-    // Update calorie displays
-    document.getElementById('protein-cals').textContent = proteinCals;
-    document.getElementById('carbs-cals').textContent = carbsCals;
-    document.getElementById('fat-cals').textContent = fatCals;
-    document.getElementById('macro-total-cals').textContent = totalMacroCals;
-    document.getElementById('target-cals-display').textContent = calories;
-
-    // Calculate difference and show match status
-    const diff = totalMacroCals - calories;
-    const diffDisplay = document.getElementById('calorie-diff');
-    const matchStatus = document.getElementById('macro-match-status');
-
-    if (totalMacroCals === 0) {
-        diffDisplay.textContent = 'Enter macros';
-        diffDisplay.className = 'text-sm text-gray-500';
-        matchStatus.textContent = '';
-    } else if (Math.abs(diff) <= 20) {
-        // Within 20 cal tolerance = match
-        diffDisplay.textContent = '✓ Balanced';
-        diffDisplay.className = 'text-sm text-green-600 font-semibold';
-        matchStatus.textContent = '✅ Macros match calories!';
-        matchStatus.className = 'text-sm font-bold text-green-600';
-    } else if (diff > 0) {
-        diffDisplay.textContent = `+${diff} cal over`;
-        diffDisplay.className = 'text-sm text-red-600 font-semibold';
-        matchStatus.textContent = `⚠️ ${diff} cal over target`;
-        matchStatus.className = 'text-sm font-bold text-red-600';
+        // Update hidden fields for generateDietPlan
+        document.getElementById('dp_custom_protein').value = proteinGrams;
+        document.getElementById('dp_custom_carbs').value = carbsGrams;
+        document.getElementById('dp_custom_fat').value = fatGrams;
     } else {
-        diffDisplay.textContent = `${diff} cal under`;
-        diffDisplay.className = 'text-sm text-orange-600 font-semibold';
-        matchStatus.textContent = `⚠️ ${Math.abs(diff)} cal under target`;
-        matchStatus.className = 'text-sm font-bold text-orange-600';
+        // Reset displays if no calories
+        document.getElementById('protein-grams-display').textContent = '0g';
+        document.getElementById('protein-cals-display').textContent = '0';
+        document.getElementById('carbs-grams-display').textContent = '0g';
+        document.getElementById('carbs-cals-display').textContent = '0';
+        document.getElementById('fat-grams-display').textContent = '0g';
+        document.getElementById('fat-cals-display').textContent = '0';
     }
 }
 
-// Add input listeners for live calculation
-['dp_custom_calories', 'dp_custom_protein', 'dp_custom_carbs', 'dp_custom_fat'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updateMacroValidation);
+// Auto-fill remaining percentage when 2 of 3 are entered
+function autoFillRemainingPercentage(changedField) {
+    const proteinInput = document.getElementById('dp_protein_pct');
+    const carbsInput = document.getElementById('dp_carbs_pct');
+    const fatInput = document.getElementById('dp_fat_pct');
+
+    const proteinPct = parseFloat(proteinInput.value) || 0;
+    const carbsPct = parseFloat(carbsInput.value) || 0;
+    const fatPct = parseFloat(fatInput.value) || 0;
+
+    // Count how many fields have values
+    const hasProtein = proteinInput.value !== '';
+    const hasCarbs = carbsInput.value !== '';
+    const hasFat = fatInput.value !== '';
+    const filledCount = (hasProtein ? 1 : 0) + (hasCarbs ? 1 : 0) + (hasFat ? 1 : 0);
+
+    // If exactly 2 fields have values, auto-fill the 3rd
+    if (filledCount === 2) {
+        const remaining = 100 - proteinPct - carbsPct - fatPct;
+        if (remaining >= 0) {
+            if (!hasProtein && changedField !== 'protein') {
+                proteinInput.value = remaining;
+            } else if (!hasCarbs && changedField !== 'carbs') {
+                carbsInput.value = remaining;
+            } else if (!hasFat && changedField !== 'fat') {
+                fatInput.value = remaining;
+            }
+        }
+    }
+
+    updateMacroFromPercentages();
+}
+
+// Add input listeners for percentage fields
+document.getElementById('dp_custom_calories').addEventListener('input', updateMacroFromPercentages);
+
+document.getElementById('dp_protein_pct').addEventListener('input', function() {
+    lastEditedMacro = 'protein';
+    autoFillRemainingPercentage('protein');
 });
 
-// Auto-calculate macro function
-document.getElementById('auto-calc-btn').addEventListener('click', function() {
-    const calories = parseInt(document.getElementById('dp_custom_calories').value) || 0;
-    const protein = parseInt(document.getElementById('dp_custom_protein').value) || 0;
-    const carbs = parseInt(document.getElementById('dp_custom_carbs').value) || 0;
-    const fat = parseInt(document.getElementById('dp_custom_fat').value) || 0;
-    const calcTarget = document.getElementById('auto-calc-macro').value;
-    const resultSpan = document.getElementById('auto-calc-result');
+document.getElementById('dp_carbs_pct').addEventListener('input', function() {
+    lastEditedMacro = 'carbs';
+    autoFillRemainingPercentage('carbs');
+});
 
-    if (calories === 0) {
-        resultSpan.textContent = '⚠️ Enter calories first';
-        resultSpan.className = 'text-sm text-red-600';
-        return;
-    }
-
-    if (!calcTarget) {
-        resultSpan.textContent = '⚠️ Select a macro to calculate';
-        resultSpan.className = 'text-sm text-red-600';
-        return;
-    }
-
-    // Calculate remaining calories after known macros
-    let remainingCals = calories;
-    let calculatedValue = 0;
-
-    if (calcTarget === 'protein') {
-        // Calculate protein: remaining cals after carbs & fat
-        remainingCals -= (carbs * 4) + (fat * 9);
-        calculatedValue = Math.round(remainingCals / 4);
-        if (calculatedValue < 0) {
-            resultSpan.textContent = '⚠️ Carbs + Fat exceed calories!';
-            resultSpan.className = 'text-sm text-red-600';
-            return;
-        }
-        document.getElementById('dp_custom_protein').value = calculatedValue;
-        resultSpan.textContent = `✅ Protein set to ${calculatedValue}g`;
-    } else if (calcTarget === 'carbs') {
-        // Calculate carbs: remaining cals after protein & fat
-        remainingCals -= (protein * 4) + (fat * 9);
-        calculatedValue = Math.round(remainingCals / 4);
-        if (calculatedValue < 0) {
-            resultSpan.textContent = '⚠️ Protein + Fat exceed calories!';
-            resultSpan.className = 'text-sm text-red-600';
-            return;
-        }
-        document.getElementById('dp_custom_carbs').value = calculatedValue;
-        resultSpan.textContent = `✅ Carbs set to ${calculatedValue}g`;
-    } else if (calcTarget === 'fat') {
-        // Calculate fat: remaining cals after protein & carbs
-        remainingCals -= (protein * 4) + (carbs * 4);
-        calculatedValue = Math.round(remainingCals / 9);
-        if (calculatedValue < 0) {
-            resultSpan.textContent = '⚠️ Protein + Carbs exceed calories!';
-            resultSpan.className = 'text-sm text-red-600';
-            return;
-        }
-        document.getElementById('dp_custom_fat').value = calculatedValue;
-        resultSpan.textContent = `✅ Fat set to ${calculatedValue}g`;
-    }
-
-    resultSpan.className = 'text-sm text-green-600 font-semibold';
-
-    // Update the validation display
-    updateMacroValidation();
+document.getElementById('dp_fat_pct').addEventListener('input', function() {
+    lastEditedMacro = 'fat';
+    autoFillRemainingPercentage('fat');
 });
 
 // Template checkbox toggle
@@ -6527,9 +6493,12 @@ async function saveAsTemplate() {
         });
 
         const data = await response.json();
+        console.log('Template API response:', response.status, data);
 
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to save template');
+            const errorMsg = data.details || data.error || 'Failed to save template';
+            console.error('Template save failed:', errorMsg);
+            throw new Error(errorMsg);
         }
 
         alert(`Template "${templateName}" saved successfully!`);
