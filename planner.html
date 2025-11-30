@@ -6821,13 +6821,190 @@ async function deleteProtocol(protocolId) {
     }
 }
 
-// Placeholder for template functions
+// Protocol Template Functions
 function saveProtocolAsTemplate() {
-    alert('Save as Template - Coming soon!');
+    if (clientProtocols.length === 0) {
+        alert('No protocols to save as template.');
+        return;
+    }
+
+    const templateName = prompt('Enter a name for this template:', 'My Protocol Template');
+    if (!templateName || templateName.trim() === '') {
+        return;
+    }
+
+    // Save protocols without client-specific data
+    const templateData = clientProtocols.map(p => ({
+        name: p.name,
+        timing: p.timing,
+        timing_custom: p.timing_custom,
+        dose: p.dose,
+        has_schedule: p.has_schedule,
+        schedule: p.schedule,
+        notes: p.notes
+        // Exclude: id, client_id, coach_id, private_notes, dates
+    }));
+
+    // Get existing templates from localStorage
+    let templates = JSON.parse(localStorage.getItem('protocolTemplates') || '[]');
+
+    // Add new template
+    templates.push({
+        name: templateName.trim(),
+        protocols: templateData,
+        createdAt: new Date().toISOString()
+    });
+
+    localStorage.setItem('protocolTemplates', JSON.stringify(templates));
+    alert(`Template "${templateName}" saved with ${templateData.length} item(s)!`);
 }
 
 function loadProtocolTemplate() {
-    alert('Load Template - Coming soon!');
+    const templates = JSON.parse(localStorage.getItem('protocolTemplates') || '[]');
+
+    if (templates.length === 0) {
+        alert('No saved templates found. Save a protocol as a template first.');
+        return;
+    }
+
+    // Show template selection modal
+    showTemplateSelectionModal(templates);
+}
+
+function showTemplateSelectionModal(templates) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('templateSelectionModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'templateSelectionModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3>📄 Select Protocol Template</h3>
+                    <button class="close-btn" onclick="closeTemplateModal()">&times;</button>
+                </div>
+                <div id="templateList" style="max-height: 400px; overflow-y: auto; padding: 15px;"></div>
+                <div style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeTemplateModal()">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // Populate template list
+    const listContainer = document.getElementById('templateList');
+    listContainer.innerHTML = templates.map((template, index) => `
+        <div style="background: #f8f9ff; border: 2px solid #e0e7ff; border-radius: 10px; padding: 15px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 700; color: #0d9488; margin-bottom: 5px;">${template.name}</div>
+                    <div style="font-size: 0.85em; color: #666;">
+                        ${template.protocols.length} item(s) • Created ${new Date(template.createdAt).toLocaleDateString()}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn" style="background: #0d9488; color: white; padding: 8px 12px;" onclick="applyTemplate(${index})">
+                        Apply
+                    </button>
+                    <button class="btn" style="background: #dc2626; color: white; padding: 8px 12px;" onclick="deleteTemplate(${index})">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    modal.style.display = 'flex';
+}
+
+function closeTemplateModal() {
+    const modal = document.getElementById('templateSelectionModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function applyTemplate(templateIndex) {
+    const templates = JSON.parse(localStorage.getItem('protocolTemplates') || '[]');
+    const template = templates[templateIndex];
+
+    if (!template) {
+        alert('Template not found.');
+        return;
+    }
+
+    const clientId = document.getElementById('dp_client_selector').value;
+    if (!clientId) {
+        alert('Please select a client first.');
+        return;
+    }
+
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        alert('Please log in to apply templates.');
+        return;
+    }
+
+    const coachId = session.user.id;
+
+    if (!confirm(`Apply template "${template.name}" to this client? This will add ${template.protocols.length} protocol item(s).`)) {
+        return;
+    }
+
+    closeTemplateModal();
+
+    // Add each protocol from the template
+    let successCount = 0;
+    for (const protocol of template.protocols) {
+        try {
+            const response = await fetch(CLIENT_PROTOCOLS_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    coachId,
+                    clientId,
+                    name: protocol.name,
+                    timing: protocol.timing,
+                    timingCustom: protocol.timing_custom,
+                    dose: protocol.dose,
+                    hasSchedule: protocol.has_schedule,
+                    schedule: protocol.schedule,
+                    notes: protocol.notes,
+                    privateNotes: null
+                })
+            });
+
+            if (response.ok) {
+                successCount++;
+            }
+        } catch (error) {
+            console.error('Error adding protocol from template:', error);
+        }
+    }
+
+    alert(`Successfully added ${successCount} of ${template.protocols.length} protocol(s) from template.`);
+    await loadClientProtocols();
+}
+
+function deleteTemplate(templateIndex) {
+    const templates = JSON.parse(localStorage.getItem('protocolTemplates') || '[]');
+
+    if (!confirm(`Delete template "${templates[templateIndex]?.name}"?`)) {
+        return;
+    }
+
+    templates.splice(templateIndex, 1);
+    localStorage.setItem('protocolTemplates', JSON.stringify(templates));
+
+    // Refresh the modal
+    if (templates.length > 0) {
+        showTemplateSelectionModal(templates);
+    } else {
+        closeTemplateModal();
+        alert('All templates deleted.');
+    }
 }
 
 // Add listener to client selector for protocols
