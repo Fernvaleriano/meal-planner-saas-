@@ -670,6 +670,230 @@
             color: #666;
         }
 
+        /* Ingredient Editor Modal Styles */
+        .ingredient-editor-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .ingredient-editor-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .ingredient-editor-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ingredient-editor-header h2 {
+            margin: 0;
+            font-size: 1.3em;
+        }
+
+        .ingredient-editor-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+
+        .ingredient-editor-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .ingredient-editor-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .editor-ingredient-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .editor-ingredient-name {
+            flex: 1;
+            font-weight: 500;
+            color: #334155;
+            font-size: 0.95em;
+        }
+
+        .editor-qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .editor-qty-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #e0e7ff;
+            border-radius: 8px;
+            background: white;
+            color: #6366f1;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .editor-qty-btn:hover {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+
+        .editor-qty-input {
+            width: 70px;
+            padding: 6px 8px;
+            border: 2px solid #e0e7ff;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .editor-qty-input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .editor-unit-label {
+            font-size: 0.85em;
+            color: #64748b;
+            min-width: 30px;
+        }
+
+        .editor-totals {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .editor-totals-header {
+            font-weight: 700;
+            color: #065f46;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .editor-totals-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .editor-total-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .editor-total-value {
+            font-weight: 700;
+            color: #0d9488;
+            font-size: 1.2em;
+        }
+
+        .editor-total-label {
+            font-size: 0.75em;
+            color: #666;
+        }
+
+        .ingredient-editor-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .editor-btn-cancel {
+            padding: 10px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #64748b;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .editor-btn-save {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .editor-loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .editor-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: editor-spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes editor-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .editor-no-ingredients {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
         .macro-inputs-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1014,21 +1238,6 @@
                     <p class="text-sm text-purple-700 mt-1">Include popular fitness brands like Quest Bars, Premier Protein, Fairlife, Oikos, Halo Top, and more in meal plans.</p>
                 </div>
 
-                <!-- Protein Powder Integration -->
-                <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
-                    <div class="flex items-center mb-2">
-                        <input type="checkbox" id="dp_use_protein" class="mr-2 h-5 w-5">
-                        <label for="dp_use_protein" class="font-bold text-teal-900">Add Protein Powder (Optional)</label>
-                    </div>
-                    <div id="protein-powder-fields" class="hidden grid grid-cols-2 gap-2 mt-2">
-                        <input type="text" id="dp_protein_brand" class="input-field" placeholder="Brand/Name">
-                        <input type="number" id="dp_protein_cals" class="input-field" placeholder="Calories">
-                        <input type="number" id="dp_protein_protein" class="input-field" placeholder="Protein (g)">
-                        <input type="number" id="dp_protein_carbs" class="input-field" placeholder="Carbs (g)">
-                        <input type="number" id="dp_protein_fat" class="input-field" placeholder="Fat (g)">
-                    </div>
-                </div>
-
                 <!-- Start from Scratch Option -->
                 <div class="p-4 bg-slate-50 border-2 border-slate-400 rounded-lg">
                     <div class="flex items-center">
@@ -1105,17 +1314,45 @@
         </div>
     </div>
 
-    <!-- MATH CHECK MODAL -->
-    <div id="math-check-modal" class="modal-overlay hidden">
-        <div class="card w-11/12 md:max-w-4xl max-h-[85vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-3xl font-bold text-gray-800">🔍 Nutrition Math Check</h3>
-                <button data-action="close-math-modal" class="text-2xl font-bold">&times;</button>
+</div>
+
+<!-- Ingredient Editor Modal -->
+<div id="ingredientEditorModal" class="ingredient-editor-overlay" style="display: none;">
+    <div class="ingredient-editor-modal">
+        <div class="ingredient-editor-header">
+            <h2>⚖️ Edit Ingredients</h2>
+            <button class="ingredient-editor-close" onclick="closeIngredientEditor()">×</button>
+        </div>
+        <div class="ingredient-editor-body">
+            <p style="color: #64748b; font-size: 0.9em; margin-bottom: 15px;">Adjust individual ingredient quantities to customize this meal's macros.</p>
+            <div id="ingredientEditorList" class="ingredient-editor-list">
+                <!-- Ingredients will be populated here -->
             </div>
-            <div id="math-check-content" class="text-gray-700 space-y-4"></div>
-            <div class="mt-6 flex justify-end">
-                <button data-action="close-math-modal" class="btn btn-secondary">Close</button>
+            <div class="editor-totals">
+                <div class="editor-totals-header">📊 Updated Totals</div>
+                <div class="editor-totals-grid">
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalCal">0</div>
+                        <div class="editor-total-label">Calories</div>
+                    </div>
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalProtein">0g</div>
+                        <div class="editor-total-label">Protein</div>
+                    </div>
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalCarbs">0g</div>
+                        <div class="editor-total-label">Carbs</div>
+                    </div>
+                    <div class="editor-total-item">
+                        <div class="editor-total-value" id="editorTotalFat">0g</div>
+                        <div class="editor-total-label">Fat</div>
+                    </div>
+                </div>
             </div>
+        </div>
+        <div class="ingredient-editor-footer">
+            <button class="editor-btn-cancel" onclick="closeIngredientEditor()">Cancel</button>
+            <button class="editor-btn-save" onclick="saveIngredientEdits()">💾 Save Changes</button>
         </div>
     </div>
 </div>
@@ -1495,20 +1732,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
-                // Protein powder
-                if (client.use_protein_powder) {
-                    document.getElementById('dp_use_protein').checked = true;
-                    document.getElementById('protein-powder-fields').style.display = 'grid';
-                    if (client.protein_powder_brand) document.getElementById('dp_protein_brand').value = client.protein_powder_brand;
-                    if (client.protein_powder_calories) document.getElementById('dp_protein_cals').value = client.protein_powder_calories;
-                    if (client.protein_powder_protein) document.getElementById('dp_protein_protein').value = client.protein_powder_protein;
-                    if (client.protein_powder_carbs) document.getElementById('dp_protein_carbs').value = client.protein_powder_carbs;
-                    if (client.protein_powder_fat) document.getElementById('dp_protein_fat').value = client.protein_powder_fat;
-                } else {
-                    document.getElementById('dp_use_protein').checked = false;
-                    document.getElementById('protein-powder-fields').style.display = 'none';
-                }
-
                 // Branded fitness foods preference
                 if (client.use_branded_foods) {
                     document.getElementById('dp_use_branded_foods').checked = true;
@@ -1810,7 +2033,6 @@ function validateMeal(meal, mealType) {
     }
 
     // Validation 2 & 3: REMOVED - Calorie ranges were too strict
-    // Now using informational warnings only via "Check Math" feature
 
     // Validation 4: Sanity check on macros
     if (meal.protein < 0 || meal.carbs < 0 || meal.fat < 0) {
@@ -2072,38 +2294,13 @@ async function generateDietPlan() {
         console.log('Using custom targets:', { calories, protein, carbs, fat });
     }
 
-    // Store original targets (before any protein powder subtraction)
+    // Store original targets
     const originalTargets = {
         calories: calories,
         protein: protein,
         carbs: carbs,
         fat: fat
     };
-
-    // Store protein powder info if selected (will be added as supplement item)
-    let proteinPowderInfo = null;
-    if (document.getElementById('dp_use_protein').checked) {
-        const proteinCals = parseInt(document.getElementById('dp_protein_cals').value) || 0;
-        const proteinProtein = parseInt(document.getElementById('dp_protein_protein').value) || 0;
-        const proteinCarbs = parseInt(document.getElementById('dp_protein_carbs').value) || 0;
-        const proteinFat = parseInt(document.getElementById('dp_protein_fat').value) || 0;
-        const proteinBrand = document.getElementById('dp_protein_brand').value || 'Protein Powder';
-
-        // Store protein powder info to add as supplement item later
-        proteinPowderInfo = {
-            brand: proteinBrand,
-            calories: proteinCals,
-            protein: proteinProtein,
-            carbs: proteinCarbs,
-            fat: proteinFat
-        };
-
-        // Subtract from targets for meal generation (meals + supplement = original targets)
-        calories -= proteinCals;
-        protein -= proteinProtein;
-        carbs -= proteinCarbs;
-        fat -= proteinFat;
-    }
 
     lastPlanQuery = {
         clientName,
@@ -2121,7 +2318,6 @@ async function generateDietPlan() {
         equipmentStr,
         meals,
         originalTargets,
-        proteinPowderInfo,
         useBrandedFoods
     };
 
@@ -2163,20 +2359,6 @@ async function generateDietPlan() {
                     isPlaceholder: true
                 };
             });
-
-            // Add protein powder supplement if selected
-            if (proteinPowderInfo) {
-                dayPlan.push({
-                    type: 'supplement',
-                    name: proteinPowderInfo.brand,
-                    calories: proteinPowderInfo.calories,
-                    protein: proteinPowderInfo.protein,
-                    carbs: proteinPowderInfo.carbs,
-                    fat: proteinPowderInfo.fat,
-                    ingredients: [`${proteinPowderInfo.brand} (1 serving)`],
-                    instructions: 'Mix with water or milk as directed.'
-                });
-            }
 
             allDays.push({
                 day: day,
@@ -2221,23 +2403,6 @@ async function generateDietPlan() {
                     // Keep meal data but reset any client-specific info
                 }));
 
-                // Add protein powder supplement if selected and not in template
-                if (proteinPowderInfo) {
-                    const hasSupp = dayPlan.some(m => m.type === 'supplement');
-                    if (!hasSupp) {
-                        dayPlan.push({
-                            type: 'supplement',
-                            name: proteinPowderInfo.brand,
-                            calories: proteinPowderInfo.calories,
-                            protein: proteinPowderInfo.protein,
-                            carbs: proteinPowderInfo.carbs,
-                            fat: proteinPowderInfo.fat,
-                            ingredients: [`${proteinPowderInfo.brand} (1 serving)`],
-                            instructions: 'Mix with water or milk as directed.'
-                        });
-                    }
-                }
-
                 allDays.push({
                     day: day,
                     targets: originalTargets,
@@ -2274,12 +2439,6 @@ async function generateDietPlan() {
                 });
             });
             previousMealsText = `\n\nPREVIOUS DAYS MEALS (DO NOT REPEAT):\n${previousMeals.join('\n')}\n\nIMPORTANT: Create COMPLETELY DIFFERENT meals from the previous days listed above. Provide variety in proteins, cuisines, and cooking methods.`;
-        }
-
-        // Build protein powder note if applicable
-        let proteinPowderNote = '';
-        if (proteinPowderInfo) {
-            proteinPowderNote = `\nNote: Client uses protein powder (${proteinPowderInfo.brand || 'protein supplement'}) which will be added separately. Meal targets already account for this.`;
         }
 
         // Build branded fitness foods note if applicable
@@ -2437,7 +2596,7 @@ Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
 Preferred Foods/Cuisines: ${preferredFoods}
 Budget: ${budget}
-Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}${favoriteMealsText}${brandedFoodsNote}
+Available Equipment: ${equipmentStr}${previousMealsText}${favoriteMealsText}${brandedFoodsNote}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
@@ -2882,23 +3041,7 @@ This meal should fit into a day's plan with the following targets.`;
             console.log(`✅ Day ${day} totals validated successfully`);
         }
 
-        // Add protein powder as supplement item if configured
-        if (proteinPowderInfo) {
-            const supplementItem = {
-                type: 'supplement',
-                name: proteinPowderInfo.brand,
-                calories: proteinPowderInfo.calories,
-                protein: proteinPowderInfo.protein,
-                carbs: proteinPowderInfo.carbs,
-                fat: proteinPowderInfo.fat,
-                ingredients: [`${proteinPowderInfo.brand} (1 serving)`],
-                instructions: 'Mix with water or milk as directed.'
-            };
-            dayData.plan.push(supplementItem);
-            console.log(`✅ Added protein powder supplement to Day ${day}`);
-        }
-
-        // Update targets to show original values (including protein powder)
+        // Update targets to show original values
         dayData.targets = originalTargets;
 
         allDays.push(dayData);
@@ -3107,7 +3250,7 @@ function displayDietPlan(multiDayData) {
                     <div class="flex gap-2 mt-2">
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                         <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
-                        <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Adjust serving size">⚖️ Portions</button>
+                        <button data-action="edit-ingredients" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Edit individual ingredient amounts">⚖️ Portions</button>
                         <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
                         ${editButton}
@@ -3154,7 +3297,6 @@ function displayDietPlan(multiDayData) {
 
     planHTML += `
         <div class="flex gap-2 mt-4">
-            <button data-action="check-math" class="btn btn-secondary w-full" style="background:#6c757d; color:white;">🔍 Check Math</button>
             <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b; color:white;">📋 Meal Prep Guide</button>
             <button data-action="show-grocery-list" class="btn btn-secondary w-full" style="color:white;">📝 Grocery List</button>
             <button data-action="download-pdf" class="btn btn-primary w-full" style="color:white;">📥 Download PDF</button>
@@ -3997,6 +4139,241 @@ function adjustPortions(dayIndex, mealIndex, multiplier) {
 
     displayDietPlan(lastPlanQuery.currentPlan);
     console.log(`⚖️ Adjusted portions for ${meal.type}: ${multiplier}x`);
+}
+
+// ========================================
+// INGREDIENT EDITOR FUNCTIONALITY
+// ========================================
+
+let ingredientEditorDayIndex = null;
+let ingredientEditorMealIndex = null;
+let ingredientEditorData = [];
+
+async function showIngredientEditor(dayIndex, mealIndex) {
+    ingredientEditorDayIndex = dayIndex;
+    ingredientEditorMealIndex = mealIndex;
+    ingredientEditorData = [];
+
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    const modal = document.getElementById('ingredientEditorModal');
+    const listContainer = document.getElementById('ingredientEditorList');
+
+    // Show modal with loading state
+    modal.style.display = 'flex';
+    listContainer.innerHTML = `
+        <div class="editor-loading">
+            <div class="editor-loading-spinner"></div>
+            <p>Loading ingredients...</p>
+        </div>
+    `;
+
+    // Check if meal already has parsed ingredient data
+    if (meal.ingredientData && Array.isArray(meal.ingredientData) && meal.ingredientData.length > 0) {
+        ingredientEditorData = JSON.parse(JSON.stringify(meal.ingredientData));
+        renderIngredientEditorList();
+        updateIngredientEditorTotals();
+        return;
+    }
+
+    // Parse and lookup ingredients from the ingredients array
+    if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+        try {
+            const parsedData = await parseAndLookupIngredients(meal.ingredients);
+            if (parsedData && parsedData.length > 0) {
+                ingredientEditorData = parsedData;
+                renderIngredientEditorList();
+                updateIngredientEditorTotals();
+                return;
+            }
+        } catch (error) {
+            console.error('Error parsing ingredients:', error);
+        }
+    }
+
+    // Fallback: If no ingredients could be parsed, show the whole meal as one item
+    listContainer.innerHTML = `
+        <div class="editor-no-ingredients">
+            <p>Could not parse individual ingredients for this meal.</p>
+            <p style="margin-top: 10px;">Use the <strong>Custom</strong> button to rebuild this meal with exact ingredients.</p>
+        </div>
+    `;
+
+    // Still show the current meal macros
+    document.getElementById('editorTotalCal').textContent = meal.calories;
+    document.getElementById('editorTotalProtein').textContent = meal.protein + 'g';
+    document.getElementById('editorTotalCarbs').textContent = meal.carbs + 'g';
+    document.getElementById('editorTotalFat').textContent = meal.fat + 'g';
+}
+
+function renderIngredientEditorList() {
+    const listContainer = document.getElementById('ingredientEditorList');
+
+    if (ingredientEditorData.length === 0) {
+        listContainer.innerHTML = '<div class="editor-no-ingredients">No ingredients to edit</div>';
+        return;
+    }
+
+    listContainer.innerHTML = ingredientEditorData.map((ing, index) => {
+        const displayQty = ing.selectedUnit === 'g' ? Math.round(ing.quantityGrams) : ing.quantity;
+        const stepAmount = ing.selectedUnit === 'g' ? 10 : 0.5;
+        const unitLabel = ing.selectedUnit === 'g' ? 'g' : ing.selectedUnit;
+
+        // Get a short display name
+        const shortName = ing.name.split(',')[0].trim();
+
+        return `
+            <div class="editor-ingredient-item">
+                <span class="editor-ingredient-name" title="${ing.name}">${shortName}</span>
+                <div class="editor-qty-controls">
+                    <button class="editor-qty-btn" onclick="stepEditorIngredient(${index}, -1)" title="Decrease">−</button>
+                    <input type="number"
+                           class="editor-qty-input"
+                           value="${displayQty}"
+                           min="0"
+                           step="${stepAmount}"
+                           onchange="updateEditorIngredientQty(${index}, this.value)"
+                           oninput="updateEditorIngredientQty(${index}, this.value)">
+                    <button class="editor-qty-btn" onclick="stepEditorIngredient(${index}, 1)" title="Increase">+</button>
+                </div>
+                <span class="editor-unit-label">${unitLabel}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function stepEditorIngredient(index, direction) {
+    const ing = ingredientEditorData[index];
+    const isGrams = ing.selectedUnit === 'g';
+    const step = isGrams ? 10 : 0.5;
+    const minVal = isGrams ? 10 : 0.5;
+
+    if (isGrams) {
+        ing.quantityGrams = Math.max(minVal, (ing.quantityGrams || ing.quantity) + (direction * step));
+        ing.quantity = ing.quantityGrams;
+    } else {
+        ing.quantity = Math.max(minVal, ing.quantity + (direction * step));
+        // Recalculate grams
+        if (ing.gramsPerServing) {
+            ing.quantityGrams = ing.quantity * ing.gramsPerServing;
+        } else {
+            const conversions = { cup: 240, tbsp: 15, tsp: 5, oz: 28, serving: 100, scoop: 30, whole: 50, medium: 150, large: 200, slice: 30 };
+            ing.quantityGrams = ing.quantity * (conversions[ing.selectedUnit] || 100);
+        }
+    }
+
+    renderIngredientEditorList();
+    updateIngredientEditorTotals();
+}
+
+function updateEditorIngredientQty(index, value) {
+    const ing = ingredientEditorData[index];
+    const newQty = parseFloat(value) || 0;
+    const isGrams = ing.selectedUnit === 'g';
+
+    if (isGrams) {
+        ing.quantityGrams = newQty;
+        ing.quantity = newQty;
+    } else {
+        ing.quantity = newQty;
+        // Recalculate grams
+        if (ing.gramsPerServing) {
+            ing.quantityGrams = newQty * ing.gramsPerServing;
+        } else {
+            const conversions = { cup: 240, tbsp: 15, tsp: 5, oz: 28, serving: 100, scoop: 30, whole: 50, medium: 150, large: 200, slice: 30 };
+            ing.quantityGrams = newQty * (conversions[ing.selectedUnit] || 100);
+        }
+    }
+
+    updateIngredientEditorTotals();
+}
+
+function updateIngredientEditorTotals() {
+    let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+    ingredientEditorData.forEach(ing => {
+        const grams = ing.quantityGrams || ing.quantity;
+        const factor = grams / 100;
+        totalCal += (ing.caloriesPer100g || 0) * factor;
+        totalProtein += (ing.proteinPer100g || 0) * factor;
+        totalCarbs += (ing.carbsPer100g || 0) * factor;
+        totalFat += (ing.fatPer100g || 0) * factor;
+    });
+
+    document.getElementById('editorTotalCal').textContent = Math.round(totalCal);
+    document.getElementById('editorTotalProtein').textContent = Math.round(totalProtein) + 'g';
+    document.getElementById('editorTotalCarbs').textContent = Math.round(totalCarbs) + 'g';
+    document.getElementById('editorTotalFat').textContent = Math.round(totalFat) + 'g';
+}
+
+function closeIngredientEditor() {
+    document.getElementById('ingredientEditorModal').style.display = 'none';
+    ingredientEditorData = [];
+    ingredientEditorDayIndex = null;
+    ingredientEditorMealIndex = null;
+}
+
+function saveIngredientEdits() {
+    if (ingredientEditorDayIndex === null || ingredientEditorMealIndex === null) {
+        closeIngredientEditor();
+        return;
+    }
+
+    if (ingredientEditorData.length === 0) {
+        alert('No ingredients to save');
+        return;
+    }
+
+    const meal = lastPlanQuery.currentPlan[ingredientEditorDayIndex].plan[ingredientEditorMealIndex];
+
+    // Save current state for undo
+    const stateKey = `${ingredientEditorDayIndex}-${ingredientEditorMealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+    saveUndoStates();
+    console.log(`💾 Saved previous state for undo (ingredient edit):`, previousMealStates[stateKey]);
+
+    // Calculate new totals
+    let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+    const newIngredients = [];
+
+    ingredientEditorData.forEach(ing => {
+        const grams = ing.quantityGrams || ing.quantity;
+        const factor = grams / 100;
+        totalCal += (ing.caloriesPer100g || 0) * factor;
+        totalProtein += (ing.proteinPer100g || 0) * factor;
+        totalCarbs += (ing.carbsPer100g || 0) * factor;
+        totalFat += (ing.fatPer100g || 0) * factor;
+
+        // Format ingredient string
+        const shortName = ing.name.split(',')[0].trim();
+        if (ing.selectedUnit === 'g') {
+            newIngredients.push(`${shortName} (${Math.round(grams)}g)`);
+        } else {
+            newIngredients.push(`${shortName} (${ing.quantity} ${ing.selectedUnit})`);
+        }
+    });
+
+    // Update meal data
+    meal.calories = Math.round(totalCal);
+    meal.protein = Math.round(totalProtein);
+    meal.carbs = Math.round(totalCarbs);
+    meal.fat = Math.round(totalFat);
+    meal.ingredients = newIngredients;
+    meal.ingredientData = JSON.parse(JSON.stringify(ingredientEditorData)); // Store for future edits
+
+    // Add "(edited)" to meal name if not already there
+    if (!meal.name.includes('(edited)') && !meal.name.includes('(adjusted)')) {
+        meal.name = `${meal.name} (edited)`;
+    }
+
+    // Auto-save if plan already exists in database
+    if (lastPlanQuery.planId) {
+        saveCoachPlan();
+    }
+
+    // Close modal and refresh display
+    closeIngredientEditor();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    console.log(`✅ Saved ingredient edits for ${meal.type}`);
 }
 
 // ========================================
@@ -5064,7 +5441,7 @@ NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
         // Add back the supplement if there was one
         if (supplementItem) {
             newMeals.push(supplementItem);
-            console.log(`✅ Re-added protein powder supplement to Day ${dayNumber}`);
+            console.log(`✅ Re-added supplement to Day ${dayNumber}`);
         }
 
         // Update the day's meals
@@ -5509,175 +5886,6 @@ function showGroceryList() {
     resultDiv.lastElementChild.scrollIntoView({ behavior: 'smooth' });
 }
 
-// MATH CHECK FUNCTION
-function showMathCheck() {
-    if (!lastPlanQuery.currentPlan) {
-        alert('No plan available');
-        return;
-    }
-
-    const modal = document.getElementById('math-check-modal');
-    const content = document.getElementById('math-check-content');
-    const targets = lastPlanQuery.currentPlan[0].targets;
-
-    let html = `
-        <div class="bg-blue-50 p-4 rounded-lg mb-6">
-            <h4 class="font-bold text-lg mb-2">Daily Targets</h4>
-            <div class="grid grid-cols-4 gap-4">
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">Calories</p>
-                    <span class="font-bold text-blue-600">${targets.calories}</span>
-                </div>
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">Protein</p>
-                    <span class="font-bold text-blue-600">${targets.protein}g</span>
-                </div>
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">Carbs</p>
-                    <span class="font-bold text-blue-600">${targets.carbs}g</span>
-                </div>
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">Fat</p>
-                    <span class="font-bold text-blue-600">${targets.fat}g</span>
-                </div>
-            </div>
-        </div>`;
-
-    // Analyze each day
-    lastPlanQuery.currentPlan.forEach((dayData, dayIndex) => {
-        html += `<div class="mb-6 border-b pb-4">
-            <h4 class="font-bold text-xl mb-3">Day ${dayData.day}</h4>`;
-
-        // Calculate daily totals
-        let dayCalories = 0, dayProtein = 0, dayCarbs = 0, dayFat = 0;
-
-        // Analyze each meal
-        dayData.plan.forEach((meal, mealIndex) => {
-            const isSupplement = meal.type === 'supplement';
-
-            // Supplements get special display (user-defined, no validation needed)
-            if (isSupplement) {
-                html += `
-                <div class="p-3 rounded-lg mb-3" style="background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border: 2px solid #0ea5e9;">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-bold capitalize" style="color: #0369a1;">💊 Supplement: ${meal.name}</h5>
-                        <span class="text-blue-600 font-semibold">✅ User Defined</span>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2 text-sm mb-2">
-                        <div><span class="text-gray-600">Calories:</span> <strong>${meal.calories}</strong></div>
-                        <div><span class="text-gray-600">Protein:</span> <strong>${meal.protein}g</strong></div>
-                        <div><span class="text-gray-600">Carbs:</span> <strong>${meal.carbs}g</strong></div>
-                        <div><span class="text-gray-600">Fat:</span> <strong>${meal.fat}g</strong></div>
-                    </div>
-                </div>`;
-
-                // Add to daily totals
-                dayCalories += meal.calories;
-                dayProtein += meal.protein;
-                dayCarbs += meal.carbs;
-                dayFat += meal.fat;
-                return; // Skip normal validation for supplements
-            }
-
-            const validation = validateMeal(meal, meal.type);
-            const calculatedCalories = (meal.protein * 4) + (meal.carbs * 4) + (meal.fat * 9);
-            const calorieDifference = Math.abs(meal.calories - calculatedCalories);
-            const percentOff = calorieDifference / meal.calories;
-
-            // Determine status color
-            let statusColor = 'green';
-            let statusIcon = '✅';
-            let statusText = 'Accurate';
-
-            if (validation.issues.length > 0) {
-                statusColor = 'orange';
-                statusIcon = '⚠️';
-                statusText = 'Warning';
-            }
-
-            if (percentOff > 0.15) {
-                statusColor = 'red';
-                statusIcon = '❌';
-                statusText = 'Math Error';
-            }
-
-            html += `
-                <div class="bg-gray-50 p-3 rounded-lg mb-3">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-bold capitalize">${meal.type}: ${meal.name}</h5>
-                        <span class="text-${statusColor}-600 font-semibold">${statusIcon} ${statusText}</span>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2 text-sm mb-2">
-                        <div><span class="text-gray-600">Calories:</span> <strong>${meal.calories}</strong></div>
-                        <div><span class="text-gray-600">Protein:</span> <strong>${meal.protein}g</strong></div>
-                        <div><span class="text-gray-600">Carbs:</span> <strong>${meal.carbs}g</strong></div>
-                        <div><span class="text-gray-600">Fat:</span> <strong>${meal.fat}g</strong></div>
-                    </div>
-                    <div class="text-sm">
-                        <p class="text-gray-600">Macro Math: <strong>${Math.round(calculatedCalories)} cal</strong>
-                        ${percentOff > 0.08 ? `<span class="text-orange-600">(${Math.round(percentOff*100)}% difference)</span>` : '<span class="text-green-600">(✓ Within 8%)</span>'}
-                        </p>
-                    </div>`;
-
-            if (validation.issues.length > 0) {
-                html += `<div class="mt-2 p-2 bg-yellow-50 rounded text-sm">
-                    <p class="font-semibold text-yellow-800">Validation Notes:</p>
-                    <ul class="list-disc ml-5 text-yellow-700">`;
-                validation.issues.forEach(issue => {
-                    html += `<li>${issue}</li>`;
-                });
-                html += `</ul></div>`;
-            }
-
-            html += `</div>`;
-
-            // Add to daily totals
-            dayCalories += meal.calories;
-            dayProtein += meal.protein;
-            dayCarbs += meal.carbs;
-            dayFat += meal.fat;
-        });
-
-        // Daily totals summary
-        const calDiff = dayCalories - targets.calories;
-        const proteinDiff = dayProtein - targets.protein;
-        const carbsDiff = dayCarbs - targets.carbs;
-        const fatDiff = dayFat - targets.fat;
-
-        const calStatus = Math.abs(calDiff) <= 50 ? 'text-green-600' : 'text-orange-600';
-        const proteinStatus = Math.abs(proteinDiff) <= 5 ? 'text-green-600' : 'text-orange-600';
-        const carbsStatus = Math.abs(carbsDiff) <= 10 ? 'text-green-600' : 'text-orange-600';
-        const fatStatus = Math.abs(fatDiff) <= 5 ? 'text-green-600' : 'text-orange-600';
-
-        html += `
-            <div class="bg-blue-50 p-3 rounded-lg mt-3">
-                <h5 class="font-bold mb-2">Day ${dayData.day} Totals vs Targets</h5>
-                <div class="grid grid-cols-4 gap-2 text-sm">
-                    <div class="${calStatus}">
-                        <strong>${dayCalories}</strong> / ${targets.calories} cal
-                        <br><span class="text-xs">(${calDiff > 0 ? '+' : ''}${calDiff})</span>
-                    </div>
-                    <div class="${proteinStatus}">
-                        <strong>${dayProtein}g</strong> / ${targets.protein}g
-                        <br><span class="text-xs">(${proteinDiff > 0 ? '+' : ''}${proteinDiff}g)</span>
-                    </div>
-                    <div class="${carbsStatus}">
-                        <strong>${dayCarbs}g</strong> / ${targets.carbs}g
-                        <br><span class="text-xs">(${carbsDiff > 0 ? '+' : ''}${carbsDiff}g)</span>
-                    </div>
-                    <div class="${fatStatus}">
-                        <strong>${dayFat}g</strong> / ${targets.fat}g
-                        <br><span class="text-xs">(${fatDiff > 0 ? '+' : ''}${fatDiff}g)</span>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    });
-
-    content.innerHTML = html;
-    modal.classList.remove('hidden');
-}
-
 // PDF EXPORT
 function downloadPlanAsPDF() {
     const { jsPDF } = window.jspdf;
@@ -5706,7 +5914,7 @@ function downloadPlanAsPDF() {
         y += 12;
     }
 
-    // Daily Nutrition Summary - use original targets (includes protein powder)
+    // Daily Nutrition Summary - use original targets
     const displayTargets = lastPlanQuery.originalTargets || {
         calories: lastPlanQuery.calories,
         protein: lastPlanQuery.protein,
@@ -5722,25 +5930,6 @@ function downloadPlanAsPDF() {
     y += 8;
     pdf.text(`Macro Split: ${lastPlanQuery.macroPreference}`, margin, y);
     y += 15;
-
-    // Supplement Protocol Section
-    if (lastPlanQuery.proteinPowderInfo) {
-        if (y > 240) {
-            pdf.addPage();
-            y = 20;
-        }
-        pdf.setFontSize(16);
-        pdf.setTextColor(102, 126, 234);
-        pdf.text('Supplement Protocol', margin, y);
-        y += 8;
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        const pp = lastPlanQuery.proteinPowderInfo;
-        const supplementText = `${pp.brand}: ${pp.calories} cal, ${pp.protein}g protein, ${pp.carbs}g carbs, ${pp.fat}g fat (included in daily totals)`;
-        const supplementLines = pdf.splitTextToSize(supplementText, maxWidth);
-        pdf.text(supplementLines, margin, y);
-        y += supplementLines.length * 5 + 10;
-    }
 
     // Meal Plans by Day
     lastPlanQuery.currentPlan.forEach(dayData => {
@@ -6156,11 +6345,11 @@ document.addEventListener('click', function(event) {
             const mealIndex = parseInt(target.dataset.mealIndex);
             editCustomMeal(dayIndex, mealIndex);
         },
-        'adjust-portions': () => {
+        'edit-ingredients': () => {
             const target = event.target.closest('[data-day-index]');
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
-            showPortionsDropdown(event.target, dayIndex, mealIndex);
+            showIngredientEditor(dayIndex, mealIndex);
         },
         'undo-meal': () => {
             const target = event.target.closest('[data-day-index]');
@@ -6173,8 +6362,6 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             regenerateDay(dayIndex);
         },
-        'check-math': showMathCheck,
-        'close-math-modal': () => document.getElementById('math-check-modal').classList.add('hidden'),
         'show-grocery-list': showGroceryList,
         'close-grocery-list': () => {
             event.target.closest('.card').remove();
@@ -6203,16 +6390,6 @@ document.addEventListener('click', function(event) {
 // Unit system toggle
 document.getElementById('unit-imperial').addEventListener('click', () => toggleUnitSystem('imperial'));
 document.getElementById('unit-metric').addEventListener('click', () => toggleUnitSystem('metric'));
-
-// Protein powder checkbox toggle
-document.getElementById('dp_use_protein').addEventListener('change', function() {
-    const fields = document.getElementById('protein-powder-fields');
-    if (this.checked) {
-        fields.style.display = 'grid';  // Use grid to match the class
-    } else {
-        fields.style.display = 'none';
-    }
-});
 
 // Custom targets checkbox toggle
 document.getElementById('dp_custom_targets').addEventListener('change', function() {
