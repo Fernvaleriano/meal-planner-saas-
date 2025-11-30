@@ -894,6 +894,118 @@
             font-style: italic;
         }
 
+        /* Direct Macro Editor Modal */
+        .macro-editor-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .macro-editor-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .macro-editor-header {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .macro-editor-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .macro-editor-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        .macro-editor-body {
+            padding: 20px;
+        }
+
+        .macro-editor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .macro-editor-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .macro-editor-field label {
+            font-size: 0.85em;
+            color: #64748b;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .macro-editor-field input {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .macro-editor-field input:focus {
+            outline: none;
+            border-color: #f59e0b;
+        }
+
+        .macro-editor-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .macro-editor-cancel {
+            padding: 10px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #64748b;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .macro-editor-save {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         .macro-inputs-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1366,6 +1478,41 @@
         <div class="ingredient-editor-footer">
             <button class="editor-btn-cancel" onclick="closeIngredientEditor()">Cancel</button>
             <button class="editor-btn-save" onclick="saveIngredientEdits()">💾 Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Direct Macro Editor Modal -->
+<div id="macroEditorModal" class="macro-editor-overlay" style="display: none;">
+    <div class="macro-editor-modal">
+        <div class="macro-editor-header">
+            <h2>✏️ Edit Macros</h2>
+            <button class="macro-editor-close" onclick="closeMacroEditor()">×</button>
+        </div>
+        <div class="macro-editor-body">
+            <p style="color: #64748b; font-size: 0.9em; margin-bottom: 15px;">Directly edit the macro values for this meal.</p>
+            <div class="macro-editor-grid">
+                <div class="macro-editor-field">
+                    <label>Calories</label>
+                    <input type="number" id="macroEditCal" placeholder="0">
+                </div>
+                <div class="macro-editor-field">
+                    <label>Protein (g)</label>
+                    <input type="number" id="macroEditProtein" placeholder="0">
+                </div>
+                <div class="macro-editor-field">
+                    <label>Carbs (g)</label>
+                    <input type="number" id="macroEditCarbs" placeholder="0">
+                </div>
+                <div class="macro-editor-field">
+                    <label>Fat (g)</label>
+                    <input type="number" id="macroEditFat" placeholder="0">
+                </div>
+            </div>
+        </div>
+        <div class="macro-editor-footer">
+            <button class="macro-editor-cancel" onclick="closeMacroEditor()">Cancel</button>
+            <button class="macro-editor-save" onclick="saveMacroEdits()">💾 Save</button>
         </div>
     </div>
 </div>
@@ -3263,10 +3410,10 @@ function displayDietPlan(multiDayData) {
                     <div class="flex gap-2 mt-2">
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                         <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
-                        <button data-action="edit-ingredients" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Edit individual ingredient amounts">⚖️ Portions</button>
+                        <button data-action="edit-ingredients" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-portions text-xs flex-1" title="Edit individual ingredient amounts (USDA)">⚖️ Portions</button>
+                        <button data-action="edit-macros" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs flex-1" style="background: #f59e0b; color: white;" title="Directly edit calorie and macro values">✏️ Macros</button>
                         <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
-                        ${editButton}
                         ${undoButton}
                     </div>
                     <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
@@ -4395,6 +4542,85 @@ function saveIngredientEdits() {
     closeIngredientEditor();
     displayDietPlan(lastPlanQuery.currentPlan);
     console.log(`✅ Saved ingredient edits for ${meal.type}`);
+}
+
+// ========================================
+// DIRECT MACRO EDITOR FUNCTIONALITY
+// ========================================
+
+let macroEditorDayIndex = null;
+let macroEditorMealIndex = null;
+
+function showMacroEditor(dayIndex, mealIndex) {
+    macroEditorDayIndex = dayIndex;
+    macroEditorMealIndex = mealIndex;
+
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    const modal = document.getElementById('macroEditorModal');
+
+    // Populate fields with current values
+    document.getElementById('macroEditCal').value = meal.calories || 0;
+    document.getElementById('macroEditProtein').value = meal.protein || 0;
+    document.getElementById('macroEditCarbs').value = meal.carbs || 0;
+    document.getElementById('macroEditFat').value = meal.fat || 0;
+
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+function closeMacroEditor() {
+    document.getElementById('macroEditorModal').style.display = 'none';
+    macroEditorDayIndex = null;
+    macroEditorMealIndex = null;
+}
+
+function saveMacroEdits() {
+    if (macroEditorDayIndex === null || macroEditorMealIndex === null) {
+        closeMacroEditor();
+        return;
+    }
+
+    const meal = lastPlanQuery.currentPlan[macroEditorDayIndex].plan[macroEditorMealIndex];
+
+    // Get new values
+    const newCal = parseInt(document.getElementById('macroEditCal').value) || 0;
+    const newProtein = parseInt(document.getElementById('macroEditProtein').value) || 0;
+    const newCarbs = parseInt(document.getElementById('macroEditCarbs').value) || 0;
+    const newFat = parseInt(document.getElementById('macroEditFat').value) || 0;
+
+    // Check if anything changed
+    if (newCal === meal.calories && newProtein === meal.protein &&
+        newCarbs === meal.carbs && newFat === meal.fat) {
+        closeMacroEditor();
+        return;
+    }
+
+    // Save current state for undo
+    const stateKey = `${macroEditorDayIndex}-${macroEditorMealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+    saveUndoStates();
+    console.log(`💾 Saved previous state for undo (macro edit):`, previousMealStates[stateKey]);
+
+    // Update meal with new values
+    meal.calories = newCal;
+    meal.protein = newProtein;
+    meal.carbs = newCarbs;
+    meal.fat = newFat;
+
+    // Add "(adjusted)" to meal name if not already there
+    if (!meal.name.includes('(edited)') && !meal.name.includes('(adjusted)')) {
+        meal.name = `${meal.name} (adjusted)`;
+    }
+
+    // Auto-save if plan already exists in database
+    if (lastPlanQuery.planId) {
+        saveCoachPlan();
+    }
+
+    // Close modal and refresh display
+    closeMacroEditor();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    console.log(`✅ Saved macro edits for ${meal.type}: ${newCal} cal, ${newProtein}g P, ${newCarbs}g C, ${newFat}g F`);
 }
 
 // ========================================
@@ -6373,6 +6599,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             showIngredientEditor(dayIndex, mealIndex);
+        },
+        'edit-macros': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            showMacroEditor(dayIndex, mealIndex);
         },
         'undo-meal': () => {
             const target = event.target.closest('[data-day-index]');
