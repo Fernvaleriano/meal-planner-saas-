@@ -140,6 +140,149 @@
             border-color: #7c3aed;
         }
 
+        /* Tab Navigation */
+        .tab-navigation {
+            background: white;
+            border-radius: 16px;
+            padding: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: #6b7280;
+        }
+
+        .tab-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .tab-btn.active {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Library Section */
+        .library-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .library-header h2 {
+            color: #0d9488;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .library-filters {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 8px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .library-card {
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+
+        .library-card:hover {
+            border-color: #2dd4bf;
+            box-shadow: 0 2px 8px rgba(13, 148, 136, 0.1);
+        }
+
+        .library-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .library-card-name {
+            font-weight: 700;
+            color: #0f766e;
+            font-size: 16px;
+        }
+
+        .library-card-category {
+            background: #ccfbf1;
+            color: #0d9488;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .library-card-details {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .library-card-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-teal {
+            background: #0d9488;
+            color: white;
+        }
+
+        .btn-teal:hover {
+            background: #0f766e;
+        }
+
         .protocols-section {
             background: white;
             border-radius: 16px;
@@ -585,16 +728,24 @@
         </div>
 
         <div id="mainContent" style="display: none;">
-            <!-- Client Selector -->
-            <div class="client-selector-section">
-                <label for="clientSelector">Select a Client</label>
-                <select id="clientSelector" class="client-selector" onchange="onClientChange()">
-                    <option value="">-- Select a client --</option>
-                </select>
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" onclick="switchTab('clients')">Client Protocols</button>
+                <button class="tab-btn" onclick="switchTab('library')">Supplement Library</button>
             </div>
 
-            <!-- Protocols Section -->
-            <div id="protocolsSection" class="protocols-section" style="display: none;">
+            <!-- Client Protocols Tab -->
+            <div id="clientsTab" class="tab-content active">
+                <!-- Client Selector -->
+                <div class="client-selector-section">
+                    <label for="clientSelector">Select a Client</label>
+                    <select id="clientSelector" class="client-selector" onchange="onClientChange()">
+                        <option value="">-- Select a client --</option>
+                    </select>
+                </div>
+
+                <!-- Protocols Section -->
+                <div id="protocolsSection" class="protocols-section" style="display: none;">
                 <div class="protocols-header">
                     <h2>Protocols for <span id="selectedClientName">Client</span></h2>
                     <div class="protocols-actions">
@@ -620,6 +771,43 @@
                     <p>Click "Add Item" to create a supplement protocol for this client.</p>
                 </div>
             </div>
+            </div> <!-- End clientsTab -->
+
+            <!-- Supplement Library Tab -->
+            <div id="libraryTab" class="tab-content">
+                <div class="library-section">
+                    <div class="library-header">
+                        <h2>My Supplement Library</h2>
+                        <div class="library-filters">
+                            <select id="categoryFilter" class="filter-select" onchange="filterLibrary()">
+                                <option value="">All Categories</option>
+                                <option value="Vitamins">Vitamins</option>
+                                <option value="Minerals">Minerals</option>
+                                <option value="Protein">Protein</option>
+                                <option value="Pre-workout">Pre-workout</option>
+                                <option value="Post-workout">Post-workout</option>
+                                <option value="Performance">Performance</option>
+                                <option value="Recovery">Recovery</option>
+                                <option value="Fat Burner">Fat Burner</option>
+                                <option value="Hormone Support">Hormone Support</option>
+                                <option value="Sleep">Sleep</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <button class="btn btn-teal" onclick="openLibraryModal()">+ Add to Library</button>
+                        </div>
+                    </div>
+
+                    <div id="libraryGrid" class="library-grid">
+                        <!-- Library items will be rendered here -->
+                    </div>
+
+                    <div id="libraryEmptyState" class="empty-state">
+                        <div class="empty-state-icon">📚</div>
+                        <h3>Your Library is Empty</h3>
+                        <p>Add supplements to your library to easily reuse them across clients.</p>
+                    </div>
+                </div>
+            </div> <!-- End libraryTab -->
         </div>
     </div>
 
@@ -735,12 +923,126 @@
         </div>
     </div>
 
+    <!-- Library Modal -->
+    <div id="libraryModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="libraryModalTitle">Add to Library</h3>
+                <button class="modal-close" onclick="closeLibraryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Supplement Name *</label>
+                    <input type="text" id="libraryName" placeholder="e.g., Creatine Monohydrate, Omega-3...">
+                </div>
+
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="libraryCategory">
+                        <option value="">Select a category</option>
+                        <option value="Vitamins">Vitamins</option>
+                        <option value="Minerals">Minerals</option>
+                        <option value="Protein">Protein</option>
+                        <option value="Pre-workout">Pre-workout</option>
+                        <option value="Post-workout">Post-workout</option>
+                        <option value="Performance">Performance</option>
+                        <option value="Recovery">Recovery</option>
+                        <option value="Fat Burner">Fat Burner</option>
+                        <option value="Hormone Support">Hormone Support</option>
+                        <option value="Sleep">Sleep</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Timing</label>
+                    <select id="libraryTiming" onchange="toggleLibraryCustomTiming()">
+                        <option value="morning">Morning</option>
+                        <option value="pre_workout">Pre-Workout</option>
+                        <option value="post_workout">Post-Workout</option>
+                        <option value="bedtime">Before Bed</option>
+                        <option value="with_meals">With Meals</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="libraryCustomTimingGroup">
+                    <label>Custom Timing</label>
+                    <input type="text" id="libraryTimingCustom" placeholder="e.g., 2x per week, Every other day...">
+                </div>
+
+                <div class="schedule-toggle">
+                    <label>
+                        <input type="checkbox" id="libraryHasSchedule" onchange="toggleLibraryScheduleSection()">
+                        <span>Use Schedule (for cycling/tapering)</span>
+                    </label>
+                    <p>Enable this for items that change dose over time</p>
+                </div>
+
+                <div class="form-group" id="librarySimpleDoseSection">
+                    <label>Dose</label>
+                    <input type="text" id="libraryDose" placeholder="e.g., 5g, 200mg, 2 capsules...">
+                </div>
+
+                <div id="libraryScheduleSection" class="hidden">
+                    <div class="schedule-phases" id="librarySchedulePhasesContainer">
+                        <!-- Phases will be rendered here -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addLibrarySchedulePhase()" style="margin-top: 8px;">
+                        + Add Phase
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (visible to clients when published)</label>
+                    <textarea id="libraryNotes" placeholder="Instructions, tips, brand recommendations..."></textarea>
+                </div>
+
+                <div class="form-group private-notes-section">
+                    <label>Private Notes (coach only)</label>
+                    <textarea id="libraryPrivateNotes" placeholder="Notes only you can see..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeLibraryModal()">Cancel</button>
+                <button class="btn btn-teal" onclick="saveLibraryItem()">Save to Library</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publish to Client Modal -->
+    <div id="publishModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Publish to Client</h3>
+                <button class="modal-close" onclick="closePublishModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: #6b7280;">Select a client to add this supplement to their protocol:</p>
+                <div class="form-group">
+                    <label>Select Client *</label>
+                    <select id="publishClientSelector" class="client-selector">
+                        <option value="">-- Select a client --</option>
+                    </select>
+                </div>
+                <div id="publishSupplementInfo" style="background: #f0fdfa; padding: 12px; border-radius: 8px; margin-top: 16px;">
+                    <!-- Supplement info will be shown here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePublishModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmPublish()">Publish to Client</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase client
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
         const PROTOCOLS_ENDPOINT = '/.netlify/functions/client-protocols';
+        const LIBRARY_ENDPOINT = '/.netlify/functions/supplement-library';
 
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -752,6 +1054,12 @@
         let clientProtocols = [];
         let editingProtocolId = null;
         let schedulePhases = [];
+
+        // Library State
+        let supplementLibrary = [];
+        let editingLibraryId = null;
+        let librarySchedulePhases = [];
+        let publishingSupplement = null;
 
         // DOM Elements
         const loadingDiv = document.getElementById('loadingDiv');
@@ -790,8 +1098,8 @@
 
                 currentCoach = coachData;
 
-                // Load clients
-                await loadClients();
+                // Load clients and supplement library
+                await Promise.all([loadClients(), loadSupplementLibrary()]);
 
                 // Check for client ID in URL
                 const urlParams = new URLSearchParams(window.location.search);
@@ -799,6 +1107,12 @@
                 if (clientIdParam) {
                     clientSelector.value = clientIdParam;
                     onClientChange();
+                }
+
+                // Check for tab parameter
+                const tabParam = urlParams.get('tab');
+                if (tabParam === 'library') {
+                    switchTab('library');
                 }
 
                 loadingDiv.style.display = 'none';
@@ -811,21 +1125,26 @@
             }
         }
 
-        // Load clients
+        // Load clients using Netlify function
         async function loadClients() {
-            const { data, error } = await supabaseClient
-                .from('clients')
-                .select('id, name, email')
-                .eq('coach_id', currentCoach.id)
-                .order('name');
+            try {
+                const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoach.id}`);
+                const data = await response.json();
 
-            if (error) {
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load clients');
+                }
+
+                // Map client_name to name for consistency
+                clients = (data.clients || []).map(c => ({
+                    id: c.id,
+                    name: c.client_name || c.name,
+                    email: c.email
+                }));
+                renderClientSelector();
+            } catch (error) {
                 console.error('Error loading clients:', error);
-                return;
             }
-
-            clients = data || [];
-            renderClientSelector();
         }
 
         // Render client selector
@@ -1303,6 +1622,468 @@
             saveTemplates(templates);
             closeSaveTemplateModal();
             alert('Template saved successfully!');
+        }
+
+        // ==========================================
+        // TAB SWITCHING
+        // ==========================================
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+                if ((tab === 'clients' && idx === 0) || (tab === 'library' && idx === 1)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Show/hide tab content
+            document.getElementById('clientsTab').classList.toggle('active', tab === 'clients');
+            document.getElementById('libraryTab').classList.toggle('active', tab === 'library');
+
+            // Refresh library if switching to it
+            if (tab === 'library' && currentCoach) {
+                loadSupplementLibrary();
+            }
+        }
+
+        // ==========================================
+        // SUPPLEMENT LIBRARY FUNCTIONS
+        // ==========================================
+
+        async function loadSupplementLibrary() {
+            if (!currentCoach) return;
+
+            try {
+                const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+                let url = `${LIBRARY_ENDPOINT}?coachId=${currentCoach.id}`;
+                if (categoryFilter) {
+                    url += `&category=${encodeURIComponent(categoryFilter)}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load library');
+                }
+
+                supplementLibrary = data.supplements || [];
+                renderLibraryGrid();
+            } catch (error) {
+                console.error('Error loading supplement library:', error);
+            }
+        }
+
+        function filterLibrary() {
+            loadSupplementLibrary();
+        }
+
+        function renderLibraryGrid() {
+            const grid = document.getElementById('libraryGrid');
+            const emptyState = document.getElementById('libraryEmptyState');
+
+            if (supplementLibrary.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            const timingLabels = {
+                'morning': 'Morning',
+                'pre_workout': 'Pre-Workout',
+                'post_workout': 'Post-Workout',
+                'bedtime': 'Before Bed',
+                'with_meals': 'With Meals',
+                'custom': 'Custom'
+            };
+
+            grid.innerHTML = supplementLibrary.map(s => {
+                const timingText = s.timing === 'custom' ? s.timing_custom : timingLabels[s.timing] || s.timing;
+                const doseText = s.has_schedule ? 'Scheduled' : (s.dose || 'No dose');
+
+                return `
+                    <div class="library-card">
+                        <div class="library-card-header">
+                            <div class="library-card-name">${escapeHtml(s.name)}</div>
+                            ${s.category ? `<span class="library-card-category">${escapeHtml(s.category)}</span>` : ''}
+                        </div>
+                        <div class="library-card-details">
+                            ${escapeHtml(timingText)} • ${escapeHtml(doseText)}
+                            ${s.notes ? `<br><small>${escapeHtml(s.notes.substring(0, 50))}${s.notes.length > 50 ? '...' : ''}</small>` : ''}
+                        </div>
+                        <div class="library-card-actions">
+                            <button class="btn btn-primary btn-small" onclick="openPublishModal(${s.id})">Publish</button>
+                            <button class="btn btn-secondary btn-small" onclick="editLibraryItem(${s.id})">Edit</button>
+                            <button class="btn btn-secondary btn-small" onclick="duplicateLibraryItem(${s.id})">Duplicate</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteLibraryItem(${s.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Library Modal Functions
+        function openLibraryModal() {
+            editingLibraryId = null;
+            document.getElementById('libraryModalTitle').textContent = 'Add to Library';
+
+            // Reset form
+            document.getElementById('libraryName').value = '';
+            document.getElementById('libraryCategory').value = '';
+            document.getElementById('libraryTiming').value = 'morning';
+            document.getElementById('libraryTimingCustom').value = '';
+            document.getElementById('libraryCustomTimingGroup').classList.add('hidden');
+            document.getElementById('libraryDose').value = '';
+            document.getElementById('libraryHasSchedule').checked = false;
+            document.getElementById('libraryNotes').value = '';
+            document.getElementById('libraryPrivateNotes').value = '';
+
+            // Reset schedule
+            librarySchedulePhases = [];
+            document.getElementById('librarySchedulePhasesContainer').innerHTML = '';
+            toggleLibraryScheduleSection();
+
+            document.getElementById('libraryModal').classList.remove('hidden');
+        }
+
+        function closeLibraryModal() {
+            document.getElementById('libraryModal').classList.add('hidden');
+            editingLibraryId = null;
+        }
+
+        function toggleLibraryCustomTiming() {
+            const timing = document.getElementById('libraryTiming').value;
+            const customGroup = document.getElementById('libraryCustomTimingGroup');
+
+            if (timing === 'custom') {
+                customGroup.classList.remove('hidden');
+            } else {
+                customGroup.classList.add('hidden');
+            }
+        }
+
+        function toggleLibraryScheduleSection() {
+            const hasSchedule = document.getElementById('libraryHasSchedule').checked;
+            const scheduleSection = document.getElementById('libraryScheduleSection');
+            const simpleDoseSection = document.getElementById('librarySimpleDoseSection');
+
+            if (hasSchedule) {
+                scheduleSection.classList.remove('hidden');
+                simpleDoseSection.classList.add('hidden');
+                if (librarySchedulePhases.length === 0) {
+                    addLibrarySchedulePhase();
+                }
+            } else {
+                scheduleSection.classList.add('hidden');
+                simpleDoseSection.classList.remove('hidden');
+            }
+        }
+
+        function addLibrarySchedulePhase() {
+            const lastPhase = librarySchedulePhases[librarySchedulePhases.length - 1];
+            const newPhase = {
+                weekStart: lastPhase ? lastPhase.weekEnd + 1 : 1,
+                weekEnd: lastPhase ? lastPhase.weekEnd + 4 : 4,
+                dose: ''
+            };
+            librarySchedulePhases.push(newPhase);
+            renderLibrarySchedulePhases();
+        }
+
+        function removeLibrarySchedulePhase(index) {
+            librarySchedulePhases.splice(index, 1);
+            renderLibrarySchedulePhases();
+        }
+
+        function renderLibrarySchedulePhases() {
+            const container = document.getElementById('librarySchedulePhasesContainer');
+
+            container.innerHTML = librarySchedulePhases.map((phase, idx) => `
+                <div class="schedule-phase">
+                    <span style="font-size: 12px; color: #6b7280;">Week</span>
+                    <input type="number" value="${phase.weekStart}" min="1"
+                           onchange="updateLibraryPhase(${idx}, 'weekStart', this.value)">
+                    <span style="font-size: 12px; color: #6b7280;">to</span>
+                    <input type="number" value="${phase.weekEnd}" min="1"
+                           onchange="updateLibraryPhase(${idx}, 'weekEnd', this.value)">
+                    <input type="text" value="${phase.dose}" placeholder="Dose"
+                           onchange="updateLibraryPhase(${idx}, 'dose', this.value)">
+                    ${librarySchedulePhases.length > 1 ? `<button class="remove-phase" onclick="removeLibrarySchedulePhase(${idx})">✕</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updateLibraryPhase(index, field, value) {
+            if (field === 'weekStart' || field === 'weekEnd') {
+                librarySchedulePhases[index][field] = parseInt(value) || 1;
+            } else {
+                librarySchedulePhases[index][field] = value;
+            }
+        }
+
+        async function saveLibraryItem() {
+            if (!currentCoach) {
+                alert('Not authenticated.');
+                return;
+            }
+
+            const name = document.getElementById('libraryName').value.trim();
+            if (!name) {
+                alert('Please enter a supplement name.');
+                return;
+            }
+
+            const category = document.getElementById('libraryCategory').value;
+            const timing = document.getElementById('libraryTiming').value;
+            const timingCustom = document.getElementById('libraryTimingCustom').value.trim();
+            const hasSchedule = document.getElementById('libraryHasSchedule').checked;
+            const dose = document.getElementById('libraryDose').value.trim();
+            const notes = document.getElementById('libraryNotes').value.trim();
+            const privateNotes = document.getElementById('libraryPrivateNotes').value.trim();
+
+            const payload = {
+                coachId: currentCoach.id,
+                name,
+                category,
+                timing,
+                timingCustom: timing === 'custom' ? timingCustom : null,
+                dose: hasSchedule ? null : dose,
+                hasSchedule,
+                schedule: hasSchedule ? librarySchedulePhases : null,
+                notes,
+                privateNotes
+            };
+
+            try {
+                let response;
+                if (editingLibraryId) {
+                    payload.supplementId = editingLibraryId;
+                    response = await fetch(LIBRARY_ENDPOINT, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    response = await fetch(LIBRARY_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                closeLibraryModal();
+                await loadSupplementLibrary();
+
+                alert(editingLibraryId ? 'Supplement updated!' : 'Supplement added to library!');
+
+            } catch (error) {
+                console.error('Error saving supplement:', error);
+                alert('Failed to save supplement: ' + error.message);
+            }
+        }
+
+        function editLibraryItem(supplementId) {
+            const supplement = supplementLibrary.find(s => s.id === supplementId);
+            if (!supplement) return;
+
+            editingLibraryId = supplementId;
+            document.getElementById('libraryModalTitle').textContent = 'Edit Supplement';
+
+            // Fill form
+            document.getElementById('libraryName').value = supplement.name || '';
+            document.getElementById('libraryCategory').value = supplement.category || '';
+            document.getElementById('libraryTiming').value = supplement.timing || 'morning';
+            document.getElementById('libraryTimingCustom').value = supplement.timing_custom || '';
+            toggleLibraryCustomTiming();
+
+            document.getElementById('libraryDose').value = supplement.dose || '';
+            document.getElementById('libraryHasSchedule').checked = supplement.has_schedule || false;
+            document.getElementById('libraryNotes').value = supplement.notes || '';
+            document.getElementById('libraryPrivateNotes').value = supplement.private_notes || '';
+
+            // Load schedule phases
+            librarySchedulePhases = supplement.schedule ? [...supplement.schedule] : [];
+            renderLibrarySchedulePhases();
+            toggleLibraryScheduleSection();
+
+            document.getElementById('libraryModal').classList.remove('hidden');
+        }
+
+        async function deleteLibraryItem(supplementId) {
+            if (!confirm('Delete this supplement from your library?')) return;
+
+            try {
+                const response = await fetch(`${LIBRARY_ENDPOINT}?supplementId=${supplementId}&coachId=${currentCoach.id}&permanent=true`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                await loadSupplementLibrary();
+                alert('Supplement deleted!');
+
+            } catch (error) {
+                console.error('Error deleting supplement:', error);
+                alert('Failed to delete supplement: ' + error.message);
+            }
+        }
+
+        async function duplicateLibraryItem(supplementId) {
+            const supplement = supplementLibrary.find(s => s.id === supplementId);
+            if (!supplement) return;
+
+            const payload = {
+                coachId: currentCoach.id,
+                name: supplement.name + ' (Copy)',
+                category: supplement.category,
+                timing: supplement.timing,
+                timingCustom: supplement.timing_custom,
+                dose: supplement.dose,
+                hasSchedule: supplement.has_schedule,
+                schedule: supplement.schedule,
+                notes: supplement.notes,
+                privateNotes: supplement.private_notes
+            };
+
+            try {
+                const response = await fetch(LIBRARY_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                await loadSupplementLibrary();
+                alert('Supplement duplicated!');
+
+            } catch (error) {
+                console.error('Error duplicating supplement:', error);
+                alert('Failed to duplicate supplement: ' + error.message);
+            }
+        }
+
+        // ==========================================
+        // PUBLISH TO CLIENT FUNCTIONS
+        // ==========================================
+
+        function openPublishModal(supplementId) {
+            publishingSupplement = supplementLibrary.find(s => s.id === supplementId);
+            if (!publishingSupplement) return;
+
+            // Populate client selector
+            const selector = document.getElementById('publishClientSelector');
+            selector.innerHTML = '<option value="">-- Select a client --</option>';
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name + (client.email ? ` (${client.email})` : '');
+                selector.appendChild(option);
+            });
+
+            // Show supplement info
+            const timingLabels = {
+                'morning': 'Morning',
+                'pre_workout': 'Pre-Workout',
+                'post_workout': 'Post-Workout',
+                'bedtime': 'Before Bed',
+                'with_meals': 'With Meals',
+                'custom': 'Custom'
+            };
+            const timingText = publishingSupplement.timing === 'custom' ? publishingSupplement.timing_custom : timingLabels[publishingSupplement.timing];
+            const doseText = publishingSupplement.has_schedule ? 'Scheduled dosing' : (publishingSupplement.dose || 'No dose specified');
+
+            document.getElementById('publishSupplementInfo').innerHTML = `
+                <strong>${escapeHtml(publishingSupplement.name)}</strong><br>
+                <small>${escapeHtml(timingText)} • ${escapeHtml(doseText)}</small>
+            `;
+
+            document.getElementById('publishModal').classList.remove('hidden');
+        }
+
+        function closePublishModal() {
+            document.getElementById('publishModal').classList.add('hidden');
+            publishingSupplement = null;
+        }
+
+        async function confirmPublish() {
+            const clientId = document.getElementById('publishClientSelector').value;
+            if (!clientId) {
+                alert('Please select a client.');
+                return;
+            }
+
+            if (!publishingSupplement) {
+                alert('No supplement selected.');
+                return;
+            }
+
+            const payload = {
+                coachId: currentCoach.id,
+                clientId: parseInt(clientId),
+                name: publishingSupplement.name,
+                timing: publishingSupplement.timing,
+                timingCustom: publishingSupplement.timing_custom,
+                dose: publishingSupplement.dose,
+                hasSchedule: publishingSupplement.has_schedule,
+                schedule: publishingSupplement.schedule,
+                startDate: publishingSupplement.has_schedule ? new Date().toISOString().split('T')[0] : null,
+                notes: publishingSupplement.notes,
+                privateNotes: publishingSupplement.private_notes
+            };
+
+            try {
+                const response = await fetch(PROTOCOLS_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                closePublishModal();
+
+                // Update library usage count (optional, fire and forget)
+                fetch(LIBRARY_ENDPOINT, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        supplementId: publishingSupplement.id,
+                        coachId: currentCoach.id,
+                        name: publishingSupplement.name,
+                        category: publishingSupplement.category,
+                        timing: publishingSupplement.timing,
+                        timingCustom: publishingSupplement.timing_custom,
+                        dose: publishingSupplement.dose,
+                        hasSchedule: publishingSupplement.has_schedule,
+                        schedule: publishingSupplement.schedule,
+                        notes: publishingSupplement.notes,
+                        privateNotes: publishingSupplement.private_notes
+                    })
+                }).catch(() => {});
+
+                const clientName = clients.find(c => c.id == clientId)?.name || 'client';
+                alert(`"${publishingSupplement.name}" published to ${clientName}'s protocol!`);
+
+                // If viewing this client's protocols, refresh
+                if (selectedClientId == clientId) {
+                    await loadClientProtocols();
+                }
+
+            } catch (error) {
+                console.error('Error publishing supplement:', error);
+                alert('Failed to publish supplement: ' + error.message);
+            }
         }
 
         // Logout handler
