@@ -2182,19 +2182,24 @@ async function generateDietPlan() {
         if (useBrandedFoods) {
             brandedFoodsNote = `
 
-BRANDED FITNESS FOODS PREFERENCE:
-This client PREFERS branded fitness foods. Please ACTIVELY incorporate these popular fitness-friendly products into their meal plan:
-- Protein bars as snacks: Quest Bars, RXBars, Built Bars, ONE Bars, Barebells
-- Ready-to-drink protein: Premier Protein shakes, Fairlife protein shakes, Core Power
-- Greek yogurt: Oikos Triple Zero, Chobani Zero Sugar, Two Good, Siggi's
-- Healthy ice cream: Halo Top, Enlightened, Rebel (as occasional treat/dessert)
-- Healthy snacks: Smart Sweets, Chomps beef sticks, Epic bars
-- High-protein bread: Dave's Killer Bread, Ezekiel bread
-- Protein oatmeal: Kodiak Cakes, Magic Spoon cereal
-- Nut butters: Justin's almond butter, PB2 powdered peanut butter
+⚠️ MANDATORY BRANDED FITNESS FOODS REQUIREMENT ⚠️
+YOU MUST include branded fitness products in this meal plan. This is NOT optional.
 
-Use database keys like: quest_bar_original, premier_protein_chocolate, oikos_triple_zero_vanilla, fairlife_chocolate, halo_top_vanilla, chomps_original, daves_killer_bread_21grain, etc.
-Include at least 1-2 branded fitness foods per day in this meal plan.`;
+REQUIRED: Include AT LEAST 2-3 of these branded items per day:
+• SNACKS: Use Quest Bar, RXBar, Built Bar, ONE Bar, or Barebells protein bar
+• PROTEIN DRINKS: Use Premier Protein shake, Fairlife protein shake, or Core Power
+• YOGURT: Use Oikos Triple Zero, Chobani Zero Sugar, Two Good, or Siggi's
+• BREAKFAST: Use Kodiak Cakes pancakes/waffles or Magic Spoon cereal
+• BREAD: Use Dave's Killer Bread or Ezekiel bread for sandwiches/toast
+
+Example meal names that USE branded foods correctly:
+- "Quest Bar (1 bar) with Banana (1 medium)" for snack
+- "Premier Protein Chocolate Shake (1 bottle) with Almonds (28g)" for snack
+- "Oikos Triple Zero Vanilla (170g) with Berries (100g) and Granola (30g)" for breakfast
+- "Kodiak Cakes Protein Pancakes (2 cakes) with Maple Syrup (30ml) and Eggs (2)" for breakfast
+
+DO NOT just use generic "Greek Yogurt" or "Protein Bar" - use the SPECIFIC BRAND NAMES listed above.
+FAILURE to include branded products will be considered an error.`;
         }
 
         // Parse meal structure to be explicit
