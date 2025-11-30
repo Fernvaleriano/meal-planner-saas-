@@ -3594,7 +3594,33 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 // REVISE MEAL - Custom user modifications
 async function reviseMeal(dayIndex, mealIndex) {
     const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
-    const userRequest = window.prompt(`Revise "${meal.name}"?\n\nEnter your specific request (e.g., "make it vegetarian", "swap rice for sweet potato", "just protein shake with creatine"):`, '');
+    const userRequest = window.prompt(
+`Revise "${meal.name}"?
+
+Examples of what you can request:
+
+📊 ADJUST PORTIONS:
+• "increase chicken to 250g"
+• "double the portion size"
+• "make this 800 calories"
+• "reduce carbs by 20g"
+
+🔄 SWAP INGREDIENTS:
+• "swap rice for sweet potato"
+• "replace chicken with salmon"
+• "use egg whites instead of whole eggs"
+
+🥗 DIETARY CHANGES:
+• "make it vegetarian"
+• "make it dairy-free"
+• "add more protein"
+
+✨ OTHER:
+• "simplify - fewer ingredients"
+• "make it a smoothie instead"
+• "add avocado"
+
+Enter your request:`, '');
 
     if (!userRequest || !userRequest.trim()) return;
 
