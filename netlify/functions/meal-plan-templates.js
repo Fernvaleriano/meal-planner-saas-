@@ -32,20 +32,11 @@ exports.handler = async (event, context) => {
         }
 
         try {
-            // Parse coachId as integer
-            const coachIdInt = parseInt(coachId);
-            if (isNaN(coachIdInt)) {
-                return {
-                    statusCode: 400,
-                    headers: { 'Access-Control-Allow-Origin': '*' },
-                    body: JSON.stringify({ error: 'Invalid Coach ID format' })
-                };
-            }
-
+            // coachId is a UUID string, use directly
             const { data: templates, error } = await supabase
                 .from('meal_plan_templates')
                 .select('*')
-                .eq('coach_id', coachIdInt)
+                .eq('coach_id', coachId)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -86,18 +77,9 @@ exports.handler = async (event, context) => {
                 };
             }
 
-            // Parse coachId as integer
-            const coachIdInt = parseInt(coachId);
-            if (isNaN(coachIdInt)) {
-                return {
-                    statusCode: 400,
-                    headers: { 'Access-Control-Allow-Origin': '*' },
-                    body: JSON.stringify({ error: 'Invalid Coach ID format' })
-                };
-            }
-
+            // coachId is a UUID string, use directly
             const insertData = {
-                coach_id: coachIdInt,
+                coach_id: coachId,
                 name: name,
                 description: description || null,
                 meals_structure: mealsStructure || null,
