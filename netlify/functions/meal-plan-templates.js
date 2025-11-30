@@ -11,7 +11,7 @@ exports.handler = async (event, context) => {
             headers: {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Methods': 'POST, GET, DELETE, OPTIONS'
+                'Access-Control-Allow-Methods': 'POST, GET, PUT, DELETE, OPTIONS'
             },
             body: ''
         };
@@ -118,6 +118,77 @@ exports.handler = async (event, context) => {
                 statusCode: 500,
                 headers: { 'Access-Control-Allow-Origin': '*' },
                 body: JSON.stringify({ error: 'Failed to save template', details: error.message })
+            };
+        }
+    }
+
+    // PUT - Update a template
+    if (event.httpMethod === 'PUT') {
+        try {
+            const body = JSON.parse(event.body);
+            const { templateId, coachId, name, description } = body;
+
+            if (!templateId || !coachId) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'Template ID and Coach ID are required' })
+                };
+            }
+
+            if (!name || !name.trim()) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'Template name is required' })
+                };
+            }
+
+            // Update template (ensure coach owns it)
+            const { data: updatedTemplate, error } = await supabase
+                .from('meal_plan_templates')
+                .update({
+                    name: name.trim(),
+                    description: description || null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', templateId)
+                .eq('coach_id', coachId)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Supabase update error:', error);
+                throw error;
+            }
+
+            if (!updatedTemplate) {
+                return {
+                    statusCode: 404,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'Template not found or you do not have permission to edit it' })
+                };
+            }
+
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    success: true,
+                    template: updatedTemplate,
+                    message: 'Template updated successfully'
+                })
+            };
+
+        } catch (error) {
+            console.error('Error updating template:', error);
+            return {
+                statusCode: 500,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Failed to update template', details: error.message })
             };
         }
     }

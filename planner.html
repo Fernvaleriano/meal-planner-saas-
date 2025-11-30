@@ -1031,9 +1031,13 @@
                     </div>
                     <p class="text-sm text-purple-700 mb-3">Apply a saved template to quickly create a meal plan structure.</p>
                     <div id="template-selector-fields" class="hidden">
-                        <select id="dp_template_select" class="input-field border-purple-400 w-full">
-                            <option value="">Select a template...</option>
-                        </select>
+                        <div class="flex gap-2 items-center">
+                            <select id="dp_template_select" class="input-field border-purple-400 flex-1">
+                                <option value="">Select a template...</option>
+                            </select>
+                            <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 8px 12px; font-size: 12px;" title="Edit template" disabled>✏️</button>
+                            <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 8px 12px; font-size: 12px;" title="Delete template" disabled>🗑️</button>
+                        </div>
                         <div id="template-preview" class="mt-2 text-sm text-purple-600 hidden"></div>
                     </div>
                 </div>
@@ -6091,15 +6095,23 @@ document.getElementById('dp_start_from_scratch').addEventListener('change', func
     }
 });
 
-// Template selection change - show preview
+// Template selection change - show preview and enable/disable buttons
 document.getElementById('dp_template_select').addEventListener('change', function() {
     const templateId = this.value;
     const previewDiv = document.getElementById('template-preview');
+    const editBtn = document.getElementById('edit-template-btn');
+    const deleteBtn = document.getElementById('delete-template-btn');
 
     if (!templateId) {
         previewDiv.classList.add('hidden');
+        editBtn.disabled = true;
+        deleteBtn.disabled = true;
         return;
     }
+
+    // Enable buttons when a template is selected
+    editBtn.disabled = false;
+    deleteBtn.disabled = false;
 
     // Use cached templates from API
     const template = cachedTemplates.find(t => t.id == templateId);
@@ -6272,6 +6284,75 @@ async function deleteTemplate(templateId) {
     } catch (error) {
         console.error('Error deleting template:', error);
         alert('Failed to delete template. Please try again.');
+    }
+}
+
+// Delete selected template from dropdown
+function deleteSelectedTemplate() {
+    const templateId = document.getElementById('dp_template_select').value;
+    if (!templateId) {
+        alert('Please select a template first.');
+        return;
+    }
+    deleteTemplate(templateId);
+}
+
+// Edit selected template
+async function editSelectedTemplate() {
+    const templateId = document.getElementById('dp_template_select').value;
+    if (!templateId) {
+        alert('Please select a template first.');
+        return;
+    }
+
+    const template = cachedTemplates.find(t => t.id == templateId);
+    if (!template) {
+        alert('Template not found. Please refresh the list.');
+        return;
+    }
+
+    // Prompt for new name
+    const newName = prompt('Edit template name:', template.name);
+    if (newName === null) return; // User cancelled
+
+    // Prompt for new description
+    const newDescription = prompt('Edit template description:', template.description || '');
+    if (newDescription === null) return; // User cancelled
+
+    if (!newName.trim()) {
+        alert('Template name cannot be empty.');
+        return;
+    }
+
+    try {
+        const response = await fetch(TEMPLATES_ENDPOINT, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                templateId: templateId,
+                coachId: currentCoach.id,
+                name: newName.trim(),
+                description: newDescription.trim()
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to update template');
+        }
+
+        alert('Template updated successfully!');
+        await loadTemplatesList();
+
+        // Re-select the template
+        document.getElementById('dp_template_select').value = templateId;
+        // Trigger change event to update preview
+        document.getElementById('dp_template_select').dispatchEvent(new Event('change'));
+
+    } catch (error) {
+        console.error('Error updating template:', error);
+        alert('Failed to update template. Please try again.');
     }
 }
 
