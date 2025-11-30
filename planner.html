@@ -1317,6 +1317,13 @@ function saveUndoStates() {
     }
 }
 
+// Clear all undo states (called when generating new plan)
+function clearUndoStates() {
+    previousMealStates = {};
+    localStorage.removeItem(UNDO_STATES_KEY);
+    console.log('🗑️ Cleared all undo states');
+}
+
 // Load undo states on page load
 loadUndoStates();
 
@@ -1895,6 +1902,9 @@ async function generateDietPlan() {
 
     resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Creating your diet plan...</p></div>';
     button.disabled = true;
+
+    // Clear undo states from previous plan
+    clearUndoStates();
 
     // Get client from selector
     let clientName = 'Client';
@@ -2973,10 +2983,13 @@ function displayDietPlan(multiDayData) {
                     ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs" style="background: #dc2626; color: white;" title="Undo last change">↩️ Undo</button>`
                     : '';
 
-                // Edit button for custom meals only
-                const editButton = meal.isCustom
+                // Different buttons for custom vs AI-generated meals
+                const isCustomMeal = meal.isCustom === true;
+
+                // Edit button for custom meals, Revise button for AI meals
+                const editOrReviseButton = isCustomMeal
                     ? `<button data-action="edit-custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-edit text-xs flex-1" title="Edit this custom meal">✎ Edit</button>`
-                    : '';
+                    : `<button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>`;
 
                 planHTML += `
                 <div class="meal-card">
@@ -2990,7 +3003,7 @@ function displayDietPlan(multiDayData) {
                     </div>
                     <div class="flex gap-2 mt-2">
                         <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
-                        <button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>
+                        ${editOrReviseButton}
                         <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
                         <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
                         ${undoButton}
