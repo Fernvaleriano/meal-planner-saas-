@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplement Protocols - Zique Fitness Nutrition</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0d9488;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-email {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #4b5563;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .page-header h1 {
+            color: #1e293b;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .client-selector-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+        }
+
+        .client-selector-section label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .client-selector {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            background: white;
+        }
+
+        .client-selector:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+
+        .protocols-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .protocols-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .protocols-header h2 {
+            color: #7c3aed;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .protocols-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #6d28d9;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .protocols-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .protocol-card {
+            background: #faf5ff;
+            border: 1px solid #e9d5ff;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+
+        .protocol-card:hover {
+            border-color: #c4b5fd;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+        }
+
+        .protocol-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .protocol-info {
+            flex: 1;
+        }
+
+        .protocol-name {
+            font-weight: 700;
+            color: #6b21a8;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .protocol-timing {
+            color: #6b7280;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .protocol-schedule {
+            margin-top: 8px;
+            padding-left: 16px;
+        }
+
+        .protocol-schedule-phase {
+            font-size: 13px;
+            color: #7c3aed;
+            margin-bottom: 4px;
+        }
+
+        .protocol-notes {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .protocol-private-notes {
+            margin-top: 4px;
+            font-size: 13px;
+            color: #ea580c;
+        }
+
+        .protocol-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: #7c3aed;
+            font-size: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #6b7280;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .schedule-toggle {
+            background: #faf5ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .schedule-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #6b21a8;
+        }
+
+        .schedule-toggle input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .schedule-toggle p {
+            font-size: 12px;
+            color: #7c3aed;
+            margin-top: 6px;
+            margin-left: 30px;
+        }
+
+        .schedule-phases {
+            background: #faf5ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .schedule-phase {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .schedule-phase input {
+            width: auto;
+        }
+
+        .schedule-phase input[type="number"] {
+            width: 60px;
+            text-align: center;
+        }
+
+        .schedule-phase input[type="text"] {
+            flex: 1;
+        }
+
+        .schedule-phase .remove-phase {
+            background: none;
+            border: none;
+            color: #dc2626;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+        }
+
+        .private-notes-section {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .private-notes-section label {
+            color: #6b7280;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Template modal */
+        .template-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .template-item {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .template-item:hover {
+            border-color: #7c3aed;
+            background: #faf5ff;
+        }
+
+        .template-item-name {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .template-item-count {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .template-item-delete {
+            float: right;
+            color: #dc2626;
+            cursor: pointer;
+        }
+
+        .no-templates {
+            text-align: center;
+            padding: 30px;
+            color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+
+            .container {
+                padding: 0 15px;
+                margin: 20px auto;
+            }
+
+            .page-header {
+                padding: 20px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .protocols-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .protocol-card-header {
+                flex-direction: column;
+            }
+
+            .protocol-actions {
+                margin-top: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="dashboard.html" class="logo">Zique Fitness Nutrition</a>
+        <div class="user-info">
+            <span class="user-email" id="userEmail">Loading...</span>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Supplement Protocols</h1>
+            <button class="back-btn" onclick="window.location.href='dashboard.html'">
+                <span>&#8592;</span> Back to Dashboard
+            </button>
+        </div>
+
+        <div id="loadingDiv" class="loading">
+            Loading...
+        </div>
+
+        <div id="mainContent" style="display: none;">
+            <!-- Client Selector -->
+            <div class="client-selector-section">
+                <label for="clientSelector">Select a Client</label>
+                <select id="clientSelector" class="client-selector" onchange="onClientChange()">
+                    <option value="">-- Select a client --</option>
+                </select>
+            </div>
+
+            <!-- Protocols Section -->
+            <div id="protocolsSection" class="protocols-section" style="display: none;">
+                <div class="protocols-header">
+                    <h2>Protocols for <span id="selectedClientName">Client</span></h2>
+                    <div class="protocols-actions">
+                        <button class="btn btn-primary" onclick="openProtocolModal()">
+                            Add Item
+                        </button>
+                        <button class="btn btn-secondary" id="saveTemplateBtn" onclick="saveAsTemplate()" style="display: none;">
+                            Save as Template
+                        </button>
+                        <button class="btn btn-secondary" onclick="openTemplateModal()">
+                            Apply Template
+                        </button>
+                    </div>
+                </div>
+
+                <div id="protocolsList" class="protocols-list">
+                    <!-- Protocols will be rendered here -->
+                </div>
+
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-state-icon">💊</div>
+                    <h3>No Protocols Yet</h3>
+                    <p>Click "Add Item" to create a supplement protocol for this client.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Protocol Modal -->
+    <div id="protocolModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="protocolModalTitle">Add Protocol Item</h3>
+                <button class="modal-close" onclick="closeProtocolModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" id="protocolName" placeholder="e.g., Creatine, Fish Oil, Test E...">
+                </div>
+
+                <div class="form-group">
+                    <label>Timing</label>
+                    <select id="protocolTiming" onchange="toggleCustomTiming()">
+                        <option value="morning">Morning</option>
+                        <option value="pre_workout">Pre-Workout</option>
+                        <option value="post_workout">Post-Workout</option>
+                        <option value="bedtime">Before Bed</option>
+                        <option value="with_meals">With Meals</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="customTimingGroup">
+                    <label>Custom Timing</label>
+                    <input type="text" id="protocolTimingCustom" placeholder="e.g., 2x per week, Every other day...">
+                </div>
+
+                <div class="schedule-toggle">
+                    <label>
+                        <input type="checkbox" id="protocolHasSchedule" onchange="toggleScheduleSection()">
+                        <span>Use Schedule (for cycling/tapering)</span>
+                    </label>
+                    <p>Enable this for items that change dose over time</p>
+                </div>
+
+                <div class="form-group" id="simpleDoseSection">
+                    <label>Dose</label>
+                    <input type="text" id="protocolDose" placeholder="e.g., 5g, 200mg, 2 capsules...">
+                </div>
+
+                <div id="scheduleSection" class="hidden">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="protocolStartDate">
+                    </div>
+                    <div class="schedule-phases" id="schedulePhasesContainer">
+                        <!-- Phases will be rendered here -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addSchedulePhase()" style="margin-top: 8px;">
+                        + Add Phase
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (visible to client)</label>
+                    <textarea id="protocolNotes" placeholder="Instructions, tips, brand recommendations..."></textarea>
+                </div>
+
+                <div class="form-group private-notes-section">
+                    <label>Private Notes (coach only)</label>
+                    <textarea id="protocolPrivateNotes" placeholder="Notes only you can see..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeProtocolModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProtocolItem()">Save Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Modal -->
+    <div id="templateModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Apply Protocol Template</h3>
+                <button class="modal-close" onclick="closeTemplateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: #6b7280;">Select a template to apply to this client. This will add all items from the template.</p>
+                <div id="templateList" class="template-list">
+                    <!-- Templates will be rendered here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTemplateModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Template Modal -->
+    <div id="saveTemplateModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Save as Template</h3>
+                <button class="modal-close" onclick="closeSaveTemplateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Template Name</label>
+                    <input type="text" id="templateName" placeholder="e.g., Basic Supplement Stack, Bodybuilding Protocol...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSaveTemplateModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmSaveTemplate()">Save Template</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const PROTOCOLS_ENDPOINT = '/.netlify/functions/client-protocols';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State
+        let currentCoach = null;
+        let clients = [];
+        let selectedClientId = null;
+        let clientProtocols = [];
+        let editingProtocolId = null;
+        let schedulePhases = [];
+
+        // DOM Elements
+        const loadingDiv = document.getElementById('loadingDiv');
+        const mainContent = document.getElementById('mainContent');
+        const clientSelector = document.getElementById('clientSelector');
+        const protocolsSection = document.getElementById('protocolsSection');
+        const protocolsList = document.getElementById('protocolsList');
+        const emptyState = document.getElementById('emptyState');
+        const userEmailSpan = document.getElementById('userEmail');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // Initialize
+        async function init() {
+            try {
+                // Refresh session
+                const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+
+                if (refreshError || !refreshData?.session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                const user = refreshData.session.user;
+                userEmailSpan.textContent = user.email;
+
+                // Get coach data
+                const { data: coachData, error: coachError } = await supabaseClient
+                    .from('coaches')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (coachError || !coachData) {
+                    throw new Error('Coach account not found');
+                }
+
+                currentCoach = coachData;
+
+                // Load clients
+                await loadClients();
+
+                // Check for client ID in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const clientIdParam = urlParams.get('clientId');
+                if (clientIdParam) {
+                    clientSelector.value = clientIdParam;
+                    onClientChange();
+                }
+
+                loadingDiv.style.display = 'none';
+                mainContent.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error initializing:', error);
+                alert('Error loading page: ' + error.message);
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Load clients
+        async function loadClients() {
+            const { data, error } = await supabaseClient
+                .from('clients')
+                .select('id, name, email')
+                .eq('coach_id', currentCoach.id)
+                .order('name');
+
+            if (error) {
+                console.error('Error loading clients:', error);
+                return;
+            }
+
+            clients = data || [];
+            renderClientSelector();
+        }
+
+        // Render client selector
+        function renderClientSelector() {
+            clientSelector.innerHTML = '<option value="">-- Select a client --</option>';
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name + (client.email ? ` (${client.email})` : '');
+                clientSelector.appendChild(option);
+            });
+        }
+
+        // On client change
+        function onClientChange() {
+            selectedClientId = clientSelector.value;
+
+            if (!selectedClientId) {
+                protocolsSection.style.display = 'none';
+                return;
+            }
+
+            const selectedClient = clients.find(c => c.id == selectedClientId);
+            document.getElementById('selectedClientName').textContent = selectedClient ? selectedClient.name : 'Client';
+
+            protocolsSection.style.display = 'block';
+            loadClientProtocols();
+        }
+
+        // Load protocols for selected client
+        async function loadClientProtocols() {
+            if (!selectedClientId || !currentCoach) return;
+
+            try {
+                const response = await fetch(`${PROTOCOLS_ENDPOINT}?clientId=${selectedClientId}&coachId=${currentCoach.id}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                clientProtocols = data.protocols || [];
+                renderProtocolsList();
+
+                // Show/hide save template button
+                document.getElementById('saveTemplateBtn').style.display =
+                    clientProtocols.length > 0 ? 'inline-flex' : 'none';
+
+            } catch (error) {
+                console.error('Error loading protocols:', error);
+            }
+        }
+
+        // Render protocols list
+        function renderProtocolsList() {
+            if (clientProtocols.length === 0) {
+                protocolsList.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            const timingIcons = {
+                'morning': '☀️',
+                'pre_workout': '🏋️',
+                'post_workout': '💪',
+                'bedtime': '🌙',
+                'with_meals': '🍽️',
+                'custom': '📝'
+            };
+
+            const timingLabels = {
+                'morning': 'Morning',
+                'pre_workout': 'Pre-Workout',
+                'post_workout': 'Post-Workout',
+                'bedtime': 'Before Bed',
+                'with_meals': 'With Meals',
+                'custom': 'Custom'
+            };
+
+            protocolsList.innerHTML = clientProtocols.map(p => {
+                const icon = timingIcons[p.timing] || '💊';
+                const timingText = p.timing === 'custom' ? p.timing_custom : timingLabels[p.timing] || p.timing;
+
+                let scheduleHTML = '';
+                if (p.has_schedule && p.schedule && p.schedule.length > 0) {
+                    const phases = p.schedule.map(phase =>
+                        `<div class="protocol-schedule-phase">• Week ${phase.weekStart}-${phase.weekEnd}: ${phase.dose}</div>`
+                    ).join('');
+                    scheduleHTML = `<div class="protocol-schedule">${phases}</div>`;
+                }
+
+                const doseText = p.has_schedule ? '📅 Scheduled' : (p.dose || 'No dose specified');
+
+                return `
+                    <div class="protocol-card">
+                        <div class="protocol-card-header">
+                            <div class="protocol-info">
+                                <div class="protocol-name">${escapeHtml(p.name)}</div>
+                                <div class="protocol-timing">${icon} ${escapeHtml(timingText)} • ${escapeHtml(doseText)}</div>
+                                ${scheduleHTML}
+                                ${p.notes ? `<div class="protocol-notes">📝 ${escapeHtml(p.notes)}</div>` : ''}
+                                ${p.private_notes ? `<div class="protocol-private-notes">🔒 ${escapeHtml(p.private_notes)}</div>` : ''}
+                            </div>
+                            <div class="protocol-actions">
+                                <button class="btn btn-primary btn-small" onclick="editProtocol(${p.id})">✏️ Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="deleteProtocol(${p.id})">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Protocol Modal Functions
+        function openProtocolModal() {
+            if (!selectedClientId) {
+                alert('Please select a client first.');
+                return;
+            }
+
+            editingProtocolId = null;
+            document.getElementById('protocolModalTitle').textContent = 'Add Protocol Item';
+
+            // Reset form
+            document.getElementById('protocolName').value = '';
+            document.getElementById('protocolTiming').value = 'morning';
+            document.getElementById('protocolTimingCustom').value = '';
+            document.getElementById('customTimingGroup').classList.add('hidden');
+            document.getElementById('protocolDose').value = '';
+            document.getElementById('protocolHasSchedule').checked = false;
+            document.getElementById('protocolStartDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('protocolNotes').value = '';
+            document.getElementById('protocolPrivateNotes').value = '';
+
+            // Reset schedule
+            schedulePhases = [];
+            document.getElementById('schedulePhasesContainer').innerHTML = '';
+            toggleScheduleSection();
+
+            document.getElementById('protocolModal').classList.remove('hidden');
+        }
+
+        function closeProtocolModal() {
+            document.getElementById('protocolModal').classList.add('hidden');
+            editingProtocolId = null;
+        }
+
+        function toggleCustomTiming() {
+            const timing = document.getElementById('protocolTiming').value;
+            const customGroup = document.getElementById('customTimingGroup');
+
+            if (timing === 'custom') {
+                customGroup.classList.remove('hidden');
+            } else {
+                customGroup.classList.add('hidden');
+            }
+        }
+
+        function toggleScheduleSection() {
+            const hasSchedule = document.getElementById('protocolHasSchedule').checked;
+            const scheduleSection = document.getElementById('scheduleSection');
+            const simpleDoseSection = document.getElementById('simpleDoseSection');
+
+            if (hasSchedule) {
+                scheduleSection.classList.remove('hidden');
+                simpleDoseSection.classList.add('hidden');
+                if (schedulePhases.length === 0) {
+                    addSchedulePhase();
+                }
+            } else {
+                scheduleSection.classList.add('hidden');
+                simpleDoseSection.classList.remove('hidden');
+            }
+        }
+
+        function addSchedulePhase() {
+            const lastPhase = schedulePhases[schedulePhases.length - 1];
+            const newPhase = {
+                weekStart: lastPhase ? lastPhase.weekEnd + 1 : 1,
+                weekEnd: lastPhase ? lastPhase.weekEnd + 4 : 4,
+                dose: ''
+            };
+            schedulePhases.push(newPhase);
+            renderSchedulePhases();
+        }
+
+        function removeSchedulePhase(index) {
+            schedulePhases.splice(index, 1);
+            renderSchedulePhases();
+        }
+
+        function renderSchedulePhases() {
+            const container = document.getElementById('schedulePhasesContainer');
+
+            container.innerHTML = schedulePhases.map((phase, idx) => `
+                <div class="schedule-phase">
+                    <span style="font-size: 12px; color: #6b7280;">Week</span>
+                    <input type="number" value="${phase.weekStart}" min="1"
+                           onchange="updatePhase(${idx}, 'weekStart', this.value)">
+                    <span style="font-size: 12px; color: #6b7280;">to</span>
+                    <input type="number" value="${phase.weekEnd}" min="1"
+                           onchange="updatePhase(${idx}, 'weekEnd', this.value)">
+                    <input type="text" value="${phase.dose}" placeholder="Dose"
+                           onchange="updatePhase(${idx}, 'dose', this.value)">
+                    ${schedulePhases.length > 1 ? `<button class="remove-phase" onclick="removeSchedulePhase(${idx})">✕</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updatePhase(index, field, value) {
+            if (field === 'weekStart' || field === 'weekEnd') {
+                schedulePhases[index][field] = parseInt(value) || 1;
+            } else {
+                schedulePhases[index][field] = value;
+            }
+        }
+
+        async function saveProtocolItem() {
+            if (!selectedClientId || !currentCoach) {
+                alert('Please select a client first.');
+                return;
+            }
+
+            const name = document.getElementById('protocolName').value.trim();
+            if (!name) {
+                alert('Please enter an item name.');
+                return;
+            }
+
+            const timing = document.getElementById('protocolTiming').value;
+            const timingCustom = document.getElementById('protocolTimingCustom').value.trim();
+            const hasSchedule = document.getElementById('protocolHasSchedule').checked;
+            const dose = document.getElementById('protocolDose').value.trim();
+            const startDate = document.getElementById('protocolStartDate').value;
+            const notes = document.getElementById('protocolNotes').value.trim();
+            const privateNotes = document.getElementById('protocolPrivateNotes').value.trim();
+
+            const payload = {
+                coachId: currentCoach.id,
+                clientId: parseInt(selectedClientId),
+                name,
+                timing,
+                timingCustom: timing === 'custom' ? timingCustom : null,
+                dose: hasSchedule ? null : dose,
+                hasSchedule,
+                schedule: hasSchedule ? schedulePhases : null,
+                startDate: hasSchedule ? startDate : null,
+                notes,
+                privateNotes
+            };
+
+            try {
+                let response;
+                if (editingProtocolId) {
+                    payload.protocolId = editingProtocolId;
+                    response = await fetch(PROTOCOLS_ENDPOINT, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    response = await fetch(PROTOCOLS_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                closeProtocolModal();
+                await loadClientProtocols();
+
+                alert(editingProtocolId ? 'Protocol updated!' : 'Protocol added!');
+
+            } catch (error) {
+                console.error('Error saving protocol:', error);
+                alert('Failed to save protocol: ' + error.message);
+            }
+        }
+
+        function editProtocol(protocolId) {
+            const protocol = clientProtocols.find(p => p.id === protocolId);
+            if (!protocol) return;
+
+            editingProtocolId = protocolId;
+            document.getElementById('protocolModalTitle').textContent = 'Edit Protocol Item';
+
+            // Fill form
+            document.getElementById('protocolName').value = protocol.name || '';
+            document.getElementById('protocolTiming').value = protocol.timing || 'morning';
+            document.getElementById('protocolTimingCustom').value = protocol.timing_custom || '';
+            toggleCustomTiming();
+
+            document.getElementById('protocolDose').value = protocol.dose || '';
+            document.getElementById('protocolHasSchedule').checked = protocol.has_schedule || false;
+            document.getElementById('protocolStartDate').value = protocol.start_date || new Date().toISOString().split('T')[0];
+            document.getElementById('protocolNotes').value = protocol.notes || '';
+            document.getElementById('protocolPrivateNotes').value = protocol.private_notes || '';
+
+            // Load schedule phases
+            schedulePhases = protocol.schedule ? [...protocol.schedule] : [];
+            renderSchedulePhases();
+            toggleScheduleSection();
+
+            document.getElementById('protocolModal').classList.remove('hidden');
+        }
+
+        async function deleteProtocol(protocolId) {
+            if (!confirm('Delete this protocol item?')) return;
+
+            try {
+                const response = await fetch(`${PROTOCOLS_ENDPOINT}?protocolId=${protocolId}&coachId=${currentCoach.id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                await loadClientProtocols();
+                alert('Protocol deleted!');
+
+            } catch (error) {
+                console.error('Error deleting protocol:', error);
+                alert('Failed to delete protocol: ' + error.message);
+            }
+        }
+
+        // Template Functions
+        function getTemplates() {
+            const templates = localStorage.getItem('protocolTemplates');
+            return templates ? JSON.parse(templates) : [];
+        }
+
+        function saveTemplates(templates) {
+            localStorage.setItem('protocolTemplates', JSON.stringify(templates));
+        }
+
+        function openTemplateModal() {
+            if (!selectedClientId) {
+                alert('Please select a client first.');
+                return;
+            }
+
+            const templates = getTemplates();
+            const templateList = document.getElementById('templateList');
+
+            if (templates.length === 0) {
+                templateList.innerHTML = '<div class="no-templates">No templates saved yet. Add protocols to a client and save as template.</div>';
+            } else {
+                templateList.innerHTML = templates.map((template, idx) => `
+                    <div class="template-item" onclick="applyTemplate(${idx})">
+                        <span class="template-item-delete" onclick="event.stopPropagation(); deleteTemplate(${idx})">🗑️</span>
+                        <div class="template-item-name">${escapeHtml(template.name)}</div>
+                        <div class="template-item-count">${template.items.length} item${template.items.length !== 1 ? 's' : ''}</div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('templateModal').classList.remove('hidden');
+        }
+
+        function closeTemplateModal() {
+            document.getElementById('templateModal').classList.add('hidden');
+        }
+
+        async function applyTemplate(index) {
+            const templates = getTemplates();
+            const template = templates[index];
+
+            if (!template || !template.items || template.items.length === 0) {
+                alert('Template is empty.');
+                return;
+            }
+
+            if (!confirm(`Apply "${template.name}" template? This will add ${template.items.length} items.`)) {
+                return;
+            }
+
+            closeTemplateModal();
+
+            try {
+                for (const item of template.items) {
+                    const payload = {
+                        coachId: currentCoach.id,
+                        clientId: parseInt(selectedClientId),
+                        name: item.name,
+                        timing: item.timing,
+                        timingCustom: item.timing_custom,
+                        dose: item.dose,
+                        hasSchedule: item.has_schedule,
+                        schedule: item.schedule,
+                        startDate: item.start_date || new Date().toISOString().split('T')[0],
+                        notes: item.notes,
+                        privateNotes: item.private_notes
+                    };
+
+                    await fetch(PROTOCOLS_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                await loadClientProtocols();
+                alert('Template applied successfully!');
+
+            } catch (error) {
+                console.error('Error applying template:', error);
+                alert('Error applying template: ' + error.message);
+            }
+        }
+
+        function deleteTemplate(index) {
+            if (!confirm('Delete this template?')) return;
+
+            const templates = getTemplates();
+            templates.splice(index, 1);
+            saveTemplates(templates);
+            openTemplateModal(); // Refresh the list
+        }
+
+        function saveAsTemplate() {
+            if (clientProtocols.length === 0) {
+                alert('No protocols to save as template.');
+                return;
+            }
+
+            document.getElementById('templateName').value = '';
+            document.getElementById('saveTemplateModal').classList.remove('hidden');
+        }
+
+        function closeSaveTemplateModal() {
+            document.getElementById('saveTemplateModal').classList.add('hidden');
+        }
+
+        function confirmSaveTemplate() {
+            const templateName = document.getElementById('templateName').value.trim();
+            if (!templateName) {
+                alert('Please enter a template name.');
+                return;
+            }
+
+            const templates = getTemplates();
+
+            // Create template from current protocols
+            const templateItems = clientProtocols.map(p => ({
+                name: p.name,
+                timing: p.timing,
+                timing_custom: p.timing_custom,
+                dose: p.dose,
+                has_schedule: p.has_schedule,
+                schedule: p.schedule,
+                start_date: p.start_date,
+                notes: p.notes,
+                private_notes: p.private_notes
+            }));
+
+            templates.push({
+                name: templateName,
+                items: templateItems,
+                created: new Date().toISOString()
+            });
+
+            saveTemplates(templates);
+            closeSaveTemplateModal();
+            alert('Template saved successfully!');
+        }
+
+        // Logout handler
+        logoutBtn.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                alert('Error logging out: ' + error.message);
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
