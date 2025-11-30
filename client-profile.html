@@ -233,6 +233,126 @@
             font-size: 0.9em;
         }
 
+        .protocol-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e7ff;
+        }
+
+        .protocol-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .protocol-btn-edit {
+            background: #0d9488;
+            color: white;
+        }
+
+        .protocol-btn-edit:hover {
+            background: #0f766e;
+        }
+
+        /* Protocol Edit Modal */
+        .protocol-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .protocol-modal.active {
+            display: flex;
+        }
+
+        .protocol-modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .protocol-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .protocol-modal-header h2 {
+            color: #0d9488;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .protocol-modal-body {
+            padding: 24px;
+        }
+
+        .protocol-form-group {
+            margin-bottom: 16px;
+        }
+
+        .protocol-form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .protocol-form-group input,
+        .protocol-form-group select,
+        .protocol-form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .protocol-form-group input:focus,
+        .protocol-form-group select:focus,
+        .protocol-form-group textarea:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+
+        .protocol-form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .protocol-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
         .no-protocols {
             text-align: center;
             padding: 40px;
@@ -1463,6 +1583,55 @@
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
                 <button class="btn btn-primary" id="uploadBtn" onclick="uploadPhoto()" disabled>Upload Photo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Protocol Edit Modal -->
+    <div id="protocolEditModal" class="protocol-modal">
+        <div class="protocol-modal-content">
+            <div class="protocol-modal-header">
+                <h2>Edit Supplement</h2>
+                <button class="close-btn" onclick="closeEditProtocolModal()">&times;</button>
+            </div>
+            <div class="protocol-modal-body">
+                <input type="hidden" id="editProtocolId">
+
+                <div class="protocol-form-group">
+                    <label>Supplement Name *</label>
+                    <input type="text" id="editProtocolName" placeholder="e.g., Creatine, Fish Oil...">
+                </div>
+
+                <div class="protocol-form-group">
+                    <label>Timing</label>
+                    <select id="editProtocolTiming" onchange="toggleEditCustomTiming()">
+                        <option value="morning">Morning</option>
+                        <option value="pre_workout">Pre-Workout</option>
+                        <option value="post_workout">Post-Workout</option>
+                        <option value="bedtime">Before Bed</option>
+                        <option value="with_meals">With Meals</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+
+                <div class="protocol-form-group" id="editCustomTimingGroup" style="display: none;">
+                    <label>Custom Timing</label>
+                    <input type="text" id="editProtocolTimingCustom" placeholder="e.g., 2x per week...">
+                </div>
+
+                <div class="protocol-form-group">
+                    <label>Dose</label>
+                    <input type="text" id="editProtocolDose" placeholder="e.g., 5g, 200mg, 2 capsules...">
+                </div>
+
+                <div class="protocol-form-group">
+                    <label>Notes</label>
+                    <textarea id="editProtocolNotes" placeholder="Any notes or instructions..."></textarea>
+                </div>
+            </div>
+            <div class="protocol-modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditProtocolModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProtocolEdit()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -3057,10 +3226,109 @@
                     html += `<div class="protocol-notes" style="background: #fef3c7; color: #92400e;">🔒 Coach Note: ${protocol.private_notes}</div>`;
                 }
 
+                // Add edit button for clients (no delete - only coaches can delete)
+                html += `<div class="protocol-actions">`;
+                html += `<button class="protocol-btn protocol-btn-edit" onclick="openEditProtocolModal(${protocol.id})">✏️ Edit</button>`;
+                html += `</div>`;
+
                 html += `</div>`;
             });
 
             container.innerHTML = html;
+        }
+
+        // ============ PROTOCOL EDIT FUNCTIONS ============
+
+        let editingProtocolId = null;
+
+        function openEditProtocolModal(protocolId) {
+            const protocol = clientProtocols.find(p => p.id === protocolId);
+            if (!protocol) return;
+
+            editingProtocolId = protocolId;
+
+            // Fill form with current values
+            document.getElementById('editProtocolId').value = protocolId;
+            document.getElementById('editProtocolName').value = protocol.name || '';
+            document.getElementById('editProtocolTiming').value = protocol.timing || 'morning';
+            document.getElementById('editProtocolTimingCustom').value = protocol.timing_custom || '';
+            document.getElementById('editProtocolDose').value = protocol.dose || '';
+            document.getElementById('editProtocolNotes').value = protocol.notes || '';
+
+            // Toggle custom timing visibility
+            toggleEditCustomTiming();
+
+            // Show modal
+            document.getElementById('protocolEditModal').classList.add('active');
+        }
+
+        function closeEditProtocolModal() {
+            document.getElementById('protocolEditModal').classList.remove('active');
+            editingProtocolId = null;
+        }
+
+        function toggleEditCustomTiming() {
+            const timing = document.getElementById('editProtocolTiming').value;
+            const customGroup = document.getElementById('editCustomTimingGroup');
+            customGroup.style.display = timing === 'custom' ? 'block' : 'none';
+        }
+
+        async function saveProtocolEdit() {
+            if (!editingProtocolId || !currentUser) {
+                alert('Error: No protocol selected');
+                return;
+            }
+
+            const name = document.getElementById('editProtocolName').value.trim();
+            if (!name) {
+                alert('Please enter a supplement name.');
+                return;
+            }
+
+            const protocol = clientProtocols.find(p => p.id === editingProtocolId);
+            if (!protocol) {
+                alert('Protocol not found.');
+                return;
+            }
+
+            const timing = document.getElementById('editProtocolTiming').value;
+            const timingCustom = document.getElementById('editProtocolTimingCustom').value.trim();
+            const dose = document.getElementById('editProtocolDose').value.trim();
+            const notes = document.getElementById('editProtocolNotes').value.trim();
+
+            const payload = {
+                protocolId: editingProtocolId,
+                coachId: currentUser.id,
+                clientId: parseInt(clientId),
+                name,
+                timing,
+                timingCustom: timing === 'custom' ? timingCustom : null,
+                dose: protocol.has_schedule ? null : dose,
+                hasSchedule: protocol.has_schedule,
+                schedule: protocol.schedule,
+                startDate: protocol.start_date,
+                notes,
+                privateNotes: protocol.private_notes // Preserve coach's private notes
+            };
+
+            try {
+                const response = await fetch(CLIENT_PROTOCOLS_ENDPOINT, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                closeEditProtocolModal();
+                await loadProtocols(clientId);
+                alert('Supplement updated!');
+
+            } catch (error) {
+                console.error('Error updating protocol:', error);
+                alert('Failed to update supplement: ' + error.message);
+            }
         }
     </script>
 </body>
