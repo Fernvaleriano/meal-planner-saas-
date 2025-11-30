@@ -1014,21 +1014,6 @@
                     <p class="text-sm text-purple-700 mt-1">Include popular fitness brands like Quest Bars, Premier Protein, Fairlife, Oikos, Halo Top, and more in meal plans.</p>
                 </div>
 
-                <!-- Protein Powder Integration -->
-                <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
-                    <div class="flex items-center mb-2">
-                        <input type="checkbox" id="dp_use_protein" class="mr-2 h-5 w-5">
-                        <label for="dp_use_protein" class="font-bold text-teal-900">Add Protein Powder (Optional)</label>
-                    </div>
-                    <div id="protein-powder-fields" class="hidden grid grid-cols-2 gap-2 mt-2">
-                        <input type="text" id="dp_protein_brand" class="input-field" placeholder="Brand/Name">
-                        <input type="number" id="dp_protein_cals" class="input-field" placeholder="Calories">
-                        <input type="number" id="dp_protein_protein" class="input-field" placeholder="Protein (g)">
-                        <input type="number" id="dp_protein_carbs" class="input-field" placeholder="Carbs (g)">
-                        <input type="number" id="dp_protein_fat" class="input-field" placeholder="Fat (g)">
-                    </div>
-                </div>
-
                 <!-- Start from Scratch Option -->
                 <div class="p-4 bg-slate-50 border-2 border-slate-400 rounded-lg">
                     <div class="flex items-center">
@@ -1493,20 +1478,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const checkbox = document.getElementById(equipId);
                         if (checkbox) checkbox.checked = true;
                     });
-                }
-
-                // Protein powder
-                if (client.use_protein_powder) {
-                    document.getElementById('dp_use_protein').checked = true;
-                    document.getElementById('protein-powder-fields').style.display = 'grid';
-                    if (client.protein_powder_brand) document.getElementById('dp_protein_brand').value = client.protein_powder_brand;
-                    if (client.protein_powder_calories) document.getElementById('dp_protein_cals').value = client.protein_powder_calories;
-                    if (client.protein_powder_protein) document.getElementById('dp_protein_protein').value = client.protein_powder_protein;
-                    if (client.protein_powder_carbs) document.getElementById('dp_protein_carbs').value = client.protein_powder_carbs;
-                    if (client.protein_powder_fat) document.getElementById('dp_protein_fat').value = client.protein_powder_fat;
-                } else {
-                    document.getElementById('dp_use_protein').checked = false;
-                    document.getElementById('protein-powder-fields').style.display = 'none';
                 }
 
                 // Branded fitness foods preference
@@ -2072,38 +2043,13 @@ async function generateDietPlan() {
         console.log('Using custom targets:', { calories, protein, carbs, fat });
     }
 
-    // Store original targets (before any protein powder subtraction)
+    // Store original targets
     const originalTargets = {
         calories: calories,
         protein: protein,
         carbs: carbs,
         fat: fat
     };
-
-    // Store protein powder info if selected (will be added as supplement item)
-    let proteinPowderInfo = null;
-    if (document.getElementById('dp_use_protein').checked) {
-        const proteinCals = parseInt(document.getElementById('dp_protein_cals').value) || 0;
-        const proteinProtein = parseInt(document.getElementById('dp_protein_protein').value) || 0;
-        const proteinCarbs = parseInt(document.getElementById('dp_protein_carbs').value) || 0;
-        const proteinFat = parseInt(document.getElementById('dp_protein_fat').value) || 0;
-        const proteinBrand = document.getElementById('dp_protein_brand').value || 'Protein Powder';
-
-        // Store protein powder info to add as supplement item later
-        proteinPowderInfo = {
-            brand: proteinBrand,
-            calories: proteinCals,
-            protein: proteinProtein,
-            carbs: proteinCarbs,
-            fat: proteinFat
-        };
-
-        // Subtract from targets for meal generation (meals + supplement = original targets)
-        calories -= proteinCals;
-        protein -= proteinProtein;
-        carbs -= proteinCarbs;
-        fat -= proteinFat;
-    }
 
     lastPlanQuery = {
         clientName,
@@ -2121,7 +2067,6 @@ async function generateDietPlan() {
         equipmentStr,
         meals,
         originalTargets,
-        proteinPowderInfo,
         useBrandedFoods
     };
 
@@ -2163,20 +2108,6 @@ async function generateDietPlan() {
                     isPlaceholder: true
                 };
             });
-
-            // Add protein powder supplement if selected
-            if (proteinPowderInfo) {
-                dayPlan.push({
-                    type: 'supplement',
-                    name: proteinPowderInfo.brand,
-                    calories: proteinPowderInfo.calories,
-                    protein: proteinPowderInfo.protein,
-                    carbs: proteinPowderInfo.carbs,
-                    fat: proteinPowderInfo.fat,
-                    ingredients: [`${proteinPowderInfo.brand} (1 serving)`],
-                    instructions: 'Mix with water or milk as directed.'
-                });
-            }
 
             allDays.push({
                 day: day,
@@ -2221,23 +2152,6 @@ async function generateDietPlan() {
                     // Keep meal data but reset any client-specific info
                 }));
 
-                // Add protein powder supplement if selected and not in template
-                if (proteinPowderInfo) {
-                    const hasSupp = dayPlan.some(m => m.type === 'supplement');
-                    if (!hasSupp) {
-                        dayPlan.push({
-                            type: 'supplement',
-                            name: proteinPowderInfo.brand,
-                            calories: proteinPowderInfo.calories,
-                            protein: proteinPowderInfo.protein,
-                            carbs: proteinPowderInfo.carbs,
-                            fat: proteinPowderInfo.fat,
-                            ingredients: [`${proteinPowderInfo.brand} (1 serving)`],
-                            instructions: 'Mix with water or milk as directed.'
-                        });
-                    }
-                }
-
                 allDays.push({
                     day: day,
                     targets: originalTargets,
@@ -2274,12 +2188,6 @@ async function generateDietPlan() {
                 });
             });
             previousMealsText = `\n\nPREVIOUS DAYS MEALS (DO NOT REPEAT):\n${previousMeals.join('\n')}\n\nIMPORTANT: Create COMPLETELY DIFFERENT meals from the previous days listed above. Provide variety in proteins, cuisines, and cooking methods.`;
-        }
-
-        // Build protein powder note if applicable
-        let proteinPowderNote = '';
-        if (proteinPowderInfo) {
-            proteinPowderNote = `\nNote: Client uses protein powder (${proteinPowderInfo.brand || 'protein supplement'}) which will be added separately. Meal targets already account for this.`;
         }
 
         // Build branded fitness foods note if applicable
@@ -2437,7 +2345,7 @@ Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
 Preferred Foods/Cuisines: ${preferredFoods}
 Budget: ${budget}
-Available Equipment: ${equipmentStr}${proteinPowderNote}${previousMealsText}${favoriteMealsText}${brandedFoodsNote}
+Available Equipment: ${equipmentStr}${previousMealsText}${favoriteMealsText}${brandedFoodsNote}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 
@@ -2882,23 +2790,7 @@ This meal should fit into a day's plan with the following targets.`;
             console.log(`✅ Day ${day} totals validated successfully`);
         }
 
-        // Add protein powder as supplement item if configured
-        if (proteinPowderInfo) {
-            const supplementItem = {
-                type: 'supplement',
-                name: proteinPowderInfo.brand,
-                calories: proteinPowderInfo.calories,
-                protein: proteinPowderInfo.protein,
-                carbs: proteinPowderInfo.carbs,
-                fat: proteinPowderInfo.fat,
-                ingredients: [`${proteinPowderInfo.brand} (1 serving)`],
-                instructions: 'Mix with water or milk as directed.'
-            };
-            dayData.plan.push(supplementItem);
-            console.log(`✅ Added protein powder supplement to Day ${day}`);
-        }
-
-        // Update targets to show original values (including protein powder)
+        // Update targets to show original values
         dayData.targets = originalTargets;
 
         allDays.push(dayData);
@@ -5064,7 +4956,7 @@ NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
         // Add back the supplement if there was one
         if (supplementItem) {
             newMeals.push(supplementItem);
-            console.log(`✅ Re-added protein powder supplement to Day ${dayNumber}`);
+            console.log(`✅ Re-added supplement to Day ${dayNumber}`);
         }
 
         // Update the day's meals
@@ -5706,7 +5598,7 @@ function downloadPlanAsPDF() {
         y += 12;
     }
 
-    // Daily Nutrition Summary - use original targets (includes protein powder)
+    // Daily Nutrition Summary - use original targets
     const displayTargets = lastPlanQuery.originalTargets || {
         calories: lastPlanQuery.calories,
         protein: lastPlanQuery.protein,
@@ -5722,25 +5614,6 @@ function downloadPlanAsPDF() {
     y += 8;
     pdf.text(`Macro Split: ${lastPlanQuery.macroPreference}`, margin, y);
     y += 15;
-
-    // Supplement Protocol Section
-    if (lastPlanQuery.proteinPowderInfo) {
-        if (y > 240) {
-            pdf.addPage();
-            y = 20;
-        }
-        pdf.setFontSize(16);
-        pdf.setTextColor(102, 126, 234);
-        pdf.text('Supplement Protocol', margin, y);
-        y += 8;
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        const pp = lastPlanQuery.proteinPowderInfo;
-        const supplementText = `${pp.brand}: ${pp.calories} cal, ${pp.protein}g protein, ${pp.carbs}g carbs, ${pp.fat}g fat (included in daily totals)`;
-        const supplementLines = pdf.splitTextToSize(supplementText, maxWidth);
-        pdf.text(supplementLines, margin, y);
-        y += supplementLines.length * 5 + 10;
-    }
 
     // Meal Plans by Day
     lastPlanQuery.currentPlan.forEach(dayData => {
@@ -6203,16 +6076,6 @@ document.addEventListener('click', function(event) {
 // Unit system toggle
 document.getElementById('unit-imperial').addEventListener('click', () => toggleUnitSystem('imperial'));
 document.getElementById('unit-metric').addEventListener('click', () => toggleUnitSystem('metric'));
-
-// Protein powder checkbox toggle
-document.getElementById('dp_use_protein').addEventListener('change', function() {
-    const fields = document.getElementById('protein-powder-fields');
-    if (this.checked) {
-        fields.style.display = 'grid';  // Use grid to match the class
-    } else {
-        fields.style.display = 'none';
-    }
-});
 
 // Custom targets checkbox toggle
 document.getElementById('dp_custom_targets').addEventListener('change', function() {
