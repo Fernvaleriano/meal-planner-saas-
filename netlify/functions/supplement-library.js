@@ -65,10 +65,17 @@ exports.handler = async (event, context) => {
             };
         } catch (error) {
             console.error('Error fetching supplement library:', error);
+            // Provide more context for table not existing
+            const details = error.message || String(error);
+            const isTableMissing = details.includes('relation') && details.includes('does not exist');
             return {
-                statusCode: 500,
+                statusCode: isTableMissing ? 404 : 500,
                 headers: corsHeaders,
-                body: JSON.stringify({ error: 'Failed to fetch supplements', details: error.message })
+                body: JSON.stringify({
+                    error: isTableMissing ? 'Supplement library not set up' : 'Failed to fetch supplements',
+                    details: details,
+                    hint: isTableMissing ? 'Run the supplement_library.sql migration in Supabase' : undefined
+                })
             };
         }
     }
@@ -119,10 +126,16 @@ exports.handler = async (event, context) => {
             };
         } catch (error) {
             console.error('Error creating supplement:', error);
+            const details = error.message || String(error);
+            const isTableMissing = details.includes('relation') && details.includes('does not exist');
             return {
-                statusCode: 500,
+                statusCode: isTableMissing ? 404 : 500,
                 headers: corsHeaders,
-                body: JSON.stringify({ error: 'Failed to create supplement', details: error.message })
+                body: JSON.stringify({
+                    error: isTableMissing ? 'Supplement library not set up' : 'Failed to create supplement',
+                    details: details,
+                    hint: isTableMissing ? 'Run the supplement_library.sql migration in Supabase' : undefined
+                })
             };
         }
     }

@@ -1486,7 +1486,10 @@
         // Template Functions
         function getTemplates() {
             const templates = localStorage.getItem('protocolTemplates');
-            return templates ? JSON.parse(templates) : [];
+            if (!templates) return [];
+            const parsed = JSON.parse(templates);
+            // Filter and return only valid templates with required properties
+            return parsed.filter(t => t && t.name && Array.isArray(t.items));
         }
 
         function saveTemplates(templates) {
@@ -1505,13 +1508,16 @@
             if (templates.length === 0) {
                 templateList.innerHTML = '<div class="no-templates">No templates saved yet. Add protocols to a client and save as template.</div>';
             } else {
-                templateList.innerHTML = templates.map((template, idx) => `
+                templateList.innerHTML = templates.map((template, idx) => {
+                    const itemCount = template.items.length;
+                    return `
                     <div class="template-item" onclick="applyTemplate(${idx})">
                         <span class="template-item-delete" onclick="event.stopPropagation(); deleteTemplate(${idx})">🗑️</span>
                         <div class="template-item-name">${escapeHtml(template.name)}</div>
-                        <div class="template-item-count">${template.items.length} item${template.items.length !== 1 ? 's' : ''}</div>
+                        <div class="template-item-count">${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             }
 
             document.getElementById('templateModal').classList.remove('hidden');
@@ -1662,16 +1668,22 @@
                 }
 
                 const response = await fetch(url);
-                const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Failed to load library');
+                    // If library feature is not available (table doesn't exist),
+                    // silently use empty array
+                    supplementLibrary = [];
+                    renderLibraryGrid();
+                    return;
                 }
 
+                const data = await response.json();
                 supplementLibrary = data.supplements || [];
                 renderLibraryGrid();
             } catch (error) {
-                console.error('Error loading supplement library:', error);
+                // Silently handle network errors - just show empty library
+                supplementLibrary = [];
+                renderLibraryGrid();
             }
         }
 
@@ -1876,7 +1888,14 @@
 
                 const data = await response.json();
 
-                if (data.error) throw new Error(data.error);
+                if (!response.ok || data.error) {
+                    // Check if this is a database table issue
+                    const errorMsg = data.error || data.details || 'Unknown error';
+                    if (errorMsg.includes('relation') && errorMsg.includes('does not exist')) {
+                        throw new Error('The supplement library feature requires database setup. Please run the migration first.');
+                    }
+                    throw new Error(errorMsg);
+                }
 
                 closeLibraryModal();
                 await loadSupplementLibrary();
