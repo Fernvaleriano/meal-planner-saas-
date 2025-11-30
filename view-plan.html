@@ -3184,7 +3184,6 @@
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
                 <button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>
-                <button class="btn btn-portions" onclick="showPortionsDropdown(${portionsParam})" title="Adjust serving size">⚖️ Portions</button>
                 <button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>
                 ${editButton}
                 ${undoButton}
@@ -3648,9 +3647,34 @@
                 meal = currentPlan.meals[index];
             }
 
-            // Use window.prompt() like planner.html does
+            // Use window.prompt() with comprehensive examples
             const revisionText = window.prompt(
-                `Revise "${meal.name}"?\n\nEnter your specific request (e.g., "make it vegetarian", "swap rice for sweet potato", "just protein shake with creatine"):`,
+`Revise "${meal.name}"?
+
+Examples of what you can request:
+
+📊 ADJUST PORTIONS:
+• "increase chicken to 250g"
+• "double the portion size"
+• "make this 800 calories"
+• "reduce carbs by 20g"
+
+🔄 SWAP INGREDIENTS:
+• "swap rice for sweet potato"
+• "replace chicken with salmon"
+• "use egg whites instead of whole eggs"
+
+🥗 DIETARY CHANGES:
+• "make it vegetarian"
+• "make it dairy-free"
+• "add more protein"
+
+✨ OTHER:
+• "simplify - fewer ingredients"
+• "make it a smoothie instead"
+• "add avocado"
+
+Enter your request:`,
                 ''
             );
 
