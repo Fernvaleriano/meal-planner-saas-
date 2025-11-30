@@ -2046,18 +2046,37 @@
                 return;
             }
 
+            // Save supplement data IMMEDIATELY before any async operations
+            // This ensures we have a stable copy regardless of modal state
+            const supplementId = publishingSupplement.id;
+            const supplementName = publishingSupplement.name;
+            const supplementCategory = publishingSupplement.category;
+            const supplementTiming = publishingSupplement.timing;
+            const supplementTimingCustom = publishingSupplement.timing_custom;
+            const supplementDose = publishingSupplement.dose;
+            const supplementHasSchedule = publishingSupplement.has_schedule;
+            const supplementSchedule = publishingSupplement.schedule;
+            const supplementNotes = publishingSupplement.notes;
+            const supplementPrivateNotes = publishingSupplement.private_notes;
+
+            // Verify we have valid supplement data
+            if (!supplementId) {
+                alert('Invalid supplement data.');
+                return;
+            }
+
             const payload = {
                 coachId: currentCoach.id,
                 clientId: parseInt(clientId),
-                name: publishingSupplement.name,
-                timing: publishingSupplement.timing,
-                timingCustom: publishingSupplement.timing_custom,
-                dose: publishingSupplement.dose,
-                hasSchedule: publishingSupplement.has_schedule,
-                schedule: publishingSupplement.schedule,
-                startDate: publishingSupplement.has_schedule ? new Date().toISOString().split('T')[0] : null,
-                notes: publishingSupplement.notes,
-                privateNotes: publishingSupplement.private_notes
+                name: supplementName,
+                timing: supplementTiming,
+                timingCustom: supplementTimingCustom,
+                dose: supplementDose,
+                hasSchedule: supplementHasSchedule,
+                schedule: supplementSchedule,
+                startDate: supplementHasSchedule ? new Date().toISOString().split('T')[0] : null,
+                notes: supplementNotes,
+                privateNotes: supplementPrivateNotes
             };
 
             try {
@@ -2073,26 +2092,29 @@
                 closePublishModal();
 
                 // Update library usage count (optional, fire and forget)
-                fetch(LIBRARY_ENDPOINT, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        supplementId: publishingSupplement.id,
-                        coachId: currentCoach.id,
-                        name: publishingSupplement.name,
-                        category: publishingSupplement.category,
-                        timing: publishingSupplement.timing,
-                        timingCustom: publishingSupplement.timing_custom,
-                        dose: publishingSupplement.dose,
-                        hasSchedule: publishingSupplement.has_schedule,
-                        schedule: publishingSupplement.schedule,
-                        notes: publishingSupplement.notes,
-                        privateNotes: publishingSupplement.private_notes
-                    })
-                }).catch(() => {});
+                // Using the pre-captured values to avoid any null reference issues
+                if (supplementId) {
+                    fetch(LIBRARY_ENDPOINT, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            supplementId: supplementId,
+                            coachId: currentCoach.id,
+                            name: supplementName,
+                            category: supplementCategory,
+                            timing: supplementTiming,
+                            timingCustom: supplementTimingCustom,
+                            dose: supplementDose,
+                            hasSchedule: supplementHasSchedule,
+                            schedule: supplementSchedule,
+                            notes: supplementNotes,
+                            privateNotes: supplementPrivateNotes
+                        })
+                    }).catch(() => {});
+                }
 
                 const clientName = clients.find(c => c.id == clientId)?.name || 'client';
-                alert(`"${publishingSupplement.name}" published to ${clientName}'s protocol!`);
+                alert(`"${supplementName}" published to ${clientName}'s protocol!`);
 
                 // If viewing this client's protocols, refresh
                 if (selectedClientId == clientId) {
