@@ -2061,6 +2061,9 @@
             };
 
             try {
+                // Save supplement data before closing modal (which clears publishingSupplement)
+                const supplement = { ...publishingSupplement };
+
                 const response = await fetch(PROTOCOLS_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2077,22 +2080,22 @@
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        supplementId: publishingSupplement.id,
+                        supplementId: supplement.id,
                         coachId: currentCoach.id,
-                        name: publishingSupplement.name,
-                        category: publishingSupplement.category,
-                        timing: publishingSupplement.timing,
-                        timingCustom: publishingSupplement.timing_custom,
-                        dose: publishingSupplement.dose,
-                        hasSchedule: publishingSupplement.has_schedule,
-                        schedule: publishingSupplement.schedule,
-                        notes: publishingSupplement.notes,
-                        privateNotes: publishingSupplement.private_notes
+                        name: supplement.name,
+                        category: supplement.category,
+                        timing: supplement.timing,
+                        timingCustom: supplement.timing_custom,
+                        dose: supplement.dose,
+                        hasSchedule: supplement.has_schedule,
+                        schedule: supplement.schedule,
+                        notes: supplement.notes,
+                        privateNotes: supplement.private_notes
                     })
                 }).catch(() => {});
 
                 const clientName = clients.find(c => c.id == clientId)?.name || 'client';
-                alert(`"${publishingSupplement.name}" published to ${clientName}'s protocol!`);
+                alert(`"${supplement.name}" published to ${clientName}'s protocol!`);
 
                 // If viewing this client's protocols, refresh
                 if (selectedClientId == clientId) {
