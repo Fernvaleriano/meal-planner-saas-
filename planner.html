@@ -1966,6 +1966,7 @@ async function generateDietPlan() {
 
     // Get branded fitness foods preference
     const useBrandedFoods = document.getElementById('dp_use_branded_foods').checked;
+    console.log('🏋️ Branded foods preference:', useBrandedFoods);
 
     // Calculate nutrition (Mifflin-St Jeor)
     let weightKg, heightCm;
@@ -2331,10 +2332,10 @@ Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
 Preferred Foods/Cuisines: ${preferredFoods}
 Budget: ${budget}
-Available Equipment: ${equipmentStr}${previousMealsText}${favoriteMealsText}${brandedFoodsNote}
+Available Equipment: ${equipmentStr}${previousMealsText}${favoriteMealsText}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
-
+${brandedFoodsNote}
 CRITICAL MEAL DISTRIBUTION - HARD LIMITS:
 - BREAKFAST: ${Math.round(calories * 0.25)}-${Math.round(calories * 0.30)} calories (25-30% of daily)
 - LUNCH: ${Math.round(calories * 0.30)}-${Math.round(calories * 0.35)} calories (30-35% of daily)
