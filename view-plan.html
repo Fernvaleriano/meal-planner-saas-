@@ -1061,6 +1061,20 @@
             background: #fecaca;
         }
 
+        .btn-edit-saved {
+            padding: 6px 10px;
+            background: #dbeafe;
+            border: none;
+            border-radius: 6px;
+            color: #2563eb;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .btn-edit-saved:hover {
+            background: #bfdbfe;
+        }
+
         .no-saved-meals {
             text-align: center;
             padding: 30px;
@@ -2277,6 +2291,46 @@
             console.log('✅ Used saved meal:', newMeal.name);
         }
 
+        // Edit a saved meal before using it
+        function editSavedMeal(mealId) {
+            const savedMeals = getSavedMeals();
+            const meal = savedMeals.find(m => m.id === mealId);
+            if (!meal) {
+                alert('Meal not found');
+                return;
+            }
+
+            // Check if meal has full ingredient data (from Food Database)
+            if (meal.ingredientData && Array.isArray(meal.ingredientData) && meal.ingredientData.length > 0) {
+                // Load ingredients into Calculate tab
+                customMealSelectedIngredients = JSON.parse(JSON.stringify(meal.ingredientData));
+
+                // Switch to calculate tab
+                switchCustomMealTab('calculate');
+
+                // Pre-populate meal name and instructions
+                document.getElementById('calculatedMealName').value = meal.name || '';
+                document.getElementById('calculatedMealInstructions').value = meal.instructions || '';
+
+                // Render the ingredients and update totals
+                renderCustomMealIngredients();
+                updateCustomMealTotals();
+
+                console.log('📝 Editing saved meal with ingredients:', customMealSelectedIngredients);
+            } else {
+                // Fall back to manual tab for meals without ingredient data
+                switchCustomMealTab('manual');
+
+                // Pre-populate the manual panel fields with existing meal data
+                document.getElementById('customMealName').value = meal.name || '';
+                document.getElementById('customMealCalories').value = meal.calories || '';
+                document.getElementById('customMealProtein').value = meal.protein || '';
+                document.getElementById('customMealCarbs').value = meal.carbs || '';
+                document.getElementById('customMealFat').value = meal.fat || '';
+                document.getElementById('customMealInstructions').value = meal.instructions || '';
+            }
+        }
+
         function renderSavedMeals() {
             const container = document.getElementById('savedMealsList');
             const savedMeals = getSavedMeals();
@@ -2293,6 +2347,7 @@
                         <div class="saved-meal-macros">${meal.calories} cal | ${meal.protein}g P | ${meal.carbs}g C | ${meal.fat}g F</div>
                     </div>
                     <div class="saved-meal-actions">
+                        <button class="btn-edit-saved" onclick="editSavedMeal('${meal.id}')" title="Edit before using">✎</button>
                         <button class="btn-use-saved" onclick="useSavedMeal('${meal.id}')">Use</button>
                         <button class="btn-delete-saved" onclick="deleteSavedMeal('${meal.id}')">🗑️</button>
                     </div>
@@ -2741,11 +2796,15 @@
             // Get custom instructions from the textarea
             const customInstructions = document.getElementById('calculatedMealInstructions').value.trim() || 'Prepare as desired.';
 
+            // Store full ingredient data for editing later (deep copy to avoid reference issues)
+            const ingredientData = JSON.parse(JSON.stringify(customMealSelectedIngredients));
+
             // Create the custom meal object
             const customMealData = {
                 type: meal.type || 'meal',
                 name: mealName,
                 ingredients: ingredients,
+                ingredientData: ingredientData,  // Full ingredient objects for editing
                 calories: Math.round(totalCal),
                 protein: Math.round(totalProtein),
                 carbs: Math.round(totalCarbs),
@@ -3688,16 +3747,35 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
             // Open the modal first (this sets up the indices)
             openCustomMealModal(index, dayIndex, mealIndex);
 
-            // Switch to the manual tab (since we have aggregated macros, not individual ingredients)
-            switchCustomMealTab('manual');
+            // Check if meal has full ingredient data (from Food Database)
+            if (meal.ingredientData && Array.isArray(meal.ingredientData) && meal.ingredientData.length > 0) {
+                // Load ingredients into Calculate tab
+                customMealSelectedIngredients = JSON.parse(JSON.stringify(meal.ingredientData));
 
-            // Pre-populate the manual panel fields with existing meal data
-            document.getElementById('customMealName').value = meal.name || '';
-            document.getElementById('customMealCalories').value = meal.calories || '';
-            document.getElementById('customMealProtein').value = meal.protein || '';
-            document.getElementById('customMealCarbs').value = meal.carbs || '';
-            document.getElementById('customMealFat').value = meal.fat || '';
-            document.getElementById('customMealInstructions').value = meal.instructions || '';
+                // Switch to calculate tab
+                switchCustomMealTab('calculate');
+
+                // Pre-populate meal name and instructions
+                document.getElementById('calculatedMealName').value = meal.name || '';
+                document.getElementById('calculatedMealInstructions').value = meal.instructions || '';
+
+                // Render the ingredients and update totals
+                renderCustomMealIngredients();
+                updateCustomMealTotals();
+
+                console.log('📝 Editing meal with ingredients:', customMealSelectedIngredients);
+            } else {
+                // Fall back to manual tab for meals without ingredient data
+                switchCustomMealTab('manual');
+
+                // Pre-populate the manual panel fields with existing meal data
+                document.getElementById('customMealName').value = meal.name || '';
+                document.getElementById('customMealCalories').value = meal.calories || '';
+                document.getElementById('customMealProtein').value = meal.protein || '';
+                document.getElementById('customMealCarbs').value = meal.carbs || '';
+                document.getElementById('customMealFat').value = meal.fat || '';
+                document.getElementById('customMealInstructions').value = meal.instructions || '';
+            }
         }
 
         async function changeMeal(index, dayIndex = null, mealIndex = null) {
