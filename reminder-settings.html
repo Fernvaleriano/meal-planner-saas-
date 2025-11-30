@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in Reminders - Zique Fitness Nutrition</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.08);
+            padding: 24px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f766e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #f1f5f9;
+            color: #0d9488;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-email {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header p {
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-description {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .toggle-row:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-info h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .toggle-info p {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: .3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-group .help-text {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        select, input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: white;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #0d9488;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.inactive {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0d9488;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .reminder-history {
+            margin-top: 20px;
+        }
+
+        .reminder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .reminder-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .reminder-client {
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .reminder-meta {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .reminder-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .reminder-status.sent {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .reminder-status.failed {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #64748b;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #0d9488;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-info {
+            background: #f0f9ff;
+            color: #075985;
+            border: 1px solid #bae6fd;
+        }
+
+        .preview-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .preview-box h4 {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .preview-subject {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .preview-body {
+            font-size: 14px;
+            color: #4b5563;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .placeholder-info {
+            font-size: 12px;
+            color: #64748b;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .placeholder-info code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .test-btn {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .test-btn:hover {
+            background: #d97706;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <a href="dashboard.html" class="logo">Zique Fitness Nutrition</a>
+            <a href="dashboard.html" class="back-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+        <div class="user-info">
+            <span class="user-email" id="userEmail">Loading...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="loadingDiv" class="loading">
+            <div class="spinner"></div>
+            Loading your settings...
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="page-header">
+                <h1>Check-in Reminders</h1>
+                <p>Automatically remind your clients to submit their weekly check-ins</p>
+            </div>
+
+            <div id="alertContainer"></div>
+
+            <!-- Main Toggle -->
+            <div class="card">
+                <h2>Reminder Status</h2>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <h3>Enable Automated Reminders</h3>
+                        <p>Send automatic email reminders to clients who haven't completed their weekly check-in</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="remindersEnabled">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div style="margin-top: 16px;">
+                    <span class="status-badge" id="statusBadge">
+                        <span id="statusText">Checking...</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Schedule Settings -->
+            <div class="card" id="scheduleCard">
+                <h2>Schedule Settings</h2>
+                <p class="card-description">Configure when reminders are sent to your clients. Reminders are only sent to clients who haven't submitted a check-in for the current week.</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reminderDay">Check-in Day</label>
+                        <select id="reminderDay">
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                        </select>
+                        <p class="help-text">The day you expect clients to submit check-ins</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="daysBeforeDeadline">Remind Days Before</label>
+                        <select id="daysBeforeDeadline">
+                            <option value="0">Same day (morning reminder)</option>
+                            <option value="1">1 day before</option>
+                            <option value="2">2 days before</option>
+                            <option value="3">3 days before</option>
+                        </select>
+                        <p class="help-text">How many days before check-in day to send reminder</p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reminderHour">Send Time (UTC)</label>
+                        <select id="reminderHour">
+                            <option value="6">6:00 AM</option>
+                            <option value="7">7:00 AM</option>
+                            <option value="8">8:00 AM</option>
+                            <option value="9">9:00 AM</option>
+                            <option value="10">10:00 AM</option>
+                            <option value="11">11:00 AM</option>
+                            <option value="12">12:00 PM</option>
+                            <option value="13">1:00 PM</option>
+                            <option value="14">2:00 PM</option>
+                            <option value="15">3:00 PM</option>
+                            <option value="16">4:00 PM</option>
+                            <option value="17">5:00 PM</option>
+                            <option value="18">6:00 PM</option>
+                        </select>
+                        <p class="help-text">Time in UTC (adjust for your timezone)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Follow-up Settings -->
+            <div class="card" id="followupCard">
+                <h2>Follow-up Reminders</h2>
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <h3>Send Follow-up Reminder</h3>
+                        <p>Send an additional reminder if the client still hasn't checked in</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sendFollowup">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;" id="followupHoursGroup">
+                    <label for="followupHours">Follow-up After</label>
+                    <select id="followupHours">
+                        <option value="12">12 hours</option>
+                        <option value="24">24 hours</option>
+                        <option value="36">36 hours</option>
+                        <option value="48">48 hours</option>
+                    </select>
+                    <p class="help-text">Hours after initial reminder to send follow-up</p>
+                </div>
+            </div>
+
+            <!-- Email Template -->
+            <div class="card" id="emailCard">
+                <h2>Email Template</h2>
+                <p class="card-description">Customize the reminder email your clients receive.</p>
+
+                <div class="form-group">
+                    <label for="emailSubject">Email Subject</label>
+                    <input type="text" id="emailSubject" placeholder="Time for your weekly check-in!">
+                </div>
+
+                <div class="form-group">
+                    <label for="emailMessage">Email Message</label>
+                    <textarea id="emailMessage" placeholder="Enter your custom message..."></textarea>
+                    <div class="placeholder-info">
+                        Available placeholders: <code>{client_name}</code> <code>{coach_name}</code> <code>{checkin_link}</code>
+                    </div>
+                </div>
+
+                <div class="preview-box">
+                    <h4>Email Preview</h4>
+                    <div class="preview-subject" id="previewSubject">Time for your weekly check-in!</div>
+                    <div class="preview-body" id="previewBody">Loading preview...</div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="btn-group">
+                <button class="btn btn-primary" id="saveBtn" onclick="saveSettings()">
+                    Save Settings
+                </button>
+                <button class="btn btn-secondary test-btn" onclick="sendTestReminder()">
+                    Send Test Reminder
+                </button>
+            </div>
+
+            <!-- Statistics -->
+            <div class="card" style="margin-top: 32px;">
+                <h2>Reminder Statistics</h2>
+                <p class="card-description">Track the effectiveness of your check-in reminders over the last 30 days.</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">-</div>
+                        <div class="stat-label">Total Sent</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statInitial">-</div>
+                        <div class="stat-label">Initial</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statFollowup">-</div>
+                        <div class="stat-label">Follow-ups</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statConversion">-</div>
+                        <div class="stat-label">Conversion Rate</div>
+                    </div>
+                </div>
+
+                <div class="reminder-history" id="reminderHistory">
+                    <h4 style="margin-bottom: 12px; color: #64748b; font-size: 14px;">Recent Reminders</h4>
+                    <div id="historyList">
+                        <p style="color: #94a3b8; text-align: center; padding: 20px;">No reminders sent yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentCoachId = null;
+        let currentSettings = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadSettings();
+            setupEventListeners();
+        });
+
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (!session) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentCoachId = session.user.id;
+            document.getElementById('userEmail').textContent = session.user.email;
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch(`/.netlify/functions/reminder-settings?coachId=${currentCoachId}`);
+                const data = await response.json();
+
+                if (data.needsMigration) {
+                    showAlert('info', 'Reminder feature is being set up. Please run the database migration to enable this feature.');
+                    document.getElementById('loadingDiv').style.display = 'none';
+                    document.getElementById('content').style.display = 'block';
+                    return;
+                }
+
+                currentSettings = data.settings;
+
+                // Populate form
+                document.getElementById('remindersEnabled').checked = currentSettings.reminders_enabled;
+                document.getElementById('reminderDay').value = currentSettings.reminder_day;
+                document.getElementById('daysBeforeDeadline').value = currentSettings.days_before_deadline;
+                document.getElementById('reminderHour').value = currentSettings.reminder_hour;
+                document.getElementById('sendFollowup').checked = currentSettings.send_followup;
+                document.getElementById('followupHours').value = currentSettings.followup_hours;
+                document.getElementById('emailSubject').value = currentSettings.email_subject || '';
+                document.getElementById('emailMessage').value = currentSettings.email_message || '';
+
+                updateStatusBadge();
+                updatePreview();
+                updateFormVisibility();
+
+                // Load stats
+                await loadStats();
+
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                showAlert('error', 'Failed to load settings. Please try again.');
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`/.netlify/functions/reminder-settings/stats?coachId=${currentCoachId}&days=30`);
+                const data = await response.json();
+
+                if (data.stats) {
+                    document.getElementById('statTotal').textContent = data.stats.totalRemindersSent;
+                    document.getElementById('statInitial').textContent = data.stats.initialReminders;
+                    document.getElementById('statFollowup').textContent = data.stats.followupReminders;
+                    document.getElementById('statConversion').textContent = data.stats.conversionRate + '%';
+                }
+
+                if (data.recentReminders && data.recentReminders.length > 0) {
+                    const historyHtml = data.recentReminders.slice(0, 10).map(r => `
+                        <div class="reminder-item">
+                            <div>
+                                <div class="reminder-client">${r.client?.client_name || 'Unknown'}</div>
+                                <div class="reminder-meta">${formatDate(r.created_at)} - ${r.reminder_type}</div>
+                            </div>
+                            <span class="reminder-status ${r.status}">${r.status}</span>
+                        </div>
+                    `).join('');
+                    document.getElementById('historyList').innerHTML = historyHtml;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function setupEventListeners() {
+            // Toggle visibility based on main switch
+            document.getElementById('remindersEnabled').addEventListener('change', () => {
+                updateStatusBadge();
+                updateFormVisibility();
+            });
+
+            // Toggle follow-up hours visibility
+            document.getElementById('sendFollowup').addEventListener('change', () => {
+                document.getElementById('followupHoursGroup').style.display =
+                    document.getElementById('sendFollowup').checked ? 'block' : 'none';
+            });
+
+            // Update preview on input change
+            document.getElementById('emailSubject').addEventListener('input', updatePreview);
+            document.getElementById('emailMessage').addEventListener('input', updatePreview);
+        }
+
+        function updateStatusBadge() {
+            const enabled = document.getElementById('remindersEnabled').checked;
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('statusText');
+
+            if (enabled) {
+                badge.className = 'status-badge active';
+                text.textContent = 'Reminders Active';
+            } else {
+                badge.className = 'status-badge inactive';
+                text.textContent = 'Reminders Disabled';
+            }
+        }
+
+        function updateFormVisibility() {
+            const enabled = document.getElementById('remindersEnabled').checked;
+            const cards = ['scheduleCard', 'followupCard', 'emailCard'];
+
+            cards.forEach(cardId => {
+                const card = document.getElementById(cardId);
+                card.style.opacity = enabled ? '1' : '0.5';
+                card.style.pointerEvents = enabled ? 'auto' : 'none';
+            });
+        }
+
+        function updatePreview() {
+            const subject = document.getElementById('emailSubject').value || 'Time for your weekly check-in!';
+            const message = document.getElementById('emailMessage').value || getDefaultMessage();
+
+            // Replace placeholders with sample data
+            const previewSubject = subject
+                .replace('{client_name}', 'John')
+                .replace('{coach_name}', 'Your Coach');
+
+            const previewBody = message
+                .replace(/{client_name}/g, 'John')
+                .replace(/{coach_name}/g, 'Your Coach')
+                .replace(/{checkin_link}/g, window.location.origin + '/client-dashboard.html');
+
+            document.getElementById('previewSubject').textContent = previewSubject;
+            document.getElementById('previewBody').textContent = previewBody;
+        }
+
+        function getDefaultMessage() {
+            return `Hi {client_name},
+
+This is a friendly reminder to complete your weekly check-in. Your coach is looking forward to hearing about your progress!
+
+Click the link below to submit your check-in:
+{checkin_link}
+
+Best,
+{coach_name}`;
+        }
+
+        async function saveSettings() {
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                const settings = {
+                    coachId: currentCoachId,
+                    remindersEnabled: document.getElementById('remindersEnabled').checked,
+                    reminderDay: parseInt(document.getElementById('reminderDay').value),
+                    daysBeforeDeadline: parseInt(document.getElementById('daysBeforeDeadline').value),
+                    reminderHour: parseInt(document.getElementById('reminderHour').value),
+                    sendFollowup: document.getElementById('sendFollowup').checked,
+                    followupHours: parseInt(document.getElementById('followupHours').value),
+                    emailSubject: document.getElementById('emailSubject').value,
+                    emailMessage: document.getElementById('emailMessage').value
+                };
+
+                const response = await fetch('/.netlify/functions/reminder-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('success', 'Settings saved successfully! Your clients will receive automated reminders based on your configuration.');
+                    currentSettings = data.settings;
+                } else {
+                    throw new Error(data.error || 'Failed to save settings');
+                }
+
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showAlert('error', error.message || 'Failed to save settings. Please try again.');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Settings';
+            }
+        }
+
+        async function sendTestReminder() {
+            showAlert('info', 'Test reminder feature coming soon! For now, save your settings and reminders will be sent automatically on the scheduled day.');
+        }
+
+        function showAlert(type, message) {
+            const container = document.getElementById('alertContainer');
+            const alertHtml = `
+                <div class="alert alert-${type}">
+                    <span>${message}</span>
+                </div>
+            `;
+            container.innerHTML = alertHtml;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+
+            return date.toLocaleDateString();
+        }
+    </script>
+</body>
+</html>

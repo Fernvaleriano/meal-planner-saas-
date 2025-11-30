@@ -171,6 +171,83 @@
             margin-top: 4px;
         }
 
+        /* Reminder Status */
+        .reminder-status-section {
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .reminder-status-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .reminder-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .reminder-status-badge.enabled {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .reminder-status-badge.disabled {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .reminder-status-badge.no-prefs {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .reminder-last-sent {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .reminder-toggle-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .reminder-toggle-btn.enable {
+            background: #0d9488;
+            color: white;
+        }
+
+        .reminder-toggle-btn.enable:hover {
+            background: #0f766e;
+        }
+
+        .reminder-toggle-btn.disable {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        .reminder-toggle-btn.disable:hover {
+            background: #cbd5e1;
+        }
+
         /* Plans Section */
         .plans-section {
             background: white;
@@ -1381,6 +1458,18 @@
                 </div>
             </div>
             <div class="client-stats" id="clientStats"></div>
+
+            <!-- Reminder Status Section -->
+            <div class="reminder-status-section" id="reminderStatusSection" style="display: none;">
+                <div class="reminder-status-info">
+                    <span>Check-in Reminders:</span>
+                    <span class="reminder-status-badge" id="reminderStatusBadge">Loading...</span>
+                    <span class="reminder-last-sent" id="reminderLastSent"></span>
+                </div>
+                <button class="reminder-toggle-btn" id="reminderToggleBtn" onclick="toggleClientReminders()">
+                    Toggle Reminders
+                </button>
+            </div>
         </div>
 
         <!-- Plans Section -->
@@ -1872,6 +1961,9 @@
 
             // Show client card
             document.getElementById('clientCard').style.display = 'block';
+
+            // Load reminder status
+            loadReminderStatus(client.id);
         }
 
         async function loadPlans(clientId) {
@@ -3361,6 +3453,125 @@
             } catch (error) {
                 console.error('Error deleting protocol:', error);
                 alert('Failed to delete supplement: ' + error.message);
+            }
+        }
+
+        // =============================================
+        // Reminder Status Functions
+        // =============================================
+
+        let clientReminderPrefs = null;
+
+        async function loadReminderStatus(clientId) {
+            try {
+                const response = await fetch(`/.netlify/functions/reminder-settings?clientId=${clientId}`);
+                const data = await response.json();
+
+                if (data.needsMigration) {
+                    // Feature not yet available - hide the section
+                    return;
+                }
+
+                clientReminderPrefs = data.preferences;
+                updateReminderStatusDisplay();
+                document.getElementById('reminderStatusSection').style.display = 'flex';
+
+            } catch (error) {
+                console.error('Error loading reminder status:', error);
+                // Don't show the section if there's an error
+            }
+        }
+
+        function updateReminderStatusDisplay() {
+            const badge = document.getElementById('reminderStatusBadge');
+            const lastSent = document.getElementById('reminderLastSent');
+            const toggleBtn = document.getElementById('reminderToggleBtn');
+
+            if (!clientReminderPrefs || clientReminderPrefs.is_default) {
+                badge.className = 'reminder-status-badge no-prefs';
+                badge.textContent = 'Using defaults';
+                lastSent.textContent = '';
+                toggleBtn.className = 'reminder-toggle-btn disable';
+                toggleBtn.textContent = 'Disable Reminders';
+                return;
+            }
+
+            const enabled = clientReminderPrefs.reminders_enabled !== false;
+
+            if (enabled) {
+                badge.className = 'reminder-status-badge enabled';
+                badge.textContent = 'Enabled';
+                toggleBtn.className = 'reminder-toggle-btn disable';
+                toggleBtn.textContent = 'Disable Reminders';
+            } else {
+                badge.className = 'reminder-status-badge disabled';
+                badge.textContent = 'Disabled by client';
+                toggleBtn.className = 'reminder-toggle-btn enable';
+                toggleBtn.textContent = 'Enable Reminders';
+            }
+
+            // Show last reminder sent time
+            if (clientReminderPrefs.last_reminder_sent_at) {
+                const lastSentDate = new Date(clientReminderPrefs.last_reminder_sent_at);
+                lastSent.textContent = `Last sent: ${formatTimeAgo(lastSentDate)}`;
+            } else {
+                lastSent.textContent = 'No reminders sent yet';
+            }
+        }
+
+        function formatTimeAgo(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 7) return `${days}d ago`;
+
+            return date.toLocaleDateString();
+        }
+
+        async function toggleClientReminders() {
+            if (!clientReminderPrefs) return;
+
+            const currentState = clientReminderPrefs.reminders_enabled !== false;
+            const newState = !currentState;
+
+            const toggleBtn = document.getElementById('reminderToggleBtn');
+            toggleBtn.disabled = true;
+            toggleBtn.textContent = 'Saving...';
+
+            try {
+                const response = await fetch('/.netlify/functions/reminder-settings/client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        coachId: currentUser.id,
+                        remindersEnabled: newState,
+                        emailReminders: newState,
+                        inappReminders: newState
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    clientReminderPrefs = data.preferences;
+                    updateReminderStatusDisplay();
+                } else {
+                    throw new Error(data.error || 'Failed to update');
+                }
+
+            } catch (error) {
+                console.error('Error toggling reminders:', error);
+                alert('Failed to update reminder settings: ' + error.message);
+            } finally {
+                toggleBtn.disabled = false;
+                updateReminderStatusDisplay();
             }
         }
     </script>

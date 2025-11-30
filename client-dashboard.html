@@ -777,6 +777,139 @@
             min-height: 60px;
         }
 
+        /* Notification Preferences Section */
+        .notification-prefs-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .notification-prefs-section h2 {
+            color: #2d3748;
+            margin-bottom: 16px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pref-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .pref-item:last-child {
+            border-bottom: none;
+        }
+
+        .pref-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0 0 4px 0;
+        }
+
+        .pref-info p {
+            font-size: 13px;
+            color: #718096;
+            margin: 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: .3s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        .save-prefs-btn {
+            margin-top: 16px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .save-prefs-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .save-prefs-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .prefs-alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .prefs-alert.success {
+            background: #dcfce7;
+            color: #166534;
+            display: block;
+        }
+
+        .prefs-alert.error {
+            background: #fef2f2;
+            color: #991b1b;
+            display: block;
+        }
+
         /* Check-in Section */
         .checkin-section {
             background: white;
@@ -1216,6 +1349,43 @@
             </div>
         </div>
 
+        <!-- Notification Preferences Section -->
+        <div class="notification-prefs-section" id="notificationPrefsSection" style="display: none;">
+            <h2>Notification Preferences</h2>
+            <div class="pref-item">
+                <div class="pref-info">
+                    <h4>Check-in Reminders</h4>
+                    <p>Receive reminders to submit your weekly check-in</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="prefRemindersEnabled" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="pref-item">
+                <div class="pref-info">
+                    <h4>Email Reminders</h4>
+                    <p>Receive check-in reminders via email</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="prefEmailReminders" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="pref-item">
+                <div class="pref-info">
+                    <h4>In-App Notifications</h4>
+                    <p>Show reminders in your notification bell</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="prefInappReminders" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <button class="save-prefs-btn" id="savePrefsBtn" onclick="saveNotificationPreferences()">Save Preferences</button>
+            <div class="prefs-alert" id="prefsAlert"></div>
+        </div>
+
         <div class="plans-section">
             <h2>My Meal Plans</h2>
             <div id="plansContainer">
@@ -1496,6 +1666,9 @@
 
             // Load supplement protocols
             await loadProtocols();
+
+            // Load notification preferences
+            await loadNotificationPreferences();
 
             // Load progress photos
             await loadPhotos();
@@ -2782,6 +2955,84 @@
             });
             loadNotifications();
         });
+
+        // =============================================
+        // Notification Preferences Functions
+        // =============================================
+
+        async function loadNotificationPreferences() {
+            try {
+                const response = await fetch(`/.netlify/functions/reminder-settings?clientId=${currentClientId}`);
+                const data = await response.json();
+
+                if (data.needsMigration) {
+                    // Feature not yet available - hide the section
+                    console.log('Notification preferences not yet configured');
+                    return;
+                }
+
+                const prefs = data.preferences;
+                if (prefs) {
+                    document.getElementById('prefRemindersEnabled').checked = prefs.reminders_enabled !== false;
+                    document.getElementById('prefEmailReminders').checked = prefs.email_reminders !== false;
+                    document.getElementById('prefInappReminders').checked = prefs.inapp_reminders !== false;
+                }
+
+                // Show the notification preferences section
+                document.getElementById('notificationPrefsSection').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading notification preferences:', error);
+                // Don't show the section if there's an error - it's not critical
+            }
+        }
+
+        async function saveNotificationPreferences() {
+            const saveBtn = document.getElementById('savePrefsBtn');
+            const alertDiv = document.getElementById('prefsAlert');
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            alertDiv.className = 'prefs-alert';
+            alertDiv.style.display = 'none';
+
+            try {
+                const preferences = {
+                    clientId: currentClientId,
+                    remindersEnabled: document.getElementById('prefRemindersEnabled').checked,
+                    emailReminders: document.getElementById('prefEmailReminders').checked,
+                    inappReminders: document.getElementById('prefInappReminders').checked
+                };
+
+                const response = await fetch('/.netlify/functions/reminder-settings/client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(preferences)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alertDiv.textContent = 'Preferences saved successfully!';
+                    alertDiv.className = 'prefs-alert success';
+                } else {
+                    throw new Error(data.error || 'Failed to save preferences');
+                }
+
+            } catch (error) {
+                console.error('Error saving notification preferences:', error);
+                alertDiv.textContent = error.message || 'Failed to save preferences. Please try again.';
+                alertDiv.className = 'prefs-alert error';
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Preferences';
+
+                // Hide alert after 4 seconds
+                setTimeout(() => {
+                    alertDiv.style.display = 'none';
+                }, 4000);
+            }
+        }
 
         // Initialize on page load
         init();
