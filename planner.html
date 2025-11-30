@@ -3259,6 +3259,13 @@ async function saveCoachPlan(planData, clientName) {
         return false;
     }
 
+    // Use lastPlanQuery if no planData provided (for auto-saves after revisions)
+    if (!planData && lastPlanQuery) {
+        planData = lastPlanQuery;
+        clientName = lastPlanQuery.clientName || clientName;
+        console.log('📝 Auto-save: Using lastPlanQuery for plan data');
+    }
+
     // Check if planData exists
     if (!planData) {
         console.warn('No plan data provided - cannot save');
@@ -3274,13 +3281,14 @@ async function saveCoachPlan(planData, clientName) {
     }
 
     try {
-        console.log('Saving plan to coach history...');
+        console.log('Saving plan to coach history...', planData.planId ? `(updating plan ${planData.planId})` : '(creating new plan)');
 
         const payload = {
             coachId: currentCoach.id,
             clientName: clientName,
             planData: planData,
-            clientId: planData.clientId  // Always include clientId (validated above)
+            clientId: planData.clientId,  // Always include clientId (validated above)
+            planId: planData.planId || null  // Include planId for updates (null for new plans)
         };
 
         const response = await fetch(SAVE_COACH_PLAN_ENDPOINT, {
