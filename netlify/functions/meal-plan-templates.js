@@ -32,13 +32,26 @@ exports.handler = async (event, context) => {
         }
 
         try {
+            // Parse coachId as integer
+            const coachIdInt = parseInt(coachId);
+            if (isNaN(coachIdInt)) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'Invalid Coach ID format' })
+                };
+            }
+
             const { data: templates, error } = await supabase
                 .from('meal_plan_templates')
                 .select('*')
-                .eq('coach_id', coachId)
+                .eq('coach_id', coachIdInt)
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase error:', error);
+                throw error;
+            }
 
             return {
                 statusCode: 200,
@@ -54,7 +67,7 @@ exports.handler = async (event, context) => {
             return {
                 statusCode: 500,
                 headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ error: 'Failed to fetch templates' })
+                body: JSON.stringify({ error: 'Failed to fetch templates', details: error.message })
             };
         }
     }
@@ -73,8 +86,18 @@ exports.handler = async (event, context) => {
                 };
             }
 
+            // Parse coachId as integer
+            const coachIdInt = parseInt(coachId);
+            if (isNaN(coachIdInt)) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'Invalid Coach ID format' })
+                };
+            }
+
             const insertData = {
-                coach_id: coachId,
+                coach_id: coachIdInt,
                 name: name,
                 description: description || null,
                 meals_structure: mealsStructure || null,
@@ -89,7 +112,10 @@ exports.handler = async (event, context) => {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase insert error:', error);
+                throw error;
+            }
 
             return {
                 statusCode: 200,
@@ -109,7 +135,7 @@ exports.handler = async (event, context) => {
             return {
                 statusCode: 500,
                 headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({ error: 'Failed to save template' })
+                body: JSON.stringify({ error: 'Failed to save template', details: error.message })
             };
         }
     }

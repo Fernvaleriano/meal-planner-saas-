@@ -978,6 +978,23 @@
                                 <span class="text-sm" id="calorie-diff"></span>
                             </div>
                         </div>
+                        <!-- Auto-Calculate Helper -->
+                        <div class="mt-3 p-3 rounded-lg bg-white border border-amber-300">
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <span class="text-sm font-semibold text-amber-900">Auto-calculate:</span>
+                                <select id="auto-calc-macro" class="input-field border-amber-400 text-sm py-1 px-2" style="width: auto;">
+                                    <option value="">Select macro to calculate...</option>
+                                    <option value="protein">Calculate Protein</option>
+                                    <option value="carbs">Calculate Carbs</option>
+                                    <option value="fat">Calculate Fat</option>
+                                </select>
+                                <button type="button" id="auto-calc-btn" class="btn text-sm py-1 px-3" style="background: #f59e0b; color: white;">
+                                    🧮 Calculate
+                                </button>
+                                <span id="auto-calc-result" class="text-sm text-amber-700"></span>
+                            </div>
+                            <p class="text-xs text-amber-600 mt-2">Enter calories + 2 macros, then auto-calculate the 3rd to hit your exact calorie target.</p>
+                        </div>
                         <p class="text-xs text-amber-600 mt-2">💡 Tip: These targets will be used instead of the calculated values based on client stats.</p>
                     </div>
                 </div>
@@ -3149,12 +3166,12 @@ function displayDietPlan(multiDayData) {
 
     planHTML += `
         <div class="flex gap-2 mt-4">
-            <button data-action="check-math" class="btn btn-secondary w-full" style="background:#6c757d;">🔍 Check Math</button>
-            <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b;">📋 Meal Prep Guide</button>
-            <button data-action="show-grocery-list" class="btn btn-secondary w-full">📝 Grocery List</button>
-            <button data-action="download-pdf" class="btn btn-primary w-full">📥 Download PDF</button>
-            <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745;">🔗 Share Plan Link</button>
-            <button data-action="save-as-template" class="btn btn-secondary w-full" style="background:#8b5cf6;">📋 Save as Template</button>
+            <button data-action="check-math" class="btn btn-secondary w-full" style="background:#6c757d; color:white;">🔍 Check Math</button>
+            <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b; color:white;">📋 Meal Prep Guide</button>
+            <button data-action="show-grocery-list" class="btn btn-secondary w-full" style="color:white;">📝 Grocery List</button>
+            <button data-action="download-pdf" class="btn btn-primary w-full" style="color:white;">📥 Download PDF</button>
+            <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745; color:white;">🔗 Share Plan Link</button>
+            <button data-action="save-as-template" class="btn btn-secondary w-full" style="background:#8b5cf6; color:white;">📋 Save as Template</button>
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
@@ -3373,10 +3390,17 @@ async function saveCoachPlan(planData, clientName) {
         return false;
     }
 
+    // Check if planData exists
+    if (!planData) {
+        console.warn('No plan data provided - cannot save');
+        return false;
+    }
+
     // Validate that clientId exists and is valid
     if (!planData.clientId || isNaN(planData.clientId) || planData.clientId <= 0) {
         console.error('❌ Cannot save plan: Invalid or missing clientId', planData.clientId);
-        alert('⚠️ Error: Cannot save plan without a valid client selection. Please select a client and try again.');
+        // Don't show alert for auto-saves, just log the warning
+        console.warn('⚠️ Plan not saved: No valid client ID. Select a client to enable saving.');
         return false;
     }
 
@@ -6292,6 +6316,72 @@ function updateMacroValidation() {
 // Add input listeners for live calculation
 ['dp_custom_calories', 'dp_custom_protein', 'dp_custom_carbs', 'dp_custom_fat'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateMacroValidation);
+});
+
+// Auto-calculate macro function
+document.getElementById('auto-calc-btn').addEventListener('click', function() {
+    const calories = parseInt(document.getElementById('dp_custom_calories').value) || 0;
+    const protein = parseInt(document.getElementById('dp_custom_protein').value) || 0;
+    const carbs = parseInt(document.getElementById('dp_custom_carbs').value) || 0;
+    const fat = parseInt(document.getElementById('dp_custom_fat').value) || 0;
+    const calcTarget = document.getElementById('auto-calc-macro').value;
+    const resultSpan = document.getElementById('auto-calc-result');
+
+    if (calories === 0) {
+        resultSpan.textContent = '⚠️ Enter calories first';
+        resultSpan.className = 'text-sm text-red-600';
+        return;
+    }
+
+    if (!calcTarget) {
+        resultSpan.textContent = '⚠️ Select a macro to calculate';
+        resultSpan.className = 'text-sm text-red-600';
+        return;
+    }
+
+    // Calculate remaining calories after known macros
+    let remainingCals = calories;
+    let calculatedValue = 0;
+
+    if (calcTarget === 'protein') {
+        // Calculate protein: remaining cals after carbs & fat
+        remainingCals -= (carbs * 4) + (fat * 9);
+        calculatedValue = Math.round(remainingCals / 4);
+        if (calculatedValue < 0) {
+            resultSpan.textContent = '⚠️ Carbs + Fat exceed calories!';
+            resultSpan.className = 'text-sm text-red-600';
+            return;
+        }
+        document.getElementById('dp_custom_protein').value = calculatedValue;
+        resultSpan.textContent = `✅ Protein set to ${calculatedValue}g`;
+    } else if (calcTarget === 'carbs') {
+        // Calculate carbs: remaining cals after protein & fat
+        remainingCals -= (protein * 4) + (fat * 9);
+        calculatedValue = Math.round(remainingCals / 4);
+        if (calculatedValue < 0) {
+            resultSpan.textContent = '⚠️ Protein + Fat exceed calories!';
+            resultSpan.className = 'text-sm text-red-600';
+            return;
+        }
+        document.getElementById('dp_custom_carbs').value = calculatedValue;
+        resultSpan.textContent = `✅ Carbs set to ${calculatedValue}g`;
+    } else if (calcTarget === 'fat') {
+        // Calculate fat: remaining cals after protein & carbs
+        remainingCals -= (protein * 4) + (carbs * 4);
+        calculatedValue = Math.round(remainingCals / 9);
+        if (calculatedValue < 0) {
+            resultSpan.textContent = '⚠️ Protein + Carbs exceed calories!';
+            resultSpan.className = 'text-sm text-red-600';
+            return;
+        }
+        document.getElementById('dp_custom_fat').value = calculatedValue;
+        resultSpan.textContent = `✅ Fat set to ${calculatedValue}g`;
+    }
+
+    resultSpan.className = 'text-sm text-green-600 font-semibold';
+
+    // Update the validation display
+    updateMacroValidation();
 });
 
 // Template checkbox toggle
