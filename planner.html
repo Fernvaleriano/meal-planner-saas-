@@ -1046,6 +1046,117 @@
             </div>
         </div>
         <div id="diet-plan-result"></div>
+
+        <!-- PROTOCOLS SECTION -->
+        <div id="protocols-section" class="card mt-6" style="display: none;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-purple-700">💊 Supplement Protocol</h3>
+                <button onclick="toggleProtocolsSection()" class="text-gray-500 hover:text-gray-700">
+                    <span id="protocols-toggle-icon">▼</span>
+                </button>
+            </div>
+            <div id="protocols-content">
+                <p class="text-sm text-gray-600 mb-4">Manage supplements and protocols for this client. Scheduled items support cycling with different doses over time.</p>
+
+                <div id="protocols-list" class="space-y-3 mb-4">
+                    <!-- Protocol items will be rendered here -->
+                    <div class="text-center text-gray-500 py-4" id="no-protocols-msg">
+                        No protocols added yet. Click "Add Item" to get started.
+                    </div>
+                </div>
+
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="openProtocolModal()" class="btn" style="background: #7c3aed; color: white;">
+                        ➕ Add Item
+                    </button>
+                    <button onclick="saveProtocolAsTemplate()" class="btn btn-secondary" id="save-protocol-template-btn" style="display: none;">
+                        💾 Save as Template
+                    </button>
+                    <button onclick="loadProtocolTemplate()" class="btn btn-secondary">
+                        📄 Apply Template
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROTOCOL MODAL -->
+    <div id="protocol-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="protocol-modal-title" class="text-xl font-bold text-purple-700">➕ Add Protocol Item</h3>
+                <button onclick="closeProtocolModal()" class="text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Item Name -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Item Name *</label>
+                    <input type="text" id="protocol-name" class="input-field w-full" placeholder="e.g., Creatine, Fish Oil, Test E...">
+                </div>
+
+                <!-- Timing -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Timing</label>
+                    <select id="protocol-timing" class="input-field w-full" onchange="toggleCustomTiming()">
+                        <option value="morning">☀️ Morning</option>
+                        <option value="pre_workout">🏋️ Pre-Workout</option>
+                        <option value="post_workout">💪 Post-Workout</option>
+                        <option value="bedtime">🌙 Before Bed</option>
+                        <option value="with_meals">🍽️ With Meals</option>
+                        <option value="custom">📝 Custom...</option>
+                    </select>
+                    <input type="text" id="protocol-timing-custom" class="input-field w-full mt-2 hidden" placeholder="e.g., 2x per week, Every other day...">
+                </div>
+
+                <!-- Use Schedule Toggle -->
+                <div class="p-3 bg-purple-50 rounded-lg">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="protocol-has-schedule" class="mr-2 h-5 w-5" onchange="toggleScheduleSection()">
+                        <span class="font-semibold text-purple-800">📅 Use Schedule (for cycling/tapering)</span>
+                    </label>
+                    <p class="text-xs text-purple-600 mt-1">Enable this for items that change dose over time</p>
+                </div>
+
+                <!-- Simple Dose (shown when no schedule) -->
+                <div id="simple-dose-section">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Dose</label>
+                    <input type="text" id="protocol-dose" class="input-field w-full" placeholder="e.g., 5g, 200mg, 2 capsules...">
+                </div>
+
+                <!-- Schedule Section (hidden by default) -->
+                <div id="schedule-section" class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Schedule Phases</label>
+                    <div class="mb-2">
+                        <label class="text-xs text-gray-600">Start Date:</label>
+                        <input type="date" id="protocol-start-date" class="input-field w-full">
+                    </div>
+                    <div id="schedule-phases" class="space-y-2">
+                        <!-- Phases will be added here -->
+                    </div>
+                    <button type="button" onclick="addSchedulePhase()" class="btn btn-secondary text-sm mt-2">
+                        ➕ Add Phase
+                    </button>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Notes (visible to client)</label>
+                    <textarea id="protocol-notes" class="input-field w-full" rows="2" placeholder="Instructions, tips, brand recommendations..."></textarea>
+                </div>
+
+                <!-- Private Notes -->
+                <div class="p-3 bg-gray-100 rounded-lg">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">🔒 Private Notes (coach only)</label>
+                    <textarea id="protocol-private-notes" class="input-field w-full" rows="2" placeholder="Notes only you can see..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-6">
+                <button onclick="closeProtocolModal()" class="btn btn-secondary flex-1">Cancel</button>
+                <button onclick="saveProtocolItem()" class="btn flex-1" style="background: #7c3aed; color: white;">Save Item</button>
+            </div>
+        </div>
     </div>
 
     <!-- RECIPE MODAL -->
@@ -6362,6 +6473,370 @@ setTimeout(() => {
         loadTemplatesList();
     }
 }, 1000);
+
+// ============================================
+// PROTOCOLS MANAGEMENT
+// ============================================
+const PROTOCOLS_ENDPOINT = '/.netlify/functions/client-protocols';
+let clientProtocols = [];
+let editingProtocolId = null;
+let schedulePhases = [];
+
+// Show protocols section when client is selected
+function showProtocolsSection() {
+    const clientSelector = document.getElementById('dp_client_selector');
+    const protocolsSection = document.getElementById('protocols-section');
+
+    if (clientSelector.value && clientSelector.value !== '') {
+        protocolsSection.style.display = 'block';
+        loadClientProtocols();
+    } else {
+        protocolsSection.style.display = 'none';
+    }
+}
+
+// Toggle protocols section collapse
+function toggleProtocolsSection() {
+    const content = document.getElementById('protocols-content');
+    const icon = document.getElementById('protocols-toggle-icon');
+
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+
+// Load protocols for current client
+async function loadClientProtocols() {
+    const clientSelector = document.getElementById('dp_client_selector');
+    const clientId = clientSelector.value;
+
+    if (!clientId || !currentCoach) return;
+
+    try {
+        const response = await fetch(`${PROTOCOLS_ENDPOINT}?clientId=${clientId}&coachId=${currentCoach.id}`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        clientProtocols = data.protocols || [];
+        renderProtocolsList();
+
+        // Show/hide save template button
+        document.getElementById('save-protocol-template-btn').style.display =
+            clientProtocols.length > 0 ? 'inline-block' : 'none';
+
+    } catch (error) {
+        console.error('Error loading protocols:', error);
+    }
+}
+
+// Render protocols list
+function renderProtocolsList() {
+    const listDiv = document.getElementById('protocols-list');
+    const noMsg = document.getElementById('no-protocols-msg');
+
+    if (clientProtocols.length === 0) {
+        listDiv.innerHTML = '';
+        listDiv.appendChild(noMsg);
+        noMsg.style.display = 'block';
+        return;
+    }
+
+    noMsg.style.display = 'none';
+
+    const timingIcons = {
+        'morning': '☀️',
+        'pre_workout': '🏋️',
+        'post_workout': '💪',
+        'bedtime': '🌙',
+        'with_meals': '🍽️',
+        'custom': '📝'
+    };
+
+    listDiv.innerHTML = clientProtocols.map(p => {
+        const icon = timingIcons[p.timing] || '💊';
+        const timingText = p.timing === 'custom' ? p.timing_custom : p.timing.replace('_', '-');
+
+        let scheduleHTML = '';
+        if (p.has_schedule && p.schedule && p.schedule.length > 0) {
+            const phases = p.schedule.map((phase, idx) => {
+                const weekRange = `Week ${phase.weekStart}-${phase.weekEnd}`;
+                return `<div class="text-xs text-purple-600 ml-4">• ${weekRange}: ${phase.dose}</div>`;
+            }).join('');
+            scheduleHTML = `<div class="mt-1">${phases}</div>`;
+        }
+
+        const doseText = p.has_schedule ? '📅 Scheduled' : (p.dose || 'No dose specified');
+
+        return `
+            <div class="p-3 bg-white border border-purple-200 rounded-lg shadow-sm">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="font-semibold text-purple-800">${p.name}</div>
+                        <div class="text-sm text-gray-600">${icon} ${timingText} • ${doseText}</div>
+                        ${scheduleHTML}
+                        ${p.notes ? `<div class="text-xs text-gray-500 mt-1">📝 ${p.notes}</div>` : ''}
+                        ${p.private_notes ? `<div class="text-xs text-orange-600 mt-1">🔒 ${p.private_notes}</div>` : ''}
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="editProtocol(${p.id})" class="btn text-xs" style="background: #7c3aed; color: white; padding: 4px 8px;">✏️</button>
+                        <button onclick="deleteProtocol(${p.id})" class="btn text-xs" style="background: #dc2626; color: white; padding: 4px 8px;">🗑️</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Open protocol modal for adding
+function openProtocolModal() {
+    editingProtocolId = null;
+    document.getElementById('protocol-modal-title').textContent = '➕ Add Protocol Item';
+
+    // Reset form
+    document.getElementById('protocol-name').value = '';
+    document.getElementById('protocol-timing').value = 'morning';
+    document.getElementById('protocol-timing-custom').value = '';
+    document.getElementById('protocol-timing-custom').classList.add('hidden');
+    document.getElementById('protocol-dose').value = '';
+    document.getElementById('protocol-has-schedule').checked = false;
+    document.getElementById('protocol-start-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('protocol-notes').value = '';
+    document.getElementById('protocol-private-notes').value = '';
+
+    // Reset schedule
+    schedulePhases = [];
+    document.getElementById('schedule-phases').innerHTML = '';
+    toggleScheduleSection();
+
+    document.getElementById('protocol-modal').classList.remove('hidden');
+}
+
+// Close protocol modal
+function closeProtocolModal() {
+    document.getElementById('protocol-modal').classList.add('hidden');
+    editingProtocolId = null;
+}
+
+// Toggle custom timing input
+function toggleCustomTiming() {
+    const timing = document.getElementById('protocol-timing').value;
+    const customInput = document.getElementById('protocol-timing-custom');
+
+    if (timing === 'custom') {
+        customInput.classList.remove('hidden');
+    } else {
+        customInput.classList.add('hidden');
+    }
+}
+
+// Toggle schedule section
+function toggleScheduleSection() {
+    const hasSchedule = document.getElementById('protocol-has-schedule').checked;
+    const scheduleSection = document.getElementById('schedule-section');
+    const simpleDoseSection = document.getElementById('simple-dose-section');
+
+    if (hasSchedule) {
+        scheduleSection.classList.remove('hidden');
+        simpleDoseSection.classList.add('hidden');
+        // Add first phase if empty
+        if (schedulePhases.length === 0) {
+            addSchedulePhase();
+        }
+    } else {
+        scheduleSection.classList.add('hidden');
+        simpleDoseSection.classList.remove('hidden');
+    }
+}
+
+// Add a schedule phase
+function addSchedulePhase() {
+    const lastPhase = schedulePhases[schedulePhases.length - 1];
+    const newPhase = {
+        weekStart: lastPhase ? lastPhase.weekEnd + 1 : 1,
+        weekEnd: lastPhase ? lastPhase.weekEnd + 4 : 4,
+        dose: ''
+    };
+    schedulePhases.push(newPhase);
+    renderSchedulePhases();
+}
+
+// Remove a schedule phase
+function removeSchedulePhase(index) {
+    schedulePhases.splice(index, 1);
+    renderSchedulePhases();
+}
+
+// Render schedule phases
+function renderSchedulePhases() {
+    const container = document.getElementById('schedule-phases');
+
+    container.innerHTML = schedulePhases.map((phase, idx) => `
+        <div class="flex gap-2 items-center p-2 bg-purple-50 rounded">
+            <span class="text-xs text-gray-600">Week</span>
+            <input type="number" value="${phase.weekStart}" min="1"
+                   onchange="updatePhase(${idx}, 'weekStart', this.value)"
+                   class="input-field w-16 text-center text-sm" style="padding: 4px;">
+            <span class="text-xs text-gray-600">to</span>
+            <input type="number" value="${phase.weekEnd}" min="1"
+                   onchange="updatePhase(${idx}, 'weekEnd', this.value)"
+                   class="input-field w-16 text-center text-sm" style="padding: 4px;">
+            <input type="text" value="${phase.dose}" placeholder="Dose"
+                   onchange="updatePhase(${idx}, 'dose', this.value)"
+                   class="input-field flex-1 text-sm" style="padding: 4px;">
+            ${schedulePhases.length > 1 ? `<button onclick="removeSchedulePhase(${idx})" class="text-red-500 hover:text-red-700">✕</button>` : ''}
+        </div>
+    `).join('');
+}
+
+// Update a phase value
+function updatePhase(index, field, value) {
+    if (field === 'weekStart' || field === 'weekEnd') {
+        schedulePhases[index][field] = parseInt(value) || 1;
+    } else {
+        schedulePhases[index][field] = value;
+    }
+}
+
+// Save protocol item
+async function saveProtocolItem() {
+    const clientSelector = document.getElementById('dp_client_selector');
+    const clientId = clientSelector.value;
+
+    if (!clientId || !currentCoach) {
+        alert('Please select a client first.');
+        return;
+    }
+
+    const name = document.getElementById('protocol-name').value.trim();
+    if (!name) {
+        alert('Please enter an item name.');
+        return;
+    }
+
+    const timing = document.getElementById('protocol-timing').value;
+    const timingCustom = document.getElementById('protocol-timing-custom').value.trim();
+    const hasSchedule = document.getElementById('protocol-has-schedule').checked;
+    const dose = document.getElementById('protocol-dose').value.trim();
+    const startDate = document.getElementById('protocol-start-date').value;
+    const notes = document.getElementById('protocol-notes').value.trim();
+    const privateNotes = document.getElementById('protocol-private-notes').value.trim();
+
+    const payload = {
+        coachId: currentCoach.id,
+        clientId: parseInt(clientId),
+        name,
+        timing,
+        timingCustom: timing === 'custom' ? timingCustom : null,
+        dose: hasSchedule ? null : dose,
+        hasSchedule,
+        schedule: hasSchedule ? schedulePhases : null,
+        startDate: hasSchedule ? startDate : null,
+        notes,
+        privateNotes
+    };
+
+    try {
+        let response;
+        if (editingProtocolId) {
+            payload.protocolId = editingProtocolId;
+            response = await fetch(PROTOCOLS_ENDPOINT, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } else {
+            response = await fetch(PROTOCOLS_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        closeProtocolModal();
+        await loadClientProtocols();
+
+        alert(editingProtocolId ? 'Protocol updated!' : 'Protocol added!');
+
+    } catch (error) {
+        console.error('Error saving protocol:', error);
+        alert('Failed to save protocol: ' + error.message);
+    }
+}
+
+// Edit a protocol
+function editProtocol(protocolId) {
+    const protocol = clientProtocols.find(p => p.id === protocolId);
+    if (!protocol) return;
+
+    editingProtocolId = protocolId;
+    document.getElementById('protocol-modal-title').textContent = '✏️ Edit Protocol Item';
+
+    // Fill form
+    document.getElementById('protocol-name').value = protocol.name || '';
+    document.getElementById('protocol-timing').value = protocol.timing || 'morning';
+    document.getElementById('protocol-timing-custom').value = protocol.timing_custom || '';
+    toggleCustomTiming();
+
+    document.getElementById('protocol-dose').value = protocol.dose || '';
+    document.getElementById('protocol-has-schedule').checked = protocol.has_schedule || false;
+    document.getElementById('protocol-start-date').value = protocol.start_date || new Date().toISOString().split('T')[0];
+    document.getElementById('protocol-notes').value = protocol.notes || '';
+    document.getElementById('protocol-private-notes').value = protocol.private_notes || '';
+
+    // Load schedule phases
+    schedulePhases = protocol.schedule ? [...protocol.schedule] : [];
+    renderSchedulePhases();
+    toggleScheduleSection();
+
+    document.getElementById('protocol-modal').classList.remove('hidden');
+}
+
+// Delete a protocol
+async function deleteProtocol(protocolId) {
+    if (!confirm('Delete this protocol item?')) return;
+
+    try {
+        const response = await fetch(`${PROTOCOLS_ENDPOINT}?protocolId=${protocolId}&coachId=${currentCoach.id}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        await loadClientProtocols();
+        alert('Protocol deleted!');
+
+    } catch (error) {
+        console.error('Error deleting protocol:', error);
+        alert('Failed to delete protocol: ' + error.message);
+    }
+}
+
+// Placeholder for template functions
+function saveProtocolAsTemplate() {
+    alert('Save as Template - Coming soon!');
+}
+
+function loadProtocolTemplate() {
+    alert('Load Template - Coming soon!');
+}
+
+// Add listener to client selector for protocols
+document.getElementById('dp_client_selector').addEventListener('change', showProtocolsSection);
+
+// Show protocols section if client already selected on page load
+setTimeout(() => {
+    showProtocolsSection();
+}, 1500);
 </script>
 </body>
 </html>
