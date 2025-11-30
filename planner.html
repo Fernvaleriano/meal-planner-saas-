@@ -3145,14 +3145,9 @@ function displayDietPlan(multiDayData) {
                     <span style="font-size: 14px; font-weight: 600; color: #92400e;">📝 Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button id="savePlanBtn" data-action="save-plan" class="btn btn-secondary" style="background: #3b82f6; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                        💾 Save Changes
-                    </button>
-                    <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                        ✅ Submit to Client
-                    </button>
-                </div>
+                <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                    ✅ Submit to Client
+                </button>
             </div>
         </div>
     `;
@@ -6224,7 +6219,7 @@ document.getElementById('dp_custom_targets').addEventListener('change', function
     const fields = document.getElementById('custom-targets-fields');
     if (this.checked) {
         fields.classList.remove('hidden');
-        updateMacroValidation(); // Calculate on open
+        updateMacroFromPercentages(); // Calculate on open
     } else {
         fields.classList.add('hidden');
     }
