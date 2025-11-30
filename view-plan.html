@@ -180,6 +180,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-edit {
+            background: #0d9488;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #0f766e;
+            transform: translateY(-2px);
+        }
+
         .portions-dropdown {
             position: absolute;
             background: white;
@@ -3020,12 +3030,18 @@
             // Build portions param - same pattern as change/revise
             const portionsParam = dayIndex !== null ? `event, '${index}', ${dayIndex}, ${mealIndex}` : `event, ${index}`;
 
+            // Edit button for custom meals only
+            const editButton = meal.isCustom
+                ? `<button class="btn btn-edit" onclick="editCustomMeal(${changeParam})" title="Edit this custom meal">✎ Edit</button>`
+                : '';
+
             let actionButtons = `
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
                 <button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>
                 <button class="btn btn-portions" onclick="showPortionsDropdown(${portionsParam})" title="Adjust serving size">⚖️ Portions</button>
                 <button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>
+                ${editButton}
                 ${undoButton}
             `;
 
@@ -3652,6 +3668,36 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
         // CUSTOM MEAL - Opens modal for custom meal creation
         function customMeal(index, dayIndex = null, mealIndex = null) {
             openCustomMealModal(index, dayIndex, mealIndex);
+        }
+
+        // EDIT CUSTOM MEAL - Opens modal pre-populated with existing meal data
+        function editCustomMeal(index, dayIndex = null, mealIndex = null) {
+            // Get the existing meal data
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else {
+                meal = currentPlan.meals[index];
+            }
+
+            if (!meal) {
+                console.error('Could not find meal to edit');
+                return;
+            }
+
+            // Open the modal first (this sets up the indices)
+            openCustomMealModal(index, dayIndex, mealIndex);
+
+            // Switch to the manual tab (since we have aggregated macros, not individual ingredients)
+            switchCustomMealTab('manual');
+
+            // Pre-populate the manual panel fields with existing meal data
+            document.getElementById('customMealName').value = meal.name || '';
+            document.getElementById('customMealCalories').value = meal.calories || '';
+            document.getElementById('customMealProtein').value = meal.protein || '';
+            document.getElementById('customMealCarbs').value = meal.carbs || '';
+            document.getElementById('customMealFat').value = meal.fat || '';
+            document.getElementById('customMealInstructions').value = meal.instructions || '';
         }
 
         async function changeMeal(index, dayIndex = null, mealIndex = null) {
