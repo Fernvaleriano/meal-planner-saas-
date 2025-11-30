@@ -41,9 +41,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { coachId, clientName, planData, clientId } = JSON.parse(event.body);
+    const { coachId, clientName, planData, clientId, planId } = JSON.parse(event.body);
 
-    console.log('📝 Saving plan for coach:', coachId, 'client:', clientName, 'clientId:', clientId);
+    console.log('📝 Saving plan for coach:', coachId, 'client:', clientName, 'clientId:', clientId, 'planId:', planId);
 
     if (!coachId || !planData) {
       return {
@@ -56,38 +56,79 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Prepare insert data (status column may not exist in older schemas)
-    const insertData = {
-      coach_id: coachId,
-      client_name: clientName || 'Unnamed Client',
-      plan_data: planData,
-      status: 'draft', // Plans start as draft until coach submits to client
-      created_at: new Date().toISOString()
-    };
+    let data, error;
 
-    // Add client_id if provided
-    if (clientId) {
-      insertData.client_id = clientId;
-    }
+    // If planId exists, UPDATE the existing plan instead of creating a new one
+    if (planId) {
+      console.log('📝 Updating existing plan:', planId);
 
-    // Try to insert with status column first
-    let { data, error } = await supabase
-      .from('coach_meal_plans')
-      .insert([insertData])
-      .select()
-      .single();
+      const updateData = {
+        plan_data: planData,
+        client_name: clientName || 'Unnamed Client',
+        updated_at: new Date().toISOString()
+      };
 
-    // If error mentions status column doesn't exist, retry without it
-    if (error && (error.message.includes('status') || error.code === '42703')) {
-      console.log('⚠️ Status column not found, retrying without it...');
-      delete insertData.status;
-      const retryResult = await supabase
+      // Add client_id if provided
+      if (clientId) {
+        updateData.client_id = clientId;
+      }
+
+      const result = await supabase
+        .from('coach_meal_plans')
+        .update(updateData)
+        .eq('id', planId)
+        .eq('coach_id', coachId) // Ensure coach owns this plan
+        .select()
+        .single();
+
+      data = result.data;
+      error = result.error;
+
+      if (error) {
+        console.error('❌ Update error:', error);
+      } else {
+        console.log('✅ Plan updated successfully:', planId);
+      }
+    } else {
+      // No planId - INSERT a new plan
+      console.log('📝 Creating new plan');
+
+      // Prepare insert data (status column may not exist in older schemas)
+      const insertData = {
+        coach_id: coachId,
+        client_name: clientName || 'Unnamed Client',
+        plan_data: planData,
+        status: 'draft', // Plans start as draft until coach submits to client
+        created_at: new Date().toISOString()
+      };
+
+      // Add client_id if provided
+      if (clientId) {
+        insertData.client_id = clientId;
+      }
+
+      // Try to insert with status column first
+      let result = await supabase
         .from('coach_meal_plans')
         .insert([insertData])
         .select()
         .single();
-      data = retryResult.data;
-      error = retryResult.error;
+
+      data = result.data;
+      error = result.error;
+
+      // If error mentions status column doesn't exist, retry without it
+      if (error && (error.message.includes('status') || error.code === '42703')) {
+        console.log('⚠️ Status column not found, retrying without it...');
+        delete insertData.status;
+        const retryResult = await supabase
+          .from('coach_meal_plans')
+          .insert([insertData])
+          .select()
+          .single();
+        data = retryResult.data;
+        error = retryResult.error;
+      }
     }
 
     if (error) {
