@@ -294,6 +294,50 @@
             padding: 1.5rem;
             border-radius: 0.75rem;
             margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .meal-card-image {
+            width: 120px;
+            height: 120px;
+            min-width: 120px;
+            border-radius: 0.5rem;
+            object-fit: cover;
+            background: #f3f4f6;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .meal-card-image:hover {
+            transform: scale(1.05);
+        }
+
+        .meal-card-image.loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        .meal-card-image-placeholder {
+            width: 120px;
+            height: 120px;
+            min-width: 120px;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        .meal-card-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .meal-card .text-blue-700 {
@@ -303,6 +347,27 @@
             font-size: 1.25rem;
             font-weight: 600;
             line-height: 1.4;
+        }
+
+        /* Image modal */
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: pointer;
+        }
+
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 0.5rem;
         }
 
         .day-divider {
@@ -3005,29 +3070,41 @@ function displayDietPlan(multiDayData) {
                     ? `<button data-action="edit-custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-edit text-xs flex-1" title="Edit this custom meal">✎ Edit</button>`
                     : `<button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">✏️ Revise</button>`;
 
+                // Generate unique ID for this meal's image
+                const mealImageId = `meal-img-${dayIndex}-${mealIndex}`;
+                const escapedMealName = meal.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
                 planHTML += `
                 <div class="meal-card">
-                    <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
-                    <p class="text-blue-700">${meal.name}</p>
-                    <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 my-2">
-                        <span>${meal.calories} cal</span>
-                        <span>${meal.protein}g P</span>
-                        <span>${meal.carbs}g C</span>
-                        <span>${meal.fat}g F</span>
+                    <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${escapedMealName}" onclick="showMealImageLarge(this)">
+                        🍽️
                     </div>
-                    <div class="flex gap-2 mt-2">
-                        <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
-                        ${editOrReviseButton}
-                        <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
-                        <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
-                        ${undoButton}
-                    </div>
-                    <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span style="font-weight: 600; color: #92400e; font-size: 11px;">📝 Note for Client:</span>
-                            <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 3px 10px; font-size: 10px; border-radius: 4px;">Save</button>
+                    <div class="meal-card-content">
+                        <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
+                        <p class="text-blue-700">${meal.name}</p>
+                        <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 my-2">
+                            <span>${meal.calories} cal</span>
+                            <span>${meal.protein}g P</span>
+                            <span>${meal.carbs}g C</span>
+                            <span>${meal.fat}g F</span>
                         </div>
-                        <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical;" placeholder="Add a note about this meal...">${existingNote}</textarea>
+                        <div class="flex gap-2 mt-2 flex-wrap">
+                            <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
+                            ${editOrReviseButton}
+                            <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
+                            <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
+                            ${undoButton}
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" class="btn text-xs" style="background: #8b5cf6; color: white;">📷 Generate Image</button>
+                        </div>
+                        <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-weight: 600; color: #92400e; font-size: 11px;">📝 Note for Client:</span>
+                                <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 3px 10px; font-size: 10px; border-radius: 4px;">Save</button>
+                            </div>
+                            <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical;" placeholder="Add a note about this meal...">${existingNote}</textarea>
+                        </div>
                     </div>
                 </div>`;
             }
@@ -6372,6 +6449,146 @@ setTimeout(() => {
         loadTemplatesList();
     }
 }, 1000);
+
+// ============================================
+// MEAL IMAGE GENERATION
+// ============================================
+const MEAL_IMAGE_ENDPOINT = '/.netlify/functions/meal-image';
+
+// Cache for meal images to avoid repeated API calls
+const mealImageCache = {};
+
+// Fetch or generate meal image
+async function fetchMealImage(mealName, imageElementId) {
+    const imageContainer = document.getElementById(imageElementId);
+    if (!imageContainer) return;
+
+    // Check cache first
+    if (mealImageCache[mealName]) {
+        updateImageElement(imageContainer, mealImageCache[mealName], mealName);
+        return;
+    }
+
+    // Show loading state
+    imageContainer.innerHTML = '⏳';
+    imageContainer.classList.add('loading');
+
+    try {
+        // First check if image exists
+        const checkResponse = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
+        const checkData = await checkResponse.json();
+
+        if (checkData.exists && checkData.imageUrl) {
+            mealImageCache[mealName] = checkData.imageUrl;
+            updateImageElement(imageContainer, checkData.imageUrl, mealName);
+            return;
+        }
+
+        // Image doesn't exist, generate it
+        const generateResponse = await fetch(MEAL_IMAGE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mealName })
+        });
+
+        const generateData = await generateResponse.json();
+
+        if (generateData.success && generateData.imageUrl) {
+            mealImageCache[mealName] = generateData.imageUrl;
+            updateImageElement(imageContainer, generateData.imageUrl, mealName);
+        } else {
+            throw new Error(generateData.error || 'Failed to generate image');
+        }
+    } catch (error) {
+        console.error('Error fetching meal image:', error);
+        imageContainer.classList.remove('loading');
+        imageContainer.innerHTML = '🍽️';
+    }
+}
+
+// Update image element with the loaded image
+function updateImageElement(container, imageUrl, mealName) {
+    container.classList.remove('loading');
+    container.classList.remove('meal-card-image-placeholder');
+
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = mealName;
+    img.className = 'meal-card-image';
+    img.onclick = () => showMealImageLarge({ src: imageUrl, alt: mealName });
+
+    container.replaceWith(img);
+    img.id = container.id;
+    img.dataset.mealName = mealName;
+}
+
+// Show large image in modal
+function showMealImageLarge(element) {
+    const imageUrl = element.src || element.dataset?.imageUrl;
+    const mealName = element.alt || element.dataset?.mealName || 'Meal';
+
+    if (!imageUrl || imageUrl.includes('undefined')) {
+        // No image yet, prompt to generate
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'image-modal';
+    modal.innerHTML = `<img src="${imageUrl}" alt="${mealName}">`;
+    modal.onclick = () => modal.remove();
+
+    document.body.appendChild(modal);
+}
+
+// Handle generate image button click
+document.addEventListener('click', async (e) => {
+    if (e.target.matches('[data-action="generate-meal-image"]')) {
+        const button = e.target;
+        const imageId = button.dataset.imageId;
+        const mealName = button.dataset.mealName;
+
+        // Disable button and show loading
+        button.disabled = true;
+        button.textContent = '⏳ Generating...';
+
+        await fetchMealImage(mealName, imageId);
+
+        // Re-enable button
+        button.disabled = false;
+        button.textContent = '📷 Generate Image';
+    }
+});
+
+// Auto-load cached images when displaying plan
+async function loadCachedMealImages() {
+    const imageContainers = document.querySelectorAll('.meal-card-image-placeholder[data-meal-name]');
+
+    for (const container of imageContainers) {
+        const mealName = container.dataset.mealName;
+        if (!mealName) continue;
+
+        // Check if image exists (don't generate, just load cached)
+        try {
+            const response = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
+            const data = await response.json();
+
+            if (data.exists && data.imageUrl) {
+                mealImageCache[mealName] = data.imageUrl;
+                updateImageElement(container, data.imageUrl, mealName);
+            }
+        } catch (error) {
+            console.log('No cached image for:', mealName);
+        }
+    }
+}
+
+// Load cached images after plan is displayed
+const originalDisplayDietPlan = displayDietPlan;
+displayDietPlan = function(multiDayData) {
+    originalDisplayDietPlan(multiDayData);
+    // Delay to allow DOM to update
+    setTimeout(loadCachedMealImages, 500);
+};
 </script>
 </body>
 </html>
