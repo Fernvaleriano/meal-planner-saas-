@@ -69,7 +69,7 @@ async function generateMealImage(mealName) {
     },
     body: JSON.stringify({
       model: 'dall-e-3',
-      prompt: `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish - NOT separate ingredients. The meal should look like something served at a healthy restaurant. Beautiful presentation on a clean plate. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, labels, or watermarks.`,
+      prompt: `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish - NOT separate ingredients. The meal should look like something served at a healthy restaurant. Beautiful presentation on a clean plate. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. IMPORTANT: Do NOT include any text, words, letters, numbers, labels, watermarks, or writing of any kind in the image. Pure food photography only.`,
       n: 1,
       size: '1024x1024',
       quality: 'standard'

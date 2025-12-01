@@ -95,6 +95,34 @@
             border-radius: 15px;
             margin-bottom: 25px;
             border: 2px solid #e0e7ff;
+            display: flex;
+            gap: 20px;
+        }
+
+        .meal-card-image {
+            width: 140px;
+            height: 140px;
+            min-width: 140px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: #e0e7ff;
+        }
+
+        .meal-card-image-placeholder {
+            width: 140px;
+            height: 140px;
+            min-width: 140px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        .meal-card-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .meal-header {
@@ -102,6 +130,16 @@
             flex-direction: column;
             margin-bottom: 20px;
             gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .meal-card {
+                flex-direction: column;
+            }
+            .meal-card-image, .meal-card-image-placeholder {
+                width: 100%;
+                height: 200px;
+            }
         }
 
         .meal-name {
@@ -3233,36 +3271,44 @@
                 ${undoButton}
             `;
 
+            // Generate unique ID for meal image
+            const mealImageId = `meal-img-${dayIndex !== null ? dayIndex + '-' + mealIndex : index}`;
+
             card.innerHTML = `
-                <div class="meal-header">
-                    <div class="meal-name">${meal.name}</div>
-                    <div class="meal-actions">
-                        ${actionButtons}
-                    </div>
+                <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${escapedMealName}">
+                    🍽️
                 </div>
-                <div class="macro-grid">
-                    <div class="macro-item">
-                        <div class="macro-label">Calories</div>
-                        <div class="macro-value">${meal.calories}</div>
+                <div class="meal-card-content">
+                    <div class="meal-header">
+                        <div class="meal-name">${meal.name}</div>
+                        <div class="meal-actions">
+                            ${actionButtons}
+                        </div>
                     </div>
-                    <div class="macro-item">
-                        <div class="macro-label">Protein</div>
-                        <div class="macro-value">${meal.protein}g</div>
+                    <div class="macro-grid">
+                        <div class="macro-item">
+                            <div class="macro-label">Calories</div>
+                            <div class="macro-value">${meal.calories}</div>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-label">Protein</div>
+                            <div class="macro-value">${meal.protein}g</div>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-label">Carbs</div>
+                            <div class="macro-value">${meal.carbs}g</div>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-label">Fat</div>
+                            <div class="macro-value">${meal.fat}g</div>
+                        </div>
                     </div>
-                    <div class="macro-item">
-                        <div class="macro-label">Carbs</div>
-                        <div class="macro-value">${meal.carbs}g</div>
+                    <div class="instructions">
+                        <span class="instructions-label">📝 Instructions:</span>
+                        ${meal.instructions}
                     </div>
-                    <div class="macro-item">
-                        <div class="macro-label">Fat</div>
-                        <div class="macro-value">${meal.fat}g</div>
-                    </div>
+                    ${notesSection}
                 </div>
-                <div class="instructions">
-                    <span class="instructions-label">📝 Instructions:</span>
-                    ${meal.instructions}
-                </div>
-                ${notesSection}
             `;
             return card;
         }
@@ -5622,6 +5668,55 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 icon.textContent = '▶';
             }
         }
+
+        // ============================================
+        // MEAL IMAGE LOADING
+        // ============================================
+        const MEAL_IMAGE_ENDPOINT = '/.netlify/functions/meal-image';
+
+        // Load cached meal images
+        async function loadCachedMealImages() {
+            console.log('🖼️ Loading cached meal images...');
+            const imageContainers = document.querySelectorAll('.meal-card-image-placeholder[data-meal-name]');
+            console.log(`Found ${imageContainers.length} meals to check for cached images`);
+
+            if (imageContainers.length === 0) return;
+
+            // Load all images in parallel
+            const promises = Array.from(imageContainers).map(async (container) => {
+                const mealName = container.dataset.mealName;
+                if (!mealName) return;
+
+                try {
+                    const response = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
+                    const data = await response.json();
+
+                    if (data.exists && data.imageUrl) {
+                        console.log('✅ Found cached image for:', mealName);
+                        const currentContainer = document.getElementById(container.id);
+                        if (currentContainer && currentContainer.classList.contains('meal-card-image-placeholder')) {
+                            const img = document.createElement('img');
+                            img.src = data.imageUrl;
+                            img.alt = mealName;
+                            img.className = 'meal-card-image';
+                            currentContainer.replaceWith(img);
+                        }
+                    }
+                } catch (error) {
+                    console.log('No cached image for:', mealName);
+                }
+            });
+
+            await Promise.all(promises);
+            console.log('🖼️ Finished loading cached images');
+        }
+
+        // Load images after plan is displayed
+        const originalDisplayMealPlan = displayMealPlan;
+        displayMealPlan = function() {
+            originalDisplayMealPlan();
+            setTimeout(loadCachedMealImages, 800);
+        };
     </script>
 </body>
 </html>
