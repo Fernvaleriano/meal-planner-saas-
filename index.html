@@ -4,154 +4,380 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coach Login - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
             display: flex;
+            background: var(--gray-50);
+        }
+
+        /* Left Panel - Branding */
+        .brand-panel {
+            flex: 1;
+            background: var(--brand-gradient);
+            display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .login-container {
+
+        .brand-panel::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, 20px); }
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            color: white;
+            max-width: 480px;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .brand-logo-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .brand-logo-text {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .brand-tagline {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            letter-spacing: -0.025em;
+        }
+
+        .brand-description {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            line-height: 1.7;
+            margin-bottom: 48px;
+        }
+
+        .brand-features {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            text-align: left;
+        }
+
+        .brand-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        .brand-feature-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        /* Right Panel - Login Form */
+        .login-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
             background: white;
-            border-radius: 12px;
-            padding: 40px;
+        }
+
+        .login-container {
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
+
+        .login-header {
+            margin-bottom: 40px;
         }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
+
+        .login-header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            letter-spacing: -0.025em;
         }
-        
+
+        .login-header p {
+            color: var(--gray-500);
+            font-size: 1rem;
+        }
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
+            color: var(--gray-700);
+            font-weight: 600;
+            font-size: 0.875rem;
         }
-        
+
         input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 14px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: var(--gray-50);
         }
-        
+
+        input:hover {
+            border-color: var(--gray-300);
+        }
+
         input:focus {
             outline: none;
-            border-color: #0d9488;
+            border-color: var(--brand-primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1);
         }
-        
+
+        input::placeholder {
+            color: var(--gray-400);
+        }
+
         button {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            padding: 16px;
+            background: var(--brand-gradient);
             color: white;
             border: none;
-            border-radius: 6px;
-            font-size: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
         }
-        
+
         button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
         }
-        
+
         button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
-        
+
         .message {
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 0.875rem;
             display: none;
+            font-weight: 500;
         }
-        
+
         .message.error {
-            background: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
         }
-        
+
         .message.success {
-            background: #efe;
-            color: #3c3;
-            border: 1px solid #cfc;
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
         }
-        
+
         .signup-link {
             text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666;
+            margin-top: 32px;
+            font-size: 0.9375rem;
+            color: var(--gray-500);
         }
-        
+
         .signup-link a {
-            color: #0d9488;
+            color: var(--brand-primary);
             text-decoration: none;
             font-weight: 600;
+            transition: color 0.2s;
         }
-        
+
         .signup-link a:hover {
-            text-decoration: underline;
+            color: #0f766e;
+        }
+
+        .client-login-link {
+            text-align: center;
+            margin-top: 16px;
+            padding-top: 24px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .client-login-link a {
+            color: var(--gray-500);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .client-login-link a:hover {
+            color: var(--brand-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .brand-panel {
+                display: none;
+            }
+
+            .login-panel {
+                padding: 40px 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-header h1 {
+                font-size: 1.75rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h1>Coach Login</h1>
-        <p class="subtitle">Sign in to access your meal planner dashboard</p>
-        
-        <div id="message" class="message"></div>
-        
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required autocomplete="email">
+    <!-- Left Panel - Branding -->
+    <div class="brand-panel">
+        <div class="brand-content">
+            <div class="brand-logo">
+                <div class="brand-logo-icon">Z</div>
+                <span class="brand-logo-text">Zique Fitness</span>
             </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required autocomplete="current-password">
+            <h2 class="brand-tagline">Transform Your Coaching Business</h2>
+            <p class="brand-description">
+                The all-in-one platform for nutrition coaches. Create personalized meal plans,
+                track client progress, and grow your business with AI-powered tools.
+            </p>
+            <div class="brand-features">
+                <div class="brand-feature">
+                    <div class="brand-feature-icon">+</div>
+                    <span>AI-Powered Meal Plan Generation</span>
+                </div>
+                <div class="brand-feature">
+                    <div class="brand-feature-icon">+</div>
+                    <span>Client Progress Tracking</span>
+                </div>
+                <div class="brand-feature">
+                    <div class="brand-feature-icon">+</div>
+                    <span>Automated Check-in Reminders</span>
+                </div>
+                <div class="brand-feature">
+                    <div class="brand-feature-icon">+</div>
+                    <span>Supplement Protocol Management</span>
+                </div>
             </div>
-            
-            <button type="submit" id="loginBtn">Sign In</button>
-        </form>
-        
-        <div class="signup-link">
-            Don't have an account? <a href="signup.html">Create one for testing</a>
+        </div>
+    </div>
+
+    <!-- Right Panel - Login Form -->
+    <div class="login-panel">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>Welcome back</h1>
+                <p>Sign in to your coach dashboard</p>
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" id="loginBtn">Sign In</button>
+            </form>
+
+            <div class="signup-link">
+                Don't have an account? <a href="signup.html">Create one</a>
+            </div>
+
+            <div class="client-login-link">
+                <a href="client-login.html">Client? Sign in here</a>
+            </div>
         </div>
     </div>
 
@@ -160,56 +386,56 @@
         // Initialize Supabase client
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
-        
+
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
+
         const loginForm = document.getElementById('loginForm');
         const loginBtn = document.getElementById('loginBtn');
         const messageDiv = document.getElementById('message');
-        
+
         function showMessage(text, type) {
             messageDiv.textContent = text;
             messageDiv.className = `message ${type}`;
             messageDiv.style.display = 'block';
         }
-        
+
         function hideMessage() {
             messageDiv.style.display = 'none';
         }
-        
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             hideMessage();
-            
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
+
             loginBtn.disabled = true;
             loginBtn.textContent = 'Signing in...';
-            
+
             try {
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
-                
+
                 if (error) throw error;
-                
+
                 showMessage('Login successful! Redirecting...', 'success');
-                
+
                 // Redirect to dashboard after 1 second
                 setTimeout(() => {
                     window.location.href = 'dashboard.html';
                 }, 1000);
-                
+
             } catch (error) {
                 showMessage(error.message, 'error');
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Sign In';
             }
         });
-        
+
         // Check if user is already logged in
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
             if (session) {

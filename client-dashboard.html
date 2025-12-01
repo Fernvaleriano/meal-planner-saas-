@@ -3,12 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Meal Plans - Zique Fitness Nutrition</title>
+    <title>My Dashboard - Zique Fitness Nutrition</title>
     <!-- Prevent caching to avoid stale data on back navigation -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -16,45 +39,101 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #f6f8fb 0%, #e9f0f5 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
             min-height: 100vh;
-            padding: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
-        .header {
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        /* Top Navigation Bar */
+        .top-nav {
+            background: var(--brand-gradient);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             color: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+            text-decoration: none;
         }
 
-        .header h1 {
-            font-size: 32px;
+        .nav-logo {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 32px 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Welcome Header */
+        .welcome-header {
+            margin-bottom: 32px;
+        }
+
+        .welcome-header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            letter-spacing: -0.025em;
             margin-bottom: 8px;
         }
 
-        .header p {
-            font-size: 16px;
-            opacity: 0.95;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
+        .welcome-header p {
+            font-size: 1rem;
+            color: var(--gray-500);
         }
 
         .btn {
             padding: 10px 20px;
-            border-radius: 6px;
+            border-radius: 10px;
             border: none;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.2s;
+            font-family: inherit;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn:hover {
@@ -67,23 +146,60 @@
             border: 1px solid rgba(255,255,255,0.3);
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Section Cards */
+        .section-card {
+            background: white;
+            padding: 28px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
+        }
+
+        .section-title {
+            color: var(--gray-900);
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--brand-gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
         }
 
         .profile-section {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .profile-section h2 {
-            color: #2d3748;
-            margin-bottom: 16px;
-            font-size: 20px;
+            color: var(--gray-900);
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .profile-grid {
@@ -93,89 +209,116 @@
         }
 
         .profile-item {
-            padding: 12px;
-            background: #f7fafc;
-            border-radius: 8px;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            border: 1px solid var(--gray-100);
         }
 
         .profile-item label {
             display: block;
-            font-size: 12px;
-            color: #718096;
-            margin-bottom: 4px;
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-bottom: 6px;
             font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .profile-item .value {
-            font-size: 16px;
-            color: #2d3748;
+            font-size: 1rem;
+            color: var(--gray-800);
+            font-weight: 600;
         }
 
         .plans-section {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .plans-section h2 {
-            color: #2d3748;
-            margin-bottom: 20px;
-            font-size: 20px;
+            color: var(--gray-900);
+            margin-bottom: 24px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .plans-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
         }
 
         .plan-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 20px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: 24px;
             transition: all 0.3s;
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--brand-gradient);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
         .plan-card:hover {
-            border-color: #0d9488;
-            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
-            transform: translateY(-2px);
+            border-color: var(--brand-primary);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .plan-card:hover::before {
+            opacity: 1;
         }
 
         .plan-header {
             display: flex;
             justify-content: space-between;
             align-items: start;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
 
         .plan-title {
-            font-weight: 600;
-            color: #0d9488;
-            font-size: 16px;
+            font-weight: 700;
+            color: var(--brand-primary);
+            font-size: 1.1rem;
             margin-bottom: 4px;
         }
 
         .plan-date {
             font-size: 13px;
-            color: #718096;
+            color: var(--gray-500);
         }
 
         .plan-details {
-            background: #f7fafc;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 12px;
+            background: var(--gray-50);
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--gray-100);
         }
 
         .plan-detail-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             font-size: 14px;
         }
 
@@ -184,46 +327,48 @@
         }
 
         .plan-detail-label {
-            color: #718096;
+            color: var(--gray-500);
         }
 
         .plan-detail-value {
-            color: #2d3748;
+            color: var(--gray-800);
             font-weight: 600;
         }
 
         .plan-summary {
             font-size: 13px;
-            color: #4a5568;
-            padding: 10px 12px;
-            background: linear-gradient(135deg, #f0fdfa 0%, #e6fffa 100%);
-            border-left: 3px solid #0d9488;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            line-height: 1.4;
+            color: var(--gray-600);
+            padding: 12px 14px;
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(2, 132, 199, 0.08) 100%);
+            border-left: 3px solid var(--brand-primary);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            line-height: 1.5;
         }
 
         .view-btn {
             width: 100%;
-            padding: 10px;
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            padding: 12px;
+            background: var(--brand-gradient);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
         }
 
         .view-btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
         }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #718096;
+            color: var(--gray-500);
         }
 
         .empty-state-icon {
@@ -232,9 +377,10 @@
         }
 
         .empty-state h3 {
-            font-size: 20px;
+            font-size: 1.25rem;
             margin-bottom: 8px;
-            color: #2d3748;
+            color: var(--gray-800);
+            font-weight: 700;
         }
 
         .empty-state p {
@@ -244,12 +390,12 @@
         .loading {
             text-align: center;
             padding: 40px;
-            color: #718096;
+            color: var(--gray-500);
         }
 
         .spinner {
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #0d9488;
+            border: 3px solid var(--gray-200);
+            border-top: 3px solid var(--brand-primary);
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -265,43 +411,54 @@
         /* Supplement Protocol Section */
         .protocols-section {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .protocols-section h2 {
-            color: #2d3748;
-            margin-bottom: 20px;
-            font-size: 20px;
+            color: var(--gray-900);
+            margin-bottom: 24px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .protocol-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-left: 4px solid #0d9488;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-left: 4px solid var(--brand-primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+
+        .protocol-card:hover {
+            box-shadow: var(--shadow-sm);
+            border-left-width: 6px;
         }
 
         .protocol-name {
-            font-weight: 600;
-            color: #0d9488;
-            font-size: 16px;
-            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--brand-primary);
+            font-size: 1rem;
+            margin-bottom: 10px;
         }
 
         .protocol-timing {
             font-size: 14px;
-            color: #4a5568;
+            color: var(--gray-600);
             margin-bottom: 4px;
         }
 
         .protocol-schedule {
             margin: 8px 0 8px 20px;
-            color: #0d9488;
+            color: var(--brand-primary);
             font-size: 14px;
         }
 
@@ -310,18 +467,19 @@
         }
 
         .protocol-notes {
-            background: #e0f2fe;
-            padding: 10px 12px;
-            border-radius: 6px;
+            background: rgba(2, 132, 199, 0.1);
+            padding: 12px 14px;
+            border-radius: 10px;
             font-size: 13px;
-            color: #0369a1;
-            margin-top: 10px;
+            color: var(--brand-secondary);
+            margin-top: 12px;
+            border: 1px solid rgba(2, 132, 199, 0.2);
         }
 
         .no-protocols {
             text-align: center;
             padding: 40px 20px;
-            color: #718096;
+            color: var(--gray-500);
         }
 
         .no-protocols-icon {
@@ -332,28 +490,37 @@
         /* Progress Photos Section */
         .photos-section {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            margin-top: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+            border-radius: 16px;
+            margin-top: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .photos-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .photos-title {
-            font-size: 20px;
+            font-size: 1.25rem;
             font-weight: 700;
-            color: #2d3748;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            background: var(--brand-gradient);
             color: white;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
         }
 
         .photo-carousel-wrapper {
@@ -581,43 +748,53 @@
         /* Measurements Section */
         .measurements-section {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            margin-top: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+            border-radius: 16px;
+            margin-top: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .measurements-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .measurements-title {
-            font-size: 20px;
+            font-size: 1.25rem;
             font-weight: 700;
-            color: #2d3748;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .measurement-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            padding: 16px;
-            border-radius: 10px;
+            background: var(--gray-50);
+            padding: 20px;
+            border-radius: 14px;
             text-align: center;
+            border: 1px solid var(--gray-100);
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-sm);
         }
 
         .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2d3748;
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--gray-800);
         }
 
         .stat-value.positive {
@@ -625,13 +802,16 @@
         }
 
         .stat-value.negative {
-            color: #38a169;
+            color: #16a34a;
         }
 
         .stat-label {
             font-size: 12px;
-            color: #718096;
-            margin-top: 4px;
+            color: var(--gray-500);
+            margin-top: 6px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .measurements-layout {
@@ -780,27 +960,29 @@
         /* Notification Preferences Section */
         .notification-prefs-section {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .notification-prefs-section h2 {
-            color: #2d3748;
-            margin-bottom: 16px;
-            font-size: 20px;
+            color: var(--gray-900);
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .pref-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 0;
-            border-bottom: 1px solid #f1f5f9;
+            padding: 18px 0;
+            border-bottom: 1px solid var(--gray-100);
         }
 
         .pref-item:last-child {
@@ -810,13 +992,13 @@
         .pref-info h4 {
             font-size: 15px;
             font-weight: 600;
-            color: #2d3748;
+            color: var(--gray-800);
             margin: 0 0 4px 0;
         }
 
         .pref-info p {
             font-size: 13px;
-            color: #718096;
+            color: var(--gray-500);
             margin: 0;
         }
 
@@ -913,23 +1095,27 @@
         /* Check-in Section */
         .checkin-section {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            margin-top: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+            border-radius: 16px;
+            margin-top: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .checkin-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .checkin-title {
-            font-size: 20px;
+            font-size: 1.25rem;
             font-weight: 700;
-            color: #2d3748;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .checkin-streak {
@@ -937,24 +1123,27 @@
             align-items: center;
             gap: 8px;
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 10px 18px;
+            border-radius: 25px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             color: #92400e;
+            border: 1px solid rgba(146, 64, 14, 0.2);
         }
 
         .checkin-form {
-            background: #f7fafc;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            background: var(--gray-50);
+            padding: 24px;
+            border-radius: 14px;
+            margin-bottom: 24px;
+            border: 1px solid var(--gray-100);
         }
 
         .checkin-form h4 {
-            margin: 0 0 15px 0;
-            color: #4a5568;
+            margin: 0 0 20px 0;
+            color: var(--gray-700);
             font-size: 14px;
+            font-weight: 600;
         }
 
         .rating-group {
@@ -1295,40 +1484,112 @@
             color: #94a3b8;
             font-size: 14px;
         }
+        /* Footer */
+        .site-footer {
+            background: var(--gray-900);
+            color: white;
+            padding: 32px 24px;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--brand-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .footer-text {
+            font-size: 0.875rem;
+            color: var(--gray-400);
+        }
+
+        @media (max-width: 768px) {
+            .top-nav {
+                padding: 12px 16px;
+            }
+
+            .nav-title {
+                display: none;
+            }
+
+            .main-content {
+                padding: 20px 16px;
+            }
+
+            .welcome-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Welcome, <span id="clientName">Client</span>!</h1>
-            <p>View your personalized meal plans created by your coach</p>
-            <div class="header-actions">
-                <a href="client-favorites.html" class="btn btn-secondary" style="display: flex; align-items: center; gap: 6px;">
-                    <span style="color: #fca5a5;">&#x2764;</span> My Favorites
-                </a>
-                <div class="notification-container">
-                    <div class="notification-bell" id="notificationBell">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <a href="client-dashboard.html" class="nav-brand">
+            <div class="nav-logo">Z</div>
+            <span class="nav-title">Zique Fitness</span>
+        </a>
+        <div class="nav-actions">
+            <a href="client-favorites.html" class="btn btn-secondary">
+                <span style="color: #fca5a5;">&#x2764;</span> Favorites
+            </a>
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">
+                        <h3>Notifications</h3>
+                        <span class="mark-all-read" id="markAllRead">Mark all read</span>
                     </div>
-                    <div class="notification-dropdown" id="notificationDropdown">
-                        <div class="notification-header">
-                            <h3>Notifications</h3>
-                            <span class="mark-all-read" id="markAllRead">Mark all read</span>
-                        </div>
-                        <div class="notification-list" id="notificationList">
-                            <div class="notification-empty">No notifications</div>
-                        </div>
+                    <div class="notification-list" id="notificationList">
+                        <div class="notification-empty">No notifications</div>
                     </div>
                 </div>
-                <button class="btn btn-secondary" onclick="logout()">Logout</button>
             </div>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
         </div>
+    </nav>
 
-        <div class="profile-section" id="profileSection" style="display: none;">
-            <h2>My Profile</h2>
+    <div class="main-content">
+        <div class="container">
+            <!-- Welcome Header -->
+            <div class="welcome-header">
+                <h1>Welcome back, <span id="clientName">Client</span>!</h1>
+                <p>View your personalized meal plans and track your progress</p>
+            </div>
+
+            <div class="profile-section" id="profileSection" style="display: none;">
+                <h2><span class="section-icon">&#128100;</span> My Profile</h2>
             <div class="profile-grid">
                 <div class="profile-item">
                     <label>Name</label>
@@ -1349,9 +1610,9 @@
             </div>
         </div>
 
-        <!-- Notification Preferences Section -->
-        <div class="notification-prefs-section" id="notificationPrefsSection" style="display: none;">
-            <h2>Notification Preferences</h2>
+            <!-- Notification Preferences Section -->
+            <div class="notification-prefs-section" id="notificationPrefsSection" style="display: none;">
+                <h2><span class="section-icon">&#128276;</span> Notification Preferences</h2>
             <div class="pref-item">
                 <div class="pref-info">
                     <h4>Check-in Reminders</h4>
@@ -1386,8 +1647,8 @@
             <div class="prefs-alert" id="prefsAlert"></div>
         </div>
 
-        <div class="plans-section">
-            <h2>My Meal Plans</h2>
+            <div class="plans-section">
+                <h2><span class="section-icon">&#127869;</span> My Meal Plans</h2>
             <div id="plansContainer">
                 <div class="loading">
                     <div class="spinner"></div>
@@ -3037,5 +3298,18 @@
         // Initialize on page load
         init();
     </script>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">Z</div>
+                <span>Zique Fitness Nutrition</span>
+            </div>
+            <div class="footer-text">
+                &copy; 2024 Zique Fitness. Your health, our priority.
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

@@ -8,7 +8,30 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -16,118 +39,181 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        .header {
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px 40px;
+        /* Top Navigation */
+        .top-nav {
+            background: var(--brand-gradient);
+            padding: 16px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: #0d9488;
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
             cursor: pointer;
+        }
+
+        .nav-logo {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
         }
 
         .user-email {
-            color: #666;
+            color: rgba(255,255,255,0.9);
             font-size: 14px;
+            font-weight: 500;
         }
 
         .logout-btn {
-            background: #6b7280;
+            background: rgba(255,255,255,0.2);
             color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
-            transition: background 0.2s;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s;
         }
 
         .logout-btn:hover {
-            background: #4b5563;
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 32px 24px;
         }
 
         .container {
             max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
+            margin: 0 auto;
         }
 
         .page-header {
             background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
+            margin-bottom: 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .page-header h1 {
-            color: #333;
-            font-size: 28px;
+            color: var(--gray-900);
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--brand-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
         }
 
         .header-actions {
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
 
         .btn {
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 12px 24px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
             border: none;
             transition: all 0.2s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            background: var(--brand-gradient);
             color: white;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
         }
 
         .btn-primary:hover {
-            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
         }
 
         .btn-secondary {
-            background: #6c757d;
-            color: white;
+            background: var(--gray-100);
+            color: var(--gray-700);
         }
 
         .btn-secondary:hover {
-            background: #5a6268;
+            background: var(--gray-200);
+            transform: translateY(-2px);
         }
 
         .btn-danger {
-            background: #f44336;
+            background: #ef4444;
             color: white;
         }
 
         .btn-danger:hover {
-            background: #d32f2f;
+            background: #dc2626;
+            transform: translateY(-2px);
         }
 
         .btn-small {
-            padding: 8px 12px;
+            padding: 8px 14px;
             font-size: 12px;
             white-space: nowrap;
         }
@@ -135,60 +221,85 @@
         .loading {
             text-align: center;
             padding: 60px;
-            color: #666;
+            color: var(--gray-500);
             background: white;
-            border-radius: 12px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .empty-state {
             text-align: center;
             padding: 60px;
             background: white;
-            border-radius: 12px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
         }
 
         .empty-state h3 {
-            color: #333;
+            color: var(--gray-800);
             margin-bottom: 10px;
+            font-weight: 700;
         }
 
         .empty-state p {
-            color: #666;
-            margin-bottom: 20px;
+            color: var(--gray-500);
+            margin-bottom: 24px;
         }
 
         .clients-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 24px;
         }
 
         .client-card {
             background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .client-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--brand-gradient);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
         .client-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--brand-primary);
+        }
+
+        .client-card:hover::before {
+            opacity: 1;
         }
 
         .client-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 15px;
-            gap: 15px;
+            margin-bottom: 16px;
+            gap: 16px;
         }
 
         .client-name {
-            font-size: 20px;
+            font-size: 1.25rem;
             font-weight: 700;
-            color: #333;
-            margin-bottom: 5px;
+            color: var(--gray-900);
+            margin-bottom: 6px;
         }
 
         .client-actions {
@@ -202,38 +313,40 @@
         }
 
         .client-info {
-            color: #666;
+            color: var(--gray-600);
             font-size: 14px;
             margin-bottom: 8px;
         }
 
         .client-info strong {
-            color: #333;
+            color: var(--gray-800);
         }
 
         .client-stats {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 15px;
+            background: var(--gray-50);
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-top: 16px;
             font-size: 13px;
-            color: #666;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-100);
         }
 
         .dietary-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 10px;
+            gap: 8px;
+            margin-top: 12px;
         }
 
         .dietary-tag {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 4px 10px;
-            border-radius: 12px;
+            background: rgba(2, 132, 199, 0.1);
+            color: var(--brand-secondary);
+            padding: 5px 12px;
+            border-radius: 20px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
+            border: 1px solid rgba(2, 132, 199, 0.2);
         }
 
         /* Goal badges with colors */
@@ -367,25 +480,98 @@
             gap: 10px;
             margin-top: 30px;
         }
+        /* Footer */
+        .site-footer {
+            background: var(--gray-900);
+            color: white;
+            padding: 32px 24px;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--brand-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .footer-text {
+            font-size: 0.875rem;
+            color: var(--gray-400);
+        }
+
+        @media (max-width: 768px) {
+            .top-nav {
+                padding: 12px 16px;
+            }
+
+            .nav-title {
+                display: none;
+            }
+
+            .main-content {
+                padding: 20px 16px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .clients-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo" onclick="window.location.href='dashboard.html'">🍽️ Zique Fitness Nutrition</div>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-brand" onclick="window.location.href='dashboard.html'">
+            <div class="nav-logo">Z</div>
+            <span class="nav-title">Zique Fitness</span>
+        </div>
         <div class="user-info">
             <span class="user-email" id="userEmail">Loading...</span>
             <button class="logout-btn" id="logoutBtn">Logout</button>
         </div>
-    </div>
+    </nav>
 
-    <div class="container">
-        <div class="page-header">
-            <h1>👥 Manage Clients</h1>
-            <div class="header-actions">
-                <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
-                <button class="btn btn-primary" id="addClientBtn">+ Add Client</button>
+    <div class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1><span class="page-title-icon">&#128101;</span> Manage Clients</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+                    <button class="btn btn-primary" id="addClientBtn">+ Add Client</button>
+                </div>
             </div>
-        </div>
 
         <div id="loadingDiv" class="loading">
             Loading clients...
@@ -1239,5 +1425,18 @@
         // Initialize page on load
         initPage();
     </script>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">Z</div>
+                <span>Zique Fitness Nutrition</span>
+            </div>
+            <div class="footer-text">
+                &copy; 2024 Zique Fitness. Your health, our priority.
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

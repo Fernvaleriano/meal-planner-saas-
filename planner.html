@@ -854,14 +854,24 @@
     </style>
 </head>
 <body>
+    <!-- Top Navigation Bar -->
+    <nav style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <a href="dashboard.html" style="display: flex; align-items: center; gap: 12px; color: white; text-decoration: none;">
+            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.25rem; border: 1px solid rgba(255,255,255,0.3);">Z</div>
+            <span style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em;">Zique Fitness</span>
+        </a>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="dashboard.html" style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 600; border: 1px solid rgba(255,255,255,0.3); transition: all 0.2s;">Dashboard</a>
+        </div>
+    </nav>
+
 <div class="app-container">
 
 
     <!-- DIET PLAN VIEW -->
     <div id="diet-plan-view">
         <div class="card">
-            <a href="dashboard.html" class="text-blue-600 hover:text-blue-800 mb-6 inline-block">&larr; Back to Dashboard</a>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Full Diet Plan Generator</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6" style="display: flex; align-items: center; gap: 12px;"><span style="width: 40px; height: 40px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">&#127869;</span> Full Diet Plan Generator</h2>
 
             <!-- Unit System Toggle -->
             <div class="flex justify-center items-center gap-3 mb-6 p-3 bg-gray-50 rounded-lg">
