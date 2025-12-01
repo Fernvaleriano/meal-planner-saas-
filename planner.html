@@ -2872,7 +2872,8 @@ ${expectedMealTypes.length === 5 ? 'The array should have EXACTLY 5 objects.' : 
 ${expectedMealTypes.length === 6 ? 'The array should have EXACTLY 6 objects.' : ''}
 
 ===== USDA VERIFIED FOOD DATABASE =====
-YOU MUST CHOOSE ONLY FROM THIS LIST. Use exact snake_case names.
+Reference database for accurate macro calculations.
+IMPORTANT: In meal names and ingredients, use NORMAL READABLE FORMAT with spaces and Title Case (e.g., "Greek Yogurt Nonfat (200g)", "Whey Protein (1 scoop)", "Brown Rice (150g cooked)"). Do NOT use snake_case in output.
 
 PROTEINS - Poultry (per 100g raw):
 chicken_breast: 165cal, 31P, 0C, 4F | turkey_breast: 135cal, 30P, 0C, 1F
@@ -3046,7 +3047,8 @@ CRITICAL MEAL BUILDING PROCESS:
    - NEVER sacrifice realistic portions to hit targets
 
 CRITICAL RULES:
-- Use ONLY foods from this list with exact snake_case names
+- Use ONLY foods from the database above for accurate macros
+- OUTPUT FORMAT: Use readable names with spaces (e.g., "Chicken Breast", "Greek Yogurt Nonfat", "Whey Protein") - NEVER use underscores in output
 - Portions: "100g", "150g", "1 tbsp", "2 slices", "1 egg", "200g"
 - MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
   Examples:
