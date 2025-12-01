@@ -1,9 +1,9 @@
-// Netlify Function to generate/retrieve meal images using Google Imagen 3
+// Netlify Function to generate/retrieve meal images using Replicate Flux
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
 const BUCKET_NAME = 'meal-images';
 
@@ -59,82 +59,93 @@ function normalizeMealName(mealName) {
     .replace(/\s+/g, '_');
 }
 
-// Generate image with Google Imagen 3
+// Helper to wait/sleep
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Generate image with Replicate Flux
 async function generateMealImage(mealName) {
   const prompt = `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
 
-  console.log('Calling Imagen API with prompt:', prompt.substring(0, 100) + '...');
+  console.log('Calling Replicate Flux API...');
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        instances: [
-          { prompt: prompt }
-        ],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '1:1',
-          personGeneration: 'DONT_ALLOW'
-        }
-      })
-    }
-  );
-
-  // Get raw response text first for debugging
-  const responseText = await response.text();
-  console.log('Imagen API response status:', response.status);
-  console.log('Imagen API response:', responseText.substring(0, 500));
+  // Create prediction using Flux Schnell (fast, good quality)
+  const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'wait'  // Wait for result instead of polling
+    },
+    body: JSON.stringify({
+      input: {
+        prompt: prompt,
+        aspect_ratio: '1:1',
+        output_format: 'png',
+        output_quality: 90
+      }
+    })
+  });
 
   if (!response.ok) {
-    console.error('Imagen API error response:', responseText);
-    throw new Error(`Imagen API error: ${responseText}`);
+    const error = await response.text();
+    console.error('Replicate API error:', error);
+    throw new Error(`Replicate API error: ${error}`);
   }
 
-  // Parse the JSON response
-  let data;
-  try {
-    data = JSON.parse(responseText);
-  } catch (e) {
-    console.error('Failed to parse Imagen response:', responseText);
-    throw new Error(`Invalid JSON from Imagen API: ${responseText.substring(0, 200)}`);
+  const prediction = await response.json();
+  console.log('Replicate prediction status:', prediction.status);
+
+  // If using 'Prefer: wait', result should be ready
+  if (prediction.status === 'succeeded' && prediction.output) {
+    // Flux returns an array of image URLs
+    const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    return imageUrl;
   }
 
-  console.log('Imagen API parsed response keys:', Object.keys(data));
+  // If not ready, poll for result
+  if (prediction.status === 'processing' || prediction.status === 'starting') {
+    let result = prediction;
+    let attempts = 0;
+    const maxAttempts = 60; // 60 seconds max
 
-  // Imagen returns base64 encoded image in predictions array
-  if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
-    return {
-      type: 'base64',
-      data: data.predictions[0].bytesBase64Encoded
-    };
+    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < maxAttempts) {
+      await sleep(1000);
+      attempts++;
+
+      const pollResponse = await fetch(prediction.urls.get, {
+        headers: {
+          'Authorization': `Bearer ${REPLICATE_API_TOKEN}`
+        }
+      });
+
+      if (!pollResponse.ok) {
+        throw new Error('Failed to poll prediction status');
+      }
+
+      result = await pollResponse.json();
+      console.log(`Poll attempt ${attempts}: ${result.status}`);
+    }
+
+    if (result.status === 'succeeded' && result.output) {
+      const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      return imageUrl;
+    }
+
+    if (result.status === 'failed') {
+      throw new Error(`Image generation failed: ${result.error || 'Unknown error'}`);
+    }
+
+    throw new Error('Image generation timed out');
   }
 
-  // Alternative response format
-  if (data.predictions && data.predictions[0] && data.predictions[0].image) {
-    return {
-      type: 'base64',
-      data: data.predictions[0].image
-    };
-  }
-
-  console.error('Unexpected Imagen response structure:', JSON.stringify(data));
-  throw new Error('No image generated from Imagen API - unexpected response format');
+  throw new Error(`Unexpected prediction status: ${prediction.status}`);
 }
 
 // Download image from URL and return as buffer
-async function downloadImage(imageData) {
-  // If it's base64 data from Imagen, convert directly
-  if (imageData.type === 'base64') {
-    return Buffer.from(imageData.data, 'base64');
-  }
-
-  // If it's a URL (fallback for other APIs)
-  const response = await fetch(imageData);
+async function downloadImage(imageUrl) {
+  const response = await fetch(imageUrl);
   if (!response.ok) {
     throw new Error('Failed to download generated image');
   }
@@ -201,11 +212,11 @@ exports.handler = async (event, context) => {
 
     // POST - Generate new image for a meal
     if (event.httpMethod === 'POST') {
-      if (!GEMINI_API_KEY) {
+      if (!REPLICATE_API_TOKEN) {
         return {
           statusCode: 500,
           headers: { 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({ error: 'Gemini API key not configured' })
+          body: JSON.stringify({ error: 'Replicate API token not configured' })
         };
       }
 
@@ -254,11 +265,11 @@ exports.handler = async (event, context) => {
 
       console.log(`Generating image for: ${mealName}`);
 
-      // Generate image with Imagen 3
-      const imagenResult = await generateMealImage(mealName);
+      // Generate image with Replicate Flux
+      const imageUrl = await generateMealImage(mealName);
 
       // Download the generated image
-      const imageBuffer = await downloadImage(imagenResult);
+      const imageBuffer = await downloadImage(imageUrl);
 
       // Upload to Supabase Storage
       const filename = `${normalizedName}_${Date.now()}.png`;
@@ -284,7 +295,7 @@ exports.handler = async (event, context) => {
         .from(BUCKET_NAME)
         .getPublicUrl(filename);
 
-      const imageUrl = urlData.publicUrl;
+      const permanentImageUrl = urlData.publicUrl;
 
       // Save to database for future lookups
       const { data: savedImage, error: saveError } = await supabase
@@ -293,7 +304,7 @@ exports.handler = async (event, context) => {
           {
             meal_name: mealName,
             normalized_name: normalizedName,
-            image_url: imageUrl,
+            image_url: permanentImageUrl,
             storage_path: filename
           }
         ])
@@ -310,7 +321,7 @@ exports.handler = async (event, context) => {
         headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify({
           success: true,
-          imageUrl: imageUrl,
+          imageUrl: permanentImageUrl,
           mealName: mealName,
           cached: false
         })
