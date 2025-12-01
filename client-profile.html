@@ -2839,8 +2839,13 @@
                 return;
             }
 
-            const latest = clientMeasurements[0];
-            const oldest = clientMeasurements[clientMeasurements.length - 1];
+            // Find most recent measurements with actual data
+            const latestWithWeight = clientMeasurements.find(m => m.weight);
+            const latestWithWaist = clientMeasurements.find(m => m.waist);
+            const latestWithBodyFat = clientMeasurements.find(m => m.body_fat_percentage);
+            const latestWithChest = clientMeasurements.find(m => m.chest);
+            const latestWithArms = clientMeasurements.find(m => m.left_arm || m.right_arm);
+            const latestWithHips = clientMeasurements.find(m => m.hips);
 
             // Calculate changes
             const weightChange = stats?.weightChange;
@@ -2852,26 +2857,31 @@
                 </div>
 
                 <div class="measurements-grid">
-                    ${latest.weight ? `
+                    ${latestWithWeight ? `
                         <div class="measurement-card">
-                            <div class="measurement-value">${latest.weight}</div>
-                            <div class="measurement-label">${latest.weight_unit || 'lbs'}</div>
+                            <div class="measurement-value">${latestWithWeight.weight}</div>
+                            <div class="measurement-label">${latestWithWeight.weight_unit || 'lbs'}</div>
                             ${weightChange !== null ? `
                                 <div class="measurement-change ${weightChange > 0 ? 'positive' : 'negative'}">
-                                    ${weightChange > 0 ? '+' : ''}${weightChange} ${latest.weight_unit || 'lbs'}
+                                    ${weightChange > 0 ? '+' : ''}${weightChange} ${latestWithWeight.weight_unit || 'lbs'}
                                 </div>
                             ` : ''}
                         </div>
-                    ` : ''}
-                    ${latest.body_fat_percentage ? `
+                    ` : `
                         <div class="measurement-card">
-                            <div class="measurement-value">${latest.body_fat_percentage}%</div>
+                            <div class="measurement-value">-</div>
+                            <div class="measurement-label">Weight</div>
+                        </div>
+                    `}
+                    ${latestWithBodyFat ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latestWithBodyFat.body_fat_percentage}%</div>
                             <div class="measurement-label">Body Fat</div>
                         </div>
                     ` : ''}
-                    ${latest.waist ? `
+                    ${latestWithWaist ? `
                         <div class="measurement-card">
-                            <div class="measurement-value">${latest.waist}"</div>
+                            <div class="measurement-value">${latestWithWaist.waist}"</div>
                             <div class="measurement-label">Waist</div>
                             ${waistChange !== null ? `
                                 <div class="measurement-change ${waistChange > 0 ? 'positive' : 'negative'}">
@@ -2880,21 +2890,21 @@
                             ` : ''}
                         </div>
                     ` : ''}
-                    ${latest.chest ? `
+                    ${latestWithChest ? `
                         <div class="measurement-card">
-                            <div class="measurement-value">${latest.chest}"</div>
+                            <div class="measurement-value">${latestWithChest.chest}"</div>
                             <div class="measurement-label">Chest</div>
                         </div>
                     ` : ''}
-                    ${latest.left_arm || latest.right_arm ? `
+                    ${latestWithArms ? `
                         <div class="measurement-card">
-                            <div class="measurement-value">${latest.left_arm || latest.right_arm}"</div>
+                            <div class="measurement-value">${latestWithArms.left_arm || latestWithArms.right_arm}"</div>
                             <div class="measurement-label">Arms</div>
                         </div>
                     ` : ''}
-                    ${latest.hips ? `
+                    ${latestWithHips ? `
                         <div class="measurement-card">
-                            <div class="measurement-value">${latest.hips}"</div>
+                            <div class="measurement-value">${latestWithHips.hips}"</div>
                             <div class="measurement-label">Hips</div>
                         </div>
                     ` : ''}
@@ -2902,16 +2912,27 @@
 
                 <div class="measurements-history">
                     <h4 style="margin-bottom: 12px; color: #333;">History</h4>
-                    ${clientMeasurements.slice(0, 5).map(m => `
-                        <div class="history-entry">
-                            <span class="history-date">${new Date(m.measured_date).toLocaleDateString()}</span>
-                            <div class="history-values">
-                                ${m.weight ? `<span class="history-value">⚖️ ${m.weight} ${m.weight_unit || 'lbs'}</span>` : ''}
-                                ${m.waist ? `<span class="history-value">📏 ${m.waist}"</span>` : ''}
-                                ${m.body_fat_percentage ? `<span class="history-value">📊 ${m.body_fat_percentage}%</span>` : ''}
+                    ${clientMeasurements.slice(0, 5).map(m => {
+                        let valuesHTML = '';
+                        if (m.weight) valuesHTML += `<span class="history-value">⚖️ ${m.weight} ${m.weight_unit || 'lbs'}</span>`;
+                        if (m.waist) valuesHTML += `<span class="history-value">📏 ${m.waist}"</span>`;
+                        if (m.body_fat_percentage) valuesHTML += `<span class="history-value">📊 ${m.body_fat_percentage}%</span>`;
+                        if (m.chest) valuesHTML += `<span class="history-value">👕 ${m.chest}"</span>`;
+                        if (m.left_arm || m.right_arm) valuesHTML += `<span class="history-value">💪 ${m.left_arm || m.right_arm}"</span>`;
+                        if (m.hips) valuesHTML += `<span class="history-value">🦵 ${m.hips}"</span>`;
+
+                        // If no data recorded, show placeholder
+                        if (!valuesHTML) {
+                            valuesHTML = '<span class="history-value" style="color: #94a3b8; font-style: italic;">No data recorded</span>';
+                        }
+
+                        return `
+                            <div class="history-entry">
+                                <span class="history-date">${new Date(m.measured_date).toLocaleDateString()}</span>
+                                <div class="history-values">${valuesHTML}</div>
                             </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             `;
 
