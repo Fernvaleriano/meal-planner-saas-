@@ -967,125 +967,231 @@
 
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
+            /* Smooth transitions for everything */
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            body {
+                -webkit-overflow-scrolling: touch;
+            }
+
             /* Main layout - stack vertically */
             .flex.gap-8 {
                 flex-direction: column !important;
+                gap: 1rem !important;
             }
 
-            /* Sidebar becomes full width on top */
+            /* Hide sidebar on mobile - show client list as collapsible */
             .w-80 {
                 width: 100% !important;
-                max-height: 300px;
+                max-height: none;
+                overflow: visible;
+                background: rgba(255,255,255,0.95);
+                border-radius: 12px;
+                padding: 12px;
+            }
+
+            /* Client list scrollable horizontally */
+            .w-80 > div {
+                max-height: 200px;
                 overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             /* Main content area */
             .flex-1 {
                 width: 100% !important;
+                padding: 0 !important;
             }
 
-            /* Meal cards - stack image and content */
+            /* White content cards */
+            .bg-white {
+                border-radius: 16px !important;
+                margin: 0 -8px;
+                padding: 16px !important;
+            }
+
+            /* Meal cards - cleaner mobile layout */
             .meal-card {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-                padding: 1rem;
+                flex-direction: row;
+                align-items: flex-start;
+                text-align: left;
+                padding: 12px;
+                gap: 12px;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                margin-bottom: 12px;
             }
 
             .meal-card-image,
             .meal-card-image-placeholder,
             .meal-image-container {
-                width: 100px !important;
-                height: 100px !important;
-                min-width: 100px !important;
+                width: 70px !important;
+                height: 70px !important;
+                min-width: 70px !important;
+                border-radius: 10px !important;
             }
 
             .meal-card-content {
                 width: 100%;
+                min-width: 0;
             }
 
-            /* Buttons - stack and full width */
+            .meal-card-content h4 {
+                font-size: 0.9rem !important;
+                margin-bottom: 2px;
+            }
+
+            .meal-card-content .text-blue-700 {
+                font-size: 0.85rem !important;
+                line-height: 1.3;
+            }
+
+            /* Macros - compact row */
+            .meal-card .flex.gap-4.text-sm {
+                display: flex;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                gap: 8px;
+                font-size: 0.7rem;
+                margin: 6px 0;
+                overflow-x: auto;
+            }
+
+            /* Buttons - horizontal scroll */
             .meal-card .flex.gap-2 {
-                flex-wrap: wrap;
-                justify-content: center;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                gap: 6px;
+                padding-bottom: 4px;
             }
 
             .meal-card .btn {
-                padding: 8px 12px;
-                font-size: 0.75rem;
+                padding: 6px 10px;
+                font-size: 0.7rem;
+                white-space: nowrap;
+                flex-shrink: 0;
+                border-radius: 6px;
             }
 
-            /* Macro display */
-            .meal-card .flex.gap-4.text-sm {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 0.5rem;
+            /* Generate Image button smaller */
+            button[data-action="generate-meal-image"] {
+                padding: 5px 8px !important;
+                font-size: 0.65rem !important;
             }
 
-            /* Navigation */
+            /* Navigation - cleaner */
             nav {
-                padding: 12px 16px !important;
+                padding: 10px 12px !important;
+                position: sticky;
+                top: 0;
+                z-index: 100;
             }
 
             nav span {
+                font-size: 0.95rem !important;
+            }
+
+            nav > a > div:first-child {
+                width: 32px !important;
+                height: 32px !important;
                 font-size: 1rem !important;
             }
 
-            /* Client info form */
+            /* Client info form - single column */
             .grid.grid-cols-2 {
                 grid-template-columns: 1fr !important;
+                gap: 8px !important;
             }
 
-            /* Regenerate button always visible on mobile (no hover) */
+            /* Regenerate button always visible on mobile */
             .meal-image-container .regenerate-btn {
-                opacity: 0.8;
+                opacity: 0.9;
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
             }
 
-            /* Generate All Images button */
-            button[onclick*="generateAllMealImages"] {
-                width: 100%;
+            /* Note sections compact */
+            .meal-note-section {
+                padding: 8px !important;
+                margin-top: 8px !important;
             }
 
-            /* Target form inputs */
+            .meal-note-section textarea {
+                font-size: 14px !important;
+                padding: 8px !important;
+                min-height: 50px !important;
+            }
+
+            /* Target form inputs - prevent zoom */
             input[type="number"],
             input[type="text"],
-            select {
-                font-size: 16px !important; /* Prevents zoom on iOS */
+            select,
+            textarea {
+                font-size: 16px !important;
             }
 
-            /* Day navigation */
-            .day-tabs {
+            /* Day tabs scrollable */
+            .day-tabs, [style*="display: flex"][style*="gap"] {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
+                flex-wrap: nowrap !important;
             }
 
-            /* Notes section */
-            .meal-note-section textarea {
-                font-size: 16px !important;
+            /* Generate All button full width */
+            button[onclick*="generateAllMealImages"] {
+                width: 100%;
+                padding: 12px !important;
+                font-size: 0.9rem !important;
+            }
+
+            /* Modal adjustments */
+            .modal-content, [style*="position: fixed"] > div {
+                width: 95% !important;
+                max-width: 95% !important;
+                max-height: 85vh !important;
+                overflow-y: auto !important;
+                margin: 10px !important;
+            }
+
+            /* Headers smaller */
+            h2 {
+                font-size: 1.3rem !important;
+            }
+
+            h3 {
+                font-size: 1.1rem !important;
             }
         }
 
         /* Extra small screens */
         @media (max-width: 480px) {
             .meal-card {
-                padding: 0.75rem;
+                padding: 10px;
             }
 
             .meal-card-image,
             .meal-card-image-placeholder,
             .meal-image-container {
-                width: 80px !important;
-                height: 80px !important;
-                min-width: 80px !important;
+                width: 60px !important;
+                height: 60px !important;
+                min-width: 60px !important;
             }
 
             .meal-card .btn {
-                padding: 6px 10px;
-                font-size: 0.7rem;
+                padding: 5px 8px;
+                font-size: 0.65rem;
             }
 
-            h2, h3 {
-                font-size: 1.25rem !important;
+            .meal-card .flex.gap-4.text-sm {
+                font-size: 0.65rem;
+            }
+
+            nav {
+                padding: 8px 10px !important;
             }
         }
     </style>
