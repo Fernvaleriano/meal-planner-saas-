@@ -29,6 +29,22 @@
     --gray-800: #1e293b;
     --gray-900: #0f172a;
 
+    /* Theme Colors (Light Mode Default) */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
+    --bg-hover: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-inverse: #ffffff;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --overlay-bg: rgba(0, 0, 0, 0.5);
+
     /* Semantic Colors */
     --success: #10b981;
     --success-light: #d1fae5;
@@ -72,6 +88,122 @@
     --transition-fast: 150ms ease;
     --transition-normal: 250ms ease;
     --transition-slow: 350ms ease;
+}
+
+/* ==========================================
+   Dark Mode Theme
+   ========================================== */
+[data-theme="dark"] {
+    /* Dark Background Colors */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-card: #1e293b;
+    --bg-input: #334155;
+    --bg-hover: #334155;
+
+    /* Dark Text Colors */
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-inverse: #0f172a;
+
+    /* Dark Borders & Shadows */
+    --border-color: #334155;
+    --border-light: #475569;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+    --overlay-bg: rgba(0, 0, 0, 0.7);
+
+    /* Adjusted Grays for Dark Mode */
+    --gray-50: #0f172a;
+    --gray-100: #1e293b;
+    --gray-200: #334155;
+    --gray-300: #475569;
+    --gray-400: #64748b;
+    --gray-500: #94a3b8;
+    --gray-600: #cbd5e1;
+    --gray-700: #e2e8f0;
+    --gray-800: #f1f5f9;
+    --gray-900: #f8fafc;
+
+    /* Brighter Brand Colors for Dark Mode */
+    --brand-primary: #14b8a6;
+    --brand-primary-dark: #0d9488;
+    --brand-primary-light: #2dd4bf;
+    --brand-secondary: #38bdf8;
+
+    /* Adjusted Semantic Colors for Dark Mode */
+    --success-light: rgba(16, 185, 129, 0.2);
+    --warning-light: rgba(245, 158, 11, 0.2);
+    --error-light: rgba(239, 68, 68, 0.2);
+    --info-light: rgba(59, 130, 246, 0.2);
+
+    /* Dark Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.2);
+    --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 20px rgba(20, 184, 166, 0.4);
+}
+
+/* Theme Transition */
+*, *::before, *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* ==========================================
+   Dark Mode Toggle Button
+   ========================================== */
+.theme-toggle {
+    position: relative;
+    width: 56px;
+    height: 28px;
+    background: var(--gray-200);
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.3s ease;
+}
+
+.theme-toggle::before {
+    content: '☀️';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    transition: opacity 0.3s ease;
+}
+
+.theme-toggle::after {
+    content: '';
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: var(--brand-primary);
+}
+
+[data-theme="dark"] .theme-toggle::before {
+    content: '🌙';
+    left: auto;
+    right: 4px;
+}
+
+[data-theme="dark"] .theme-toggle::after {
+    transform: translateX(-28px);
+    background: var(--bg-secondary);
 }
 
 /* ==========================================

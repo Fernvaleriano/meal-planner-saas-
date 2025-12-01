@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "netlify dev",
     "build": "echo 'No build step required'",
-    "build:mobile": "rm -rf www && mkdir -p www/css www/icons && cp *.html www/ && cp manifest.json www/ && cp sw.js www/ && cp -r css/* www/css/ && cp -r icons/* www/icons/",
+    "build:mobile": "rm -rf www && mkdir -p www/css www/icons www/js && cp *.html www/ && cp manifest.json www/ && cp sw.js www/ && cp -r css/* www/css/ && cp -r icons/* www/icons/ && cp -r js/* www/js/",
     "cap:sync": "npm run build:mobile && npx cap sync",
     "cap:ios": "npm run build:mobile && npx cap sync ios && npx cap open ios",
     "cap:android": "npm run build:mobile && npx cap sync android && npx cap open android"

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Dashboard - Zique Fitness Nutrition</title>
+    <script src="/js/theme.js"></script>
     <!-- Prevent caching to avoid stale data on back navigation -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -1588,6 +1589,114 @@
                 text-align: center;
             }
         }
+
+        /* Dark Mode Styles */
+        [data-theme="dark"] body {
+            background: #0f172a;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .section-card,
+        [data-theme="dark"] .profile-section,
+        [data-theme="dark"] .meal-plan-card,
+        [data-theme="dark"] .action-card,
+        [data-theme="dark"] .checkin-card,
+        [data-theme="dark"] .reminder-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .section-title,
+        [data-theme="dark"] .welcome-header h1,
+        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .welcome-header p,
+        [data-theme="dark"] p,
+        [data-theme="dark"] .info-value {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .info-item {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .info-label {
+            color: #14b8a6;
+        }
+
+        [data-theme="dark"] input,
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea {
+            background: #334155;
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .footer {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .notification-dropdown {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .notification-item {
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .notification-item:hover {
+            background: #334155;
+        }
+
+        /* Theme Toggle in Nav */
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 13px;
+            border: 1px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            padding: 0;
+            transition: background-color 0.3s ease;
+        }
+
+        .theme-toggle::before {
+            content: '☀️';
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+        }
+
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            right: 3px;
+            top: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        [data-theme="dark"] .theme-toggle::before {
+            content: '🌙';
+            left: auto;
+            right: 4px;
+        }
+
+        [data-theme="dark"] .theme-toggle::after {
+            transform: translateX(-24px);
+        }
     </style>
 </head>
 <body>
@@ -1598,6 +1707,7 @@
             <span class="nav-title">Zique Fitness</span>
         </a>
         <div class="nav-actions">
+            <button class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
             <a href="client-favorites.html" class="btn btn-secondary">
                 <span style="color: #fca5a5;">&#x2764;</span> Favorites
             </a>
