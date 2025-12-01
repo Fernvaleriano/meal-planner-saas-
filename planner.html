@@ -1428,6 +1428,25 @@
         </div>
     </div>
 
+    <!-- CUSTOM IMAGE PROMPT MODAL -->
+    <div id="image-prompt-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-purple-600">📷 Customize Image</h3>
+                <button onclick="closeImagePromptModal()" class="text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-gray-600 mb-2">Meal: <strong id="image-prompt-meal-name"></strong></p>
+            <p class="text-gray-600 mb-3">Describe how you want the image to look:</p>
+            <input type="text" id="custom-image-prompt" class="input-field w-full mb-3"
+                   placeholder="e.g., Shaker cup with protein shake and a banana on the side">
+            <p class="text-xs text-gray-500 mb-4">💡 Tip: Be specific - mention shaker cups, plates, bowls, arrangement, etc.</p>
+            <div class="flex gap-2">
+                <button onclick="closeImagePromptModal()" class="btn btn-secondary flex-1">Cancel</button>
+                <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1">🎨 Generate</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MEAL PREP GUIDE MODAL -->
     <div id="meal-prep-modal" class="modal-overlay hidden">
         <div class="card w-11/12 md:max-w-4xl max-h-[85vh] overflow-y-auto">
@@ -6901,10 +6920,10 @@ function updateImageElement(container, imageUrl, mealName) {
     const regenBtn = document.createElement('button');
     regenBtn.className = 'regenerate-btn';
     regenBtn.innerHTML = '🔄';
-    regenBtn.title = 'Regenerate image';
+    regenBtn.title = 'Regenerate image with custom prompt';
     regenBtn.onclick = (e) => {
         e.stopPropagation();
-        regenerateMealImage(wrapper, mealName);
+        openImagePromptModal(wrapper, mealName);
     };
 
     wrapper.appendChild(img);
@@ -6912,8 +6931,54 @@ function updateImageElement(container, imageUrl, mealName) {
     container.replaceWith(wrapper);
 }
 
+// Store current image container for custom prompt modal
+let currentImageContainer = null;
+let currentMealName = null;
+
+// Open custom image prompt modal
+function openImagePromptModal(container, mealName) {
+    currentImageContainer = container;
+    currentMealName = mealName;
+
+    document.getElementById('image-prompt-meal-name').textContent = mealName;
+    document.getElementById('custom-image-prompt').value = '';
+    document.getElementById('image-prompt-modal').classList.remove('hidden');
+    document.getElementById('custom-image-prompt').focus();
+}
+
+// Close custom image prompt modal
+function closeImagePromptModal() {
+    document.getElementById('image-prompt-modal').classList.add('hidden');
+    currentImageContainer = null;
+    currentMealName = null;
+}
+
+// Submit custom image prompt
+async function submitCustomImagePrompt() {
+    const customPrompt = document.getElementById('custom-image-prompt').value.trim();
+    const btn = document.getElementById('generate-custom-image-btn');
+
+    if (!currentImageContainer || !currentMealName) {
+        closeImagePromptModal();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating...';
+
+    try {
+        await regenerateMealImage(currentImageContainer, currentMealName, customPrompt || null);
+        closeImagePromptModal();
+    } catch (error) {
+        alert('Failed to generate image: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🎨 Generate';
+    }
+}
+
 // Regenerate meal image (delete old, generate new)
-async function regenerateMealImage(container, mealName) {
+async function regenerateMealImage(container, mealName, customPrompt = null) {
     const regenBtn = container.querySelector('.regenerate-btn');
     const img = container.querySelector('img');
 
@@ -6923,11 +6988,15 @@ async function regenerateMealImage(container, mealName) {
     }
 
     try {
-        // Call API with regenerate flag
+        // Call API with regenerate flag and optional custom prompt
         const response = await fetch('/.netlify/functions/meal-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mealName, regenerate: true })
+            body: JSON.stringify({
+                mealName,
+                regenerate: true,
+                customPrompt: customPrompt
+            })
         });
 
         const data = await response.json();
@@ -6944,7 +7013,7 @@ async function regenerateMealImage(container, mealName) {
         }
     } catch (error) {
         console.error('Error regenerating image:', error);
-        alert('Failed to regenerate image: ' + error.message);
+        throw error;
     } finally {
         if (regenBtn) {
             regenBtn.classList.remove('loading');
