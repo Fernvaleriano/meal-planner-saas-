@@ -63,40 +63,67 @@ function normalizeMealName(mealName) {
 async function generateMealImage(mealName) {
   const prompt = `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
 
+  console.log('Calling Imagen API with prompt:', prompt.substring(0, 100) + '...');
+
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        prompt: prompt,
-        config: {
-          numberOfImages: 1,
-          aspectRatio: '1:1'
+        instances: [
+          { prompt: prompt }
+        ],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: '1:1',
+          personGeneration: 'DONT_ALLOW'
         }
       })
     }
   );
 
+  // Get raw response text first for debugging
+  const responseText = await response.text();
+  console.log('Imagen API response status:', response.status);
+  console.log('Imagen API response:', responseText.substring(0, 500));
+
   if (!response.ok) {
-    const error = await response.json();
-    console.error('Imagen API error:', error);
-    throw new Error(`Imagen API error: ${error.error?.message || JSON.stringify(error)}`);
+    console.error('Imagen API error response:', responseText);
+    throw new Error(`Imagen API error: ${responseText}`);
   }
 
-  const data = await response.json();
+  // Parse the JSON response
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    console.error('Failed to parse Imagen response:', responseText);
+    throw new Error(`Invalid JSON from Imagen API: ${responseText.substring(0, 200)}`);
+  }
 
-  // Imagen returns base64 encoded image in generatedImages array
-  if (data.generatedImages && data.generatedImages[0] && data.generatedImages[0].image) {
+  console.log('Imagen API parsed response keys:', Object.keys(data));
+
+  // Imagen returns base64 encoded image in predictions array
+  if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
     return {
       type: 'base64',
-      data: data.generatedImages[0].image.imageBytes
+      data: data.predictions[0].bytesBase64Encoded
     };
   }
 
-  throw new Error('No image generated from Imagen API');
+  // Alternative response format
+  if (data.predictions && data.predictions[0] && data.predictions[0].image) {
+    return {
+      type: 'base64',
+      data: data.predictions[0].image
+    };
+  }
+
+  console.error('Unexpected Imagen response structure:', JSON.stringify(data));
+  throw new Error('No image generated from Imagen API - unexpected response format');
 }
 
 // Download image from URL and return as buffer
