@@ -64,19 +64,17 @@ async function generateMealImage(mealName) {
   const prompt = `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        instances: [{ prompt: prompt }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '1:1',
-          safetyFilterLevel: 'block_few',
-          personGeneration: 'dont_allow'
+        prompt: prompt,
+        config: {
+          numberOfImages: 1,
+          aspectRatio: '1:1'
         }
       })
     }
@@ -90,11 +88,11 @@ async function generateMealImage(mealName) {
 
   const data = await response.json();
 
-  // Imagen returns base64 encoded image
-  if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
+  // Imagen returns base64 encoded image in generatedImages array
+  if (data.generatedImages && data.generatedImages[0] && data.generatedImages[0].image) {
     return {
       type: 'base64',
-      data: data.predictions[0].bytesBase64Encoded
+      data: data.generatedImages[0].image.imageBytes
     };
   }
 
