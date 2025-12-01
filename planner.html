@@ -6689,11 +6689,16 @@ document.addEventListener('click', async (e) => {
 
 // Auto-load cached images when displaying plan
 async function loadCachedMealImages() {
+    console.log('🖼️ Loading cached meal images...');
     const imageContainers = document.querySelectorAll('.meal-card-image-placeholder[data-meal-name]');
+    console.log(`Found ${imageContainers.length} meals to check for cached images`);
 
-    for (const container of imageContainers) {
+    if (imageContainers.length === 0) return;
+
+    // Load all images in parallel for faster loading
+    const promises = Array.from(imageContainers).map(async (container) => {
         const mealName = container.dataset.mealName;
-        if (!mealName) continue;
+        if (!mealName) return;
 
         // Check if image exists (don't generate, just load cached)
         try {
@@ -6701,21 +6706,31 @@ async function loadCachedMealImages() {
             const data = await response.json();
 
             if (data.exists && data.imageUrl) {
+                console.log('✅ Found cached image for:', mealName);
                 mealImageCache[mealName] = data.imageUrl;
-                updateImageElement(container, data.imageUrl, mealName);
+                // Re-find the container in case DOM changed
+                const currentContainer = document.getElementById(container.id);
+                if (currentContainer && currentContainer.classList.contains('meal-card-image-placeholder')) {
+                    updateImageElement(currentContainer, data.imageUrl, mealName);
+                }
             }
         } catch (error) {
             console.log('No cached image for:', mealName);
         }
-    }
+    });
+
+    await Promise.all(promises);
+    console.log('🖼️ Finished loading cached images');
 }
 
 // Load cached images after plan is displayed
 const originalDisplayDietPlan = displayDietPlan;
 displayDietPlan = function(multiDayData) {
     originalDisplayDietPlan(multiDayData);
-    // Delay to allow DOM to update
-    setTimeout(loadCachedMealImages, 500);
+    // Delay to allow DOM to update, then load cached images
+    setTimeout(() => {
+        loadCachedMealImages();
+    }, 800);
 };
 </script>
 </body>

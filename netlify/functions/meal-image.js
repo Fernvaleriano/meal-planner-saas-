@@ -41,12 +41,22 @@ async function ensureBucketExists(supabase) {
 }
 
 // Normalize meal name for consistent lookups
+// Strips out portion sizes, gram amounts, and numbers to match similar meals
 function normalizeMealName(mealName) {
   return mealName
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-    .replace(/\s+/g, '_'); // Replace spaces with underscores
+    // Remove portion info in parentheses like (169 g), (4 whole), (2 cups), (190g cooked)
+    .replace(/\([^)]*\)/g, '')
+    // Remove standalone numbers and measurements
+    .replace(/\d+\s*(g|oz|ml|cups?|tbsp|tsp|whole|slices?|pieces?)\b/gi, '')
+    // Remove special characters
+    .replace(/[^a-z\s]/g, '')
+    // Collapse multiple spaces
+    .replace(/\s+/g, ' ')
+    .trim()
+    // Replace spaces with underscores
+    .replace(/\s+/g, '_');
 }
 
 // Generate image with DALL-E
