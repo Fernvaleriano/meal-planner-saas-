@@ -1,1 +1,25 @@
 node_modules/
+
+# Capacitor build output
+www/
+
+# iOS
+ios/App/App/public/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/*.xcodeproj/xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+project.xcworkspace/
+xcuserdata/
+
+# Android
+android/app/src/main/assets/public/
+android/.gradle/
+android/app/build/
+android/build/
+*.iml
+local.properties

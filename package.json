@@ -4,11 +4,19 @@
   "description": "Zique Fitness Nutrition - AI-powered meal planning platform",
   "scripts": {
     "dev": "netlify dev",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "build:mobile": "rm -rf www && mkdir -p www/css www/icons && cp *.html www/ && cp manifest.json www/ && cp sw.js www/ && cp -r css/* www/css/ && cp -r icons/* www/icons/",
+    "cap:sync": "npm run build:mobile && npx cap sync",
+    "cap:ios": "npm run build:mobile && npx cap sync ios && npx cap open ios",
+    "cap:android": "npm run build:mobile && npx cap sync android && npx cap open android"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.84.0",
-    "@anthropic-ai/sdk": "^0.27.0"
+    "@anthropic-ai/sdk": "^0.27.3",
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
+    "@supabase/supabase-js": "^2.86.0"
   },
   "devDependencies": {
     "netlify-cli": "^17.0.0"

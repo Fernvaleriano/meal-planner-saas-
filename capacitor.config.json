@@ -1,0 +1,20 @@
+{
+  "appId": "com.ziquefitness.mealplanner",
+  "appName": "Zique Fitness Nutrition",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "hostname": "app.ziquefitness.com"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#0f172a"
+  },
+  "android": {
+    "backgroundColor": "#0f172a",
+    "allowMixedContent": false
+  }
+}
