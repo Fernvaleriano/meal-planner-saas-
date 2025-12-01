@@ -1638,6 +1638,86 @@
                 gap: 16px;
                 text-align: center;
             }
+
+            .site-footer {
+                display: none;
+            }
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="dark"] .bottom-nav {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #64748b;
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            min-width: 64px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bottom-nav-item:active {
+            transform: scale(0.95);
+        }
+
+        .bottom-nav-item.active {
+            color: #0d9488;
+        }
+
+        .bottom-nav-item.active .nav-icon {
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        [data-theme="dark"] .bottom-nav-item {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .bottom-nav-item.active {
+            color: #14b8a6;
+        }
+
+        .nav-icon {
+            width: 48px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 2px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .main-content {
+            padding-bottom: 100px;
         }
     </style>
 </head>
@@ -3915,5 +3995,25 @@
             </div>
         </div>
     </footer>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="client-dashboard.html" class="bottom-nav-item">
+            <div class="nav-icon">🏠</div>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="view-plan.html" class="bottom-nav-item">
+            <div class="nav-icon">🍽️</div>
+            <span class="nav-label">Meal Plan</span>
+        </a>
+        <a href="client-favorites.html" class="bottom-nav-item">
+            <div class="nav-icon">❤️</div>
+            <span class="nav-label">Favorites</span>
+        </a>
+        <a href="client-profile.html" class="bottom-nav-item active">
+            <div class="nav-icon">👤</div>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
 </body>
 </html>
