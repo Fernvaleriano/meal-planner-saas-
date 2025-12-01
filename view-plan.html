@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zique Fitness">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon.svg">
     <title>Your Meal Plan - Zique Fitness Nutrition</title>
     <!-- Prevent caching to avoid stale data on back navigation -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -5717,6 +5723,17 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             originalDisplayMealPlan();
             setTimeout(loadCachedMealImages, 800);
         };
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
     </script>
 </body>
 </html>
