@@ -65,8 +65,13 @@ function sleep(ms) {
 }
 
 // Generate image with Replicate Google Imagen 4 Fast
-async function generateMealImage(mealName) {
-  const prompt = `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
+async function generateMealImage(mealName, customPrompt = null) {
+  // Use custom prompt if provided, otherwise generate default prompt from meal name
+  const prompt = customPrompt
+    ? `Professional food photography: ${customPrompt}. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`
+    : `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
+
+  console.log('Using prompt:', customPrompt ? 'CUSTOM' : 'AUTO', '-', prompt.substring(0, 100) + '...');
 
   console.log('Calling Replicate Imagen 4 Fast API...');
 
@@ -220,7 +225,7 @@ exports.handler = async (event, context) => {
       }
 
       const body = JSON.parse(event.body);
-      const { mealName, regenerate } = body;
+      const { mealName, regenerate, customPrompt } = body;
 
       if (!mealName) {
         return {
@@ -281,10 +286,10 @@ exports.handler = async (event, context) => {
         };
       }
 
-      console.log(`Generating image for: ${mealName}`);
+      console.log(`Generating image for: ${mealName}${customPrompt ? ' (custom prompt)' : ''}`);
 
-      // Generate image with Replicate Flux
-      const imageUrl = await generateMealImage(mealName);
+      // Generate image with Replicate Imagen 4 Fast
+      const imageUrl = await generateMealImage(mealName, customPrompt);
 
       // Download the generated image
       const imageBuffer = await downloadImage(imageUrl);
