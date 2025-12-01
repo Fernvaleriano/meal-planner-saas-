@@ -1979,8 +1979,49 @@ async function generateDietPlan() {
         return;
     }
 
-    resultDiv.innerHTML = '<div class="card"><div class="loader"><div class="loader-spinner"></div></div><p class="text-center text-gray-600">Creating your diet plan...</p></div>';
+    // Show animated progress loader
+    resultDiv.innerHTML = `
+        <div class="card" style="text-align: center; padding: 40px;">
+            <div class="loader"><div class="loader-spinner"></div></div>
+            <p id="generation-status" class="text-center text-gray-700 font-semibold mt-4" style="font-size: 1.1rem;">Initializing meal plan generator...</p>
+            <p id="generation-substatus" class="text-center text-gray-500 mt-2" style="font-size: 0.9rem;">This usually takes 15-30 seconds</p>
+            <div style="margin-top: 20px; background: #e5e7eb; border-radius: 10px; height: 8px; overflow: hidden;">
+                <div id="generation-progress-bar" style="width: 5%; height: 100%; background: linear-gradient(90deg, #0d9488, #0ea5e9); transition: width 0.5s ease;"></div>
+            </div>
+        </div>
+    `;
     button.disabled = true;
+
+    // Animated progress messages
+    const progressMessages = [
+        { msg: "Analyzing client preferences...", sub: "Reviewing dietary requirements", progress: 10 },
+        { msg: "Calculating optimal nutrition targets...", sub: "BMR, TDEE, and macro ratios", progress: 20 },
+        { msg: "Generating breakfast options...", sub: "Finding the perfect morning meals", progress: 35 },
+        { msg: "Creating lunch ideas...", sub: "Balanced midday nutrition", progress: 50 },
+        { msg: "Planning dinner selections...", sub: "Satisfying evening meals", progress: 65 },
+        { msg: "Adding snacks...", sub: "Healthy options between meals", progress: 75 },
+        { msg: "Optimizing macro balance...", sub: "Fine-tuning protein, carbs, and fats", progress: 85 },
+        { msg: "Finalizing your meal plan...", sub: "Almost ready!", progress: 95 }
+    ];
+
+    let messageIndex = 0;
+    const progressInterval = setInterval(() => {
+        if (messageIndex < progressMessages.length) {
+            const status = document.getElementById('generation-status');
+            const substatus = document.getElementById('generation-substatus');
+            const progressBar = document.getElementById('generation-progress-bar');
+
+            if (status && substatus && progressBar) {
+                status.textContent = progressMessages[messageIndex].msg;
+                substatus.textContent = progressMessages[messageIndex].sub;
+                progressBar.style.width = progressMessages[messageIndex].progress + '%';
+            }
+            messageIndex++;
+        }
+    }, 3000);
+
+    // Store interval ID to clear later
+    window.currentProgressInterval = progressInterval;
 
     // Clear undo states from previous plan
     clearUndoStates();
@@ -2196,6 +2237,10 @@ async function generateDietPlan() {
         lastPlanQuery.startedFromScratch = true;
         markUnsavedChanges();
         lastPlanQuery.summary = generatePlanSummary(lastPlanQuery);
+
+        // Clear progress animation
+        if (window.currentProgressInterval) clearInterval(window.currentProgressInterval);
+
         displayDietPlan(allDays);
 
         const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
@@ -2239,6 +2284,10 @@ async function generateDietPlan() {
             lastPlanQuery.fromTemplate = selectedTemplateId;
             markUnsavedChanges();
             lastPlanQuery.summary = generatePlanSummary(lastPlanQuery);
+
+            // Clear progress animation
+            if (window.currentProgressInterval) clearInterval(window.currentProgressInterval);
+
             displayDietPlan(allDays);
 
             const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
@@ -2906,6 +2955,10 @@ This meal should fit into a day's plan with the following targets.`;
     if (!planValid) {
         console.error('❌ FINAL VALIDATION FAILED');
         console.error('Issues found:', planIssues);
+
+        // Clear progress animation
+        if (window.currentProgressInterval) clearInterval(window.currentProgressInterval);
+
         resultDiv.innerHTML = `<div class="card text-red-600">
             <h3 class="font-bold mb-2">❌ Plan Validation Failed</h3>
             <p>The generated plan did not pass final quality checks.</p>
@@ -2927,6 +2980,9 @@ This meal should fit into a day's plan with the following targets.`;
     // Generate a summary of what's in the plan for client display
     lastPlanQuery.summary = generatePlanSummary(lastPlanQuery);
     console.log('📋 Plan summary:', lastPlanQuery.summary);
+
+    // Clear progress animation
+    if (window.currentProgressInterval) clearInterval(window.currentProgressInterval);
 
     displayDietPlan(allDays);
 
