@@ -827,16 +827,58 @@
             }
         }
 
-        .chart-container {
-            background: #f7fafc;
-            border-radius: 10px;
+        .charts-section {
+            background: var(--gray-50);
+            border-radius: 14px;
             padding: 20px;
+            border: 1px solid var(--gray-100);
+        }
+
+        .chart-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .chart-tab {
+            padding: 8px 16px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .chart-tab:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .chart-tab.active {
+            background: var(--brand-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--gray-100);
         }
 
         .chart-container h4 {
             margin: 0 0 12px 0;
-            color: #4a5568;
+            color: var(--gray-700);
             font-size: 14px;
+            font-weight: 600;
         }
 
         .chart-canvas {
@@ -2619,40 +2661,126 @@
 
             container.innerHTML = `
                 ${statsHTML}
-                <div class="measurements-layout">
-                    <div class="chart-container">
+                <div class="charts-section">
+                    <div class="chart-tabs">
+                        <button class="chart-tab active" data-chart="weight">Weight</button>
+                        <button class="chart-tab" data-chart="waist">Waist</button>
+                        <button class="chart-tab" data-chart="arms">Arms</button>
+                        <button class="chart-tab" data-chart="chest">Chest</button>
+                        <button class="chart-tab" data-chart="hips">Hips</button>
+                        <button class="chart-tab" data-chart="thighs">Thighs</button>
+                        <button class="chart-tab" data-chart="bodyfat">Body Fat</button>
+                    </div>
+                    <div class="chart-container active" id="chart-weight">
                         <h4>Weight Progress</h4>
                         <canvas id="weightChart" class="chart-canvas"></canvas>
                     </div>
-                    <div class="recent-measurements-container">
-                        <h4>Recent Measurements</h4>
-                        <div class="measurement-history">
-                            ${historyHTML}
-                        </div>
+                    <div class="chart-container" id="chart-waist" style="display:none;">
+                        <h4>Waist Progress</h4>
+                        <canvas id="waistChart" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-container" id="chart-arms" style="display:none;">
+                        <h4>Arms Progress</h4>
+                        <canvas id="armsChart" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-container" id="chart-chest" style="display:none;">
+                        <h4>Chest Progress</h4>
+                        <canvas id="chestChart" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-container" id="chart-hips" style="display:none;">
+                        <h4>Hips Progress</h4>
+                        <canvas id="hipsChart" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-container" id="chart-thighs" style="display:none;">
+                        <h4>Thighs Progress</h4>
+                        <canvas id="thighsChart" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-container" id="chart-bodyfat" style="display:none;">
+                        <h4>Body Fat % Progress</h4>
+                        <canvas id="bodyfatChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+                <div class="recent-measurements-container" style="margin-top: 20px;">
+                    <h4>Recent Measurements</h4>
+                    <div class="measurement-history">
+                        ${historyHTML}
                     </div>
                 </div>
             `;
 
-            // Render chart
-            renderWeightChart();
+            // Setup chart tab switching
+            setupChartTabs();
+
+            // Render all charts
+            renderAllCharts();
         }
 
-        function renderWeightChart() {
-            const canvas = document.getElementById('weightChart');
+        function setupChartTabs() {
+            const tabs = document.querySelectorAll('.chart-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active from all tabs and hide all charts
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.charts-section .chart-container').forEach(c => c.style.display = 'none');
+
+                    // Activate clicked tab and show corresponding chart
+                    tab.classList.add('active');
+                    const chartType = tab.dataset.chart;
+                    const chartContainer = document.getElementById(`chart-${chartType}`);
+                    if (chartContainer) {
+                        chartContainer.style.display = 'block';
+                    }
+                });
+            });
+        }
+
+        function renderAllCharts() {
+            // Weight chart
+            renderMeasurementChart('weightChart', 'weight', 'weight_unit', 'lbs', '#0d9488');
+
+            // Waist chart
+            renderMeasurementChart('waistChart', 'waist', null, '"', '#0284c7');
+
+            // Arms chart (use left_arm or right_arm)
+            renderMeasurementChart('armsChart', ['left_arm', 'right_arm'], null, '"', '#7c3aed');
+
+            // Chest chart
+            renderMeasurementChart('chestChart', 'chest', null, '"', '#dc2626');
+
+            // Hips chart
+            renderMeasurementChart('hipsChart', 'hips', null, '"', '#ea580c');
+
+            // Thighs chart
+            renderMeasurementChart('thighsChart', ['left_thigh', 'right_thigh'], null, '"', '#16a34a');
+
+            // Body fat chart
+            renderMeasurementChart('bodyfatChart', 'body_fat_percentage', null, '%', '#0891b2');
+        }
+
+        function renderMeasurementChart(canvasId, field, unitField, defaultUnit, color) {
+            const canvas = document.getElementById(canvasId);
             if (!canvas) return;
 
             const ctx = canvas.getContext('2d');
-            const measurements = [...clientMeasurements].reverse().filter(m => m.weight);
 
-            if (measurements.length < 2) {
-                ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
-                ctx.fillStyle = '#718096';
-                ctx.textAlign = 'center';
-                ctx.fillText('Need at least 2 weight entries to show chart', canvas.width / 2, canvas.height / 2);
-                return;
+            // Filter measurements that have this field
+            let measurements;
+            if (Array.isArray(field)) {
+                // Handle fields like arms/thighs where we use either left or right
+                measurements = [...clientMeasurements].reverse().filter(m => m[field[0]] || m[field[1]]);
+                measurements = measurements.map(m => ({
+                    ...m,
+                    _chartValue: m[field[0]] || m[field[1]]
+                }));
+            } else {
+                measurements = [...clientMeasurements].reverse().filter(m => m[field]);
+                measurements = measurements.map(m => ({
+                    ...m,
+                    _chartValue: m[field]
+                }));
             }
 
-            // Set canvas size
+            // Set canvas size first
             const dpr = window.devicePixelRatio || 1;
             const rect = canvas.getBoundingClientRect();
             canvas.width = rect.width * dpr;
@@ -2661,16 +2789,25 @@
 
             const width = rect.width;
             const height = rect.height;
-            const padding = { top: 20, right: 20, bottom: 40, left: 50 };
 
+            if (measurements.length < 2) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.font = '14px Inter, -apple-system, sans-serif';
+                ctx.fillStyle = '#94a3b8';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Need at least 2 entries to show chart`, width / 2, height / 2);
+                return;
+            }
+
+            const padding = { top: 20, right: 20, bottom: 40, left: 50 };
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
 
-            // Get weight values
-            const weights = measurements.map(m => parseFloat(m.weight));
-            const minWeight = Math.floor(Math.min(...weights) - 2);
-            const maxWeight = Math.ceil(Math.max(...weights) + 2);
-            const weightRange = maxWeight - minWeight;
+            // Get values
+            const values = measurements.map(m => parseFloat(m._chartValue));
+            const minVal = Math.floor(Math.min(...values) - 2);
+            const maxVal = Math.ceil(Math.max(...values) + 2);
+            const valRange = maxVal - minVal || 1;
 
             // Clear canvas
             ctx.clearRect(0, 0, width, height);
@@ -2678,33 +2815,34 @@
             // Draw grid lines and labels
             ctx.strokeStyle = '#e2e8f0';
             ctx.fillStyle = '#718096';
-            ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.font = '11px Inter, -apple-system, sans-serif';
             ctx.textAlign = 'right';
 
             const numGridLines = 5;
             for (let i = 0; i <= numGridLines; i++) {
                 const y = padding.top + (chartHeight * i / numGridLines);
-                const weightValue = maxWeight - (weightRange * i / numGridLines);
+                const val = maxVal - (valRange * i / numGridLines);
 
                 ctx.beginPath();
                 ctx.moveTo(padding.left, y);
                 ctx.lineTo(width - padding.right, y);
                 ctx.stroke();
 
-                ctx.fillText(weightValue.toFixed(0), padding.left - 8, y + 4);
+                const unit = unitField ? (measurements[0][unitField] || defaultUnit) : defaultUnit;
+                ctx.fillText(val.toFixed(1) + unit, padding.left - 8, y + 4);
             }
 
             // Calculate points
             const points = measurements.map((m, i) => ({
                 x: padding.left + (chartWidth * i / (measurements.length - 1)),
-                y: padding.top + chartHeight - ((parseFloat(m.weight) - minWeight) / weightRange * chartHeight),
+                y: padding.top + chartHeight - ((parseFloat(m._chartValue) - minVal) / valRange * chartHeight),
                 date: m.measured_date,
-                weight: m.weight
+                value: m._chartValue
             }));
 
             // Draw line
             ctx.beginPath();
-            ctx.strokeStyle = '#0d9488';
+            ctx.strokeStyle = color;
             ctx.lineWidth = 2;
             points.forEach((p, i) => {
                 if (i === 0) ctx.moveTo(p.x, p.y);
@@ -2714,7 +2852,7 @@
 
             // Draw area fill
             ctx.beginPath();
-            ctx.fillStyle = 'rgba(13, 148, 136, 0.1)';
+            ctx.fillStyle = color + '1a'; // Add transparency
             ctx.moveTo(points[0].x, padding.top + chartHeight);
             points.forEach(p => ctx.lineTo(p.x, p.y));
             ctx.lineTo(points[points.length - 1].x, padding.top + chartHeight);
@@ -2724,7 +2862,7 @@
             // Draw points
             points.forEach(p => {
                 ctx.beginPath();
-                ctx.fillStyle = '#0d9488';
+                ctx.fillStyle = color;
                 ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
                 ctx.fill();
 
@@ -2736,7 +2874,7 @@
 
             // Draw date labels
             ctx.fillStyle = '#718096';
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.font = '10px Inter, -apple-system, sans-serif';
             ctx.textAlign = 'center';
 
             const labelInterval = Math.ceil(points.length / 6);
@@ -2747,6 +2885,11 @@
                     ctx.fillText(label, p.x, height - padding.bottom + 20);
                 }
             });
+        }
+
+        function renderWeightChart() {
+            // Legacy function - now handled by renderAllCharts
+            renderMeasurementChart('weightChart', 'weight', 'weight_unit', 'lbs', '#0d9488');
         }
 
         function openMeasurementModal() {
