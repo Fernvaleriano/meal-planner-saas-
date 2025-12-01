@@ -1,9 +1,9 @@
-// Netlify Function to generate/retrieve meal images using DALL-E
+// Netlify Function to generate/retrieve meal images using Google Imagen 3
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const BUCKET_NAME = 'meal-images';
 
@@ -59,35 +59,57 @@ function normalizeMealName(mealName) {
     .replace(/\s+/g, '_');
 }
 
-// Generate image with DALL-E
+// Generate image with Google Imagen 3
 async function generateMealImage(mealName) {
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish - NOT separate ingredients. The meal should look like something served at a healthy restaurant. Beautiful presentation on a clean plate. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. IMPORTANT: Do NOT include any text, words, letters, numbers, labels, watermarks, or writing of any kind in the image. Pure food photography only.`,
-      n: 1,
-      size: '1024x1024',
-      quality: 'standard'
-    })
-  });
+  const prompt = `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        instances: [{ prompt: prompt }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: '1:1',
+          safetyFilterLevel: 'block_few',
+          personGeneration: 'dont_allow'
+        }
+      })
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(`DALL-E API error: ${error.error?.message || 'Unknown error'}`);
+    console.error('Imagen API error:', error);
+    throw new Error(`Imagen API error: ${error.error?.message || JSON.stringify(error)}`);
   }
 
   const data = await response.json();
-  return data.data[0].url;
+
+  // Imagen returns base64 encoded image
+  if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
+    return {
+      type: 'base64',
+      data: data.predictions[0].bytesBase64Encoded
+    };
+  }
+
+  throw new Error('No image generated from Imagen API');
 }
 
 // Download image from URL and return as buffer
-async function downloadImage(url) {
-  const response = await fetch(url);
+async function downloadImage(imageData) {
+  // If it's base64 data from Imagen, convert directly
+  if (imageData.type === 'base64') {
+    return Buffer.from(imageData.data, 'base64');
+  }
+
+  // If it's a URL (fallback for other APIs)
+  const response = await fetch(imageData);
   if (!response.ok) {
     throw new Error('Failed to download generated image');
   }
@@ -154,11 +176,11 @@ exports.handler = async (event, context) => {
 
     // POST - Generate new image for a meal
     if (event.httpMethod === 'POST') {
-      if (!OPENAI_API_KEY) {
+      if (!GEMINI_API_KEY) {
         return {
           statusCode: 500,
           headers: { 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({ error: 'OpenAI API key not configured' })
+          body: JSON.stringify({ error: 'Gemini API key not configured' })
         };
       }
 
@@ -207,11 +229,11 @@ exports.handler = async (event, context) => {
 
       console.log(`Generating image for: ${mealName}`);
 
-      // Generate image with DALL-E
-      const dalleImageUrl = await generateMealImage(mealName);
+      // Generate image with Imagen 3
+      const imagenResult = await generateMealImage(mealName);
 
       // Download the generated image
-      const imageBuffer = await downloadImage(dalleImageUrl);
+      const imageBuffer = await downloadImage(imagenResult);
 
       // Upload to Supabase Storage
       const filename = `${normalizedName}_${Date.now()}.png`;
