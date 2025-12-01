@@ -1,0 +1,49 @@
+{
+  "name": "Zique Fitness Meal Planner",
+  "short_name": "Zique Fitness",
+  "description": "AI-powered meal planning for fitness coaches and their clients",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0d9488",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Meal Planner",
+      "url": "/planner.html",
+      "description": "Create meal plans for clients"
+    },
+    {
+      "name": "Dashboard",
+      "url": "/dashboard.html",
+      "description": "View your dashboard"
+    }
+  ]
+}
