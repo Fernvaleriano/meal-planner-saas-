@@ -2935,6 +2935,8 @@
                     notes: document.getElementById('measurementNotes').value || null
                 };
 
+                console.log('Saving measurement data:', measurementData);
+
                 const response = await fetch(SAVE_MEASUREMENT_ENDPOINT, {
                     method: 'POST',
                     headers: {
@@ -2943,18 +2945,24 @@
                     body: JSON.stringify(measurementData)
                 });
 
+                const responseData = await response.json();
+                console.log('Server response:', responseData);
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to save measurement');
+                    throw new Error(responseData.error || 'Failed to save measurement');
                 }
 
-                console.log('Measurement saved successfully');
+                console.log('Measurement saved successfully:', responseData);
                 closeMeasurementModal();
                 await loadMeasurements();
+
+                // Show success feedback
+                alert('Measurement saved successfully!');
 
             } catch (error) {
                 console.error('Error saving measurement:', error);
                 alert('Failed to save measurement: ' + error.message);
+            } finally {
                 saveBtn.textContent = originalText;
                 saveBtn.disabled = false;
             }
