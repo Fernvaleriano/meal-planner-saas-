@@ -330,6 +330,48 @@
             cursor: pointer;
         }
 
+        .meal-image-container {
+            position: relative;
+            width: 120px;
+            min-width: 120px;
+        }
+
+        .meal-image-container .regenerate-btn {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .meal-image-container:hover .regenerate-btn {
+            opacity: 1;
+        }
+
+        .meal-image-container .regenerate-btn:hover {
+            background: rgba(139, 92, 246, 0.9);
+        }
+
+        .meal-image-container .regenerate-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         .meal-card-content {
             flex: 1;
             min-width: 0;
@@ -6568,15 +6610,73 @@ function updateImageElement(container, imageUrl, mealName) {
     container.classList.remove('loading');
     container.classList.remove('meal-card-image-placeholder');
 
+    // Create wrapper container
+    const wrapper = document.createElement('div');
+    wrapper.className = 'meal-image-container';
+    wrapper.id = container.id;
+    wrapper.dataset.mealName = mealName;
+
+    // Create image
     const img = document.createElement('img');
     img.src = imageUrl;
     img.alt = mealName;
     img.className = 'meal-card-image';
     img.onclick = () => showMealImageLarge({ src: imageUrl, alt: mealName });
 
-    container.replaceWith(img);
-    img.id = container.id;
-    img.dataset.mealName = mealName;
+    // Create regenerate button (subtle, shows on hover)
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'regenerate-btn';
+    regenBtn.innerHTML = '🔄';
+    regenBtn.title = 'Regenerate image';
+    regenBtn.onclick = (e) => {
+        e.stopPropagation();
+        regenerateMealImage(wrapper, mealName);
+    };
+
+    wrapper.appendChild(img);
+    wrapper.appendChild(regenBtn);
+    container.replaceWith(wrapper);
+}
+
+// Regenerate meal image (delete old, generate new)
+async function regenerateMealImage(container, mealName) {
+    const regenBtn = container.querySelector('.regenerate-btn');
+    const img = container.querySelector('img');
+
+    if (regenBtn) {
+        regenBtn.classList.add('loading');
+        regenBtn.disabled = true;
+    }
+
+    try {
+        // Call API with regenerate flag
+        const response = await fetch('/.netlify/functions/meal-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mealName, regenerate: true })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.imageUrl) {
+            // Update the image with new URL
+            if (img) {
+                img.src = data.imageUrl;
+                img.onclick = () => showMealImageLarge({ src: data.imageUrl, alt: mealName });
+            }
+            console.log('✅ Regenerated image for:', mealName);
+        } else {
+            throw new Error(data.error || 'Failed to regenerate image');
+        }
+    } catch (error) {
+        console.error('Error regenerating image:', error);
+        alert('Failed to regenerate image: ' + error.message);
+    } finally {
+        if (regenBtn) {
+            regenBtn.classList.remove('loading');
+            regenBtn.disabled = false;
+        }
+    }
 }
 
 // Show large image in modal

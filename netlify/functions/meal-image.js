@@ -221,7 +221,7 @@ exports.handler = async (event, context) => {
       }
 
       const body = JSON.parse(event.body);
-      const { mealName } = body;
+      const { mealName, regenerate } = body;
 
       if (!mealName) {
         return {
@@ -241,16 +241,35 @@ exports.handler = async (event, context) => {
         .single();
 
       if (existingImage) {
-        return {
-          statusCode: 200,
-          headers: { 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({
-            success: true,
-            imageUrl: existingImage.image_url,
-            mealName: existingImage.meal_name,
-            cached: true
-          })
-        };
+        // If regenerate flag is set, delete the old image first
+        if (regenerate) {
+          console.log(`Regenerating image for: ${mealName}`);
+
+          // Delete from storage
+          if (existingImage.storage_path) {
+            await supabase.storage
+              .from(BUCKET_NAME)
+              .remove([existingImage.storage_path]);
+          }
+
+          // Delete from database
+          await supabase
+            .from('meal_images')
+            .delete()
+            .eq('id', existingImage.id);
+        } else {
+          // Return cached image
+          return {
+            statusCode: 200,
+            headers: { 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({
+              success: true,
+              imageUrl: existingImage.image_url,
+              mealName: existingImage.meal_name,
+              cached: true
+            })
+          };
+        }
       }
 
       // Ensure bucket exists
