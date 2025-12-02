@@ -420,13 +420,34 @@
         </a>
     </nav>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Check authentication
-        const token = localStorage.getItem('clientToken');
-        const clientData = JSON.parse(localStorage.getItem('clientData') || '{}');
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        if (!token) {
-            window.location.href = 'client-login.html';
+        let clientId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+        });
+
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'client-login.html';
+                return;
+            }
+            const { data: client } = await supabaseClient
+                .from('clients')
+                .select('id')
+                .eq('email', session.user.email)
+                .single();
+            if (client) {
+                clientId = client.id;
+                await loadPlans();
+            }
         }
 
         // Load meal plans
@@ -441,18 +462,14 @@
             const planCountEl = document.getElementById('planCount');
 
             try {
-                const response = await fetch('/.netlify/functions/get-client-plans', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                // Fetch meal plans from Supabase
+                const { data: plans, error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('*')
+                    .eq('client_id', clientId)
+                    .order('created_at', { ascending: false });
 
-                if (!response.ok) {
-                    throw new Error('Failed to load plans');
-                }
-
-                const data = await response.json();
-                const plans = data.plans || [];
+                if (error) throw error;
 
                 loadingState.style.display = 'none';
                 plansContainer.style.display = 'block';
@@ -464,9 +481,9 @@
                     return;
                 }
 
-                // Separate active and other plans
-                const activePlan = plans.find(p => p.isActive);
-                const otherPlans = plans.filter(p => !p.isActive);
+                // The most recent plan is considered "active"
+                const activePlan = plans[0];
+                const otherPlans = plans.slice(1);
 
                 if (activePlan) {
                     activePlanSection.style.display = 'block';
@@ -482,103 +499,52 @@
                 console.error('Error loading plans:', error);
                 loadingState.style.display = 'none';
                 plansContainer.style.display = 'block';
-
-                // Show demo plans for testing
-                showDemoPlans();
-            }
-        }
-
-        function showDemoPlans() {
-            const plansContainer = document.getElementById('plansContainer');
-            const activePlanSection = document.getElementById('activePlanSection');
-            const otherPlansSection = document.getElementById('otherPlansSection');
-            const activePlanEl = document.getElementById('activePlan');
-            const otherPlansEl = document.getElementById('otherPlans');
-            const planCountEl = document.getElementById('planCount');
-
-            // Demo data
-            const demoPlans = [
-                {
-                    id: 'plan1',
-                    name: 'Week 12 - Cutting Phase',
-                    createdAt: new Date().toISOString(),
-                    isActive: true,
-                    calories: 1800,
-                    protein: 180,
-                    carbs: 150,
-                    fat: 60
-                },
-                {
-                    id: 'plan2',
-                    name: 'Week 11 - Transition',
-                    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-                    isActive: false,
-                    calories: 2000,
-                    protein: 175,
-                    carbs: 175,
-                    fat: 65
-                },
-                {
-                    id: 'plan3',
-                    name: 'Week 10 - Maintenance',
-                    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-                    isActive: false,
-                    calories: 2200,
-                    protein: 165,
-                    carbs: 220,
-                    fat: 70
-                }
-            ];
-
-            planCountEl.textContent = `${demoPlans.length} plans`;
-
-            const activePlan = demoPlans.find(p => p.isActive);
-            const otherPlans = demoPlans.filter(p => !p.isActive);
-
-            if (activePlan) {
-                activePlanSection.style.display = 'block';
-                activePlanEl.innerHTML = createPlanCard(activePlan, true);
-            }
-
-            if (otherPlans.length > 0) {
-                otherPlansSection.style.display = 'block';
-                otherPlansEl.innerHTML = otherPlans.map(plan => createPlanCard(plan, false)).join('');
+                emptyState.style.display = 'block';
             }
         }
 
         function createPlanCard(plan, isActive) {
-            const date = new Date(plan.createdAt).toLocaleDateString('en-US', {
+            const date = new Date(plan.created_at).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric'
             });
 
+            // Extract macros from plan_data if available
+            const planData = plan.plan_data || {};
+            const dayTargets = planData.currentPlan?.[0]?.targets || {};
+            const calories = planData.calories || dayTargets.calories || plan.calories || '-';
+            const protein = planData.protein || dayTargets.protein || plan.protein || '-';
+            const carbs = planData.carbs || dayTargets.carbs || plan.carbs || '-';
+            const fat = planData.fat || dayTargets.fat || plan.fat || '-';
+            const planName = plan.plan_name || planData.clientName || plan.client_name || 'Meal Plan';
+
             return `
                 <a href="view-plan.html?id=${plan.id}" class="plan-card ${isActive ? 'active' : ''}">
                     <div class="plan-header">
                         <div>
-                            <div class="plan-name">${plan.name || 'Meal Plan'}</div>
+                            <div class="plan-name">${planName}</div>
                             <div class="plan-date">Created ${date}</div>
                         </div>
                         <span class="plan-badge ${isActive ? 'active' : 'completed'}">
-                            ${isActive ? 'Active' : 'Completed'}
+                            ${isActive ? 'Active' : 'Previous'}
                         </span>
                     </div>
                     <div class="plan-stats">
                         <div class="stat-item">
-                            <div class="stat-value">${plan.calories || '-'}</div>
+                            <div class="stat-value">${calories}</div>
                             <div class="stat-label">Calories</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value">${plan.protein || '-'}g</div>
+                            <div class="stat-value">${protein}${protein !== '-' ? 'g' : ''}</div>
                             <div class="stat-label">Protein</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value">${plan.carbs || '-'}g</div>
+                            <div class="stat-value">${carbs}${carbs !== '-' ? 'g' : ''}</div>
                             <div class="stat-label">Carbs</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value">${plan.fat || '-'}g</div>
+                            <div class="stat-value">${fat}${fat !== '-' ? 'g' : ''}</div>
                             <div class="stat-label">Fat</div>
                         </div>
                     </div>
@@ -586,8 +552,6 @@
             `;
         }
 
-        // Load plans on page load
-        loadPlans();
     </script>
 </body>
 </html>
