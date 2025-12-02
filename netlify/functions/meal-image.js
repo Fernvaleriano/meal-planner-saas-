@@ -64,14 +64,19 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Generate image with Replicate Flux
-async function generateMealImage(mealName) {
-  const prompt = `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
+// Generate image with Replicate Google Imagen 4 Fast
+async function generateMealImage(mealName, customPrompt = null) {
+  // Use custom prompt if provided, otherwise generate default prompt from meal name
+  const prompt = customPrompt
+    ? `Professional food photography: ${customPrompt}. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`
+    : `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
 
-  console.log('Calling Replicate Flux API...');
+  console.log('Using prompt:', customPrompt ? 'CUSTOM' : 'AUTO', '-', prompt.substring(0, 100) + '...');
 
-  // Create prediction using Flux Schnell (fast, good quality)
-  const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+  console.log('Calling Replicate Imagen 4 Fast API...');
+
+  // Create prediction using Google Imagen 4 Fast (fast, excellent photorealism)
+  const response = await fetch('https://api.replicate.com/v1/models/google/imagen-4-fast/predictions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
@@ -82,8 +87,7 @@ async function generateMealImage(mealName) {
       input: {
         prompt: prompt,
         aspect_ratio: '1:1',
-        output_format: 'png',
-        output_quality: 90
+        negative_prompt: 'text, words, labels, watermark, blurry, low quality, cartoon, illustration, raw ingredients, uncooked'
       }
     })
   });
@@ -99,7 +103,7 @@ async function generateMealImage(mealName) {
 
   // If using 'Prefer: wait', result should be ready
   if (prediction.status === 'succeeded' && prediction.output) {
-    // Flux returns an array of image URLs
+    // Imagen 4 / Flux returns an array of image URLs or a single URL
     const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
     return imageUrl;
   }
@@ -221,7 +225,7 @@ exports.handler = async (event, context) => {
       }
 
       const body = JSON.parse(event.body);
-      const { mealName, regenerate } = body;
+      const { mealName, regenerate, customPrompt } = body;
 
       if (!mealName) {
         return {
@@ -282,10 +286,10 @@ exports.handler = async (event, context) => {
         };
       }
 
-      console.log(`Generating image for: ${mealName}`);
+      console.log(`Generating image for: ${mealName}${customPrompt ? ' (custom prompt)' : ''}`);
 
-      // Generate image with Replicate Flux
-      const imageUrl = await generateMealImage(mealName);
+      // Generate image with Replicate Imagen 4 Fast
+      const imageUrl = await generateMealImage(mealName, customPrompt);
 
       // Download the generated image
       const imageBuffer = await downloadImage(imageUrl);

@@ -1502,6 +1502,25 @@
         </div>
     </div>
 
+    <!-- CUSTOM IMAGE PROMPT MODAL -->
+    <div id="image-prompt-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-purple-600">📷 Customize Image</h3>
+                <button onclick="closeImagePromptModal()" class="text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-gray-600 mb-2">Meal: <strong id="image-prompt-meal-name"></strong></p>
+            <p class="text-gray-600 mb-3">Describe how you want the image to look:</p>
+            <input type="text" id="custom-image-prompt" class="input-field w-full mb-3"
+                   placeholder="e.g., Shaker cup with protein shake and a banana on the side">
+            <p class="text-xs text-gray-500 mb-4">💡 Tip: Be specific - mention shaker cups, plates, bowls, arrangement, etc.</p>
+            <div class="flex gap-2">
+                <button onclick="closeImagePromptModal()" class="btn btn-secondary flex-1">Cancel</button>
+                <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1">🎨 Generate</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MEAL PREP GUIDE MODAL -->
     <div id="meal-prep-modal" class="modal-overlay hidden">
         <div class="card w-11/12 md:max-w-4xl max-h-[85vh] overflow-y-auto">
@@ -2823,6 +2842,9 @@ Lunch with LEAN fish: ["Cod (200g)", "Brown Rice (200g cooked)", "Broccoli (150g
 Lunch with FATTY fish: ["Salmon (150g)", "Quinoa (200g cooked)", "Asparagus (150g)"] - 17g fat from salmon, NO oil!
 Dinner: ["Chicken Breast (150g)", "Sweet Potato (200g)", "Green Beans (150g)", "Butter (1 tsp)"] - lean protein + small fat
 Snack: ["Greek Yogurt Nonfat (200g)", "Strawberries (100g)", "Almonds (28g)"] - 14g fat from nuts only
+Protein Shake Snack: ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (125ml)", "Blueberries (60g)", "Strawberries (50g)"] - blended smoothie
+Protein Smoothie Breakfast: ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (250ml)", "Banana (1 medium)", "Oats (40g dry)"] - blended proats shake
+Protein Shake + Sides: ["Whey Protein (2 scoops)", "Water (250ml)", "Apple (2 medium)", "Whole Wheat Bread (2 slices)", "Almond Butter (1 tbsp)"] - shaker cup shake with solid food
 
 🚨 FAT STACKING ERRORS TO AVOID:
 ❌ ["Eggs (3)", "Ground Turkey (130g)", "Butter (1 tbsp)"] = 35g fat - WRONG! No butter with eggs + meat!
@@ -2835,6 +2857,9 @@ Lunch with LEAN fish: ["Tilapia (180g)", "Brown Rice (200g cooked)", "Green Bean
 Lunch with FATTY fish: ["Salmon (170g)", "Quinoa (200g cooked)", "Asparagus (150g)"] - 19g fat from salmon, NO oil needed!
 Dinner: ["Chicken Breast (180g)", "Sweet Potato (250g)", "Broccoli (150g)", "Butter (1 tsp)"] - lean + small fat
 Snack: ["Cottage Cheese Nonfat (200g)", "Walnuts (28g)", "Apple (1 medium)"] - 18g fat from nuts only
+Protein Shake Snack: ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (125ml)", "Mixed Berries (75g)"] - blended smoothie
+Protein Smoothie Breakfast: ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (200ml)", "Banana (1 medium)", "Peanut Butter (1 tbsp)"] - blended smoothie
+Protein Shake + Sides: ["Whey Protein (1 scoop)", "Water (250ml)", "Banana (1 medium)", "Whole Wheat Toast (2 slices)", "Peanut Butter (1 tbsp)"] - shaker cup shake with solid food
 
 🚨 FAT STACKING ERRORS TO AVOID:
 ❌ Eggs (3) + Ground Turkey (130g) + Butter (1 tbsp) = 35g fat - WRONG!
@@ -2903,6 +2928,38 @@ SNACK VARIETY:
 - NOT just "Greek yogurt + fruit" every day
 - Rotate: yogurt, cottage cheese, protein shake, nuts+fruit, hard boiled eggs, tuna
 
+===== PROTEIN SHAKE & SMOOTHIE MEALS =====
+Protein shakes/smoothies are VALID complete meals for snacks and quick breakfasts.
+
+CRITICAL RULE: Whey Protein MUST ALWAYS include liquid (Water or Milk)!
+- Whey protein powder is NEVER eaten dry - it's mixed in a shaker cup
+- ALWAYS pair "Whey Protein (X scoop)" with "Water (200-300ml)" or "Almond Milk Unsweetened (200-300ml)"
+- This applies to ALL protein shake meals - smoothies AND shake + solid food combos
+
+TYPE 1 - BLENDED SMOOTHIE (all ingredients blended together):
+- ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (125ml)", "Blueberries (60g)", "Strawberries (50g)"]
+- ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (125ml)", "Mixed Berries (75g)"]
+- ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (200ml)", "Banana (1 medium)", "Peanut Butter (1 tbsp)"]
+- ["Whey Protein (1 scoop)", "Almond Milk Unsweetened (250ml)", "Oats (40g dry)", "Banana (1/2 medium)"]
+
+TYPE 2 - PROTEIN SHAKE + SOLID FOODS (shaker cup shake served alongside food):
+- ["Whey Protein (2 scoops)", "Water (250ml)", "Apple (2 medium)", "Whole Wheat Bread (2 slices)", "Almond Butter (1 tbsp)"]
+- ["Whey Protein (1 scoop)", "Water (250ml)", "Banana (1 medium)", "Whole Wheat Toast (2 slices)", "Peanut Butter (1 tbsp)"]
+- ["Whey Protein (1 scoop)", "Water (200ml)", "Apple (1 medium)", "Oats (50g dry)", "Walnuts (28g)"]
+- ["Whey Protein (2 scoops)", "Water (300ml)", "Banana (1 medium)", "Rice Cakes (2 cakes)", "Almond Butter (1 tbsp)"]
+
+SHAKE CONSTRUCTION RULES:
+- BASE: Whey Protein (1 scoop) = 120cal, 25P, 3C, 1F | (2 scoops) = 240cal, 50P, 6C, 2F
+- LIQUID (REQUIRED): Water (0 cal) or Almond Milk Unsweetened (200ml = 6cal) or Milk (200ml = 100cal)
+- FRUITS: Berries (50-100g), Banana (1/2 to 1 medium), Apple (1-2 medium)
+- CARB SIDES: Whole Wheat Bread/Toast, Oats, Rice Cakes
+- FAT SIDES: Peanut Butter, Almond Butter, Walnuts (1 tbsp or 28g)
+
+WHEN TO USE PROTEIN SHAKES:
+- As a SNACK: Shake (whey + water) with fruit = 200-300 cal
+- As BREAKFAST: Shake (whey + water) + bread/toast + nut butter = 400-600 cal complete meal
+- Post-workout: Shake (whey + water) + fast carbs (banana, bread) for recovery
+
 MACRO BALANCE PRIORITY (when short on macros):
 1. SHORT on CARBS? → Add MORE carbs (rice, bread, banana, oats) - NOT fat!
 2. SHORT on PROTEIN? → Add more protein (chicken, eggs, yogurt) - NOT fat!
@@ -2916,7 +2973,8 @@ ${expectedMealTypes.length === 5 ? 'The array should have EXACTLY 5 objects.' : 
 ${expectedMealTypes.length === 6 ? 'The array should have EXACTLY 6 objects.' : ''}
 
 ===== USDA VERIFIED FOOD DATABASE =====
-YOU MUST CHOOSE ONLY FROM THIS LIST. Use exact snake_case names.
+Reference database for accurate macro calculations.
+IMPORTANT: In meal names and ingredients, use NORMAL READABLE FORMAT with spaces and Title Case (e.g., "Greek Yogurt Nonfat (200g)", "Whey Protein (1 scoop)", "Brown Rice (150g cooked)"). Do NOT use snake_case in output.
 
 PROTEINS - Poultry (per 100g raw):
 chicken_breast: 165cal, 31P, 0C, 4F | turkey_breast: 135cal, 30P, 0C, 1F
@@ -3090,7 +3148,8 @@ CRITICAL MEAL BUILDING PROCESS:
    - NEVER sacrifice realistic portions to hit targets
 
 CRITICAL RULES:
-- Use ONLY foods from this list with exact snake_case names
+- Use ONLY foods from the database above for accurate macros
+- OUTPUT FORMAT: Use readable names with spaces (e.g., "Chicken Breast", "Greek Yogurt Nonfat", "Whey Protein") - NEVER use underscores in output
 - Portions: "100g", "150g", "1 tbsp", "2 slices", "1 egg", "200g"
 - MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
   Examples:
@@ -6964,10 +7023,10 @@ function updateImageElement(container, imageUrl, mealName) {
     const regenBtn = document.createElement('button');
     regenBtn.className = 'regenerate-btn';
     regenBtn.innerHTML = '🔄';
-    regenBtn.title = 'Regenerate image';
+    regenBtn.title = 'Regenerate image with custom prompt';
     regenBtn.onclick = (e) => {
         e.stopPropagation();
-        regenerateMealImage(wrapper, mealName);
+        openImagePromptModal(wrapper, mealName);
     };
 
     wrapper.appendChild(img);
@@ -6975,8 +7034,54 @@ function updateImageElement(container, imageUrl, mealName) {
     container.replaceWith(wrapper);
 }
 
+// Store current image container for custom prompt modal
+let currentImageContainer = null;
+let currentMealName = null;
+
+// Open custom image prompt modal
+function openImagePromptModal(container, mealName) {
+    currentImageContainer = container;
+    currentMealName = mealName;
+
+    document.getElementById('image-prompt-meal-name').textContent = mealName;
+    document.getElementById('custom-image-prompt').value = '';
+    document.getElementById('image-prompt-modal').classList.remove('hidden');
+    document.getElementById('custom-image-prompt').focus();
+}
+
+// Close custom image prompt modal
+function closeImagePromptModal() {
+    document.getElementById('image-prompt-modal').classList.add('hidden');
+    currentImageContainer = null;
+    currentMealName = null;
+}
+
+// Submit custom image prompt
+async function submitCustomImagePrompt() {
+    const customPrompt = document.getElementById('custom-image-prompt').value.trim();
+    const btn = document.getElementById('generate-custom-image-btn');
+
+    if (!currentImageContainer || !currentMealName) {
+        closeImagePromptModal();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating...';
+
+    try {
+        await regenerateMealImage(currentImageContainer, currentMealName, customPrompt || null);
+        closeImagePromptModal();
+    } catch (error) {
+        alert('Failed to generate image: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🎨 Generate';
+    }
+}
+
 // Regenerate meal image (delete old, generate new)
-async function regenerateMealImage(container, mealName) {
+async function regenerateMealImage(container, mealName, customPrompt = null) {
     const regenBtn = container.querySelector('.regenerate-btn');
     const img = container.querySelector('img');
 
@@ -6986,11 +7091,15 @@ async function regenerateMealImage(container, mealName) {
     }
 
     try {
-        // Call API with regenerate flag
+        // Call API with regenerate flag and optional custom prompt
         const response = await fetch('/.netlify/functions/meal-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mealName, regenerate: true })
+            body: JSON.stringify({
+                mealName,
+                regenerate: true,
+                customPrompt: customPrompt
+            })
         });
 
         const data = await response.json();
@@ -7007,7 +7116,7 @@ async function regenerateMealImage(container, mealName) {
         }
     } catch (error) {
         console.error('Error regenerating image:', error);
-        alert('Failed to regenerate image: ' + error.message);
+        throw error;
     } finally {
         if (regenBtn) {
             regenBtn.classList.remove('loading');
