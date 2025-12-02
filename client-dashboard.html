@@ -2178,6 +2178,11 @@
             color: #0284c7;
         }
 
+        .discover-icon.plans-icon {
+            background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+            color: #0d9488;
+        }
+
         .discover-icon.heart-icon {
             background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
             color: #dc2626;
@@ -2247,6 +2252,11 @@
             color: #6ee7b7;
         }
 
+        [data-theme="dark"] .discover-icon.plans-icon {
+            background: linear-gradient(135deg, #115e59 0%, #0d9488 100%);
+            color: #5eead4;
+        }
+
         [data-theme="dark"] .discover-name {
             color: #f1f5f9;
         }
@@ -2294,158 +2304,77 @@
             <!-- Welcome Header -->
             <div class="welcome-header">
                 <h1>Welcome back, <span id="clientName">Client</span>!</h1>
-                <p>View your personalized meal plans and track your progress</p>
+                <p>What would you like to do today?</p>
             </div>
 
-            <div class="profile-section" id="profileSection" style="display: none;">
-                <h2><span class="section-icon">&#128100;</span> My Profile</h2>
-            <div class="profile-grid">
-                <div class="profile-item">
-                    <label>Name</label>
-                    <div class="value" id="profileName">-</div>
-                </div>
-                <div class="profile-item">
-                    <label>Email</label>
-                    <div class="value" id="profileEmail">-</div>
-                </div>
-                <div class="profile-item">
-                    <label>Phone</label>
-                    <div class="value" id="profilePhone">-</div>
-                </div>
-                <div class="profile-item">
-                    <label>Goal</label>
-                    <div class="value" id="profileGoal">-</div>
-                </div>
-            </div>
-        </div>
+            <!-- Discover Section - MyFitnessPal Style -->
+            <div class="discover-section">
+                <h2 class="discover-title">Discover</h2>
+                <div class="discover-grid">
+                    <a href="client-plans.html" class="discover-card">
+                        <div class="discover-icon plans-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 3h18v18H3zM12 8v8M8 12h8"/>
+                            </svg>
+                        </div>
+                        <div class="discover-name">My Plans</div>
+                        <div class="discover-desc">Your meal plans</div>
+                    </a>
 
-            <!-- Notification Preferences Section -->
-            <div class="notification-prefs-section" id="notificationPrefsSection" style="display: none;">
-                <h2><span class="section-icon">&#128276;</span> Notification Preferences</h2>
-            <div class="pref-item">
-                <div class="pref-info">
-                    <h4>Check-in Reminders</h4>
-                    <p>Receive reminders to submit your weekly check-in</p>
+                    <a href="client-checkin.html" class="discover-card">
+                        <div class="discover-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                            </svg>
+                        </div>
+                        <div class="discover-name">Check-in</div>
+                        <div class="discover-desc">Track your week</div>
+                    </a>
+
+                    <a href="client-progress.html" class="discover-card">
+                        <div class="discover-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 6l-9.5 9.5-5-5L1 18"/>
+                                <path d="M17 6h6v6"/>
+                            </svg>
+                        </div>
+                        <div class="discover-name">Progress</div>
+                        <div class="discover-desc">Weight & photos</div>
+                    </a>
+
+                    <a href="client-recipes.html" class="discover-card">
+                        <div class="discover-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                            </svg>
+                        </div>
+                        <div class="discover-name">Recipes</div>
+                        <div class="discover-desc">Cook & enjoy</div>
+                    </a>
+
+                    <a href="client-favorites.html" class="discover-card">
+                        <div class="discover-icon heart-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                            </svg>
+                        </div>
+                        <div class="discover-name">Favorites</div>
+                        <div class="discover-desc">Meals you love</div>
+                    </a>
+
+                    <a href="client-settings.html" class="discover-card">
+                        <div class="discover-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                            </svg>
+                        </div>
+                        <div class="discover-name">Settings</div>
+                        <div class="discover-desc">Your profile</div>
+                    </a>
                 </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="prefRemindersEnabled" checked>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="pref-item">
-                <div class="pref-info">
-                    <h4>Email Reminders</h4>
-                    <p>Receive check-in reminders via email</p>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="prefEmailReminders" checked>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="pref-item">
-                <div class="pref-info">
-                    <h4>In-App Notifications</h4>
-                    <p>Show reminders in your notification bell</p>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="prefInappReminders" checked>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <button class="save-prefs-btn" id="savePrefsBtn" onclick="saveNotificationPreferences()">Save Preferences</button>
-            <div class="prefs-alert" id="prefsAlert"></div>
-        </div>
-
-            <div class="plans-section">
-                <h2><span class="section-icon">&#127869;</span> My Meal Plans</h2>
-            <div id="plansContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading your meal plans...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Supplement Protocol Section -->
-        <div class="protocols-section" id="protocolsSection" style="display: none;">
-            <h2>💊 Supplement Protocol</h2>
-            <div id="protocolsContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading supplements...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Discover Section - MyFitnessPal Style -->
-        <div class="discover-section">
-            <h2 class="discover-title">Discover</h2>
-            <div class="discover-grid">
-                <a href="client-checkin.html" class="discover-card">
-                    <div class="discover-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 11l3 3L22 4"/>
-                            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                        </svg>
-                    </div>
-                    <div class="discover-name">Check-in</div>
-                    <div class="discover-desc">Track your week</div>
-                </a>
-
-                <a href="client-progress.html" class="discover-card">
-                    <div class="discover-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M23 6l-9.5 9.5-5-5L1 18"/>
-                            <path d="M17 6h6v6"/>
-                        </svg>
-                    </div>
-                    <div class="discover-name">Progress</div>
-                    <div class="discover-desc">Weight & photos</div>
-                </a>
-
-                <a href="client-recipes.html" class="discover-card">
-                    <div class="discover-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                        </svg>
-                    </div>
-                    <div class="discover-name">Recipes</div>
-                    <div class="discover-desc">Cook & enjoy</div>
-                </a>
-
-                <a href="client-favorites.html" class="discover-card">
-                    <div class="discover-icon heart-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-                        </svg>
-                    </div>
-                    <div class="discover-name">Favorites</div>
-                    <div class="discover-desc">Meals you love</div>
-                </a>
-
-                <a href="client-settings.html" class="discover-card">
-                    <div class="discover-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-                        </svg>
-                    </div>
-                    <div class="discover-name">Settings</div>
-                    <div class="discover-desc">Your profile</div>
-                </a>
-
-                <a href="#" class="discover-card" id="supplementsCard" style="display: none;">
-                    <div class="discover-icon supplements-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
-                    </div>
-                    <div class="discover-name">Supplements</div>
-                    <div class="discover-desc">Your protocol</div>
-                </a>
             </div>
         </div>
     </div>

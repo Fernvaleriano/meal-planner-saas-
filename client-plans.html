@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Plans - Zique Fitness Nutrition</title>
+    <script src="/js/theme.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .page-header {
+            background: var(--brand-gradient);
+            padding: 20px 24px;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            text-decoration: none;
+        }
+
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .plan-count {
+            margin-left: auto;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Active Plan Section */
+        .active-plan-section {
+            margin-bottom: 24px;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Plan Card */
+        .plan-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--gray-100);
+            text-decoration: none;
+            display: block;
+            transition: all 0.2s;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .plan-card.active {
+            border: 2px solid var(--brand-primary);
+            background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .plan-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .plan-date {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .plan-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .plan-badge.active {
+            background: var(--brand-gradient);
+            color: white;
+        }
+
+        .plan-badge.completed {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .plan-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--brand-primary);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .plan-arrow {
+            color: var(--gray-400);
+            font-size: 20px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .empty-desc {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-500);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            z-index: 100;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+            color: var(--gray-500);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .bottom-nav-item.active {
+            color: var(--brand-primary);
+        }
+
+        .bottom-nav-item svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Dark Mode */
+        [data-theme="dark"] body {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .plan-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .plan-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] .plan-card.active {
+            border-color: #14b8a6;
+            background: linear-gradient(135deg, #0f3b3b 0%, #0c3844 100%);
+        }
+
+        [data-theme="dark"] .plan-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .plan-date {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .plan-badge.completed {
+            background: #334155;
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .plan-stats {
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .stat-value {
+            color: #14b8a6;
+        }
+
+        [data-theme="dark"] .stat-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .section-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .empty-title {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .empty-desc {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .bottom-nav {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .bottom-nav-item {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .bottom-nav-item.active {
+            color: #14b8a6;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="page-header">
+        <div class="header-content">
+            <a href="client-dashboard.html" class="back-btn">&#8592;</a>
+            <h1 class="page-title">My Plans</h1>
+            <div class="plan-count" id="planCount">0 plans</div>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <!-- Loading State -->
+        <div class="loading" id="loadingState">
+            <div class="spinner"></div>
+            <div>Loading your plans...</div>
+        </div>
+
+        <!-- Plans List -->
+        <div id="plansContainer" style="display: none;">
+            <!-- Active Plan -->
+            <div class="active-plan-section" id="activePlanSection" style="display: none;">
+                <div class="section-label">Active Plan</div>
+                <div id="activePlan"></div>
+            </div>
+
+            <!-- Other Plans -->
+            <div class="other-plans-section" id="otherPlansSection" style="display: none;">
+                <div class="section-label">Previous Plans</div>
+                <div id="otherPlans"></div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📋</div>
+                <div class="empty-title">No Meal Plans Yet</div>
+                <div class="empty-desc">Your coach will share meal plans with you here.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="client-dashboard.html" class="bottom-nav-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+            <span>Home</span>
+        </a>
+        <a href="client-plans.html" class="bottom-nav-item active">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+            <span>Plans</span>
+        </a>
+        <a href="client-checkin.html" class="bottom-nav-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Check-in</span>
+        </a>
+        <a href="client-progress.html" class="bottom-nav-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <span>Progress</span>
+        </a>
+        <a href="client-settings.html" class="bottom-nav-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('clientToken');
+        const clientData = JSON.parse(localStorage.getItem('clientData') || '{}');
+
+        if (!token) {
+            window.location.href = 'client-login.html';
+        }
+
+        // Load meal plans
+        async function loadPlans() {
+            const loadingState = document.getElementById('loadingState');
+            const plansContainer = document.getElementById('plansContainer');
+            const emptyState = document.getElementById('emptyState');
+            const activePlanSection = document.getElementById('activePlanSection');
+            const otherPlansSection = document.getElementById('otherPlansSection');
+            const activePlanEl = document.getElementById('activePlan');
+            const otherPlansEl = document.getElementById('otherPlans');
+            const planCountEl = document.getElementById('planCount');
+
+            try {
+                const response = await fetch('/.netlify/functions/get-client-plans', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load plans');
+                }
+
+                const data = await response.json();
+                const plans = data.plans || [];
+
+                loadingState.style.display = 'none';
+                plansContainer.style.display = 'block';
+
+                planCountEl.textContent = `${plans.length} plan${plans.length !== 1 ? 's' : ''}`;
+
+                if (plans.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                // Separate active and other plans
+                const activePlan = plans.find(p => p.isActive);
+                const otherPlans = plans.filter(p => !p.isActive);
+
+                if (activePlan) {
+                    activePlanSection.style.display = 'block';
+                    activePlanEl.innerHTML = createPlanCard(activePlan, true);
+                }
+
+                if (otherPlans.length > 0) {
+                    otherPlansSection.style.display = 'block';
+                    otherPlansEl.innerHTML = otherPlans.map(plan => createPlanCard(plan, false)).join('');
+                }
+
+            } catch (error) {
+                console.error('Error loading plans:', error);
+                loadingState.style.display = 'none';
+                plansContainer.style.display = 'block';
+
+                // Show demo plans for testing
+                showDemoPlans();
+            }
+        }
+
+        function showDemoPlans() {
+            const plansContainer = document.getElementById('plansContainer');
+            const activePlanSection = document.getElementById('activePlanSection');
+            const otherPlansSection = document.getElementById('otherPlansSection');
+            const activePlanEl = document.getElementById('activePlan');
+            const otherPlansEl = document.getElementById('otherPlans');
+            const planCountEl = document.getElementById('planCount');
+
+            // Demo data
+            const demoPlans = [
+                {
+                    id: 'plan1',
+                    name: 'Week 12 - Cutting Phase',
+                    createdAt: new Date().toISOString(),
+                    isActive: true,
+                    calories: 1800,
+                    protein: 180,
+                    carbs: 150,
+                    fat: 60
+                },
+                {
+                    id: 'plan2',
+                    name: 'Week 11 - Transition',
+                    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    isActive: false,
+                    calories: 2000,
+                    protein: 175,
+                    carbs: 175,
+                    fat: 65
+                },
+                {
+                    id: 'plan3',
+                    name: 'Week 10 - Maintenance',
+                    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+                    isActive: false,
+                    calories: 2200,
+                    protein: 165,
+                    carbs: 220,
+                    fat: 70
+                }
+            ];
+
+            planCountEl.textContent = `${demoPlans.length} plans`;
+
+            const activePlan = demoPlans.find(p => p.isActive);
+            const otherPlans = demoPlans.filter(p => !p.isActive);
+
+            if (activePlan) {
+                activePlanSection.style.display = 'block';
+                activePlanEl.innerHTML = createPlanCard(activePlan, true);
+            }
+
+            if (otherPlans.length > 0) {
+                otherPlansSection.style.display = 'block';
+                otherPlansEl.innerHTML = otherPlans.map(plan => createPlanCard(plan, false)).join('');
+            }
+        }
+
+        function createPlanCard(plan, isActive) {
+            const date = new Date(plan.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+
+            return `
+                <a href="view-plan.html?id=${plan.id}" class="plan-card ${isActive ? 'active' : ''}">
+                    <div class="plan-header">
+                        <div>
+                            <div class="plan-name">${plan.name || 'Meal Plan'}</div>
+                            <div class="plan-date">Created ${date}</div>
+                        </div>
+                        <span class="plan-badge ${isActive ? 'active' : 'completed'}">
+                            ${isActive ? 'Active' : 'Completed'}
+                        </span>
+                    </div>
+                    <div class="plan-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${plan.calories || '-'}</div>
+                            <div class="stat-label">Calories</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${plan.protein || '-'}g</div>
+                            <div class="stat-label">Protein</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${plan.carbs || '-'}g</div>
+                            <div class="stat-label">Carbs</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${plan.fat || '-'}g</div>
+                            <div class="stat-label">Fat</div>
+                        </div>
+                    </div>
+                </a>
+            `;
+        }
+
+        // Load plans on page load
+        loadPlans();
+    </script>
+</body>
+</html>
