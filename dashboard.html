@@ -639,45 +639,99 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/css/coach-layout.css">
 </head>
 <body>
-    <div class="header">
-        <div class="header-left">
-            <a href="dashboard.html" class="logo">
-                <div class="logo-icon">Z</div>
-                <span class="logo-text">Zique Fitness</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <div class="sidebar-logo-icon">Z</div>
+                <span class="sidebar-logo-text">Zique Fitness</span>
             </a>
-            <nav class="nav-links">
-                <a href="dashboard.html" class="nav-link active">Dashboard</a>
-                <a href="manage-clients.html" class="nav-link">Clients</a>
-                <a href="manage-recipes.html" class="nav-link">Recipes</a>
-                <a href="planner.html" class="nav-link">Planner</a>
-            </nav>
         </div>
-        <div class="user-info">
-            <div class="notification-container">
-                <div class="notification-bell" id="notificationBell">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Menu</div>
+                <a href="dashboard.html" class="sidebar-nav-item active">
+                    <span class="sidebar-nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="manage-clients.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">👥</span>
+                    Clients
+                </a>
+                <a href="manage-recipes.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📖</span>
+                    Recipes
+                </a>
+                <a href="planner.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🍽️</span>
+                    AI Planner
+                </a>
+            </div>
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Settings</div>
+                <a href="supplement-protocols.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">💊</span>
+                    Supplements
+                </a>
+                <a href="reminder-settings.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🔔</span>
+                    Reminders
+                </a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="userAvatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
                 </div>
-                <div class="notification-dropdown" id="notificationDropdown">
-                    <div class="notification-header">
-                        <h3>Notifications</h3>
-                        <span class="mark-all-read" id="markAllRead">Mark all read</span>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title">Dashboard</h1>
+            <div class="main-header-actions">
+                <div class="notification-container">
+                    <div class="notification-bell" id="notificationBell">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
                     </div>
-                    <div class="notification-list" id="notificationList">
-                        <div class="notification-empty">No notifications</div>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h3>Notifications</h3>
+                            <span class="mark-all-read" id="markAllRead">Mark all read</span>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">No notifications</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <span class="user-email" id="userEmail">Loading...</span>
-            <button class="logout-btn" id="logoutBtn">Logout</button>
-        </div>
-    </div>
+        </header>
 
-    <div class="container">
+        <div class="main-container">
         <div id="loadingDiv" class="loading">
             <div class="loading-spinner"></div>
             Loading your dashboard...
@@ -739,16 +793,8 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-brand">
-                <div class="footer-logo">Z</div>
-                <span class="footer-text"><strong>Zique Fitness</strong> Nutrition Platform</span>
-            </div>
         </div>
-    </footer>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -1104,6 +1150,27 @@
                 navigator.serviceWorker.register('/sw.js')
                     .then(reg => console.log('SW registered:', reg.scope))
                     .catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+
+    <!-- Mobile Sidebar Toggle -->
+    <script>
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
             });
         }
     </script>
