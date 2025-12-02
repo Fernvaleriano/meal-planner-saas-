@@ -675,35 +675,49 @@
             </a>
         </div>
         <nav class="sidebar-nav">
-            <div class="sidebar-nav-section">
-                <div class="sidebar-nav-label">Menu</div>
-                <a href="dashboard.html" class="sidebar-nav-item">
-                    <span class="sidebar-nav-icon">📊</span>
-                    Dashboard
-                </a>
-                <a href="manage-clients.html" class="sidebar-nav-item">
-                    <span class="sidebar-nav-icon">👥</span>
-                    Clients
-                </a>
-                <a href="manage-recipes.html" class="sidebar-nav-item">
-                    <span class="sidebar-nav-icon">📖</span>
-                    Recipes
-                </a>
-                <a href="planner.html" class="sidebar-nav-item">
-                    <span class="sidebar-nav-icon">🍽️</span>
-                    AI Planner
-                </a>
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Menu
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">📊</span>
+                        Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">👥</span>
+                        Clients
+                    </a>
+                    <a href="manage-recipes.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">📖</span>
+                        Recipes
+                    </a>
+                    <a href="planner.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">🍽️</span>
+                        AI Planner
+                    </a>
+                </div>
             </div>
-            <div class="sidebar-nav-section">
-                <div class="sidebar-nav-label">Settings</div>
-                <a href="supplement-protocols.html" class="sidebar-nav-item active">
-                    <span class="sidebar-nav-icon">💊</span>
-                    Supplements
-                </a>
-                <a href="reminder-settings.html" class="sidebar-nav-item">
-                    <span class="sidebar-nav-icon">🔔</span>
-                    Reminders
-                </a>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="supplement-protocols.html" class="sidebar-nav-item active">
+                        <span class="sidebar-nav-icon">💊</span>
+                        Supplements
+                    </a>
+                    <a href="reminder-settings.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">🔔</span>
+                        Reminders
+                    </a>
+                </div>
             </div>
         </nav>
         <div class="sidebar-footer">
@@ -1052,6 +1066,27 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Sidebar section collapse functionality
+        function toggleSidebarSection(label) {
+            const section = label.parentElement;
+            section.classList.toggle('collapsed');
+            const sectionName = section.dataset.section;
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            collapsedSections[sectionName] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
+        }
+
+        // Restore sidebar collapsed state on load
+        (function restoreSidebarState() {
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            document.querySelectorAll('.sidebar-nav-section').forEach(section => {
+                const sectionName = section.dataset.section;
+                if (collapsedSections[sectionName]) {
+                    section.classList.add('collapsed');
+                }
+            });
+        })();
+
         // Initialize Supabase client
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
