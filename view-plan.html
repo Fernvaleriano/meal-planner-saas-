@@ -5814,13 +5814,13 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
         }
     </script>
 
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
+    <!-- Bottom Navigation (Client only) -->
+    <nav class="bottom-nav" id="clientBottomNav" style="display: none;">
         <a href="client-dashboard.html" class="bottom-nav-item">
             <div class="nav-icon">🏠</div>
             <span class="nav-label">Home</span>
         </a>
-        <a href="view-plan.html" class="bottom-nav-item active">
+        <a href="#" class="bottom-nav-item active" onclick="return false;">
             <div class="nav-icon">🍽️</div>
             <span class="nav-label">Meal Plan</span>
         </a>
@@ -5833,5 +5833,16 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             <span class="nav-label">Profile</span>
         </a>
     </nav>
+    <script>
+        // Show bottom nav only for clients viewing their plan
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('clientView') === 'true') {
+                document.getElementById('clientBottomNav').style.display = 'flex';
+                // Add padding to container for bottom nav
+                document.querySelector('.container').style.paddingBottom = '100px';
+            }
+        })();
+    </script>
 </body>
 </html>

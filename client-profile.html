@@ -4002,7 +4002,7 @@
             <div class="nav-icon">🏠</div>
             <span class="nav-label">Home</span>
         </a>
-        <a href="view-plan.html" class="bottom-nav-item">
+        <a href="#" class="bottom-nav-item" onclick="goToMealPlan(); return false;">
             <div class="nav-icon">🍽️</div>
             <span class="nav-label">Meal Plan</span>
         </a>
@@ -4015,5 +4015,16 @@
             <span class="nav-label">Profile</span>
         </a>
     </nav>
+    <script>
+        function goToMealPlan() {
+            const planId = localStorage.getItem('zique-current-plan-id');
+            if (planId) {
+                window.location.href = `view-plan.html?planId=${planId}&clientView=true`;
+            } else {
+                // No plan cached, go to dashboard to find one
+                window.location.href = 'client-dashboard.html';
+            }
+        }
+    </script>
 </body>
 </html>
