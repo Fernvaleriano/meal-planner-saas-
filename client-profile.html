@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/coach-layout.css">
     <style>
         :root {
             --brand-primary: #0d9488;
@@ -40,87 +41,11 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--gray-50);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
 
-        /* Top Navigation */
-        .top-nav {
-            background: var(--brand-gradient);
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: var(--shadow-lg);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: white;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .nav-logo {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.25rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-
-        .nav-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .user-email {
-            color: rgba(255,255,255,0.9);
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .logout-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 32px 24px;
+        .page-container {
+            padding: 32px;
+            max-width: 1200px;
         }
 
         .container {
@@ -1722,20 +1647,76 @@
     </style>
 </head>
 <body>
-    <!-- Top Navigation -->
-    <nav class="top-nav">
-        <div class="nav-brand" onclick="window.location.href='dashboard.html'">
-            <div class="nav-logo">Z</div>
-            <span class="nav-title">Zique Fitness</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <div class="sidebar-logo-icon">Z</div>
+                <span class="sidebar-logo-text">Zique Fitness</span>
+            </a>
         </div>
-        <div class="user-info">
-            <span class="user-email" id="userEmail">Loading...</span>
-            <button class="logout-btn" id="logoutBtn">Logout</button>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Menu</div>
+                <a href="dashboard.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="manage-clients.html" class="sidebar-nav-item active">
+                    <span class="sidebar-nav-icon">👥</span>
+                    Clients
+                </a>
+                <a href="manage-recipes.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📖</span>
+                    Recipes
+                </a>
+                <a href="planner.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🍽️</span>
+                    AI Planner
+                </a>
+            </div>
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Settings</div>
+                <a href="supplement-protocols.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">💊</span>
+                    Supplements
+                </a>
+                <a href="reminder-settings.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🔔</span>
+                    Reminders
+                </a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebarEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" onclick="logout()" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
-    </nav>
+    </aside>
 
-    <div class="main-content">
-        <div class="container">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title">👤 Client Profile</h1>
+            <div class="main-header-actions"></div>
+        </header>
+
+        <div class="page-container">
             <!-- Client Info Card -->
         <div class="client-card" id="clientCard" style="display: none;">
             <div class="client-header">
@@ -2067,10 +2048,10 @@
         let clientProtocols = [];
 
         // Logout function
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
+        async function logout() {
             await supabaseClient.auth.signOut();
-            window.location.href = 'index.html';
-        });
+            window.location.href = 'login.html';
+        }
 
         // Get clientId from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -2145,7 +2126,7 @@
                 }
 
                 currentUser = session.user;
-                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('sidebarEmail').textContent = currentUser.email;
                 console.log('User authenticated:', currentUser.id);
 
                 // Load client data and plans
@@ -3981,50 +3962,18 @@
                 updateReminderStatusDisplay();
             }
         }
-    </script>
+        // Mobile menu toggle
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        });
 
-    <!-- Footer -->
-    <footer class="site-footer">
-        <div class="footer-content">
-            <div class="footer-brand">
-                <div class="footer-logo">Z</div>
-                <span>Zique Fitness Nutrition</span>
-            </div>
-            <div class="footer-text">
-                &copy; 2026 Zique Fitness. Your health, our priority.
-            </div>
+        document.getElementById('sidebarOverlay').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        });
+    </script>
         </div>
-    </footer>
-
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-        <a href="client-dashboard.html" class="bottom-nav-item">
-            <div class="nav-icon">🏠</div>
-            <span class="nav-label">Home</span>
-        </a>
-        <a href="#" class="bottom-nav-item" onclick="goToMealPlan(); return false;">
-            <div class="nav-icon">🍽️</div>
-            <span class="nav-label">Meal Plan</span>
-        </a>
-        <a href="client-favorites.html" class="bottom-nav-item">
-            <div class="nav-icon">❤️</div>
-            <span class="nav-label">Favorites</span>
-        </a>
-        <a href="client-profile.html" class="bottom-nav-item active">
-            <div class="nav-icon">👤</div>
-            <span class="nav-label">Profile</span>
-        </a>
-    </nav>
-    <script>
-        function goToMealPlan() {
-            const planId = localStorage.getItem('zique-current-plan-id');
-            if (planId) {
-                window.location.href = `view-plan.html?planId=${planId}&clientView=true`;
-            } else {
-                // No plan cached, go to dashboard to find one
-                window.location.href = 'client-dashboard.html';
-            }
-        }
-    </script>
+    </main>
 </body>
 </html>
