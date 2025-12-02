@@ -640,20 +640,35 @@
         });
 
         async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                window.location.href = 'client-login.html';
-                return;
-            }
-            const { data: client } = await supabaseClient
-                .from('clients')
-                .select('id')
-                .eq('email', session.user.email)
-                .single();
-            if (client) {
+            const measurementsContainer = document.getElementById('measurementsContainer');
+            const photosContainer = document.getElementById('photosContainer');
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    window.location.href = 'client-login.html';
+                    return;
+                }
+                const { data: client, error } = await supabaseClient
+                    .from('clients')
+                    .select('id')
+                    .eq('email', session.user.email)
+                    .single();
+
+                if (error || !client) {
+                    console.error('Client not found:', error);
+                    measurementsContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No data available</p></div>';
+                    photosContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>No photos available</p></div>';
+                    return;
+                }
+
                 clientId = client.id;
                 await loadMeasurements();
                 await loadPhotos();
+            } catch (error) {
+                console.error('Auth error:', error);
+                measurementsContainer.innerHTML = '<div class="empty-state"><p>Error loading data</p></div>';
+                photosContainer.innerHTML = '<div class="empty-state"><p>Error loading data</p></div>';
             }
         }
 
