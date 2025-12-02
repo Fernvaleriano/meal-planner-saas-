@@ -2857,11 +2857,19 @@
 
             // Update UI with client info
             document.getElementById('clientName').textContent = clientData.client_name || 'Client';
-            document.getElementById('profileName').textContent = clientData.client_name || '-';
-            document.getElementById('profileEmail').textContent = clientData.email || '-';
-            document.getElementById('profilePhone').textContent = clientData.phone || '-';
-            document.getElementById('profileGoal').textContent = clientData.default_goal || '-';
-            document.getElementById('profileSection').style.display = 'block';
+
+            // Update profile section if it exists
+            const profileName = document.getElementById('profileName');
+            const profileEmail = document.getElementById('profileEmail');
+            const profilePhone = document.getElementById('profilePhone');
+            const profileGoal = document.getElementById('profileGoal');
+            const profileSection = document.getElementById('profileSection');
+
+            if (profileName) profileName.textContent = clientData.client_name || '-';
+            if (profileEmail) profileEmail.textContent = clientData.email || '-';
+            if (profilePhone) profilePhone.textContent = clientData.phone || '-';
+            if (profileGoal) profileGoal.textContent = clientData.default_goal || '-';
+            if (profileSection) profileSection.style.display = 'block';
 
             // Load meal plans
             await loadMealPlans();
