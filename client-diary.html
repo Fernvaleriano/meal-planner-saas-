@@ -1380,9 +1380,13 @@
         // Auth check
         async function checkAuth() {
             try {
-                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-                if (authError || !user) {
-                    console.log('No authenticated user, redirecting to login');
+                // Refresh session first to ensure we have valid tokens
+                await supabaseClient.auth.refreshSession();
+
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    console.log('No session, redirecting to login');
                     window.location.href = 'client-login.html';
                     return false;
                 }
@@ -1391,11 +1395,11 @@
                 const { data: client, error: clientError } = await supabaseClient
                     .from('clients')
                     .select('id, coach_id')
-                    .eq('user_id', user.id)
+                    .eq('user_id', session.user.id)
                     .single();
 
                 if (clientError || !client) {
-                    console.error('Client not found for user:', user.id, clientError);
+                    console.error('Client not found for user:', session.user.id, clientError);
                     // User might be a coach, not a client - redirect to dashboard
                     showToast('Client profile not found');
                     return false;
