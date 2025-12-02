@@ -2269,6 +2269,11 @@
                     return;
                 }
 
+                // Store the most recent plan ID for bottom nav on other pages
+                if (plans.length > 0) {
+                    localStorage.setItem('zique-current-plan-id', plans[0].id);
+                }
+
                 // Render plans
                 const plansHTML = plans.map(plan => createPlanCard(plan)).join('');
                 plansContainer.innerHTML = `<div class="plans-grid">${plansHTML}</div>`;
@@ -3748,7 +3753,7 @@
             <div class="nav-icon">🏠</div>
             <span class="nav-label">Home</span>
         </a>
-        <a href="view-plan.html" class="bottom-nav-item">
+        <a href="#" id="mealPlanNavLink" class="bottom-nav-item" onclick="goToMealPlan(); return false;">
             <div class="nav-icon">🍽️</div>
             <span class="nav-label">Meal Plan</span>
         </a>
@@ -3761,5 +3766,28 @@
             <span class="nav-label">Profile</span>
         </a>
     </nav>
+
+    <script>
+        // Navigate to most recent meal plan
+        function goToMealPlan() {
+            // Find the first plan card and get its ID
+            const planCard = document.querySelector('.plan-card');
+            if (planCard) {
+                const onclickAttr = planCard.getAttribute('onclick');
+                const match = onclickAttr.match(/viewPlan\((\d+)\)/);
+                if (match) {
+                    viewPlan(parseInt(match[1]));
+                    return;
+                }
+            }
+            // Scroll to meal plans section if no plan found
+            const mealSection = document.getElementById('mealPlansSection');
+            if (mealSection) {
+                mealSection.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert('No meal plan available yet. Ask your coach to create one!');
+            }
+        }
+    </script>
 </body>
 </html>
