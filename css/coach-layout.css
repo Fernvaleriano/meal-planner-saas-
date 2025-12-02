@@ -112,6 +112,39 @@ body {
     letter-spacing: 0.05em;
     color: var(--gray-400);
     padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+
+.sidebar-nav-label:hover {
+    color: var(--gray-600);
+}
+
+[data-theme="dark"] .sidebar-nav-label:hover {
+    color: var(--gray-300);
+}
+
+/* Collapsible sidebar sections */
+.sidebar-nav-label .collapse-icon {
+    transition: transform 0.2s ease;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+.sidebar-nav-section.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.sidebar-nav-section.collapsed .sidebar-nav-items {
+    display: none;
+}
+
+.sidebar-nav-items {
+    display: block;
 }
 
 .sidebar-nav-item {
