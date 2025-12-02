@@ -2118,6 +2118,99 @@
         [data-theme="dark"] .toggle-slider {
             background-color: #475569;
         }
+
+        /* Quick Actions Section */
+        .quick-actions-section {
+            margin-top: 24px;
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .quick-action-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--gray-100);
+            transition: all 0.2s;
+        }
+
+        .quick-action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: var(--brand-primary);
+        }
+
+        .quick-action-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .quick-action-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .quick-action-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+
+        .quick-action-subtitle {
+            font-size: 12px;
+            color: var(--gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .quick-action-arrow {
+            color: var(--gray-400);
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 400px) {
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dark mode for quick actions */
+        [data-theme="dark"] .quick-actions-section h2 {
+            color: #f1f5f9 !important;
+        }
+
+        [data-theme="dark"] .quick-action-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .quick-action-card:hover {
+            border-color: #14b8a6;
+        }
+
+        [data-theme="dark"] .quick-action-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .quick-action-subtitle {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .quick-action-arrow {
+            color: #64748b;
+        }
     </style>
 </head>
 <body>
@@ -2241,48 +2334,45 @@
             </div>
         </div>
 
-        <!-- Progress Photos Section -->
-        <div class="photos-section">
-            <div class="photos-header">
-                <h2 class="photos-title">My Progress Photos</h2>
-                <button class="btn btn-primary" onclick="openUploadModal()">+ Add Photo</button>
-            </div>
-            <div id="photosContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading photos...</p>
-                </div>
-            </div>
-        </div>
+        <!-- Quick Actions Grid -->
+        <div class="quick-actions-section">
+            <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 16px;">Quick Actions</h2>
+            <div class="quick-actions-grid">
+                <a href="client-checkin.html" class="quick-action-card">
+                    <div class="quick-action-icon">📝</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">Weekly Check-in</div>
+                        <div class="quick-action-subtitle" id="checkinStatus">Log your progress</div>
+                    </div>
+                    <div class="quick-action-arrow">→</div>
+                </a>
 
-        <!-- Weight & Measurements Section -->
-        <div class="measurements-section">
-            <div class="measurements-header">
-                <h2 class="measurements-title">Weight & Measurements</h2>
-                <button class="btn btn-primary" onclick="openMeasurementModal()">+ Log Measurement</button>
-            </div>
-            <div id="measurementsContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading measurements...</p>
-                </div>
-            </div>
-        </div>
+                <a href="client-progress.html" class="quick-action-card">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">My Progress</div>
+                        <div class="quick-action-subtitle" id="progressStatus">Weight & photos</div>
+                    </div>
+                    <div class="quick-action-arrow">→</div>
+                </a>
 
-        <!-- Check-in Section -->
-        <div class="checkin-section">
-            <div class="checkin-header">
-                <h2 class="checkin-title">Check-in</h2>
-                <div id="checkinStreak" class="checkin-streak" style="display: none;">
-                    <span>🔥</span>
-                    <span id="streakCount">0</span> check-ins
-                </div>
-            </div>
-            <div id="checkinContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading check-ins...</p>
-                </div>
+                <a href="client-favorites.html" class="quick-action-card">
+                    <div class="quick-action-icon">❤️</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">Favorites</div>
+                        <div class="quick-action-subtitle" id="favoritesStatus">Your saved meals</div>
+                    </div>
+                    <div class="quick-action-arrow">→</div>
+                </a>
+
+                <a href="client-settings.html" class="quick-action-card">
+                    <div class="quick-action-icon">⚙️</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">Settings</div>
+                        <div class="quick-action-subtitle">Profile & preferences</div>
+                    </div>
+                    <div class="quick-action-arrow">→</div>
+                </a>
             </div>
         </div>
     </div>
