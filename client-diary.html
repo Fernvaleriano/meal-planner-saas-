@@ -1351,8 +1351,10 @@
     <script>
         // Initialize Supabase
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanpsb3FhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMzQzNjAsImV4cCI6MjA2MjkxMDM2MH0.cj5YLJsOB6xOYVvk4bZ77OOdD8lFisJJNRMUMnMGblM';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // State
         let clientId = null;
@@ -1365,7 +1367,10 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuth();
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) {
+                return; // Auth failed, don't continue
+            }
             updateDateDisplay();
             await loadGoals();
             await loadDiaryEntries();
@@ -1374,22 +1379,38 @@
 
         // Auth check
         async function checkAuth() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user) {
-                window.location.href = 'client-login.html';
-                return;
-            }
+            try {
+                // Refresh session first to ensure we have valid tokens
+                await supabaseClient.auth.refreshSession();
 
-            // Get client info
-            const { data: client } = await supabaseClient
-                .from('clients')
-                .select('id, coach_id')
-                .eq('user_id', user.id)
-                .single();
+                const { data: { session } } = await supabaseClient.auth.getSession();
 
-            if (client) {
+                if (!session) {
+                    console.log('No session, redirecting to login');
+                    window.location.href = 'client-login.html';
+                    return false;
+                }
+
+                // Get client info
+                const { data: client, error: clientError } = await supabaseClient
+                    .from('clients')
+                    .select('id, coach_id')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (clientError || !client) {
+                    console.error('Client not found for user:', session.user.id, clientError);
+                    // User might be a coach, not a client - redirect to dashboard
+                    showToast('Client profile not found');
+                    return false;
+                }
+
                 clientId = client.id;
                 coachId = client.coach_id;
+                return true;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                return false;
             }
         }
 
