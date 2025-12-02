@@ -693,10 +693,13 @@
                     .order('date', { ascending: false })
                     .limit(20);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Measurements query error:', error);
+                    throw error;
+                }
 
                 if (!measurements || measurements.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No measurements yet</p></div>';
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No measurements yet. Tap "+ Log Measurement" to add your first entry!</p></div>';
                     return;
                 }
 
@@ -713,8 +716,12 @@
                 }
 
                 // Build chart
-                const chartData = measurements.slice().reverse();
-                buildChart(chartData);
+                try {
+                    const chartData = measurements.slice().reverse();
+                    buildChart(chartData);
+                } catch (chartError) {
+                    console.error('Chart error:', chartError);
+                }
 
                 // Show entries
                 container.innerHTML = measurements.slice(0, 10).map(m => `
@@ -729,7 +736,7 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                container.innerHTML = '<div class="empty-state"><p>Error loading data</p></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No measurements yet. Tap "+ Log Measurement" to add your first entry!</p></div>';
             }
         }
 
@@ -771,10 +778,13 @@
                     .eq('client_id', clientId)
                     .order('date_taken', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Photos query error:', error);
+                    throw error;
+                }
 
                 if (!photos || photos.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>No photos yet</p></div>';
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>No photos yet. Tap "+ Add Progress Photo" to upload!</p></div>';
                     return;
                 }
 
@@ -787,7 +797,7 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                container.innerHTML = '<div class="empty-state"><p>Error loading photos</p></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>No photos yet. Tap "+ Add Progress Photo" to upload!</p></div>';
             }
         }
 
