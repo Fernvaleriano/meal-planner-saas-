@@ -434,19 +434,37 @@
         });
 
         async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                window.location.href = 'client-login.html';
-                return;
-            }
-            const { data: client } = await supabaseClient
-                .from('clients')
-                .select('id')
-                .eq('email', session.user.email)
-                .single();
-            if (client) {
+            const loadingState = document.getElementById('loadingState');
+            const plansContainer = document.getElementById('plansContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    window.location.href = 'client-login.html';
+                    return;
+                }
+                const { data: client, error } = await supabaseClient
+                    .from('clients')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (error || !client) {
+                    console.error('Client not found:', error);
+                    loadingState.style.display = 'none';
+                    plansContainer.style.display = 'block';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
                 clientId = client.id;
                 await loadPlans();
+            } catch (error) {
+                console.error('Auth error:', error);
+                loadingState.style.display = 'none';
+                plansContainer.style.display = 'block';
+                emptyState.style.display = 'block';
             }
         }
 
