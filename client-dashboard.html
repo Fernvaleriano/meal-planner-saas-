@@ -2460,9 +2460,11 @@
             }
         }
 
-        /* Hide sidebar on mobile/tablet */
-        .desktop-sidebar {
-            display: none;
+        /* Hide sidebar on mobile/tablet (must be before the desktop override) */
+        @media (max-width: 1023px) {
+            .desktop-sidebar {
+                display: none;
+            }
         }
     </style>
 </head>
