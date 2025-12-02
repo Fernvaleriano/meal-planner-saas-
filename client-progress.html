@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Progress - Zique Fitness Nutrition</title>
+    <script src="/js/theme.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .page-header {
+            background: var(--brand-gradient);
+            padding: 20px 24px;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            text-decoration: none;
+        }
+
+        .page-title { font-size: 1.25rem; font-weight: 700; }
+
+        .header-action {
+            margin-left: auto;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 80px;
+            z-index: 99;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--brand-primary);
+            border-bottom-color: var(--brand-primary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Main Content */
+        .main-content {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--gray-100);
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 16px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--gray-50);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--gray-100);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gray-800);
+        }
+
+        .stat-value.positive { color: #dc2626; }
+        .stat-value.negative { color: #16a34a; }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Chart */
+        .chart-container {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        /* Measurement Entry */
+        .measurement-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            background: var(--gray-50);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .measurement-date {
+            font-weight: 600;
+            color: var(--gray-800);
+            font-size: 14px;
+        }
+
+        .measurement-values {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .measurement-values span { font-weight: 600; color: var(--gray-800); }
+
+        /* Photos Grid */
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .photo-item {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-date {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: white;
+            padding: 8px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Add Button */
+        .add-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            color: var(--gray-800);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 14px;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* Photo Upload */
+        .upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--brand-primary);
+            background: #f0fdfa;
+        }
+
+        .upload-icon { font-size: 40px; margin-bottom: 10px; }
+        .upload-text { color: var(--gray-500); font-size: 14px; }
+
+        .photo-preview {
+            width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .photo-preview.visible { display: block; }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--gray-500);
+            padding: 8px 16px;
+            min-width: 64px;
+        }
+
+        .bottom-nav-item.active { color: var(--brand-primary); }
+        .nav-icon { font-size: 1.5rem; margin-bottom: 2px; }
+        .nav-label { font-size: 11px; font-weight: 600; }
+
+        /* Loading */
+        .loading { text-align: center; padding: 40px; color: var(--gray-500); }
+        .spinner {
+            border: 3px solid var(--gray-200);
+            border-top: 3px solid var(--brand-primary);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Dark Mode */
+        [data-theme="dark"] body { background: #0f172a; }
+        [data-theme="dark"] .tabs { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .tab { color: #94a3b8; }
+        [data-theme="dark"] .tab.active { color: #14b8a6; border-bottom-color: #14b8a6; }
+        [data-theme="dark"] .section-card { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .section-title { color: #f1f5f9; }
+        [data-theme="dark"] .stat-card { background: #334155; border-color: #475569; }
+        [data-theme="dark"] .stat-value { color: #f1f5f9; }
+        [data-theme="dark"] .stat-label { color: #94a3b8; }
+        [data-theme="dark"] .chart-container { background: #334155; }
+        [data-theme="dark"] .measurement-entry { background: #334155; }
+        [data-theme="dark"] .measurement-date { color: #f1f5f9; }
+        [data-theme="dark"] .measurement-values { color: #94a3b8; }
+        [data-theme="dark"] .measurement-values span { color: #f1f5f9; }
+        [data-theme="dark"] .modal-content { background: #1e293b; }
+        [data-theme="dark"] .modal-header h2 { color: #f1f5f9; }
+        [data-theme="dark"] .form-group label { color: #e2e8f0; }
+        [data-theme="dark"] .form-group input,
+        [data-theme="dark"] .form-group select,
+        [data-theme="dark"] .form-group textarea { background: #0f172a; border-color: #475569; color: #f1f5f9; }
+        [data-theme="dark"] .btn-secondary { background: #334155; color: #e2e8f0; }
+        [data-theme="dark"] .upload-area { border-color: #475569; }
+        [data-theme="dark"] .upload-area:hover { border-color: #14b8a6; background: #0f3b3b; }
+        [data-theme="dark"] .upload-text { color: #94a3b8; }
+        [data-theme="dark"] .empty-state { color: #94a3b8; }
+        [data-theme="dark"] .bottom-nav { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .bottom-nav-item { color: #94a3b8; }
+        [data-theme="dark"] .bottom-nav-item.active { color: #14b8a6; }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-content">
+            <a href="client-dashboard.html" class="back-btn">←</a>
+            <h1 class="page-title">My Progress</h1>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="measurements">📊 Measurements</div>
+        <div class="tab" data-tab="photos">📷 Photos</div>
+    </div>
+
+    <!-- Measurements Tab -->
+    <div class="tab-content active" id="measurements-tab">
+        <div class="main-content">
+            <button class="add-btn" onclick="openMeasurementModal()">+ Log Measurement</button>
+
+            <div class="section-card">
+                <h3 class="section-title">Current Stats</h3>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="currentWeight">--</div>
+                        <div class="stat-label">Current Weight</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="weightChange">--</div>
+                        <div class="stat-label">Total Change</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3 class="section-title">Weight Trend</h3>
+                <div class="chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3 class="section-title">Recent Entries</h3>
+                <div id="measurementsContainer">
+                    <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photos Tab -->
+    <div class="tab-content" id="photos-tab">
+        <div class="main-content">
+            <button class="add-btn" onclick="openPhotoModal()">+ Add Progress Photo</button>
+
+            <div class="section-card">
+                <h3 class="section-title">Progress Photos</h3>
+                <div id="photosContainer">
+                    <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Measurement Modal -->
+    <div class="modal" id="measurementModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Log Measurement</h2>
+                <button class="modal-close" onclick="closeMeasurementModal()">&times;</button>
+            </div>
+            <form id="measurementForm" onsubmit="saveMeasurement(event)">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="measurementDate" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Weight (lbs)</label>
+                        <input type="number" id="weightInput" step="0.1" placeholder="150.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Body Fat %</label>
+                        <input type="number" id="bodyfatInput" step="0.1" placeholder="20.0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Waist (in)</label>
+                        <input type="number" id="waistInput" step="0.1" placeholder="32.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Hips (in)</label>
+                        <input type="number" id="hipsInput" step="0.1" placeholder="38.0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="measurementNotes" rows="2" placeholder="Any notes..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Save Measurement</button>
+                <button type="button" class="btn-secondary" onclick="closeMeasurementModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Photo Modal -->
+    <div class="modal" id="photoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Photo</h2>
+                <button class="modal-close" onclick="closePhotoModal()">&times;</button>
+            </div>
+            <img id="photoPreview" class="photo-preview" alt="Preview">
+            <div class="upload-area" onclick="document.getElementById('photoInput').click()">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">Tap to select photo</div>
+            </div>
+            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
+            <div class="form-group">
+                <label>Photo Type</label>
+                <select id="photoType">
+                    <option value="progress">Progress</option>
+                    <option value="front">Front View</option>
+                    <option value="side">Side View</option>
+                    <option value="back">Back View</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="photoDate">
+            </div>
+            <button class="btn-primary" id="uploadPhotoBtn" onclick="uploadPhoto()" disabled>Upload Photo</button>
+            <button class="btn-secondary" onclick="closePhotoModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="client-dashboard.html" class="bottom-nav-item">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="view-plan.html" class="bottom-nav-item">
+            <span class="nav-icon">🍽️</span>
+            <span class="nav-label">Plan</span>
+        </a>
+        <a href="client-recipes.html" class="bottom-nav-item">
+            <span class="nav-icon">📖</span>
+            <span class="nav-label">Recipes</span>
+        </a>
+        <a href="client-favorites.html" class="bottom-nav-item">
+            <span class="nav-icon">❤️</span>
+            <span class="nav-label">Favorites</span>
+        </a>
+        <a href="client-settings.html" class="bottom-nav-item">
+            <span class="nav-icon">👤</span>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let clientId = null;
+        let weightChart = null;
+        let selectedPhotoFile = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            setupTabs();
+            document.getElementById('measurementDate').valueAsDate = new Date();
+            document.getElementById('photoDate').valueAsDate = new Date();
+        });
+
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'client-login.html';
+                return;
+            }
+            const { data: client } = await supabaseClient
+                .from('clients')
+                .select('id')
+                .eq('email', session.user.email)
+                .single();
+            if (client) {
+                clientId = client.id;
+                await loadMeasurements();
+                await loadPhotos();
+            }
+        }
+
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+                });
+            });
+        }
+
+        async function loadMeasurements() {
+            const container = document.getElementById('measurementsContainer');
+            try {
+                const { data: measurements, error } = await supabaseClient
+                    .from('client_measurements')
+                    .select('*')
+                    .eq('client_id', clientId)
+                    .order('date', { ascending: false })
+                    .limit(20);
+
+                if (error) throw error;
+
+                if (!measurements || measurements.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No measurements yet</p></div>';
+                    return;
+                }
+
+                // Update stats
+                const latest = measurements[0];
+                const oldest = measurements[measurements.length - 1];
+                document.getElementById('currentWeight').textContent = latest.weight ? `${latest.weight} lbs` : '--';
+
+                if (latest.weight && oldest.weight) {
+                    const change = (latest.weight - oldest.weight).toFixed(1);
+                    const changeEl = document.getElementById('weightChange');
+                    changeEl.textContent = `${change > 0 ? '+' : ''}${change} lbs`;
+                    changeEl.className = `stat-value ${change < 0 ? 'negative' : change > 0 ? 'positive' : ''}`;
+                }
+
+                // Build chart
+                const chartData = measurements.slice().reverse();
+                buildChart(chartData);
+
+                // Show entries
+                container.innerHTML = measurements.slice(0, 10).map(m => `
+                    <div class="measurement-entry">
+                        <div class="measurement-date">${new Date(m.date).toLocaleDateString()}</div>
+                        <div class="measurement-values">
+                            ${m.weight ? `<span>${m.weight}</span> lbs` : ''}
+                            ${m.body_fat ? `<span>${m.body_fat}</span>%` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = '<div class="empty-state"><p>Error loading data</p></div>';
+            }
+        }
+
+        function buildChart(data) {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            if (weightChart) weightChart.destroy();
+
+            const weights = data.filter(d => d.weight).map(d => ({ x: d.date, y: d.weight }));
+
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Weight',
+                        data: weights,
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { type: 'category', grid: { display: false } },
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        }
+
+        async function loadPhotos() {
+            const container = document.getElementById('photosContainer');
+            try {
+                const { data: photos, error } = await supabaseClient
+                    .from('client_photos')
+                    .select('*')
+                    .eq('client_id', clientId)
+                    .order('date_taken', { ascending: false });
+
+                if (error) throw error;
+
+                if (!photos || photos.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>No photos yet</p></div>';
+                    return;
+                }
+
+                container.innerHTML = '<div class="photos-grid">' + photos.map(p => `
+                    <div class="photo-item" onclick="viewPhoto('${p.photo_url}')">
+                        <img src="${p.photo_url}" alt="Progress">
+                        <div class="photo-date">${new Date(p.date_taken).toLocaleDateString()}</div>
+                    </div>
+                `).join('') + '</div>';
+
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = '<div class="empty-state"><p>Error loading photos</p></div>';
+            }
+        }
+
+        function openMeasurementModal() {
+            document.getElementById('measurementModal').classList.add('active');
+        }
+
+        function closeMeasurementModal() {
+            document.getElementById('measurementModal').classList.remove('active');
+            document.getElementById('measurementForm').reset();
+            document.getElementById('measurementDate').valueAsDate = new Date();
+        }
+
+        async function saveMeasurement(e) {
+            e.preventDefault();
+            try {
+                const data = {
+                    client_id: clientId,
+                    date: document.getElementById('measurementDate').value,
+                    weight: parseFloat(document.getElementById('weightInput').value) || null,
+                    body_fat: parseFloat(document.getElementById('bodyfatInput').value) || null,
+                    waist: parseFloat(document.getElementById('waistInput').value) || null,
+                    hips: parseFloat(document.getElementById('hipsInput').value) || null,
+                    notes: document.getElementById('measurementNotes').value || null
+                };
+
+                const { error } = await supabaseClient.from('client_measurements').insert([data]);
+                if (error) throw error;
+
+                closeMeasurementModal();
+                await loadMeasurements();
+                alert('Measurement saved!');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error saving measurement');
+            }
+        }
+
+        function openPhotoModal() {
+            document.getElementById('photoModal').classList.add('active');
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photoModal').classList.remove('active');
+            document.getElementById('photoPreview').classList.remove('visible');
+            document.getElementById('photoInput').value = '';
+            document.getElementById('uploadPhotoBtn').disabled = true;
+            selectedPhotoFile = null;
+        }
+
+        function handlePhotoSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedPhotoFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('photoPreview');
+                    preview.src = e.target.result;
+                    preview.classList.add('visible');
+                };
+                reader.readAsDataURL(file);
+                document.getElementById('uploadPhotoBtn').disabled = false;
+            }
+        }
+
+        async function uploadPhoto() {
+            if (!selectedPhotoFile) return;
+
+            const btn = document.getElementById('uploadPhotoBtn');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+
+            try {
+                const fileName = `${clientId}/${Date.now()}_${selectedPhotoFile.name}`;
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('progress-photos')
+                    .upload(fileName, selectedPhotoFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabaseClient.storage
+                    .from('progress-photos')
+                    .getPublicUrl(fileName);
+
+                const { error: dbError } = await supabaseClient
+                    .from('client_photos')
+                    .insert([{
+                        client_id: clientId,
+                        photo_url: publicUrl,
+                        photo_type: document.getElementById('photoType').value,
+                        date_taken: document.getElementById('photoDate').value
+                    }]);
+
+                if (dbError) throw dbError;
+
+                closePhotoModal();
+                await loadPhotos();
+                alert('Photo uploaded!');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error uploading photo');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Upload Photo';
+            }
+        }
+
+        function viewPhoto(url) {
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
