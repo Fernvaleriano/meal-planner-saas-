@@ -16,8 +16,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="/css/coach-layout.css">
     <style>
         * {
             -webkit-overflow-scrolling: touch !important;
@@ -1198,18 +1199,76 @@
     </style>
 </head>
 <body>
-    <!-- Top Navigation Bar -->
-    <nav style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.2);">
-        <a href="dashboard.html" style="display: flex; align-items: center; gap: 12px; color: white; text-decoration: none;">
-            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.25rem; border: 1px solid rgba(255,255,255,0.3);">Z</div>
-            <span style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em;">Zique Fitness</span>
-        </a>
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <a href="dashboard.html" style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 600; border: 1px solid rgba(255,255,255,0.3); transition: all 0.2s;">Dashboard</a>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <div class="sidebar-logo-icon">Z</div>
+                <span class="sidebar-logo-text">Zique Fitness</span>
+            </a>
         </div>
-    </nav>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Menu</div>
+                <a href="dashboard.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="manage-clients.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">👥</span>
+                    Clients
+                </a>
+                <a href="manage-recipes.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📖</span>
+                    Recipes
+                </a>
+                <a href="planner.html" class="sidebar-nav-item active">
+                    <span class="sidebar-nav-icon">🍽️</span>
+                    AI Planner
+                </a>
+            </div>
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Settings</div>
+                <a href="supplement-protocols.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">💊</span>
+                    Supplements
+                </a>
+                <a href="reminder-settings.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🔔</span>
+                    Reminders
+                </a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebarEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" onclick="logout()" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
 
-<div class="app-container">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main-content" style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); min-height: 100vh;">
+        <header class="main-header" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.2);">
+            <button class="mobile-menu-btn" id="mobileMenuBtn" style="color: white;">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title" style="color: white;">🍽️ AI Meal Planner</h1>
+            <div class="main-header-actions"></div>
+        </header>
+
+        <div class="app-container">
 
 
     <!-- DIET PLAN VIEW -->
@@ -1908,6 +1967,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (session) {
             currentCoach = session.user;
             console.log("Coach logged in:", currentCoach.email);
+
+            // Update sidebar email
+            const sidebarEmailEl = document.getElementById('sidebarEmail');
+            if (sidebarEmailEl) {
+                sidebarEmailEl.textContent = currentCoach.email;
+            }
 
             // Load clients for the dropdown
             await loadClients();
@@ -7189,6 +7254,28 @@ displayDietPlan = function(multiDayData) {
                 .catch(err => console.log('SW registration failed:', err));
         });
     }
+
+    // Logout function
+    async function logout() {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            alert('Error logging out: ' + error.message);
+        } else {
+            window.location.href = 'login.html';
+        }
+    }
+
+    // Mobile menu toggle
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+    });
+
+    document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+    });
 </script>
+    </main>
 </body>
 </html>
