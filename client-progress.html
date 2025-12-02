@@ -460,6 +460,84 @@
         [data-theme="dark"] .bottom-nav { background: #1e293b; border-color: #334155; }
         [data-theme="dark"] .bottom-nav-item { color: #94a3b8; }
         [data-theme="dark"] .bottom-nav-item.active { color: #14b8a6; }
+
+        /* ==========================================
+           Desktop Responsive Styles
+           ========================================== */
+        @media (min-width: 768px) {
+            /* Hide bottom nav on desktop */
+            .bottom-nav {
+                display: none;
+            }
+
+            /* Remove bottom padding */
+            body {
+                padding-bottom: 40px;
+            }
+
+            /* Wider content on desktop */
+            .main-content {
+                max-width: 900px;
+                padding: 32px 40px;
+            }
+
+            /* Wider header */
+            .header-content {
+                max-width: 900px;
+            }
+
+            /* Wider tabs */
+            .tabs {
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            /* Larger cards */
+            .section-card {
+                padding: 28px;
+            }
+
+            .stats-grid {
+                gap: 20px;
+            }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+
+            /* Better chart size */
+            .chart-container {
+                height: 300px;
+            }
+
+            /* Photos grid - more columns */
+            .photos-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .main-content {
+                max-width: 1000px;
+            }
+
+            .header-content {
+                max-width: 1000px;
+            }
+
+            .tabs {
+                max-width: 1000px;
+            }
+
+            .photos-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
     </style>
 </head>
 <body>

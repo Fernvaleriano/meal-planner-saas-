@@ -344,6 +344,71 @@
         [data-theme="dark"] .bottom-nav-item.active {
             color: #14b8a6;
         }
+
+        /* ==========================================
+           Desktop Responsive Styles
+           ========================================== */
+        @media (min-width: 768px) {
+            /* Hide bottom nav on desktop */
+            .bottom-nav {
+                display: none;
+            }
+
+            /* Remove bottom padding */
+            body {
+                padding-bottom: 40px;
+            }
+
+            /* Wider content on desktop */
+            .main-content {
+                max-width: 900px;
+                padding: 32px 40px;
+            }
+
+            /* Wider header */
+            .header-content {
+                max-width: 900px;
+            }
+
+            /* Larger plan cards */
+            .plan-card {
+                padding: 24px;
+            }
+
+            .plan-name {
+                font-size: 1.2rem;
+            }
+
+            .plan-stats {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+            }
+
+            .stat-value {
+                font-size: 22px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .main-content {
+                max-width: 1000px;
+            }
+
+            .header-content {
+                max-width: 1000px;
+            }
+
+            /* Two-column grid for plans on large desktop */
+            .plans-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+
+            .plan-card {
+                padding: 28px;
+            }
+        }
     </style>
 </head>
 <body>
