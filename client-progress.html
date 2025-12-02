@@ -686,19 +686,18 @@
         async function loadMeasurements() {
             const container = document.getElementById('measurementsContainer');
             try {
-                const { data: measurements, error } = await supabaseClient
-                    .from('client_measurements')
-                    .select('*')
-                    .eq('client_id', clientId)
-                    .order('date', { ascending: false })
-                    .limit(20);
+                // Use Netlify function instead of direct Supabase query
+                const response = await fetch(`/.netlify/functions/get-measurements?clientId=${clientId}&limit=20`);
+                const result = await response.json();
 
-                if (error) {
-                    console.error('Measurements query error:', error);
-                    throw error;
+                if (!response.ok) {
+                    console.error('Measurements API error:', result);
+                    throw new Error(result.error || 'Failed to load measurements');
                 }
 
-                if (!measurements || measurements.length === 0) {
+                const measurements = result.measurements || [];
+
+                if (measurements.length === 0) {
                     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No measurements yet. Tap "+ Log Measurement" to add your first entry!</p></div>';
                     return;
                 }
@@ -723,10 +722,10 @@
                     console.error('Chart error:', chartError);
                 }
 
-                // Show entries
+                // Show entries (use measured_date field from API)
                 container.innerHTML = measurements.slice(0, 10).map(m => `
                     <div class="measurement-entry">
-                        <div class="measurement-date">${new Date(m.date).toLocaleDateString()}</div>
+                        <div class="measurement-date">${new Date(m.measured_date).toLocaleDateString()}</div>
                         <div class="measurement-values">
                             ${m.weight ? `<span>${m.weight}</span> lbs` : ''}
                             ${m.body_fat ? `<span>${m.body_fat}</span>%` : ''}
@@ -744,7 +743,7 @@
             const ctx = document.getElementById('weightChart').getContext('2d');
             if (weightChart) weightChart.destroy();
 
-            const weights = data.filter(d => d.weight).map(d => ({ x: d.date, y: d.weight }));
+            const weights = data.filter(d => d.weight).map(d => ({ x: d.measured_date, y: d.weight }));
 
             weightChart = new Chart(ctx, {
                 type: 'line',
@@ -772,26 +771,27 @@
         async function loadPhotos() {
             const container = document.getElementById('photosContainer');
             try {
-                const { data: photos, error } = await supabaseClient
-                    .from('client_photos')
-                    .select('*')
-                    .eq('client_id', clientId)
-                    .order('date_taken', { ascending: false });
+                // Use Netlify function instead of direct Supabase query
+                const response = await fetch(`/.netlify/functions/get-progress-photos?clientId=${clientId}`);
+                const result = await response.json();
 
-                if (error) {
-                    console.error('Photos query error:', error);
-                    throw error;
+                if (!response.ok) {
+                    console.error('Photos API error:', result);
+                    throw new Error(result.error || 'Failed to load photos');
                 }
 
-                if (!photos || photos.length === 0) {
+                const photos = result.photos || [];
+
+                if (photos.length === 0) {
                     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>No photos yet. Tap "+ Add Progress Photo" to upload!</p></div>';
                     return;
                 }
 
+                // Use taken_date and url fields from API
                 container.innerHTML = '<div class="photos-grid">' + photos.map(p => `
-                    <div class="photo-item" onclick="viewPhoto('${p.photo_url}')">
-                        <img src="${p.photo_url}" alt="Progress">
-                        <div class="photo-date">${new Date(p.date_taken).toLocaleDateString()}</div>
+                    <div class="photo-item" onclick="viewPhoto('${p.url || p.photo_url}')">
+                        <img src="${p.url || p.photo_url}" alt="Progress">
+                        <div class="photo-date">${new Date(p.taken_date || p.date_taken).toLocaleDateString()}</div>
                     </div>
                 `).join('') + '</div>';
 
