@@ -2898,6 +2898,7 @@
 
         async function loadMealPlans() {
             const plansContainer = document.getElementById('plansContainer');
+            if (!plansContainer) return; // Element doesn't exist on this page
 
             try {
                 // Fetch ONLY PUBLISHED plans for this client
@@ -2933,13 +2934,15 @@
 
             } catch (error) {
                 console.error('Error loading plans:', error);
-                plansContainer.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">⚠️</div>
-                        <h3>Error Loading Plans</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
+                if (plansContainer) {
+                    plansContainer.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <h3>Error Loading Plans</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
             }
         }
 

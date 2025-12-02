@@ -1365,7 +1365,10 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuth();
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) {
+                return; // Auth failed, don't continue
+            }
             updateDateDisplay();
             await loadGoals();
             await loadDiaryEntries();
@@ -1374,22 +1377,34 @@
 
         // Auth check
         async function checkAuth() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user) {
-                window.location.href = 'client-login.html';
-                return;
-            }
+            try {
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+                if (authError || !user) {
+                    console.log('No authenticated user, redirecting to login');
+                    window.location.href = 'client-login.html';
+                    return false;
+                }
 
-            // Get client info
-            const { data: client } = await supabaseClient
-                .from('clients')
-                .select('id, coach_id')
-                .eq('user_id', user.id)
-                .single();
+                // Get client info
+                const { data: client, error: clientError } = await supabaseClient
+                    .from('clients')
+                    .select('id, coach_id')
+                    .eq('user_id', user.id)
+                    .single();
 
-            if (client) {
+                if (clientError || !client) {
+                    console.error('Client not found for user:', user.id, clientError);
+                    // User might be a coach, not a client - redirect to dashboard
+                    showToast('Client profile not found');
+                    return false;
+                }
+
                 clientId = client.id;
                 coachId = client.coach_id;
+                return true;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                return false;
             }
         }
 
