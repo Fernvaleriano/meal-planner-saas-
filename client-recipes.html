@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <title>Recipes - Zique Fitness Nutrition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f6f8fb;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        [data-theme="dark"] body {
+            background: #0f172a;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            color: white;
+            padding: 24px 20px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 16px 20px;
+            background: white;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        [data-theme="dark"] .category-tabs {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .category-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .category-tab:active {
+            transform: scale(0.95);
+        }
+
+        [data-theme="dark"] .category-tab {
+            background: #334155;
+        }
+
+        .category-tab.active {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: #0d9488;
+        }
+
+        [data-theme="dark"] .category-tab.active {
+            background: rgba(20, 184, 166, 0.2);
+            border-color: #14b8a6;
+        }
+
+        .category-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .category-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .category-tab.active .category-name {
+            color: #0d9488;
+        }
+
+        [data-theme="dark"] .category-name {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .category-tab.active .category-name {
+            color: #14b8a6;
+        }
+
+        /* Content */
+        .content {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+
+        [data-theme="dark"] .section-title {
+            color: #f1f5f9;
+        }
+
+        /* Recipe Cards */
+        .recipes-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .recipe-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .recipe-card:active {
+            transform: scale(0.98);
+        }
+
+        [data-theme="dark"] .recipe-card {
+            background: #1e293b;
+        }
+
+        .recipe-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+        }
+
+        .recipe-image-placeholder {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        [data-theme="dark"] .recipe-image-placeholder {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+        }
+
+        .recipe-content {
+            padding: 16px;
+        }
+
+        .recipe-time-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(13, 148, 136, 0.1);
+            color: #0d9488;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .recipe-time-badge {
+            background: rgba(20, 184, 166, 0.2);
+            color: #14b8a6;
+        }
+
+        .recipe-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        [data-theme="dark"] .recipe-name {
+            color: #f1f5f9;
+        }
+
+        .recipe-macros {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .macro {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .macro strong {
+            color: #1e293b;
+        }
+
+        [data-theme="dark"] .macro {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .macro strong {
+            color: #f1f5f9;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .empty-state h3 {
+            color: #f1f5f9;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .empty-state p {
+            color: #94a3b8;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #0d9488;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Recipe Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        [data-theme="dark"] .modal-content {
+            background: #1e293b;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        [data-theme="dark"] .modal-header {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            color: #1e293b;
+        }
+
+        [data-theme="dark"] .modal-header h2 {
+            color: #f1f5f9;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        [data-theme="dark"] .modal-close {
+            background: #334155;
+            color: #f1f5f9;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .modal-section {
+            margin-bottom: 24px;
+        }
+
+        .modal-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .modal-section h3 {
+            color: #94a3b8;
+        }
+
+        .modal-section p, .modal-section ul {
+            font-size: 15px;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        [data-theme="dark"] .modal-section p,
+        [data-theme="dark"] .modal-section ul {
+            color: #e2e8f0;
+        }
+
+        .modal-section ul {
+            padding-left: 20px;
+        }
+
+        .modal-section li {
+            margin-bottom: 8px;
+        }
+
+        .modal-macros {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        [data-theme="dark"] .modal-macros {
+            background: #334155;
+        }
+
+        .modal-macro {
+            text-align: center;
+        }
+
+        .modal-macro-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        [data-theme="dark"] .modal-macro-value {
+            color: #f1f5f9;
+        }
+
+        .modal-macro-label {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .modal-macro-value.calories { color: #f59e0b; }
+        .modal-macro-value.protein { color: #10b981; }
+        .modal-macro-value.carbs { color: #3b82f6; }
+        .modal-macro-value.fat { color: #8b5cf6; }
+
+        .request-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .request-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 100;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="dark"] .bottom-nav {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #64748b;
+            padding: 8px 12px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            min-width: 56px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bottom-nav-item:active {
+            transform: scale(0.95);
+        }
+
+        .bottom-nav-item.active {
+            color: #0d9488;
+        }
+
+        .bottom-nav-item.active .nav-icon {
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        [data-theme="dark"] .bottom-nav-item {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .bottom-nav-item.active {
+            color: #14b8a6;
+        }
+
+        .nav-icon {
+            width: 48px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            border-radius: 16px;
+            margin-bottom: 2px;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Recipes</h1>
+        <p>Find healthy meal ideas for any time</p>
+    </div>
+
+    <div class="category-tabs">
+        <div class="category-tab active" data-category="all">
+            <span class="category-icon">📖</span>
+            <span class="category-name">All</span>
+        </div>
+        <div class="category-tab" data-category="grab_go">
+            <span class="category-icon">⚡</span>
+            <span class="category-name">Grab & Go</span>
+        </div>
+        <div class="category-tab" data-category="quick">
+            <span class="category-icon">⏱️</span>
+            <span class="category-name">Quick</span>
+        </div>
+        <div class="category-tab" data-category="meal_prep">
+            <span class="category-icon">📦</span>
+            <span class="category-name">Meal Prep</span>
+        </div>
+        <div class="category-tab" data-category="family">
+            <span class="category-icon">👨‍👩‍👧‍👦</span>
+            <span class="category-name">Family</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="recipesContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading recipes...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipe Detail Modal -->
+    <div class="modal-overlay" id="recipeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalRecipeName">Recipe Name</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalRecipeImage"></div>
+
+                <div class="modal-section">
+                    <h3>Nutrition Per Serving</h3>
+                    <div class="modal-macros">
+                        <div class="modal-macro">
+                            <div class="modal-macro-value calories" id="modalCalories">-</div>
+                            <div class="modal-macro-label">Calories</div>
+                        </div>
+                        <div class="modal-macro">
+                            <div class="modal-macro-value protein" id="modalProtein">-</div>
+                            <div class="modal-macro-label">Protein</div>
+                        </div>
+                        <div class="modal-macro">
+                            <div class="modal-macro-value carbs" id="modalCarbs">-</div>
+                            <div class="modal-macro-label">Carbs</div>
+                        </div>
+                        <div class="modal-macro">
+                            <div class="modal-macro-value fat" id="modalFat">-</div>
+                            <div class="modal-macro-label">Fat</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section" id="ingredientsSection">
+                    <h3>Ingredients</h3>
+                    <ul id="modalIngredients"></ul>
+                </div>
+
+                <div class="modal-section" id="instructionsSection">
+                    <h3>Instructions</h3>
+                    <p id="modalInstructions"></p>
+                </div>
+
+                <button class="request-btn" onclick="requestRecipe()">
+                    Add to My Meal Plan Request
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="client-dashboard.html" class="bottom-nav-item">
+            <div class="nav-icon">🏠</div>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="#" class="bottom-nav-item" onclick="goToMealPlan(); return false;">
+            <div class="nav-icon">🍽️</div>
+            <span class="nav-label">Plan</span>
+        </a>
+        <a href="client-recipes.html" class="bottom-nav-item active">
+            <div class="nav-icon">📖</div>
+            <span class="nav-label">Recipes</span>
+        </a>
+        <a href="client-favorites.html" class="bottom-nav-item">
+            <div class="nav-icon">❤️</div>
+            <span class="nav-label">Favorites</span>
+        </a>
+        <a href="client-settings.html" class="bottom-nav-item">
+            <div class="nav-icon">👤</div>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentClientId = null;
+        let currentCoachId = null;
+        let allRecipes = [];
+        let currentCategory = 'all';
+        let selectedRecipe = null;
+
+        const categoryLabels = {
+            'grab_go': 'Grab & Go',
+            'quick': '15 min or less',
+            'meal_prep': 'Meal Prep',
+            'family': 'Family Dinner'
+        };
+
+        const categoryIcons = {
+            'grab_go': '⚡',
+            'quick': '⏱️',
+            'meal_prep': '📦',
+            'family': '👨‍👩‍👧‍👦'
+        };
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (!session) {
+                window.location.href = 'client-login.html';
+                return;
+            }
+
+            // Get client data
+            const { data: clientData } = await supabaseClient
+                .from('clients')
+                .select('id, coach_id')
+                .eq('user_id', session.user.id)
+                .single();
+
+            if (clientData) {
+                currentClientId = clientData.id;
+                currentCoachId = clientData.coach_id;
+            }
+
+            setupCategoryTabs();
+            await loadRecipes();
+        }
+
+        function setupCategoryTabs() {
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentCategory = tab.dataset.category;
+                    displayRecipes();
+                });
+            });
+        }
+
+        async function loadRecipes() {
+            try {
+                // Fetch recipes from database
+                let query = supabaseClient
+                    .from('recipes')
+                    .select('*')
+                    .eq('is_public', true)
+                    .order('created_at', { ascending: false });
+
+                // Filter by coach if available
+                if (currentCoachId) {
+                    query = query.or(`coach_id.eq.${currentCoachId},coach_id.is.null`);
+                }
+
+                const { data: recipes, error } = await query;
+
+                if (error) throw error;
+
+                allRecipes = recipes || [];
+                displayRecipes();
+
+            } catch (error) {
+                console.error('Error loading recipes:', error);
+                // Show empty state with sample recipes for demo
+                allRecipes = getSampleRecipes();
+                displayRecipes();
+            }
+        }
+
+        function getSampleRecipes() {
+            return [
+                {
+                    id: 1,
+                    name: 'Protein Smoothie Bowl',
+                    description: 'Quick and delicious post-workout fuel',
+                    time_category: 'grab_go',
+                    prep_time_minutes: 5,
+                    calories: 350,
+                    protein: 30,
+                    carbs: 40,
+                    fat: 8,
+                    ingredients: 'Protein powder, Frozen berries, Banana, Almond milk, Granola topping',
+                    instructions: 'Blend protein powder with frozen berries, half a banana, and almond milk until thick. Pour into bowl, top with sliced banana and granola.'
+                },
+                {
+                    id: 2,
+                    name: 'Greek Yogurt Parfait',
+                    description: 'High protein grab-and-go breakfast',
+                    time_category: 'grab_go',
+                    prep_time_minutes: 3,
+                    calories: 280,
+                    protein: 25,
+                    carbs: 30,
+                    fat: 6,
+                    ingredients: 'Greek yogurt, Mixed berries, Honey, Granola',
+                    instructions: 'Layer Greek yogurt with berries and granola. Drizzle with honey.'
+                },
+                {
+                    id: 3,
+                    name: 'Chicken Stir Fry',
+                    description: 'Quick and healthy weeknight dinner',
+                    time_category: 'quick',
+                    prep_time_minutes: 15,
+                    calories: 420,
+                    protein: 35,
+                    carbs: 35,
+                    fat: 12,
+                    ingredients: 'Chicken breast, Mixed vegetables, Soy sauce, Garlic, Ginger, Rice',
+                    instructions: 'Slice chicken thin. Stir fry with vegetables, garlic, and ginger. Add soy sauce. Serve over rice.'
+                },
+                {
+                    id: 4,
+                    name: 'Sheet Pan Salmon & Veggies',
+                    description: 'One pan meal with minimal cleanup',
+                    time_category: 'quick',
+                    prep_time_minutes: 10,
+                    cook_time_minutes: 15,
+                    calories: 450,
+                    protein: 38,
+                    carbs: 25,
+                    fat: 22,
+                    ingredients: 'Salmon fillet, Broccoli, Sweet potato, Olive oil, Lemon, Garlic',
+                    instructions: 'Place salmon and cubed vegetables on sheet pan. Season with olive oil, garlic, salt. Bake at 400°F for 15 minutes.'
+                },
+                {
+                    id: 5,
+                    name: 'Meal Prep Chicken Bowls',
+                    description: 'Make 5 lunches in under an hour',
+                    time_category: 'meal_prep',
+                    prep_time_minutes: 20,
+                    cook_time_minutes: 30,
+                    servings: 5,
+                    calories: 480,
+                    protein: 40,
+                    carbs: 45,
+                    fat: 14,
+                    ingredients: 'Chicken thighs, Brown rice, Roasted vegetables, Hummus, Mixed greens',
+                    instructions: 'Bake seasoned chicken thighs. Cook rice. Roast vegetables. Divide into 5 containers with greens and hummus.'
+                },
+                {
+                    id: 6,
+                    name: 'Turkey Taco Meat',
+                    description: 'Versatile protein for the whole week',
+                    time_category: 'meal_prep',
+                    prep_time_minutes: 10,
+                    cook_time_minutes: 15,
+                    servings: 6,
+                    calories: 200,
+                    protein: 28,
+                    carbs: 4,
+                    fat: 8,
+                    ingredients: 'Ground turkey, Taco seasoning, Onion, Garlic, Tomato paste',
+                    instructions: 'Brown turkey with onion and garlic. Add taco seasoning and tomato paste. Use for tacos, bowls, or salads all week.'
+                },
+                {
+                    id: 7,
+                    name: 'Slow Cooker Pulled Chicken',
+                    description: 'Set it and forget it family meal',
+                    time_category: 'family',
+                    prep_time_minutes: 10,
+                    cook_time_minutes: 360,
+                    servings: 8,
+                    calories: 280,
+                    protein: 35,
+                    carbs: 12,
+                    fat: 10,
+                    ingredients: 'Chicken breasts, BBQ sauce, Chicken broth, Onion, Garlic powder',
+                    instructions: 'Place chicken in slow cooker with broth and seasonings. Cook on low 6-8 hours. Shred and mix with BBQ sauce.'
+                },
+                {
+                    id: 8,
+                    name: 'Healthy Beef Tacos',
+                    description: 'Family favorite made nutritious',
+                    time_category: 'family',
+                    prep_time_minutes: 15,
+                    cook_time_minutes: 20,
+                    servings: 6,
+                    calories: 380,
+                    protein: 28,
+                    carbs: 30,
+                    fat: 16,
+                    ingredients: 'Lean ground beef, Corn tortillas, Lettuce, Tomato, Cheese, Greek yogurt (sour cream sub)',
+                    instructions: 'Brown beef with taco seasoning. Warm tortillas. Let family build their own tacos with toppings.'
+                }
+            ];
+        }
+
+        function displayRecipes() {
+            const container = document.getElementById('recipesContainer');
+            let filtered = allRecipes;
+
+            if (currentCategory !== 'all') {
+                filtered = allRecipes.filter(r => r.time_category === currentCategory);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📖</div>
+                        <h3>No recipes yet</h3>
+                        <p>Your coach will add recipes here soon!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="recipes-grid">
+                    ${filtered.map(recipe => createRecipeCard(recipe)).join('')}
+                </div>
+            `;
+        }
+
+        function createRecipeCard(recipe) {
+            const timeLabel = categoryLabels[recipe.time_category] || recipe.time_category;
+            const timeIcon = categoryIcons[recipe.time_category] || '🍽️';
+
+            let prepText = '';
+            if (recipe.prep_time_minutes) {
+                prepText = `${recipe.prep_time_minutes} min`;
+            }
+
+            return `
+                <div class="recipe-card" onclick="openRecipe(${recipe.id})">
+                    ${recipe.image_url
+                        ? `<img src="${recipe.image_url}" class="recipe-image" alt="${recipe.name}">`
+                        : `<div class="recipe-image-placeholder">🍳</div>`
+                    }
+                    <div class="recipe-content">
+                        <div class="recipe-time-badge">${timeIcon} ${prepText || timeLabel}</div>
+                        <div class="recipe-name">${recipe.name}</div>
+                        <div class="recipe-macros">
+                            <span class="macro"><strong>${recipe.calories || '-'}</strong> cal</span>
+                            <span class="macro"><strong>${recipe.protein || '-'}g</strong> protein</span>
+                            <span class="macro"><strong>${recipe.carbs || '-'}g</strong> carbs</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openRecipe(recipeId) {
+            selectedRecipe = allRecipes.find(r => r.id === recipeId);
+            if (!selectedRecipe) return;
+
+            document.getElementById('modalRecipeName').textContent = selectedRecipe.name;
+            document.getElementById('modalCalories').textContent = selectedRecipe.calories || '-';
+            document.getElementById('modalProtein').textContent = selectedRecipe.protein ? `${selectedRecipe.protein}g` : '-';
+            document.getElementById('modalCarbs').textContent = selectedRecipe.carbs ? `${selectedRecipe.carbs}g` : '-';
+            document.getElementById('modalFat').textContent = selectedRecipe.fat ? `${selectedRecipe.fat}g` : '-';
+
+            // Image
+            const imageContainer = document.getElementById('modalRecipeImage');
+            if (selectedRecipe.image_url) {
+                imageContainer.innerHTML = `<img src="${selectedRecipe.image_url}" class="modal-image" alt="${selectedRecipe.name}">`;
+            } else {
+                imageContainer.innerHTML = '';
+            }
+
+            // Ingredients
+            const ingredientsSection = document.getElementById('ingredientsSection');
+            const ingredientsList = document.getElementById('modalIngredients');
+            if (selectedRecipe.ingredients) {
+                ingredientsSection.style.display = 'block';
+                const items = selectedRecipe.ingredients.split(',').map(i => i.trim());
+                ingredientsList.innerHTML = items.map(item => `<li>${item}</li>`).join('');
+            } else {
+                ingredientsSection.style.display = 'none';
+            }
+
+            // Instructions
+            const instructionsSection = document.getElementById('instructionsSection');
+            const instructionsText = document.getElementById('modalInstructions');
+            if (selectedRecipe.instructions) {
+                instructionsSection.style.display = 'block';
+                instructionsText.textContent = selectedRecipe.instructions;
+            } else {
+                instructionsSection.style.display = 'none';
+            }
+
+            document.getElementById('recipeModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('recipeModal').classList.remove('active');
+            selectedRecipe = null;
+        }
+
+        async function requestRecipe() {
+            if (!selectedRecipe || !currentClientId || !currentCoachId) {
+                alert('Unable to send request. Please try again.');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('recipe_requests')
+                    .insert({
+                        recipe_id: selectedRecipe.id,
+                        client_id: currentClientId,
+                        coach_id: currentCoachId,
+                        status: 'pending'
+                    });
+
+                if (error) throw error;
+
+                alert('Request sent! Your coach will review it.');
+                closeModal();
+
+            } catch (error) {
+                console.error('Error requesting recipe:', error);
+                alert('Could not send request. Please try again.');
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('recipeModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('recipeModal')) {
+                closeModal();
+            }
+        });
+
+        function goToMealPlan() {
+            const planId = localStorage.getItem('zique-current-plan-id');
+            if (planId) {
+                window.location.href = `view-plan.html?planId=${planId}&clientView=true`;
+            } else {
+                window.location.href = 'client-dashboard.html';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
