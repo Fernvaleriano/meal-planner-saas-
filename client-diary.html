@@ -1188,7 +1188,19 @@
                 </div>
 
                 <div class="quick-add-section">
-                    <div class="quick-add-title">Or create a quick entry</div>
+                    <div class="quick-add-title">Or try these options</div>
+                    <button class="quick-add-btn" onclick="openBarcodeScanner()" style="margin-bottom: 10px;">
+                        <div class="quick-add-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
+                                <path d="M7 8v8M12 8v8M17 8v8"/>
+                            </svg>
+                        </div>
+                        <div class="quick-add-text">
+                            <div class="quick-add-text-main">Scan Barcode</div>
+                            <div class="quick-add-text-sub">Use camera to scan product</div>
+                        </div>
+                    </button>
                     <button class="quick-add-btn" onclick="openQuickAdd()">
                         <div class="quick-add-icon">+</div>
                         <div class="quick-add-text">
@@ -1197,6 +1209,63 @@
                         </div>
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div class="modal-overlay" id="barcodeModal">
+        <div class="modal-content" style="background: #000;">
+            <div class="modal-header" style="background: #000; border-bottom: 1px solid #333;">
+                <button class="modal-close" onclick="closeBarcodeScanner()" style="color: white;">&times;</button>
+                <span style="color: white; font-weight: 600;">Scan Barcode</span>
+            </div>
+            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+                <div id="barcode-scanner" style="width: 100%; max-width: 500px;"></div>
+                <div id="barcode-status" style="color: white; text-align: center; padding: 20px;">
+                    <p>Point camera at barcode</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barcode Result Modal -->
+    <div class="modal-overlay" id="barcodeResultModal">
+        <div class="quick-add-modal">
+            <h2 style="margin-bottom: 16px; color: var(--gray-900);">Product Found</h2>
+            <div id="barcodeProductInfo">
+                <div class="product-image" id="productImage" style="text-align: center; margin-bottom: 16px;"></div>
+                <div class="product-name" id="productName" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;"></div>
+                <div class="product-brand" id="productBrand" style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 16px;"></div>
+                <div class="product-nutrition" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 700;" id="prodCalories">--</div>
+                            <div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="prodProtein">--</div>
+                            <div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="prodCarbs">--</div>
+                            <div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="prodFat">--</div>
+                            <div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="prodServing">per 100g</div>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Servings</label>
+                    <input type="number" id="barcodeServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+                </div>
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="closeBarcodeResult()" style="flex:1">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addBarcodeFood()" style="flex:1">Add Food</button>
             </div>
         </div>
     </div>
@@ -1348,6 +1417,8 @@
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Barcode Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
         // Initialize Supabase
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -1872,6 +1943,184 @@
         // Navigate to meal plan
         function goToMealPlan() {
             window.location.href = 'client-plans.html';
+        }
+
+        // ==========================================
+        // Barcode Scanner Functions
+        // ==========================================
+        let html5QrCode = null;
+        let scannedProduct = null;
+
+        function openBarcodeScanner() {
+            closeFoodSearch();
+            document.getElementById('barcodeModal').classList.add('active');
+            document.getElementById('barcode-status').innerHTML = '<p>Starting camera...</p>';
+
+            // Initialize scanner
+            html5QrCode = new Html5Qrcode("barcode-scanner");
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 150 },
+                aspectRatio: 1.777,
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39
+                ]
+            };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onBarcodeScanned,
+                (errorMessage) => {
+                    // Ignore scan errors (no barcode found in frame)
+                }
+            ).then(() => {
+                document.getElementById('barcode-status').innerHTML = '<p>Point camera at barcode</p>';
+            }).catch((err) => {
+                console.error('Camera error:', err);
+                document.getElementById('barcode-status').innerHTML = `
+                    <p style="color: #ef4444;">Camera access denied</p>
+                    <p style="font-size: 0.875rem; margin-top: 8px;">Please allow camera access to scan barcodes</p>
+                `;
+            });
+        }
+
+        function closeBarcodeScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                }).catch(err => console.log('Scanner stop error:', err));
+            }
+            document.getElementById('barcodeModal').classList.remove('active');
+        }
+
+        async function onBarcodeScanned(decodedText, decodedResult) {
+            // Stop scanning
+            if (html5QrCode) {
+                await html5QrCode.stop();
+            }
+
+            document.getElementById('barcode-status').innerHTML = '<p>Looking up product...</p>';
+
+            // Lookup product in Open Food Facts
+            try {
+                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
+                const data = await response.json();
+
+                if (data.status === 1 && data.product) {
+                    const product = data.product;
+                    scannedProduct = {
+                        barcode: decodedText,
+                        name: product.product_name || product.product_name_en || 'Unknown Product',
+                        brand: product.brands || '',
+                        image: product.image_small_url || product.image_url || null,
+                        calories: Math.round(product.nutriments?.['energy-kcal_100g'] || product.nutriments?.['energy-kcal'] || 0),
+                        protein: Math.round((product.nutriments?.proteins_100g || 0) * 10) / 10,
+                        carbs: Math.round((product.nutriments?.carbohydrates_100g || 0) * 10) / 10,
+                        fat: Math.round((product.nutriments?.fat_100g || 0) * 10) / 10,
+                        servingSize: product.serving_size || '100g'
+                    };
+
+                    showBarcodeResult();
+                } else {
+                    showToast('Product not found in database');
+                    document.getElementById('barcode-status').innerHTML = `
+                        <p style="color: #f59e0b;">Product not found</p>
+                        <p style="font-size: 0.875rem; margin-top: 8px;">Barcode: ${decodedText}</p>
+                        <button onclick="restartScanner()" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            Scan Another
+                        </button>
+                    `;
+                }
+            } catch (err) {
+                console.error('Lookup error:', err);
+                showToast('Error looking up product');
+                document.getElementById('barcode-status').innerHTML = `
+                    <p style="color: #ef4444;">Lookup failed</p>
+                    <button onclick="restartScanner()" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        Try Again
+                    </button>
+                `;
+            }
+        }
+
+        function restartScanner() {
+            closeBarcodeScanner();
+            setTimeout(() => openBarcodeScanner(), 300);
+        }
+
+        function showBarcodeResult() {
+            closeBarcodeScanner();
+
+            // Populate result modal
+            document.getElementById('productName').textContent = scannedProduct.name;
+            document.getElementById('productBrand').textContent = scannedProduct.brand;
+            document.getElementById('prodCalories').textContent = scannedProduct.calories;
+            document.getElementById('prodProtein').textContent = scannedProduct.protein + 'g';
+            document.getElementById('prodCarbs').textContent = scannedProduct.carbs + 'g';
+            document.getElementById('prodFat').textContent = scannedProduct.fat + 'g';
+            document.getElementById('prodServing').textContent = `per ${scannedProduct.servingSize}`;
+            document.getElementById('barcodeServings').value = 1;
+
+            // Show product image if available
+            const imageContainer = document.getElementById('productImage');
+            if (scannedProduct.image) {
+                imageContainer.innerHTML = `<img src="${scannedProduct.image}" alt="${scannedProduct.name}" style="max-width: 120px; max-height: 120px; border-radius: 8px;">`;
+            } else {
+                imageContainer.innerHTML = '<div style="font-size: 3rem;">📦</div>';
+            }
+
+            document.getElementById('barcodeResultModal').classList.add('active');
+        }
+
+        function closeBarcodeResult() {
+            document.getElementById('barcodeResultModal').classList.remove('active');
+            scannedProduct = null;
+        }
+
+        async function addBarcodeFood() {
+            if (!scannedProduct) return;
+
+            const servings = parseFloat(document.getElementById('barcodeServings').value) || 1;
+
+            try {
+                const response = await fetch('/.netlify/functions/food-diary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        coachId,
+                        entryDate: formatDate(currentDate),
+                        mealType: currentMealType,
+                        foodName: scannedProduct.name,
+                        brand: scannedProduct.brand,
+                        servingSize: 100,
+                        servingUnit: 'g',
+                        numberOfServings: servings,
+                        calories: Math.round(scannedProduct.calories * servings),
+                        protein: Math.round(scannedProduct.protein * servings * 10) / 10,
+                        carbs: Math.round(scannedProduct.carbs * servings * 10) / 10,
+                        fat: Math.round(scannedProduct.fat * servings * 10) / 10,
+                        externalId: scannedProduct.barcode,
+                        foodSource: 'barcode'
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to add food');
+
+                closeBarcodeResult();
+                showToast('Food added!');
+                await loadDiaryEntries();
+            } catch (err) {
+                console.error('Error adding barcode food:', err);
+                showToast('Failed to add food');
+            }
         }
     </script>
 </body>
