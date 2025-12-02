@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <title>My Profile - Zique Fitness Nutrition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f6f8fb 0%, #e9f0f5 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        [data-theme="dark"] body {
+            background: #0f172a;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            margin-bottom: 24px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+            margin: 0 auto 16px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        [data-theme="dark"] .header h1 {
+            color: #f1f5f9;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        [data-theme="dark"] .header p {
+            color: #94a3b8;
+        }
+
+        .settings-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .settings-card {
+            background: #1e293b;
+        }
+
+        .settings-card-title {
+            padding: 16px 20px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+        }
+
+        [data-theme="dark"] .settings-card-title {
+            color: #94a3b8;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item:hover {
+            background: #f8fafc;
+        }
+
+        [data-theme="dark"] .settings-item {
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .settings-item:hover {
+            background: #334155;
+        }
+
+        .settings-item-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .settings-icon {
+            width: 40px;
+            height: 40px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        [data-theme="dark"] .settings-icon {
+            background: #334155;
+        }
+
+        .settings-label {
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 15px;
+        }
+
+        [data-theme="dark"] .settings-label {
+            color: #f1f5f9;
+        }
+
+        .settings-sublabel {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        [data-theme="dark"] .settings-sublabel {
+            color: #94a3b8;
+        }
+
+        .settings-value {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        [data-theme="dark"] .settings-value {
+            color: #94a3b8;
+        }
+
+        .settings-arrow {
+            color: #cbd5e1;
+            font-size: 18px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.3s;
+            border-radius: 31px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #0d9488;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 16px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #fecaca;
+        }
+
+        [data-theme="dark"] .logout-btn {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] .logout-btn:hover {
+            background: #991b1b;
+        }
+
+        .coach-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .coach-avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+
+        .coach-details {
+            flex: 1;
+        }
+
+        .coach-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 15px;
+        }
+
+        [data-theme="dark"] .coach-name {
+            color: #f1f5f9;
+        }
+
+        .coach-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .coach-label {
+            color: #94a3b8;
+        }
+
+        .version-info {
+            text-align: center;
+            padding: 24px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="dark"] .bottom-nav {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #64748b;
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            min-width: 64px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bottom-nav-item:active {
+            transform: scale(0.95);
+        }
+
+        .bottom-nav-item.active {
+            color: #0d9488;
+        }
+
+        .bottom-nav-item.active .nav-icon {
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        [data-theme="dark"] .bottom-nav-item {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .bottom-nav-item.active {
+            color: #14b8a6;
+        }
+
+        .nav-icon {
+            width: 48px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 2px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="avatar" id="userAvatar">👤</div>
+            <h1 id="userName">Loading...</h1>
+            <p id="userEmail">Loading...</p>
+        </div>
+
+        <!-- My Coach -->
+        <div class="settings-card">
+            <div class="settings-card-title">My Coach</div>
+            <div class="settings-item" style="cursor: default;">
+                <div class="coach-info">
+                    <div class="coach-avatar">🏋️</div>
+                    <div class="coach-details">
+                        <div class="coach-name" id="coachName">Loading...</div>
+                        <div class="coach-label">Nutrition Coach</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences -->
+        <div class="settings-card">
+            <div class="settings-card-title">Preferences</div>
+            <div class="settings-item" onclick="toggleDarkMode()">
+                <div class="settings-item-left">
+                    <div class="settings-icon">🌙</div>
+                    <div>
+                        <div class="settings-label">Dark Mode</div>
+                        <div class="settings-sublabel">Easier on the eyes at night</div>
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Account -->
+        <div class="settings-card">
+            <div class="settings-card-title">Account</div>
+            <div class="settings-item" onclick="logout()">
+                <div class="settings-item-left">
+                    <div class="settings-icon">🚪</div>
+                    <div>
+                        <div class="settings-label" style="color: #dc2626;">Log Out</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="version-info">
+            Zique Fitness Nutrition v1.0
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="client-dashboard.html" class="bottom-nav-item">
+            <div class="nav-icon">🏠</div>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="#" class="bottom-nav-item" onclick="goToMealPlan(); return false;">
+            <div class="nav-icon">🍽️</div>
+            <span class="nav-label">Meal Plan</span>
+        </a>
+        <a href="client-favorites.html" class="bottom-nav-item">
+            <div class="nav-icon">❤️</div>
+            <span class="nav-label">Favorites</span>
+        </a>
+        <a href="client-settings.html" class="bottom-nav-item active">
+            <div class="nav-icon">👤</div>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (!session) {
+                window.location.href = 'client-login.html';
+                return;
+            }
+
+            // Set user info
+            document.getElementById('userEmail').textContent = session.user.email;
+
+            // Get client data
+            const { data: clientData, error: clientError } = await supabaseClient
+                .from('clients')
+                .select('*, coaches(name, email)')
+                .eq('user_id', session.user.id)
+                .single();
+
+            if (clientData) {
+                document.getElementById('userName').textContent = clientData.name || 'Client';
+
+                // Set avatar initial
+                const name = clientData.name || session.user.email;
+                document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+
+                // Set coach info
+                if (clientData.coaches) {
+                    document.getElementById('coachName').textContent = clientData.coaches.name || clientData.coaches.email;
+                } else {
+                    document.getElementById('coachName').textContent = 'Not assigned';
+                }
+            }
+
+            // Set dark mode toggle state
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.getElementById('darkModeToggle').checked = isDark;
+        }
+
+        function toggleDarkMode() {
+            const toggle = document.getElementById('darkModeToggle');
+            toggle.checked = !toggle.checked;
+
+            if (window.ZiqueTheme && window.ZiqueTheme.toggle) {
+                window.ZiqueTheme.toggle();
+            } else {
+                const newTheme = toggle.checked ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('zique-theme', newTheme);
+            }
+        }
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            localStorage.removeItem('zique-current-plan-id');
+            window.location.href = 'client-login.html';
+        }
+
+        function goToMealPlan() {
+            const planId = localStorage.getItem('zique-current-plan-id');
+            if (planId) {
+                window.location.href = `view-plan.html?planId=${planId}&clientView=true`;
+            } else {
+                window.location.href = 'client-dashboard.html';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
