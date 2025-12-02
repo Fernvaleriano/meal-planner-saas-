@@ -255,6 +255,163 @@
             gap: 24px;
         }
 
+        /* View Toggle */
+        .view-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 4px;
+            background: var(--gray-100);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .view-toggle-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .view-toggle-btn.active {
+            background: white;
+            color: var(--brand-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .view-toggle-btn:hover:not(.active) {
+            color: var(--gray-800);
+        }
+
+        [data-theme="dark"] .view-toggle {
+            background: var(--gray-800);
+        }
+
+        [data-theme="dark"] .view-toggle-btn {
+            color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .view-toggle-btn.active {
+            background: var(--gray-700);
+            color: #2dd4bf;
+        }
+
+        .client-count {
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+
+        /* Table View */
+        .clients-table {
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .clients-table {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        .clients-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .clients-table th {
+            text-align: left;
+            padding: 16px 20px;
+            background: var(--gray-50);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-500);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .clients-table th {
+            background: var(--gray-900);
+            color: var(--gray-400);
+            border-color: var(--gray-700);
+        }
+
+        .clients-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .clients-table td {
+            border-color: var(--gray-700);
+            color: var(--gray-300);
+        }
+
+        .clients-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .clients-table tr:hover td {
+            background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .clients-table tr:hover td {
+            background: var(--gray-700);
+        }
+
+        .clients-table .client-name-cell {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .clients-table .client-name-cell {
+            color: var(--gray-100);
+        }
+
+        .clients-table .client-email {
+            color: var(--gray-500);
+            font-size: 13px;
+        }
+
+        .clients-table .goal-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+        }
+
+        .clients-table .table-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .clients-table .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .table-row-clickable {
+            cursor: pointer;
+        }
+
         .client-card {
             background: white;
             border-radius: 16px;
@@ -636,8 +793,48 @@
             <button class="btn btn-primary" onclick="openAddClientModal()">+ Add Your First Client</button>
         </div>
 
+        <!-- View Controls -->
+        <div id="viewControls" class="view-controls" style="display: none;">
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" id="cardViewBtn" onclick="setView('cards')">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/>
+                    </svg>
+                    Cards
+                </button>
+                <button class="view-toggle-btn" id="tableViewBtn" onclick="setView('table')">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2" d="M3 6h18M3 12h18M3 18h18"/>
+                    </svg>
+                    Table
+                </button>
+            </div>
+            <span class="client-count" id="clientCount">0 clients</span>
+        </div>
+
         <div id="clientsContainer" class="clients-grid" style="display: none;">
             <!-- Client cards will be dynamically inserted here -->
+        </div>
+
+        <div id="clientsTableContainer" class="clients-table" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Contact</th>
+                        <th>Goal</th>
+                        <th>Plans</th>
+                        <th>Added</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                    <!-- Table rows will be dynamically inserted here -->
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -940,11 +1137,18 @@
 
         let currentCoachId = null;
         let clients = [];
+        let currentView = localStorage.getItem('clientsView') || 'cards';
 
         // UI Elements
         const loadingDiv = document.getElementById('loadingDiv');
         const emptyState = document.getElementById('emptyState');
         const clientsContainer = document.getElementById('clientsContainer');
+        const clientsTableContainer = document.getElementById('clientsTableContainer');
+        const clientsTableBody = document.getElementById('clientsTableBody');
+        const viewControls = document.getElementById('viewControls');
+        const cardViewBtn = document.getElementById('cardViewBtn');
+        const tableViewBtn = document.getElementById('tableViewBtn');
+        const clientCountEl = document.getElementById('clientCount');
         const clientModal = document.getElementById('clientModal');
         const clientForm = document.getElementById('clientForm');
         const modalTitle = document.getElementById('modalTitle');
@@ -1041,6 +1245,8 @@
                 loadingDiv.style.display = 'block';
                 emptyState.style.display = 'none';
                 clientsContainer.style.display = 'none';
+                clientsTableContainer.style.display = 'none';
+                viewControls.style.display = 'none';
 
                 const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
                 const data = await response.json();
@@ -1056,14 +1262,39 @@
                 if (clients.length === 0) {
                     emptyState.style.display = 'block';
                 } else {
-                    clientsContainer.style.display = 'grid';
-                    renderClients();
+                    viewControls.style.display = 'flex';
+                    clientCountEl.textContent = `${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`;
+                    applyView();
                 }
 
             } catch (error) {
                 console.error('Error loading clients:', error);
                 loadingDiv.style.display = 'none';
                 alert('Error loading clients: ' + error.message);
+            }
+        }
+
+        // Set view mode (cards or table)
+        function setView(view) {
+            currentView = view;
+            localStorage.setItem('clientsView', view);
+            applyView();
+        }
+
+        // Apply current view
+        function applyView() {
+            // Update button states
+            cardViewBtn.classList.toggle('active', currentView === 'cards');
+            tableViewBtn.classList.toggle('active', currentView === 'table');
+
+            if (currentView === 'cards') {
+                clientsContainer.style.display = 'grid';
+                clientsTableContainer.style.display = 'none';
+                renderClients();
+            } else {
+                clientsContainer.style.display = 'none';
+                clientsTableContainer.style.display = 'block';
+                renderClientsTable();
             }
         }
 
@@ -1132,6 +1363,56 @@
                 `;
 
                 clientsContainer.appendChild(card);
+            });
+        }
+
+        // Render clients in table view
+        async function renderClientsTable() {
+            clientsTableBody.innerHTML = '';
+
+            // Fetch plan counts for all clients
+            const planCounts = await fetchPlanCounts();
+
+            clients.forEach(client => {
+                const row = document.createElement('tr');
+                row.className = 'table-row-clickable';
+                row.onclick = () => window.location.href = `client-profile.html?clientId=${client.id}`;
+
+                // Format goal
+                const goalDisplay = client.default_goal
+                    ? client.default_goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    : 'Not set';
+                const goalClass = client.default_goal
+                    ? client.default_goal.replace('_', '-')
+                    : 'not-set';
+
+                // Get plan count
+                const planCount = planCounts[client.id] || 0;
+
+                row.innerHTML = `
+                    <td>
+                        <div class="client-name-cell">${escapeHtml(client.client_name)}</div>
+                    </td>
+                    <td>
+                        ${client.email ? `<div>${escapeHtml(client.email)}</div>` : ''}
+                        ${client.phone ? `<div class="client-email">${escapeHtml(client.phone)}</div>` : ''}
+                        ${!client.email && !client.phone ? '<span style="color: var(--gray-400);">—</span>' : ''}
+                    </td>
+                    <td>
+                        <span class="goal-badge ${goalClass}">${goalDisplay}</span>
+                    </td>
+                    <td>${planCount}</td>
+                    <td>${new Date(client.created_at).toLocaleDateString()}</td>
+                    <td>
+                        <div class="table-actions">
+                            ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite</button>` : ''}
+                            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+
+                clientsTableBody.appendChild(row);
             });
         }
 
