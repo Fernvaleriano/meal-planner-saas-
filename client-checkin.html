@@ -647,7 +647,7 @@
             const { data: client } = await supabaseClient
                 .from('clients')
                 .select('id')
-                .eq('email', session.user.email)
+                .eq('user_id', session.user.id)
                 .single();
 
             if (client) {
