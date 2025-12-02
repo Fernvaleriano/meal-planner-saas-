@@ -661,34 +661,81 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/css/coach-layout.css">
 </head>
 <body>
-    <header class="header">
-        <div class="header-left">
-            <a href="dashboard.html" class="logo">
-                <div class="logo-icon">Z</div>
-                <span class="logo-text">Zique Fitness</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <div class="sidebar-logo-icon">Z</div>
+                <span class="sidebar-logo-text">Zique Fitness</span>
             </a>
-            <nav class="nav-links">
-                <a href="dashboard.html" class="nav-link">Dashboard</a>
-                <a href="manage-clients.html" class="nav-link">Clients</a>
-                <a href="manage-recipes.html" class="nav-link active">Recipes</a>
-                <a href="planner.html" class="nav-link">Planner</a>
-            </nav>
         </div>
-        <div class="header-right">
-            <span class="user-email" id="userEmail"></span>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Menu</div>
+                <a href="dashboard.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="manage-clients.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">👥</span>
+                    Clients
+                </a>
+                <a href="manage-recipes.html" class="sidebar-nav-item active">
+                    <span class="sidebar-nav-icon">📖</span>
+                    Recipes
+                </a>
+                <a href="planner.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🍽️</span>
+                    AI Planner
+                </a>
+            </div>
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Settings</div>
+                <a href="supplement-protocols.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">💊</span>
+                    Supplements
+                </a>
+                <a href="reminder-settings.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🔔</span>
+                    Reminders
+                </a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" onclick="logout()" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
-    </header>
+    </aside>
 
-    <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">📖 Manage Recipes</h1>
-            <button class="btn-primary" onclick="openAddModal()">
-                <span>+</span> Add Recipe
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
             </button>
-        </div>
+            <h1 class="main-header-title">📖 Manage Recipes</h1>
+            <div class="main-header-actions">
+                <button class="btn-primary" onclick="openAddModal()">+ Add Recipe</button>
+            </div>
+        </header>
+
+        <div class="main-container">
 
         <div class="category-tabs">
             <button class="category-tab active" data-category="all">All Recipes</button>

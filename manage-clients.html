@@ -550,29 +550,81 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/css/coach-layout.css">
 </head>
 <body>
-    <!-- Top Navigation -->
-    <nav class="top-nav">
-        <div class="nav-brand" onclick="window.location.href='dashboard.html'">
-            <div class="nav-logo">Z</div>
-            <span class="nav-title">Zique Fitness</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <div class="sidebar-logo-icon">Z</div>
+                <span class="sidebar-logo-text">Zique Fitness</span>
+            </a>
         </div>
-        <div class="user-info">
-            <span class="user-email" id="userEmail">Loading...</span>
-            <button class="logout-btn" id="logoutBtn">Logout</button>
-        </div>
-    </nav>
-
-    <div class="main-content">
-        <div class="container">
-            <div class="page-header">
-                <h1><span class="page-title-icon">&#128101;</span> Manage Clients</h1>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
-                    <button class="btn btn-primary" id="addClientBtn">+ Add Client</button>
-                </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Menu</div>
+                <a href="dashboard.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="manage-clients.html" class="sidebar-nav-item active">
+                    <span class="sidebar-nav-icon">👥</span>
+                    Clients
+                </a>
+                <a href="manage-recipes.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">📖</span>
+                    Recipes
+                </a>
+                <a href="planner.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🍽️</span>
+                    AI Planner
+                </a>
             </div>
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Settings</div>
+                <a href="supplement-protocols.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">💊</span>
+                    Supplements
+                </a>
+                <a href="reminder-settings.html" class="sidebar-nav-item">
+                    <span class="sidebar-nav-icon">🔔</span>
+                    Reminders
+                </a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title">👥 Manage Clients</h1>
+            <div class="main-header-actions">
+                <button class="btn btn-primary" id="addClientBtn">+ Add Client</button>
+            </div>
+        </header>
+
+        <div class="main-container">
 
         <div id="loadingDiv" class="loading">
             Loading clients...
@@ -1427,17 +1479,27 @@
         initPage();
     </script>
 
-    <!-- Footer -->
-    <footer class="site-footer">
-        <div class="footer-content">
-            <div class="footer-brand">
-                <div class="footer-logo">Z</div>
-                <span>Zique Fitness Nutrition</span>
-            </div>
-            <div class="footer-text">
-                &copy; 2026 Zique Fitness. Your health, our priority.
-            </div>
+    <!-- Mobile Sidebar Toggle -->
+    <script>
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            });
+        }
+    </script>
         </div>
-    </footer>
+    </main>
 </body>
 </html>
