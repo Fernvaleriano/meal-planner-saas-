@@ -1409,6 +1409,63 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .checkins-header:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        [data-theme="dark"] .checkins-header:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .section-toggle-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .section-toggle-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        [data-theme="dark"] .section-toggle-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .toggle-icon {
+            font-size: 14px;
+            color: #64748b;
+            transition: transform 0.3s ease;
+        }
+
+        [data-theme="dark"] .toggle-icon {
+            color: #94a3b8;
+        }
+
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .toggle-icon.collapsed {
+            transform: rotate(-90deg);
         }
 
         .checkins-title {
@@ -1941,9 +1998,82 @@
         [data-theme="dark"] .protocols-section,
         [data-theme="dark"] .measurements-section,
         [data-theme="dark"] .photos-section,
-        [data-theme="dark"] .diary-section {
+        [data-theme="dark"] .diary-section,
+        [data-theme="dark"] .ai-assistant-section {
             background: #1e293b !important;
             border-color: #334155 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        }
+
+        [data-theme="dark"] .stats-card {
+            background: #334155 !important;
+        }
+
+        [data-theme="dark"] .stats-value {
+            color: #f1f5f9 !important;
+        }
+
+        [data-theme="dark"] .stats-label {
+            color: #94a3b8 !important;
+        }
+
+        [data-theme="dark"] .reminder-status {
+            background: #334155 !important;
+            color: #94a3b8 !important;
+        }
+
+        [data-theme="dark"] .checkin-card {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+
+        [data-theme="dark"] .checkin-feedback-item {
+            background: #1e293b !important;
+        }
+
+        [data-theme="dark"] .checkin-feedback-label {
+            color: #94a3b8 !important;
+        }
+
+        [data-theme="dark"] .checkin-feedback-text {
+            color: #e2e8f0 !important;
+        }
+
+        [data-theme="dark"] .coach-response-form textarea {
+            background: #1e293b !important;
+            border-color: #475569 !important;
+            color: #e2e8f0 !important;
+        }
+
+        [data-theme="dark"] .coach-existing-response {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+
+        [data-theme="dark"] .favorite-card {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+
+        [data-theme="dark"] .favorite-name {
+            color: #f1f5f9 !important;
+        }
+
+        [data-theme="dark"] .favorite-macros {
+            color: #94a3b8 !important;
+        }
+
+        [data-theme="dark"] .measurement-card {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+
+        [data-theme="dark"] .measurement-value {
+            color: #f1f5f9 !important;
+        }
+
+        [data-theme="dark"] .measurement-label {
+            color: #94a3b8 !important;
         }
 
         [data-theme="dark"] .diary-summary {
@@ -2242,6 +2372,85 @@
             </div>
         </div>
 
+        <!-- AI Coach Assistant Section -->
+        <div class="ai-assistant-section">
+            <div class="ai-assistant-header">
+                <h2 class="ai-assistant-title">🤖 AI Coach Assistant</h2>
+            </div>
+            <p class="ai-assistant-description">
+                Ask questions about your client's nutrition data and get instant AI-powered insights.
+            </p>
+
+            <!-- Quick Question Buttons -->
+            <div class="ai-quick-questions">
+                <button class="ai-quick-btn" onclick="askQuickQuestion('How is my client doing with their calorie goals?')">Calorie Progress</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('Is my client getting enough protein?')">Protein Check</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('What patterns do you see in their eating habits?')">Eating Patterns</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('What recommendations do you have for this client?')">Recommendations</button>
+            </div>
+
+            <!-- Custom Question Input -->
+            <div class="ai-input-container">
+                <textarea id="aiCoachQuestion"
+                    placeholder="Ask anything about your client's diet... e.g., 'Are they eating enough vegetables?' or 'How can they increase protein?'"
+                    rows="2"></textarea>
+                <button class="btn btn-primary ai-ask-btn" onclick="askAICoach()" id="aiAskBtn">
+                    Ask AI
+                </button>
+            </div>
+
+            <!-- AI Response Area -->
+            <div id="aiResponseContainer" class="ai-response-container" style="display: none;">
+                <div class="ai-response-header">
+                    <span>✨ AI Insights</span>
+                </div>
+                <div id="aiResponseText" class="ai-response-text"></div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="aiLoading" class="ai-loading" style="display: none;">
+                <div class="ai-loading-spinner"></div>
+                <span>Analyzing client data...</span>
+            </div>
+        </div>
+
+        <!-- Food Diary Section -->
+        <div class="diary-section">
+            <div class="diary-header">
+                <h2 class="diary-title">🍽️ Food Diary</h2>
+                <div class="diary-date-nav">
+                    <button class="diary-nav-btn" onclick="changeDiaryDate(-1)">‹</button>
+                    <input type="date" id="diaryDatePicker" onchange="loadFoodDiary(clientId)">
+                    <button class="diary-nav-btn" onclick="changeDiaryDate(1)">›</button>
+                </div>
+            </div>
+
+            <!-- Daily Summary -->
+            <div id="diarySummary" class="diary-summary" style="display: none;">
+                <div class="diary-summary-item">
+                    <span class="diary-summary-value" id="diaryCalories">0</span>
+                    <span class="diary-summary-label">Calories</span>
+                </div>
+                <div class="diary-summary-item">
+                    <span class="diary-summary-value" id="diaryProtein">0g</span>
+                    <span class="diary-summary-label">Protein</span>
+                </div>
+                <div class="diary-summary-item">
+                    <span class="diary-summary-value" id="diaryCarbs">0g</span>
+                    <span class="diary-summary-label">Carbs</span>
+                </div>
+                <div class="diary-summary-item">
+                    <span class="diary-summary-value" id="diaryFat">0g</span>
+                    <span class="diary-summary-label">Fat</span>
+                </div>
+            </div>
+
+            <!-- Meals Container -->
+            <div id="diaryContainer">
+                <div class="loading">Loading food diary...</div>
+            </div>
+        </div>
+
         <!-- Plans Section -->
         <div class="plans-section">
             <div class="section-header">
@@ -2306,85 +2515,6 @@
             </div>
         </div>
 
-        <!-- Food Diary Section -->
-        <div class="diary-section">
-            <div class="diary-header">
-                <h2 class="diary-title">🍽️ Food Diary</h2>
-                <div class="diary-date-nav">
-                    <button class="diary-nav-btn" onclick="changeDiaryDate(-1)">‹</button>
-                    <input type="date" id="diaryDatePicker" onchange="loadFoodDiary(clientId)">
-                    <button class="diary-nav-btn" onclick="changeDiaryDate(1)">›</button>
-                </div>
-            </div>
-
-            <!-- Daily Summary -->
-            <div id="diarySummary" class="diary-summary" style="display: none;">
-                <div class="diary-summary-item">
-                    <span class="diary-summary-value" id="diaryCalories">0</span>
-                    <span class="diary-summary-label">Calories</span>
-                </div>
-                <div class="diary-summary-item">
-                    <span class="diary-summary-value" id="diaryProtein">0g</span>
-                    <span class="diary-summary-label">Protein</span>
-                </div>
-                <div class="diary-summary-item">
-                    <span class="diary-summary-value" id="diaryCarbs">0g</span>
-                    <span class="diary-summary-label">Carbs</span>
-                </div>
-                <div class="diary-summary-item">
-                    <span class="diary-summary-value" id="diaryFat">0g</span>
-                    <span class="diary-summary-label">Fat</span>
-                </div>
-            </div>
-
-            <!-- Meals Container -->
-            <div id="diaryContainer">
-                <div class="loading">Loading food diary...</div>
-            </div>
-        </div>
-
-        <!-- AI Coach Assistant Section -->
-        <div class="ai-assistant-section">
-            <div class="ai-assistant-header">
-                <h2 class="ai-assistant-title">🤖 AI Coach Assistant</h2>
-            </div>
-            <p class="ai-assistant-description">
-                Ask questions about your client's nutrition data and get instant AI-powered insights.
-            </p>
-
-            <!-- Quick Question Buttons -->
-            <div class="ai-quick-questions">
-                <button class="ai-quick-btn" onclick="askQuickQuestion('How is my client doing with their calorie goals?')">Calorie Progress</button>
-                <button class="ai-quick-btn" onclick="askQuickQuestion('Is my client getting enough protein?')">Protein Check</button>
-                <button class="ai-quick-btn" onclick="askQuickQuestion('What patterns do you see in their eating habits?')">Eating Patterns</button>
-                <button class="ai-quick-btn" onclick="askQuickQuestion('What recommendations do you have for this client?')">Recommendations</button>
-            </div>
-
-            <!-- Custom Question Input -->
-            <div class="ai-input-container">
-                <textarea id="aiCoachQuestion"
-                    placeholder="Ask anything about your client's diet... e.g., 'Are they eating enough vegetables?' or 'How can they increase protein?'"
-                    rows="2"></textarea>
-                <button class="btn btn-primary ai-ask-btn" onclick="askAICoach()" id="aiAskBtn">
-                    Ask AI
-                </button>
-            </div>
-
-            <!-- AI Response Area -->
-            <div id="aiResponseContainer" class="ai-response-container" style="display: none;">
-                <div class="ai-response-header">
-                    <span>✨ AI Insights</span>
-                </div>
-                <div id="aiResponseText" class="ai-response-text"></div>
-            </div>
-
-            <!-- Loading State -->
-            <div id="aiLoading" class="ai-loading" style="display: none;">
-                <div class="ai-loading-spinner"></div>
-                <span>Analyzing client data...</span>
-            </div>
-        </div>
-
         <!-- Progress Photos Section -->
         <div class="photos-section">
             <div class="photos-header">
@@ -2409,10 +2539,13 @@
 
         <!-- Check-ins Section -->
         <div class="checkins-section">
-            <div class="checkins-header">
+            <div class="checkins-header" onclick="toggleCheckinsSection()" style="cursor: pointer;">
                 <h2 class="checkins-title">📝 Check-ins</h2>
+                <button class="section-toggle-btn" id="checkinsToggleBtn" type="button">
+                    <span class="toggle-icon" id="checkinsToggleIcon">▼</span>
+                </button>
             </div>
-            <div id="checkinsContainer">
+            <div id="checkinsContainer" class="collapsible-content">
                 <div class="loading">Loading check-ins...</div>
             </div>
         </div>
@@ -2610,6 +2743,32 @@
                     section.classList.add('collapsed');
                 }
             });
+        })();
+
+        // Toggle check-ins section collapse
+        function toggleCheckinsSection() {
+            const container = document.getElementById('checkinsContainer');
+            const icon = document.getElementById('checkinsToggleIcon');
+
+            if (container && icon) {
+                container.classList.toggle('collapsed');
+                icon.classList.toggle('collapsed');
+
+                // Save state to localStorage
+                const isCollapsed = container.classList.contains('collapsed');
+                localStorage.setItem('checkinsCollapsed', JSON.stringify(isCollapsed));
+            }
+        }
+
+        // Restore check-ins collapsed state on load
+        (function restoreCheckinsState() {
+            const isCollapsed = JSON.parse(localStorage.getItem('checkinsCollapsed') || 'false');
+            if (isCollapsed) {
+                const container = document.getElementById('checkinsContainer');
+                const icon = document.getElementById('checkinsToggleIcon');
+                if (container) container.classList.add('collapsed');
+                if (icon) icon.classList.add('collapsed');
+            }
         })();
 
         // Initialize Supabase client
