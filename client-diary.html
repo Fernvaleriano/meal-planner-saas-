@@ -2647,14 +2647,22 @@
 
         // Load diary entries
         async function loadDiaryEntries() {
-            if (!clientId) return;
+            if (!clientId) {
+                console.log('loadDiaryEntries: No clientId, skipping');
+                return;
+            }
 
             try {
                 const date = formatDate(currentDate);
+                console.log('loadDiaryEntries: Fetching for clientId:', clientId, 'date:', date);
                 const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${date}`);
+                console.log('loadDiaryEntries: Response status:', response.status);
                 const data = await response.json();
+                console.log('loadDiaryEntries: Response data:', data);
 
                 entries = data.entries || [];
+                console.log('loadDiaryEntries: Loaded', entries.length, 'entries');
+
                 // Properly merge goals with defaults to avoid undefined values
                 if (data.goals && Object.keys(data.goals).length > 0) {
                     goals = {
@@ -2664,6 +2672,7 @@
                         fat_goal: data.goals.fat_goal || 65
                     };
                 }
+                console.log('loadDiaryEntries: Goals set to:', goals);
 
                 // Update UI
                 updateSummary(data.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
@@ -2863,6 +2872,9 @@
             const food = window.searchResults[index];
             if (!food) return;
 
+            console.log('selectFood called with:', food);
+            console.log('clientId:', clientId, 'coachId:', coachId);
+
             // Create optimistic entry
             const tempId = 'temp-' + Date.now();
             const optimisticEntry = {
@@ -2870,10 +2882,10 @@
                 food_name: food.name,
                 number_of_servings: 1,
                 serving_unit: food.servingUnit || 'serving',
-                calories: food.calories,
-                protein: food.protein,
-                carbs: food.carbs,
-                fat: food.fat
+                calories: food.calories || 0,
+                protein: food.protein || 0,
+                carbs: food.carbs || 0,
+                fat: food.fat || 0
             };
 
             // Immediately add to UI (optimistic)
@@ -2882,32 +2894,37 @@
             showToast('Adding...');
 
             try {
+                const payload = {
+                    clientId,
+                    coachId,
+                    entryDate: formatDate(currentDate),
+                    mealType: currentMealType,
+                    foodName: food.name,
+                    brand: food.brand,
+                    servingSize: food.servingSize || 1,
+                    servingUnit: food.servingUnit || 'serving',
+                    numberOfServings: 1,
+                    calories: food.calories || 0,
+                    protein: food.protein || 0,
+                    carbs: food.carbs || 0,
+                    fat: food.fat || 0,
+                    fiber: food.fiber,
+                    externalId: food.externalId,
+                    foodSource: food.source
+                };
+                console.log('POST payload:', payload);
+
                 const response = await fetch('/.netlify/functions/food-diary', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId,
-                        entryDate: formatDate(currentDate),
-                        mealType: currentMealType,
-                        foodName: food.name,
-                        brand: food.brand,
-                        servingSize: food.servingSize || 1,
-                        servingUnit: food.servingUnit || 'serving',
-                        numberOfServings: 1,
-                        calories: food.calories,
-                        protein: food.protein,
-                        carbs: food.carbs,
-                        fat: food.fat,
-                        fiber: food.fiber,
-                        externalId: food.externalId,
-                        foodSource: food.source
-                    })
+                    body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error('Failed to add food');
-
+                console.log('POST response status:', response.status);
                 const data = await response.json();
+                console.log('POST response data:', data);
+
+                if (!response.ok) throw new Error(data.error || 'Failed to add food');
 
                 // Update optimistic entry with real ID from server
                 if (data.entry) {

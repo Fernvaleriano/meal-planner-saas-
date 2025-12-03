@@ -21,6 +21,16 @@ exports.handler = async (event, context) => {
     }
 
     try {
+        // Check for API key first
+        if (!process.env.ANTHROPIC_API_KEY) {
+            console.error('ANTHROPIC_API_KEY is not configured');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'AI Photo analysis is not configured. Please add ANTHROPIC_API_KEY to Netlify environment variables.' })
+            };
+        }
+
         const { image } = JSON.parse(event.body);
 
         if (!image) {

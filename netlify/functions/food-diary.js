@@ -16,6 +16,17 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
+  console.log('food-diary function called:', event.httpMethod);
+
+  if (!SUPABASE_SERVICE_KEY) {
+    console.error('SUPABASE_SERVICE_KEY is not configured!');
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Server configuration error: missing database credentials' })
+    };
+  }
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
@@ -118,6 +129,8 @@ exports.handler = async (event) => {
     // POST - Add a new diary entry
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body);
+      console.log('POST - Received body:', JSON.stringify(body));
+
       const {
         clientId,
         coachId,
@@ -142,6 +155,7 @@ exports.handler = async (event) => {
       } = body;
 
       if (!clientId || !foodName || !mealType) {
+        console.log('POST - Missing required fields:', { clientId, foodName, mealType });
         return {
           statusCode: 400,
           headers,
@@ -149,35 +163,42 @@ exports.handler = async (event) => {
         };
       }
 
+      const insertData = {
+        client_id: clientId,
+        coach_id: coachId,
+        entry_date: entryDate || new Date().toISOString().split('T')[0],
+        meal_type: mealType,
+        food_name: foodName,
+        brand: brand || null,
+        serving_size: servingSize || 1,
+        serving_unit: servingUnit || 'serving',
+        number_of_servings: numberOfServings || 1,
+        calories: calories || 0,
+        protein: protein || 0,
+        carbs: carbs || 0,
+        fat: fat || 0,
+        fiber: fiber || null,
+        sugar: sugar || null,
+        sodium: sodium || null,
+        external_id: externalId || null,
+        food_source: foodSource || 'custom',
+        is_quick_add: isQuickAdd || false,
+        notes: notes || null
+      };
+      console.log('POST - Inserting:', JSON.stringify(insertData));
+
       const { data: entry, error } = await supabase
         .from('food_diary_entries')
-        .insert([{
-          client_id: clientId,
-          coach_id: coachId,
-          entry_date: entryDate || new Date().toISOString().split('T')[0],
-          meal_type: mealType,
-          food_name: foodName,
-          brand: brand || null,
-          serving_size: servingSize || 1,
-          serving_unit: servingUnit || 'serving',
-          number_of_servings: numberOfServings || 1,
-          calories: calories || 0,
-          protein: protein || 0,
-          carbs: carbs || 0,
-          fat: fat || 0,
-          fiber: fiber || null,
-          sugar: sugar || null,
-          sodium: sodium || null,
-          external_id: externalId || null,
-          food_source: foodSource || 'custom',
-          is_quick_add: isQuickAdd || false,
-          notes: notes || null
-        }])
+        .insert([insertData])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('POST - Insert error:', error);
+        throw error;
+      }
 
+      console.log('POST - Successfully inserted entry:', JSON.stringify(entry));
       return {
         statusCode: 200,
         headers,
