@@ -15,6 +15,8 @@ exports.handler = async (event, context) => {
 
   try {
     const coachId = event.queryStringParameters.coachId;
+    const includeArchived = event.queryStringParameters.includeArchived === 'true';
+    const archivedOnly = event.queryStringParameters.archivedOnly === 'true';
 
     if (!coachId) {
       return {
@@ -26,12 +28,25 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Retrieve all clients for this coach, ordered by name
-    const { data, error } = await supabase
+    // Build query
+    let query = supabase
       .from('clients')
       .select('*')
-      .eq('coach_id', coachId)
-      .order('client_name', { ascending: true });
+      .eq('coach_id', coachId);
+
+    // Filter by archived status
+    if (archivedOnly) {
+      // Only archived clients
+      query = query.eq('is_archived', true);
+    } else if (!includeArchived) {
+      // Exclude archived clients (default behavior)
+      // Handle both false and null values for backwards compatibility
+      query = query.or('is_archived.eq.false,is_archived.is.null');
+    }
+    // If includeArchived is true, don't filter - return all clients
+
+    // Order by name
+    const { data, error } = await query.order('client_name', { ascending: true });
 
     if (error) {
       console.error('❌ Supabase error:', error);
@@ -44,7 +59,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`✅ Retrieved ${data.length} clients for coach ${coachId}`);
+    console.log(`✅ Retrieved ${data.length} clients for coach ${coachId} (archived: ${archivedOnly ? 'only' : includeArchived ? 'included' : 'excluded'})`);
 
     return {
       statusCode: 200,
