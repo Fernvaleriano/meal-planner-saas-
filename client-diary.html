@@ -5893,6 +5893,14 @@
 
         // Update AI suggestions based on remaining macros
         function updateAISuggestions() {
+            // Use the goals object that's already defined in the page
+            if (!goals || !goals.calorie_goal) return;
+
+            const calorieGoal = goals.calorie_goal || 2000;
+            const proteinGoal = goals.protein_goal || 150;
+            const carbsGoal = goals.carbs_goal || 200;
+            const fatGoal = goals.fat_goal || 65;
+
             const remaining = {
                 calories: calorieGoal - totalCalories,
                 protein: proteinGoal - totalProtein,
