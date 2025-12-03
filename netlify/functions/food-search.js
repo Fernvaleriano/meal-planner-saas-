@@ -77,6 +77,7 @@ exports.handler = async (event) => {
 
   try {
     const { query, clientId } = event.queryStringParameters || {};
+    console.log(`Food search request: query="${query}", clientId="${clientId}"`);
 
     if (!query || query.length < 2) {
       return {
@@ -168,10 +169,16 @@ exports.handler = async (event) => {
       try {
         const searchUrl = `${EDAMAM_API_URL}?app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_API_KEY}&ingr=${encodeURIComponent(query)}&nutrition-type=logging`;
 
+        // Add 5-second timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         const response = await fetch(searchUrl, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -225,11 +232,16 @@ exports.handler = async (event) => {
           }
         }
       } catch (apiError) {
-        console.error('Edamam API error:', apiError);
-        // Continue with local results
+        if (apiError.name === 'AbortError') {
+          console.error('Edamam API timeout after 5s');
+        } else {
+          console.error('Edamam API error:', apiError);
+        }
+        // Continue with local/common results
       }
     }
 
+    console.log(`Food search returning ${results.length} results for "${query}"`);
     return {
       statusCode: 200,
       headers,
