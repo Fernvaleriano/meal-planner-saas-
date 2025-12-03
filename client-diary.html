@@ -2586,10 +2586,11 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('=== Food Diary v2.2 Initializing ===');
+            console.log('=== Food Diary v2.3 Initializing ===');
 
-            // Always set up search listener first
+            // Update UI immediately (doesn't need auth)
             setupSearchListener();
+            updateDateDisplay();
 
             // Run auth check
             const isAuthenticated = await checkAuth();
@@ -2597,18 +2598,21 @@
 
             if (!isAuthenticated) {
                 console.log('Auth failed, stopping initialization');
+                document.getElementById('dateSub').textContent = 'Please log in';
                 return;
             }
 
             // Auth succeeded - load data
             console.log('Auth succeeded, loading data...');
-            updateDateDisplay();
 
             try {
-                await Promise.all([loadGoals(), loadDiaryEntries()]);
+                // Load entries first (most important), then goals
+                await loadDiaryEntries();
+                loadGoals(); // Don't await - let it load in background
                 console.log('Initial data loaded successfully');
             } catch (err) {
                 console.error('Error loading initial data:', err);
+                showToast('Failed to load data');
             }
         });
 
@@ -4771,21 +4775,39 @@
         }
 
         function renderAIResults() {
+            console.log('renderAIResults: Rendering', aiDetectedFoods.length, 'items');
             document.getElementById('aiAnalyzing').style.display = 'none';
             document.getElementById('aiResults').style.display = 'block';
 
             const container = document.getElementById('aiDetectedItems');
             container.innerHTML = aiDetectedFoods.map((food, idx) => `
-                <div class="ai-food-item">
+                <div class="ai-food-item" id="ai-food-${idx}" style="position: relative; padding-right: 40px;">
+                    <button onclick="removeAIFood(${idx})" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
                     <div class="ai-food-name">${food.name}</div>
-                    <div class="ai-food-macros">
-                        <span style="color: var(--gray-600);">${food.calories} cal</span>
-                        <span style="color: #3b82f6;">${food.protein}g P</span>
-                        <span style="color: #f59e0b;">${food.carbs}g C</span>
-                        <span style="color: #ef4444;">${food.fat}g F</span>
+                    <div class="ai-food-macros" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <input type="number" value="${food.calories}" onchange="updateAIFood(${idx}, 'calories', this.value)" style="width: 50px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"> cal
+                        <input type="number" value="${food.protein}" onchange="updateAIFood(${idx}, 'protein', this.value)" style="width: 40px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">g P
+                        <input type="number" value="${food.carbs}" onchange="updateAIFood(${idx}, 'carbs', this.value)" style="width: 40px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">g C
+                        <input type="number" value="${food.fat}" onchange="updateAIFood(${idx}, 'fat', this.value)" style="width: 40px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">g F
                     </div>
                 </div>
             `).join('');
+        }
+
+        // Remove an AI detected food item
+        function removeAIFood(idx) {
+            aiDetectedFoods.splice(idx, 1);
+            renderAIResults();
+            if (aiDetectedFoods.length === 0) {
+                showToast('No items left. Try another photo.');
+                resetAIPhoto();
+            }
+        }
+
+        // Update an AI detected food item's value
+        function updateAIFood(idx, field, value) {
+            aiDetectedFoods[idx][field] = parseInt(value) || 0;
+            console.log('Updated AI food:', idx, field, value);
         }
 
         async function addAIDetectedFoods() {
