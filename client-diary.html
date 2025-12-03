@@ -2586,15 +2586,32 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('=== Food Diary v2.1 Initializing ===');
+
             // Always set up search listener first, regardless of auth/data loading
             setupSearchListener();
 
-            const isAuthenticated = await checkAuth();
-            if (!isAuthenticated) {
-                return; // Auth failed, don't continue
+            // Auth check with timeout to prevent hanging
+            const authPromise = checkAuth();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Auth timeout after 10s')), 10000)
+            );
+
+            try {
+                const isAuthenticated = await Promise.race([authPromise, timeoutPromise]);
+                if (!isAuthenticated) {
+                    console.log('Auth failed, stopping initialization');
+                    return;
+                }
+            } catch (err) {
+                console.error('Auth check failed or timed out:', err);
+                showToast('Loading failed. Please refresh.');
+                return;
             }
+
             updateDateDisplay();
-            // Load goals and entries in parallel - wrap in try-catch to not block UI
+
+            // Load data
             try {
                 await Promise.all([loadGoals(), loadDiaryEntries()]);
             } catch (err) {
