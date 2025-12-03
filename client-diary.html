@@ -2649,11 +2649,19 @@
                 const data = await response.json();
 
                 entries = data.entries || [];
-                goals = data.goals || goals;
+                // Properly merge goals with defaults to avoid undefined values
+                if (data.goals && Object.keys(data.goals).length > 0) {
+                    goals = {
+                        calorie_goal: data.goals.calorie_goal || 2000,
+                        protein_goal: data.goals.protein_goal || 150,
+                        carbs_goal: data.goals.carbs_goal || 200,
+                        fat_goal: data.goals.fat_goal || 65
+                    };
+                }
 
                 // Update UI
-                updateSummary(data.totals);
-                renderMealEntries(data.mealGroups);
+                updateSummary(data.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
+                renderMealEntries(data.mealGroups || {});
             } catch (err) {
                 console.error('Error loading diary:', err);
                 showToast('Failed to load diary entries');
@@ -2663,8 +2671,9 @@
         // Update summary display
         function updateSummary(totals) {
             const consumed = totals.calories || 0;
-            const remaining = Math.max(0, goals.calorie_goal - consumed);
-            const percentage = Math.min(100, (consumed / goals.calorie_goal) * 100);
+            const calorieGoal = goals.calorie_goal || 2000;
+            const remaining = Math.max(0, calorieGoal - consumed);
+            const percentage = Math.min(100, (consumed / calorieGoal) * 100) || 0;
 
             // Update calorie ring
             const ring = document.getElementById('calorieRing');
@@ -2673,7 +2682,7 @@
             ring.style.strokeDashoffset = offset;
 
             // Update colors based on progress
-            if (consumed > goals.calorie_goal) {
+            if (consumed > calorieGoal) {
                 ring.style.stroke = '#ef4444';
                 document.getElementById('caloriesRemaining').style.color = '#ef4444';
             } else {
@@ -2683,14 +2692,14 @@
 
             // Update numbers
             document.getElementById('caloriesRemaining').textContent = remaining;
-            document.getElementById('calorieGoalDisplay').textContent = goals.calorie_goal;
+            document.getElementById('calorieGoalDisplay').textContent = calorieGoal;
             document.getElementById('caloriesConsumed').textContent = consumed;
             document.getElementById('caloriesRemainingEq').textContent = remaining;
 
             // Update macro bars
-            updateMacroBar('protein', totals.protein || 0, goals.protein_goal);
-            updateMacroBar('carbs', totals.carbs || 0, goals.carbs_goal);
-            updateMacroBar('fat', totals.fat || 0, goals.fat_goal);
+            updateMacroBar('protein', totals.protein || 0, goals.protein_goal || 150);
+            updateMacroBar('carbs', totals.carbs || 0, goals.carbs_goal || 200);
+            updateMacroBar('fat', totals.fat || 0, goals.fat_goal || 65);
         }
 
         function updateMacroBar(macro, current, goal) {
@@ -2963,9 +2972,10 @@
             // Update total summary
             const consumedEl = document.getElementById('caloriesConsumed');
             const newConsumed = parseInt(consumedEl.textContent || 0) + (entry.calories || 0);
+            const calorieGoal = goals.calorie_goal || 2000;
             consumedEl.textContent = newConsumed;
-            document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
-            document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+            document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
+            document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
         }
 
         // Remove optimistic entry on failure
@@ -3175,18 +3185,19 @@
                     // Update total summary
                     const consumedEl = document.getElementById('caloriesConsumed');
                     const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) + calDiff);
+                    const calorieGoal = goals.calorie_goal || 2000;
                     consumedEl.textContent = newConsumed;
-                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
-                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
 
                     // Update calorie ring
                     const ring = document.getElementById('calorieRing');
-                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const percentage = Math.min(100, (newConsumed / calorieGoal) * 100) || 0;
                     const circumference = 251.2;
                     const offset = circumference - (percentage / 100) * circumference;
                     ring.style.strokeDashoffset = offset;
 
-                    if (newConsumed > goals.calorie_goal) {
+                    if (newConsumed > calorieGoal) {
                         ring.style.stroke = '#ef4444';
                         document.getElementById('caloriesRemaining').style.color = '#ef4444';
                     } else {
@@ -3199,9 +3210,9 @@
                     const currentCarbs = parseFloat(document.getElementById('carbsValue').textContent) || 0;
                     const currentFat = parseFloat(document.getElementById('fatValue').textContent) || 0;
 
-                    updateMacroBar('protein', currentProtein + proteinDiff, goals.protein_goal);
-                    updateMacroBar('carbs', currentCarbs + carbsDiff, goals.carbs_goal);
-                    updateMacroBar('fat', currentFat + fatDiff, goals.fat_goal);
+                    updateMacroBar('protein', currentProtein + proteinDiff, goals.protein_goal || 150);
+                    updateMacroBar('carbs', currentCarbs + carbsDiff, goals.carbs_goal || 200);
+                    updateMacroBar('fat', currentFat + fatDiff, goals.fat_goal || 65);
 
                     // Update local entries array
                     Object.assign(oldEntry, newData);
@@ -3251,19 +3262,20 @@
                     // Update total summary
                     const consumedEl = document.getElementById('caloriesConsumed');
                     const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
+                    const calorieGoal = goals.calorie_goal || 2000;
                     consumedEl.textContent = newConsumed;
-                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
-                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
 
                     // Update calorie ring
                     const ring = document.getElementById('calorieRing');
-                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const percentage = Math.min(100, (newConsumed / calorieGoal) * 100) || 0;
                     const circumference = 251.2;
                     const offset = circumference - (percentage / 100) * circumference;
                     ring.style.strokeDashoffset = offset;
 
                     // Reset ring color if under goal
-                    if (newConsumed <= goals.calorie_goal) {
+                    if (newConsumed <= calorieGoal) {
                         ring.style.stroke = '';
                         document.getElementById('caloriesRemaining').style.color = '';
                     }
@@ -3271,13 +3283,13 @@
                     // Update macro bars
                     updateMacroBar('protein',
                         Math.max(0, parseFloat(document.getElementById('proteinValue').textContent) - (entry.protein || 0)),
-                        goals.protein_goal);
+                        goals.protein_goal || 150);
                     updateMacroBar('carbs',
                         Math.max(0, parseFloat(document.getElementById('carbsValue').textContent) - (entry.carbs || 0)),
-                        goals.carbs_goal);
+                        goals.carbs_goal || 200);
                     updateMacroBar('fat',
                         Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
-                        goals.fat_goal);
+                        goals.fat_goal || 65);
                 }
 
                 showToast('Entry deleted');
@@ -3884,18 +3896,19 @@
 
                     const consumedEl = document.getElementById('caloriesConsumed');
                     const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
+                    const calorieGoal = goals.calorie_goal || 2000;
                     consumedEl.textContent = newConsumed;
-                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
-                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
 
                     // Update calorie ring
                     const ring = document.getElementById('calorieRing');
-                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const percentage = Math.min(100, (newConsumed / calorieGoal) * 100) || 0;
                     const circumference = 251.2;
                     const offset = circumference - (percentage / 100) * circumference;
                     ring.style.strokeDashoffset = offset;
 
-                    if (newConsumed <= goals.calorie_goal) {
+                    if (newConsumed <= calorieGoal) {
                         ring.style.stroke = '';
                         document.getElementById('caloriesRemaining').style.color = '';
                     }
@@ -3903,13 +3916,13 @@
                     // Update macro bars
                     updateMacroBar('protein',
                         Math.max(0, parseFloat(document.getElementById('proteinValue').textContent) - (entry.protein || 0)),
-                        goals.protein_goal);
+                        goals.protein_goal || 150);
                     updateMacroBar('carbs',
                         Math.max(0, parseFloat(document.getElementById('carbsValue').textContent) - (entry.carbs || 0)),
-                        goals.carbs_goal);
+                        goals.carbs_goal || 200);
                     updateMacroBar('fat',
                         Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
-                        goals.fat_goal);
+                        goals.fat_goal || 65);
                 }
 
                 showToast('Entry deleted');
@@ -4690,9 +4703,11 @@
                 const avgCalories = daysLogged > 0 ? Math.round(totalCalories / daysLogged) : 0;
                 const totalProtein = dayValues.reduce((sum, d) => sum + d.protein, 0);
                 const avgProtein = daysLogged > 0 ? Math.round(totalProtein / daysLogged) : 0;
+                const calorieGoal = goals.calorie_goal || 2000;
+                const proteinGoal = goals.protein_goal || 150;
 
                 // Find max for chart scaling
-                const maxCals = Math.max(...dayValues.map(d => d.calories), goals.calorie_goal);
+                const maxCals = Math.max(...dayValues.map(d => d.calories), calorieGoal);
 
                 // Generate bar chart HTML
                 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -4702,8 +4717,8 @@
                     const dayInfo = dayData[dateStr];
                     const height = maxCals > 0 ? (dayInfo.calories / maxCals) * 140 : 0;
                     let barClass = '';
-                    if (dayInfo.calories > 0 && dayInfo.calories < goals.calorie_goal * 0.8) barClass = 'under';
-                    if (dayInfo.calories > goals.calorie_goal * 1.1) barClass = 'over';
+                    if (dayInfo.calories > 0 && dayInfo.calories < calorieGoal * 0.8) barClass = 'under';
+                    if (dayInfo.calories > calorieGoal * 1.1) barClass = 'over';
 
                     return `
                         <div class="weekly-bar-item">
@@ -4718,7 +4733,7 @@
                     <h3 style="margin-bottom: 20px; color: var(--gray-900);">Last 7 Days</h3>
 
                     <div class="weekly-chart">
-                        <div style="position: absolute; left: 0; top: 0; width: 100%; border-bottom: 1px dashed var(--gray-300); color: var(--gray-400); font-size: 0.7rem;">Goal: ${goals.calorie_goal}</div>
+                        <div style="position: absolute; left: 0; top: 0; width: 100%; border-bottom: 1px dashed var(--gray-300); color: var(--gray-400); font-size: 0.7rem;">Goal: ${calorieGoal}</div>
                         <div class="weekly-bars">
                             ${barsHtml}
                         </div>
@@ -4746,9 +4761,9 @@
                     ${daysLogged >= 5 ? `
                         <div class="report-insights" style="margin-top: 20px;">
                             <div class="report-insights-title">💡 Weekly Insights</div>
-                            ${avgCalories < goals.calorie_goal * 0.9 ? '<div class="report-insight">📉 Your average intake is below your goal. Make sure you\'re eating enough!</div>' : ''}
-                            ${avgCalories > goals.calorie_goal * 1.1 ? '<div class="report-insight">📈 You\'re averaging above your calorie goal this week.</div>' : ''}
-                            ${avgProtein >= goals.protein_goal ? '<div class="report-insight">💪 Great job hitting your protein targets!</div>' : ''}
+                            ${avgCalories < calorieGoal * 0.9 ? '<div class="report-insight">📉 Your average intake is below your goal. Make sure you\'re eating enough!</div>' : ''}
+                            ${avgCalories > calorieGoal * 1.1 ? '<div class="report-insight">📈 You\'re averaging above your calorie goal this week.</div>' : ''}
+                            ${avgProtein >= proteinGoal ? '<div class="report-insight">💪 Great job hitting your protein targets!</div>' : ''}
                             ${daysLogged === 7 ? '<div class="report-insight">🌟 Perfect week! You logged every single day!</div>' : ''}
                         </div>
                     ` : ''}
