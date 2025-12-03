@@ -2628,7 +2628,7 @@
 
             try {
                 await loadDiaryEntries();
-                loadGoals();
+                // Goals are already loaded by loadDiaryEntries() from the food-diary endpoint
                 console.log('Initial data loaded successfully');
             } catch (err) {
                 console.error('Error loading initial data:', err);
