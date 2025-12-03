@@ -3299,13 +3299,34 @@
         // Store current totals globally for AI assistant
         let currentTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
+        // Helper function to update remaining calories with proper styling
+        function updateRemainingCaloriesDisplay(remaining) {
+            const remainingEl = document.getElementById('caloriesRemaining');
+            const remainingEqEl = document.getElementById('caloriesRemainingEq');
+            const ring = document.getElementById('calorieRing');
+
+            remainingEl.textContent = remaining;
+            remainingEqEl.textContent = remaining;
+
+            // Red styling when over goal (negative remaining)
+            if (remaining < 0) {
+                ring.style.stroke = '#ef4444';
+                remainingEl.style.color = '#ef4444';
+                remainingEqEl.style.color = '#ef4444';
+            } else {
+                ring.style.stroke = '';
+                remainingEl.style.color = '';
+                remainingEqEl.style.color = '';
+            }
+        }
+
         function updateSummary(totals) {
             // Store totals globally for AI assistant
             currentTotals = totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
             const consumed = totals.calories || 0;
             const calorieGoal = goals.calorie_goal || 2000;
-            const remaining = Math.max(0, calorieGoal - consumed);
+            const remaining = calorieGoal - consumed;
             const percentage = Math.min(100, (consumed / calorieGoal) * 100) || 0;
 
             // Update calorie ring
@@ -3314,20 +3335,10 @@
             const offset = circumference - (percentage / 100) * circumference;
             ring.style.strokeDashoffset = offset;
 
-            // Update colors based on progress
-            if (consumed > calorieGoal) {
-                ring.style.stroke = '#ef4444';
-                document.getElementById('caloriesRemaining').style.color = '#ef4444';
-            } else {
-                ring.style.stroke = '';
-                document.getElementById('caloriesRemaining').style.color = '';
-            }
-
-            // Update numbers
-            document.getElementById('caloriesRemaining').textContent = remaining;
+            // Update numbers with proper styling
             document.getElementById('calorieGoalDisplay').textContent = calorieGoal;
             document.getElementById('caloriesConsumed').textContent = consumed;
-            document.getElementById('caloriesRemainingEq').textContent = remaining;
+            updateRemainingCaloriesDisplay(remaining);
 
             // Update macro bars
             updateMacroBar('protein', totals.protein || 0, goals.protein_goal || 150);
@@ -3804,8 +3815,6 @@
             const newConsumed = currentConsumed + (entry.calories || 0);
             const calorieGoal = goals.calorie_goal || 2000;
             consumedEl.textContent = newConsumed;
-            document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
-            document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
 
             // Update calorie ring
             const ring = document.getElementById('calorieRing');
@@ -3814,13 +3823,8 @@
             const offset = circumference - (percentage / 100) * circumference;
             ring.style.strokeDashoffset = offset;
 
-            if (newConsumed > calorieGoal) {
-                ring.style.stroke = '#ef4444';
-                document.getElementById('caloriesRemaining').style.color = '#ef4444';
-            } else {
-                ring.style.stroke = '';
-                document.getElementById('caloriesRemaining').style.color = '';
-            }
+            // Update remaining with proper styling (allows negative)
+            updateRemainingCaloriesDisplay(calorieGoal - newConsumed);
 
             // Update macro bars
             const currentProtein = parseFloat(document.getElementById('proteinValue').textContent) || 0;
@@ -4066,8 +4070,6 @@
                     const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) + calDiff);
                     const calorieGoal = goals.calorie_goal || 2000;
                     consumedEl.textContent = newConsumed;
-                    document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
-                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
 
                     // Update calorie ring
                     const ring = document.getElementById('calorieRing');
@@ -4076,13 +4078,8 @@
                     const offset = circumference - (percentage / 100) * circumference;
                     ring.style.strokeDashoffset = offset;
 
-                    if (newConsumed > calorieGoal) {
-                        ring.style.stroke = '#ef4444';
-                        document.getElementById('caloriesRemaining').style.color = '#ef4444';
-                    } else {
-                        ring.style.stroke = '';
-                        document.getElementById('caloriesRemaining').style.color = '';
-                    }
+                    // Update remaining with proper styling (allows negative)
+                    updateRemainingCaloriesDisplay(calorieGoal - newConsumed);
 
                     // Update macro bars
                     const currentProtein = parseFloat(document.getElementById('proteinValue').textContent) || 0;
@@ -4143,8 +4140,6 @@
                     const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
                     const calorieGoal = goals.calorie_goal || 2000;
                     consumedEl.textContent = newConsumed;
-                    document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
-                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
 
                     // Update calorie ring
                     const ring = document.getElementById('calorieRing');
@@ -4153,11 +4148,8 @@
                     const offset = circumference - (percentage / 100) * circumference;
                     ring.style.strokeDashoffset = offset;
 
-                    // Reset ring color if under goal
-                    if (newConsumed <= calorieGoal) {
-                        ring.style.stroke = '';
-                        document.getElementById('caloriesRemaining').style.color = '';
-                    }
+                    // Update remaining with proper styling (allows negative)
+                    updateRemainingCaloriesDisplay(calorieGoal - newConsumed);
 
                     // Update macro bars
                     updateMacroBar('protein',
@@ -4781,8 +4773,6 @@
                     const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
                     const calorieGoal = goals.calorie_goal || 2000;
                     consumedEl.textContent = newConsumed;
-                    document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
-                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, calorieGoal - newConsumed);
 
                     // Update calorie ring
                     const ring = document.getElementById('calorieRing');
@@ -4791,10 +4781,8 @@
                     const offset = circumference - (percentage / 100) * circumference;
                     ring.style.strokeDashoffset = offset;
 
-                    if (newConsumed <= calorieGoal) {
-                        ring.style.stroke = '';
-                        document.getElementById('caloriesRemaining').style.color = '';
-                    }
+                    // Update remaining with proper styling (allows negative)
+                    updateRemainingCaloriesDisplay(calorieGoal - newConsumed);
 
                     // Update macro bars
                     updateMacroBar('protein',
