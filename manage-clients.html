@@ -213,6 +213,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+
         .btn-small {
             padding: 8px 14px;
             font-size: 12px;
@@ -296,6 +306,84 @@
 
         .view-toggle-btn:hover:not(.active) {
             color: var(--gray-800);
+        }
+
+        .view-controls-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            left: 12px;
+            color: var(--gray-400);
+            pointer-events: none;
+        }
+
+        .search-box input {
+            padding: 10px 12px 10px 40px;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 14px;
+            width: 220px;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        .search-box input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .archive-toggle {
+            display: flex;
+            align-items: center;
+        }
+
+        .archive-toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .archive-toggle-label input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        [data-theme="dark"] .search-box input {
+            background: #1e293b;
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .search-box input::placeholder {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .search-box .search-icon {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .archive-toggle-label {
+            color: #94a3b8;
         }
 
         [data-theme="dark"] .view-toggle {
@@ -443,6 +531,57 @@
 
         .client-card:hover::before {
             opacity: 1;
+        }
+
+        .client-card.archived {
+            opacity: 0.7;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .client-card.archived::after {
+            content: 'ARCHIVED';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .archived-row {
+            opacity: 0.7;
+            background: rgba(245, 158, 11, 0.1) !important;
+        }
+
+        .archived-badge {
+            display: inline-block;
+            background: #f59e0b;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .last-online {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .last-online.recent {
+            color: #22c55e;
+        }
+
+        .last-online.away {
+            color: #f59e0b;
+        }
+
+        .last-online.inactive {
+            color: #ef4444;
         }
 
         .client-header {
@@ -936,22 +1075,36 @@
 
         <!-- View Controls -->
         <div id="viewControls" class="view-controls" style="display: none;">
-            <div class="view-toggle">
-                <button class="view-toggle-btn active" id="cardViewBtn" onclick="setView('cards')">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/>
-                        <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/>
-                        <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/>
-                        <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/>
+            <div class="view-controls-left">
+                <div class="view-toggle">
+                    <button class="view-toggle-btn active" id="cardViewBtn" onclick="setView('cards')">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/>
+                        </svg>
+                        Cards
+                    </button>
+                    <button class="view-toggle-btn" id="tableViewBtn" onclick="setView('table')">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-width="2" d="M3 6h18M3 12h18M3 18h18"/>
+                        </svg>
+                        Table
+                    </button>
+                </div>
+                <div class="search-box">
+                    <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
-                    Cards
-                </button>
-                <button class="view-toggle-btn" id="tableViewBtn" onclick="setView('table')">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-width="2" d="M3 6h18M3 12h18M3 18h18"/>
-                    </svg>
-                    Table
-                </button>
+                    <input type="text" id="clientSearch" placeholder="Search clients..." oninput="filterClients()">
+                </div>
+                <div class="archive-toggle">
+                    <label class="archive-toggle-label">
+                        <input type="checkbox" id="showArchived" onchange="toggleArchivedView()">
+                        <span>Show archived</span>
+                    </label>
+                </div>
             </div>
             <span class="client-count" id="clientCount">0 clients</span>
         </div>
@@ -968,6 +1121,7 @@
                         <th>Contact</th>
                         <th>Goal</th>
                         <th>Plans</th>
+                        <th>Last Online</th>
                         <th>Added</th>
                         <th style="text-align: right;">Actions</th>
                     </tr>
@@ -1278,7 +1432,9 @@
 
         let currentCoachId = null;
         let clients = [];
+        let allClients = []; // Stores all clients including archived
         let currentView = localStorage.getItem('clientsView') || 'cards';
+        let showingArchived = false;
 
         // Sidebar section collapse functionality
         function toggleSidebarSection(label) {
@@ -1302,6 +1458,122 @@
             });
         }
         restoreSidebarState();
+
+        // Filter clients by search term
+        function filterClients() {
+            const searchTerm = document.getElementById('clientSearch').value.toLowerCase().trim();
+            const filteredClients = clients.filter(client => {
+                const name = (client.client_name || '').toLowerCase();
+                const email = (client.email || '').toLowerCase();
+                const phone = (client.phone || '').toLowerCase();
+                return name.includes(searchTerm) || email.includes(searchTerm) || phone.includes(searchTerm);
+            });
+            renderFilteredClients(filteredClients);
+        }
+
+        // Toggle archived view
+        function toggleArchivedView() {
+            showingArchived = document.getElementById('showArchived').checked;
+            if (showingArchived) {
+                clients = allClients;
+            } else {
+                clients = allClients.filter(c => !c.archived);
+            }
+            document.getElementById('clientSearch').value = '';
+            renderClients();
+        }
+
+        // Render filtered subset of clients
+        function renderFilteredClients(filteredClients) {
+            if (currentView === 'cards') {
+                renderCardsView(filteredClients);
+            } else {
+                renderTableView(filteredClients);
+            }
+            updateClientCount(filteredClients.length);
+        }
+
+        // Format last online time
+        function formatLastOnline(timestamp) {
+            if (!timestamp) return { text: 'Never', class: 'inactive' };
+
+            const now = new Date();
+            const lastOnline = new Date(timestamp);
+            const diffMs = now - lastOnline;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 5) return { text: 'Online now', class: 'recent' };
+            if (diffMins < 60) return { text: `${diffMins}m ago`, class: 'recent' };
+            if (diffHours < 24) return { text: `${diffHours}h ago`, class: 'recent' };
+            if (diffDays < 7) return { text: `${diffDays}d ago`, class: 'away' };
+            if (diffDays < 30) return { text: `${Math.floor(diffDays/7)}w ago`, class: 'away' };
+            return { text: lastOnline.toLocaleDateString(), class: 'inactive' };
+        }
+
+        // Archive a client
+        async function archiveClient(clientId, clientName) {
+            if (!confirm(`Archive "${clientName}"?\n\nThis will:\n• Remove their meal plans, supplements, and diary entries\n• Keep their basic contact info for potential resubscription\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('sb-access-token');
+
+                // Call archive endpoint
+                const response = await fetch('/.netlify/functions/archive-client', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ clientId })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to archive client');
+                }
+
+                alert(`"${clientName}" has been archived.`);
+                await loadClients();
+            } catch (error) {
+                console.error('Error archiving client:', error);
+                alert('Failed to archive client: ' + error.message);
+            }
+        }
+
+        // Restore an archived client
+        async function restoreClient(clientId, clientName) {
+            if (!confirm(`Restore "${clientName}" from archive?`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('sb-access-token');
+
+                const response = await fetch('/.netlify/functions/restore-client', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ clientId })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to restore client');
+                }
+
+                alert(`"${clientName}" has been restored.`);
+                await loadClients();
+            } catch (error) {
+                console.error('Error restoring client:', error);
+                alert('Failed to restore client: ' + error.message);
+            }
+        }
 
         // UI Elements
         const loadingDiv = document.getElementById('loadingDiv');
@@ -1412,22 +1684,33 @@
                 clientsTableContainer.style.display = 'none';
                 viewControls.style.display = 'none';
 
-                const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
+                const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoachId}&includeArchived=true`);
                 const data = await response.json();
 
                 if (!response.ok) {
                     throw new Error(data.error || 'Failed to load clients');
                 }
 
-                clients = data.clients || [];
+                allClients = data.clients || [];
+                // Filter based on showArchived checkbox
+                showingArchived = document.getElementById('showArchived')?.checked || false;
+                clients = showingArchived ? allClients : allClients.filter(c => !c.archived);
 
                 loadingDiv.style.display = 'none';
 
-                if (clients.length === 0) {
+                if (allClients.length === 0) {
                     emptyState.style.display = 'block';
+                } else if (clients.length === 0 && !showingArchived) {
+                    // All clients are archived
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = `
+                        <h3>No active clients</h3>
+                        <p>All your clients are archived. Check "Show archived" to see them.</p>
+                    `;
+                    viewControls.style.display = 'flex';
                 } else {
                     viewControls.style.display = 'flex';
-                    clientCountEl.textContent = `${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`;
+                    updateClientCount(clients.length);
                     applyView();
                 }
 
@@ -1462,22 +1745,39 @@
             }
         }
 
+        // Update client count display
+        function updateClientCount(count) {
+            const archivedCount = allClients.filter(c => c.archived).length;
+            let text = `${count} ${count === 1 ? 'client' : 'clients'}`;
+            if (archivedCount > 0 && !showingArchived) {
+                text += ` (${archivedCount} archived)`;
+            }
+            clientCountEl.textContent = text;
+        }
+
         // Render client cards
         async function renderClients() {
+            await renderCardsView(clients);
+        }
+
+        // Render cards view with given client list
+        async function renderCardsView(clientList) {
             clientsContainer.innerHTML = '';
 
             // Fetch plan counts for all clients
             const planCounts = await fetchPlanCounts();
 
-            clients.forEach(client => {
+            clientList.forEach(client => {
                 const card = document.createElement('div');
-                card.className = 'client-card';
+                card.className = 'client-card' + (client.archived ? ' archived' : '');
                 card.style.cursor = 'pointer';
 
-                // Add click handler to open client profile
-                card.addEventListener('click', () => {
-                    window.location.href = `client-profile.html?clientId=${client.id}`;
-                });
+                // Add click handler to open client profile (only if not archived)
+                if (!client.archived) {
+                    card.addEventListener('click', () => {
+                        window.location.href = `client-profile.html?clientId=${client.id}`;
+                    });
+                }
 
                 // Parse dietary restrictions
                 const restrictions = Array.isArray(client.default_dietary_restrictions)
@@ -1495,17 +1795,26 @@
                 // Get plan count for this client
                 const planCount = planCounts[client.id] || 0;
 
+                // Format last online
+                const lastOnline = formatLastOnline(client.last_online);
+
                 card.innerHTML = `
                     <div class="client-header">
                         <div>
                             <div class="client-name">${escapeHtml(client.client_name)}</div>
                             ${client.email ? `<div class="client-info">📧 ${escapeHtml(client.email)}</div>` : ''}
                             ${client.phone ? `<div class="client-info">📱 ${escapeHtml(client.phone)}</div>` : ''}
+                            <div class="client-info last-online ${lastOnline.class}">🟢 ${lastOnline.text}</div>
                         </div>
                         <div class="client-actions">
-                            ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite to Portal</button>` : ''}
-                            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
+                            ${client.archived ? `
+                                <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); restoreClient(${client.id}, '${escapeHtml(client.client_name)}')">Restore</button>
+                                <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete Forever</button>
+                            ` : `
+                                ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite</button>` : ''}
+                                <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
+                                <button class="btn btn-warning btn-small" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">Archive</button>
+                            `}
                         </div>
                     </div>
 
@@ -1532,15 +1841,23 @@
 
         // Render clients in table view
         async function renderClientsTable() {
+            await renderTableView(clients);
+        }
+
+        // Render table view with given client list
+        async function renderTableView(clientList) {
             clientsTableBody.innerHTML = '';
 
             // Fetch plan counts for all clients
             const planCounts = await fetchPlanCounts();
 
-            clients.forEach(client => {
+            clientList.forEach(client => {
                 const row = document.createElement('tr');
-                row.className = 'table-row-clickable';
-                row.onclick = () => window.location.href = `client-profile.html?clientId=${client.id}`;
+                row.className = 'table-row-clickable' + (client.archived ? ' archived-row' : '');
+
+                if (!client.archived) {
+                    row.onclick = () => window.location.href = `client-profile.html?clientId=${client.id}`;
+                }
 
                 // Format goal
                 const goalDisplay = client.default_goal
@@ -1553,9 +1870,15 @@
                 // Get plan count
                 const planCount = planCounts[client.id] || 0;
 
+                // Format last online
+                const lastOnline = formatLastOnline(client.last_online);
+
                 row.innerHTML = `
                     <td>
-                        <div class="client-name-cell">${escapeHtml(client.client_name)}</div>
+                        <div class="client-name-cell">
+                            ${escapeHtml(client.client_name)}
+                            ${client.archived ? '<span class="archived-badge">ARCHIVED</span>' : ''}
+                        </div>
                     </td>
                     <td>
                         ${client.email ? `<div>${escapeHtml(client.email)}</div>` : ''}
@@ -1566,12 +1889,20 @@
                         <span class="goal-badge ${goalClass}">${goalDisplay}</span>
                     </td>
                     <td>${planCount}</td>
+                    <td>
+                        <span class="last-online ${lastOnline.class}">${lastOnline.text}</span>
+                    </td>
                     <td>${new Date(client.created_at).toLocaleDateString()}</td>
                     <td>
                         <div class="table-actions">
-                            ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite</button>` : ''}
-                            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
+                            ${client.archived ? `
+                                <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); restoreClient(${client.id}, '${escapeHtml(client.client_name)}')">Restore</button>
+                                <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
+                            ` : `
+                                ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite</button>` : ''}
+                                <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">Archive</button>
+                            `}
                         </div>
                     </td>
                 `;
