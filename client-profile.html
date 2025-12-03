@@ -2711,6 +2711,223 @@
             gap: 6px;
         }
 
+        /* Goals Mode Tabs */
+        .goals-mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: var(--gray-100);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .goals-mode-tab {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .goals-mode-tab:hover {
+            color: var(--gray-900);
+        }
+
+        .goals-mode-tab.active {
+            background: white;
+            color: var(--brand-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Calculate Mode */
+        .calculate-mode-section {
+            display: none;
+        }
+
+        .calculate-mode-section.active {
+            display: block;
+        }
+
+        .client-stats-card {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
+            border: 2px solid #a7f3d0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .client-stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .client-stats-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #065f46;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .client-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+        }
+
+        .client-stat-item {
+            text-align: center;
+            padding: 12px 8px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .client-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .client-stat-label {
+            font-size: 11px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .client-stat-missing {
+            color: #dc2626;
+            font-size: 12px;
+        }
+
+        .calculate-result-card {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .calculate-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .calculate-result-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .calculate-btn {
+            padding: 8px 16px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .calculate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .calculated-values-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .calculated-value-item {
+            text-align: center;
+            padding: 16px 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+
+        .calculated-value-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .calculated-value-number.calories { color: #fbbf24; }
+        .calculated-value-number.protein { color: #34d399; }
+        .calculated-value-number.carbs { color: #60a5fa; }
+        .calculated-value-number.fat { color: #f472b6; }
+
+        .calculated-value-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .calculate-formula-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .calculate-formula-info strong {
+            color: #cbd5e1;
+        }
+
+        .apply-calculated-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .apply-calculated-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .apply-calculated-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .goals-footer {
             display: flex;
             justify-content: space-between;
@@ -2870,9 +3087,50 @@
             color: #94a3b8;
         }
 
+        [data-theme="dark"] .goals-mode-tabs {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .goals-mode-tab {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .goals-mode-tab:hover {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .goals-mode-tab.active {
+            background: #334155;
+            color: var(--brand-primary);
+        }
+
+        [data-theme="dark"] .client-stats-card {
+            background: linear-gradient(135deg, #064e3b 0%, #1e3a5f 100%);
+            border-color: #065f46;
+        }
+
+        [data-theme="dark"] .client-stats-title {
+            color: #a7f3d0;
+        }
+
+        [data-theme="dark"] .client-stat-item {
+            background: rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] .client-stat-value {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .client-stat-label {
+            color: #94a3b8;
+        }
+
         @media (max-width: 768px) {
             .macro-cards-grid {
                 grid-template-columns: 1fr;
+            }
+            .calculated-values-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -2994,14 +3252,75 @@
         <div class="goals-section" id="goalsSection" style="display: none;">
             <div class="goals-header">
                 <h2 class="goals-title">🎯 Daily Nutrition Goals</h2>
-                <label class="goals-mode-toggle">
-                    <input type="checkbox" id="customModeToggle" onchange="toggleGoalsMode()">
-                    <span>Custom grams</span>
-                </label>
             </div>
 
-            <!-- Percentage-based Calculator (Default) -->
-            <div id="percentageMode">
+            <!-- Mode Tabs -->
+            <div class="goals-mode-tabs">
+                <button class="goals-mode-tab active" onclick="setGoalsMode('calculate')" id="tabCalculate">
+                    🧮 Calculate
+                </button>
+                <button class="goals-mode-tab" onclick="setGoalsMode('percentage')" id="tabPercentage">
+                    📊 Percentage
+                </button>
+                <button class="goals-mode-tab" onclick="setGoalsMode('custom')" id="tabCustom">
+                    ✏️ Custom
+                </button>
+            </div>
+
+            <!-- Calculate Mode (AI/Formula based) -->
+            <div id="calculateMode" class="calculate-mode-section active">
+                <div class="client-stats-card">
+                    <div class="client-stats-header">
+                        <div class="client-stats-title">
+                            📋 Client Stats
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="editClient()" style="font-size: 12px; padding: 6px 12px;">
+                            Edit Stats
+                        </button>
+                    </div>
+                    <div class="client-stats-grid" id="clientStatsGrid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="calculate-result-card">
+                    <div class="calculate-result-header">
+                        <div class="calculate-result-title">Recommended Daily Targets</div>
+                        <button class="calculate-btn" onclick="calculateFromStats()" id="calculateBtn">
+                            🔄 Recalculate
+                        </button>
+                    </div>
+                    <div class="calculated-values-grid">
+                        <div class="calculated-value-item">
+                            <div class="calculated-value-number calories" id="calcCalories">--</div>
+                            <div class="calculated-value-label">Calories</div>
+                        </div>
+                        <div class="calculated-value-item">
+                            <div class="calculated-value-number protein" id="calcProtein">--</div>
+                            <div class="calculated-value-label">Protein (g)</div>
+                        </div>
+                        <div class="calculated-value-item">
+                            <div class="calculated-value-number carbs" id="calcCarbs">--</div>
+                            <div class="calculated-value-label">Carbs (g)</div>
+                        </div>
+                        <div class="calculated-value-item">
+                            <div class="calculated-value-number fat" id="calcFat">--</div>
+                            <div class="calculated-value-label">Fat (g)</div>
+                        </div>
+                    </div>
+                    <div class="calculate-formula-info">
+                        <strong>Formula:</strong> Mifflin-St Jeor (BMR) × Activity Level ± Goal Adjustment<br>
+                        <strong>Macros:</strong> 30% Protein / 40% Carbs / 30% Fat
+                    </div>
+                </div>
+
+                <button class="apply-calculated-btn" onclick="applyCalculatedGoals()" id="applyCalcBtn" disabled>
+                    ✓ Apply These Goals
+                </button>
+            </div>
+
+            <!-- Percentage-based Calculator -->
+            <div id="percentageMode" class="calculate-mode-section">
                 <div class="calories-input-section">
                     <label>Total Calories</label>
                     <input type="number" id="goalCalories" value="2000" min="500" max="10000" oninput="calculateMacrosFromPercentage()">
@@ -3059,7 +3378,7 @@
             </div>
 
             <!-- Custom/Manual Mode -->
-            <div id="customMode" class="custom-mode-section">
+            <div id="customMode" class="calculate-mode-section">
                 <div class="goals-grid">
                     <div class="goal-item calories">
                         <label>Calories</label>
@@ -3774,27 +4093,222 @@
 
             // Set the can_edit_goals toggle based on client data
             document.getElementById('canEditGoalsToggle').checked = client.can_edit_goals || false;
+
+            // Display client stats and calculate initial values
+            displayClientStats();
+            calculateFromStats();
         }
 
         // Track which percentage inputs the user has manually set
         let manuallySetPercentages = { protein: true, carbs: true, fat: false };
-        let isCustomMode = false;
+        let currentGoalsMode = 'calculate';
+        let calculatedGoals = null;
 
-        // Toggle between percentage mode and custom grams mode
-        function toggleGoalsMode() {
-            isCustomMode = document.getElementById('customModeToggle').checked;
-            document.getElementById('percentageMode').style.display = isCustomMode ? 'none' : 'block';
-            document.getElementById('customMode').classList.toggle('active', isCustomMode);
+        // Activity level multipliers
+        const activityMultipliers = {
+            'sedentary': 1.2,
+            'light': 1.375,
+            'moderate': 1.55,
+            'active': 1.725,
+            'very_active': 1.9
+        };
 
-            // Sync values when switching modes
-            if (isCustomMode) {
-                // Copy calculated values to custom inputs
-                document.getElementById('goalCaloriesCustom').value = document.getElementById('goalCalories').value;
-            } else {
-                // Copy custom values back and recalculate
-                document.getElementById('goalCalories').value = document.getElementById('goalCaloriesCustom').value;
-                calculatePercentagesFromGrams();
+        // Set goals mode (calculate, percentage, custom)
+        function setGoalsMode(mode) {
+            currentGoalsMode = mode;
+
+            // Update tab styles
+            document.querySelectorAll('.goals-mode-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('tab' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
+
+            // Hide all mode sections
+            document.getElementById('calculateMode').classList.remove('active');
+            document.getElementById('percentageMode').classList.remove('active');
+            document.getElementById('customMode').classList.remove('active');
+
+            // Show selected mode
+            if (mode === 'calculate') {
+                document.getElementById('calculateMode').classList.add('active');
+                displayClientStats();
+                calculateFromStats();
+            } else if (mode === 'percentage') {
+                document.getElementById('percentageMode').classList.add('active');
+            } else if (mode === 'custom') {
+                document.getElementById('customMode').classList.add('active');
             }
+        }
+
+        // Display client stats for calculation
+        function displayClientStats() {
+            if (!currentClient) return;
+
+            const stats = [];
+            const missingStats = [];
+
+            // Check each required stat
+            if (currentClient.age) {
+                stats.push({ label: 'Age', value: currentClient.age + ' yrs' });
+            } else {
+                missingStats.push('Age');
+            }
+
+            if (currentClient.gender) {
+                stats.push({ label: 'Gender', value: currentClient.gender.charAt(0).toUpperCase() + currentClient.gender.slice(1) });
+            } else {
+                missingStats.push('Gender');
+            }
+
+            if (currentClient.weight) {
+                stats.push({ label: 'Weight', value: currentClient.weight + ' lbs' });
+            } else {
+                missingStats.push('Weight');
+            }
+
+            if (currentClient.height_ft || currentClient.height_in) {
+                const ft = currentClient.height_ft || 0;
+                const inches = currentClient.height_in || 0;
+                stats.push({ label: 'Height', value: `${ft}'${inches}"` });
+            } else {
+                missingStats.push('Height');
+            }
+
+            if (currentClient.activity_level) {
+                const activityLabels = {
+                    'sedentary': 'Sedentary',
+                    'light': 'Light',
+                    'moderate': 'Moderate',
+                    'active': 'Active',
+                    'very_active': 'Very Active'
+                };
+                stats.push({ label: 'Activity', value: activityLabels[currentClient.activity_level] || currentClient.activity_level });
+            } else {
+                missingStats.push('Activity');
+            }
+
+            if (currentClient.default_goal) {
+                const goalLabels = {
+                    'lose_weight': 'Lose Weight',
+                    'maintain': 'Maintain',
+                    'gain_muscle': 'Gain Muscle'
+                };
+                stats.push({ label: 'Goal', value: goalLabels[currentClient.default_goal] || currentClient.default_goal });
+            } else {
+                missingStats.push('Goal');
+            }
+
+            // Render stats grid
+            const grid = document.getElementById('clientStatsGrid');
+            let html = '';
+
+            stats.forEach(stat => {
+                html += `
+                    <div class="client-stat-item">
+                        <div class="client-stat-value">${stat.value}</div>
+                        <div class="client-stat-label">${stat.label}</div>
+                    </div>
+                `;
+            });
+
+            if (missingStats.length > 0) {
+                html += `
+                    <div class="client-stat-item" style="grid-column: span 2;">
+                        <div class="client-stat-missing">⚠️ Missing: ${missingStats.join(', ')}</div>
+                        <div class="client-stat-label">Click "Edit Stats" to add</div>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+
+            // Enable/disable calculate button
+            const requiredFields = ['age', 'gender', 'weight', 'activity_level', 'default_goal'];
+            const hasHeight = currentClient.height_ft || currentClient.height_in;
+            const hasRequired = requiredFields.every(f => currentClient[f]) && hasHeight;
+            document.getElementById('calculateBtn').disabled = !hasRequired;
+        }
+
+        // Calculate nutrition using Mifflin-St Jeor formula
+        function calculateFromStats() {
+            if (!currentClient) return;
+
+            const age = parseInt(currentClient.age);
+            const gender = currentClient.gender;
+            const weightLbs = parseFloat(currentClient.weight);
+            const heightFt = parseInt(currentClient.height_ft) || 0;
+            const heightIn = parseInt(currentClient.height_in) || 0;
+            const activityLevel = currentClient.activity_level;
+            const goal = currentClient.default_goal;
+
+            // Validate required fields
+            if (!age || !gender || !weightLbs || !activityLevel || !goal || (!heightFt && !heightIn)) {
+                document.getElementById('calcCalories').textContent = '--';
+                document.getElementById('calcProtein').textContent = '--';
+                document.getElementById('calcCarbs').textContent = '--';
+                document.getElementById('calcFat').textContent = '--';
+                document.getElementById('applyCalcBtn').disabled = true;
+                return;
+            }
+
+            // Convert to metric
+            const weightKg = weightLbs * 0.453592;
+            const totalInches = (heightFt * 12) + heightIn;
+            const heightCm = totalInches * 2.54;
+
+            // Mifflin-St Jeor BMR
+            let bmr;
+            if (gender === 'male') {
+                bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+            } else {
+                bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+            }
+
+            // Apply activity multiplier
+            const multiplier = activityMultipliers[activityLevel] || 1.55;
+            let tdee = bmr * multiplier;
+
+            // Apply goal adjustment
+            if (goal === 'lose_weight') {
+                tdee -= 500;
+            } else if (goal === 'gain_muscle') {
+                tdee += 300;
+            }
+
+            const calories = Math.round(tdee);
+
+            // Calculate macros (30/40/30 split)
+            const protein = Math.round((calories * 0.30) / 4);
+            const carbs = Math.round((calories * 0.40) / 4);
+            const fat = Math.round((calories * 0.30) / 9);
+
+            // Store calculated values
+            calculatedGoals = { calories, protein, carbs, fat };
+
+            // Update display
+            document.getElementById('calcCalories').textContent = calories;
+            document.getElementById('calcProtein').textContent = protein;
+            document.getElementById('calcCarbs').textContent = carbs;
+            document.getElementById('calcFat').textContent = fat;
+
+            // Enable apply button
+            document.getElementById('applyCalcBtn').disabled = false;
+        }
+
+        // Apply calculated goals to the actual goal inputs
+        function applyCalculatedGoals() {
+            if (!calculatedGoals) return;
+
+            // Update all inputs
+            document.getElementById('goalCalories').value = calculatedGoals.calories;
+            document.getElementById('goalCaloriesCustom').value = calculatedGoals.calories;
+            document.getElementById('goalProtein').value = calculatedGoals.protein;
+            document.getElementById('goalCarbs').value = calculatedGoals.carbs;
+            document.getElementById('goalFat').value = calculatedGoals.fat;
+
+            // Update percentage mode
+            calculatePercentagesFromGrams();
+
+            // Save immediately
+            saveClientGoals();
         }
 
         // Calculate grams from percentages
@@ -3967,14 +4481,15 @@
                 // Get values based on current mode
                 let calories, protein, carbs, fat;
 
-                if (isCustomMode) {
+                if (currentGoalsMode === 'custom') {
                     calories = parseInt(document.getElementById('goalCaloriesCustom').value) || 2000;
                     protein = parseInt(document.getElementById('goalProtein').value) || 150;
                     carbs = parseInt(document.getElementById('goalCarbs').value) || 200;
                     fat = parseInt(document.getElementById('goalFat').value) || 65;
                 } else {
+                    // For both calculate and percentage modes, use the percentage mode values
+                    // (which are synced from calculate mode when Apply is clicked)
                     calories = parseInt(document.getElementById('goalCalories').value) || 2000;
-                    // Get calculated grams from percentage mode
                     protein = parseInt(document.getElementById('goalProtein').value) || 150;
                     carbs = parseInt(document.getElementById('goalCarbs').value) || 200;
                     fat = parseInt(document.getElementById('goalFat').value) || 65;
