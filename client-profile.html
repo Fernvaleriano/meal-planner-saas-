@@ -2460,6 +2460,200 @@
             color: var(--gray-900);
         }
 
+        .goals-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .goals-mode-toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--brand-primary);
+        }
+
+        /* Calories Input */
+        .calories-input-section {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .calories-input-section label {
+            display: block;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .calories-input-section input {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            background: rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        .calories-input-section input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
+        }
+
+        /* Macro Cards Grid */
+        .macro-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .macro-card {
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px solid;
+        }
+
+        .macro-card.protein {
+            background: #f0fff4;
+            border-color: #9ae6b4;
+        }
+
+        .macro-card.carbs {
+            background: #ebf8ff;
+            border-color: #90cdf4;
+        }
+
+        .macro-card.fat {
+            background: #fffaf0;
+            border-color: #fbd38d;
+        }
+
+        .macro-card-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .macro-card.protein .macro-card-label { color: #276749; }
+        .macro-card.carbs .macro-card-label { color: #2b6cb0; }
+        .macro-card.fat .macro-card-label { color: #c05621; }
+
+        .macro-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .macro-input-row input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            background: rgba(0,0,0,0.1);
+        }
+
+        .macro-card.protein .macro-input-row input {
+            background: #1e293b;
+            color: white;
+        }
+        .macro-card.carbs .macro-input-row input {
+            background: #1e293b;
+            color: white;
+        }
+        .macro-card.fat .macro-input-row input {
+            background: #1e293b;
+            color: white;
+        }
+
+        .macro-input-row input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
+        }
+
+        .macro-input-row .unit {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .macro-calculated {
+            text-align: center;
+        }
+
+        .macro-grams {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .macro-card.protein .macro-grams { color: #276749; }
+        .macro-card.carbs .macro-grams { color: #2b6cb0; }
+        .macro-card.fat .macro-grams { color: #c05621; }
+
+        .macro-cals {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Percentage Total Bar */
+        .percentage-total-bar {
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .percentage-total-text {
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .percentage-total-text.valid { color: #38a169; }
+        .percentage-total-text.invalid { color: #e53e3e; }
+
+        .percentage-progress {
+            flex: 1;
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            margin: 0 16px;
+            overflow: hidden;
+        }
+
+        .percentage-progress-fill {
+            height: 100%;
+            background: var(--brand-primary);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .percentage-progress-fill.valid { background: #38a169; }
+        .percentage-progress-fill.over { background: #e53e3e; }
+
+        /* Custom/Manual Mode */
+        .custom-mode-section {
+            display: none;
+        }
+
+        .custom-mode-section.active {
+            display: block;
+        }
+
         .goals-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -2507,6 +2701,15 @@
         .goal-item.protein input { color: #38a169; }
         .goal-item.carbs input { color: #3182ce; }
         .goal-item.fat input { color: #805ad5; }
+
+        .goals-tip {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         .goals-footer {
             display: flex;
@@ -2622,6 +2825,55 @@
 
         [data-theme="dark"] .permission-toggle label {
             color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .goals-mode-toggle {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .macro-card.protein {
+            background: #064e3b;
+            border-color: #065f46;
+        }
+
+        [data-theme="dark"] .macro-card.carbs {
+            background: #1e3a5f;
+            border-color: #1e40af;
+        }
+
+        [data-theme="dark"] .macro-card.fat {
+            background: #78350f;
+            border-color: #92400e;
+        }
+
+        [data-theme="dark"] .macro-card-label {
+            color: #94a3b8 !important;
+        }
+
+        [data-theme="dark"] .macro-grams {
+            color: #f1f5f9 !important;
+        }
+
+        [data-theme="dark"] .macro-cals {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .percentage-total-bar {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .percentage-progress {
+            background: #334155;
+        }
+
+        [data-theme="dark"] .goals-tip {
+            color: #94a3b8;
+        }
+
+        @media (max-width: 768px) {
+            .macro-cards-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -2742,25 +2994,92 @@
         <div class="goals-section" id="goalsSection" style="display: none;">
             <div class="goals-header">
                 <h2 class="goals-title">🎯 Daily Nutrition Goals</h2>
+                <label class="goals-mode-toggle">
+                    <input type="checkbox" id="customModeToggle" onchange="toggleGoalsMode()">
+                    <span>Custom grams</span>
+                </label>
             </div>
-            <div class="goals-grid">
-                <div class="goal-item calories">
-                    <label>Calories</label>
-                    <input type="number" id="goalCalories" value="2000" min="500" max="10000">
+
+            <!-- Percentage-based Calculator (Default) -->
+            <div id="percentageMode">
+                <div class="calories-input-section">
+                    <label>Total Calories</label>
+                    <input type="number" id="goalCalories" value="2000" min="500" max="10000" oninput="calculateMacrosFromPercentage()">
                 </div>
-                <div class="goal-item protein">
-                    <label>Protein (g)</label>
-                    <input type="number" id="goalProtein" value="150" min="0" max="500">
+
+                <div class="macro-cards-grid">
+                    <div class="macro-card protein">
+                        <div class="macro-card-label">Protein %</div>
+                        <div class="macro-input-row">
+                            <input type="number" id="proteinPercent" value="30" min="0" max="100" oninput="handlePercentageInput('protein')">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="macro-calculated">
+                            <div class="macro-grams" id="proteinGramsDisplay">150g</div>
+                            <div class="macro-cals">(<span id="proteinCalsDisplay">600</span> cal)</div>
+                        </div>
+                    </div>
+
+                    <div class="macro-card carbs">
+                        <div class="macro-card-label">Carbs %</div>
+                        <div class="macro-input-row">
+                            <input type="number" id="carbsPercent" value="40" min="0" max="100" oninput="handlePercentageInput('carbs')">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="macro-calculated">
+                            <div class="macro-grams" id="carbsGramsDisplay">200g</div>
+                            <div class="macro-cals">(<span id="carbsCalsDisplay">800</span> cal)</div>
+                        </div>
+                    </div>
+
+                    <div class="macro-card fat">
+                        <div class="macro-card-label">Fat %</div>
+                        <div class="macro-input-row">
+                            <input type="number" id="fatPercent" value="30" min="0" max="100" oninput="handlePercentageInput('fat')">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="macro-calculated">
+                            <div class="macro-grams" id="fatGramsDisplay">67g</div>
+                            <div class="macro-cals">(<span id="fatCalsDisplay">600</span> cal)</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="goal-item carbs">
-                    <label>Carbs (g)</label>
-                    <input type="number" id="goalCarbs" value="200" min="0" max="1000">
+
+                <div class="percentage-total-bar">
+                    <span class="percentage-total-text" id="percentageTotalText">Total: 100%</span>
+                    <div class="percentage-progress">
+                        <div class="percentage-progress-fill valid" id="percentageProgressFill" style="width: 100%"></div>
+                    </div>
+                    <span style="font-size: 12px; color: var(--gray-500);">Enter percentages</span>
                 </div>
-                <div class="goal-item fat">
-                    <label>Fat (g)</label>
-                    <input type="number" id="goalFat" value="65" min="0" max="500">
+
+                <div class="goals-tip">
+                    💡 Enter calories and any 2 percentages - the 3rd will auto-fill to reach 100%.
                 </div>
             </div>
+
+            <!-- Custom/Manual Mode -->
+            <div id="customMode" class="custom-mode-section">
+                <div class="goals-grid">
+                    <div class="goal-item calories">
+                        <label>Calories</label>
+                        <input type="number" id="goalCaloriesCustom" value="2000" min="500" max="10000">
+                    </div>
+                    <div class="goal-item protein">
+                        <label>Protein (g)</label>
+                        <input type="number" id="goalProtein" value="150" min="0" max="500">
+                    </div>
+                    <div class="goal-item carbs">
+                        <label>Carbs (g)</label>
+                        <input type="number" id="goalCarbs" value="200" min="0" max="1000">
+                    </div>
+                    <div class="goal-item fat">
+                        <label>Fat (g)</label>
+                        <input type="number" id="goalFat" value="65" min="0" max="500">
+                    </div>
+                </div>
+            </div>
+
             <div class="goals-footer">
                 <div class="permission-toggle">
                     <label class="toggle-switch">
@@ -3457,6 +3776,160 @@
             document.getElementById('canEditGoalsToggle').checked = client.can_edit_goals || false;
         }
 
+        // Track which percentage inputs the user has manually set
+        let manuallySetPercentages = { protein: true, carbs: true, fat: false };
+        let isCustomMode = false;
+
+        // Toggle between percentage mode and custom grams mode
+        function toggleGoalsMode() {
+            isCustomMode = document.getElementById('customModeToggle').checked;
+            document.getElementById('percentageMode').style.display = isCustomMode ? 'none' : 'block';
+            document.getElementById('customMode').classList.toggle('active', isCustomMode);
+
+            // Sync values when switching modes
+            if (isCustomMode) {
+                // Copy calculated values to custom inputs
+                document.getElementById('goalCaloriesCustom').value = document.getElementById('goalCalories').value;
+            } else {
+                // Copy custom values back and recalculate
+                document.getElementById('goalCalories').value = document.getElementById('goalCaloriesCustom').value;
+                calculatePercentagesFromGrams();
+            }
+        }
+
+        // Calculate grams from percentages
+        function calculateMacrosFromPercentage() {
+            const calories = parseInt(document.getElementById('goalCalories').value) || 2000;
+            const proteinPct = parseInt(document.getElementById('proteinPercent').value) || 0;
+            const carbsPct = parseInt(document.getElementById('carbsPercent').value) || 0;
+            const fatPct = parseInt(document.getElementById('fatPercent').value) || 0;
+
+            // Calculate calories for each macro
+            const proteinCals = Math.round(calories * (proteinPct / 100));
+            const carbsCals = Math.round(calories * (carbsPct / 100));
+            const fatCals = Math.round(calories * (fatPct / 100));
+
+            // Calculate grams (protein/carbs = 4 cal/g, fat = 9 cal/g)
+            const proteinGrams = Math.round(proteinCals / 4);
+            const carbsGrams = Math.round(carbsCals / 4);
+            const fatGrams = Math.round(fatCals / 9);
+
+            // Update display
+            document.getElementById('proteinGramsDisplay').textContent = proteinGrams + 'g';
+            document.getElementById('proteinCalsDisplay').textContent = proteinCals;
+            document.getElementById('carbsGramsDisplay').textContent = carbsGrams + 'g';
+            document.getElementById('carbsCalsDisplay').textContent = carbsCals;
+            document.getElementById('fatGramsDisplay').textContent = fatGrams + 'g';
+            document.getElementById('fatCalsDisplay').textContent = fatCals;
+
+            // Update custom mode inputs
+            document.getElementById('goalProtein').value = proteinGrams;
+            document.getElementById('goalCarbs').value = carbsGrams;
+            document.getElementById('goalFat').value = fatGrams;
+
+            // Update percentage total bar
+            updatePercentageTotal();
+        }
+
+        // Handle percentage input and auto-fill the 3rd macro
+        function handlePercentageInput(changedMacro) {
+            manuallySetPercentages[changedMacro] = true;
+
+            const proteinPct = parseInt(document.getElementById('proteinPercent').value) || 0;
+            const carbsPct = parseInt(document.getElementById('carbsPercent').value) || 0;
+            const fatPct = parseInt(document.getElementById('fatPercent').value) || 0;
+
+            // Count how many are manually set
+            const manualCount = Object.values(manuallySetPercentages).filter(v => v).length;
+
+            // If 2 are set, auto-calculate the 3rd
+            if (manualCount >= 2) {
+                const total = proteinPct + carbsPct + fatPct;
+
+                // Find which one to auto-fill (the one not manually set, or the last one changed)
+                if (!manuallySetPercentages.protein && changedMacro !== 'protein') {
+                    document.getElementById('proteinPercent').value = Math.max(0, 100 - carbsPct - fatPct);
+                } else if (!manuallySetPercentages.carbs && changedMacro !== 'carbs') {
+                    document.getElementById('carbsPercent').value = Math.max(0, 100 - proteinPct - fatPct);
+                } else if (!manuallySetPercentages.fat && changedMacro !== 'fat') {
+                    document.getElementById('fatPercent').value = Math.max(0, 100 - proteinPct - carbsPct);
+                } else {
+                    // All three are manually set, auto-adjust the one NOT just changed
+                    const remaining = 100 - parseInt(document.getElementById(changedMacro + 'Percent').value);
+                    const others = ['protein', 'carbs', 'fat'].filter(m => m !== changedMacro);
+                    const other1Val = parseInt(document.getElementById(others[0] + 'Percent').value) || 0;
+                    const other2Val = parseInt(document.getElementById(others[1] + 'Percent').value) || 0;
+
+                    // Proportionally adjust the others
+                    const otherTotal = other1Val + other2Val;
+                    if (otherTotal > 0 && remaining >= 0) {
+                        document.getElementById(others[0] + 'Percent').value = Math.round((other1Val / otherTotal) * remaining);
+                        document.getElementById(others[1] + 'Percent').value = remaining - Math.round((other1Val / otherTotal) * remaining);
+                    }
+                }
+            }
+
+            calculateMacrosFromPercentage();
+        }
+
+        // Calculate percentages from gram values (used when loading existing goals)
+        function calculatePercentagesFromGrams() {
+            const calories = parseInt(document.getElementById('goalCalories').value) || 2000;
+            const proteinGrams = parseInt(document.getElementById('goalProtein').value) || 150;
+            const carbsGrams = parseInt(document.getElementById('goalCarbs').value) || 200;
+            const fatGrams = parseInt(document.getElementById('goalFat').value) || 65;
+
+            // Calculate calories from grams
+            const proteinCals = proteinGrams * 4;
+            const carbsCals = carbsGrams * 4;
+            const fatCals = fatGrams * 9;
+
+            // Calculate percentages
+            const proteinPct = Math.round((proteinCals / calories) * 100);
+            const carbsPct = Math.round((carbsCals / calories) * 100);
+            const fatPct = Math.round((fatCals / calories) * 100);
+
+            // Update percentage inputs
+            document.getElementById('proteinPercent').value = proteinPct;
+            document.getElementById('carbsPercent').value = carbsPct;
+            document.getElementById('fatPercent').value = fatPct;
+
+            // Update displays
+            document.getElementById('proteinGramsDisplay').textContent = proteinGrams + 'g';
+            document.getElementById('proteinCalsDisplay').textContent = proteinCals;
+            document.getElementById('carbsGramsDisplay').textContent = carbsGrams + 'g';
+            document.getElementById('carbsCalsDisplay').textContent = carbsCals;
+            document.getElementById('fatGramsDisplay').textContent = fatGrams + 'g';
+            document.getElementById('fatCalsDisplay').textContent = fatCals;
+
+            updatePercentageTotal();
+        }
+
+        // Update the percentage total bar
+        function updatePercentageTotal() {
+            const proteinPct = parseInt(document.getElementById('proteinPercent').value) || 0;
+            const carbsPct = parseInt(document.getElementById('carbsPercent').value) || 0;
+            const fatPct = parseInt(document.getElementById('fatPercent').value) || 0;
+            const total = proteinPct + carbsPct + fatPct;
+
+            const textEl = document.getElementById('percentageTotalText');
+            const fillEl = document.getElementById('percentageProgressFill');
+
+            textEl.textContent = `Total: ${total}%`;
+            fillEl.style.width = Math.min(total, 100) + '%';
+
+            if (total === 100) {
+                textEl.className = 'percentage-total-text valid';
+                fillEl.className = 'percentage-progress-fill valid';
+            } else if (total > 100) {
+                textEl.className = 'percentage-total-text invalid';
+                fillEl.className = 'percentage-progress-fill over';
+            } else {
+                textEl.className = 'percentage-total-text';
+                fillEl.className = 'percentage-progress-fill';
+            }
+        }
+
         // Load client's calorie/macro goals
         async function loadClientGoals(clientId) {
             try {
@@ -3464,10 +3937,20 @@
                 const data = await response.json();
 
                 if (data.goals) {
-                    document.getElementById('goalCalories').value = data.goals.calorie_goal || 2000;
-                    document.getElementById('goalProtein').value = data.goals.protein_goal || 150;
-                    document.getElementById('goalCarbs').value = data.goals.carbs_goal || 200;
-                    document.getElementById('goalFat').value = data.goals.fat_goal || 65;
+                    const calories = data.goals.calorie_goal || 2000;
+                    const protein = data.goals.protein_goal || 150;
+                    const carbs = data.goals.carbs_goal || 200;
+                    const fat = data.goals.fat_goal || 65;
+
+                    // Set values in both modes
+                    document.getElementById('goalCalories').value = calories;
+                    document.getElementById('goalCaloriesCustom').value = calories;
+                    document.getElementById('goalProtein').value = protein;
+                    document.getElementById('goalCarbs').value = carbs;
+                    document.getElementById('goalFat').value = fat;
+
+                    // Calculate and display percentages
+                    calculatePercentagesFromGrams();
                 }
             } catch (err) {
                 console.error('Error loading client goals:', err);
@@ -3481,16 +3964,32 @@
             btn.textContent = 'Saving...';
 
             try {
+                // Get values based on current mode
+                let calories, protein, carbs, fat;
+
+                if (isCustomMode) {
+                    calories = parseInt(document.getElementById('goalCaloriesCustom').value) || 2000;
+                    protein = parseInt(document.getElementById('goalProtein').value) || 150;
+                    carbs = parseInt(document.getElementById('goalCarbs').value) || 200;
+                    fat = parseInt(document.getElementById('goalFat').value) || 65;
+                } else {
+                    calories = parseInt(document.getElementById('goalCalories').value) || 2000;
+                    // Get calculated grams from percentage mode
+                    protein = parseInt(document.getElementById('goalProtein').value) || 150;
+                    carbs = parseInt(document.getElementById('goalCarbs').value) || 200;
+                    fat = parseInt(document.getElementById('goalFat').value) || 65;
+                }
+
                 const response = await fetch('/.netlify/functions/calorie-goals', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clientId: clientId,
                         coachId: currentUser.id,
-                        calorieGoal: parseInt(document.getElementById('goalCalories').value) || 2000,
-                        proteinGoal: parseInt(document.getElementById('goalProtein').value) || 150,
-                        carbsGoal: parseInt(document.getElementById('goalCarbs').value) || 200,
-                        fatGoal: parseInt(document.getElementById('goalFat').value) || 65
+                        calorieGoal: calories,
+                        proteinGoal: protein,
+                        carbsGoal: carbs,
+                        fatGoal: fat
                     })
                 });
 
