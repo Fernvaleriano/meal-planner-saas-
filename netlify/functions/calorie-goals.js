@@ -79,6 +79,32 @@ exports.handler = async (event) => {
         };
       }
 
+      // If no coachId, this is a client request - check permission
+      if (!coachId) {
+        const { data: client, error: clientError } = await supabase
+          .from('clients')
+          .select('can_edit_goals')
+          .eq('id', clientId)
+          .single();
+
+        if (clientError) {
+          console.error('Error checking client permission:', clientError);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Failed to verify permissions' })
+          };
+        }
+
+        if (!client || !client.can_edit_goals) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'You do not have permission to edit goals. Please contact your coach.' })
+          };
+        }
+      }
+
       // Check if goals already exist
       const { data: existing } = await supabase
         .from('calorie_goals')
