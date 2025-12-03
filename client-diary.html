@@ -1250,6 +1250,19 @@
                             <div class="quick-add-text-sub">Enter calories & macros manually</div>
                         </div>
                     </button>
+                    <button class="quick-add-btn" onclick="openMealPlanPicker()" style="margin-top: 10px;">
+                        <div class="quick-add-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                                <rect x="9" y="3" width="6" height="4" rx="1"/>
+                                <path d="M9 12h6M9 16h6"/>
+                            </svg>
+                        </div>
+                        <div class="quick-add-text">
+                            <div class="quick-add-text-main">From Meal Plan</div>
+                            <div class="quick-add-text-sub">Add meals from your diet plans</div>
+                        </div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1424,6 +1437,46 @@
                     <button type="submit" class="btn btn-primary" style="flex:1">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Meal Plan Picker Modal -->
+    <div class="modal-overlay" id="mealPlanPickerModal">
+        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <button class="modal-close" onclick="closeMealPlanPicker()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">Add from Meal Plan</span>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 0;">
+                <!-- Plan Selection View -->
+                <div id="planSelectionView">
+                    <div style="padding: 16px;">
+                        <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 16px;">Select a meal plan to add meals from:</p>
+                    </div>
+                    <div id="mealPlansList" style="padding: 0 16px 16px;">
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <p>Loading meal plans...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meals View (shown after selecting a plan) -->
+                <div id="mealsSelectionView" style="display: none;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--gray-200);">
+                        <button onclick="showPlanSelection()" style="background: none; border: none; color: var(--brand-primary); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 18l-6-6 6-6"/>
+                            </svg>
+                            Back to plans
+                        </button>
+                        <h3 id="selectedPlanName" style="margin-top: 12px; color: var(--gray-900);"></h3>
+                    </div>
+                    <div id="planMealsList" style="padding: 16px;">
+                        <!-- Meals will be rendered here -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2265,6 +2318,312 @@
             } catch (err) {
                 console.error('Error adding barcode food:', err);
                 showToast('Failed to add food');
+            }
+        }
+
+        // ==========================================
+        // Meal Plan Picker Functions
+        // ==========================================
+        let clientMealPlans = [];
+        let selectedPlanData = null;
+
+        async function openMealPlanPicker() {
+            closeFoodSearch();
+            document.getElementById('mealPlanPickerModal').classList.add('active');
+            document.getElementById('planSelectionView').style.display = 'block';
+            document.getElementById('mealsSelectionView').style.display = 'none';
+
+            // Load meal plans
+            await loadClientMealPlans();
+        }
+
+        function closeMealPlanPicker() {
+            document.getElementById('mealPlanPickerModal').classList.remove('active');
+            selectedPlanData = null;
+        }
+
+        function showPlanSelection() {
+            document.getElementById('planSelectionView').style.display = 'block';
+            document.getElementById('mealsSelectionView').style.display = 'none';
+            selectedPlanData = null;
+        }
+
+        async function loadClientMealPlans() {
+            const container = document.getElementById('mealPlansList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <p>Loading meal plans...</p>
+                </div>
+            `;
+
+            try {
+                const { data: plans, error } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('id, client_name, plan_data, client_modified_data, created_at, status')
+                    .eq('client_id', clientId)
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                clientMealPlans = plans || [];
+
+                if (clientMealPlans.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <p>No meal plans available</p>
+                            <p style="font-size: 0.85rem; color: var(--gray-400); margin-top: 8px;">Ask your coach to create a meal plan for you</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = clientMealPlans.map((plan, index) => {
+                    const planData = plan.client_modified_data || plan.plan_data;
+                    const planName = planData?.clientName || plan.client_name || 'Meal Plan';
+                    const calories = planData?.calories || planData?.nutrition?.calories || '--';
+                    const protein = planData?.protein || planData?.nutrition?.protein || '--';
+                    const mealCount = getMealCount(planData);
+                    const dayCount = getDayCount(planData);
+                    const createdDate = new Date(plan.created_at).toLocaleDateString();
+
+                    return `
+                        <div class="meal-plan-card" onclick="selectMealPlan(${index})" style="
+                            background: var(--gray-100);
+                            border-radius: 12px;
+                            padding: 16px;
+                            margin-bottom: 12px;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                            border: 2px solid transparent;
+                        " onmouseover="this.style.borderColor='var(--brand-primary)'" onmouseout="this.style.borderColor='transparent'">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 4px;">${planName}</div>
+                                    <div style="font-size: 0.85rem; color: var(--gray-500);">${dayCount} day${dayCount !== 1 ? 's' : ''} • ${mealCount} meals</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--brand-primary);">${calories} cal</div>
+                                    <div style="font-size: 0.75rem; color: var(--gray-400);">${createdDate}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Error loading meal plans:', err);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <p>Failed to load meal plans</p>
+                    </div>
+                `;
+            }
+        }
+
+        function getMealCount(planData) {
+            if (!planData) return 0;
+            if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
+                return planData.currentPlan.reduce((sum, day) => sum + (day.plan?.length || 0), 0);
+            }
+            if (planData.meals && Array.isArray(planData.meals)) {
+                return planData.meals.length;
+            }
+            return 0;
+        }
+
+        function getDayCount(planData) {
+            if (!planData) return 0;
+            if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
+                return planData.currentPlan.length;
+            }
+            return 1;
+        }
+
+        function selectMealPlan(index) {
+            const plan = clientMealPlans[index];
+            if (!plan) return;
+
+            selectedPlanData = plan.client_modified_data || plan.plan_data;
+            const planName = selectedPlanData?.clientName || plan.client_name || 'Meal Plan';
+
+            document.getElementById('selectedPlanName').textContent = planName;
+            document.getElementById('planSelectionView').style.display = 'none';
+            document.getElementById('mealsSelectionView').style.display = 'block';
+
+            renderPlanMeals();
+        }
+
+        function renderPlanMeals() {
+            const container = document.getElementById('planMealsList');
+
+            if (!selectedPlanData) {
+                container.innerHTML = '<p>No meals found</p>';
+                return;
+            }
+
+            let mealsHtml = '';
+            const mealTypeIcons = {
+                breakfast: '🌅',
+                lunch: '☀️',
+                dinner: '🌙',
+                snack: '🍎'
+            };
+
+            // Handle multi-day plans
+            if (selectedPlanData.currentPlan && Array.isArray(selectedPlanData.currentPlan)) {
+                selectedPlanData.currentPlan.forEach((day, dayIndex) => {
+                    mealsHtml += `
+                        <div style="margin-bottom: 20px;">
+                            <div style="font-weight: 600; color: var(--gray-700); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-200);">
+                                Day ${day.day || dayIndex + 1}
+                            </div>
+                    `;
+
+                    if (day.plan && Array.isArray(day.plan)) {
+                        day.plan.forEach((meal, mealIndex) => {
+                            mealsHtml += createMealPickerCard(meal, dayIndex, mealIndex, mealTypeIcons);
+                        });
+                    }
+
+                    mealsHtml += '</div>';
+                });
+            }
+            // Handle single-day plans
+            else if (selectedPlanData.meals && Array.isArray(selectedPlanData.meals)) {
+                selectedPlanData.meals.forEach((meal, mealIndex) => {
+                    mealsHtml += createMealPickerCard(meal, 0, mealIndex, mealTypeIcons);
+                });
+            }
+
+            if (!mealsHtml) {
+                mealsHtml = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🍽️</div>
+                        <p>No meals found in this plan</p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = mealsHtml;
+        }
+
+        function createMealPickerCard(meal, dayIndex, mealIndex, icons) {
+            const mealType = (meal.type || 'snack').toLowerCase();
+            const icon = icons[mealType] || '🍽️';
+            const calories = meal.calories || 0;
+            const protein = meal.protein || 0;
+            const carbs = meal.carbs || 0;
+            const fat = meal.fat || 0;
+
+            return `
+                <div class="meal-picker-item" onclick="addMealFromPlan(${dayIndex}, ${mealIndex})" style="
+                    background: var(--gray-100);
+                    border-radius: 12px;
+                    padding: 14px;
+                    margin-bottom: 10px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    border: 2px solid transparent;
+                " onmouseover="this.style.borderColor='var(--brand-primary)'; this.style.background='var(--gray-50)'"
+                   onmouseout="this.style.borderColor='transparent'; this.style.background='var(--gray-100)'">
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="font-size: 1.5rem;">${icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 4px;">${meal.name || 'Unnamed Meal'}</div>
+                            <div style="font-size: 0.8rem; color: var(--gray-500); text-transform: capitalize; margin-bottom: 6px;">${mealType}</div>
+                            <div style="display: flex; gap: 12px; font-size: 0.8rem;">
+                                <span style="color: var(--gray-600);">${calories} cal</span>
+                                <span style="color: #3b82f6;">${protein}g P</span>
+                                <span style="color: #f59e0b;">${carbs}g C</span>
+                                <span style="color: #ef4444;">${fat}g F</span>
+                            </div>
+                        </div>
+                        <div style="color: var(--brand-primary); font-size: 1.2rem;">+</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function addMealFromPlan(dayIndex, mealIndex) {
+            let meal;
+
+            // Get the meal from the correct location
+            if (selectedPlanData.currentPlan && Array.isArray(selectedPlanData.currentPlan)) {
+                meal = selectedPlanData.currentPlan[dayIndex]?.plan?.[mealIndex];
+            } else if (selectedPlanData.meals && Array.isArray(selectedPlanData.meals)) {
+                meal = selectedPlanData.meals[mealIndex];
+            }
+
+            if (!meal) {
+                showToast('Could not find meal');
+                return;
+            }
+
+            // Create optimistic entry
+            const tempId = 'temp-' + Date.now();
+            const mealType = (meal.type || 'snack').toLowerCase();
+            const optimisticEntry = {
+                id: tempId,
+                food_name: meal.name,
+                number_of_servings: 1,
+                serving_unit: 'serving',
+                calories: meal.calories || 0,
+                protein: meal.protein || 0,
+                carbs: meal.carbs || 0,
+                fat: meal.fat || 0
+            };
+
+            // Add to UI immediately
+            addOptimisticEntry(currentMealType, optimisticEntry);
+            closeMealPlanPicker();
+            showToast('Adding...');
+
+            try {
+                const response = await fetch('/.netlify/functions/food-diary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        coachId,
+                        entryDate: formatDate(currentDate),
+                        mealType: currentMealType,
+                        foodName: meal.name,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        numberOfServings: 1,
+                        calories: meal.calories || 0,
+                        protein: meal.protein || 0,
+                        carbs: meal.carbs || 0,
+                        fat: meal.fat || 0,
+                        foodSource: 'meal_plan',
+                        notes: `From meal plan (${mealType})`
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to add food');
+
+                const data = await response.json();
+
+                // Update optimistic entry with real ID
+                if (data.entry) {
+                    const tempEl = document.getElementById(`entry-${tempId}`);
+                    if (tempEl) {
+                        tempEl.id = `entry-${data.entry.id}`;
+                        tempEl.classList.remove('saving');
+                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
+                    }
+                    entries.push(data.entry);
+                }
+
+                showToast('Meal added from plan!');
+            } catch (err) {
+                console.error('Error adding meal from plan:', err);
+                removeOptimisticEntry(tempId);
+                showToast('Failed to add meal');
             }
         }
     </script>
