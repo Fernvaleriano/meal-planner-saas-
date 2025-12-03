@@ -1816,6 +1816,96 @@
             gap: 8px;
         }
 
+        .ai-expand-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-expand-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Expanded AI Assistant */
+        .ai-assistant-card.expanded {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            margin: 0;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 100%;
+        }
+
+        .ai-assistant-card.expanded .ai-assistant-header {
+            flex-shrink: 0;
+        }
+
+        .ai-assistant-card.expanded .ai-suggestions-bar {
+            flex-shrink: 0;
+        }
+
+        .ai-assistant-card.expanded .ai-quick-actions {
+            flex-shrink: 0;
+        }
+
+        .ai-assistant-card.expanded .ai-chat-messages {
+            flex: 1;
+            max-height: none;
+            min-height: 200px;
+            overflow-y: auto;
+        }
+
+        .ai-assistant-card.expanded .ai-input-container {
+            flex-shrink: 0;
+            margin-top: 12px;
+        }
+
+        .ai-assistant-card.expanded .ai-loading {
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            .ai-assistant-card.expanded {
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 90%;
+                max-width: 700px;
+                height: 80vh;
+                border-radius: 16px;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        .ai-expanded-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9998;
+        }
+
+        .ai-expanded-overlay.visible {
+            display: block;
+        }
+
         .ai-suggestions-bar {
             display: flex;
             flex-wrap: wrap;
@@ -2299,13 +2389,20 @@
             </div>
         </div>
 
+        <!-- AI Assistant Overlay (for expanded mode) -->
+        <div class="ai-expanded-overlay" id="aiExpandedOverlay" onclick="toggleAIExpand()"></div>
+
         <!-- AI Nutrition Assistant -->
-        <div class="ai-assistant-card">
+        <div class="ai-assistant-card" id="aiAssistantCard">
             <div class="ai-assistant-header">
                 <div class="ai-assistant-title">
                     <span>🤖</span>
                     AI Nutrition Assistant
                 </div>
+                <button class="ai-expand-btn" onclick="toggleAIExpand()" id="aiExpandBtn">
+                    <span id="aiExpandIcon">⛶</span>
+                    <span id="aiExpandText">Expand</span>
+                </button>
             </div>
 
             <!-- Smart Suggestions based on macro gaps -->
@@ -5911,6 +6008,41 @@
 
         let aiChatHistory = [];
         let pendingFoodLog = null;
+        let aiExpanded = false;
+
+        // Toggle AI assistant expand/collapse
+        function toggleAIExpand() {
+            aiExpanded = !aiExpanded;
+            const card = document.getElementById('aiAssistantCard');
+            const overlay = document.getElementById('aiExpandedOverlay');
+            const expandIcon = document.getElementById('aiExpandIcon');
+            const expandText = document.getElementById('aiExpandText');
+
+            if (aiExpanded) {
+                card.classList.add('expanded');
+                overlay.classList.add('visible');
+                expandIcon.textContent = '✕';
+                expandText.textContent = 'Close';
+                document.body.style.overflow = 'hidden';
+                // Focus the input when expanded
+                setTimeout(() => {
+                    document.getElementById('aiInput').focus();
+                }, 100);
+            } else {
+                card.classList.remove('expanded');
+                overlay.classList.remove('visible');
+                expandIcon.textContent = '⛶';
+                expandText.textContent = 'Expand';
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Close expanded view with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && aiExpanded) {
+                toggleAIExpand();
+            }
+        });
 
         // Update AI suggestions based on remaining macros
         function updateAISuggestions() {
