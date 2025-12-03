@@ -104,14 +104,29 @@ exports.handler = async (event) => {
 
       if (favorites && favorites.length > 0) {
         favorites.forEach(fav => {
+          // For favorites, assume the stored values are per serving
+          // Create default measures
+          const measures = [
+            { label: 'serving', weight: 100 }, // Assume 100g per serving as default
+            { label: 'Gram', weight: 1 },
+            { label: '100g', weight: 100 },
+            { label: 'Ounce', weight: 28 }
+          ];
+
           results.push({
             name: fav.meal_name,
             calories: fav.calories || 0,
             protein: fav.protein || 0,
             carbs: fav.carbs || 0,
             fat: fav.fat || 0,
-            servingSize: 1,
+            // Per 100g values (assuming stored values are per ~100g serving)
+            caloriesPer100g: fav.calories || 0,
+            proteinPer100g: fav.protein || 0,
+            carbsPer100g: fav.carbs || 0,
+            fatPer100g: fav.fat || 0,
+            servingSize: 100,
             servingUnit: 'serving',
+            measures,
             source: 'favorite',
             brand: null
           });
@@ -121,7 +136,7 @@ exports.handler = async (event) => {
       // Search recent diary entries for this user
       const { data: recentEntries } = await supabase
         .from('food_diary_entries')
-        .select('food_name, brand, calories, protein, carbs, fat, serving_size, serving_unit')
+        .select('food_name, brand, calories, protein, carbs, fat, serving_size, serving_unit, number_of_servings')
         .eq('client_id', clientId)
         .ilike('food_name', `%${query}%`)
         .order('created_at', { ascending: false })
@@ -131,14 +146,38 @@ exports.handler = async (event) => {
         const seen = new Set(results.map(r => r.name.toLowerCase()));
         recentEntries.forEach(entry => {
           if (!seen.has(entry.food_name.toLowerCase())) {
+            // Calculate per-serving values from stored totals
+            const numServings = entry.number_of_servings || 1;
+            const calsPerServing = Math.round((entry.calories || 0) / numServings);
+            const proteinPerServing = Math.round((entry.protein || 0) / numServings * 10) / 10;
+            const carbsPerServing = Math.round((entry.carbs || 0) / numServings * 10) / 10;
+            const fatPerServing = Math.round((entry.fat || 0) / numServings * 10) / 10;
+
+            const servingWeight = entry.serving_size || 100;
+            const multiplier = 100 / servingWeight;
+
+            // Create measures based on the stored serving info
+            const measures = [
+              { label: entry.serving_unit || 'serving', weight: servingWeight },
+              { label: 'Gram', weight: 1 },
+              { label: '100g', weight: 100 },
+              { label: 'Ounce', weight: 28 }
+            ];
+
             results.push({
               name: entry.food_name,
-              calories: entry.calories || 0,
-              protein: entry.protein || 0,
-              carbs: entry.carbs || 0,
-              fat: entry.fat || 0,
-              servingSize: entry.serving_size || 1,
+              calories: calsPerServing,
+              protein: proteinPerServing,
+              carbs: carbsPerServing,
+              fat: fatPerServing,
+              // Per 100g values for scaling
+              caloriesPer100g: Math.round(calsPerServing * multiplier),
+              proteinPer100g: Math.round(proteinPerServing * multiplier * 10) / 10,
+              carbsPer100g: Math.round(carbsPerServing * multiplier * 10) / 10,
+              fatPer100g: Math.round(fatPerServing * multiplier * 10) / 10,
+              servingSize: servingWeight,
               servingUnit: entry.serving_unit || 'serving',
+              measures,
               source: 'recent',
               brand: entry.brand
             });
@@ -155,8 +194,32 @@ exports.handler = async (event) => {
     const seen = new Set(results.map(r => r.name.toLowerCase()));
     commonMatches.forEach(food => {
       if (!seen.has(food.name.toLowerCase())) {
+        // Generate default measures based on serving unit
+        const measures = [];
+        if (food.servingUnit === 'g') {
+          measures.push({ label: 'Gram', weight: 1 });
+          measures.push({ label: '100g', weight: 100 });
+          measures.push({ label: 'Ounce', weight: 28 });
+        } else {
+          // For non-gram units (serving, large, slice, cup, etc.)
+          measures.push({ label: food.servingUnit, weight: food.servingSize || 100 });
+          measures.push({ label: 'Gram', weight: 1 });
+          measures.push({ label: '100g', weight: 100 });
+          measures.push({ label: 'Ounce', weight: 28 });
+        }
+
+        // Calculate per 100g values for proper scaling
+        const baseWeight = food.servingSize || 100;
+        const multiplier = 100 / baseWeight;
+
         results.push({
           ...food,
+          // Store per 100g values for calculation
+          caloriesPer100g: Math.round(food.calories * multiplier),
+          proteinPer100g: Math.round(food.protein * multiplier * 10) / 10,
+          carbsPer100g: Math.round(food.carbs * multiplier * 10) / 10,
+          fatPer100g: Math.round(food.fat * multiplier * 10) / 10,
+          measures,
           source: 'common',
           brand: null
         });
@@ -188,15 +251,37 @@ exports.handler = async (event) => {
             data.parsed.forEach(item => {
               if (item.food && !seen.has(item.food.label.toLowerCase())) {
                 const nutrients = item.food.nutrients || {};
+
+                // Extract available measures/serving options
+                const measures = (item.measures || []).map(m => ({
+                  label: m.label,
+                  weight: m.weight || 100 // weight in grams
+                }));
+
+                // Default to "Serving" measure if available, otherwise use 100g
+                const defaultMeasure = measures.find(m => m.label === 'Serving') ||
+                                       measures.find(m => m.label === 'Whole') ||
+                                       { label: 'g', weight: 100 };
+
+                // Calculate nutrition per default serving
+                const multiplier = defaultMeasure.weight / 100;
+
                 results.push({
                   name: item.food.label,
-                  calories: Math.round(nutrients.ENERC_KCAL || 0),
-                  protein: Math.round((nutrients.PROCNT || 0) * 10) / 10,
-                  carbs: Math.round((nutrients.CHOCDF || 0) * 10) / 10,
-                  fat: Math.round((nutrients.FAT || 0) * 10) / 10,
-                  fiber: Math.round((nutrients.FIBTG || 0) * 10) / 10,
-                  servingSize: 100,
-                  servingUnit: 'g',
+                  // Base values per 100g (for calculation)
+                  caloriesPer100g: Math.round(nutrients.ENERC_KCAL || 0),
+                  proteinPer100g: Math.round((nutrients.PROCNT || 0) * 10) / 10,
+                  carbsPer100g: Math.round((nutrients.CHOCDF || 0) * 10) / 10,
+                  fatPer100g: Math.round((nutrients.FAT || 0) * 10) / 10,
+                  // Values per selected serving
+                  calories: Math.round((nutrients.ENERC_KCAL || 0) * multiplier),
+                  protein: Math.round((nutrients.PROCNT || 0) * multiplier * 10) / 10,
+                  carbs: Math.round((nutrients.CHOCDF || 0) * multiplier * 10) / 10,
+                  fat: Math.round((nutrients.FAT || 0) * multiplier * 10) / 10,
+                  fiber: Math.round((nutrients.FIBTG || 0) * multiplier * 10) / 10,
+                  servingSize: Math.round(defaultMeasure.weight),
+                  servingUnit: defaultMeasure.label === 'g' ? 'g' : defaultMeasure.label.toLowerCase(),
+                  measures: measures.length > 0 ? measures : [{ label: 'g', weight: 100 }],
                   source: 'edamam',
                   externalId: item.food.foodId,
                   brand: item.food.brand || null,
@@ -212,15 +297,34 @@ exports.handler = async (event) => {
             data.hints.slice(0, 10).forEach(hint => {
               if (hint.food && !seen.has(hint.food.label.toLowerCase())) {
                 const nutrients = hint.food.nutrients || {};
+
+                // Extract available measures/serving options
+                const measures = (hint.measures || []).map(m => ({
+                  label: m.label,
+                  weight: m.weight || 100
+                }));
+
+                // Default to "Serving" measure if available, otherwise use 100g
+                const defaultMeasure = measures.find(m => m.label === 'Serving') ||
+                                       measures.find(m => m.label === 'Whole') ||
+                                       { label: 'g', weight: 100 };
+
+                const multiplier = defaultMeasure.weight / 100;
+
                 results.push({
                   name: hint.food.label,
-                  calories: Math.round(nutrients.ENERC_KCAL || 0),
-                  protein: Math.round((nutrients.PROCNT || 0) * 10) / 10,
-                  carbs: Math.round((nutrients.CHOCDF || 0) * 10) / 10,
-                  fat: Math.round((nutrients.FAT || 0) * 10) / 10,
-                  fiber: Math.round((nutrients.FIBTG || 0) * 10) / 10,
-                  servingSize: 100,
-                  servingUnit: 'g',
+                  caloriesPer100g: Math.round(nutrients.ENERC_KCAL || 0),
+                  proteinPer100g: Math.round((nutrients.PROCNT || 0) * 10) / 10,
+                  carbsPer100g: Math.round((nutrients.CHOCDF || 0) * 10) / 10,
+                  fatPer100g: Math.round((nutrients.FAT || 0) * 10) / 10,
+                  calories: Math.round((nutrients.ENERC_KCAL || 0) * multiplier),
+                  protein: Math.round((nutrients.PROCNT || 0) * multiplier * 10) / 10,
+                  carbs: Math.round((nutrients.CHOCDF || 0) * multiplier * 10) / 10,
+                  fat: Math.round((nutrients.FAT || 0) * multiplier * 10) / 10,
+                  fiber: Math.round((nutrients.FIBTG || 0) * multiplier * 10) / 10,
+                  servingSize: Math.round(defaultMeasure.weight),
+                  servingUnit: defaultMeasure.label === 'g' ? 'g' : defaultMeasure.label.toLowerCase(),
+                  measures: measures.length > 0 ? measures : [{ label: 'g', weight: 100 }],
                   source: 'edamam',
                   externalId: hint.food.foodId,
                   brand: hint.food.brand || null,
