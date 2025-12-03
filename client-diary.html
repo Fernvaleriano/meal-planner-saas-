@@ -2724,8 +2724,11 @@
 
             try {
                 const date = formatDate(currentDate);
+                const timestamp = Date.now(); // Cache buster
                 console.log('loadDiaryEntries: Fetching for clientId:', clientId, 'date:', date);
-                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${date}`);
+                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${date}&_t=${timestamp}`, {
+                    cache: 'no-store' // Prevent browser caching
+                });
                 console.log('loadDiaryEntries: Response status:', response.status);
                 const data = await response.json();
                 console.log('loadDiaryEntries: Response data:', data);
@@ -4776,38 +4779,71 @@
         }
 
         async function addAIDetectedFoods() {
+            console.log('addAIDetectedFoods: Starting, foods:', aiDetectedFoods);
+            console.log('addAIDetectedFoods: clientId:', clientId, 'mealType:', currentMealType);
+
+            if (!clientId) {
+                showToast('Error: Not logged in');
+                return;
+            }
+
+            if (aiDetectedFoods.length === 0) {
+                showToast('No foods to add');
+                return;
+            }
+
             closeAIPhotoModal();
             showToast('Adding foods...');
 
             let addedCount = 0;
+            let errors = [];
+
             for (const food of aiDetectedFoods) {
                 try {
+                    const payload = {
+                        clientId,
+                        coachId,
+                        entryDate: formatDate(currentDate),
+                        mealType: currentMealType,
+                        foodName: food.name,
+                        numberOfServings: 1,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        foodSource: 'ai_photo'
+                    };
+                    console.log('addAIDetectedFoods: Adding food:', payload);
+
                     const response = await fetch('/.netlify/functions/food-diary', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            clientId,
-                            coachId,
-                            entryDate: formatDate(currentDate),
-                            mealType: currentMealType,
-                            foodName: food.name,
-                            numberOfServings: 1,
-                            servingUnit: 'serving',
-                            calories: food.calories,
-                            protein: food.protein,
-                            carbs: food.carbs,
-                            fat: food.fat,
-                            foodSource: 'ai_photo'
-                        })
+                        body: JSON.stringify(payload)
                     });
-                    if (response.ok) addedCount++;
+
+                    const data = await response.json();
+                    console.log('addAIDetectedFoods: Response:', response.status, data);
+
+                    if (response.ok) {
+                        addedCount++;
+                    } else {
+                        errors.push(data.error || 'Unknown error');
+                    }
                 } catch (err) {
                     console.error('Error adding food:', err);
+                    errors.push(err.message);
                 }
             }
 
             await loadDiaryEntries();
-            showToast(`Added ${addedCount} items from photo!`);
+
+            if (errors.length > 0) {
+                showToast(`Added ${addedCount}/${aiDetectedFoods.length} items. Errors: ${errors.join(', ')}`);
+            } else {
+                showToast(`Added ${addedCount} items from photo!`);
+            }
         }
 
         // ==========================================
