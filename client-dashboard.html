@@ -2855,6 +2855,9 @@
             currentClientId = clientData.id;
             currentCoachId = clientData.coach_id;
 
+            // Track client activity (last online)
+            trackClientActivity(session.user.id);
+
             // Update UI with client info
             document.getElementById('clientName').textContent = clientData.client_name || 'Client';
 
@@ -3186,6 +3189,20 @@
                         }, 50);
                     }, 200);
                 }
+            }
+        }
+
+        // Track client activity for "last online" feature
+        async function trackClientActivity(userId) {
+            try {
+                await fetch('/.netlify/functions/track-client-activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+            } catch (error) {
+                // Silently fail - activity tracking is not critical
+                console.log('Activity tracking failed:', error);
             }
         }
 
