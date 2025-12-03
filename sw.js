@@ -1,7 +1,7 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v2';
-const STATIC_CACHE = 'zique-static-v2';
-const DATA_CACHE = 'zique-data-v1';
+const CACHE_NAME = 'zique-fitness-v3';
+const STATIC_CACHE = 'zique-static-v3';
+const DATA_CACHE = 'zique-data-v2';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -27,8 +27,8 @@ const STATIC_FILES = [
 ];
 
 // API endpoints to cache (stale-while-revalidate)
+// Don't cache food-diary - it needs fresh data every time
 const CACHEABLE_API_PATTERNS = [
-  /\/\.netlify\/functions\/food-diary/,
   /\/\.netlify\/functions\/calorie-goals/,
   /\/\.netlify\/functions\/get-favorites/,
   /\/\.netlify\/functions\/get-recipes/
