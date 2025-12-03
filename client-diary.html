@@ -1790,6 +1790,271 @@
             border-radius: 50%;
             margin-left: 8px;
         }
+
+        /* AI Assistant Styles */
+        .ai-assistant-card {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .ai-assistant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .ai-assistant-title {
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-suggestions-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ai-suggestion-chip {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e2e8f0;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-suggestion-chip:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
+        }
+
+        .ai-suggestion-chip.protein {
+            border-color: #34d399;
+            color: #34d399;
+        }
+
+        .ai-suggestion-chip.carbs {
+            border-color: #60a5fa;
+            color: #60a5fa;
+        }
+
+        .ai-suggestion-chip.fat {
+            border-color: #f472b6;
+            color: #f472b6;
+        }
+
+        .ai-chat-messages {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            display: none;
+        }
+
+        .ai-chat-messages.has-messages {
+            display: block;
+        }
+
+        .ai-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .ai-message.user {
+            background: var(--brand-primary);
+            color: white;
+            margin-left: 20%;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message.assistant {
+            background: rgba(255,255,255,0.1);
+            color: #e2e8f0;
+            margin-right: 20%;
+            border-bottom-left-radius: 4px;
+        }
+
+        .ai-message.assistant.food-log {
+            background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            border: 1px solid #34d399;
+        }
+
+        .ai-food-log-preview {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 8px;
+        }
+
+        .ai-food-log-preview .food-name {
+            font-weight: 600;
+            color: #34d399;
+            margin-bottom: 4px;
+        }
+
+        .ai-food-log-preview .food-macros {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .ai-food-log-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .ai-food-log-actions button {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-food-log-actions .confirm-btn {
+            background: #34d399;
+            color: #065f46;
+            border: none;
+        }
+
+        .ai-food-log-actions .confirm-btn:hover {
+            background: #6ee7b7;
+        }
+
+        .ai-food-log-actions .cancel-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+        }
+
+        .ai-food-log-actions .cancel-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .ai-input-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-input-container input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 0.95rem;
+        }
+
+        .ai-input-container input::placeholder {
+            color: #64748b;
+        }
+
+        .ai-input-container input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+
+        .ai-send-btn {
+            padding: 12px 20px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-send-btn:hover {
+            background: #0f766e;
+            transform: translateY(-1px);
+        }
+
+        .ai-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ai-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            padding: 12px;
+        }
+
+        .ai-loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .ai-loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: var(--brand-primary);
+            border-radius: 50%;
+            animation: aiDotPulse 1.4s infinite ease-in-out both;
+        }
+
+        .ai-loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .ai-loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .ai-loading-dots span:nth-child(3) { animation-delay: 0; }
+
+        @keyframes aiDotPulse {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .ai-quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .ai-quick-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-quick-btn:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -2031,6 +2296,52 @@
                 <button class="water-btn" onclick="addWater(2)">+2 Glasses</button>
                 <button class="water-btn" onclick="removeWater(1)">-1</button>
                 <button class="water-btn primary" onclick="completeWaterGoal()">Complete Goal</button>
+            </div>
+        </div>
+
+        <!-- AI Nutrition Assistant -->
+        <div class="ai-assistant-card">
+            <div class="ai-assistant-header">
+                <div class="ai-assistant-title">
+                    <span>🤖</span>
+                    AI Nutrition Assistant
+                </div>
+            </div>
+
+            <!-- Smart Suggestions based on macro gaps -->
+            <div class="ai-suggestions-bar" id="aiSuggestions">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="ai-quick-actions">
+                <button class="ai-quick-btn" onclick="askAI('What should I eat to hit my protein goal?')">💪 Need protein</button>
+                <button class="ai-quick-btn" onclick="askAI('Give me a healthy snack idea')">🍎 Snack ideas</button>
+                <button class="ai-quick-btn" onclick="askAI('How am I doing today?')">📊 My progress</button>
+                <button class="ai-quick-btn" onclick="askAI('What can I eat for dinner?')">🍽️ Dinner ideas</button>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="ai-chat-messages" id="aiChatMessages">
+                <!-- Messages populated by JavaScript -->
+            </div>
+
+            <!-- Loading State -->
+            <div class="ai-loading" id="aiLoading" style="display: none;">
+                <div class="ai-loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>Thinking...</span>
+            </div>
+
+            <!-- Input -->
+            <div class="ai-input-container">
+                <input type="text" id="aiInput" placeholder="Ask me anything or log food... (e.g., 'log 2 eggs and toast')" onkeydown="handleAIKeydown(event)">
+                <button class="ai-send-btn" onclick="sendAIMessage()" id="aiSendBtn">
+                    Send
+                </button>
             </div>
         </div>
     </div>
@@ -2908,6 +3219,11 @@
             updateMacroBar('protein', totals.protein || 0, goals.protein_goal || 150);
             updateMacroBar('carbs', totals.carbs || 0, goals.carbs_goal || 200);
             updateMacroBar('fat', totals.fat || 0, goals.fat_goal || 65);
+
+            // Update AI suggestions
+            if (typeof updateAISuggestions === 'function') {
+                updateAISuggestions();
+            }
         }
 
         function updateMacroBar(macro, current, goal) {
@@ -5567,6 +5883,275 @@
                 container.innerHTML = '<p style="text-align: center; color: var(--gray-500);">Failed to load weekly data</p>';
             }
         }
+
+        // ==========================================
+        // AI NUTRITION ASSISTANT FUNCTIONS
+        // ==========================================
+
+        let aiChatHistory = [];
+        let pendingFoodLog = null;
+
+        // Update AI suggestions based on remaining macros
+        function updateAISuggestions() {
+            const remaining = {
+                calories: calorieGoal - totalCalories,
+                protein: proteinGoal - totalProtein,
+                carbs: carbsGoal - totalCarbs,
+                fat: fatGoal - totalFat
+            };
+
+            const suggestions = [];
+
+            // Check what's most needed
+            const proteinPct = (totalProtein / proteinGoal) * 100;
+            const carbsPct = (totalCarbs / carbsGoal) * 100;
+            const fatPct = (totalFat / fatGoal) * 100;
+
+            if (remaining.protein > 30 && proteinPct < 70) {
+                suggestions.push({
+                    type: 'protein',
+                    text: `Need ${Math.round(remaining.protein)}g more protein`,
+                    action: 'What high protein foods should I eat?'
+                });
+            }
+
+            if (remaining.carbs > 50 && carbsPct < 60) {
+                suggestions.push({
+                    type: 'carbs',
+                    text: `${Math.round(remaining.carbs)}g carbs remaining`,
+                    action: 'What healthy carb options do I have?'
+                });
+            }
+
+            if (remaining.fat > 20 && fatPct < 50) {
+                suggestions.push({
+                    type: 'fat',
+                    text: `${Math.round(remaining.fat)}g fat to go`,
+                    action: 'What healthy fats should I add?'
+                });
+            }
+
+            if (remaining.calories > 500) {
+                suggestions.push({
+                    type: '',
+                    text: `${remaining.calories} cal remaining`,
+                    action: 'What should I eat with ' + remaining.calories + ' calories left?'
+                });
+            }
+
+            const container = document.getElementById('aiSuggestions');
+            if (!container) return;
+
+            if (suggestions.length === 0) {
+                container.innerHTML = '<div class="ai-suggestion-chip">✨ You\'re on track today!</div>';
+                return;
+            }
+
+            container.innerHTML = suggestions.map(s => `
+                <div class="ai-suggestion-chip ${s.type}" onclick="askAI('${s.action}')">
+                    ${s.text}
+                </div>
+            `).join('');
+        }
+
+        // Send message to AI
+        async function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Clear input
+            input.value = '';
+
+            // Add user message to chat
+            addChatMessage(message, 'user');
+
+            // Show loading
+            document.getElementById('aiLoading').style.display = 'flex';
+            document.getElementById('aiSendBtn').disabled = true;
+
+            try {
+                const response = await fetch('/.netlify/functions/client-diary-ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        message: message,
+                        todayEntries: diaryEntries,
+                        goals: {
+                            calorie_goal: calorieGoal,
+                            protein_goal: proteinGoal,
+                            carbs_goal: carbsGoal,
+                            fat_goal: fatGoal
+                        },
+                        totals: {
+                            calories: totalCalories,
+                            protein: totalProtein,
+                            carbs: totalCarbs,
+                            fat: totalFat
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                // Hide loading
+                document.getElementById('aiLoading').style.display = 'none';
+                document.getElementById('aiSendBtn').disabled = false;
+
+                if (data.error) {
+                    addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+                    return;
+                }
+
+                // Check if AI wants to log food
+                if (data.parsed && data.parsed.action === 'log_food') {
+                    pendingFoodLog = data.parsed;
+                    showFoodLogPreview(data.parsed);
+                } else {
+                    // Regular text response
+                    addChatMessage(data.response, 'assistant');
+                }
+
+            } catch (err) {
+                console.error('AI error:', err);
+                document.getElementById('aiLoading').style.display = 'none';
+                document.getElementById('aiSendBtn').disabled = false;
+                addChatMessage('Sorry, I couldn\'t connect to the AI. Please try again.', 'assistant');
+            }
+        }
+
+        // Quick ask AI function
+        function askAI(question) {
+            document.getElementById('aiInput').value = question;
+            sendAIMessage();
+        }
+
+        // Handle Enter key in input
+        function handleAIKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendAIMessage();
+            }
+        }
+
+        // Add message to chat
+        function addChatMessage(text, type) {
+            const container = document.getElementById('aiChatMessages');
+            container.classList.add('has-messages');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${type}`;
+            messageDiv.textContent = text;
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+
+            aiChatHistory.push({ text, type });
+        }
+
+        // Show food log preview from AI
+        function showFoodLogPreview(foodData) {
+            const container = document.getElementById('aiChatMessages');
+            container.classList.add('has-messages');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message assistant food-log';
+            messageDiv.innerHTML = `
+                ${foodData.confirmation || 'Ready to log this food:'}
+                <div class="ai-food-log-preview">
+                    <div class="food-name">${foodData.food_name}</div>
+                    <div class="food-macros">
+                        ${foodData.calories} cal • ${foodData.protein}g P • ${foodData.carbs}g C • ${foodData.fat}g F
+                    </div>
+                </div>
+                <div class="ai-food-log-actions">
+                    <button class="confirm-btn" onclick="confirmAIFoodLog()">✓ Add to ${foodData.meal_type || 'diary'}</button>
+                    <button class="cancel-btn" onclick="cancelAIFoodLog()">Cancel</button>
+                </div>
+            `;
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Confirm and add food from AI
+        async function confirmAIFoodLog() {
+            if (!pendingFoodLog) return;
+
+            const food = pendingFoodLog;
+
+            try {
+                // Determine meal type or use current time to guess
+                let mealType = food.meal_type || 'snack';
+                const hour = new Date().getHours();
+                if (!food.meal_type) {
+                    if (hour >= 5 && hour < 11) mealType = 'breakfast';
+                    else if (hour >= 11 && hour < 15) mealType = 'lunch';
+                    else if (hour >= 15 && hour < 21) mealType = 'dinner';
+                    else mealType = 'snack';
+                }
+
+                // Add to diary using existing function
+                const response = await fetch('/.netlify/functions/food-diary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        foodName: food.food_name,
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        mealType: mealType,
+                        date: formatDate(currentDate),
+                        servingSize: '1 serving'
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to add food');
+
+                // Clear pending
+                pendingFoodLog = null;
+
+                // Refresh diary
+                await loadDiaryEntries();
+                updateSummary();
+                updateAISuggestions();
+
+                // Show success message
+                addChatMessage(`Added "${food.food_name}" to your ${mealType}!`, 'assistant');
+
+            } catch (err) {
+                console.error('Error adding food:', err);
+                addChatMessage('Sorry, I couldn\'t add that food. Please try manually.', 'assistant');
+            }
+        }
+
+        // Cancel food log from AI
+        function cancelAIFoodLog() {
+            pendingFoodLog = null;
+            addChatMessage('No problem! Let me know if you want to log something else.', 'assistant');
+        }
+
+        // Initialize AI suggestions when diary loads
+        function initAIAssistant() {
+            setTimeout(() => {
+                updateAISuggestions();
+            }, 500);
+        }
+
+        // Call init when diary is ready (add to existing init chain)
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for diary to load then init AI
+            const checkDiaryLoaded = setInterval(() => {
+                if (typeof calorieGoal !== 'undefined' && calorieGoal > 0) {
+                    clearInterval(checkDiaryLoaded);
+                    initAIAssistant();
+                }
+            }, 500);
+        });
     </script>
 
     <!-- PWA Service Worker Registration -->
