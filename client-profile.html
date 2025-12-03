@@ -461,6 +461,21 @@
             margin-bottom: 25px;
         }
 
+        .collapsible-header {
+            padding: 8px;
+            margin: -8px -8px 20px -8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        [data-theme="dark"] .collapsible-header:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
         .section-title {
             font-size: 24px;
             font-weight: 700;
@@ -2617,100 +2632,131 @@
 
         <!-- Plans Section -->
         <div class="plans-section">
-            <div class="section-header">
-                <h2 class="section-title">📊 Meal Plans</h2>
-            </div>
-            <!-- Bulk Actions Bar -->
-            <div class="bulk-actions" id="bulkActionsBar" style="display: none;">
-                <div class="bulk-actions-left">
-                    <label class="select-all-container">
-                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
-                        <span class="select-all-label">Select All</span>
-                    </label>
-                    <span class="selected-count" id="selectedCount">0 selected</span>
-                </div>
-                <button class="btn-delete-selected" id="deleteSelectedBtn" onclick="deleteSelectedPlans()">
-                    🗑️ Delete Selected
+            <div class="section-header collapsible-header" onclick="toggleSection('plans')" style="cursor: pointer;">
+                <h2 class="section-title">📋 Meal Plans</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="plansToggleIcon">▼</span>
                 </button>
             </div>
-            <div id="plansContainer">
-                <div class="loading">Loading plans...</div>
+            <div id="plansContent" class="collapsible-content collapsed">
+                <!-- Bulk Actions Bar -->
+                <div class="bulk-actions" id="bulkActionsBar" style="display: none;">
+                    <div class="bulk-actions-left">
+                        <label class="select-all-container">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                            <span class="select-all-label">Select All</span>
+                        </label>
+                        <span class="selected-count" id="selectedCount">0 selected</span>
+                    </div>
+                    <button class="btn-delete-selected" id="deleteSelectedBtn" onclick="deleteSelectedPlans()">
+                        🗑️ Delete Selected
+                    </button>
+                </div>
+                <div id="plansContainer">
+                    <div class="loading">Loading plans...</div>
+                </div>
             </div>
         </div>
 
         <!-- Supplement Protocol Section -->
         <div class="protocols-section" id="protocolsSection" style="display: none;">
-            <div class="section-header">
+            <div class="section-header collapsible-header" onclick="toggleSection('protocols')" style="cursor: pointer;">
                 <h2 class="section-title">💊 Supplement Protocol</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="protocolsToggleIcon">▼</span>
+                </button>
             </div>
-            <div id="protocolsContainer">
-                <div class="loading">Loading protocols...</div>
+            <div id="protocolsContent" class="collapsible-content collapsed">
+                <div id="protocolsContainer">
+                    <div class="loading">Loading protocols...</div>
+                </div>
             </div>
         </div>
 
         <!-- Favorites Section -->
         <div class="favorites-section">
-            <div class="favorites-header">
+            <div class="favorites-header collapsible-header" onclick="toggleSection('favorites')" style="cursor: pointer;">
                 <h2 class="favorites-title">❤️ Favorite Meals</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="favoritesToggleIcon">▼</span>
+                </button>
             </div>
-            <div id="favoritesStatsBar" class="favorites-stats" style="display: none;">
-                <div class="favorites-stat-item">
-                    <span class="favorites-stat-icon">❤️</span>
-                    <span class="favorites-stat-text"><strong id="favoritesTotalCount">0</strong> favorites</span>
+            <div id="favoritesContent" class="collapsible-content collapsed">
+                <div id="favoritesStatsBar" class="favorites-stats" style="display: none;">
+                    <div class="favorites-stat-item">
+                        <span class="favorites-stat-icon">❤️</span>
+                        <span class="favorites-stat-text"><strong id="favoritesTotalCount">0</strong> favorites</span>
+                    </div>
+                    <div class="favorites-stat-item">
+                        <span class="favorites-stat-icon">🍲</span>
+                        <span class="favorites-stat-text"><strong id="favoritesAvgCalories">0</strong> avg calories</span>
+                    </div>
+                    <div class="favorites-stat-item">
+                        <span class="favorites-stat-icon">💪</span>
+                        <span class="favorites-stat-text"><strong id="favoritesAvgProtein">0</strong>g avg protein</span>
+                    </div>
                 </div>
-                <div class="favorites-stat-item">
-                    <span class="favorites-stat-icon">🍲</span>
-                    <span class="favorites-stat-text"><strong id="favoritesAvgCalories">0</strong> avg calories</span>
+                <div id="favoritesFilterBar" class="favorites-filter-bar" style="display: none;">
+                    <button class="favorites-filter-btn active" data-filter="all" onclick="filterFavorites('all', this)">All</button>
+                    <button class="favorites-filter-btn" data-filter="breakfast" onclick="filterFavorites('breakfast', this)">Breakfast</button>
+                    <button class="favorites-filter-btn" data-filter="lunch" onclick="filterFavorites('lunch', this)">Lunch</button>
+                    <button class="favorites-filter-btn" data-filter="dinner" onclick="filterFavorites('dinner', this)">Dinner</button>
+                    <button class="favorites-filter-btn" data-filter="snack" onclick="filterFavorites('snack', this)">Snack</button>
                 </div>
-                <div class="favorites-stat-item">
-                    <span class="favorites-stat-icon">💪</span>
-                    <span class="favorites-stat-text"><strong id="favoritesAvgProtein">0</strong>g avg protein</span>
+                <div id="favoritesContainer">
+                    <div class="loading">Loading favorites...</div>
                 </div>
-            </div>
-            <div id="favoritesFilterBar" class="favorites-filter-bar" style="display: none;">
-                <button class="favorites-filter-btn active" data-filter="all" onclick="filterFavorites('all', this)">All</button>
-                <button class="favorites-filter-btn" data-filter="breakfast" onclick="filterFavorites('breakfast', this)">Breakfast</button>
-                <button class="favorites-filter-btn" data-filter="lunch" onclick="filterFavorites('lunch', this)">Lunch</button>
-                <button class="favorites-filter-btn" data-filter="dinner" onclick="filterFavorites('dinner', this)">Dinner</button>
-                <button class="favorites-filter-btn" data-filter="snack" onclick="filterFavorites('snack', this)">Snack</button>
-            </div>
-            <div id="favoritesContainer">
-                <div class="loading">Loading favorites...</div>
             </div>
         </div>
 
         <!-- Progress Photos Section -->
         <div class="photos-section">
-            <div class="photos-header">
+            <div class="photos-header collapsible-header" onclick="toggleSection('photos')" style="cursor: pointer;">
                 <h2 class="photos-title">📸 Progress Photos</h2>
-                <button class="btn btn-primary" onclick="openUploadModal()">+ Add Photo</button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn btn-primary" onclick="event.stopPropagation(); openUploadModal()">+ Add Photo</button>
+                    <button class="section-toggle-btn" type="button">
+                        <span class="toggle-icon collapsed" id="photosToggleIcon">▼</span>
+                    </button>
+                </div>
             </div>
-            <div id="photosContainer">
-                <div class="loading">Loading photos...</div>
+            <div id="photosContent" class="collapsible-content collapsed">
+                <div id="photosContainer">
+                    <div class="loading">Loading photos...</div>
+                </div>
             </div>
         </div>
 
         <!-- Measurements Section -->
         <div class="measurements-section">
-            <div class="measurements-header">
+            <div class="measurements-header collapsible-header" onclick="toggleSection('measurements')" style="cursor: pointer;">
                 <h2 class="measurements-title">📊 Body Measurements</h2>
-                <button class="btn btn-primary" onclick="openMeasurementModal()">+ Log Measurement</button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn btn-primary" onclick="event.stopPropagation(); openMeasurementModal()">+ Log Measurement</button>
+                    <button class="section-toggle-btn" type="button">
+                        <span class="toggle-icon collapsed" id="measurementsToggleIcon">▼</span>
+                    </button>
+                </div>
             </div>
-            <div id="measurementsContainer">
-                <div class="loading">Loading measurements...</div>
+            <div id="measurementsContent" class="collapsible-content collapsed">
+                <div id="measurementsContainer">
+                    <div class="loading">Loading measurements...</div>
+                </div>
             </div>
         </div>
 
         <!-- Check-ins Section -->
         <div class="checkins-section">
-            <div class="checkins-header" onclick="toggleCheckinsSection()" style="cursor: pointer;">
+            <div class="checkins-header collapsible-header" onclick="toggleSection('checkins')" style="cursor: pointer;">
                 <h2 class="checkins-title">📝 Check-ins</h2>
-                <button class="section-toggle-btn" id="checkinsToggleBtn" type="button">
-                    <span class="toggle-icon" id="checkinsToggleIcon">▼</span>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="checkinsToggleIcon">▼</span>
                 </button>
             </div>
-            <div id="checkinsContainer" class="collapsible-content">
-                <div class="loading">Loading check-ins...</div>
+            <div id="checkinsContent" class="collapsible-content collapsed">
+                <div id="checkinsContainer">
+                    <div class="loading">Loading check-ins...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -2909,30 +2955,48 @@
             });
         })();
 
-        // Toggle check-ins section collapse
-        function toggleCheckinsSection() {
-            const container = document.getElementById('checkinsContainer');
-            const icon = document.getElementById('checkinsToggleIcon');
+        // Unified toggle function for collapsible sections
+        function toggleSection(sectionName) {
+            const content = document.getElementById(`${sectionName}Content`);
+            const icon = document.getElementById(`${sectionName}ToggleIcon`);
 
-            if (container && icon) {
-                container.classList.toggle('collapsed');
+            if (content && icon) {
+                content.classList.toggle('collapsed');
                 icon.classList.toggle('collapsed');
 
                 // Save state to localStorage
-                const isCollapsed = container.classList.contains('collapsed');
-                localStorage.setItem('checkinsCollapsed', JSON.stringify(isCollapsed));
+                const collapsedSections = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
+                collapsedSections[sectionName] = content.classList.contains('collapsed');
+                localStorage.setItem('clientProfileCollapsed', JSON.stringify(collapsedSections));
             }
         }
 
-        // Restore check-ins collapsed state on load
-        (function restoreCheckinsState() {
-            const isCollapsed = JSON.parse(localStorage.getItem('checkinsCollapsed') || 'false');
-            if (isCollapsed) {
-                const container = document.getElementById('checkinsContainer');
-                const icon = document.getElementById('checkinsToggleIcon');
-                if (container) container.classList.add('collapsed');
-                if (icon) icon.classList.add('collapsed');
-            }
+        // Legacy function for backwards compatibility
+        function toggleCheckinsSection() {
+            toggleSection('checkins');
+        }
+
+        // Restore collapsed states on load
+        // Default collapsed sections: plans, protocols, favorites, photos, measurements, checkins
+        (function restoreCollapsedStates() {
+            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins'];
+            const savedStates = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
+
+            defaultCollapsed.forEach(section => {
+                const content = document.getElementById(`${section}Content`);
+                const icon = document.getElementById(`${section}ToggleIcon`);
+
+                // If no saved state, default to collapsed; otherwise use saved state
+                const shouldBeCollapsed = savedStates[section] !== undefined ? savedStates[section] : true;
+
+                if (shouldBeCollapsed) {
+                    if (content) content.classList.add('collapsed');
+                    if (icon) icon.classList.add('collapsed');
+                } else {
+                    if (content) content.classList.remove('collapsed');
+                    if (icon) icon.classList.remove('collapsed');
+                }
+            });
         })();
 
         // Initialize Supabase client
