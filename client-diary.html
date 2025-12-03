@@ -2757,9 +2757,15 @@
 
         function setupSearchListener() {
             const input = document.getElementById('foodSearchInput');
+            if (!input) {
+                console.error('Food search input not found!');
+                return;
+            }
+            console.log('Search listener setup on:', input);
             input.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 const query = e.target.value.trim();
+                console.log('Search input event - query:', query);
 
                 if (query.length < 2) {
                     document.getElementById('searchResults').innerHTML = `
@@ -2783,11 +2789,17 @@
         }
 
         async function searchFood(query) {
+            console.log('searchFood called with:', query, 'clientId:', clientId);
             try {
-                const response = await fetch(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientId}`);
+                const url = `/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientId}`;
+                console.log('Fetching URL:', url);
+                const response = await fetch(url);
+                console.log('Response status:', response.status, response.ok);
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 const results = data.results || [];
+                console.log('Parsed results count:', results.length);
                 const container = document.getElementById('searchResults');
 
                 if (results.length === 0) {
