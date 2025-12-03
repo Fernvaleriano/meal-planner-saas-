@@ -2436,6 +2436,193 @@
         [data-theme="dark"] label {
             color: #cbd5e1;
         }
+
+        /* Goals Section Styles */
+        .goals-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
+            margin-bottom: 24px;
+        }
+
+        .goals-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .goals-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .goals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .goal-item {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--gray-100);
+        }
+
+        .goal-item label {
+            display: block;
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .goal-item input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            color: var(--gray-900);
+            background: white;
+        }
+
+        .goal-item input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        .goal-item.calories input { color: #dd6b20; }
+        .goal-item.protein input { color: #38a169; }
+        .goal-item.carbs input { color: #3182ce; }
+        .goal-item.fat input { color: #805ad5; }
+
+        .goals-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .permission-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .permission-toggle label {
+            font-size: 14px;
+            color: var(--gray-700);
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray-300);
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--brand-primary);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        .goals-save-btn {
+            padding: 10px 24px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .goals-save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .goals-save-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        [data-theme="dark"] .goals-section {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .goals-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .goal-item {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .goal-item input {
+            background: #1e293b;
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .goals-footer {
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .permission-toggle label {
+            color: #cbd5e1;
+        }
     </style>
 </head>
 <body>
@@ -2548,6 +2735,41 @@
                 <button class="reminder-toggle-btn" id="reminderToggleBtn" onclick="toggleClientReminders()">
                     Toggle Reminders
                 </button>
+            </div>
+        </div>
+
+        <!-- Client Goals Section -->
+        <div class="goals-section" id="goalsSection" style="display: none;">
+            <div class="goals-header">
+                <h2 class="goals-title">🎯 Daily Nutrition Goals</h2>
+            </div>
+            <div class="goals-grid">
+                <div class="goal-item calories">
+                    <label>Calories</label>
+                    <input type="number" id="goalCalories" value="2000" min="500" max="10000">
+                </div>
+                <div class="goal-item protein">
+                    <label>Protein (g)</label>
+                    <input type="number" id="goalProtein" value="150" min="0" max="500">
+                </div>
+                <div class="goal-item carbs">
+                    <label>Carbs (g)</label>
+                    <input type="number" id="goalCarbs" value="200" min="0" max="1000">
+                </div>
+                <div class="goal-item fat">
+                    <label>Fat (g)</label>
+                    <input type="number" id="goalFat" value="65" min="0" max="500">
+                </div>
+            </div>
+            <div class="goals-footer">
+                <div class="permission-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="canEditGoalsToggle" onchange="toggleClientGoalPermission()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <label for="canEditGoalsToggle">Allow client to edit their own goals</label>
+                </div>
+                <button class="goals-save-btn" onclick="saveClientGoals()" id="saveGoalsBtn">Save Goals</button>
             </div>
         </div>
 
@@ -3226,6 +3448,93 @@
 
             // Load reminder status
             loadReminderStatus(client.id);
+
+            // Load goals and show goals section
+            loadClientGoals(client.id);
+            document.getElementById('goalsSection').style.display = 'block';
+
+            // Set the can_edit_goals toggle based on client data
+            document.getElementById('canEditGoalsToggle').checked = client.can_edit_goals || false;
+        }
+
+        // Load client's calorie/macro goals
+        async function loadClientGoals(clientId) {
+            try {
+                const response = await fetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
+                const data = await response.json();
+
+                if (data.goals) {
+                    document.getElementById('goalCalories').value = data.goals.calorie_goal || 2000;
+                    document.getElementById('goalProtein').value = data.goals.protein_goal || 150;
+                    document.getElementById('goalCarbs').value = data.goals.carbs_goal || 200;
+                    document.getElementById('goalFat').value = data.goals.fat_goal || 65;
+                }
+            } catch (err) {
+                console.error('Error loading client goals:', err);
+            }
+        }
+
+        // Save client's calorie/macro goals
+        async function saveClientGoals() {
+            const btn = document.getElementById('saveGoalsBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const response = await fetch('/.netlify/functions/calorie-goals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        coachId: currentUser.id,
+                        calorieGoal: parseInt(document.getElementById('goalCalories').value) || 2000,
+                        proteinGoal: parseInt(document.getElementById('goalProtein').value) || 150,
+                        carbsGoal: parseInt(document.getElementById('goalCarbs').value) || 200,
+                        fatGoal: parseInt(document.getElementById('goalFat').value) || 65
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to save goals');
+
+                btn.textContent = 'Saved!';
+                setTimeout(() => {
+                    btn.textContent = 'Save Goals';
+                    btn.disabled = false;
+                }, 1500);
+
+            } catch (err) {
+                console.error('Error saving goals:', err);
+                alert('Failed to save goals');
+                btn.textContent = 'Save Goals';
+                btn.disabled = false;
+            }
+        }
+
+        // Toggle whether client can edit their own goals
+        async function toggleClientGoalPermission() {
+            const canEdit = document.getElementById('canEditGoalsToggle').checked;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('clients')
+                    .update({ can_edit_goals: canEdit })
+                    .eq('id', clientId)
+                    .eq('coach_id', currentUser.id);
+
+                if (error) throw error;
+
+                // Update local client object
+                if (currentClient) {
+                    currentClient.can_edit_goals = canEdit;
+                }
+
+                console.log('Client goal permission updated:', canEdit);
+            } catch (err) {
+                console.error('Error updating goal permission:', err);
+                // Revert toggle on error
+                document.getElementById('canEditGoalsToggle').checked = !canEdit;
+                alert('Failed to update permission');
+            }
         }
 
         async function loadPlans(clientId) {
