@@ -2067,6 +2067,15 @@
                             <div class="quick-add-text-sub">Snap a pic, AI estimates calories</div>
                         </div>
                     </button>
+                    <button class="quick-add-btn" onclick="openAITextModal()" style="margin-bottom: 10px;">
+                        <div class="quick-add-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                            <span style="font-size: 20px;">🎤</span>
+                        </div>
+                        <div class="quick-add-text">
+                            <div class="quick-add-text-main">AI Voice/Text Log</div>
+                            <div class="quick-add-text-sub">Speak or type what you ate</div>
+                        </div>
+                    </button>
                     <button class="quick-add-btn" onclick="openBarcodeScanner()" style="margin-bottom: 10px;">
                         <div class="quick-add-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2471,6 +2480,76 @@
                     <div class="form-row">
                         <button type="button" class="btn btn-secondary" onclick="resetAIPhoto()" style="flex:1">Try Another</button>
                         <button type="button" class="btn btn-primary" onclick="addAIDetectedFoods()" style="flex:1">Add All to Diary</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Text/Voice Log Modal -->
+    <div class="modal-overlay" id="aiTextModal">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeAITextModal()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">🎤 AI Voice/Text Log</span>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="aiTextInput">
+                    <p style="color: var(--gray-600); margin-bottom: 16px; font-size: 0.95rem;">
+                        Describe what you ate and AI will estimate the calories and macros.
+                    </p>
+
+                    <!-- Text input with mic button -->
+                    <div style="position: relative;">
+                        <textarea id="foodDescriptionInput"
+                            placeholder="e.g., 2 scrambled eggs with toast and black coffee..."
+                            rows="3"
+                            style="width: 100%; padding: 12px; padding-right: 50px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem; resize: none; box-sizing: border-box;"></textarea>
+                        <button type="button" id="voiceInputBtn" onclick="toggleVoiceInput()"
+                            style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                            <span style="font-size: 20px;">🎤</span>
+                        </button>
+                    </div>
+
+                    <!-- Voice status -->
+                    <div id="voiceStatus" style="display: none; margin-top: 8px; padding: 8px 12px; background: #f0fdf4; border-radius: 8px; color: #166534; font-size: 0.85rem;">
+                        <span id="voiceStatusText">🎤 Listening...</span>
+                    </div>
+
+                    <!-- Browser support warning -->
+                    <div id="voiceNotSupported" style="display: none; margin-top: 8px; padding: 8px 12px; background: #fef3c7; border-radius: 8px; color: #92400e; font-size: 0.85rem;">
+                        ⚠️ Voice input not supported in this browser. Please type instead.
+                    </div>
+
+                    <button type="button" class="btn btn-primary" onclick="analyzeTextWithAI()" style="width: 100%; margin-top: 16px;">
+                        Analyze Food
+                    </button>
+                </div>
+
+                <div id="aiTextAnalyzing" style="display: none;">
+                    <div class="ai-analyzing">
+                        <div class="ai-analyzing-spinner"></div>
+                        <div class="ai-analyzing-text">Analyzing your food...</div>
+                        <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 8px;">This may take a few seconds</p>
+                    </div>
+                </div>
+
+                <div id="aiTextResults" style="display: none;">
+                    <div class="ai-results">
+                        <div class="ai-results-header">
+                            <span>✨</span>
+                            AI Detection Results
+                        </div>
+                        <div id="aiTextDetectedItems">
+                            <!-- Items will be rendered here -->
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 16px; text-align: center;">
+                        ⚠️ AI estimates may vary. Feel free to adjust values before adding.
+                    </p>
+                    <div class="form-row">
+                        <button type="button" class="btn btn-secondary" onclick="resetAIText()" style="flex:1">Try Again</button>
+                        <button type="button" class="btn btn-primary" onclick="addAITextFoods()" style="flex:1">Add All to Diary</button>
                     </div>
                 </div>
             </div>
@@ -4906,6 +4985,285 @@
                 showToast(`Added ${addedCount}/${foodsToAdd.length} items. Errors: ${errors.join(', ')}`);
             } else {
                 showToast(`Added ${addedCount} items from photo!`);
+            }
+        }
+
+        // ==========================================
+        // AI Text/Voice Food Logging
+        // ==========================================
+        let aiTextDetectedFoods = [];
+        let speechRecognition = null;
+        let isListening = false;
+
+        function openAITextModal() {
+            closeFoodSearch();
+            document.getElementById('aiTextModal').classList.add('active');
+            resetAIText();
+            // Check for speech recognition support
+            checkVoiceSupport();
+        }
+
+        function closeAITextModal() {
+            document.getElementById('aiTextModal').classList.remove('active');
+            stopVoiceInput();
+            resetAIText();
+        }
+
+        function resetAIText() {
+            document.getElementById('aiTextInput').style.display = 'block';
+            document.getElementById('aiTextAnalyzing').style.display = 'none';
+            document.getElementById('aiTextResults').style.display = 'none';
+            document.getElementById('foodDescriptionInput').value = '';
+            document.getElementById('voiceStatus').style.display = 'none';
+            aiTextDetectedFoods = [];
+            stopVoiceInput();
+        }
+
+        function checkVoiceSupport() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                document.getElementById('voiceNotSupported').style.display = 'block';
+                document.getElementById('voiceInputBtn').style.opacity = '0.5';
+                document.getElementById('voiceInputBtn').style.cursor = 'not-allowed';
+            } else {
+                document.getElementById('voiceNotSupported').style.display = 'none';
+            }
+        }
+
+        function toggleVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('Voice input not supported in this browser');
+                return;
+            }
+
+            if (isListening) {
+                stopVoiceInput();
+            } else {
+                startVoiceInput();
+            }
+        }
+
+        function startVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            speechRecognition = new SpeechRecognition();
+            speechRecognition.continuous = false;
+            speechRecognition.interimResults = true;
+            speechRecognition.lang = 'en-US';
+
+            const voiceBtn = document.getElementById('voiceInputBtn');
+            const voiceStatus = document.getElementById('voiceStatus');
+            const voiceStatusText = document.getElementById('voiceStatusText');
+            const textInput = document.getElementById('foodDescriptionInput');
+
+            speechRecognition.onstart = () => {
+                isListening = true;
+                voiceBtn.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                voiceBtn.innerHTML = '<span style="font-size: 20px;">⏹️</span>';
+                voiceStatus.style.display = 'block';
+                voiceStatusText.textContent = '🎤 Listening... Speak now';
+            };
+
+            speechRecognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Show interim results while speaking
+                if (interimTranscript) {
+                    voiceStatusText.textContent = '🎤 "' + interimTranscript + '"';
+                }
+
+                // Append final results to text input
+                if (finalTranscript) {
+                    const currentText = textInput.value.trim();
+                    textInput.value = currentText ? currentText + ' ' + finalTranscript : finalTranscript;
+                    voiceStatusText.textContent = '✓ Got it!';
+                }
+            };
+
+            speechRecognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'no-speech') {
+                    voiceStatusText.textContent = '🔇 No speech detected. Try again.';
+                } else if (event.error === 'not-allowed') {
+                    voiceStatusText.textContent = '🚫 Microphone access denied';
+                } else {
+                    voiceStatusText.textContent = '❌ Error: ' + event.error;
+                }
+                setTimeout(() => stopVoiceInput(), 2000);
+            };
+
+            speechRecognition.onend = () => {
+                // Auto-restart if still supposed to be listening (for continuous input)
+                if (isListening) {
+                    stopVoiceInput();
+                }
+            };
+
+            speechRecognition.start();
+        }
+
+        function stopVoiceInput() {
+            isListening = false;
+            if (speechRecognition) {
+                speechRecognition.stop();
+                speechRecognition = null;
+            }
+            const voiceBtn = document.getElementById('voiceInputBtn');
+            voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
+            voiceBtn.innerHTML = '<span style="font-size: 20px;">🎤</span>';
+
+            // Hide status after a short delay
+            setTimeout(() => {
+                const voiceStatus = document.getElementById('voiceStatus');
+                if (voiceStatus && !isListening) {
+                    voiceStatus.style.display = 'none';
+                }
+            }, 1500);
+        }
+
+        async function analyzeTextWithAI() {
+            const text = document.getElementById('foodDescriptionInput').value.trim();
+
+            if (!text) {
+                showToast('Please describe what you ate');
+                return;
+            }
+
+            document.getElementById('aiTextInput').style.display = 'none';
+            document.getElementById('aiTextAnalyzing').style.display = 'block';
+
+            try {
+                const response = await fetch('/.netlify/functions/analyze-food-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+                console.log('AI Text response:', response.status, data);
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to analyze food');
+                }
+
+                aiTextDetectedFoods = data.foods || [];
+
+                if (aiTextDetectedFoods.length === 0) {
+                    showToast('Could not identify any food items');
+                    resetAIText();
+                    return;
+                }
+
+                renderAITextResults();
+            } catch (err) {
+                console.error('Error analyzing text:', err);
+                showToast('Failed to analyze. Try again.');
+                resetAIText();
+            }
+        }
+
+        function renderAITextResults() {
+            document.getElementById('aiTextAnalyzing').style.display = 'none';
+            document.getElementById('aiTextResults').style.display = 'block';
+
+            const container = document.getElementById('aiTextDetectedItems');
+            container.innerHTML = aiTextDetectedFoods.map((food, idx) => `
+                <div class="ai-food-item" id="ai-text-food-${idx}" style="position: relative; padding-right: 40px;">
+                    <button onclick="removeAITextFood(${idx})" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
+                    <div class="ai-food-name">${food.name}</div>
+                    <div class="ai-food-macros" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <input type="number" value="${food.calories}" onchange="updateAITextFood(${idx}, 'calories', this.value)" style="width: 50px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"> cal
+                        <input type="number" value="${food.protein}" onchange="updateAITextFood(${idx}, 'protein', this.value)" style="width: 40px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">g P
+                        <input type="number" value="${food.carbs}" onchange="updateAITextFood(${idx}, 'carbs', this.value)" style="width: 40px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">g C
+                        <input type="number" value="${food.fat}" onchange="updateAITextFood(${idx}, 'fat', this.value)" style="width: 40px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">g F
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeAITextFood(idx) {
+            aiTextDetectedFoods.splice(idx, 1);
+            renderAITextResults();
+            if (aiTextDetectedFoods.length === 0) {
+                showToast('No items left. Try again.');
+                resetAIText();
+            }
+        }
+
+        function updateAITextFood(idx, field, value) {
+            aiTextDetectedFoods[idx][field] = parseInt(value) || 0;
+        }
+
+        async function addAITextFoods() {
+            if (!clientId) {
+                showToast('Error: Not logged in');
+                return;
+            }
+
+            if (aiTextDetectedFoods.length === 0) {
+                showToast('No foods to add');
+                return;
+            }
+
+            const foodsToAdd = [...aiTextDetectedFoods];
+            closeAITextModal();
+            showToast('Adding foods...');
+
+            let addedCount = 0;
+            let errors = [];
+
+            for (const food of foodsToAdd) {
+                try {
+                    const payload = {
+                        clientId,
+                        coachId,
+                        entryDate: formatDate(currentDate),
+                        mealType: currentMealType,
+                        foodName: food.name,
+                        numberOfServings: 1,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        foodSource: 'ai_text'
+                    };
+
+                    const response = await fetch('/.netlify/functions/food-diary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        addedCount++;
+                    } else {
+                        errors.push(data.error || 'Unknown error');
+                    }
+                } catch (err) {
+                    console.error('Error adding food:', err);
+                    errors.push(err.message);
+                }
+            }
+
+            await loadDiaryEntries();
+
+            if (errors.length > 0) {
+                showToast(`Added ${addedCount}/${foodsToAdd.length} items. Errors: ${errors.join(', ')}`);
+            } else {
+                showToast(`Added ${addedCount} items!`);
             }
         }
 
