@@ -3193,7 +3193,11 @@
         }
 
         // Track client activity for "last online" feature
+        let activityHeartbeat = null;
+        let currentUserId = null;
+
         async function trackClientActivity(userId) {
+            currentUserId = userId;
             try {
                 await fetch('/.netlify/functions/track-client-activity', {
                     method: 'POST',
@@ -3204,9 +3208,44 @@
                 // Silently fail - activity tracking is not critical
                 console.log('Activity tracking failed:', error);
             }
+
+            // Start heartbeat - update activity every 60 seconds while page is open
+            if (activityHeartbeat) clearInterval(activityHeartbeat);
+            activityHeartbeat = setInterval(() => {
+                if (document.visibilityState === 'visible' && currentUserId) {
+                    fetch('/.netlify/functions/track-client-activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: currentUserId })
+                    }).catch(() => {});
+                }
+            }, 60000); // Every 60 seconds
         }
 
+        // Stop heartbeat when page is hidden/closed
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && activityHeartbeat) {
+                clearInterval(activityHeartbeat);
+                activityHeartbeat = null;
+            } else if (document.visibilityState === 'visible' && currentUserId && !activityHeartbeat) {
+                // Restart heartbeat and send immediate update
+                trackClientActivity(currentUserId);
+            }
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (activityHeartbeat) {
+                clearInterval(activityHeartbeat);
+            }
+        });
+
         async function logout() {
+            // Stop activity heartbeat
+            if (activityHeartbeat) {
+                clearInterval(activityHeartbeat);
+                activityHeartbeat = null;
+            }
             // Clean up realtime subscription
             if (realtimeChannel) {
                 supabaseClient.removeChannel(realtimeChannel);
