@@ -2586,29 +2586,29 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('=== Food Diary v2.3 Initializing ===');
+            console.log('=== Food Diary v2.4 Initializing ===');
 
             // Update UI immediately (doesn't need auth)
             setupSearchListener();
             updateDateDisplay();
 
             // Run auth check
-            const isAuthenticated = await checkAuth();
-            console.log('Auth result:', isAuthenticated, 'clientId:', clientId);
+            await checkAuth();
+            console.log('After checkAuth - clientId:', clientId);
 
-            if (!isAuthenticated) {
-                console.log('Auth failed, stopping initialization');
+            // Check if clientId is set (more reliable than return value)
+            if (!clientId) {
+                console.log('No clientId set, stopping initialization');
                 document.getElementById('dateSub').textContent = 'Please log in';
                 return;
             }
 
             // Auth succeeded - load data
-            console.log('Auth succeeded, loading data...');
+            console.log('clientId is set, loading data...');
 
             try {
-                // Load entries first (most important), then goals
                 await loadDiaryEntries();
-                loadGoals(); // Don't await - let it load in background
+                loadGoals();
                 console.log('Initial data loaded successfully');
             } catch (err) {
                 console.error('Error loading initial data:', err);
@@ -4824,13 +4824,17 @@
                 return;
             }
 
+            // Store foods BEFORE closing modal (closeAIPhotoModal clears aiDetectedFoods!)
+            const foodsToAdd = [...aiDetectedFoods];
+            console.log('addAIDetectedFoods: Copied', foodsToAdd.length, 'foods to add');
+
             closeAIPhotoModal();
             showToast('Adding foods...');
 
             let addedCount = 0;
             let errors = [];
 
-            for (const food of aiDetectedFoods) {
+            for (const food of foodsToAdd) {
                 try {
                     const payload = {
                         clientId,
@@ -4872,7 +4876,7 @@
             await loadDiaryEntries();
 
             if (errors.length > 0) {
-                showToast(`Added ${addedCount}/${aiDetectedFoods.length} items. Errors: ${errors.join(', ')}`);
+                showToast(`Added ${addedCount}/${foodsToAdd.length} items. Errors: ${errors.join(', ')}`);
             } else {
                 showToast(`Added ${addedCount} items from photo!`);
             }
