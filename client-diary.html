@@ -3199,7 +3199,13 @@
         }
 
         // Update summary display
+        // Store current totals globally for AI assistant
+        let currentTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
         function updateSummary(totals) {
+            // Store totals globally for AI assistant
+            currentTotals = totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
             const consumed = totals.calories || 0;
             const calorieGoal = goals.calorie_goal || 2000;
             const remaining = Math.max(0, calorieGoal - consumed);
@@ -3231,9 +3237,13 @@
             updateMacroBar('carbs', totals.carbs || 0, goals.carbs_goal || 200);
             updateMacroBar('fat', totals.fat || 0, goals.fat_goal || 65);
 
-            // Update AI suggestions
-            if (typeof updateAISuggestions === 'function') {
-                updateAISuggestions();
+            // Update AI suggestions (wrapped in try-catch to not break diary)
+            try {
+                if (typeof updateAISuggestions === 'function') {
+                    updateAISuggestions();
+                }
+            } catch (e) {
+                console.warn('AI suggestions update failed:', e);
             }
         }
 
@@ -5906,25 +5916,31 @@
         function updateAISuggestions() {
             // Use the goals object that's already defined in the page
             if (!goals || !goals.calorie_goal) return;
+            if (!currentTotals) return;
 
             const calorieGoal = goals.calorie_goal || 2000;
             const proteinGoal = goals.protein_goal || 150;
             const carbsGoal = goals.carbs_goal || 200;
             const fatGoal = goals.fat_goal || 65;
 
+            const totalCals = currentTotals.calories || 0;
+            const totalProt = currentTotals.protein || 0;
+            const totalCarb = currentTotals.carbs || 0;
+            const totalFats = currentTotals.fat || 0;
+
             const remaining = {
-                calories: calorieGoal - totalCalories,
-                protein: proteinGoal - totalProtein,
-                carbs: carbsGoal - totalCarbs,
-                fat: fatGoal - totalFat
+                calories: calorieGoal - totalCals,
+                protein: proteinGoal - totalProt,
+                carbs: carbsGoal - totalCarb,
+                fat: fatGoal - totalFats
             };
 
             const suggestions = [];
 
             // Check what's most needed
-            const proteinPct = (totalProtein / proteinGoal) * 100;
-            const carbsPct = (totalCarbs / carbsGoal) * 100;
-            const fatPct = (totalFat / fatGoal) * 100;
+            const proteinPct = (totalProt / proteinGoal) * 100;
+            const carbsPct = (totalCarb / carbsGoal) * 100;
+            const fatPct = (totalFats / fatGoal) * 100;
 
             if (remaining.protein > 30 && proteinPct < 70) {
                 suggestions.push({
@@ -5999,12 +6015,7 @@
                         message: message,
                         todayEntries: entries || [],
                         goals: goals || {},
-                        totals: {
-                            calories: totalCalories || 0,
-                            protein: totalProtein || 0,
-                            carbs: totalCarbs || 0,
-                            fat: totalFat || 0
-                        }
+                        totals: currentTotals || { calories: 0, protein: 0, carbs: 0, fat: 0 }
                     })
                 });
 
