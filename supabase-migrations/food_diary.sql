@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS calorie_goals (
     UNIQUE(client_id)
 );
 
+-- Index for faster goal lookups by client
+CREATE INDEX IF NOT EXISTS idx_calorie_goals_client ON calorie_goals(client_id);
+
 -- Enable RLS
 ALTER TABLE calorie_goals ENABLE ROW LEVEL SECURITY;
 
