@@ -506,6 +506,48 @@
             color: #cbd5e1;
         }
 
+        /* Swipe to delete styles */
+        .swipe-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .swipe-content {
+            position: relative;
+            z-index: 2;
+            background: white;
+            transition: transform 0.2s ease-out;
+        }
+
+        [data-theme="dark"] .swipe-content {
+            background: var(--gray-100);
+        }
+
+        .swipe-content.swiping {
+            transition: none;
+        }
+
+        .delete-action {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            z-index: 1;
+        }
+
+        .delete-action svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .add-food-btn {
             display: flex;
             align-items: center;
@@ -1027,6 +1069,393 @@
                 padding-bottom: 32px;
             }
         }
+
+        /* ========================================
+           PHASE 1 FEATURES STYLES
+           ======================================== */
+
+        /* Streak Badge */
+        .streak-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .streak-badge.no-streak {
+            background: var(--gray-300);
+            color: var(--gray-600);
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .quick-actions::-webkit-scrollbar {
+            display: none;
+        }
+
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .quick-action-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .quick-action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        [data-theme="dark"] .quick-action-btn {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        /* Water Tracking Card */
+        .water-card {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 0 16px 16px;
+            color: white;
+        }
+
+        .water-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .water-title {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .water-goal-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 4px 10px;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .water-progress {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .water-glasses {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .water-glass {
+            width: 28px;
+            height: 36px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px 4px 8px 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .water-glass.filled {
+            background: rgba(255,255,255,0.9);
+        }
+
+        .water-glass.filled::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: #0ea5e9;
+            border-radius: 0 0 6px 6px;
+        }
+
+        .water-stats {
+            text-align: right;
+        }
+
+        .water-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .water-target {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .water-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .water-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .water-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .water-btn.primary {
+            background: white;
+            color: #0284c7;
+        }
+
+        /* Daily Report Modal */
+        .report-content {
+            padding: 20px;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .report-date {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .report-score {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .score-circle.excellent {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .score-circle.good {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+        }
+
+        .score-circle.fair {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .score-circle.poor {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+        }
+
+        .score-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .report-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .report-stat {
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .report-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .report-stat-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .report-meals {
+            margin-top: 20px;
+        }
+
+        .report-meals-title {
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+        }
+
+        .report-meal-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .report-meal-item:last-child {
+            border-bottom: none;
+        }
+
+        .report-insights {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        [data-theme="dark"] .report-insights {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+        }
+
+        .report-insights-title {
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        [data-theme="dark"] .report-insights-title {
+            color: #34d399;
+        }
+
+        .report-insight {
+            font-size: 0.9rem;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        [data-theme="dark"] .report-insight {
+            color: #d1fae5;
+        }
+
+        /* Copy Day Modal */
+        .copy-day-options {
+            padding: 20px;
+        }
+
+        .copy-option {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--gray-100);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .copy-option:hover {
+            border-color: var(--brand-primary);
+        }
+
+        .copy-option-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .copy-option-icon.yesterday {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .copy-option-icon.pick-date {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        }
+
+        .copy-option-icon.to-date {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .copy-option-text {
+            flex: 1;
+        }
+
+        .copy-option-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 2px;
+        }
+
+        .copy-option-desc {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
     </style>
 </head>
 <body>
@@ -1037,6 +1466,11 @@
             <span class="nav-title">Food Diary</span>
         </a>
         <div class="nav-actions">
+            <div class="streak-badge" id="streakBadge" title="Logging streak">
+                <span>🔥</span>
+                <span id="streakCount">0</span>
+                <span>day streak</span>
+            </div>
             <button class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
         </div>
     </nav>
@@ -1058,6 +1492,56 @@
                     <path d="M9 18l6-6-6-6"/>
                 </svg>
             </button>
+        </div>
+
+        <!-- Quick Actions Bar -->
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="openCopyDayModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+                Copy Day
+            </button>
+            <button class="quick-action-btn" onclick="copyFromYesterday()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 12l6-6M3 12l6 6"/>
+                </svg>
+                Copy Yesterday
+            </button>
+            <button class="quick-action-btn" onclick="openDailyReport()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                </svg>
+                Daily Report
+            </button>
+        </div>
+
+        <!-- Water Tracking Card -->
+        <div class="water-card">
+            <div class="water-header">
+                <div class="water-title">
+                    <span>💧</span>
+                    Water Intake
+                </div>
+                <button class="water-goal-btn" onclick="openWaterGoalModal()">Goal: <span id="waterGoalDisplay">8</span> glasses</button>
+            </div>
+            <div class="water-progress">
+                <div class="water-glasses" id="waterGlasses">
+                    <!-- Glasses rendered by JS -->
+                </div>
+                <div class="water-stats">
+                    <div class="water-amount"><span id="waterCurrent">0</span>/<span id="waterGoalAmount">8</span></div>
+                    <div class="water-target">glasses today</div>
+                </div>
+            </div>
+            <div class="water-buttons">
+                <button class="water-btn" onclick="addWater(1)">+1 Glass</button>
+                <button class="water-btn" onclick="addWater(2)">+2 Glasses</button>
+                <button class="water-btn" onclick="removeWater(1)">-1</button>
+                <button class="water-btn primary" onclick="completeWaterGoal()">Complete Goal</button>
+            </div>
         </div>
 
         <!-- Summary Card -->
@@ -1440,6 +1924,83 @@
         </div>
     </div>
 
+    <!-- Copy Day Modal -->
+    <div class="modal-overlay" id="copyDayModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeCopyDayModal()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">Copy Day</span>
+            </div>
+            <div class="copy-day-options">
+                <div class="copy-option" onclick="copyFromYesterday(); closeCopyDayModal();">
+                    <div class="copy-option-icon yesterday">📋</div>
+                    <div class="copy-option-text">
+                        <div class="copy-option-title">Copy from Yesterday</div>
+                        <div class="copy-option-desc">Add all of yesterday's meals to today</div>
+                    </div>
+                </div>
+                <div class="copy-option" onclick="openCopyFromDatePicker()">
+                    <div class="copy-option-icon pick-date">📅</div>
+                    <div class="copy-option-text">
+                        <div class="copy-option-title">Copy from Another Date</div>
+                        <div class="copy-option-desc">Choose a specific date to copy meals from</div>
+                    </div>
+                </div>
+                <div class="copy-option" onclick="openCopyToDatePicker()">
+                    <div class="copy-option-icon to-date">📤</div>
+                    <div class="copy-option-text">
+                        <div class="copy-option-title">Copy Today to Another Date</div>
+                        <div class="copy-option-desc">Duplicate today's meals to a future date</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copy Date Picker Modal -->
+    <div class="modal-overlay" id="copyDatePickerModal">
+        <div class="quick-add-modal">
+            <h2 style="margin-bottom: 16px; color: var(--gray-900);" id="copyDatePickerTitle">Select Date</h2>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight: 500; margin-bottom: 8px; display: block;">Date</label>
+                <input type="date" id="copyDateInput" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="closeCopyDatePicker()" style="flex:1">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="executeCopyDate()" style="flex:1">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Report Modal -->
+    <div class="modal-overlay" id="dailyReportModal">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeDailyReport()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">Daily Report</span>
+            </div>
+            <div class="report-content" id="reportContent">
+                <!-- Report content populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Water Goal Modal -->
+    <div class="modal-overlay" id="waterGoalModal">
+        <div class="quick-add-modal">
+            <h2 style="margin-bottom: 16px; color: var(--gray-900);">Water Goal</h2>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight: 500; margin-bottom: 8px; display: block;">Daily water goal (glasses)</label>
+                <input type="number" id="waterGoalInput" min="1" max="20" value="8" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+                <p style="font-size: 0.8rem; color: var(--gray-500); margin-top: 8px;">1 glass = 8 oz (240ml)</p>
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="closeWaterGoalModal()" style="flex:1">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveWaterGoal()" style="flex:1">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Meal Plan Picker Modal -->
     <div class="modal-overlay" id="mealPlanPickerModal">
         <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
@@ -1709,25 +2270,35 @@
 
             meals.forEach(meal => {
                 const container = document.getElementById(`${meal}Entries`);
-                const entries = mealGroups[meal] || [];
-                const totalCals = entries.reduce((sum, e) => sum + (e.calories || 0), 0);
+                const mealEntries = mealGroups[meal] || [];
+                const totalCals = mealEntries.reduce((sum, e) => sum + (e.calories || 0), 0);
 
                 document.getElementById(`${meal}Cals`).textContent = totalCals;
 
-                if (entries.length === 0) {
+                if (mealEntries.length === 0) {
                     container.innerHTML = '';
                     return;
                 }
 
-                container.innerHTML = entries.map(entry => `
-                    <div class="food-entry" onclick="openEditModal(${entry.id})">
-                        <div class="food-info">
-                            <div class="food-name">${entry.food_name}</div>
-                            <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}${entry.number_of_servings != 1 ? 's' : ''}</div>
+                container.innerHTML = mealEntries.map(entry => `
+                    <div class="swipe-container" id="entry-${entry.id}">
+                        <div class="delete-action" onclick="swipeDeleteEntry(${entry.id}, '${meal}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
                         </div>
-                        <div class="food-calories">${entry.calories}</div>
+                        <div class="swipe-content food-entry" onclick="openEditModal(${entry.id})" data-entry-id="${entry.id}">
+                            <div class="food-info">
+                                <div class="food-name">${entry.food_name}</div>
+                                <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}${entry.number_of_servings != 1 ? 's' : ''}</div>
+                            </div>
+                            <div class="food-calories">${entry.calories}</div>
+                        </div>
                     </div>
                 `).join('');
+
+                // Initialize swipe handlers for this container
+                initSwipeHandlers(container);
             });
         }
 
@@ -1869,13 +2440,7 @@
 
                 // Update optimistic entry with real ID from server
                 if (data.entry) {
-                    const tempEl = document.getElementById(`entry-${tempId}`);
-                    if (tempEl) {
-                        tempEl.id = `entry-${data.entry.id}`;
-                        tempEl.classList.remove('saving');
-                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
-                    }
-                    // Add to local entries array
+                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
                     entries.push(data.entry);
                 }
 
@@ -1888,19 +2453,52 @@
             }
         }
 
+        // Update optimistic entry with real ID after server confirms
+        function updateOptimisticEntryWithRealId(tempId, entry, mealType) {
+            const tempEl = document.getElementById(`entry-${tempId}`);
+            if (tempEl) {
+                tempEl.id = `entry-${entry.id}`;
+                tempEl.classList.remove('saving');
+
+                // Update delete action
+                const deleteAction = tempEl.querySelector('.delete-action');
+                if (deleteAction) {
+                    deleteAction.setAttribute('onclick', `swipeDeleteEntry(${entry.id}, '${mealType}')`);
+                }
+
+                // Update swipe content
+                const swipeContent = tempEl.querySelector('.swipe-content');
+                if (swipeContent) {
+                    swipeContent.setAttribute('onclick', `openEditModal(${entry.id})`);
+                    swipeContent.setAttribute('data-entry-id', entry.id);
+                }
+            }
+        }
+
         // Add entry optimistically to UI
         function addOptimisticEntry(mealType, entry) {
             const container = document.getElementById(`${mealType}Entries`);
             const entryHtml = `
-                <div class="food-entry saving" id="entry-${entry.id}">
-                    <div class="food-info">
-                        <div class="food-name">${entry.food_name}</div>
-                        <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}</div>
+                <div class="swipe-container saving" id="entry-${entry.id}">
+                    <div class="delete-action">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
                     </div>
-                    <div class="food-calories">${entry.calories || 0}</div>
+                    <div class="swipe-content food-entry" data-entry-id="${entry.id}">
+                        <div class="food-info">
+                            <div class="food-name">${entry.food_name}</div>
+                            <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}</div>
+                        </div>
+                        <div class="food-calories">${entry.calories || 0}</div>
+                    </div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', entryHtml);
+
+            // Initialize swipe on new entry
+            const newEntry = container.lastElementChild;
+            initSwipeOnElement(newEntry);
 
             // Update calorie display for meal
             const calsEl = document.getElementById(`${mealType}Cals`);
@@ -1987,13 +2585,7 @@
 
                 // Update optimistic entry with real ID from server
                 if (data.entry) {
-                    const tempEl = document.getElementById(`entry-${tempId}`);
-                    if (tempEl) {
-                        tempEl.id = `entry-${data.entry.id}`;
-                        tempEl.classList.remove('saving');
-                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
-                    }
-                    // Add to local entries array
+                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
                     entries.push(data.entry);
                 }
 
@@ -2072,6 +2664,17 @@
             e.preventDefault();
 
             const entryId = document.getElementById('editEntryId').value;
+            const oldEntry = entries.find(en => en.id == entryId);
+            const mealType = oldEntry?.meal_type || 'snack';
+
+            const newData = {
+                food_name: document.getElementById('editFoodName').value,
+                number_of_servings: parseFloat(document.getElementById('editServings').value) || 1,
+                calories: parseInt(document.getElementById('editCalories').value) || 0,
+                protein: parseFloat(document.getElementById('editProtein').value) || 0,
+                carbs: parseFloat(document.getElementById('editCarbs').value) || 0,
+                fat: parseFloat(document.getElementById('editFat').value) || 0
+            };
 
             try {
                 const response = await fetch('/.netlify/functions/food-diary', {
@@ -2079,20 +2682,76 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         entryId: parseInt(entryId),
-                        foodName: document.getElementById('editFoodName').value,
-                        numberOfServings: parseFloat(document.getElementById('editServings').value) || 1,
-                        calories: parseInt(document.getElementById('editCalories').value) || 0,
-                        protein: parseFloat(document.getElementById('editProtein').value) || 0,
-                        carbs: parseFloat(document.getElementById('editCarbs').value) || 0,
-                        fat: parseFloat(document.getElementById('editFat').value) || 0
+                        foodName: newData.food_name,
+                        numberOfServings: newData.number_of_servings,
+                        calories: newData.calories,
+                        protein: newData.protein,
+                        carbs: newData.carbs,
+                        fat: newData.fat
                     })
                 });
 
                 if (!response.ok) throw new Error('Failed to update entry');
 
                 closeEditModal();
+
+                // Update DOM element
+                const entryEl = document.getElementById(`entry-${entryId}`);
+                if (entryEl) {
+                    entryEl.querySelector('.food-name').textContent = newData.food_name;
+                    entryEl.querySelector('.food-details').textContent = `${newData.number_of_servings} serving${newData.number_of_servings != 1 ? 's' : ''}`;
+                    entryEl.querySelector('.food-calories').textContent = newData.calories;
+                }
+
+                // Calculate calorie difference and update totals
+                if (oldEntry) {
+                    const calDiff = newData.calories - (oldEntry.calories || 0);
+                    const proteinDiff = newData.protein - (oldEntry.protein || 0);
+                    const carbsDiff = newData.carbs - (oldEntry.carbs || 0);
+                    const fatDiff = newData.fat - (oldEntry.fat || 0);
+
+                    // Update meal calories
+                    const mealCalsEl = document.getElementById(`${mealType}Cals`);
+                    if (mealCalsEl) {
+                        mealCalsEl.textContent = Math.max(0, parseInt(mealCalsEl.textContent || 0) + calDiff);
+                    }
+
+                    // Update total summary
+                    const consumedEl = document.getElementById('caloriesConsumed');
+                    const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) + calDiff);
+                    consumedEl.textContent = newConsumed;
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+
+                    // Update calorie ring
+                    const ring = document.getElementById('calorieRing');
+                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const circumference = 251.2;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+
+                    if (newConsumed > goals.calorie_goal) {
+                        ring.style.stroke = '#ef4444';
+                        document.getElementById('caloriesRemaining').style.color = '#ef4444';
+                    } else {
+                        ring.style.stroke = '';
+                        document.getElementById('caloriesRemaining').style.color = '';
+                    }
+
+                    // Update macro bars
+                    const currentProtein = parseFloat(document.getElementById('proteinValue').textContent) || 0;
+                    const currentCarbs = parseFloat(document.getElementById('carbsValue').textContent) || 0;
+                    const currentFat = parseFloat(document.getElementById('fatValue').textContent) || 0;
+
+                    updateMacroBar('protein', currentProtein + proteinDiff, goals.protein_goal);
+                    updateMacroBar('carbs', currentCarbs + carbsDiff, goals.carbs_goal);
+                    updateMacroBar('fat', currentFat + fatDiff, goals.fat_goal);
+
+                    // Update local entries array
+                    Object.assign(oldEntry, newData);
+                }
+
                 showToast('Entry updated!');
-                await loadDiaryEntries();
             } catch (err) {
                 console.error('Error updating entry:', err);
                 showToast('Failed to update entry');
@@ -2103,6 +2762,10 @@
             const entryId = document.getElementById('editEntryId').value;
             if (!confirm('Delete this entry?')) return;
 
+            // Find the entry before deleting to get its data for UI update
+            const entry = entries.find(e => e.id == entryId);
+            const mealType = entry?.meal_type || 'snack';
+
             try {
                 const response = await fetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
                     method: 'DELETE'
@@ -2111,8 +2774,57 @@
                 if (!response.ok) throw new Error('Failed to delete entry');
 
                 closeEditModal();
+
+                // Remove from DOM
+                const entryEl = document.getElementById(`entry-${entryId}`);
+                if (entryEl) {
+                    entryEl.remove();
+                }
+
+                // Remove from local entries array
+                entries = entries.filter(e => e.id != entryId);
+
+                // Update calorie displays
+                if (entry) {
+                    // Update meal calories
+                    const mealCalsEl = document.getElementById(`${mealType}Cals`);
+                    if (mealCalsEl) {
+                        mealCalsEl.textContent = Math.max(0, parseInt(mealCalsEl.textContent || 0) - (entry.calories || 0));
+                    }
+
+                    // Update total summary
+                    const consumedEl = document.getElementById('caloriesConsumed');
+                    const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
+                    consumedEl.textContent = newConsumed;
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+
+                    // Update calorie ring
+                    const ring = document.getElementById('calorieRing');
+                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const circumference = 251.2;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+
+                    // Reset ring color if under goal
+                    if (newConsumed <= goals.calorie_goal) {
+                        ring.style.stroke = '';
+                        document.getElementById('caloriesRemaining').style.color = '';
+                    }
+
+                    // Update macro bars
+                    updateMacroBar('protein',
+                        Math.max(0, parseFloat(document.getElementById('proteinValue').textContent) - (entry.protein || 0)),
+                        goals.protein_goal);
+                    updateMacroBar('carbs',
+                        Math.max(0, parseFloat(document.getElementById('carbsValue').textContent) - (entry.carbs || 0)),
+                        goals.carbs_goal);
+                    updateMacroBar('fat',
+                        Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
+                        goals.fat_goal);
+                }
+
                 showToast('Entry deleted');
-                await loadDiaryEntries();
             } catch (err) {
                 console.error('Error deleting entry:', err);
                 showToast('Failed to delete entry');
@@ -2610,12 +3322,7 @@
 
                 // Update optimistic entry with real ID
                 if (data.entry) {
-                    const tempEl = document.getElementById(`entry-${tempId}`);
-                    if (tempEl) {
-                        tempEl.id = `entry-${data.entry.id}`;
-                        tempEl.classList.remove('saving');
-                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
-                    }
+                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
                     entries.push(data.entry);
                 }
 
@@ -2626,6 +3333,548 @@
                 showToast('Failed to add meal');
             }
         }
+
+        // ==========================================
+        // Swipe to Delete Functions
+        // ==========================================
+
+        function initSwipeHandlers(container) {
+            const swipeItems = container.querySelectorAll('.swipe-container');
+            swipeItems.forEach(item => initSwipeOnElement(item));
+        }
+
+        function initSwipeOnElement(element) {
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            const swipeContent = element.querySelector('.swipe-content');
+
+            if (!swipeContent) return;
+
+            swipeContent.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+                swipeContent.classList.add('swiping');
+            }, { passive: true });
+
+            swipeContent.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+
+                // Only allow left swipe (positive diff), max 80px
+                if (diff > 0) {
+                    const translateX = Math.min(diff, 80);
+                    swipeContent.style.transform = `translateX(-${translateX}px)`;
+                } else {
+                    swipeContent.style.transform = 'translateX(0)';
+                }
+            }, { passive: true });
+
+            swipeContent.addEventListener('touchend', () => {
+                isDragging = false;
+                swipeContent.classList.remove('swiping');
+
+                const diff = startX - currentX;
+
+                // If swiped more than 40px, keep it open
+                if (diff > 40) {
+                    swipeContent.style.transform = 'translateX(-80px)';
+                    element.classList.add('swiped-open');
+                } else {
+                    swipeContent.style.transform = 'translateX(0)';
+                    element.classList.remove('swiped-open');
+                }
+            });
+
+            // Close on tap elsewhere
+            document.addEventListener('touchstart', (e) => {
+                if (!element.contains(e.target) && element.classList.contains('swiped-open')) {
+                    swipeContent.style.transform = 'translateX(0)';
+                    element.classList.remove('swiped-open');
+                }
+            }, { passive: true });
+        }
+
+        async function swipeDeleteEntry(entryId, mealType) {
+            const entry = entries.find(e => e.id == entryId);
+
+            try {
+                const response = await fetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Failed to delete entry');
+
+                // Remove from DOM
+                const entryEl = document.getElementById(`entry-${entryId}`);
+                if (entryEl) {
+                    entryEl.style.transform = 'translateX(-100%)';
+                    entryEl.style.opacity = '0';
+                    entryEl.style.transition = 'all 0.3s ease-out';
+                    setTimeout(() => entryEl.remove(), 300);
+                }
+
+                // Remove from local entries array
+                entries = entries.filter(e => e.id != entryId);
+
+                // Update calorie displays
+                if (entry) {
+                    const mealCalsEl = document.getElementById(`${mealType}Cals`);
+                    if (mealCalsEl) {
+                        mealCalsEl.textContent = Math.max(0, parseInt(mealCalsEl.textContent || 0) - (entry.calories || 0));
+                    }
+
+                    const consumedEl = document.getElementById('caloriesConsumed');
+                    const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
+                    consumedEl.textContent = newConsumed;
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+
+                    // Update calorie ring
+                    const ring = document.getElementById('calorieRing');
+                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const circumference = 251.2;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+
+                    if (newConsumed <= goals.calorie_goal) {
+                        ring.style.stroke = '';
+                        document.getElementById('caloriesRemaining').style.color = '';
+                    }
+
+                    // Update macro bars
+                    updateMacroBar('protein',
+                        Math.max(0, parseFloat(document.getElementById('proteinValue').textContent) - (entry.protein || 0)),
+                        goals.protein_goal);
+                    updateMacroBar('carbs',
+                        Math.max(0, parseFloat(document.getElementById('carbsValue').textContent) - (entry.carbs || 0)),
+                        goals.carbs_goal);
+                    updateMacroBar('fat',
+                        Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
+                        goals.fat_goal);
+                }
+
+                showToast('Entry deleted');
+            } catch (err) {
+                console.error('Error deleting entry:', err);
+                showToast('Failed to delete entry');
+            }
+        }
+
+        // ==========================================
+        // PHASE 1: Copy Day Functions
+        // ==========================================
+        let copyMode = 'from'; // 'from' or 'to'
+
+        function openCopyDayModal() {
+            document.getElementById('copyDayModal').classList.add('active');
+        }
+
+        function closeCopyDayModal() {
+            document.getElementById('copyDayModal').classList.remove('active');
+        }
+
+        function openCopyFromDatePicker() {
+            closeCopyDayModal();
+            copyMode = 'from';
+            document.getElementById('copyDatePickerTitle').textContent = 'Copy From Date';
+            document.getElementById('copyDateInput').value = '';
+            document.getElementById('copyDatePickerModal').classList.add('active');
+        }
+
+        function openCopyToDatePicker() {
+            closeCopyDayModal();
+            copyMode = 'to';
+            document.getElementById('copyDatePickerTitle').textContent = 'Copy To Date';
+            document.getElementById('copyDateInput').value = '';
+            document.getElementById('copyDatePickerModal').classList.add('active');
+        }
+
+        function closeCopyDatePicker() {
+            document.getElementById('copyDatePickerModal').classList.remove('active');
+        }
+
+        async function executeCopyDate() {
+            const selectedDate = document.getElementById('copyDateInput').value;
+            if (!selectedDate) {
+                showToast('Please select a date');
+                return;
+            }
+
+            closeCopyDatePicker();
+
+            if (copyMode === 'from') {
+                await copyEntriesFromDate(selectedDate, formatDate(currentDate));
+            } else {
+                await copyEntriesFromDate(formatDate(currentDate), selectedDate);
+            }
+        }
+
+        async function copyFromYesterday() {
+            const yesterday = new Date(currentDate);
+            yesterday.setDate(yesterday.getDate() - 1);
+            await copyEntriesFromDate(formatDate(yesterday), formatDate(currentDate));
+        }
+
+        async function copyEntriesFromDate(fromDate, toDate) {
+            showToast('Copying entries...');
+
+            try {
+                // Fetch entries from source date
+                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${fromDate}`);
+                const data = await response.json();
+
+                if (!data.entries || data.entries.length === 0) {
+                    showToast('No entries to copy from that date');
+                    return;
+                }
+
+                // Copy each entry to target date
+                let copiedCount = 0;
+                for (const entry of data.entries) {
+                    const copyResponse = await fetch('/.netlify/functions/food-diary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            clientId,
+                            coachId,
+                            entryDate: toDate,
+                            mealType: entry.meal_type,
+                            foodName: entry.food_name,
+                            brand: entry.brand,
+                            servingSize: entry.serving_size,
+                            servingUnit: entry.serving_unit,
+                            numberOfServings: entry.number_of_servings,
+                            calories: entry.calories,
+                            protein: entry.protein,
+                            carbs: entry.carbs,
+                            fat: entry.fat,
+                            fiber: entry.fiber,
+                            foodSource: 'copied'
+                        })
+                    });
+
+                    if (copyResponse.ok) copiedCount++;
+                }
+
+                showToast(`Copied ${copiedCount} entries!`);
+
+                // Reload if we copied to current date
+                if (toDate === formatDate(currentDate)) {
+                    await loadDiaryEntries();
+                }
+            } catch (err) {
+                console.error('Error copying entries:', err);
+                showToast('Failed to copy entries');
+            }
+        }
+
+        // ==========================================
+        // PHASE 1: Water Tracking Functions
+        // ==========================================
+        let waterIntake = 0;
+        let waterGoal = 8;
+
+        function renderWaterGlasses() {
+            const container = document.getElementById('waterGlasses');
+            let html = '';
+            for (let i = 0; i < waterGoal; i++) {
+                html += `<div class="water-glass ${i < waterIntake ? 'filled' : ''}"></div>`;
+            }
+            container.innerHTML = html;
+            document.getElementById('waterCurrent').textContent = waterIntake;
+            document.getElementById('waterGoalAmount').textContent = waterGoal;
+            document.getElementById('waterGoalDisplay').textContent = waterGoal;
+        }
+
+        async function addWater(glasses) {
+            waterIntake = Math.min(waterIntake + glasses, 20);
+            renderWaterGlasses();
+            await saveWaterIntake();
+            if (waterIntake >= waterGoal) {
+                showToast('💧 Water goal reached!');
+            }
+        }
+
+        async function removeWater(glasses) {
+            waterIntake = Math.max(0, waterIntake - glasses);
+            renderWaterGlasses();
+            await saveWaterIntake();
+        }
+
+        function completeWaterGoal() {
+            waterIntake = waterGoal;
+            renderWaterGlasses();
+            saveWaterIntake();
+            showToast('💧 Water goal completed!');
+        }
+
+        function openWaterGoalModal() {
+            document.getElementById('waterGoalInput').value = waterGoal;
+            document.getElementById('waterGoalModal').classList.add('active');
+        }
+
+        function closeWaterGoalModal() {
+            document.getElementById('waterGoalModal').classList.remove('active');
+        }
+
+        async function saveWaterGoal() {
+            waterGoal = parseInt(document.getElementById('waterGoalInput').value) || 8;
+            waterGoal = Math.max(1, Math.min(20, waterGoal));
+            closeWaterGoalModal();
+            renderWaterGlasses();
+            await saveWaterIntake();
+            showToast('Water goal updated!');
+        }
+
+        async function loadWaterIntake() {
+            try {
+                const date = formatDate(currentDate);
+                const { data, error } = await supabaseClient
+                    .from('water_intake')
+                    .select('*')
+                    .eq('client_id', clientId)
+                    .eq('date', date)
+                    .single();
+
+                if (data) {
+                    waterIntake = data.glasses || 0;
+                    waterGoal = data.goal || 8;
+                } else {
+                    waterIntake = 0;
+                }
+                renderWaterGlasses();
+            } catch (err) {
+                // Table might not exist or no data, that's okay
+                waterIntake = 0;
+                renderWaterGlasses();
+            }
+        }
+
+        async function saveWaterIntake() {
+            try {
+                const date = formatDate(currentDate);
+                await supabaseClient
+                    .from('water_intake')
+                    .upsert({
+                        client_id: clientId,
+                        date: date,
+                        glasses: waterIntake,
+                        goal: waterGoal
+                    }, { onConflict: 'client_id,date' });
+            } catch (err) {
+                console.error('Error saving water intake:', err);
+            }
+        }
+
+        // ==========================================
+        // PHASE 1: Daily Report Functions
+        // ==========================================
+        function openDailyReport() {
+            generateDailyReport();
+            document.getElementById('dailyReportModal').classList.add('active');
+        }
+
+        function closeDailyReport() {
+            document.getElementById('dailyReportModal').classList.remove('active');
+        }
+
+        function generateDailyReport() {
+            const consumed = parseInt(document.getElementById('caloriesConsumed').textContent) || 0;
+            const calorieGoal = goals.calorie_goal || 2000;
+            const proteinCurrent = parseFloat(document.getElementById('proteinValue').textContent) || 0;
+            const carbsCurrent = parseFloat(document.getElementById('carbsValue').textContent) || 0;
+            const fatCurrent = parseFloat(document.getElementById('fatValue').textContent) || 0;
+
+            // Calculate score (0-100)
+            const calorieAccuracy = 100 - Math.abs((consumed - calorieGoal) / calorieGoal * 100);
+            const proteinScore = Math.min(100, (proteinCurrent / goals.protein_goal) * 100);
+            const carbsScore = Math.min(100, (carbsCurrent / goals.carbs_goal) * 100);
+            const fatScore = Math.min(100, (fatCurrent / goals.fat_goal) * 100);
+            const score = Math.round((calorieAccuracy * 0.4 + proteinScore * 0.3 + carbsScore * 0.15 + fatScore * 0.15));
+            const clampedScore = Math.max(0, Math.min(100, score));
+
+            // Determine grade
+            let grade, gradeClass;
+            if (clampedScore >= 85) { grade = 'Excellent'; gradeClass = 'excellent'; }
+            else if (clampedScore >= 70) { grade = 'Good'; gradeClass = 'good'; }
+            else if (clampedScore >= 50) { grade = 'Fair'; gradeClass = 'fair'; }
+            else { grade = 'Needs Work'; gradeClass = 'poor'; }
+
+            // Get meal totals
+            const breakfastCals = parseInt(document.getElementById('breakfastCals').textContent) || 0;
+            const lunchCals = parseInt(document.getElementById('lunchCals').textContent) || 0;
+            const dinnerCals = parseInt(document.getElementById('dinnerCals').textContent) || 0;
+            const snackCals = parseInt(document.getElementById('snackCals').textContent) || 0;
+
+            // Generate insights
+            const insights = [];
+            if (consumed < calorieGoal * 0.8) insights.push('📉 You\'re under your calorie goal. Make sure you\'re eating enough!');
+            if (consumed > calorieGoal * 1.1) insights.push('📈 You\'re over your calorie goal. Consider lighter options tomorrow.');
+            if (proteinCurrent < goals.protein_goal * 0.8) insights.push('💪 Try to get more protein to support your goals.');
+            if (proteinCurrent >= goals.protein_goal) insights.push('✅ Great job hitting your protein target!');
+            if (waterIntake >= waterGoal) insights.push('💧 Excellent hydration today!');
+            if (waterIntake < waterGoal / 2) insights.push('💧 Remember to drink more water!');
+            if (entries.length >= 4) insights.push('📝 Good job logging all your meals!');
+            if (insights.length === 0) insights.push('👍 You\'re on track! Keep up the good work.');
+
+            const dateStr = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+            const reportHtml = `
+                <div class="report-header">
+                    <div class="report-date">${dateStr}</div>
+                    <div class="report-title">Daily Summary</div>
+                </div>
+
+                <div class="report-score">
+                    <div class="score-circle ${gradeClass}">
+                        <div class="score-value">${clampedScore}</div>
+                        <div class="score-label">${grade}</div>
+                    </div>
+                </div>
+
+                <div class="report-stats">
+                    <div class="report-stat">
+                        <div class="report-stat-value">${consumed}</div>
+                        <div class="report-stat-label">Calories</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="report-stat-value">${Math.round(proteinCurrent)}g</div>
+                        <div class="report-stat-label">Protein</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="report-stat-value">${Math.round(carbsCurrent)}g</div>
+                        <div class="report-stat-label">Carbs</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="report-stat-value">${Math.round(fatCurrent)}g</div>
+                        <div class="report-stat-label">Fat</div>
+                    </div>
+                </div>
+
+                <div class="report-meals">
+                    <div class="report-meals-title">Meals Breakdown</div>
+                    <div class="report-meal-item">
+                        <span>🌅 Breakfast</span>
+                        <span>${breakfastCals} cal</span>
+                    </div>
+                    <div class="report-meal-item">
+                        <span>☀️ Lunch</span>
+                        <span>${lunchCals} cal</span>
+                    </div>
+                    <div class="report-meal-item">
+                        <span>🌙 Dinner</span>
+                        <span>${dinnerCals} cal</span>
+                    </div>
+                    <div class="report-meal-item">
+                        <span>🍎 Snacks</span>
+                        <span>${snackCals} cal</span>
+                    </div>
+                    <div class="report-meal-item">
+                        <span>💧 Water</span>
+                        <span>${waterIntake}/${waterGoal} glasses</span>
+                    </div>
+                </div>
+
+                <div class="report-insights">
+                    <div class="report-insights-title">💡 Insights</div>
+                    ${insights.map(i => `<div class="report-insight">${i}</div>`).join('')}
+                </div>
+            `;
+
+            document.getElementById('reportContent').innerHTML = reportHtml;
+        }
+
+        // ==========================================
+        // PHASE 1: Streak Functions
+        // ==========================================
+        let currentStreak = 0;
+
+        async function loadStreak() {
+            try {
+                // Get entries for last 30 days to calculate streak
+                const today = new Date();
+                const dates = [];
+
+                for (let i = 0; i < 30; i++) {
+                    const d = new Date(today);
+                    d.setDate(d.getDate() - i);
+                    dates.push(formatDate(d));
+                }
+
+                const { data, error } = await supabaseClient
+                    .from('food_diary_entries')
+                    .select('entry_date')
+                    .eq('client_id', clientId)
+                    .in('entry_date', dates);
+
+                if (error) throw error;
+
+                // Get unique dates with entries
+                const datesWithEntries = new Set(data.map(e => e.entry_date));
+
+                // Calculate streak (consecutive days from today/yesterday)
+                let streak = 0;
+                for (let i = 0; i < 30; i++) {
+                    const d = new Date(today);
+                    d.setDate(d.getDate() - i);
+                    const dateStr = formatDate(d);
+
+                    if (datesWithEntries.has(dateStr)) {
+                        streak++;
+                    } else if (i > 0) {
+                        // Allow today to not have entries yet
+                        break;
+                    }
+                }
+
+                currentStreak = streak;
+                updateStreakDisplay();
+            } catch (err) {
+                console.error('Error loading streak:', err);
+            }
+        }
+
+        function updateStreakDisplay() {
+            const badge = document.getElementById('streakBadge');
+            const count = document.getElementById('streakCount');
+
+            count.textContent = currentStreak;
+
+            if (currentStreak === 0) {
+                badge.classList.add('no-streak');
+                badge.innerHTML = '<span>🔥</span><span>Start your streak!</span>';
+            } else {
+                badge.classList.remove('no-streak');
+                badge.innerHTML = `<span>🔥</span><span id="streakCount">${currentStreak}</span><span>day${currentStreak !== 1 ? 's' : ''}</span>`;
+            }
+        }
+
+        // ==========================================
+        // Update page load to include new features
+        // ==========================================
+        const originalCheckAuth = checkAuth;
+        checkAuth = async function() {
+            await originalCheckAuth.apply(this, arguments);
+            // Load Phase 1 features after auth
+            if (clientId) {
+                await Promise.all([
+                    loadWaterIntake(),
+                    loadStreak()
+                ]);
+            }
+        };
+
+        // Also load water when date changes
+        const originalLoadDiaryEntries = loadDiaryEntries;
+        loadDiaryEntries = async function() {
+            await originalLoadDiaryEntries.apply(this, arguments);
+            if (clientId) {
+                await loadWaterIntake();
+            }
+        };
     </script>
 
     <!-- PWA Service Worker Registration -->
