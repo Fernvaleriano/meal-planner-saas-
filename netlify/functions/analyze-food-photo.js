@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { image } = body;
+        const { image, details } = body;
 
         if (!image) {
             return {
@@ -65,6 +65,9 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'No image provided' })
             };
         }
+
+        // User-provided context about the food (optional)
+        const userContext = details ? details.trim() : null;
 
         // Extract base64 data and media type
         const matches = image.match(/^data:(.+);base64,(.+)$/);
@@ -96,7 +99,10 @@ exports.handler = async (event, context) => {
                         },
                         {
                             text: `Analyze this food image and identify all food items visible. For each item, estimate the nutritional information.
-
+${userContext ? `
+IMPORTANT - User provided these details about the food: "${userContext}"
+Use this information to accurately identify and estimate the nutritional content. For example, if the user says "black tea unsweetened", use those details for your estimate instead of guessing.
+` : ''}
 Return ONLY a valid JSON array with this exact format (no markdown, no explanation, no code blocks):
 [
   {
@@ -112,7 +118,8 @@ Guidelines:
 - Be specific about portions (e.g., "Grilled Chicken Breast, 6oz" not just "Chicken")
 - Round calories to nearest 5, macros to nearest gram
 - If multiple items are visible, list each separately
-- If you cannot identify the food clearly, make your best estimate based on what's visible
+- If the user provided details, prioritize using that information for identification
+- If you cannot identify the food clearly and no user details provided, make your best estimate based on what's visible
 - Only include foods actually visible in the image
 - Return empty array [] if no food is visible
 

@@ -2427,6 +2427,22 @@
                     <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;" onchange="handlePhotoSelect(event)">
                 </div>
 
+                <!-- Optional food details input - shown after photo is selected -->
+                <div id="photoDetailsSection" style="display: none; margin-top: 16px;">
+                    <label style="font-weight: 500; color: var(--gray-700); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+                        Add details (optional)
+                    </label>
+                    <input type="text" id="photoFoodDetails"
+                        placeholder="e.g., black tea unsweetened, turkey sandwich, protein shake..."
+                        style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 0.95rem; box-sizing: border-box;">
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-top: 6px;">
+                        Help AI identify drinks, sauces, or specific ingredients
+                    </p>
+                    <button type="button" class="btn btn-primary" onclick="analyzePhotoWithAI()" style="width: 100%; margin-top: 12px;">
+                        Analyze Photo
+                    </button>
+                </div>
+
                 <div id="aiAnalyzing" style="display: none;">
                     <div class="ai-analyzing">
                         <div class="ai-analyzing-spinner"></div>
@@ -4709,6 +4725,8 @@
             document.getElementById('aiPhotoUpload').style.display = 'block';
             document.getElementById('aiAnalyzing').style.display = 'none';
             document.getElementById('aiResults').style.display = 'none';
+            document.getElementById('photoDetailsSection').style.display = 'none';
+            document.getElementById('photoFoodDetails').value = '';
             document.getElementById('photoUploadArea').classList.remove('has-image');
             document.getElementById('photoUploadArea').innerHTML = `
                 <div class="photo-upload-icon">📷</div>
@@ -4730,24 +4748,29 @@
                 currentPhotoBase64 = e.target.result;
                 const uploadArea = document.getElementById('photoUploadArea');
                 uploadArea.classList.add('has-image');
-                uploadArea.innerHTML = `<img src="${currentPhotoBase64}" alt="Food photo">`;
+                uploadArea.innerHTML = `<img src="${currentPhotoBase64}" alt="Food photo" style="cursor: pointer;" onclick="document.getElementById('photoInput').click()">`;
 
-                // Start analysis
-                await analyzePhotoWithAI();
+                // Show the details section so user can optionally add context
+                document.getElementById('photoDetailsSection').style.display = 'block';
             };
             reader.readAsDataURL(file);
         }
 
         async function analyzePhotoWithAI() {
             document.getElementById('aiPhotoUpload').style.display = 'none';
+            document.getElementById('photoDetailsSection').style.display = 'none';
             document.getElementById('aiAnalyzing').style.display = 'block';
+
+            // Get optional food details from user
+            const foodDetails = document.getElementById('photoFoodDetails').value.trim();
 
             try {
                 const response = await fetch('/.netlify/functions/analyze-food-photo', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        image: currentPhotoBase64
+                        image: currentPhotoBase64,
+                        details: foodDetails || null
                     })
                 });
 
