@@ -1858,69 +1858,6 @@
             </button>
         </div>
 
-        <!-- Water Tracking Card -->
-        <div class="water-card">
-            <div class="water-header">
-                <div class="water-title">
-                    <span>💧</span>
-                    Water Intake
-                </div>
-                <button class="water-goal-btn" onclick="openWaterGoalModal()">Goal: <span id="waterGoalDisplay">8</span> glasses</button>
-            </div>
-            <div class="water-progress">
-                <div class="water-glasses" id="waterGlasses">
-                    <!-- Glasses rendered by JS -->
-                </div>
-                <div class="water-stats">
-                    <div class="water-amount"><span id="waterCurrent">0</span>/<span id="waterGoalAmount">8</span></div>
-                    <div class="water-target">glasses today</div>
-                </div>
-            </div>
-            <div class="water-buttons">
-                <button class="water-btn" onclick="addWater(1)">+1 Glass</button>
-                <button class="water-btn" onclick="addWater(2)">+2 Glasses</button>
-                <button class="water-btn" onclick="removeWater(1)">-1</button>
-                <button class="water-btn primary" onclick="completeWaterGoal()">Complete Goal</button>
-            </div>
-        </div>
-
-        <!-- Weight Tracking Card -->
-        <div class="weight-card">
-            <div class="weight-header">
-                <div class="weight-title">
-                    <span>⚖️</span>
-                    Weight
-                </div>
-                <button class="water-goal-btn" onclick="openWeightLogModal()">+ Log Weight</button>
-            </div>
-            <div class="weight-current">
-                <span class="weight-value" id="currentWeight">--</span>
-                <span class="weight-unit">lbs</span>
-                <span class="weight-change" id="weightChange"></span>
-            </div>
-            <div class="weight-chart">
-                <canvas id="weightChartCanvas" class="weight-chart-canvas"></canvas>
-            </div>
-            <div class="weight-stats">
-                <div class="weight-stat">
-                    <div class="weight-stat-value" id="weightStart">--</div>
-                    <div class="weight-stat-label">Starting</div>
-                </div>
-                <div class="weight-stat">
-                    <div class="weight-stat-value" id="weightLowest">--</div>
-                    <div class="weight-stat-label">Lowest</div>
-                </div>
-                <div class="weight-stat">
-                    <div class="weight-stat-value" id="weightHighest">--</div>
-                    <div class="weight-stat-label">Highest</div>
-                </div>
-                <div class="weight-stat">
-                    <div class="weight-stat-value" id="weightTotal">--</div>
-                    <div class="weight-stat-label">Total Change</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Summary Card -->
         <div class="summary-card">
             <div class="summary-header">
@@ -2068,6 +2005,32 @@
                     </svg>
                     Add Food
                 </div>
+            </div>
+        </div>
+
+        <!-- Water Tracking Card -->
+        <div class="water-card" style="margin-top: 16px;">
+            <div class="water-header">
+                <div class="water-title">
+                    <span>💧</span>
+                    Water Intake
+                </div>
+                <button class="water-goal-btn" onclick="openWaterGoalModal()">Goal: <span id="waterGoalDisplay">8</span> glasses</button>
+            </div>
+            <div class="water-progress">
+                <div class="water-glasses" id="waterGlasses">
+                    <!-- Glasses rendered by JS -->
+                </div>
+                <div class="water-stats">
+                    <div class="water-amount"><span id="waterCurrent">0</span>/<span id="waterGoalAmount">8</span></div>
+                    <div class="water-target">glasses today</div>
+                </div>
+            </div>
+            <div class="water-buttons">
+                <button class="water-btn" onclick="addWater(1)">+1 Glass</button>
+                <button class="water-btn" onclick="addWater(2)">+2 Glasses</button>
+                <button class="water-btn" onclick="removeWater(1)">-1</button>
+                <button class="water-btn primary" onclick="completeWaterGoal()">Complete Goal</button>
             </div>
         </div>
     </div>
@@ -4339,15 +4302,12 @@
             }
         };
 
-        // Also load water and weight when date changes
+        // Also load water when date changes
         const originalLoadDiaryEntries = loadDiaryEntries;
         loadDiaryEntries = async function() {
             await originalLoadDiaryEntries.apply(this, arguments);
             if (clientId) {
-                await Promise.all([
-                    loadWaterIntake(),
-                    loadWeightData()
-                ]);
+                await loadWaterIntake();
             }
         };
 
