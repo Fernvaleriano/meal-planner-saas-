@@ -830,6 +830,136 @@
             }
         }
 
+        /* AI Coach Assistant Section */
+        .ai-assistant-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .ai-assistant-header {
+            margin-bottom: 8px;
+        }
+
+        .ai-assistant-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .ai-assistant-description {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .ai-quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ai-quick-btn {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-quick-btn:hover {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            transform: translateY(-1px);
+        }
+
+        .ai-input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        #aiCoachQuestion {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: none;
+            font-family: inherit;
+        }
+
+        #aiCoachQuestion:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .ai-ask-btn {
+            padding: 12px 24px;
+            white-space: nowrap;
+        }
+
+        .ai-response-container {
+            margin-top: 20px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .ai-response-header {
+            font-weight: 600;
+            color: #166534;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .ai-response-text {
+            color: #1e3a2f;
+            line-height: 1.6;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .ai-loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            color: #64748b;
+            justify-content: center;
+        }
+
+        .ai-loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .ai-input-container {
+                flex-direction: column;
+            }
+            .ai-ask-btn {
+                width: 100%;
+            }
+            .ai-quick-questions {
+                justify-content: center;
+            }
+        }
+
         /* Progress Photos Section */
         .photos-section {
             background: white;
@@ -1849,6 +1979,43 @@
             color: #e2e8f0;
         }
 
+        [data-theme="dark"] .ai-assistant-section {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .ai-assistant-title {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .ai-assistant-description {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .ai-quick-btn {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1e3a8a 100%);
+            border-color: #3b82f6;
+            color: #93c5fd;
+        }
+
+        [data-theme="dark"] .ai-quick-btn:hover {
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+        }
+
+        [data-theme="dark"] #aiCoachQuestion {
+            background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .ai-response-container {
+            background: linear-gradient(135deg, #1e3a2f 0%, #14532d 100%);
+            border-color: #166534;
+        }
+
+        [data-theme="dark"] .ai-response-text {
+            color: #bbf7d0;
+        }
+
         [data-theme="dark"] .section-title,
         [data-theme="dark"] .section-header h3,
         [data-theme="dark"] h2, [data-theme="dark"] h3 {
@@ -2173,6 +2340,48 @@
             <!-- Meals Container -->
             <div id="diaryContainer">
                 <div class="loading">Loading food diary...</div>
+            </div>
+        </div>
+
+        <!-- AI Coach Assistant Section -->
+        <div class="ai-assistant-section">
+            <div class="ai-assistant-header">
+                <h2 class="ai-assistant-title">🤖 AI Coach Assistant</h2>
+            </div>
+            <p class="ai-assistant-description">
+                Ask questions about your client's nutrition data and get instant AI-powered insights.
+            </p>
+
+            <!-- Quick Question Buttons -->
+            <div class="ai-quick-questions">
+                <button class="ai-quick-btn" onclick="askQuickQuestion('How is my client doing with their calorie goals?')">Calorie Progress</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('Is my client getting enough protein?')">Protein Check</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('What patterns do you see in their eating habits?')">Eating Patterns</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('What recommendations do you have for this client?')">Recommendations</button>
+            </div>
+
+            <!-- Custom Question Input -->
+            <div class="ai-input-container">
+                <textarea id="aiCoachQuestion"
+                    placeholder="Ask anything about your client's diet... e.g., 'Are they eating enough vegetables?' or 'How can they increase protein?'"
+                    rows="2"></textarea>
+                <button class="btn btn-primary ai-ask-btn" onclick="askAICoach()" id="aiAskBtn">
+                    Ask AI
+                </button>
+            </div>
+
+            <!-- AI Response Area -->
+            <div id="aiResponseContainer" class="ai-response-container" style="display: none;">
+                <div class="ai-response-header">
+                    <span>✨ AI Insights</span>
+                </div>
+                <div id="aiResponseText" class="ai-response-text"></div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="aiLoading" class="ai-loading" style="display: none;">
+                <div class="ai-loading-spinner"></div>
+                <span>Analyzing client data...</span>
             </div>
         </div>
 
@@ -2592,6 +2801,7 @@
                 }
 
                 currentClient = data;
+                currentClientName = data.name || '';
                 displayClient(data);
 
                 console.log('Client data loaded:', data);
@@ -4120,6 +4330,74 @@
         document.getElementById('diaryDatePicker')?.addEventListener('change', function() {
             currentDiaryDate = this.value;
             loadFoodDiary(clientId);
+        });
+
+        // ============ AI COACH ASSISTANT FUNCTIONS ============
+        let currentClientName = '';
+
+        function askQuickQuestion(question) {
+            document.getElementById('aiCoachQuestion').value = question;
+            askAICoach();
+        }
+
+        async function askAICoach() {
+            const questionInput = document.getElementById('aiCoachQuestion');
+            const question = questionInput.value.trim();
+
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+
+            const responseContainer = document.getElementById('aiResponseContainer');
+            const responseText = document.getElementById('aiResponseText');
+            const loadingEl = document.getElementById('aiLoading');
+            const askBtn = document.getElementById('aiAskBtn');
+
+            // Show loading state
+            responseContainer.style.display = 'none';
+            loadingEl.style.display = 'flex';
+            askBtn.disabled = true;
+            askBtn.textContent = 'Analyzing...';
+
+            try {
+                const response = await fetch('/.netlify/functions/coach-ai-assistant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        question: question,
+                        clientName: currentClientName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to get AI response');
+                }
+
+                // Display response
+                responseText.textContent = data.response;
+                responseContainer.style.display = 'block';
+
+            } catch (error) {
+                console.error('AI Coach error:', error);
+                responseText.textContent = 'Sorry, I encountered an error analyzing the data. Please try again.';
+                responseContainer.style.display = 'block';
+            } finally {
+                loadingEl.style.display = 'none';
+                askBtn.disabled = false;
+                askBtn.textContent = 'Ask AI';
+            }
+        }
+
+        // Allow Enter key to submit (Shift+Enter for new line)
+        document.getElementById('aiCoachQuestion')?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askAICoach();
+            }
         });
 
         // ============ SUPPLEMENT PROTOCOL FUNCTIONS ============
