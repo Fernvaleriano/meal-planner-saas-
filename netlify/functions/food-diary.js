@@ -42,34 +42,42 @@ exports.handler = async (event) => {
         };
       }
 
-      let query = supabase
+      // Build entries query
+      let entriesQuery = supabase
         .from('food_diary_entries')
-        .select('*')
+        .select('id, client_id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, created_at')
         .eq('client_id', clientId)
         .order('meal_type', { ascending: true })
         .order('created_at', { ascending: true });
 
       // Filter by single date or date range
       if (date) {
-        query = query.eq('entry_date', date);
+        entriesQuery = entriesQuery.eq('entry_date', date);
       } else if (startDate && endDate) {
-        query = query.gte('entry_date', startDate).lte('entry_date', endDate);
+        entriesQuery = entriesQuery.gte('entry_date', startDate).lte('entry_date', endDate);
       } else {
         // Default to today
         const today = new Date().toISOString().split('T')[0];
-        query = query.eq('entry_date', today);
+        entriesQuery = entriesQuery.eq('entry_date', today);
       }
 
-      const { data: entries, error } = await query;
-
-      if (error) throw error;
-
-      // Get calorie goals for the client
-      const { data: goals } = await supabase
+      // Build goals query
+      const goalsQuery = supabase
         .from('calorie_goals')
-        .select('*')
+        .select('calorie_goal, protein_goal, carbs_goal, fat_goal')
         .eq('client_id', clientId)
         .single();
+
+      // Run BOTH queries in parallel for faster loading
+      const [entriesResult, goalsResult] = await Promise.all([
+        entriesQuery,
+        goalsQuery
+      ]);
+
+      const { data: entries, error } = entriesResult;
+      const { data: goals } = goalsResult;
+
+      if (error) throw error;
 
       // Calculate totals
       const totals = {
