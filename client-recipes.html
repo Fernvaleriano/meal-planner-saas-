@@ -900,7 +900,7 @@
             return `
                 <div class="recipe-card" onclick="openRecipe(${recipe.id})">
                     ${recipe.image_url
-                        ? `<img src="${recipe.image_url}" class="recipe-image" alt="${recipe.name}">`
+                        ? `<img src="${recipe.image_url}" class="recipe-image" alt="${recipe.name}" loading="lazy">`
                         : `<div class="recipe-image-placeholder">🍳</div>`
                     }
                     <div class="recipe-content">
@@ -929,7 +929,7 @@
             // Image
             const imageContainer = document.getElementById('modalRecipeImage');
             if (selectedRecipe.image_url) {
-                imageContainer.innerHTML = `<img src="${selectedRecipe.image_url}" class="modal-image" alt="${selectedRecipe.name}">`;
+                imageContainer.innerHTML = `<img src="${selectedRecipe.image_url}" class="modal-image" alt="${selectedRecipe.name}" loading="lazy">`;
             } else {
                 imageContainer.innerHTML = '';
             }
@@ -1007,6 +1007,17 @@
         }
 
         init();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
     </script>
 </body>
 </html>

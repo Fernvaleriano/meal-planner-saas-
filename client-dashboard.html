@@ -2871,25 +2871,17 @@
             if (profileGoal) profileGoal.textContent = clientData.default_goal || '-';
             if (profileSection) profileSection.style.display = 'block';
 
-            // Load meal plans
-            await loadMealPlans();
+            // Load all data in parallel for faster page load
+            await Promise.all([
+                loadMealPlans(),
+                loadProtocols(),
+                loadNotificationPreferences(),
+                loadPhotos(),
+                loadMeasurements(),
+                loadCheckins()
+            ]);
 
-            // Load supplement protocols
-            await loadProtocols();
-
-            // Load notification preferences
-            await loadNotificationPreferences();
-
-            // Load progress photos
-            await loadPhotos();
-
-            // Load measurements
-            await loadMeasurements();
-
-            // Load weekly check-ins
-            await loadCheckins();
-
-            // Load notifications
+            // Load notifications (non-critical, can run after)
             loadNotifications();
 
             // Set up real-time subscription for automatic updates
@@ -3266,7 +3258,7 @@
                     <div class="photo-carousel" id="photoCarousel">
                         ${clientPhotos.map(photo => `
                             <div class="photo-card" onclick="openLightbox('${photo.photo_url}')">
-                                <img src="${photo.photo_url}" alt="Progress photo">
+                                <img src="${photo.photo_url}" alt="Progress photo" loading="lazy">
                                 <div class="photo-overlay">
                                     <div class="photo-type">${photoTypeLabels[photo.photo_type] || photo.photo_type}</div>
                                     <div class="photo-date">${new Date(photo.taken_date).toLocaleDateString()}</div>
@@ -4447,6 +4439,17 @@
             } else {
                 alert('No meal plan available yet. Ask your coach to create one!');
             }
+        }
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
         }
     </script>
 </body>

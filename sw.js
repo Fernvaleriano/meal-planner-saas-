@@ -1,6 +1,7 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v1';
-const STATIC_CACHE = 'zique-static-v1';
+const CACHE_NAME = 'zique-fitness-v2';
+const STATIC_CACHE = 'zique-static-v2';
+const DATA_CACHE = 'zique-data-v1';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -9,7 +10,28 @@ const STATIC_FILES = [
   '/dashboard.html',
   '/planner.html',
   '/view-plan.html',
-  '/manifest.json'
+  '/manifest.json',
+  // Client app pages
+  '/client-dashboard.html',
+  '/client-diary.html',
+  '/client-favorites.html',
+  '/client-recipes.html',
+  '/client-settings.html',
+  '/client-checkin.html',
+  '/client-progress.html',
+  '/client-plans.html',
+  '/client-login.html',
+  // Styles
+  '/styles/brand.css',
+  '/styles/coach-layout.css'
+];
+
+// API endpoints to cache (stale-while-revalidate)
+const CACHEABLE_API_PATTERNS = [
+  /\/\.netlify\/functions\/food-diary/,
+  /\/\.netlify\/functions\/calorie-goals/,
+  /\/\.netlify\/functions\/get-favorites/,
+  /\/\.netlify\/functions\/get-recipes/
 ];
 
 // Install event - cache static files
@@ -43,6 +65,11 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Check if URL matches cacheable API patterns
+function isCacheableAPI(url) {
+  return CACHEABLE_API_PATTERNS.some(pattern => pattern.test(url.pathname));
+}
+
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -53,7 +80,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API calls and external requests - always go to network
+  // Handle cacheable API calls with stale-while-revalidate
+  if (url.pathname.startsWith('/.netlify/') && isCacheableAPI(url)) {
+    event.respondWith(
+      caches.open(DATA_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
+
+        // Fetch fresh data in background
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse.ok) {
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(() => null);
+
+        // Return cached immediately if available, otherwise wait for network
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // Skip other API calls and external requests - always go to network
   if (url.pathname.startsWith('/.netlify/') ||
       url.pathname.startsWith('/api/') ||
       url.hostname !== location.hostname ||

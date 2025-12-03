@@ -629,11 +629,12 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuth();
             setupRatingButtons();
             setupAdherenceSlider();
             setupForm();
-            await loadCheckinHistory();
+            // Run auth check and history load in parallel where possible
+            await checkAuth();
+            // loadCheckinHistory is called in checkAuth after clientId is set
         });
 
         async function checkAuth() {
@@ -652,7 +653,8 @@
 
             if (client) {
                 clientId = client.id;
-                await loadStreak();
+                // Load streak and history in parallel
+                await Promise.all([loadStreak(), loadCheckinHistory()]);
             }
         }
 
@@ -824,6 +826,17 @@
 
         async function loadMore() {
             await loadCheckinHistory();
+        }
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
         }
     </script>
 </body>

@@ -2337,13 +2337,16 @@
             // Force a fresh fetch by adding a timestamp to bypass cache
             const timestamp = new Date().getTime();
 
-            await loadClient(clientId);
-            await loadPlans(clientId);
-            await loadProtocols(clientId);
-            await loadPhotos(clientId);
-            await loadMeasurements(clientId);
-            await loadCheckins(clientId);
-            await loadFavorites(clientId);
+            // Load all data in parallel for faster refresh
+            await Promise.all([
+                loadClient(clientId),
+                loadPlans(clientId),
+                loadProtocols(clientId),
+                loadPhotos(clientId),
+                loadMeasurements(clientId),
+                loadCheckins(clientId),
+                loadFavorites(clientId)
+            ]);
 
             console.log('Data refreshed successfully');
         }
@@ -2899,7 +2902,7 @@
                     <div class="photo-carousel" id="photoCarousel">
                         ${clientPhotos.map(photo => `
                             <div class="photo-card" onclick="openLightbox('${photo.photo_url}')">
-                                <img src="${photo.photo_url}" alt="Progress photo">
+                                <img src="${photo.photo_url}" alt="Progress photo" loading="lazy">
                                 <div class="photo-overlay">
                                     <div class="photo-type">${photoTypeLabels[photo.photo_type] || photo.photo_type}</div>
                                     <div class="photo-date">${new Date(photo.taken_date).toLocaleDateString()}</div>

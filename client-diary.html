@@ -47,6 +47,48 @@
             --brand-primary: #14b8a6;
         }
 
+        /* Skeleton Loading Animation */
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-pulse 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+
+        [data-theme="dark"] .skeleton {
+            background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
+        }
+
+        .skeleton-text {
+            height: 16px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-text.short { width: 60%; }
+        .skeleton-text.medium { width: 80%; }
+
+        .skeleton-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+        }
+
+        .skeleton-entry {
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Optimistic entry style */
+        .entry-item.saving {
+            opacity: 0.7;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -1443,8 +1485,8 @@
                 return; // Auth failed, don't continue
             }
             updateDateDisplay();
-            await loadGoals();
-            await loadDiaryEntries();
+            // Load goals and entries in parallel
+            await Promise.all([loadGoals(), loadDiaryEntries()]);
             setupSearchListener();
         });
 
@@ -1726,6 +1768,24 @@
             const food = window.searchResults[index];
             if (!food) return;
 
+            // Create optimistic entry
+            const tempId = 'temp-' + Date.now();
+            const optimisticEntry = {
+                id: tempId,
+                food_name: food.name,
+                number_of_servings: 1,
+                serving_unit: food.servingUnit || 'serving',
+                calories: food.calories,
+                protein: food.protein,
+                carbs: food.carbs,
+                fat: food.fat
+            };
+
+            // Immediately add to UI (optimistic)
+            addOptimisticEntry(currentMealType, optimisticEntry);
+            closeFoodSearch();
+            showToast('Adding...');
+
             try {
                 const response = await fetch('/.netlify/functions/food-diary', {
                     method: 'POST',
@@ -1752,13 +1812,49 @@
 
                 if (!response.ok) throw new Error('Failed to add food');
 
-                closeFoodSearch();
-                showToast('Food added!');
+                // Refresh to get real ID and sync
                 await loadDiaryEntries();
+                showToast('Food added!');
             } catch (err) {
                 console.error('Error adding food:', err);
+                // Remove optimistic entry on failure
+                removeOptimisticEntry(tempId);
                 showToast('Failed to add food');
             }
+        }
+
+        // Add entry optimistically to UI
+        function addOptimisticEntry(mealType, entry) {
+            const container = document.getElementById(`${mealType}Entries`);
+            const entryHtml = `
+                <div class="food-entry saving" id="entry-${entry.id}">
+                    <div class="food-info">
+                        <div class="food-name">${entry.food_name}</div>
+                        <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}</div>
+                    </div>
+                    <div class="food-calories">${entry.calories || 0}</div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', entryHtml);
+
+            // Update calorie display for meal
+            const calsEl = document.getElementById(`${mealType}Cals`);
+            calsEl.textContent = parseInt(calsEl.textContent || 0) + (entry.calories || 0);
+
+            // Update total summary
+            const consumedEl = document.getElementById('caloriesConsumed');
+            const newConsumed = parseInt(consumedEl.textContent || 0) + (entry.calories || 0);
+            consumedEl.textContent = newConsumed;
+            document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+            document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+        }
+
+        // Remove optimistic entry on failure
+        function removeOptimisticEntry(tempId) {
+            const el = document.getElementById(`entry-${tempId}`);
+            if (el) el.remove();
+            // Refresh to get correct totals
+            loadDiaryEntries();
         }
 
         // Quick Add
@@ -1782,6 +1878,23 @@
             e.preventDefault();
 
             const servings = parseFloat(document.getElementById('quickServings').value) || 1;
+            const foodName = document.getElementById('quickFoodName').value;
+            const calories = parseInt(document.getElementById('quickCalories').value) || 0;
+
+            // Create optimistic entry
+            const tempId = 'temp-' + Date.now();
+            const optimisticEntry = {
+                id: tempId,
+                food_name: foodName,
+                number_of_servings: servings,
+                serving_unit: 'serving',
+                calories: calories
+            };
+
+            // Immediately add to UI (optimistic)
+            addOptimisticEntry(currentMealType, optimisticEntry);
+            closeQuickAdd();
+            showToast('Adding...');
 
             try {
                 const response = await fetch('/.netlify/functions/food-diary', {
@@ -1792,9 +1905,9 @@
                         coachId,
                         entryDate: formatDate(currentDate),
                         mealType: currentMealType,
-                        foodName: document.getElementById('quickFoodName').value,
+                        foodName: foodName,
                         numberOfServings: servings,
-                        calories: parseInt(document.getElementById('quickCalories').value) || 0,
+                        calories: calories,
                         protein: parseFloat(document.getElementById('quickProtein').value) || 0,
                         carbs: parseFloat(document.getElementById('quickCarbs').value) || 0,
                         fat: parseFloat(document.getElementById('quickFat').value) || 0,
@@ -1805,11 +1918,11 @@
 
                 if (!response.ok) throw new Error('Failed to add food');
 
-                closeQuickAdd();
-                showToast('Food added!');
                 await loadDiaryEntries();
+                showToast('Food added!');
             } catch (err) {
                 console.error('Error adding food:', err);
+                removeOptimisticEntry(tempId);
                 showToast('Failed to add food');
             }
         }
@@ -2071,7 +2184,7 @@
             // Show product image if available
             const imageContainer = document.getElementById('productImage');
             if (scannedProduct.image) {
-                imageContainer.innerHTML = `<img src="${scannedProduct.image}" alt="${scannedProduct.name}" style="max-width: 120px; max-height: 120px; border-radius: 8px;">`;
+                imageContainer.innerHTML = `<img src="${scannedProduct.image}" alt="${scannedProduct.name}" loading="lazy" style="max-width: 120px; max-height: 120px; border-radius: 8px;">`;
             } else {
                 imageContainer.innerHTML = '<div style="font-size: 3rem;">📦</div>';
             }
@@ -2121,6 +2234,17 @@
                 console.error('Error adding barcode food:', err);
                 showToast('Failed to add food');
             }
+        }
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
         }
     </script>
 </body>

@@ -790,7 +790,7 @@
                 // Use taken_date and url fields from API
                 container.innerHTML = '<div class="photos-grid">' + photos.map(p => `
                     <div class="photo-item" onclick="viewPhoto('${p.url || p.photo_url}')">
-                        <img src="${p.url || p.photo_url}" alt="Progress">
+                        <img src="${p.url || p.photo_url}" alt="Progress" loading="lazy">
                         <div class="photo-date">${new Date(p.taken_date || p.date_taken).toLocaleDateString()}</div>
                     </div>
                 `).join('') + '</div>';
@@ -907,6 +907,17 @@
 
         function viewPhoto(url) {
             window.open(url, '_blank');
+        }
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
         }
     </script>
 </body>
