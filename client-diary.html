@@ -2433,13 +2433,17 @@
                         Add details (optional)
                     </label>
                     <input type="text" id="photoFoodDetails"
-                        placeholder="e.g., black tea unsweetened, turkey sandwich, protein shake..."
+                        placeholder="e.g., black tea unsweetened, turkey sandwich..."
+                        onkeypress="if(event.key === 'Enter') analyzePhotoWithAI()"
                         style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 0.95rem; box-sizing: border-box;">
                     <p style="font-size: 0.8rem; color: var(--gray-500); margin-top: 6px;">
-                        Help AI identify drinks, sauces, or specific ingredients
+                        Help AI identify drinks or specific ingredients
                     </p>
                     <button type="button" class="btn btn-primary" onclick="analyzePhotoWithAI()" style="width: 100%; margin-top: 12px;">
                         Analyze Photo
+                    </button>
+                    <button type="button" onclick="analyzePhotoWithAI()" style="width: 100%; margin-top: 8px; background: none; border: none; color: var(--gray-500); font-size: 0.85rem; cursor: pointer; text-decoration: underline;">
+                        Skip details, analyze now
                     </button>
                 </div>
 
