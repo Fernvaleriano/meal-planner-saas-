@@ -195,7 +195,16 @@ exports.handler = async (event) => {
 
       if (error) {
         console.error('POST - Insert error:', error);
-        throw error;
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: error.message || 'Database insert failed',
+            details: error.details || null,
+            hint: error.hint || null,
+            code: error.code || null
+          })
+        };
       }
 
       console.log('POST - Successfully inserted entry:', JSON.stringify(entry));
