@@ -4182,13 +4182,17 @@
 
         async function swipeDeleteEntry(entryId, mealType) {
             const entry = entries.find(e => e.id == entryId);
+            console.log('DELETE - Attempting to delete entryId:', entryId);
 
             try {
                 const response = await fetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
                     method: 'DELETE'
                 });
 
-                if (!response.ok) throw new Error('Failed to delete entry');
+                const data = await response.json();
+                console.log('DELETE - Response:', response.status, data);
+
+                if (!response.ok) throw new Error(data.error || 'Failed to delete entry');
 
                 // Remove from DOM
                 const entryEl = document.getElementById(`entry-${entryId}`);
