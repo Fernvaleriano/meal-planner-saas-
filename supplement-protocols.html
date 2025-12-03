@@ -592,48 +592,6 @@
             justify-content: flex-end;
         }
 
-        /* Template modal */
-        .template-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .template-item {
-            padding: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .template-item:hover {
-            border-color: #7c3aed;
-            background: #faf5ff;
-        }
-
-        .template-item-name {
-            font-weight: 600;
-            color: #374151;
-        }
-
-        .template-item-count {
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .template-item-delete {
-            float: right;
-            color: #dc2626;
-            cursor: pointer;
-        }
-
-        .no-templates {
-            text-align: center;
-            padding: 30px;
-            color: #6b7280;
-        }
-
         @media (max-width: 768px) {
             .header {
                 padding: 15px 20px;
@@ -917,28 +875,6 @@
         [data-theme="dark"] #publishSupplementInfo small {
             color: #94a3b8 !important;
         }
-
-        [data-theme="dark"] .template-item {
-            border-color: #475569;
-            background: #0f172a;
-        }
-
-        [data-theme="dark"] .template-item:hover {
-            border-color: #7c3aed;
-            background: #2e1065;
-        }
-
-        [data-theme="dark"] .template-item-name {
-            color: #f1f5f9;
-        }
-
-        [data-theme="dark"] .template-item-count {
-            color: #94a3b8;
-        }
-
-        [data-theme="dark"] .no-templates {
-            color: #94a3b8;
-        }
     </style>
 </head>
 <body>
@@ -1055,12 +991,6 @@
                     <div class="protocols-actions">
                         <button class="btn btn-primary" onclick="openProtocolModal()">
                             Add Item
-                        </button>
-                        <button class="btn btn-secondary" id="saveTemplateBtn" onclick="saveAsTemplate()" style="display: none;">
-                            Save as Template
-                        </button>
-                        <button class="btn btn-secondary" onclick="openTemplateModal()">
-                            Apply Template
                         </button>
                     </div>
                 </div>
@@ -1184,45 +1114,6 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeProtocolModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="saveProtocolItem()">Save Item</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Template Modal -->
-    <div id="templateModal" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Apply Protocol Template</h3>
-                <button class="modal-close" onclick="closeTemplateModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 16px; color: #6b7280;">Select a template to apply to this client. This will add all items from the template.</p>
-                <div id="templateList" class="template-list">
-                    <!-- Templates will be rendered here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeTemplateModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Save Template Modal -->
-    <div id="saveTemplateModal" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Save as Template</h3>
-                <button class="modal-close" onclick="closeSaveTemplateModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Template Name</label>
-                    <input type="text" id="templateName" placeholder="e.g., Basic Supplement Stack, Bodybuilding Protocol...">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeSaveTemplateModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmSaveTemplate()">Save Template</button>
             </div>
         </div>
     </div>
@@ -1511,10 +1402,6 @@
 
                 clientProtocols = data.protocols || [];
                 renderProtocolsList();
-
-                // Show/hide save template button
-                document.getElementById('saveTemplateBtn').style.display =
-                    clientProtocols.length > 0 ? 'inline-flex' : 'none';
 
             } catch (error) {
                 console.error('Error loading protocols:', error);
@@ -1806,153 +1693,6 @@
                 console.error('Error deleting protocol:', error);
                 alert('Failed to delete protocol: ' + error.message);
             }
-        }
-
-        // Template Functions
-        function getTemplates() {
-            const templates = localStorage.getItem('protocolTemplates');
-            if (!templates) return [];
-            const parsed = JSON.parse(templates);
-            // Filter and return only valid templates with required properties
-            return parsed.filter(t => t && t.name && Array.isArray(t.items));
-        }
-
-        function saveTemplates(templates) {
-            localStorage.setItem('protocolTemplates', JSON.stringify(templates));
-        }
-
-        function openTemplateModal() {
-            if (!selectedClientId) {
-                alert('Please select a client first.');
-                return;
-            }
-
-            const templates = getTemplates();
-            const templateList = document.getElementById('templateList');
-
-            if (templates.length === 0) {
-                templateList.innerHTML = '<div class="no-templates">No templates saved yet. Add protocols to a client and save as template.</div>';
-            } else {
-                templateList.innerHTML = templates.map((template, idx) => {
-                    const itemCount = template.items.length;
-                    return `
-                    <div class="template-item" onclick="applyTemplate(${idx})">
-                        <span class="template-item-delete" onclick="event.stopPropagation(); deleteTemplate(${idx})">🗑️</span>
-                        <div class="template-item-name">${escapeHtml(template.name)}</div>
-                        <div class="template-item-count">${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
-                    </div>
-                `;
-                }).join('');
-            }
-
-            document.getElementById('templateModal').classList.remove('hidden');
-        }
-
-        function closeTemplateModal() {
-            document.getElementById('templateModal').classList.add('hidden');
-        }
-
-        async function applyTemplate(index) {
-            const templates = getTemplates();
-            const template = templates[index];
-
-            if (!template || !template.items || template.items.length === 0) {
-                alert('Template is empty.');
-                return;
-            }
-
-            if (!confirm(`Apply "${template.name}" template? This will add ${template.items.length} items.`)) {
-                return;
-            }
-
-            closeTemplateModal();
-
-            try {
-                for (const item of template.items) {
-                    const payload = {
-                        coachId: currentCoach.id,
-                        clientId: parseInt(selectedClientId),
-                        name: item.name,
-                        timing: item.timing,
-                        timingCustom: item.timing_custom,
-                        dose: item.dose,
-                        hasSchedule: item.has_schedule,
-                        schedule: item.schedule,
-                        startDate: item.start_date || new Date().toISOString().split('T')[0],
-                        notes: item.notes,
-                        privateNotes: item.private_notes
-                    };
-
-                    await fetch(PROTOCOLS_ENDPOINT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                }
-
-                await loadClientProtocols();
-                alert('Template applied successfully!');
-
-            } catch (error) {
-                console.error('Error applying template:', error);
-                alert('Error applying template: ' + error.message);
-            }
-        }
-
-        function deleteTemplate(index) {
-            if (!confirm('Delete this template?')) return;
-
-            const templates = getTemplates();
-            templates.splice(index, 1);
-            saveTemplates(templates);
-            openTemplateModal(); // Refresh the list
-        }
-
-        function saveAsTemplate() {
-            if (clientProtocols.length === 0) {
-                alert('No protocols to save as template.');
-                return;
-            }
-
-            document.getElementById('templateName').value = '';
-            document.getElementById('saveTemplateModal').classList.remove('hidden');
-        }
-
-        function closeSaveTemplateModal() {
-            document.getElementById('saveTemplateModal').classList.add('hidden');
-        }
-
-        function confirmSaveTemplate() {
-            const templateName = document.getElementById('templateName').value.trim();
-            if (!templateName) {
-                alert('Please enter a template name.');
-                return;
-            }
-
-            const templates = getTemplates();
-
-            // Create template from current protocols
-            const templateItems = clientProtocols.map(p => ({
-                name: p.name,
-                timing: p.timing,
-                timing_custom: p.timing_custom,
-                dose: p.dose,
-                has_schedule: p.has_schedule,
-                schedule: p.schedule,
-                start_date: p.start_date,
-                notes: p.notes,
-                private_notes: p.private_notes
-            }));
-
-            templates.push({
-                name: templateName,
-                items: templateItems,
-                created: new Date().toISOString()
-            });
-
-            saveTemplates(templates);
-            closeSaveTemplateModal();
-            alert('Template saved successfully!');
         }
 
         // ==========================================
