@@ -1812,8 +1812,20 @@
 
                 if (!response.ok) throw new Error('Failed to add food');
 
-                // Refresh to get real ID and sync
-                await loadDiaryEntries();
+                const data = await response.json();
+
+                // Update optimistic entry with real ID from server
+                if (data.entry) {
+                    const tempEl = document.getElementById(`entry-${tempId}`);
+                    if (tempEl) {
+                        tempEl.id = `entry-${data.entry.id}`;
+                        tempEl.classList.remove('saving');
+                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
+                    }
+                    // Add to local entries array
+                    entries.push(data.entry);
+                }
+
                 showToast('Food added!');
             } catch (err) {
                 console.error('Error adding food:', err);
@@ -1918,7 +1930,20 @@
 
                 if (!response.ok) throw new Error('Failed to add food');
 
-                await loadDiaryEntries();
+                const data = await response.json();
+
+                // Update optimistic entry with real ID from server
+                if (data.entry) {
+                    const tempEl = document.getElementById(`entry-${tempId}`);
+                    if (tempEl) {
+                        tempEl.id = `entry-${data.entry.id}`;
+                        tempEl.classList.remove('saving');
+                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
+                    }
+                    // Add to local entries array
+                    entries.push(data.entry);
+                }
+
                 showToast('Food added!');
             } catch (err) {
                 console.error('Error adding food:', err);
@@ -2227,9 +2252,16 @@
 
                 if (!response.ok) throw new Error('Failed to add food');
 
+                const data = await response.json();
+
                 closeBarcodeResult();
                 showToast('Food added!');
-                await loadDiaryEntries();
+
+                // Add entry directly to UI using returned data
+                if (data.entry) {
+                    addOptimisticEntry(currentMealType, data.entry);
+                    entries.push(data.entry);
+                }
             } catch (err) {
                 console.error('Error adding barcode food:', err);
                 showToast('Failed to add food');
