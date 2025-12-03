@@ -1,4 +1,5 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 exports.handler = async (event, context) => {
     // CORS headers
@@ -22,12 +23,12 @@ exports.handler = async (event, context) => {
 
     try {
         // Check for API key first
-        if (!process.env.ANTHROPIC_API_KEY) {
-            console.error('ANTHROPIC_API_KEY is not configured');
+        if (!GEMINI_API_KEY) {
+            console.error('GEMINI_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'AI Photo analysis is not configured. Please add ANTHROPIC_API_KEY to Netlify environment variables.' })
+                body: JSON.stringify({ error: 'AI Photo analysis is not configured. Please add GEMINI_API_KEY to Netlify environment variables.' })
             };
         }
 
@@ -54,32 +55,25 @@ exports.handler = async (event, context) => {
         const mediaType = matches[1];
         const base64Data = matches[2];
 
-        // Initialize Anthropic client
-        const anthropic = new Anthropic({
-            apiKey: process.env.ANTHROPIC_API_KEY
-        });
-
-        // Analyze the image with Claude
-        const response = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1024,
-            messages: [
-                {
-                    role: 'user',
-                    content: [
+        // Call Gemini API with image
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
                         {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: mediaType,
+                            inlineData: {
+                                mimeType: mediaType,
                                 data: base64Data
                             }
                         },
                         {
-                            type: 'text',
                             text: `Analyze this food image and identify all food items visible. For each item, estimate the nutritional information.
 
-Return ONLY a valid JSON array with this exact format (no markdown, no explanation):
+Return ONLY a valid JSON array with this exact format (no markdown, no explanation, no code blocks):
 [
   {
     "name": "Food item name with estimated portion size",
@@ -101,22 +95,59 @@ Guidelines:
 Return ONLY the JSON array, nothing else.`
                         }
                     ]
+                }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 1024
                 }
-            ]
+            })
         });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Gemini API error:', response.status, errorText);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    error: 'AI analysis failed',
+                    details: `Gemini API returned ${response.status}`
+                })
+            };
+        }
+
+        const data = await response.json();
+
+        // Extract text from Gemini response
+        let content = '';
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            content = data.candidates[0].content.parts
+                .filter(p => p.text)
+                .map(p => p.text)
+                .join('');
+        }
+
+        console.log('Gemini response content:', content);
 
         // Parse the response
         let foods = [];
-        const content = response.content[0].text.trim();
+        const trimmedContent = content.trim();
 
         try {
             // Try to parse directly
-            foods = JSON.parse(content);
+            foods = JSON.parse(trimmedContent);
         } catch (parseError) {
-            // Try to extract JSON from the response
-            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            // Try to extract JSON from the response (remove markdown code blocks if present)
+            let cleanContent = trimmedContent
+                .replace(/```json\s*/g, '')
+                .replace(/```\s*/g, '')
+                .trim();
+
+            const jsonMatch = cleanContent.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
                 foods = JSON.parse(jsonMatch[0]);
+            } else {
+                console.error('Could not parse Gemini response:', trimmedContent);
             }
         }
 
@@ -146,10 +177,7 @@ Return ONLY the JSON array, nothing else.`
             body: JSON.stringify({
                 error: 'Failed to analyze image',
                 details: error.message,
-                name: error.name,
-                // Include more details for debugging
-                apiKeySet: !!process.env.ANTHROPIC_API_KEY,
-                apiKeyLength: process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.length : 0
+                name: error.name
             })
         };
     }

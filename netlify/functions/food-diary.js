@@ -163,9 +163,9 @@ exports.handler = async (event) => {
         };
       }
 
+      // Build insert data - only include coach_id if it's a valid value
       const insertData = {
         client_id: clientId,
-        coach_id: coachId,
         entry_date: entryDate || new Date().toISOString().split('T')[0],
         meal_type: mealType,
         food_name: foodName,
@@ -173,18 +173,23 @@ exports.handler = async (event) => {
         serving_size: servingSize || 1,
         serving_unit: servingUnit || 'serving',
         number_of_servings: numberOfServings || 1,
-        calories: calories || 0,
-        protein: protein || 0,
-        carbs: carbs || 0,
-        fat: fat || 0,
-        fiber: fiber || null,
-        sugar: sugar || null,
-        sodium: sodium || null,
+        calories: Math.round(calories) || 0,
+        protein: Math.round(protein) || 0,
+        carbs: Math.round(carbs) || 0,
+        fat: Math.round(fat) || 0,
+        fiber: fiber ? Math.round(fiber) : null,
+        sugar: sugar ? Math.round(sugar) : null,
+        sodium: sodium ? Math.round(sodium) : null,
         external_id: externalId || null,
         food_source: foodSource || 'custom',
         is_quick_add: isQuickAdd || false,
         notes: notes || null
       };
+
+      // Only add coach_id if it's a valid UUID (not null, undefined, or empty)
+      if (coachId && typeof coachId === 'string' && coachId.length > 0) {
+        insertData.coach_id = coachId;
+      }
       console.log('POST - Inserting:', JSON.stringify(insertData));
 
       const { data: entry, error } = await supabase
