@@ -3095,9 +3095,17 @@
             // Create optimistic entry with scaled values
             // Use the user-selected serving type
             const tempId = 'temp-' + Date.now();
+
+            // Store food data before closing modal (closeFoodSelect sets selectedFood to null)
+            const foodName = selectedFood.name;
+            const foodBrand = selectedFood.brand;
+            const foodFiber = selectedFood.fiber;
+            const foodExternalId = selectedFood.externalId;
+            const foodSource = selectedFood.source;
+
             const optimisticEntry = {
                 id: tempId,
-                food_name: selectedFood.name,
+                food_name: foodName,
                 number_of_servings: servings,
                 serving_size: Math.round(currentServingWeight),
                 serving_unit: currentServingUnit.toLowerCase(),
@@ -3107,7 +3115,7 @@
                 fat: scaledFat
             };
 
-            // Add to UI
+            // Add to UI and close modal
             addOptimisticEntry(currentMealType, optimisticEntry);
             closeFoodSelect();
             showToast('Adding...');
@@ -3118,8 +3126,8 @@
                     coachId,
                     entryDate: formatDate(currentDate),
                     mealType: currentMealType,
-                    foodName: selectedFood.name,
-                    brand: selectedFood.brand,
+                    foodName: foodName,
+                    brand: foodBrand,
                     servingSize: Math.round(currentServingWeight),
                     servingUnit: currentServingUnit.toLowerCase(),
                     numberOfServings: servings,
@@ -3127,9 +3135,9 @@
                     protein: scaledProtein,
                     carbs: scaledCarbs,
                     fat: scaledFat,
-                    fiber: selectedFood.fiber,
-                    externalId: selectedFood.externalId,
-                    foodSource: selectedFood.source
+                    fiber: foodFiber,
+                    externalId: foodExternalId,
+                    foodSource: foodSource
                 };
                 console.log('POST payload:', payload);
 
