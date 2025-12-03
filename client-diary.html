@@ -2529,14 +2529,20 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            // Always set up search listener first, regardless of auth/data loading
+            setupSearchListener();
+
             const isAuthenticated = await checkAuth();
             if (!isAuthenticated) {
                 return; // Auth failed, don't continue
             }
             updateDateDisplay();
-            // Load goals and entries in parallel
-            await Promise.all([loadGoals(), loadDiaryEntries()]);
-            setupSearchListener();
+            // Load goals and entries in parallel - wrap in try-catch to not block UI
+            try {
+                await Promise.all([loadGoals(), loadDiaryEntries()]);
+            } catch (err) {
+                console.error('Error loading initial data:', err);
+            }
         });
 
         // Auth check
