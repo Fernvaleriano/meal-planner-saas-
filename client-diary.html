@@ -4723,9 +4723,13 @@
                     })
                 });
 
-                if (!response.ok) throw new Error('Failed to analyze photo');
-
                 const data = await response.json();
+                console.log('AI Photo response:', response.status, data);
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.details || 'Failed to analyze photo');
+                }
+
                 aiDetectedFoods = data.foods || [];
 
                 if (aiDetectedFoods.length === 0) {
