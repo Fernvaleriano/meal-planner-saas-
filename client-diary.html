@@ -2757,9 +2757,15 @@
 
         function setupSearchListener() {
             const input = document.getElementById('foodSearchInput');
+            if (!input) {
+                console.error('Food search input not found!');
+                return;
+            }
+            console.log('Search listener setup on:', input);
             input.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 const query = e.target.value.trim();
+                console.log('Search input event - query:', query);
 
                 if (query.length < 2) {
                     document.getElementById('searchResults').innerHTML = `
@@ -2783,11 +2789,24 @@
         }
 
         async function searchFood(query) {
+            console.log('searchFood called with:', query, 'clientId:', clientId);
             try {
-                const response = await fetch(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientId}`);
+                const url = `/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientId}`;
+                console.log('Fetching URL:', url);
+
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                console.log('Response status:', response.status, response.ok);
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 const results = data.results || [];
+                console.log('Parsed results count:', results.length);
                 const container = document.getElementById('searchResults');
 
                 if (results.length === 0) {
@@ -2814,10 +2833,12 @@
                 window.searchResults = results;
             } catch (err) {
                 console.error('Search error:', err);
+                const isTimeout = err.name === 'AbortError';
                 document.getElementById('searchResults').innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">❌</div>
-                        <p>Search failed. Please try again.</p>
+                        <p>${isTimeout ? 'Search timed out. Please try again.' : 'Search failed. Please try again.'}</p>
+                        <p style="font-size: 0.8em; color: #888; margin-top: 8px;">${err.message || 'Unknown error'}</p>
                     </div>
                 `;
             }
