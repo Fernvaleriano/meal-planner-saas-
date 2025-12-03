@@ -285,6 +285,7 @@ exports.handler = async (event) => {
     // DELETE - Remove an entry
     if (event.httpMethod === 'DELETE') {
       const { entryId } = event.queryStringParameters || {};
+      console.log('DELETE - Attempting to delete entryId:', entryId);
 
       if (!entryId) {
         return {
@@ -294,17 +295,43 @@ exports.handler = async (event) => {
         };
       }
 
-      const { error } = await supabase
+      // First verify the entry exists
+      const { data: existing, error: findError } = await supabase
+        .from('food_diary_entries')
+        .select('id')
+        .eq('id', entryId)
+        .single();
+
+      console.log('DELETE - Found entry:', existing, 'Error:', findError);
+
+      if (findError || !existing) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Entry not found', details: findError?.message })
+        };
+      }
+
+      const { error, count } = await supabase
         .from('food_diary_entries')
         .delete()
         .eq('id', entryId);
 
-      if (error) throw error;
+      console.log('DELETE - Result error:', error, 'count:', count);
+
+      if (error) {
+        console.error('DELETE - Error:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: error.message, details: error.details })
+        };
+      }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true })
+        body: JSON.stringify({ success: true, deletedId: entryId })
       };
     }
 
