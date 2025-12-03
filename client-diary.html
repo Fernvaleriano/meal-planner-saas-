@@ -506,6 +506,48 @@
             color: #cbd5e1;
         }
 
+        /* Swipe to delete styles */
+        .swipe-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .swipe-content {
+            position: relative;
+            z-index: 2;
+            background: white;
+            transition: transform 0.2s ease-out;
+        }
+
+        [data-theme="dark"] .swipe-content {
+            background: var(--gray-100);
+        }
+
+        .swipe-content.swiping {
+            transition: none;
+        }
+
+        .delete-action {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            z-index: 1;
+        }
+
+        .delete-action svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .add-food-btn {
             display: flex;
             align-items: center;
@@ -1709,25 +1751,35 @@
 
             meals.forEach(meal => {
                 const container = document.getElementById(`${meal}Entries`);
-                const entries = mealGroups[meal] || [];
-                const totalCals = entries.reduce((sum, e) => sum + (e.calories || 0), 0);
+                const mealEntries = mealGroups[meal] || [];
+                const totalCals = mealEntries.reduce((sum, e) => sum + (e.calories || 0), 0);
 
                 document.getElementById(`${meal}Cals`).textContent = totalCals;
 
-                if (entries.length === 0) {
+                if (mealEntries.length === 0) {
                     container.innerHTML = '';
                     return;
                 }
 
-                container.innerHTML = entries.map(entry => `
-                    <div class="food-entry" onclick="openEditModal(${entry.id})">
-                        <div class="food-info">
-                            <div class="food-name">${entry.food_name}</div>
-                            <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}${entry.number_of_servings != 1 ? 's' : ''}</div>
+                container.innerHTML = mealEntries.map(entry => `
+                    <div class="swipe-container" id="entry-${entry.id}">
+                        <div class="delete-action" onclick="swipeDeleteEntry(${entry.id}, '${meal}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
                         </div>
-                        <div class="food-calories">${entry.calories}</div>
+                        <div class="swipe-content food-entry" onclick="openEditModal(${entry.id})" data-entry-id="${entry.id}">
+                            <div class="food-info">
+                                <div class="food-name">${entry.food_name}</div>
+                                <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}${entry.number_of_servings != 1 ? 's' : ''}</div>
+                            </div>
+                            <div class="food-calories">${entry.calories}</div>
+                        </div>
                     </div>
                 `).join('');
+
+                // Initialize swipe handlers for this container
+                initSwipeHandlers(container);
             });
         }
 
@@ -1869,13 +1921,7 @@
 
                 // Update optimistic entry with real ID from server
                 if (data.entry) {
-                    const tempEl = document.getElementById(`entry-${tempId}`);
-                    if (tempEl) {
-                        tempEl.id = `entry-${data.entry.id}`;
-                        tempEl.classList.remove('saving');
-                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
-                    }
-                    // Add to local entries array
+                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
                     entries.push(data.entry);
                 }
 
@@ -1888,19 +1934,52 @@
             }
         }
 
+        // Update optimistic entry with real ID after server confirms
+        function updateOptimisticEntryWithRealId(tempId, entry, mealType) {
+            const tempEl = document.getElementById(`entry-${tempId}`);
+            if (tempEl) {
+                tempEl.id = `entry-${entry.id}`;
+                tempEl.classList.remove('saving');
+
+                // Update delete action
+                const deleteAction = tempEl.querySelector('.delete-action');
+                if (deleteAction) {
+                    deleteAction.setAttribute('onclick', `swipeDeleteEntry(${entry.id}, '${mealType}')`);
+                }
+
+                // Update swipe content
+                const swipeContent = tempEl.querySelector('.swipe-content');
+                if (swipeContent) {
+                    swipeContent.setAttribute('onclick', `openEditModal(${entry.id})`);
+                    swipeContent.setAttribute('data-entry-id', entry.id);
+                }
+            }
+        }
+
         // Add entry optimistically to UI
         function addOptimisticEntry(mealType, entry) {
             const container = document.getElementById(`${mealType}Entries`);
             const entryHtml = `
-                <div class="food-entry saving" id="entry-${entry.id}">
-                    <div class="food-info">
-                        <div class="food-name">${entry.food_name}</div>
-                        <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}</div>
+                <div class="swipe-container saving" id="entry-${entry.id}">
+                    <div class="delete-action">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
                     </div>
-                    <div class="food-calories">${entry.calories || 0}</div>
+                    <div class="swipe-content food-entry" data-entry-id="${entry.id}">
+                        <div class="food-info">
+                            <div class="food-name">${entry.food_name}</div>
+                            <div class="food-details">${entry.number_of_servings || 1} ${entry.serving_unit || 'serving'}</div>
+                        </div>
+                        <div class="food-calories">${entry.calories || 0}</div>
+                    </div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', entryHtml);
+
+            // Initialize swipe on new entry
+            const newEntry = container.lastElementChild;
+            initSwipeOnElement(newEntry);
 
             // Update calorie display for meal
             const calsEl = document.getElementById(`${mealType}Cals`);
@@ -1987,13 +2066,7 @@
 
                 // Update optimistic entry with real ID from server
                 if (data.entry) {
-                    const tempEl = document.getElementById(`entry-${tempId}`);
-                    if (tempEl) {
-                        tempEl.id = `entry-${data.entry.id}`;
-                        tempEl.classList.remove('saving');
-                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
-                    }
-                    // Add to local entries array
+                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
                     entries.push(data.entry);
                 }
 
@@ -2072,6 +2145,17 @@
             e.preventDefault();
 
             const entryId = document.getElementById('editEntryId').value;
+            const oldEntry = entries.find(en => en.id == entryId);
+            const mealType = oldEntry?.meal_type || 'snack';
+
+            const newData = {
+                food_name: document.getElementById('editFoodName').value,
+                number_of_servings: parseFloat(document.getElementById('editServings').value) || 1,
+                calories: parseInt(document.getElementById('editCalories').value) || 0,
+                protein: parseFloat(document.getElementById('editProtein').value) || 0,
+                carbs: parseFloat(document.getElementById('editCarbs').value) || 0,
+                fat: parseFloat(document.getElementById('editFat').value) || 0
+            };
 
             try {
                 const response = await fetch('/.netlify/functions/food-diary', {
@@ -2079,20 +2163,76 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         entryId: parseInt(entryId),
-                        foodName: document.getElementById('editFoodName').value,
-                        numberOfServings: parseFloat(document.getElementById('editServings').value) || 1,
-                        calories: parseInt(document.getElementById('editCalories').value) || 0,
-                        protein: parseFloat(document.getElementById('editProtein').value) || 0,
-                        carbs: parseFloat(document.getElementById('editCarbs').value) || 0,
-                        fat: parseFloat(document.getElementById('editFat').value) || 0
+                        foodName: newData.food_name,
+                        numberOfServings: newData.number_of_servings,
+                        calories: newData.calories,
+                        protein: newData.protein,
+                        carbs: newData.carbs,
+                        fat: newData.fat
                     })
                 });
 
                 if (!response.ok) throw new Error('Failed to update entry');
 
                 closeEditModal();
+
+                // Update DOM element
+                const entryEl = document.getElementById(`entry-${entryId}`);
+                if (entryEl) {
+                    entryEl.querySelector('.food-name').textContent = newData.food_name;
+                    entryEl.querySelector('.food-details').textContent = `${newData.number_of_servings} serving${newData.number_of_servings != 1 ? 's' : ''}`;
+                    entryEl.querySelector('.food-calories').textContent = newData.calories;
+                }
+
+                // Calculate calorie difference and update totals
+                if (oldEntry) {
+                    const calDiff = newData.calories - (oldEntry.calories || 0);
+                    const proteinDiff = newData.protein - (oldEntry.protein || 0);
+                    const carbsDiff = newData.carbs - (oldEntry.carbs || 0);
+                    const fatDiff = newData.fat - (oldEntry.fat || 0);
+
+                    // Update meal calories
+                    const mealCalsEl = document.getElementById(`${mealType}Cals`);
+                    if (mealCalsEl) {
+                        mealCalsEl.textContent = Math.max(0, parseInt(mealCalsEl.textContent || 0) + calDiff);
+                    }
+
+                    // Update total summary
+                    const consumedEl = document.getElementById('caloriesConsumed');
+                    const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) + calDiff);
+                    consumedEl.textContent = newConsumed;
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+
+                    // Update calorie ring
+                    const ring = document.getElementById('calorieRing');
+                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const circumference = 251.2;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+
+                    if (newConsumed > goals.calorie_goal) {
+                        ring.style.stroke = '#ef4444';
+                        document.getElementById('caloriesRemaining').style.color = '#ef4444';
+                    } else {
+                        ring.style.stroke = '';
+                        document.getElementById('caloriesRemaining').style.color = '';
+                    }
+
+                    // Update macro bars
+                    const currentProtein = parseFloat(document.getElementById('proteinValue').textContent) || 0;
+                    const currentCarbs = parseFloat(document.getElementById('carbsValue').textContent) || 0;
+                    const currentFat = parseFloat(document.getElementById('fatValue').textContent) || 0;
+
+                    updateMacroBar('protein', currentProtein + proteinDiff, goals.protein_goal);
+                    updateMacroBar('carbs', currentCarbs + carbsDiff, goals.carbs_goal);
+                    updateMacroBar('fat', currentFat + fatDiff, goals.fat_goal);
+
+                    // Update local entries array
+                    Object.assign(oldEntry, newData);
+                }
+
                 showToast('Entry updated!');
-                await loadDiaryEntries();
             } catch (err) {
                 console.error('Error updating entry:', err);
                 showToast('Failed to update entry');
@@ -2103,6 +2243,10 @@
             const entryId = document.getElementById('editEntryId').value;
             if (!confirm('Delete this entry?')) return;
 
+            // Find the entry before deleting to get its data for UI update
+            const entry = entries.find(e => e.id == entryId);
+            const mealType = entry?.meal_type || 'snack';
+
             try {
                 const response = await fetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
                     method: 'DELETE'
@@ -2111,8 +2255,57 @@
                 if (!response.ok) throw new Error('Failed to delete entry');
 
                 closeEditModal();
+
+                // Remove from DOM
+                const entryEl = document.getElementById(`entry-${entryId}`);
+                if (entryEl) {
+                    entryEl.remove();
+                }
+
+                // Remove from local entries array
+                entries = entries.filter(e => e.id != entryId);
+
+                // Update calorie displays
+                if (entry) {
+                    // Update meal calories
+                    const mealCalsEl = document.getElementById(`${mealType}Cals`);
+                    if (mealCalsEl) {
+                        mealCalsEl.textContent = Math.max(0, parseInt(mealCalsEl.textContent || 0) - (entry.calories || 0));
+                    }
+
+                    // Update total summary
+                    const consumedEl = document.getElementById('caloriesConsumed');
+                    const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
+                    consumedEl.textContent = newConsumed;
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+
+                    // Update calorie ring
+                    const ring = document.getElementById('calorieRing');
+                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const circumference = 251.2;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+
+                    // Reset ring color if under goal
+                    if (newConsumed <= goals.calorie_goal) {
+                        ring.style.stroke = '';
+                        document.getElementById('caloriesRemaining').style.color = '';
+                    }
+
+                    // Update macro bars
+                    updateMacroBar('protein',
+                        Math.max(0, parseFloat(document.getElementById('proteinValue').textContent) - (entry.protein || 0)),
+                        goals.protein_goal);
+                    updateMacroBar('carbs',
+                        Math.max(0, parseFloat(document.getElementById('carbsValue').textContent) - (entry.carbs || 0)),
+                        goals.carbs_goal);
+                    updateMacroBar('fat',
+                        Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
+                        goals.fat_goal);
+                }
+
                 showToast('Entry deleted');
-                await loadDiaryEntries();
             } catch (err) {
                 console.error('Error deleting entry:', err);
                 showToast('Failed to delete entry');
@@ -2610,12 +2803,7 @@
 
                 // Update optimistic entry with real ID
                 if (data.entry) {
-                    const tempEl = document.getElementById(`entry-${tempId}`);
-                    if (tempEl) {
-                        tempEl.id = `entry-${data.entry.id}`;
-                        tempEl.classList.remove('saving');
-                        tempEl.setAttribute('onclick', `openEditModal(${data.entry.id})`);
-                    }
+                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
                     entries.push(data.entry);
                 }
 
@@ -2624,6 +2812,135 @@
                 console.error('Error adding meal from plan:', err);
                 removeOptimisticEntry(tempId);
                 showToast('Failed to add meal');
+            }
+        }
+
+        // ==========================================
+        // Swipe to Delete Functions
+        // ==========================================
+
+        function initSwipeHandlers(container) {
+            const swipeItems = container.querySelectorAll('.swipe-container');
+            swipeItems.forEach(item => initSwipeOnElement(item));
+        }
+
+        function initSwipeOnElement(element) {
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            const swipeContent = element.querySelector('.swipe-content');
+
+            if (!swipeContent) return;
+
+            swipeContent.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+                swipeContent.classList.add('swiping');
+            }, { passive: true });
+
+            swipeContent.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+
+                // Only allow left swipe (positive diff), max 80px
+                if (diff > 0) {
+                    const translateX = Math.min(diff, 80);
+                    swipeContent.style.transform = `translateX(-${translateX}px)`;
+                } else {
+                    swipeContent.style.transform = 'translateX(0)';
+                }
+            }, { passive: true });
+
+            swipeContent.addEventListener('touchend', () => {
+                isDragging = false;
+                swipeContent.classList.remove('swiping');
+
+                const diff = startX - currentX;
+
+                // If swiped more than 40px, keep it open
+                if (diff > 40) {
+                    swipeContent.style.transform = 'translateX(-80px)';
+                    element.classList.add('swiped-open');
+                } else {
+                    swipeContent.style.transform = 'translateX(0)';
+                    element.classList.remove('swiped-open');
+                }
+            });
+
+            // Close on tap elsewhere
+            document.addEventListener('touchstart', (e) => {
+                if (!element.contains(e.target) && element.classList.contains('swiped-open')) {
+                    swipeContent.style.transform = 'translateX(0)';
+                    element.classList.remove('swiped-open');
+                }
+            }, { passive: true });
+        }
+
+        async function swipeDeleteEntry(entryId, mealType) {
+            const entry = entries.find(e => e.id == entryId);
+
+            try {
+                const response = await fetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Failed to delete entry');
+
+                // Remove from DOM
+                const entryEl = document.getElementById(`entry-${entryId}`);
+                if (entryEl) {
+                    entryEl.style.transform = 'translateX(-100%)';
+                    entryEl.style.opacity = '0';
+                    entryEl.style.transition = 'all 0.3s ease-out';
+                    setTimeout(() => entryEl.remove(), 300);
+                }
+
+                // Remove from local entries array
+                entries = entries.filter(e => e.id != entryId);
+
+                // Update calorie displays
+                if (entry) {
+                    const mealCalsEl = document.getElementById(`${mealType}Cals`);
+                    if (mealCalsEl) {
+                        mealCalsEl.textContent = Math.max(0, parseInt(mealCalsEl.textContent || 0) - (entry.calories || 0));
+                    }
+
+                    const consumedEl = document.getElementById('caloriesConsumed');
+                    const newConsumed = Math.max(0, parseInt(consumedEl.textContent || 0) - (entry.calories || 0));
+                    consumedEl.textContent = newConsumed;
+                    document.getElementById('caloriesRemaining').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+                    document.getElementById('caloriesRemainingEq').textContent = Math.max(0, goals.calorie_goal - newConsumed);
+
+                    // Update calorie ring
+                    const ring = document.getElementById('calorieRing');
+                    const percentage = Math.min(100, (newConsumed / goals.calorie_goal) * 100);
+                    const circumference = 251.2;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+
+                    if (newConsumed <= goals.calorie_goal) {
+                        ring.style.stroke = '';
+                        document.getElementById('caloriesRemaining').style.color = '';
+                    }
+
+                    // Update macro bars
+                    updateMacroBar('protein',
+                        Math.max(0, parseFloat(document.getElementById('proteinValue').textContent) - (entry.protein || 0)),
+                        goals.protein_goal);
+                    updateMacroBar('carbs',
+                        Math.max(0, parseFloat(document.getElementById('carbsValue').textContent) - (entry.carbs || 0)),
+                        goals.carbs_goal);
+                    updateMacroBar('fat',
+                        Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
+                        goals.fat_goal);
+                }
+
+                showToast('Entry deleted');
+            } catch (err) {
+                console.error('Error deleting entry:', err);
+                showToast('Failed to delete entry');
             }
         }
     </script>
