@@ -32,7 +32,19 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { image } = JSON.parse(event.body);
+        // Parse body safely
+        let body;
+        try {
+            body = JSON.parse(event.body || '{}');
+        } catch (parseErr) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Invalid JSON body' })
+            };
+        }
+
+        const { image } = body;
 
         if (!image) {
             return {

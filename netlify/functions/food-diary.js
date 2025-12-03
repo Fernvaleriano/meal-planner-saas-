@@ -128,7 +128,17 @@ exports.handler = async (event) => {
 
     // POST - Add a new diary entry
     if (event.httpMethod === 'POST') {
-      const body = JSON.parse(event.body);
+      let body;
+      try {
+        body = JSON.parse(event.body || '{}');
+      } catch (parseErr) {
+        console.error('POST - JSON parse error:', parseErr);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Invalid JSON body' })
+        };
+      }
       console.log('POST - Received body:', JSON.stringify(body));
 
       const {
@@ -163,6 +173,12 @@ exports.handler = async (event) => {
         };
       }
 
+      // Helper to safely parse numbers
+      const safeNum = (val, defaultVal = 0) => {
+        const num = parseFloat(val);
+        return isNaN(num) ? defaultVal : Math.round(num);
+      };
+
       // Build insert data - only include coach_id if it's a valid value
       const insertData = {
         client_id: clientId,
@@ -170,16 +186,16 @@ exports.handler = async (event) => {
         meal_type: mealType,
         food_name: foodName,
         brand: brand || null,
-        serving_size: servingSize || 1,
+        serving_size: safeNum(servingSize, 1),
         serving_unit: servingUnit || 'serving',
-        number_of_servings: numberOfServings || 1,
-        calories: Math.round(calories) || 0,
-        protein: Math.round(protein) || 0,
-        carbs: Math.round(carbs) || 0,
-        fat: Math.round(fat) || 0,
-        fiber: fiber ? Math.round(fiber) : null,
-        sugar: sugar ? Math.round(sugar) : null,
-        sodium: sodium ? Math.round(sodium) : null,
+        number_of_servings: safeNum(numberOfServings, 1),
+        calories: safeNum(calories, 0),
+        protein: safeNum(protein, 0),
+        carbs: safeNum(carbs, 0),
+        fat: safeNum(fat, 0),
+        fiber: fiber != null ? safeNum(fiber, 0) : null,
+        sugar: sugar != null ? safeNum(sugar, 0) : null,
+        sodium: sodium != null ? safeNum(sodium, 0) : null,
         external_id: externalId || null,
         food_source: foodSource || 'custom',
         is_quick_add: isQuickAdd || false,
