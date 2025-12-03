@@ -138,10 +138,19 @@ Return ONLY the JSON array, nothing else.`
 
     } catch (error) {
         console.error('Error analyzing food photo:', error);
+        console.error('Error name:', error.name);
+        console.error('Error stack:', error.stack);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Failed to analyze image', details: error.message })
+            body: JSON.stringify({
+                error: 'Failed to analyze image',
+                details: error.message,
+                name: error.name,
+                // Include more details for debugging
+                apiKeySet: !!process.env.ANTHROPIC_API_KEY,
+                apiKeyLength: process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.length : 0
+            })
         };
     }
 };

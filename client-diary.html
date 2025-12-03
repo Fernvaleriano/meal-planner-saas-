@@ -2691,11 +2691,17 @@
                 const response = await fetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
                 const data = await response.json();
                 if (data.goals) {
-                    goals = data.goals;
-                    document.getElementById('goalCalories').value = goals.calorie_goal || 2000;
-                    document.getElementById('goalProtein').value = goals.protein_goal || 150;
-                    document.getElementById('goalCarbs').value = goals.carbs_goal || 200;
-                    document.getElementById('goalFat').value = goals.fat_goal || 65;
+                    // Merge with defaults to avoid null/undefined values
+                    goals = {
+                        calorie_goal: data.goals.calorie_goal || 2000,
+                        protein_goal: data.goals.protein_goal || 150,
+                        carbs_goal: data.goals.carbs_goal || 200,
+                        fat_goal: data.goals.fat_goal || 65
+                    };
+                    document.getElementById('goalCalories').value = goals.calorie_goal;
+                    document.getElementById('goalProtein').value = goals.protein_goal;
+                    document.getElementById('goalCarbs').value = goals.carbs_goal;
+                    document.getElementById('goalFat').value = goals.fat_goal;
                 }
             } catch (err) {
                 console.error('Error loading goals:', err);
@@ -3225,11 +3231,13 @@
 
             // Update calorie display for meal
             const calsEl = document.getElementById(`${mealType}Cals`);
-            calsEl.textContent = parseInt(calsEl.textContent || 0) + (entry.calories || 0);
+            const currentMealCals = parseInt(calsEl.textContent) || 0;
+            calsEl.textContent = currentMealCals + (entry.calories || 0);
 
             // Update total summary
             const consumedEl = document.getElementById('caloriesConsumed');
-            const newConsumed = parseInt(consumedEl.textContent || 0) + (entry.calories || 0);
+            const currentConsumed = parseInt(consumedEl.textContent) || 0;
+            const newConsumed = currentConsumed + (entry.calories || 0);
             const calorieGoal = goals.calorie_goal || 2000;
             consumedEl.textContent = newConsumed;
             document.getElementById('caloriesRemaining').textContent = Math.max(0, calorieGoal - newConsumed);
