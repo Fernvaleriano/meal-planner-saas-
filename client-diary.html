@@ -2793,7 +2793,14 @@
             try {
                 const url = `/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientId}`;
                 console.log('Fetching URL:', url);
-                const response = await fetch(url);
+
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
                 console.log('Response status:', response.status, response.ok);
                 const data = await response.json();
                 console.log('Response data:', data);
@@ -2826,10 +2833,12 @@
                 window.searchResults = results;
             } catch (err) {
                 console.error('Search error:', err);
+                const isTimeout = err.name === 'AbortError';
                 document.getElementById('searchResults').innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">❌</div>
-                        <p>Search failed. Please try again.</p>
+                        <p>${isTimeout ? 'Search timed out. Please try again.' : 'Search failed. Please try again.'}</p>
+                        <p style="font-size: 0.8em; color: #888; margin-top: 8px;">${err.message || 'Unknown error'}</p>
                     </div>
                 `;
             }
