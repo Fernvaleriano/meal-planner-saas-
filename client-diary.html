@@ -2604,11 +2604,11 @@
 
         // Auth check
         async function checkAuth() {
+            console.log('checkAuth: Starting...');
             try {
-                // Refresh session first to ensure we have valid tokens
-                await supabaseClient.auth.refreshSession();
-
-                const { data: { session } } = await supabaseClient.auth.getSession();
+                // Try to get existing session first (faster than refresh)
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                console.log('checkAuth: Got session:', !!session, 'Error:', sessionError);
 
                 if (!session) {
                     console.log('No session, redirecting to login');
@@ -2616,7 +2616,13 @@
                     return false;
                 }
 
+                // Refresh session in background (don't block on it)
+                supabaseClient.auth.refreshSession().catch(err => {
+                    console.warn('Background session refresh failed:', err);
+                });
+
                 // Get client info
+                console.log('checkAuth: Getting client info for user:', session.user.id);
                 const { data: client, error: clientError } = await supabaseClient
                     .from('clients')
                     .select('id, coach_id')
@@ -2630,6 +2636,7 @@
                     return false;
                 }
 
+                console.log('checkAuth: Success, clientId:', client.id);
                 clientId = client.id;
                 coachId = client.coach_id;
                 return true;
