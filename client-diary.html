@@ -2189,9 +2189,17 @@
                     </div>
                     <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="selectServingInfo">per serving</div>
                 </div>
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Number of Servings</label>
-                    <input type="number" id="selectServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;" oninput="updateFoodSelectPreview()">
+                <div class="form-row" style="margin-bottom: 16px; gap: 12px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Amount</label>
+                        <input type="number" id="selectServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;" oninput="updateFoodSelectPreview()">
+                    </div>
+                    <div class="form-group" style="flex: 1.5;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Serving Type</label>
+                        <select id="selectServingType" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem; background: white;" onchange="updateServingType()">
+                            <option value="100|g">100g</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="selectTotalPreview" style="background: var(--primary-100); border-radius: 12px; padding: 12px; margin-bottom: 16px; text-align: center;">
                     <div style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 4px;">Total to add:</div>
@@ -2934,6 +2942,9 @@
 
         // Currently selected food for the modal
         let selectedFood = null;
+        // Current serving size and unit based on selected measure
+        let currentServingWeight = 100;
+        let currentServingUnit = 'g';
 
         // Open food selection modal instead of auto-adding
         function selectFood(index) {
@@ -2946,15 +2957,44 @@
             // Populate the modal
             document.getElementById('selectFoodName').textContent = food.name;
             document.getElementById('selectFoodBrand').textContent = food.brand || '';
-            document.getElementById('selectCalories').textContent = food.calories || 0;
-            document.getElementById('selectProtein').textContent = food.protein || 0;
-            document.getElementById('selectCarbs').textContent = food.carbs || 0;
-            document.getElementById('selectFat').textContent = food.fat || 0;
 
-            // Show per-unit info (e.g., "per 100g" or "per 1 serving")
-            const servingSize = food.servingSize || 1;
-            const servingUnit = food.servingUnit || 'serving';
-            document.getElementById('selectServingInfo').textContent = `per ${servingSize} ${servingUnit}`;
+            // Populate serving type dropdown with available measures
+            const servingTypeSelect = document.getElementById('selectServingType');
+            servingTypeSelect.innerHTML = '';
+
+            // Build measure options - use API measures if available, otherwise create defaults
+            const measures = food.measures || [];
+            if (measures.length > 0) {
+                measures.forEach((measure, idx) => {
+                    const option = document.createElement('option');
+                    option.value = `${measure.weight}|${measure.label}`;
+                    option.textContent = measure.label === 'Gram' ? 'Grams (1g)' :
+                                         measure.label === 'Ounce' ? 'Ounce (28g)' :
+                                         measure.label;
+                    // Select "Serving" by default if available
+                    if (measure.label === 'Serving' || (idx === 0 && !measures.find(m => m.label === 'Serving'))) {
+                        option.selected = true;
+                    }
+                    servingTypeSelect.appendChild(option);
+                });
+            } else {
+                // Fallback options for common foods or when no measures available
+                const defaultMeasures = [
+                    { weight: food.servingSize || 100, label: food.servingUnit || 'serving' },
+                    { weight: 100, label: 'g (100g)' },
+                    { weight: 28, label: 'oz' }
+                ];
+                defaultMeasures.forEach((measure, idx) => {
+                    const option = document.createElement('option');
+                    option.value = `${measure.weight}|${measure.label}`;
+                    option.textContent = measure.label;
+                    if (idx === 0) option.selected = true;
+                    servingTypeSelect.appendChild(option);
+                });
+            }
+
+            // Set initial serving weight and unit from selected option
+            updateServingType();
 
             // Reset servings to 1
             document.getElementById('selectServings').value = 1;
@@ -2967,17 +3007,55 @@
             document.getElementById('foodSelectModal').classList.add('active');
         }
 
+        // Update when serving type changes
+        function updateServingType() {
+            const select = document.getElementById('selectServingType');
+            const [weight, unit] = select.value.split('|');
+            currentServingWeight = parseFloat(weight) || 100;
+            currentServingUnit = unit || 'serving';
+
+            // Update the "per serving" info display
+            const unitDisplay = currentServingUnit === 'Gram' ? 'g' : currentServingUnit.toLowerCase();
+            document.getElementById('selectServingInfo').textContent = `per 1 ${unitDisplay} (${Math.round(currentServingWeight)}g)`;
+
+            // Recalculate displayed nutrition values per serving
+            if (selectedFood) {
+                const baseCals = selectedFood.caloriesPer100g || selectedFood.calories || 0;
+                const baseProtein = selectedFood.proteinPer100g || selectedFood.protein || 0;
+                const baseCarbs = selectedFood.carbsPer100g || selectedFood.carbs || 0;
+                const baseFat = selectedFood.fatPer100g || selectedFood.fat || 0;
+
+                const multiplier = currentServingWeight / 100;
+
+                document.getElementById('selectCalories').textContent = Math.round(baseCals * multiplier);
+                document.getElementById('selectProtein').textContent = Math.round(baseProtein * multiplier * 10) / 10;
+                document.getElementById('selectCarbs').textContent = Math.round(baseCarbs * multiplier * 10) / 10;
+                document.getElementById('selectFat').textContent = Math.round(baseFat * multiplier * 10) / 10;
+            }
+
+            // Update total preview
+            updateFoodSelectPreview();
+        }
+
         // Update the preview when servings change
         function updateFoodSelectPreview() {
             if (!selectedFood) return;
 
             const servings = parseFloat(document.getElementById('selectServings').value) || 1;
 
-            // Calculate scaled values
-            const totalCals = Math.round((selectedFood.calories || 0) * servings);
-            const totalProtein = Math.round((selectedFood.protein || 0) * servings * 10) / 10;
-            const totalCarbs = Math.round((selectedFood.carbs || 0) * servings * 10) / 10;
-            const totalFat = Math.round((selectedFood.fat || 0) * servings * 10) / 10;
+            // Get base values per 100g
+            const baseCals = selectedFood.caloriesPer100g || selectedFood.calories || 0;
+            const baseProtein = selectedFood.proteinPer100g || selectedFood.protein || 0;
+            const baseCarbs = selectedFood.carbsPer100g || selectedFood.carbs || 0;
+            const baseFat = selectedFood.fatPer100g || selectedFood.fat || 0;
+
+            // Calculate based on serving weight and number of servings
+            const multiplier = (currentServingWeight / 100) * servings;
+
+            const totalCals = Math.round(baseCals * multiplier);
+            const totalProtein = Math.round(baseProtein * multiplier * 10) / 10;
+            const totalCarbs = Math.round(baseCarbs * multiplier * 10) / 10;
+            const totalFat = Math.round(baseFat * multiplier * 10) / 10;
 
             // Update preview display
             document.getElementById('selectTotalCals').textContent = totalCals;
@@ -2998,23 +3076,31 @@
 
             const servings = parseFloat(document.getElementById('selectServings').value) || 1;
 
-            // Scale macros by number of servings
-            const scaledCalories = Math.round((selectedFood.calories || 0) * servings);
-            const scaledProtein = Math.round((selectedFood.protein || 0) * servings * 10) / 10;
-            const scaledCarbs = Math.round((selectedFood.carbs || 0) * servings * 10) / 10;
-            const scaledFat = Math.round((selectedFood.fat || 0) * servings * 10) / 10;
+            // Get base values per 100g
+            const baseCals = selectedFood.caloriesPer100g || selectedFood.calories || 0;
+            const baseProtein = selectedFood.proteinPer100g || selectedFood.protein || 0;
+            const baseCarbs = selectedFood.carbsPer100g || selectedFood.carbs || 0;
+            const baseFat = selectedFood.fatPer100g || selectedFood.fat || 0;
+
+            // Calculate final values based on serving weight and number of servings
+            const multiplier = (currentServingWeight / 100) * servings;
+            const scaledCalories = Math.round(baseCals * multiplier);
+            const scaledProtein = Math.round(baseProtein * multiplier * 10) / 10;
+            const scaledCarbs = Math.round(baseCarbs * multiplier * 10) / 10;
+            const scaledFat = Math.round(baseFat * multiplier * 10) / 10;
 
             console.log('addSelectedFood with servings:', servings);
             console.log('Scaled values - cal:', scaledCalories, 'P:', scaledProtein, 'C:', scaledCarbs, 'F:', scaledFat);
 
             // Create optimistic entry with scaled values
+            // Use the user-selected serving type
             const tempId = 'temp-' + Date.now();
             const optimisticEntry = {
                 id: tempId,
                 food_name: selectedFood.name,
                 number_of_servings: servings,
-                serving_size: selectedFood.servingSize || 1,
-                serving_unit: selectedFood.servingUnit || 'serving',
+                serving_size: Math.round(currentServingWeight),
+                serving_unit: currentServingUnit.toLowerCase(),
                 calories: scaledCalories,
                 protein: scaledProtein,
                 carbs: scaledCarbs,
@@ -3034,8 +3120,8 @@
                     mealType: currentMealType,
                     foodName: selectedFood.name,
                     brand: selectedFood.brand,
-                    servingSize: selectedFood.servingSize || 1,
-                    servingUnit: selectedFood.servingUnit || 'serving',
+                    servingSize: Math.round(currentServingWeight),
+                    servingUnit: currentServingUnit.toLowerCase(),
                     numberOfServings: servings,
                     calories: scaledCalories,
                     protein: scaledProtein,
