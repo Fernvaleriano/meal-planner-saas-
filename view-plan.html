@@ -5986,6 +5986,23 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                             img.src = data.imageUrl;
                             img.alt = mealName;
                             img.className = 'meal-card-image';
+                            img.id = currentContainer.id;
+                            img.dataset.mealName = mealName;
+
+                            // Handle image load errors - show placeholder instead of broken icon
+                            img.onerror = () => {
+                                console.warn(`Image failed to load for: ${mealName}`);
+                                const placeholder = document.createElement('div');
+                                placeholder.className = 'meal-card-image-placeholder';
+                                placeholder.id = img.id;
+                                placeholder.dataset.mealName = mealName;
+                                placeholder.innerHTML = '🍽️';
+                                placeholder.title = 'Image unavailable';
+                                if (img.parentNode) {
+                                    img.parentNode.replaceChild(placeholder, img);
+                                }
+                            };
+
                             currentContainer.replaceWith(img);
                         }
                     }
