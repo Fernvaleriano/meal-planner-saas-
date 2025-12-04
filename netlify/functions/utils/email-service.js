@@ -324,8 +324,145 @@ async function sendCheckinReminder({
     });
 }
 
+/**
+ * Generate client invitation email content
+ * @param {Object} options
+ * @param {string} options.clientName - Client's name
+ * @param {string} options.clientEmail - Client's email
+ * @param {string} options.coachName - Coach's name
+ * @param {string} options.resetLink - Password reset link
+ * @returns {Object} - { subject, text, html }
+ */
+function generateInvitationEmail({
+    clientName,
+    clientEmail,
+    coachName = 'Your Coach',
+    resetLink
+}) {
+    const subject = `${coachName} has invited you to Zique Fitness Nutrition`;
+
+    const textBody = `Hi ${clientName},
+
+Great news! ${coachName} has invited you to join Zique Fitness Nutrition - your personal nutrition coaching portal.
+
+With your new account, you'll be able to:
+- View your personalized meal plans
+- Track your daily food intake
+- Submit weekly check-ins
+- Message your coach directly
+- Track your progress over time
+
+To get started, set up your password using the link below:
+${resetLink}
+
+This link will expire in 24 hours.
+
+If you have any questions, reach out to your coach directly.
+
+Welcome aboard!
+
+${coachName}
+
+---
+Zique Fitness Nutrition
+${APP_URL}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Zique Fitness</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your nutrition coaching journey starts here</p>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Hi <strong>${clientName}</strong>,</p>
+
+        <p style="margin-bottom: 20px; font-size: 16px;">Great news! <strong>${coachName}</strong> has invited you to join your personal nutrition coaching portal.</p>
+
+        <div style="background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
+            <p style="font-weight: 600; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">With your new account, you'll be able to:</p>
+            <ul style="margin: 0; padding-left: 20px; color: #334155;">
+                <li style="margin-bottom: 8px;">View your personalized meal plans</li>
+                <li style="margin-bottom: 8px;">Track your daily food intake</li>
+                <li style="margin-bottom: 8px;">Submit weekly check-ins</li>
+                <li style="margin-bottom: 8px;">Message your coach directly</li>
+                <li style="margin-bottom: 0;">Track your progress over time</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Set Up Your Password</a>
+        </div>
+
+        <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours</p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;">
+
+        <p style="color: #64748b; font-size: 14px;">If you have any questions, reach out to your coach directly.</p>
+
+        <p style="margin-top: 25px; color: #334155;">
+            Welcome aboard!<br>
+            <strong>${coachName}</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">Zique Fitness Nutrition</p>
+        <p style="margin: 5px 0 0 0;"><a href="${APP_URL}" style="color: #0d9488; text-decoration: none;">Visit Dashboard</a></p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send an invitation email to a new client
+ * @param {Object} options
+ * @param {Object} options.client - Client object from database
+ * @param {Object} options.coach - Coach object from database
+ * @param {string} options.resetLink - Password reset link
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+async function sendInvitationEmail({
+    client,
+    coach,
+    resetLink
+}) {
+    if (!client || !client.email) {
+        return { success: false, error: 'Client email not available' };
+    }
+
+    if (!resetLink) {
+        return { success: false, error: 'Reset link is required' };
+    }
+
+    const emailContent = generateInvitationEmail({
+        clientName: client.client_name || 'there',
+        clientEmail: client.email,
+        coachName: coach?.full_name || coach?.email || 'Your Coach',
+        resetLink
+    });
+
+    return sendEmail({
+        to: client.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+    });
+}
+
 module.exports = {
     sendEmail,
     sendCheckinReminder,
-    generateReminderEmail
+    generateReminderEmail,
+    sendInvitationEmail,
+    generateInvitationEmail
 };
