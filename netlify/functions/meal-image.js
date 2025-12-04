@@ -40,7 +40,72 @@ async function ensureBucketExists(supabase) {
   }
 }
 
-// Normalize meal name for consistent lookups
+// Known proteins for extraction
+const PROTEINS = [
+  'chicken breast', 'chicken', 'ground turkey', 'turkey breast', 'turkey',
+  'ground beef', 'beef', 'sirloin steak', 'sirloin', 'flank steak', 'steak',
+  'salmon', 'cod', 'tilapia', 'tuna', 'shrimp', 'halibut', 'fish',
+  'pork tenderloin', 'pork chop', 'pork',
+  'eggs', 'egg',
+  'greek yogurt', 'cottage cheese', 'whey protein',
+  'lamb chops', 'lamb', 'bison',
+  'tofu', 'tempeh'
+];
+
+// Known carbs for extraction
+const CARBS = [
+  'brown rice', 'white rice', 'rice', 'wild rice',
+  'quinoa', 'oats', 'oatmeal',
+  'sweet potato', 'russet potato', 'potato',
+  'pasta', 'whole wheat pasta', 'whole wheat noodles', 'noodles',
+  'whole wheat bread', 'ezekiel bread', 'bread', 'whole wheat tortilla', 'tortilla',
+  'pearl barley', 'barley',
+  'banana', 'apple', 'strawberries', 'blueberries', 'mixed berries'
+];
+
+// Extract protein + carb key for image matching
+// This allows meals with same protein and carb to share images
+function extractProteinCarbKey(mealName) {
+  const lowerName = mealName
+    .toLowerCase()
+    // Remove portion info in parentheses
+    .replace(/\([^)]*\)/g, '')
+    // Remove numbers and measurements
+    .replace(/\d+\s*(g|oz|ml|cups?|tbsp|tsp|whole|slices?|pieces?|medium|large|small|scoop|scoops)\b/gi, '')
+    .trim();
+
+  // Find the protein (check longer matches first)
+  let foundProtein = null;
+  const sortedProteins = [...PROTEINS].sort((a, b) => b.length - a.length);
+  for (const protein of sortedProteins) {
+    if (lowerName.includes(protein)) {
+      foundProtein = protein.replace(/\s+/g, '_');
+      break;
+    }
+  }
+
+  // Find the carb (check longer matches first)
+  let foundCarb = null;
+  const sortedCarbs = [...CARBS].sort((a, b) => b.length - a.length);
+  for (const carb of sortedCarbs) {
+    if (lowerName.includes(carb)) {
+      foundCarb = carb.replace(/\s+/g, '_');
+      break;
+    }
+  }
+
+  // Build the key
+  if (foundProtein && foundCarb) {
+    return `${foundProtein}_with_${foundCarb}`;
+  } else if (foundProtein) {
+    return foundProtein;
+  } else {
+    // Fallback to full normalization if no protein found
+    return normalizeMealName(mealName);
+  }
+}
+
+// Normalize meal name for consistent lookups (full version, used as fallback)
 // Strips out portion sizes, gram amounts, and numbers to match similar meals
 function normalizeMealName(mealName) {
   return mealName
@@ -186,14 +251,32 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const normalizedName = normalizeMealName(mealName);
+      // Use protein+carb key for matching (allows similar meals to share images)
+      const imageKey = extractProteinCarbKey(mealName);
+      console.log(`Looking up image for "${mealName}" with key: ${imageKey}`);
 
-      // Check if image exists in database
-      const { data: existingImage, error } = await supabase
+      // Check if image exists in database using the protein+carb key
+      let { data: existingImage, error } = await supabase
         .from('meal_images')
         .select('*')
-        .eq('normalized_name', normalizedName)
+        .eq('normalized_name', imageKey)
         .single();
+
+      // If no match with protein+carb key, try partial match on the key
+      if (!existingImage && imageKey.includes('_with_')) {
+        const proteinOnly = imageKey.split('_with_')[0];
+        const { data: proteinMatch } = await supabase
+          .from('meal_images')
+          .select('*')
+          .like('normalized_name', `${proteinOnly}_with_%`)
+          .limit(1)
+          .single();
+
+        if (proteinMatch) {
+          existingImage = proteinMatch;
+          console.log(`Found protein match: ${proteinMatch.normalized_name}`);
+        }
+      }
 
       if (existingImage) {
         return {
@@ -202,7 +285,8 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({
             exists: true,
             imageUrl: existingImage.image_url,
-            mealName: existingImage.meal_name
+            mealName: existingImage.meal_name,
+            matchedKey: existingImage.normalized_name
           })
         };
       }
@@ -210,7 +294,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 200,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ exists: false })
+        body: JSON.stringify({ exists: false, searchedKey: imageKey })
       };
     }
 
@@ -235,14 +319,43 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const normalizedName = normalizeMealName(mealName);
+      // Use protein+carb key for matching (allows similar meals to share images)
+      const imageKey = extractProteinCarbKey(mealName);
+      console.log(`POST: Looking up image for "${mealName}" with key: ${imageKey}`);
 
-      // Check if image already exists
-      const { data: existingImage } = await supabase
+      // Check if image already exists with this protein+carb combination
+      let { data: existingImage } = await supabase
         .from('meal_images')
         .select('*')
-        .eq('normalized_name', normalizedName)
+        .eq('normalized_name', imageKey)
         .single();
+
+      // If no exact match, try to find a similar protein+carb image
+      if (!existingImage && imageKey.includes('_with_')) {
+        const proteinOnly = imageKey.split('_with_')[0];
+        const { data: proteinMatch } = await supabase
+          .from('meal_images')
+          .select('*')
+          .like('normalized_name', `${proteinOnly}_with_%`)
+          .limit(1)
+          .single();
+
+        if (proteinMatch && !regenerate) {
+          // Found a similar image, return it
+          console.log(`Found similar image: ${proteinMatch.normalized_name}`);
+          return {
+            statusCode: 200,
+            headers: { 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({
+              success: true,
+              imageUrl: proteinMatch.image_url,
+              mealName: proteinMatch.meal_name,
+              cached: true,
+              matchedKey: proteinMatch.normalized_name
+            })
+          };
+        }
+      }
 
       if (existingImage) {
         // If regenerate flag is set, delete the old image first
@@ -287,6 +400,7 @@ exports.handler = async (event, context) => {
       }
 
       console.log(`Generating image for: ${mealName}${customPrompt ? ' (custom prompt)' : ''}`);
+      console.log(`Will be stored with key: ${imageKey}`);
 
       // Generate image with Replicate Imagen 4 Fast
       const imageUrl = await generateMealImage(mealName, customPrompt);
@@ -294,8 +408,8 @@ exports.handler = async (event, context) => {
       // Download the generated image
       const imageBuffer = await downloadImage(imageUrl);
 
-      // Upload to Supabase Storage
-      const filename = `${normalizedName}_${Date.now()}.png`;
+      // Upload to Supabase Storage (use imageKey for filename)
+      const filename = `${imageKey}_${Date.now()}.png`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(BUCKET_NAME)
@@ -320,13 +434,13 @@ exports.handler = async (event, context) => {
 
       const permanentImageUrl = urlData.publicUrl;
 
-      // Save to database for future lookups
+      // Save to database for future lookups (use protein+carb key for matching)
       const { data: savedImage, error: saveError } = await supabase
         .from('meal_images')
         .insert([
           {
             meal_name: mealName,
-            normalized_name: normalizedName,
+            normalized_name: imageKey,  // Use protein+carb key for future matching
             image_url: permanentImageUrl,
             storage_path: filename
           }
