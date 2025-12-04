@@ -4858,6 +4858,7 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
     console.warn(`⚠️ Meal missing ingredients array, cannot optimize`);
     // Return meal with fallback macros (use provided macros or targets)
     return {
+      type: geminiMeal.type || 'meal',
       name: geminiMeal.name || 'Unnamed Meal',
       ingredients: geminiMeal.ingredients || [],
       calories: geminiMeal.calories || mealTargets.calories || 0,
