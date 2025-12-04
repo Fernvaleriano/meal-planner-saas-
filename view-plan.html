@@ -98,33 +98,33 @@
 
         .meal-card {
             background: #f8f9ff;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 18px;
             border: 2px solid #e0e7ff;
             display: flex;
-            gap: 20px;
+            gap: 15px;
         }
 
         .meal-card-image {
-            width: 140px;
-            height: 140px;
-            min-width: 140px;
-            border-radius: 12px;
+            width: 100px;
+            height: 100px;
+            min-width: 100px;
+            border-radius: 10px;
             object-fit: cover;
             background: #e0e7ff;
         }
 
         .meal-card-image-placeholder {
-            width: 140px;
-            height: 140px;
-            min-width: 140px;
-            border-radius: 12px;
+            width: 100px;
+            height: 100px;
+            min-width: 100px;
+            border-radius: 10px;
             background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
+            font-size: 2rem;
         }
 
         .meal-card-content {
@@ -135,8 +135,8 @@
         .meal-header {
             display: flex;
             flex-direction: column;
-            margin-bottom: 20px;
-            gap: 15px;
+            margin-bottom: 15px;
+            gap: 10px;
         }
 
         @media (max-width: 600px) {
@@ -145,13 +145,13 @@
             }
             .meal-card-image, .meal-card-image-placeholder {
                 width: 100%;
-                height: 200px;
+                height: 150px;
             }
         }
 
         .meal-name {
             color: #0d9488;
-            font-size: 1.8em;
+            font-size: 1.35em;
             font-weight: 700;
             word-wrap: break-word;
             overflow-wrap: break-word;
@@ -166,13 +166,13 @@
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 8px 14px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
 
         .btn-change {
@@ -242,6 +242,16 @@
 
         .btn-recipe:hover {
             background: #c2410c;
+            transform: translateY(-2px);
+        }
+
+        .btn-log-diary {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-log-diary:hover {
+            background: #15803d;
             transform: translateY(-2px);
         }
 
@@ -453,43 +463,45 @@
         .macro-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
         .macro-item {
             background: white;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 10px;
+            border-radius: 8px;
             text-align: center;
-            border: 2px solid #e0e7ff;
+            border: 1px solid #e0e7ff;
         }
 
         .macro-label {
             color: #666;
-            font-size: 0.9em;
-            margin-bottom: 5px;
+            font-size: 0.8em;
+            margin-bottom: 3px;
         }
 
         .macro-value {
             color: #0d9488;
-            font-size: 1.5em;
+            font-size: 1.15em;
             font-weight: 700;
         }
 
         .instructions {
             background: #fff4e6;
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 4px solid #ffa726;
-            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #ffa726;
+            margin-top: 12px;
+            font-size: 0.9em;
         }
 
         .instructions-label {
             color: #e65100;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: block;
+            font-size: 0.95em;
         }
 
         .action-buttons {
@@ -1888,8 +1900,9 @@
                         return;
                     }
 
-                    // Store client ID for saving modifications later
+                    // Store client ID and coach ID for saving modifications later
                     currentClientId = clientData.id;
+                    currentCoachId = clientData.coach_id;
 
                     // Load favorites for the client
                     await loadFavorites(clientData.id);
@@ -3332,7 +3345,7 @@
 
                     // Check if client view - hide regenerate button for clients
                     const urlParams = new URLSearchParams(window.location.search);
-                    const isClientView = urlParams.get('clientView') === 'true';
+                    const isClientView = urlParams.get('clientView') === 'true' || urlParams.get('share');
 
                     dayHeader.innerHTML = `
                         <span>Day ${dayData.day}</span>
@@ -3468,8 +3481,14 @@
                 ? `<button class="btn btn-edit" onclick="editCustomMeal(${changeParam})" title="Edit this custom meal">✎ Edit</button>`
                 : `<button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>`;
 
+            // Log to Diary button for clients only
+            const logDiaryButton = isClientView
+                ? `<button class="btn btn-log-diary" onclick="logMealToDiary('${escapedMealName}', '${meal.type || ''}', ${meal.calories || 0}, ${meal.protein || 0}, ${meal.carbs || 0}, ${meal.fat || 0})" title="Log this meal to your diary">📋 Log</button>`
+                : '';
+
             let actionButtons = `
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
+                ${logDiaryButton}
                 <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
                 ${editOrReviseButton}
                 <button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>
@@ -5665,6 +5684,70 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 }
             } catch (error) {
                 console.error('Error loading favorites:', error);
+            }
+        }
+
+        // Log meal to diary for clients
+        async function logMealToDiary(mealName, mealType, calories, protein, carbs, fat) {
+            // Ensure we have client context
+            if (!currentClientId) {
+                alert('Could not determine client. Please log in again.');
+                return;
+            }
+
+            // Map meal type to diary meal type
+            let diaryMealType = mealType.toLowerCase();
+            if (diaryMealType === 'snacks' || diaryMealType === 'snack1' || diaryMealType === 'snack2') {
+                diaryMealType = 'snack';
+            }
+
+            // Show loading feedback
+            const btn = event.target;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/.netlify/functions/food-diary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        coachId: currentCoachId,
+                        entryDate: new Date().toISOString().split('T')[0], // Today's date
+                        mealType: diaryMealType,
+                        foodName: mealName,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        numberOfServings: 1,
+                        calories: calories || 0,
+                        protein: protein || 0,
+                        carbs: carbs || 0,
+                        fat: fat || 0,
+                        foodSource: 'meal_plan',
+                        notes: `From meal plan (${mealType})`
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success feedback
+                    btn.innerHTML = '✓ Logged';
+                    btn.style.background = '#15803d';
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.style.background = '';
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Failed to log meal');
+                }
+            } catch (error) {
+                console.error('Error logging meal to diary:', error);
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                alert('Failed to log meal to diary. Please try again.');
             }
         }
 
