@@ -162,13 +162,15 @@ async function handleCheckoutComplete(session) {
             });
 
         // Send password reset email so they can set their password
-        await supabase.auth.admin.generateLink({
-            type: 'recovery',
-            email: email,
-            options: {
-                redirectTo: `${process.env.URL || 'https://your-site.netlify.app'}/set-password.html`
-            }
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${process.env.URL || 'https://ziquefitnesnutrition.com'}/set-password.html`
         });
+
+        if (resetError) {
+            console.error('Error sending password reset email:', resetError);
+        } else {
+            console.log('Password reset email sent to:', email);
+        }
 
         console.log('Created new coach:', email);
     }
