@@ -574,6 +574,50 @@
             background: #334155;
         }
 
+        .meal-actions {
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .meal-actions .add-food-btn {
+            flex: 1;
+            border-top: none;
+        }
+
+        .save-meal-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 16px;
+            color: #dc2626;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-left: 1px solid var(--gray-100);
+        }
+
+        .save-meal-btn:hover {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+
+        [data-theme="dark"] .meal-actions {
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .save-meal-btn {
+            background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+            color: #fca5a5;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .save-meal-btn:hover {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+        }
+
         /* Settings/Goals Button */
         .goals-btn {
             background: none;
@@ -2300,11 +2344,16 @@
                     <span class="meal-calories" id="breakfastCals">0</span>
                 </div>
                 <div class="meal-entries" id="breakfastEntries"></div>
-                <div class="add-food-btn" onclick="openFoodSearch('breakfast')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Add Food
+                <div class="meal-actions">
+                    <div class="add-food-btn" onclick="openFoodSearch('breakfast')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Add Food
+                    </div>
+                    <div class="save-meal-btn" id="saveBreakfastBtn" onclick="openSaveMealModal('breakfast')" style="display: none;">
+                        ❤️ Save Meal
+                    </div>
                 </div>
             </div>
 
@@ -2318,11 +2367,16 @@
                     <span class="meal-calories" id="lunchCals">0</span>
                 </div>
                 <div class="meal-entries" id="lunchEntries"></div>
-                <div class="add-food-btn" onclick="openFoodSearch('lunch')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Add Food
+                <div class="meal-actions">
+                    <div class="add-food-btn" onclick="openFoodSearch('lunch')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Add Food
+                    </div>
+                    <div class="save-meal-btn" id="saveLunchBtn" onclick="openSaveMealModal('lunch')" style="display: none;">
+                        ❤️ Save Meal
+                    </div>
                 </div>
             </div>
 
@@ -2336,11 +2390,16 @@
                     <span class="meal-calories" id="dinnerCals">0</span>
                 </div>
                 <div class="meal-entries" id="dinnerEntries"></div>
-                <div class="add-food-btn" onclick="openFoodSearch('dinner')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Add Food
+                <div class="meal-actions">
+                    <div class="add-food-btn" onclick="openFoodSearch('dinner')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Add Food
+                    </div>
+                    <div class="save-meal-btn" id="saveDinnerBtn" onclick="openSaveMealModal('dinner')" style="display: none;">
+                        ❤️ Save Meal
+                    </div>
                 </div>
             </div>
 
@@ -2354,11 +2413,16 @@
                     <span class="meal-calories" id="snackCals">0</span>
                 </div>
                 <div class="meal-entries" id="snackEntries"></div>
-                <div class="add-food-btn" onclick="openFoodSearch('snack')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                    Add Food
+                <div class="meal-actions">
+                    <div class="add-food-btn" onclick="openFoodSearch('snack')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Add Food
+                    </div>
+                    <div class="save-meal-btn" id="saveSnackBtn" onclick="openSaveMealModal('snack')" style="display: none;">
+                        ❤️ Save Meal
+                    </div>
                 </div>
             </div>
         </div>
@@ -2755,25 +2819,6 @@
                     <button type="button" class="btn btn-secondary" onclick="closeEditModal()" style="flex:1">Cancel</button>
                     <button type="submit" class="btn btn-primary" style="flex:1">Save</button>
                 </div>
-                <button type="button" onclick="saveEntryToFavorites()" style="
-                    width: 100%;
-                    margin-top: 12px;
-                    padding: 12px;
-                    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
-                    border: none;
-                    border-radius: 10px;
-                    color: #dc2626;
-                    font-weight: 600;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    transition: all 0.2s;
-                " onmouseover="this.style.background='linear-gradient(135deg, #fca5a5 0%, #f87171 100%)'"
-                   onmouseout="this.style.background='linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'">
-                    ❤️ Save to Favorites
-                </button>
             </form>
         </div>
     </div>
@@ -3083,6 +3128,28 @@
                         <p>Loading favorites...</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Meal to Favorites Modal -->
+    <div class="modal-overlay" id="saveMealModal">
+        <div class="quick-add-modal">
+            <h2 style="margin-bottom: 16px; color: var(--gray-900);">❤️ Save Meal to Favorites</h2>
+            <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 16px;">
+                Save all items in this meal as one favorite for quick logging later.
+            </p>
+            <input type="hidden" id="saveMealType">
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block;">Meal Name</label>
+                <input type="text" id="saveMealName" placeholder="e.g., My Morning Breakfast" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+            </div>
+            <div id="saveMealPreview" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <!-- Items preview will be shown here -->
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="closeSaveMealModal()" style="flex:1">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveMealToFavorites()" style="flex:1; background: #dc2626;">❤️ Save</button>
             </div>
         </div>
     </div>
@@ -3453,6 +3520,9 @@
                 // Initialize swipe handlers for this container
                 initSwipeHandlers(container);
             });
+
+            // Update save meal button visibility
+            updateSaveMealButtons();
         }
 
         // Food search
@@ -4056,59 +4126,6 @@
             document.getElementById('editModal').classList.remove('active');
         }
 
-        async function saveEntryToFavorites() {
-            const entryId = document.getElementById('editEntryId').value;
-            const entry = entries.find(e => e.id == entryId);
-
-            if (!entry) {
-                showToast('Could not find entry');
-                return;
-            }
-
-            // Get current values from form (in case user edited before saving to favorites)
-            const foodName = document.getElementById('editFoodName').value;
-            const calories = parseInt(document.getElementById('editCalories').value) || 0;
-            const protein = parseFloat(document.getElementById('editProtein').value) || 0;
-            const carbs = parseFloat(document.getElementById('editCarbs').value) || 0;
-            const fat = parseFloat(document.getElementById('editFat').value) || 0;
-            const mealType = entry.meal_type || 'snack';
-
-            try {
-                const response = await fetch('/.netlify/functions/toggle-favorite', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: clientId,
-                        mealName: foodName,
-                        mealType: mealType,
-                        calories: calories,
-                        protein: Math.round(protein * 10) / 10,
-                        carbs: Math.round(carbs * 10) / 10,
-                        fat: Math.round(fat * 10) / 10,
-                        notes: 'Saved from diary'
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to save favorite');
-                }
-
-                if (data.action === 'added') {
-                    showToast('Saved to favorites! ❤️');
-                } else if (data.action === 'removed') {
-                    showToast('Removed from favorites');
-                }
-
-                closeEditModal();
-
-            } catch (err) {
-                console.error('Error saving to favorites:', err);
-                showToast('Failed to save to favorites');
-            }
-        }
-
         async function saveEditEntry(e) {
             e.preventDefault();
 
@@ -4262,6 +4279,9 @@
                         Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
                         goals.fat_goal || 65);
                 }
+
+                // Update save meal button visibility
+                updateSaveMealButtons();
 
                 showToast('Entry deleted');
             } catch (err) {
@@ -4935,6 +4955,129 @@
         }
 
         // ==========================================
+        // Save Entire Meal to Favorites
+        // ==========================================
+        let saveMealData = null;
+
+        function openSaveMealModal(mealType) {
+            // Get all entries for this meal type
+            const mealEntries = entries.filter(e => e.meal_type === mealType);
+
+            if (mealEntries.length === 0) {
+                showToast('No items to save');
+                return;
+            }
+
+            // Calculate totals
+            const totals = mealEntries.reduce((acc, e) => ({
+                calories: acc.calories + (e.calories || 0),
+                protein: acc.protein + (e.protein || 0),
+                carbs: acc.carbs + (e.carbs || 0),
+                fat: acc.fat + (e.fat || 0)
+            }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+            // Build the preview
+            const itemsList = mealEntries.map(e => `• ${e.food_name}`).join('<br>');
+            const preview = `
+                <div style="font-size: 0.9rem; color: var(--gray-600); margin-bottom: 12px;">
+                    ${itemsList}
+                </div>
+                <div style="display: flex; gap: 12px; font-size: 0.85rem; font-weight: 600;">
+                    <span style="color: var(--gray-700);">${Math.round(totals.calories)} cal</span>
+                    <span style="color: #3b82f6;">${Math.round(totals.protein)}g P</span>
+                    <span style="color: #f59e0b;">${Math.round(totals.carbs)}g C</span>
+                    <span style="color: #ef4444;">${Math.round(totals.fat)}g F</span>
+                </div>
+            `;
+
+            // Store data for saving
+            saveMealData = {
+                mealType: mealType,
+                entries: mealEntries,
+                totals: totals
+            };
+
+            // Generate default name
+            const mealLabel = mealType.charAt(0).toUpperCase() + mealType.slice(1);
+            const defaultName = mealEntries.length === 1
+                ? mealEntries[0].food_name
+                : `My ${mealLabel} (${mealEntries.length} items)`;
+
+            document.getElementById('saveMealType').value = mealType;
+            document.getElementById('saveMealName').value = defaultName;
+            document.getElementById('saveMealPreview').innerHTML = preview;
+            document.getElementById('saveMealModal').classList.add('active');
+        }
+
+        function closeSaveMealModal() {
+            document.getElementById('saveMealModal').classList.remove('active');
+            saveMealData = null;
+        }
+
+        async function saveMealToFavorites() {
+            if (!saveMealData) {
+                showToast('No meal data to save');
+                return;
+            }
+
+            const mealName = document.getElementById('saveMealName').value.trim();
+            if (!mealName) {
+                showToast('Please enter a name for this meal');
+                return;
+            }
+
+            try {
+                // Build the combined meal name with all items
+                const itemNames = saveMealData.entries.map(e => e.food_name).join(' + ');
+
+                const response = await fetch('/.netlify/functions/toggle-favorite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        mealName: mealName,
+                        mealType: saveMealData.mealType,
+                        calories: Math.round(saveMealData.totals.calories),
+                        protein: Math.round(saveMealData.totals.protein * 10) / 10,
+                        carbs: Math.round(saveMealData.totals.carbs * 10) / 10,
+                        fat: Math.round(saveMealData.totals.fat * 10) / 10,
+                        notes: `Items: ${itemNames}`
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to save favorite');
+                }
+
+                if (data.action === 'added') {
+                    showToast('Meal saved to favorites! ❤️');
+                } else if (data.action === 'removed') {
+                    showToast('Meal removed from favorites');
+                }
+
+                closeSaveMealModal();
+
+            } catch (err) {
+                console.error('Error saving meal to favorites:', err);
+                showToast('Failed to save meal');
+            }
+        }
+
+        // Update save meal button visibility when entries change
+        function updateSaveMealButtons() {
+            const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+            mealTypes.forEach(mealType => {
+                const mealEntries = entries.filter(e => e.meal_type === mealType);
+                const saveBtn = document.getElementById(`save${mealType.charAt(0).toUpperCase() + mealType.slice(1)}Btn`);
+                if (saveBtn) {
+                    saveBtn.style.display = mealEntries.length > 0 ? 'flex' : 'none';
+                }
+            });
+        }
+
+        // ==========================================
         // Swipe to Delete Functions
         // ==========================================
 
@@ -5056,6 +5199,9 @@
                         Math.max(0, parseFloat(document.getElementById('fatValue').textContent) - (entry.fat || 0)),
                         goals.fat_goal || 65);
                 }
+
+                // Update save meal button visibility
+                updateSaveMealButtons();
 
                 showToast('Entry deleted');
             } catch (err) {
