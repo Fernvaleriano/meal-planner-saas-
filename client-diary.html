@@ -476,32 +476,6 @@
             background: #334155;
         }
 
-        .food-entry-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .favorite-btn {
-            background: none;
-            border: none;
-            padding: 4px;
-            cursor: pointer;
-            font-size: 18px;
-            opacity: 0.4;
-            transition: all 0.2s;
-        }
-
-        .favorite-btn:hover {
-            opacity: 1;
-            transform: scale(1.2);
-        }
-
-        .favorite-btn.is-favorite {
-            opacity: 1;
-            color: #ef4444;
-        }
-
         .food-info {
             flex: 1;
         }
@@ -3412,9 +3386,6 @@
                         ? `${servingNum} ${servingUnit}${servingNum !== 1 ? 's' : ''}`
                         : `${servingNum} x ${servingSize}${servingUnit}`;
 
-                    // Escape food name for use in onclick handler
-                    const escapedFoodName = entry.food_name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
                     return `
                     <div class="swipe-container" id="entry-${entry.id}">
                         <div class="delete-action" onclick="swipeDeleteEntry(${entry.id}, '${meal}')">
@@ -3422,19 +3393,12 @@
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
                         </div>
-                        <div class="swipe-content food-entry" data-entry-id="${entry.id}">
-                            <div class="food-info" onclick="openEditModal(${entry.id})">
+                        <div class="swipe-content food-entry" onclick="openEditModal(${entry.id})" data-entry-id="${entry.id}">
+                            <div class="food-info">
                                 <div class="food-name">${entry.food_name}</div>
                                 <div class="food-details">${servingDisplay}</div>
                             </div>
-                            <div class="food-entry-actions">
-                                <button class="favorite-btn"
-                                        onclick="event.stopPropagation(); toggleFavoriteFromDiary('${escapedFoodName}', '${meal}', ${entry.calories || 0}, ${entry.protein || 0}, ${entry.carbs || 0}, ${entry.fat || 0}, this)"
-                                        title="Save to favorites">
-                                    🤍
-                                </button>
-                                <div class="food-calories" onclick="openEditModal(${entry.id})">${entry.calories}</div>
-                            </div>
+                            <div class="food-calories">${entry.calories}</div>
                         </div>
                     </div>
                 `}).join('');
@@ -4836,51 +4800,6 @@
             } catch (err) {
                 console.error('Error deleting entry:', err);
                 showToast('Failed to delete entry');
-            }
-        }
-
-        // ==========================================
-        // Save to Favorites from Diary
-        // ==========================================
-        async function toggleFavoriteFromDiary(foodName, mealType, calories, protein, carbs, fat, buttonEl) {
-            console.log('Saving to favorites:', { foodName, mealType, calories, protein, carbs, fat });
-
-            try {
-                const response = await fetch('/.netlify/functions/toggle-favorite', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: clientId,
-                        mealName: foodName,
-                        mealType: mealType,
-                        calories: Math.round(calories),
-                        protein: Math.round(protein * 10) / 10,
-                        carbs: Math.round(carbs * 10) / 10,
-                        fat: Math.round(fat * 10) / 10,
-                        notes: 'Saved from diary'
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to toggle favorite');
-                }
-
-                // Update button appearance based on action
-                if (data.action === 'added') {
-                    buttonEl.innerHTML = '❤️';
-                    buttonEl.classList.add('is-favorite');
-                    showToast('Added to favorites!');
-                } else if (data.action === 'removed') {
-                    buttonEl.innerHTML = '🤍';
-                    buttonEl.classList.remove('is-favorite');
-                    showToast('Removed from favorites');
-                }
-
-            } catch (err) {
-                console.error('Error toggling favorite:', err);
-                showToast('Failed to save favorite');
             }
         }
 
