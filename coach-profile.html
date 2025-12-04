@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <meta name="theme-color" content="#0d9488">
+    <title>My Profile - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-primary-dark: #0f766e;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
+
+        [data-theme="dark"] body {
+            background: var(--gray-900);
+            color: var(--gray-100);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* Header */
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .back-btn {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+            color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .back-btn:hover {
+            background: var(--gray-700);
+            color: var(--gray-100);
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .page-title {
+            color: var(--gray-100);
+        }
+
+        /* Profile Card */
+        .profile-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-100);
+            margin-bottom: 24px;
+        }
+
+        [data-theme="dark"] .profile-card {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .profile-header {
+            border-color: var(--gray-700);
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--brand-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .profile-info h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        [data-theme="dark"] .profile-info h2 {
+            color: var(--gray-100);
+        }
+
+        .profile-info p {
+            color: var(--gray-500);
+            font-size: 0.9375rem;
+        }
+
+        [data-theme="dark"] .profile-info p {
+            color: var(--gray-400);
+        }
+
+        .profile-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 8px;
+        }
+
+        .profile-badge.basic {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+        }
+
+        .profile-badge.branded {
+            background: linear-gradient(135deg, #fae8ff 0%, #f3e8ff 100%);
+            color: #7e22ce;
+        }
+
+        /* Settings Card */
+        .settings-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-100);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        [data-theme="dark"] .settings-card {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        .settings-card-title {
+            padding: 16px 24px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            letter-spacing: 0.05em;
+        }
+
+        [data-theme="dark"] .settings-card-title {
+            color: var(--gray-400);
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item:hover {
+            background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .settings-item {
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .settings-item:hover {
+            background: var(--gray-700);
+        }
+
+        .settings-item-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .settings-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gray-100);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        [data-theme="dark"] .settings-icon {
+            background: var(--gray-700);
+        }
+
+        .settings-label {
+            font-weight: 500;
+            color: var(--gray-900);
+            font-size: 0.9375rem;
+        }
+
+        [data-theme="dark"] .settings-label {
+            color: var(--gray-100);
+        }
+
+        .settings-sublabel {
+            font-size: 0.8125rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        [data-theme="dark"] .settings-sublabel {
+            color: var(--gray-400);
+        }
+
+        .settings-arrow {
+            color: var(--gray-400);
+            font-size: 20px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray-300);
+            transition: 0.3s;
+            border-radius: 31px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--brand-primary);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 440px;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        [data-theme="dark"] .modal-content {
+            background: var(--gray-800);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        [data-theme="dark"] .modal-header h2 {
+            color: var(--gray-100);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .modal-close:hover {
+            color: var(--gray-200);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--gray-700);
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        [data-theme="dark"] .form-group label {
+            color: var(--gray-300);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        [data-theme="dark"] .form-group input {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+            color: var(--gray-100);
+        }
+
+        [data-theme="dark"] .form-group input:focus {
+            border-color: var(--brand-primary);
+        }
+
+        .password-requirements {
+            background: var(--gray-100);
+            padding: 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 0.8125rem;
+            color: var(--gray-600);
+        }
+
+        [data-theme="dark"] .password-requirements {
+            background: var(--gray-900);
+            color: var(--gray-400);
+        }
+
+        .password-requirements strong {
+            color: var(--gray-700);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .password-requirements strong {
+            color: var(--gray-300);
+        }
+
+        .password-requirements ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .password-requirements li {
+            margin-bottom: 4px;
+        }
+
+        .message {
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .message.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            display: block;
+        }
+
+        .message.success {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+            display: block;
+        }
+
+        [data-theme="dark"] .message.error {
+            background: #450a0a;
+            color: #fca5a5;
+            border-color: #7f1d1d;
+        }
+
+        [data-theme="dark"] .message.success {
+            background: #052e16;
+            color: #86efac;
+            border-color: #166534;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px;
+            color: var(--gray-500);
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px;
+            }
+
+            .profile-card {
+                padding: 24px;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .profile-avatar {
+                width: 72px;
+                height: 72px;
+                font-size: 28px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/css/coach-layout.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <div class="sidebar-logo-icon">Z</div>
+                <span class="sidebar-logo-text">Zique Fitness</span>
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Menu
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">📊</span>
+                        Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">👥</span>
+                        Clients
+                    </a>
+                    <a href="manage-recipes.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">📖</span>
+                        Recipes
+                    </a>
+                    <a href="planner.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">🍽️</span>
+                        AI Planner
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="coach-profile.html" class="sidebar-nav-item active">
+                        <span class="sidebar-nav-icon">👤</span>
+                        My Profile
+                    </a>
+                    <a href="supplement-protocols.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">💊</span>
+                        Supplements
+                    </a>
+                    <a href="reminder-settings.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon">🔔</span>
+                        Reminders
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="sidebarAvatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebarEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title">My Profile</h1>
+        </header>
+
+        <div class="main-container">
+            <div id="loadingDiv" class="loading">
+                <div class="loading-spinner"></div>
+                Loading your profile...
+            </div>
+
+            <div id="profileContent" style="display: none;">
+                <!-- Profile Card -->
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar" id="profileAvatar">C</div>
+                        <div class="profile-info">
+                            <h2 id="profileName">Loading...</h2>
+                            <p id="profileEmail">Loading...</p>
+                            <span id="tierBadge" class="profile-badge basic">BASIC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Settings -->
+                <div class="settings-card">
+                    <div class="settings-card-title">Account</div>
+                    <div class="settings-item" onclick="openPasswordModal()">
+                        <div class="settings-item-left">
+                            <div class="settings-icon">🔐</div>
+                            <div>
+                                <div class="settings-label">Change Password</div>
+                                <div class="settings-sublabel">Update your account password</div>
+                            </div>
+                        </div>
+                        <span class="settings-arrow">›</span>
+                    </div>
+                </div>
+
+                <!-- Preferences -->
+                <div class="settings-card">
+                    <div class="settings-card-title">Preferences</div>
+                    <div class="settings-item" onclick="toggleDarkMode()">
+                        <div class="settings-item-left">
+                            <div class="settings-icon">🌙</div>
+                            <div>
+                                <div class="settings-label">Dark Mode</div>
+                                <div class="settings-sublabel">Easier on the eyes at night</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkModeToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Password Change Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change Password</h2>
+                <button class="modal-close" onclick="closePasswordModal()">&times;</button>
+            </div>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" required minlength="6" autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" required minlength="6" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" required minlength="6" autocomplete="new-password">
+                </div>
+                <div class="password-requirements">
+                    <strong>Password requirements:</strong>
+                    <ul>
+                        <li>At least 6 characters</li>
+                        <li>New passwords must match</li>
+                    </ul>
+                </div>
+                <div id="passwordMessage" class="message"></div>
+                <button type="submit" class="submit-btn" id="changePasswordBtn">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Sidebar section collapse functionality
+        function toggleSidebarSection(label) {
+            const section = label.parentElement;
+            section.classList.toggle('collapsed');
+            const sectionName = section.dataset.section;
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            collapsedSections[sectionName] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
+        }
+
+        // Restore sidebar collapsed state on load
+        (function restoreSidebarState() {
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            document.querySelectorAll('.sidebar-nav-section').forEach(section => {
+                const sectionName = section.dataset.section;
+                if (collapsedSections[sectionName]) {
+                    section.classList.add('collapsed');
+                }
+            });
+        })();
+
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const loadingDiv = document.getElementById('loadingDiv');
+        const profileContent = document.getElementById('profileContent');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        async function loadProfile() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                const user = session.user;
+
+                // Get coach data
+                const { data: coachData, error: coachError } = await supabaseClient
+                    .from('coaches')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (coachError) throw coachError;
+
+                // Update profile display
+                document.getElementById('profileEmail').textContent = user.email;
+                document.getElementById('sidebarEmail').textContent = user.email;
+
+                const name = coachData.name || user.email.split('@')[0];
+                document.getElementById('profileName').textContent = name;
+
+                const initial = name.charAt(0).toUpperCase();
+                document.getElementById('profileAvatar').textContent = initial;
+                document.getElementById('sidebarAvatar').textContent = initial;
+
+                // Set tier badge
+                const tierBadge = document.getElementById('tierBadge');
+                tierBadge.textContent = coachData.subscription_tier.toUpperCase();
+                tierBadge.className = `profile-badge ${coachData.subscription_tier}`;
+
+                // Set dark mode toggle state
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                document.getElementById('darkModeToggle').checked = isDark;
+
+                // Show content
+                loadingDiv.style.display = 'none';
+                profileContent.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                alert('Error loading profile: ' + error.message);
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Dark mode toggle
+        function toggleDarkMode() {
+            const toggle = document.getElementById('darkModeToggle');
+            toggle.checked = !toggle.checked;
+
+            if (window.ZiqueTheme && window.ZiqueTheme.toggle) {
+                window.ZiqueTheme.toggle();
+            } else {
+                const newTheme = toggle.checked ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('zique-theme', newTheme);
+            }
+        }
+
+        // Logout handler
+        logoutBtn.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                alert('Error logging out: ' + error.message);
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Password change modal functions
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordForm = document.getElementById('passwordForm');
+        const passwordMessage = document.getElementById('passwordMessage');
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
+
+        function openPasswordModal() {
+            passwordModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            // Reset form
+            passwordForm.reset();
+            passwordMessage.className = 'message';
+            passwordMessage.textContent = '';
+        }
+
+        function closePasswordModal() {
+            passwordModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal when clicking overlay
+        passwordModal.addEventListener('click', (e) => {
+            if (e.target === passwordModal) {
+                closePasswordModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && passwordModal.classList.contains('show')) {
+                closePasswordModal();
+            }
+        });
+
+        function showPasswordMessage(text, type) {
+            passwordMessage.textContent = text;
+            passwordMessage.className = `message ${type}`;
+        }
+
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                showPasswordMessage('New passwords do not match', 'error');
+                return;
+            }
+
+            // Validate password length
+            if (newPassword.length < 6) {
+                showPasswordMessage('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            changePasswordBtn.disabled = true;
+            changePasswordBtn.textContent = 'Updating...';
+            passwordMessage.className = 'message';
+
+            try {
+                // Get current session to get user email
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    throw new Error('Session expired. Please log in again.');
+                }
+
+                // Verify current password by re-authenticating
+                const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+                    email: session.user.email,
+                    password: currentPassword
+                });
+
+                if (signInError) {
+                    throw new Error('Current password is incorrect');
+                }
+
+                // Update the password
+                const { error: updateError } = await supabaseClient.auth.updateUser({
+                    password: newPassword
+                });
+
+                if (updateError) throw updateError;
+
+                showPasswordMessage('Password updated successfully!', 'success');
+
+                // Close modal after short delay
+                setTimeout(() => {
+                    closePasswordModal();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showPasswordMessage(error.message, 'error');
+            } finally {
+                changePasswordBtn.disabled = false;
+                changePasswordBtn.textContent = 'Update Password';
+            }
+        });
+
+        // Load profile on page load
+        loadProfile();
+    </script>
+
+    <!-- Mobile Sidebar Toggle -->
+    <script>
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            });
+        }
+    </script>
+</body>
+</html>
