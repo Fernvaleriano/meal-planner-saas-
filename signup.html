@@ -50,15 +50,17 @@
         .brand-logo {
             width: 48px;
             height: 48px;
-            background: rgba(255,255,255,0.2);
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 800;
-            font-size: 1.5rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
+            overflow: hidden;
+        }
+
+        .brand-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .brand-name {
@@ -395,7 +397,7 @@
 </head>
 <body>
     <div class="brand-header">
-        <div class="brand-logo">Z</div>
+        <div class="brand-logo"><img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design.svg" alt="Zique Fitness Logo"></div>
         <span class="brand-name">Zique Fitness</span>
     </div>
 
