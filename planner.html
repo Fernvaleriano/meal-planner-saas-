@@ -2334,6 +2334,22 @@ function validateMeal(meal, mealType) {
         issues.push('Unrealistically high macro values in single meal');
     }
 
+    // Validation 4b: Minimum protein check - main meals should have adequate protein
+    // This catches AI failures that generate vegetable-only meals without protein sources
+    const mealTypeLower = (mealType || meal.type || '').toLowerCase();
+    let minProtein = 0;
+    if (mealTypeLower === 'breakfast') {
+        minProtein = 10; // Breakfast: at least 10g protein
+    } else if (mealTypeLower === 'lunch' || mealTypeLower === 'dinner') {
+        minProtein = 15; // Main meals: at least 15g protein
+    } else if (mealTypeLower === 'snack' || mealTypeLower.includes('snack')) {
+        minProtein = 3; // Snacks: at least 3g protein (allows fruit-based snacks)
+    }
+
+    if (minProtein > 0 && meal.protein < minProtein) {
+        issues.push(`Insufficient protein for ${mealTypeLower}: ${meal.protein}g (minimum ${minProtein}g required)`);
+    }
+
     // Validation 5: Protein source validation - catch impossible protein claims
     const mealNameLower = meal.name.toLowerCase();
 
@@ -2412,8 +2428,11 @@ function validateMeal(meal, mealType) {
         issues.unshift('Empty or placeholder meal detected - needs regeneration');
     }
 
+    // Check if protein is insufficient (blocking issue)
+    const hasInsufficientProtein = issues.some(issue => issue.includes('Insufficient protein'));
+
     return {
-        valid: !isEmptyMeal, // Only empty/placeholder meals are invalid; other issues are informational
+        valid: !isEmptyMeal && !hasInsufficientProtein, // Empty meals or low protein are invalid
         issues: issues,
         meal: meal
     };
@@ -3017,6 +3036,13 @@ SNACK VARIETY:
 - NOT just "Greek yogurt + fruit" every day
 - Rotate: yogurt, cottage cheese, protein shake, nuts+fruit, hard boiled eggs, tuna
 
+SNACK PROPORTION RULES (critical for realistic snacks):
+- Bread + nut butter: Use 1-2 slices bread with 1-2 tbsp nut butter (NOT 3 slices with 1 tbsp!)
+- Toast snacks: 1-2 slices max with a spread/topping
+- Fruit + protein: Balance fruit (1-2 servings) with protein source
+- Every snack MUST have a protein source (yogurt, eggs, nuts, cheese, protein powder, etc.)
+- Avoid carb-only snacks without protein
+
 ===== PROTEIN SHAKE & SMOOTHIE MEALS =====
 Protein shakes/smoothies are VALID complete meals for snacks and quick breakfasts.
 
@@ -3216,6 +3242,13 @@ If user needs 2500+ calories OR 180+ protein:
 - Example: Oats + Whey + Eggs + Whites + Banana + Almonds = 880 cal, 66g protein
 
 CRITICAL MEAL BUILDING PROCESS:
+0. MANDATORY PROTEIN RULE: Every meal MUST have a PRIMARY protein source!
+   - Breakfast: eggs, Greek yogurt, cottage cheese, turkey, or whey protein
+   - Lunch/Dinner: chicken, fish, beef, pork, turkey, tofu, or eggs
+   - Snacks: yogurt, eggs, nuts, cheese, protein powder, or cottage cheese
+   - DO NOT create vegetable-only meals without protein (e.g., "spinach with olive oil" is NOT valid)
+   - MINIMUM protein: Breakfast 10g+, Lunch/Dinner 15g+, Snacks 3g+
+
 1. Start with BASE portions WELL BELOW the maximums:
    - 1 protein source: 150-220g (leave room to add more if needed)
    - 1 carb source: 50-70g dry grains (leave room to add fruit/bread)
@@ -3232,9 +3265,10 @@ CRITICAL MEAL BUILDING PROCESS:
    → Keep meal reasonable, accept being slightly under target
    → System will balance across other meals or suggest snacks
 
-5. PRIORITY ORDER: Portion limits > Hitting exact macros
+5. PRIORITY ORDER: Protein requirement > Portion limits > Hitting exact macros
    - It is BETTER to be 10-15% under macros than to violate portion limits
    - NEVER sacrifice realistic portions to hit targets
+   - BUT every meal MUST have adequate protein!
 
 CRITICAL RULES:
 - Use ONLY foods from the database above for accurate macros
@@ -4331,19 +4365,45 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
         fat: targetFat
     };
 
-    const newMeal = await callGemini(aiPrompt, true, mealTargets, null, 1);
+    // Try up to 2 times to get a valid meal
+    let validMeal = null;
+    let retryCount = 0;
+    const maxRetries = 2;
 
-    if (!newMeal.error) {
-        // Validate that backend returned complete meal with macros
-        if (!newMeal.calories || !newMeal.protein || !newMeal.carbs || newMeal.fat === undefined) {
-            console.error('❌ Backend returned incomplete meal:', newMeal);
-            alert('Error: Backend did not calculate macros. Check console for details.');
-            displayDietPlan(lastPlanQuery.currentPlan);
-            return;
+    while (retryCount < maxRetries && !validMeal) {
+        // Add retry variation to prompt if this is a retry
+        const retryPrompt = retryCount > 0
+            ? aiPrompt + `\n\n⚠️ RETRY ${retryCount}: Previous attempt had issues. Ensure meal has adequate protein (minimum ${Math.round(targetProtein * 0.5)}g) and includes a protein source like chicken, fish, eggs, yogurt, tofu, etc.`
+            : aiPrompt;
+
+        const newMeal = await callGemini(retryPrompt, true, mealTargets, null, 1);
+
+        if (!newMeal.error) {
+            // Validate that backend returned complete meal with macros
+            if (!newMeal.calories || !newMeal.protein || !newMeal.carbs || newMeal.fat === undefined) {
+                console.error('❌ Backend returned incomplete meal:', newMeal);
+                retryCount++;
+                continue;
+            }
+
+            // Validate meal quality (protein, etc.)
+            const validation = validateMeal(newMeal, meal.type);
+            if (!validation.valid) {
+                console.warn(`⚠️ Change meal validation failed (attempt ${retryCount + 1}):`, validation.issues);
+                retryCount++;
+                continue;
+            }
+
+            validMeal = newMeal;
+        } else {
+            console.error('❌ Meal generation error:', newMeal.error);
+            retryCount++;
         }
+    }
 
+    if (validMeal) {
         // Backend calculated accurate macros - use them directly
-        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = newMeal;
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = validMeal;
 
         // Auto-save if plan already exists in database
         if (lastPlanQuery.planId) {
@@ -4352,7 +4412,8 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
 
         displayDietPlan(lastPlanQuery.currentPlan);
     } else {
-        alert('Error changing meal: ' + newMeal.error);
+        console.error(`❌ Failed to generate valid meal after ${maxRetries} attempts`);
+        alert('Could not generate a valid meal. Please try again or use "Custom" to enter your own meal.');
         displayDietPlan(lastPlanQuery.currentPlan);
     }
 }
@@ -4482,6 +4543,30 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
             alert('Error: Backend did not calculate macros. Check console for details.');
             displayDietPlan(lastPlanQuery.currentPlan);
             return;
+        }
+
+        // Check for empty/placeholder meal (blocking validation)
+        const isEmptyMeal = (
+            revisedMeal.calories === 0 ||
+            !revisedMeal.ingredients ||
+            !Array.isArray(revisedMeal.ingredients) ||
+            revisedMeal.ingredients.length === 0 ||
+            !revisedMeal.name ||
+            revisedMeal.name === 'Meal' ||
+            revisedMeal.name === 'Unnamed Meal'
+        );
+
+        if (isEmptyMeal) {
+            console.error('❌ Backend returned empty/placeholder meal:', revisedMeal);
+            alert('Error: Could not revise meal - got empty result. Please try again.');
+            displayDietPlan(lastPlanQuery.currentPlan);
+            return;
+        }
+
+        // Warn (but don't block) for low protein in revisions - user may have requested it
+        const validation = validateMeal(revisedMeal, meal.type);
+        if (!validation.valid) {
+            console.warn('⚠️ Revised meal has validation warnings:', validation.issues);
         }
 
         // Backend calculated accurate macros - use them directly
