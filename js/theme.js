@@ -15,8 +15,8 @@
         const savedTheme = localStorage.getItem(THEME_KEY);
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // Priority: saved preference > system preference > light
-        const theme = savedTheme || (prefersDark ? DARK : LIGHT);
+        // Priority: saved preference > default to dark
+        const theme = savedTheme || DARK;
         setTheme(theme, false);
     }
 

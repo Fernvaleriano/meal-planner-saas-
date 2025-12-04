@@ -858,15 +858,19 @@
         // Dark mode toggle
         function toggleDarkMode() {
             const toggle = document.getElementById('darkModeToggle');
-            toggle.checked = !toggle.checked;
+            let newTheme;
 
             if (window.ZiqueTheme && window.ZiqueTheme.toggle) {
-                window.ZiqueTheme.toggle();
+                newTheme = window.ZiqueTheme.toggle();
             } else {
-                const newTheme = toggle.checked ? 'dark' : 'light';
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                newTheme = currentTheme === 'dark' ? 'light' : 'dark';
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('zique-theme', newTheme);
             }
+
+            // Update checkbox to match new theme
+            toggle.checked = (newTheme === 'dark');
         }
 
         // Logout handler
