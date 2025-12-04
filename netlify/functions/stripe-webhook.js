@@ -114,27 +114,38 @@ async function handleCheckoutComplete(session) {
 
         console.log('Updated existing coach:', email);
     } else {
-        // Create temporary password for the new coach
-        // They will set their real password via email verification
-        const tempPassword = generateTempPassword();
+        // Check if user already exists in Supabase Auth (but not in coaches table)
+        let userId;
 
-        // Create auth user
-        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-            email: email,
-            password: tempPassword,
-            email_confirm: false // Will send verification email
-        });
+        const { data: existingUsers } = await supabase.auth.admin.listUsers();
+        const existingAuthUser = existingUsers?.users?.find(u => u.email === email);
 
-        if (authError) {
-            console.error('Error creating auth user:', authError);
-            throw authError;
+        if (existingAuthUser) {
+            // User exists in auth, use their ID
+            userId = existingAuthUser.id;
+            console.log('Found existing auth user:', email);
+        } else {
+            // Create new auth user
+            const tempPassword = generateTempPassword();
+            const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+                email: email,
+                password: tempPassword,
+                email_confirm: false
+            });
+
+            if (authError) {
+                console.error('Error creating auth user:', authError);
+                throw authError;
+            }
+            userId = authUser.user.id;
+            console.log('Created new auth user:', email);
         }
 
         // Create coach record
         const { error: coachError } = await supabase
             .from('coaches')
             .insert({
-                id: authUser.user.id,
+                id: userId,
                 email: email,
                 name: coachName,
                 subscription_tier: plan,
@@ -154,7 +165,7 @@ async function handleCheckoutComplete(session) {
         await supabase
             .from('subscriptions')
             .insert({
-                coach_id: authUser.user.id,
+                coach_id: userId,
                 tier: plan,
                 status: 'trialing',
                 stripe_subscription_id: subscriptionId,
