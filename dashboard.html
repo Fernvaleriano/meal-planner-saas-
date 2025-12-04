@@ -1247,7 +1247,7 @@
                 // If signed out, redirect to login
                 if (event === 'SIGNED_OUT') {
                     console.log('User signed out, redirecting to login');
-                    window.location.href = 'index.html';
+                    window.location.href = 'login.html';
                 }
                 // If token refreshed successfully, reload dashboard if it's currently showing
                 else if (event === 'TOKEN_REFRESHED' && dashboardContent.style.display !== 'none') {
@@ -1316,7 +1316,7 @@
                     // If refresh fails, the session is likely expired
                     // Clear any stale session data and redirect to login
                     await supabaseClient.auth.signOut();
-                    window.location.href = 'index.html';
+                    window.location.href = 'login.html';
                     return;
                 }
 
@@ -1327,7 +1327,7 @@
                 if (!session || !session.access_token) {
                     console.error('No valid session after refresh');
                     await supabaseClient.auth.signOut();
-                    window.location.href = 'index.html';
+                    window.location.href = 'login.html';
                     return;
                 }
 
@@ -1358,7 +1358,7 @@
                             coachError.message?.includes('expired') || coachError.message?.includes('invalid')) {
                             console.error('Authentication error detected, session is invalid');
                             await supabaseClient.auth.signOut();
-                            window.location.href = 'index.html';
+                            window.location.href = 'login.html';
                             return;
                         }
 
@@ -1419,7 +1419,7 @@
 
                 // If there's an error, sign out and redirect to be safe
                 await supabaseClient.auth.signOut();
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             } finally {
                 isLoading = false;
             }
@@ -1431,7 +1431,7 @@
             if (error) {
                 alert('Error logging out: ' + error.message);
             } else {
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             }
         });
         
