@@ -7276,6 +7276,23 @@ function updateImageElement(container, imageUrl, mealName) {
     img.className = 'meal-card-image';
     img.onclick = () => showMealImageLarge({ src: imageUrl, alt: mealName });
 
+    // Handle image load errors - show placeholder instead of broken icon
+    img.onerror = () => {
+        console.warn(`Image failed to load for: ${mealName}`);
+        // Create a new placeholder div
+        const placeholder = document.createElement('div');
+        placeholder.className = 'meal-card-image-placeholder';
+        placeholder.id = wrapper.id;
+        placeholder.dataset.mealName = mealName;
+        placeholder.onclick = () => showMealImageLarge(placeholder);
+        placeholder.innerHTML = '🍽️';
+        placeholder.title = 'Image unavailable - click Generate Image to create one';
+        // Replace the wrapper with the placeholder
+        if (wrapper.parentNode) {
+            wrapper.parentNode.replaceChild(placeholder, wrapper);
+        }
+    };
+
     // Create regenerate button (subtle, shows on hover)
     const regenBtn = document.createElement('button');
     regenBtn.className = 'regenerate-btn';
