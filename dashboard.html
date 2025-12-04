@@ -647,6 +647,276 @@
             color: white;
         }
 
+        /* Subscription Warning Banner */
+        .subscription-warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .subscription-warning.show {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .subscription-warning.blocked {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-color: #ef4444;
+        }
+
+        .subscription-warning-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .subscription-warning-icon {
+            font-size: 1.5rem;
+        }
+
+        .subscription-warning-text h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 2px;
+        }
+
+        .subscription-warning.blocked .subscription-warning-text h3 {
+            color: #991b1b;
+        }
+
+        .subscription-warning-text p {
+            font-size: 0.875rem;
+            color: #a16207;
+            margin: 0;
+        }
+
+        .subscription-warning.blocked .subscription-warning-text p {
+            color: #dc2626;
+        }
+
+        .subscription-warning-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .subscription-warning.blocked .subscription-warning-btn {
+            background: #dc2626;
+        }
+
+        .subscription-warning-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Dark mode subscription warning */
+        [data-theme="dark"] .subscription-warning {
+            background: linear-gradient(135deg, #422006 0%, #713f12 100%);
+            border-color: #b45309;
+        }
+
+        [data-theme="dark"] .subscription-warning.blocked {
+            background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+            border-color: #b91c1c;
+        }
+
+        [data-theme="dark"] .subscription-warning-text h3 {
+            color: #fcd34d;
+        }
+
+        [data-theme="dark"] .subscription-warning.blocked .subscription-warning-text h3 {
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] .subscription-warning-text p {
+            color: #fbbf24;
+        }
+
+        [data-theme="dark"] .subscription-warning.blocked .subscription-warning-text p {
+            color: #f87171;
+        }
+
+        /* Onboarding Checklist */
+        .onboarding-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-100);
+            display: none;
+        }
+
+        .onboarding-section.show {
+            display: block;
+        }
+
+        .onboarding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .onboarding-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .onboarding-progress {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .onboarding-progress-bar {
+            width: 120px;
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .onboarding-progress-fill {
+            height: 100%;
+            background: var(--brand-gradient);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .onboarding-dismiss {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 4px;
+        }
+
+        .onboarding-dismiss:hover {
+            color: var(--gray-600);
+        }
+
+        .onboarding-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .onboarding-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--gray-50);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .onboarding-item:hover {
+            background: var(--gray-100);
+        }
+
+        .onboarding-item.completed {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        }
+
+        .onboarding-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--gray-300);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .onboarding-item.completed .onboarding-check {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .onboarding-item-content h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 2px;
+        }
+
+        .onboarding-item-content p {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .onboarding-item.completed .onboarding-item-content h3 {
+            color: #059669;
+        }
+
+        /* Dark mode for onboarding */
+        [data-theme="dark"] .onboarding-section {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .onboarding-header h2 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .onboarding-progress {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .onboarding-progress-bar {
+            background: #334155;
+        }
+
+        [data-theme="dark"] .onboarding-item {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .onboarding-item:hover {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .onboarding-item.completed {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+        }
+
+        [data-theme="dark"] .onboarding-check {
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .onboarding-item-content h3 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .onboarding-item-content p {
+            color: #94a3b8;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .welcome-section {
@@ -811,6 +1081,20 @@
         </div>
 
         <div id="dashboardContent" style="display: none;">
+            <!-- Subscription Warning Banner -->
+            <div class="subscription-warning" id="subscriptionWarning">
+                <div class="subscription-warning-content">
+                    <span class="subscription-warning-icon" id="subscriptionWarningIcon">⚠️</span>
+                    <div class="subscription-warning-text">
+                        <h3 id="subscriptionWarningTitle">Subscription Issue</h3>
+                        <p id="subscriptionWarningMessage">Your subscription needs attention.</p>
+                    </div>
+                </div>
+                <button class="subscription-warning-btn" id="subscriptionWarningBtn" onclick="window.location.href='billing.html'">
+                    Update Billing
+                </button>
+            </div>
+
             <div class="welcome-section">
                 <div class="welcome-card">
                     <span id="tierBadge" class="tier-badge">LOADING</span>
@@ -826,6 +1110,52 @@
                         <div class="stat-number" id="planCount">-</div>
                         <div class="stat-label">Plans Created</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Onboarding Checklist -->
+            <div class="onboarding-section" id="onboardingSection">
+                <div class="onboarding-header">
+                    <div>
+                        <h2>🚀 Get Started</h2>
+                        <div class="onboarding-progress">
+                            <span id="onboardingProgressText">0 of 4 completed</span>
+                            <div class="onboarding-progress-bar">
+                                <div class="onboarding-progress-fill" id="onboardingProgressFill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="onboarding-dismiss" onclick="dismissOnboarding()" title="Dismiss">&times;</button>
+                </div>
+                <div class="onboarding-items">
+                    <a href="coach-profile.html" class="onboarding-item" id="onboarding-profile">
+                        <div class="onboarding-check">✓</div>
+                        <div class="onboarding-item-content">
+                            <h3>Complete your profile</h3>
+                            <p>Add your name and business details</p>
+                        </div>
+                    </a>
+                    <a href="manage-clients.html" class="onboarding-item" id="onboarding-client">
+                        <div class="onboarding-check">✓</div>
+                        <div class="onboarding-item-content">
+                            <h3>Add your first client</h3>
+                            <p>Create a client profile to get started</p>
+                        </div>
+                    </a>
+                    <a href="planner.html" class="onboarding-item" id="onboarding-plan">
+                        <div class="onboarding-check">✓</div>
+                        <div class="onboarding-item-content">
+                            <h3>Create a meal plan</h3>
+                            <p>Use the AI planner to create your first plan</p>
+                        </div>
+                    </a>
+                    <a href="manage-clients.html" class="onboarding-item" id="onboarding-invite">
+                        <div class="onboarding-check">✓</div>
+                        <div class="onboarding-item-content">
+                            <h3>Invite a client</h3>
+                            <p>Send a portal invite to your client</p>
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -1073,6 +1403,12 @@
                 // Load notifications
                 loadNotifications(user.id);
 
+                // Check onboarding status
+                checkOnboardingStatus(user.id, coachData);
+
+                // Check subscription status
+                checkSubscriptionStatus(coachData);
+
                 // Hide loading, show dashboard
                 loadingDiv.style.display = 'none';
                 dashboardContent.style.display = 'block';
@@ -1232,6 +1568,162 @@
             });
             loadNotifications(currentUserId);
         });
+
+        // Onboarding functions
+        async function checkOnboardingStatus(coachId, coachData) {
+            // Check if user has dismissed onboarding
+            const dismissed = localStorage.getItem('onboardingDismissed');
+            if (dismissed === 'true') {
+                return;
+            }
+
+            try {
+                // Check each onboarding item
+                const completed = {
+                    profile: coachData.name && coachData.name.trim() !== '',
+                    client: false,
+                    plan: false,
+                    invite: false
+                };
+
+                // Check if coach has at least one client
+                const { count: clientCount } = await supabaseClient
+                    .from('clients')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('coach_id', coachId);
+                completed.client = clientCount > 0;
+
+                // Check if coach has at least one meal plan
+                const { count: planCount } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('coach_id', coachId);
+                completed.plan = planCount > 0;
+
+                // Check if any client has been invited (has user_id set)
+                const { count: invitedCount } = await supabaseClient
+                    .from('clients')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('coach_id', coachId)
+                    .not('user_id', 'is', null);
+                completed.invite = invitedCount > 0;
+
+                // Update UI for each item
+                updateOnboardingItem('onboarding-profile', completed.profile);
+                updateOnboardingItem('onboarding-client', completed.client);
+                updateOnboardingItem('onboarding-plan', completed.plan);
+                updateOnboardingItem('onboarding-invite', completed.invite);
+
+                // Calculate progress
+                const completedCount = Object.values(completed).filter(Boolean).length;
+                const totalItems = 4;
+
+                // Update progress bar
+                document.getElementById('onboardingProgressText').textContent =
+                    `${completedCount} of ${totalItems} completed`;
+                document.getElementById('onboardingProgressFill').style.width =
+                    `${(completedCount / totalItems) * 100}%`;
+
+                // Show onboarding section if not all items are complete
+                if (completedCount < totalItems) {
+                    document.getElementById('onboardingSection').classList.add('show');
+                }
+            } catch (error) {
+                console.error('Error checking onboarding status:', error);
+            }
+        }
+
+        function updateOnboardingItem(itemId, isCompleted) {
+            const item = document.getElementById(itemId);
+            if (item) {
+                if (isCompleted) {
+                    item.classList.add('completed');
+                } else {
+                    item.classList.remove('completed');
+                }
+            }
+        }
+
+        function dismissOnboarding() {
+            localStorage.setItem('onboardingDismissed', 'true');
+            document.getElementById('onboardingSection').classList.remove('show');
+        }
+
+        // Subscription status enforcement
+        function checkSubscriptionStatus(coachData) {
+            const status = coachData.subscription_status;
+            const trialEnds = coachData.trial_ends_at ? new Date(coachData.trial_ends_at) : null;
+            const now = new Date();
+
+            const warningBanner = document.getElementById('subscriptionWarning');
+            const warningIcon = document.getElementById('subscriptionWarningIcon');
+            const warningTitle = document.getElementById('subscriptionWarningTitle');
+            const warningMessage = document.getElementById('subscriptionWarningMessage');
+            const warningBtn = document.getElementById('subscriptionWarningBtn');
+
+            // Check for trial expiration
+            if (status === 'trialing' && trialEnds && trialEnds < now) {
+                warningBanner.classList.add('show', 'blocked');
+                warningIcon.textContent = '🚫';
+                warningTitle.textContent = 'Trial Expired';
+                warningMessage.textContent = 'Your free trial has ended. Subscribe now to continue using all features.';
+                warningBtn.textContent = 'Subscribe Now';
+                return;
+            }
+
+            // Check for trial ending soon (within 3 days)
+            if (status === 'trialing' && trialEnds) {
+                const daysLeft = Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24));
+                if (daysLeft <= 3 && daysLeft > 0) {
+                    warningBanner.classList.add('show');
+                    warningIcon.textContent = '⏰';
+                    warningTitle.textContent = `Trial Ends in ${daysLeft} Day${daysLeft === 1 ? '' : 's'}`;
+                    warningMessage.textContent = 'Add your payment method now to continue without interruption.';
+                    warningBtn.textContent = 'Add Payment';
+                    return;
+                }
+            }
+
+            // Check subscription status
+            switch (status) {
+                case 'past_due':
+                    warningBanner.classList.add('show');
+                    warningIcon.textContent = '⚠️';
+                    warningTitle.textContent = 'Payment Failed';
+                    warningMessage.textContent = 'Your last payment failed. Please update your payment method to avoid service interruption.';
+                    warningBtn.textContent = 'Update Payment';
+                    break;
+
+                case 'canceled':
+                    warningBanner.classList.add('show', 'blocked');
+                    warningIcon.textContent = '🚫';
+                    warningTitle.textContent = 'Subscription Canceled';
+                    warningMessage.textContent = 'Your subscription has been canceled. Reactivate to regain full access.';
+                    warningBtn.textContent = 'Reactivate';
+                    break;
+
+                case 'unpaid':
+                    warningBanner.classList.add('show', 'blocked');
+                    warningIcon.textContent = '🚫';
+                    warningTitle.textContent = 'Subscription Unpaid';
+                    warningMessage.textContent = 'Your subscription is unpaid. Please update your payment method.';
+                    warningBtn.textContent = 'Pay Now';
+                    break;
+
+                case 'none':
+                    warningBanner.classList.add('show', 'blocked');
+                    warningIcon.textContent = '🚫';
+                    warningTitle.textContent = 'No Active Subscription';
+                    warningMessage.textContent = 'You need an active subscription to use all features.';
+                    warningBtn.textContent = 'Subscribe';
+                    break;
+
+                case 'active':
+                case 'trialing':
+                    // All good, no warning needed
+                    break;
+            }
+        }
 
         // Load dashboard on page load
         loadDashboard();

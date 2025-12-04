@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--brand-gradient);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .brand-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .brand-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .header-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .header-links a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .header-links a:hover {
+            color: white;
+        }
+
+        .header-links .btn-login {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: var(--brand-gradient);
+            padding: 60px 40px 100px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 16px;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Pricing Cards */
+        .pricing-section {
+            max-width: 1000px;
+            margin: -60px auto 60px;
+            padding: 0 20px;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .pricing-card.popular {
+            border-color: var(--brand-primary);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--brand-gradient);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .plan-description {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .plan-price {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .price-currency {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .price-amount {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            letter-spacing: -0.025em;
+        }
+
+        .price-period {
+            font-size: 1rem;
+            color: var(--gray-500);
+        }
+
+        .plan-billing {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            margin-bottom: 32px;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+
+        .plan-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .plan-features li::before {
+            content: '✓';
+            color: var(--brand-primary);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .plan-features li.disabled {
+            color: var(--gray-400);
+        }
+
+        .plan-features li.disabled::before {
+            content: '—';
+            color: var(--gray-300);
+        }
+
+        .btn-select {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-select.primary {
+            background: var(--brand-gradient);
+            color: white;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+        }
+
+        .btn-select.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+        }
+
+        .btn-select.secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-select.secondary:hover {
+            background: var(--gray-200);
+        }
+
+        /* Features Section */
+        .features-section {
+            max-width: 1000px;
+            margin: 0 auto 80px;
+            padding: 0 20px;
+        }
+
+        .features-section h2 {
+            text-align: center;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 40px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            max-width: 700px;
+            margin: 0 auto 80px;
+            padding: 0 20px;
+        }
+
+        .faq-section h2 {
+            text-align: center;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 40px;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .faq-question {
+            padding: 20px 24px;
+            font-weight: 600;
+            color: var(--gray-900);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-question::after {
+            content: '+';
+            font-size: 1.5rem;
+            color: var(--gray-400);
+            transition: transform 0.2s;
+        }
+
+        .faq-item.open .faq-question::after {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            padding: 0 24px 20px;
+            color: var(--gray-600);
+            line-height: 1.6;
+            display: none;
+        }
+
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: var(--brand-gradient);
+            padding: 60px 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .cta-section h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            opacity: 0.9;
+            margin-bottom: 32px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-cta {
+            display: inline-block;
+            background: white;
+            color: var(--brand-primary);
+            padding: 16px 40px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--gray-900);
+            color: var(--gray-400);
+            padding: 40px;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-copyright {
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px 20px;
+            }
+
+            .brand-name {
+                display: none;
+            }
+
+            .hero {
+                padding: 40px 20px 80px;
+            }
+
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+
+            .pricing-card {
+                padding: 32px 24px;
+            }
+
+            .price-amount {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="brand-logo">
+            <div class="brand-logo-icon">Z</div>
+            <span class="brand-name">Zique Fitness</span>
+        </a>
+        <div class="header-links">
+            <a href="index.html" class="btn-login">Coach Login</a>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <h1>Simple, Transparent Pricing</h1>
+        <p>Everything you need to run your nutrition coaching business. No hidden fees, no surprises.</p>
+    </section>
+
+    <!-- Pricing Cards -->
+    <section class="pricing-section">
+        <div class="pricing-cards">
+            <!-- Basic Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Basic</div>
+                <div class="plan-description">Perfect for coaches just getting started</div>
+                <div class="plan-price">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount">29</span>
+                    <span class="price-period">/month</span>
+                </div>
+                <div class="plan-billing">Billed monthly. Cancel anytime.</div>
+                <ul class="plan-features">
+                    <li>Up to 25 active clients</li>
+                    <li>Custom meal plan builder</li>
+                    <li>Client food diary tracking</li>
+                    <li>AI nutrition assistant</li>
+                    <li>Weekly check-in forms</li>
+                    <li>Recipe management</li>
+                    <li>Email support</li>
+                    <li class="disabled">Custom branding</li>
+                    <li class="disabled">Supplement protocols</li>
+                </ul>
+                <a href="signup.html?plan=basic" class="btn-select secondary">Get Started</a>
+            </div>
+
+            <!-- Branded Plan -->
+            <div class="pricing-card popular">
+                <div class="popular-badge">Most Popular</div>
+                <div class="plan-name">Professional</div>
+                <div class="plan-description">For established coaches who want more</div>
+                <div class="plan-price">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount">49</span>
+                    <span class="price-period">/month</span>
+                </div>
+                <div class="plan-billing">Billed monthly. Cancel anytime.</div>
+                <ul class="plan-features">
+                    <li>Unlimited clients</li>
+                    <li>Custom meal plan builder</li>
+                    <li>Client food diary tracking</li>
+                    <li>AI nutrition assistant</li>
+                    <li>Weekly check-in forms</li>
+                    <li>Recipe management</li>
+                    <li>Priority support</li>
+                    <li>Custom branding & logo</li>
+                    <li>Supplement protocols</li>
+                </ul>
+                <a href="signup.html?plan=branded" class="btn-select primary">Get Started</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features-section">
+        <h2>Everything You Need to Succeed</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3>Custom Meal Plans</h3>
+                <p>Create personalized meal plans with our intuitive drag-and-drop builder. Add recipes, set macros, and share instantly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Client Food Diary</h3>
+                <p>Clients can log their meals and track macros. You get real-time visibility into their nutrition habits.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI Nutrition Assistant</h3>
+                <p>Powered by AI to help clients log food faster and get instant nutrition guidance between sessions.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✅</div>
+                <h3>Weekly Check-ins</h3>
+                <p>Automated check-in forms collect progress photos, measurements, and feedback. Stay connected effortlessly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🍳</div>
+                <h3>Recipe Library</h3>
+                <p>Build your recipe collection. Import from URLs, calculate nutrition automatically, share with clients.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💊</div>
+                <h3>Supplement Protocols</h3>
+                <p>Create and manage supplement schedules. Clients see exactly what to take and when.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq-section">
+        <h2>Frequently Asked Questions</h2>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">Can I switch plans later?</div>
+            <div class="faq-answer">Yes! You can upgrade or downgrade your plan at any time. Changes take effect on your next billing cycle.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">Is there a free trial?</div>
+            <div class="faq-answer">We offer a 14-day free trial on all plans. No credit card required to start. You'll only be charged after your trial ends.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">How do my clients access their plans?</div>
+            <div class="faq-answer">You invite clients via email. They create their own account and can access meal plans, log food, and submit check-ins from any device.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">What payment methods do you accept?</div>
+            <div class="faq-answer">We accept all major credit cards through Stripe. Your payment information is securely processed and never stored on our servers.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">Can I cancel anytime?</div>
+            <div class="faq-answer">Absolutely. There are no contracts or commitments. Cancel anytime from your account settings and you won't be charged again.</div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <h2>Ready to Grow Your Coaching Business?</h2>
+        <p>Join hundreds of nutrition coaches who trust Zique Fitness to manage their clients.</p>
+        <a href="signup.html?plan=branded" class="btn-cta">Start Free Trial</a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="terms.html">Terms of Service</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="mailto:support@ziquefitness.com">Contact Support</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 Zique Fitness Nutrition. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        function toggleFaq(element) {
+            const item = element.parentElement;
+            item.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>

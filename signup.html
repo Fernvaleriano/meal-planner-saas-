@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="/js/theme.js"></script>
-    <title>Create Account - Zique Fitness Nutrition</title>
+    <title>Start Free Trial - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -72,7 +72,7 @@
             border-radius: 16px;
             padding: 40px;
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
 
@@ -88,6 +88,19 @@
             color: var(--gray-500);
             margin-bottom: 24px;
             font-size: 14px;
+        }
+
+        .trial-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            color: #059669;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 24px;
         }
 
         .form-group {
@@ -120,9 +133,70 @@
             box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1);
         }
 
+        .plan-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .plan-card {
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .plan-card:hover {
+            border-color: var(--gray-300);
+        }
+
+        .plan-card.selected {
+            border-color: var(--brand-primary);
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.05) 0%, rgba(2, 132, 199, 0.05) 100%);
+        }
+
+        .plan-card input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .plan-name {
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .plan-price {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--brand-primary);
+        }
+
+        .plan-price span {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--gray-500);
+        }
+
+        .popular-tag {
+            position: absolute;
+            top: -8px;
+            right: 12px;
+            background: var(--brand-gradient);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
         button {
             width: 100%;
-            padding: 14px;
+            padding: 16px;
             background: var(--brand-gradient);
             color: white;
             border: none;
@@ -151,9 +225,8 @@
             padding: 14px 16px;
             border-radius: 10px;
             margin-bottom: 20px;
-            font-size: 14px;
-            font-weight: 500;
             display: none;
+            font-size: 14px;
         }
 
         .message.error {
@@ -163,16 +236,16 @@
         }
 
         .message.success {
-            background: #dcfce7;
+            background: #f0fdf4;
             color: #16a34a;
             border: 1px solid #bbf7d0;
         }
 
         .login-link {
             text-align: center;
-            margin-top: 24px;
-            font-size: 14px;
+            margin-top: 20px;
             color: var(--gray-500);
+            font-size: 14px;
         }
 
         .login-link a {
@@ -185,14 +258,49 @@
             color: #0f766e;
         }
 
-        .note {
-            background: #fef3c7;
-            border: 1px solid #fcd34d;
-            padding: 14px 16px;
-            border-radius: 10px;
-            margin-bottom: 24px;
-            font-size: 13px;
-            color: #92400e;
+        .terms-note {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-align: center;
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+
+        .terms-note a {
+            color: var(--brand-primary);
+            text-decoration: none;
+        }
+
+        .features-list {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .features-list h3 {
+            font-size: 0.85rem;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .features-list ul {
+            list-style: none;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            padding: 4px 0;
+        }
+
+        .features-list li::before {
+            content: '✓';
+            color: var(--brand-primary);
+            font-weight: 700;
         }
 
         /* ===== DARK MODE STYLES ===== */
@@ -210,6 +318,11 @@
 
         [data-theme="dark"] .subtitle {
             color: #94a3b8;
+        }
+
+        [data-theme="dark"] .trial-badge {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+            color: #34d399;
         }
 
         [data-theme="dark"] label {
@@ -230,13 +343,21 @@
             box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2);
         }
 
-        [data-theme="dark"] select option {
-            background: #1e293b;
-            color: #f1f5f9;
+        [data-theme="dark"] .plan-card {
+            border-color: #334155;
         }
 
-        [data-theme="dark"] input::placeholder {
-            color: #64748b;
+        [data-theme="dark"] .plan-card:hover {
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .plan-card.selected {
+            border-color: var(--brand-primary);
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
+        }
+
+        [data-theme="dark"] .plan-name {
+            color: #f1f5f9;
         }
 
         [data-theme="dark"] .message.error {
@@ -255,10 +376,20 @@
             color: #94a3b8;
         }
 
-        [data-theme="dark"] .note {
-            background: #422006;
-            border-color: #92400e;
-            color: #fcd34d;
+        [data-theme="dark"] .terms-note {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .features-list {
+            border-top-color: #334155;
+        }
+
+        [data-theme="dark"] .features-list h3 {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .features-list li {
+            color: #94a3b8;
         }
     </style>
 </head>
@@ -269,124 +400,159 @@
     </div>
 
     <div class="signup-container">
-        <h1>Create Account</h1>
-        <p class="subtitle">Get started with your nutrition coaching platform</p>
-        
-        <div class="note">
-            ⚠️ This is for testing. In production, accounts will be created automatically when coaches pay via Moonclerk.
+        <h1>Start Your Free Trial</h1>
+        <p class="subtitle">14 days free, no credit card required to start</p>
+
+        <div class="trial-badge">
+            <span>🎉</span> 14-Day Free Trial
         </div>
-        
+
         <div id="message" class="message"></div>
-        
+
         <form id="signupForm">
             <div class="form-group">
+                <label for="name">Your Name</label>
+                <input type="text" id="name" name="name" required placeholder="John Smith">
+            </div>
+
+            <div class="form-group">
                 <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required autocomplete="email">
+                <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com">
             </div>
-            
+
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="6" autocomplete="new-password">
-                <small style="color: #666; font-size: 12px;">At least 6 characters</small>
+                <label>Select Your Plan</label>
+                <div class="plan-cards">
+                    <label class="plan-card" id="basicCard">
+                        <input type="radio" name="plan" value="basic">
+                        <div class="plan-name">Basic</div>
+                        <div class="plan-price">$29<span>/mo</span></div>
+                    </label>
+                    <label class="plan-card selected" id="brandedCard">
+                        <div class="popular-tag">Popular</div>
+                        <input type="radio" name="plan" value="branded" checked>
+                        <div class="plan-name">Professional</div>
+                        <div class="plan-price">$49<span>/mo</span></div>
+                    </label>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="tier">Subscription Tier</label>
-                <select id="tier" name="tier" required>
-                    <option value="basic">Basic ($29/month)</option>
-                    <option value="branded">Branded ($49/month)</option>
-                </select>
+
+            <button type="submit" id="signupBtn">Start Free Trial →</button>
+
+            <div class="terms-note">
+                By signing up, you agree to our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.
             </div>
-            
-            <button type="submit" id="signupBtn">Create Test Account</button>
         </form>
-        
+
+        <div class="features-list">
+            <h3>What's included:</h3>
+            <ul>
+                <li>Custom meal plan builder</li>
+                <li>Client food diary & tracking</li>
+                <li>AI nutrition assistant</li>
+                <li>Weekly check-in forms</li>
+                <li>Recipe management</li>
+            </ul>
+        </div>
+
         <div class="login-link">
             Already have an account? <a href="index.html">Sign in</a>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Initialize Supabase client
-        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
-        
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
+        // Get plan from URL if specified
+        const urlParams = new URLSearchParams(window.location.search);
+        const planFromUrl = urlParams.get('plan');
+        if (planFromUrl === 'basic') {
+            document.querySelector('input[value="basic"]').checked = true;
+            updatePlanSelection();
+        }
+
+        // Handle plan card selection
+        const planCards = document.querySelectorAll('.plan-card');
+        planCards.forEach(card => {
+            card.addEventListener('click', () => {
+                planCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                card.querySelector('input').checked = true;
+            });
+        });
+
+        function updatePlanSelection() {
+            planCards.forEach(card => {
+                const input = card.querySelector('input');
+                if (input.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        // Form handling
         const signupForm = document.getElementById('signupForm');
         const signupBtn = document.getElementById('signupBtn');
         const messageDiv = document.getElementById('message');
-        
+
         function showMessage(text, type) {
             messageDiv.textContent = text;
             messageDiv.className = `message ${type}`;
             messageDiv.style.display = 'block';
         }
-        
+
         function hideMessage() {
             messageDiv.style.display = 'none';
         }
-        
+
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             hideMessage();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const tier = document.getElementById('tier').value;
-            
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const plan = document.querySelector('input[name="plan"]:checked').value;
+
+            if (!name || !email) {
+                showMessage('Please fill in all fields', 'error');
+                return;
+            }
+
             signupBtn.disabled = true;
-            signupBtn.textContent = 'Creating account...';
-            
+            signupBtn.textContent = 'Redirecting to checkout...';
+
             try {
-                // Step 1: Create auth user
-                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: password
+                // Create Stripe checkout session
+                const response = await fetch('/.netlify/functions/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        name: name,
+                        plan: plan
+                    })
                 });
-                
-                if (authError) throw authError;
-                
-                // Step 2: Create coach record in database
-                const { error: coachError } = await supabaseClient
-                    .from('coaches')
-                    .insert([
-                        {
-                            id: authData.user.id,
-                            email: email,
-                            subscription_tier: tier
-                        }
-                    ]);
-                
-                if (coachError) throw coachError;
-                
-                // Step 3: Create subscription record
-                const { error: subError } = await supabaseClient
-                    .from('subscriptions')
-                    .insert([
-                        {
-                            coach_id: authData.user.id,
-                            tier: tier,
-                            status: 'active',
-                            renewal_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-                        }
-                    ]);
-                
-                if (subError) throw subError;
-                
-                showMessage('Account created successfully! Redirecting to login...', 'success');
-                
-                // Redirect to login after 2 seconds
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
-                
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create checkout session');
+                }
+
+                // Redirect to Stripe Checkout
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error('No checkout URL received');
+                }
+
             } catch (error) {
-                showMessage(error.message, 'error');
+                console.error('Signup error:', error);
+                showMessage(error.message || 'Something went wrong. Please try again.', 'error');
                 signupBtn.disabled = false;
-                signupBtn.textContent = 'Create Test Account';
+                signupBtn.textContent = 'Start Free Trial →';
             }
         });
     </script>

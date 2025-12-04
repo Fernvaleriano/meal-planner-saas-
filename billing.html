@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <title>Billing & Subscription - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            color: var(--gray-700);
+        }
+
+        .header {
+            background: var(--brand-gradient);
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .back-btn:hover {
+            opacity: 1;
+        }
+
+        .header-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .billing-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .billing-card h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 24px;
+        }
+
+        .subscription-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .status-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .status-icon.active {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        }
+
+        .status-icon.trialing {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        .status-icon.warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        .status-icon.error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+
+        .status-info h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .status-info p {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        .plan-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .plan-detail {
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 10px;
+        }
+
+        .plan-detail-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .plan-detail-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .billing-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--brand-gradient);
+            color: white;
+            box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--gray-500);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .faq-section {
+            margin-top: 40px;
+        }
+
+        .faq-section h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .faq-item {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+
+        .faq-question {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .faq-answer {
+            color: var(--gray-600);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Dark mode */
+        [data-theme="dark"] body {
+            background: var(--gray-900);
+        }
+
+        [data-theme="dark"] .billing-card {
+            background: var(--gray-800);
+        }
+
+        [data-theme="dark"] .billing-card h2,
+        [data-theme="dark"] .status-info h3,
+        [data-theme="dark"] .plan-detail-value,
+        [data-theme="dark"] .faq-question {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .subscription-status,
+        [data-theme="dark"] .plan-detail {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .status-info p,
+        [data-theme="dark"] .plan-detail-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .btn-secondary:hover {
+            background: #475569;
+        }
+
+        [data-theme="dark"] .faq-item {
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .faq-answer {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="dashboard.html" class="back-btn">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Dashboard
+        </a>
+        <h1 class="header-title">Billing & Subscription</h1>
+    </header>
+
+    <div class="container">
+        <div id="loadingState" class="billing-card">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                Loading billing information...
+            </div>
+        </div>
+
+        <div id="billingContent" style="display: none;">
+            <div class="billing-card">
+                <h2>Subscription Status</h2>
+
+                <div class="subscription-status">
+                    <div class="status-icon" id="statusIcon">
+                        <span id="statusEmoji"></span>
+                    </div>
+                    <div class="status-info">
+                        <h3 id="statusTitle">Loading...</h3>
+                        <p id="statusMessage">Checking your subscription status</p>
+                    </div>
+                </div>
+
+                <div class="plan-details">
+                    <div class="plan-detail">
+                        <div class="plan-detail-label">Current Plan</div>
+                        <div class="plan-detail-value" id="planName">-</div>
+                    </div>
+                    <div class="plan-detail">
+                        <div class="plan-detail-label">Status</div>
+                        <div class="plan-detail-value" id="planStatus">-</div>
+                    </div>
+                    <div class="plan-detail" id="renewalDetail">
+                        <div class="plan-detail-label">Next Billing</div>
+                        <div class="plan-detail-value" id="renewalDate">-</div>
+                    </div>
+                    <div class="plan-detail" id="trialDetail" style="display: none;">
+                        <div class="plan-detail-label">Trial Ends</div>
+                        <div class="plan-detail-value" id="trialEndDate">-</div>
+                    </div>
+                </div>
+
+                <div class="billing-actions">
+                    <button class="btn btn-primary" id="manageBtn" onclick="openBillingPortal()">
+                        Manage Subscription
+                    </button>
+                    <a href="pricing.html" class="btn btn-secondary">
+                        View Plans
+                    </a>
+                </div>
+            </div>
+
+            <div class="faq-section">
+                <h2>Billing FAQ</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I cancel my subscription?</div>
+                    <div class="faq-answer">Click "Manage Subscription" above to access your billing portal. From there, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I update my payment method?</div>
+                    <div class="faq-answer">Click "Manage Subscription" to access the billing portal where you can add, update, or remove payment methods.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I change my plan?</div>
+                    <div class="faq-answer">Yes! You can upgrade or downgrade your plan at any time through the billing portal. Changes take effect immediately, with prorated billing applied.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What happens when my trial ends?</div>
+                    <div class="faq-answer">If you've added a payment method, you'll be automatically charged for your selected plan. If not, you'll need to subscribe to continue using all features.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentCoachId = null;
+
+        async function loadBillingInfo() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                currentCoachId = session.user.id;
+
+                const { data: coach, error } = await supabaseClient
+                    .from('coaches')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error || !coach) {
+                    throw new Error('Could not load coach data');
+                }
+
+                // Update UI based on subscription status
+                updateBillingUI(coach);
+
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('billingContent').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading billing info:', error);
+                alert('Error loading billing information: ' + error.message);
+            }
+        }
+
+        function updateBillingUI(coach) {
+            const status = coach.subscription_status || 'none';
+            const tier = coach.subscription_tier || 'basic';
+            const trialEnds = coach.trial_ends_at ? new Date(coach.trial_ends_at) : null;
+            const periodEnd = coach.current_period_end ? new Date(coach.current_period_end) : null;
+            const now = new Date();
+
+            // Set plan name
+            document.getElementById('planName').textContent =
+                tier === 'branded' ? 'Professional ($49/mo)' : 'Basic ($29/mo)';
+
+            // Update status display
+            const statusIcon = document.getElementById('statusIcon');
+            const statusEmoji = document.getElementById('statusEmoji');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMessage = document.getElementById('statusMessage');
+            const planStatus = document.getElementById('planStatus');
+
+            statusIcon.className = 'status-icon';
+
+            switch (status) {
+                case 'active':
+                    statusIcon.classList.add('active');
+                    statusEmoji.textContent = '✓';
+                    statusTitle.textContent = 'Active Subscription';
+                    statusMessage.textContent = 'Your subscription is active and in good standing.';
+                    planStatus.textContent = 'Active';
+                    break;
+
+                case 'trialing':
+                    statusIcon.classList.add('trialing');
+                    statusEmoji.textContent = '⏳';
+
+                    if (trialEnds && trialEnds > now) {
+                        const daysLeft = Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24));
+                        statusTitle.textContent = 'Free Trial';
+                        statusMessage.textContent = `${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining in your trial.`;
+                        planStatus.textContent = 'Trial';
+
+                        document.getElementById('trialDetail').style.display = 'block';
+                        document.getElementById('renewalDetail').style.display = 'none';
+                        document.getElementById('trialEndDate').textContent = trialEnds.toLocaleDateString();
+                    } else {
+                        statusIcon.classList.remove('trialing');
+                        statusIcon.classList.add('error');
+                        statusEmoji.textContent = '!';
+                        statusTitle.textContent = 'Trial Expired';
+                        statusMessage.textContent = 'Your trial has ended. Subscribe now to continue.';
+                        planStatus.textContent = 'Expired';
+                    }
+                    break;
+
+                case 'past_due':
+                    statusIcon.classList.add('warning');
+                    statusEmoji.textContent = '!';
+                    statusTitle.textContent = 'Payment Failed';
+                    statusMessage.textContent = 'Your last payment failed. Please update your payment method.';
+                    planStatus.textContent = 'Past Due';
+                    break;
+
+                case 'canceled':
+                    statusIcon.classList.add('error');
+                    statusEmoji.textContent = '✕';
+                    statusTitle.textContent = 'Subscription Canceled';
+                    statusMessage.textContent = 'Your subscription has been canceled.';
+                    planStatus.textContent = 'Canceled';
+                    break;
+
+                default:
+                    statusIcon.classList.add('error');
+                    statusEmoji.textContent = '?';
+                    statusTitle.textContent = 'No Active Subscription';
+                    statusMessage.textContent = 'Subscribe to access all features.';
+                    planStatus.textContent = 'None';
+            }
+
+            // Set renewal date
+            if (periodEnd && status === 'active') {
+                document.getElementById('renewalDate').textContent = periodEnd.toLocaleDateString();
+            } else {
+                document.getElementById('renewalDetail').style.display = 'none';
+            }
+
+            // Update button text based on status
+            const manageBtn = document.getElementById('manageBtn');
+            if (status === 'none' || (status === 'trialing' && trialEnds && trialEnds < now)) {
+                manageBtn.textContent = 'Subscribe Now';
+            } else if (status === 'canceled') {
+                manageBtn.textContent = 'Reactivate Subscription';
+            }
+        }
+
+        async function openBillingPortal() {
+            const manageBtn = document.getElementById('manageBtn');
+            manageBtn.disabled = true;
+            manageBtn.textContent = 'Opening...';
+
+            try {
+                const response = await fetch('/.netlify/functions/create-billing-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coachId: currentCoachId })
+                });
+
+                const data = await response.json();
+
+                if (data.redirect) {
+                    window.location.href = data.url;
+                } else if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error(data.error || 'Failed to open billing portal');
+                }
+
+            } catch (error) {
+                console.error('Error opening billing portal:', error);
+                alert('Error: ' + error.message);
+                manageBtn.disabled = false;
+                manageBtn.textContent = 'Manage Subscription';
+            }
+        }
+
+        // Load billing info on page load
+        loadBillingInfo();
+    </script>
+</body>
+</html>
