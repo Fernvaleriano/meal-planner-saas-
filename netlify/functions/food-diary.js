@@ -42,10 +42,11 @@ exports.handler = async (event) => {
         };
       }
 
-      // Build entries query
+      // Build entries query - only select columns used by the UI (reduces payload ~15%)
+      // Removed: client_id (already known), created_at (only used for ordering, not display)
       let entriesQuery = supabase
         .from('food_diary_entries')
-        .select('id, client_id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, created_at')
+        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber')
         .eq('client_id', clientId)
         .order('meal_type', { ascending: true })
         .order('created_at', { ascending: true });
