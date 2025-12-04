@@ -548,6 +548,48 @@
             height: 20px;
         }
 
+        /* Save meal button */
+        .save-meal-btn {
+            padding: 8px;
+            margin-right: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gray-400);
+            transition: color 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .save-meal-btn:hover {
+            color: var(--brand-primary);
+            transform: scale(1.1);
+        }
+
+        .save-meal-btn.saved {
+            color: var(--brand-primary);
+        }
+
+        .save-meal-btn.saving {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .save-meal-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        [data-theme="dark"] .save-meal-btn {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .save-meal-btn:hover,
+        [data-theme="dark"] .save-meal-btn.saved {
+            color: var(--brand-primary);
+        }
+
         .add-food-btn {
             display: flex;
             align-items: center;
@@ -3386,6 +3428,9 @@
                         ? `${servingNum} ${servingUnit}${servingNum !== 1 ? 's' : ''}`
                         : `${servingNum} x ${servingSize}${servingUnit}`;
 
+                    // Escape food name for use in onclick
+                    const escapedName = entry.food_name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
                     return `
                     <div class="swipe-container" id="entry-${entry.id}">
                         <div class="delete-action" onclick="swipeDeleteEntry(${entry.id}, '${meal}')">
@@ -3393,12 +3438,17 @@
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
                         </div>
-                        <div class="swipe-content food-entry" onclick="openEditModal(${entry.id})" data-entry-id="${entry.id}">
-                            <div class="food-info">
+                        <div class="swipe-content food-entry" data-entry-id="${entry.id}">
+                            <div class="food-info" onclick="openEditModal(${entry.id})">
                                 <div class="food-name">${entry.food_name}</div>
                                 <div class="food-details">${servingDisplay}</div>
                             </div>
-                            <div class="food-calories">${entry.calories}</div>
+                            <button class="save-meal-btn" onclick="event.stopPropagation(); saveMeal(${entry.id}, '${escapedName}', '${meal}', ${entry.calories}, ${entry.protein || 0}, ${entry.carbs || 0}, ${entry.fat || 0}, this)" title="Save to favorites">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                                </svg>
+                            </button>
+                            <div class="food-calories" onclick="openEditModal(${entry.id})">${entry.calories}</div>
                         </div>
                     </div>
                 `}).join('');
@@ -3764,8 +3814,28 @@
                 // Update swipe content
                 const swipeContent = tempEl.querySelector('.swipe-content');
                 if (swipeContent) {
-                    swipeContent.setAttribute('onclick', `openEditModal(${entry.id})`);
                     swipeContent.setAttribute('data-entry-id', entry.id);
+                }
+
+                // Update food-info onclick
+                const foodInfo = tempEl.querySelector('.food-info');
+                if (foodInfo) {
+                    foodInfo.setAttribute('onclick', `openEditModal(${entry.id})`);
+                }
+
+                // Update food-calories onclick
+                const foodCalories = tempEl.querySelector('.food-calories');
+                if (foodCalories) {
+                    foodCalories.setAttribute('onclick', `openEditModal(${entry.id})`);
+                }
+
+                // Update save button with real entry data
+                const saveBtn = tempEl.querySelector('.save-meal-btn');
+                if (saveBtn) {
+                    const escapedName = entry.food_name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    saveBtn.setAttribute('onclick', `event.stopPropagation(); saveMeal(${entry.id}, '${escapedName}', '${mealType}', ${entry.calories || 0}, ${entry.protein || 0}, ${entry.carbs || 0}, ${entry.fat || 0}, this)`);
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('saving');
                 }
             }
         }
@@ -3794,6 +3864,11 @@
                             <div class="food-name">${entry.food_name}</div>
                             <div class="food-details">${servingDisplay}</div>
                         </div>
+                        <button class="save-meal-btn saving" disabled title="Save to favorites">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                            </svg>
+                        </button>
                         <div class="food-calories">${entry.calories || 0}</div>
                     </div>
                 </div>
@@ -4098,6 +4173,64 @@
             } catch (err) {
                 console.error('Error updating entry:', err);
                 showToast('Failed to update entry');
+            }
+        }
+
+        // Save meal to favorites
+        async function saveMeal(entryId, foodName, mealType, calories, protein, carbs, fat, btnElement) {
+            if (!clientId) {
+                showToast('Please log in first');
+                return;
+            }
+
+            // Add saving state
+            btnElement.classList.add('saving');
+
+            try {
+                const response = await fetch('/.netlify/functions/toggle-favorite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        coachId: coachId,
+                        mealName: foodName,
+                        mealType: mealType,
+                        calories: calories,
+                        protein: protein,
+                        carbs: carbs,
+                        fat: fat
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to save meal');
+
+                const result = await response.json();
+
+                // Update button state based on action
+                btnElement.classList.remove('saving');
+                if (result.action === 'added') {
+                    btnElement.classList.add('saved');
+                    // Fill the bookmark icon
+                    btnElement.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                        </svg>
+                    `;
+                    showToast('Saved to favorites!');
+                } else {
+                    btnElement.classList.remove('saved');
+                    // Unfill the bookmark icon
+                    btnElement.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                        </svg>
+                    `;
+                    showToast('Removed from favorites');
+                }
+            } catch (err) {
+                console.error('Error saving meal:', err);
+                btnElement.classList.remove('saving');
+                showToast('Failed to save meal');
             }
         }
 
