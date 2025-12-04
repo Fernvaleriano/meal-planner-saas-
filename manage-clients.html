@@ -1733,6 +1733,15 @@
             }
         }
 
+        // Debounce helper
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
         // Search functionality
         function handleSearch() {
             searchQuery = searchInput.value.trim();
@@ -1741,6 +1750,9 @@
             updateClientCount();
             applyView();
         }
+
+        // Debounced version for input events
+        const debouncedSearch = debounce(handleSearch, 150);
 
         function clearSearch() {
             searchInput.value = '';
@@ -1811,20 +1823,31 @@
             applyView();
         }
 
-        // Apply current view
-        function applyView() {
-            // Update button states
-            cardViewBtn.classList.toggle('active', currentView === 'cards');
-            tableViewBtn.classList.toggle('active', currentView === 'table');
+        // Render lock to prevent race conditions
+        let isRendering = false;
 
-            if (currentView === 'cards') {
-                clientsContainer.style.display = 'grid';
-                clientsTableContainer.style.display = 'none';
-                renderClients();
-            } else {
-                clientsContainer.style.display = 'none';
-                clientsTableContainer.style.display = 'block';
-                renderClientsTable();
+        // Apply current view
+        async function applyView() {
+            // Prevent concurrent renders
+            if (isRendering) return;
+            isRendering = true;
+
+            try {
+                // Update button states
+                cardViewBtn.classList.toggle('active', currentView === 'cards');
+                tableViewBtn.classList.toggle('active', currentView === 'table');
+
+                if (currentView === 'cards') {
+                    clientsContainer.style.display = 'grid';
+                    clientsTableContainer.style.display = 'none';
+                    await renderClients();
+                } else {
+                    clientsContainer.style.display = 'none';
+                    clientsTableContainer.style.display = 'block';
+                    await renderClientsTable();
+                }
+            } finally {
+                isRendering = false;
             }
         }
 
@@ -2380,8 +2403,8 @@
         // Event listeners
         addClientBtn.addEventListener('click', openAddClientModal);
 
-        // Search input listener
-        searchInput.addEventListener('input', handleSearch);
+        // Search input listener (debounced to prevent race conditions)
+        searchInput.addEventListener('input', debouncedSearch);
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 clearSearch();
