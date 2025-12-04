@@ -114,27 +114,49 @@ async function handleCheckoutComplete(session) {
 
         console.log('Updated existing coach:', email);
     } else {
-        // Create temporary password for the new coach
-        // They will set their real password via email verification
+        // Try to create new auth user, handle if already exists
+        let userId;
         const tempPassword = generateTempPassword();
 
-        // Create auth user
         const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
             email: email,
             password: tempPassword,
-            email_confirm: false // Will send verification email
+            email_confirm: false
         });
 
         if (authError) {
-            console.error('Error creating auth user:', authError);
-            throw authError;
+            // If user already exists, find them
+            if (authError.message && authError.message.includes('already been registered')) {
+                console.log('User already exists, looking up by email:', email);
+
+                // List users and find by email
+                const { data: userList } = await supabase.auth.admin.listUsers({
+                    page: 1,
+                    perPage: 1000
+                });
+
+                const existingUser = userList?.users?.find(u => u.email === email);
+                if (existingUser) {
+                    userId = existingUser.id;
+                    console.log('Found existing user ID:', userId);
+                } else {
+                    console.error('Could not find existing user');
+                    throw new Error('User exists but could not be found');
+                }
+            } else {
+                console.error('Error creating auth user:', authError);
+                throw authError;
+            }
+        } else {
+            userId = authUser.user.id;
+            console.log('Created new auth user:', email);
         }
 
         // Create coach record
         const { error: coachError } = await supabase
             .from('coaches')
             .insert({
-                id: authUser.user.id,
+                id: userId,
                 email: email,
                 name: coachName,
                 subscription_tier: plan,
@@ -154,7 +176,7 @@ async function handleCheckoutComplete(session) {
         await supabase
             .from('subscriptions')
             .insert({
-                coach_id: authUser.user.id,
+                coach_id: userId,
                 tier: plan,
                 status: 'trialing',
                 stripe_subscription_id: subscriptionId,
@@ -162,13 +184,15 @@ async function handleCheckoutComplete(session) {
             });
 
         // Send password reset email so they can set their password
-        await supabase.auth.admin.generateLink({
-            type: 'recovery',
-            email: email,
-            options: {
-                redirectTo: `${process.env.URL || 'https://your-site.netlify.app'}/set-password.html`
-            }
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${process.env.URL || 'https://ziquefitnesnutrition.com'}/set-password.html`
         });
+
+        if (resetError) {
+            console.error('Error sending password reset email:', resetError);
+        } else {
+            console.log('Password reset email sent to:', email);
+        }
 
         console.log('Created new coach:', email);
     }
