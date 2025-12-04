@@ -1,6 +1,25 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
+// Helper function to strip markdown formatting from text
+function stripMarkdown(text) {
+    if (!text) return text;
+    return String(text)
+        .replace(/\*\*\*/g, '')      // Bold italic ***text***
+        .replace(/\*\*/g, '')         // Bold **text**
+        .replace(/\*/g, '')           // Italic *text*
+        .replace(/___/g, '')          // Bold italic ___text___
+        .replace(/__/g, '')           // Bold __text__
+        .replace(/_/g, ' ')           // Italic _text_ (replace with space)
+        .replace(/~~~/g, '')          // Strikethrough
+        .replace(/~~/g, '')           // Strikethrough ~~text~~
+        .replace(/`/g, '')            // Code `text`
+        .replace(/#{1,6}\s*/g, '')    // Headers # ## ###
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Links [text](url)
+        .replace(/\s+/g, ' ')         // Multiple spaces to single
+        .trim();
+}
+
 // CORS headers - defined outside handler to ensure they're always available
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -185,7 +204,7 @@ Return ONLY the JSON array, nothing else.`
         // Validate and clean the data
         foods = foods.filter(f => f && f.name && typeof f.calories === 'number');
         foods = foods.map(f => ({
-            name: String(f.name).substring(0, 100),
+            name: stripMarkdown(f.name).substring(0, 100),
             calories: Math.max(0, Math.round(f.calories)),
             protein: Math.max(0, Math.round(f.protein || 0)),
             carbs: Math.max(0, Math.round(f.carbs || 0)),
