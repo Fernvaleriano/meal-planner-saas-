@@ -2755,6 +2755,25 @@
                     <button type="button" class="btn btn-secondary" onclick="closeEditModal()" style="flex:1">Cancel</button>
                     <button type="submit" class="btn btn-primary" style="flex:1">Save</button>
                 </div>
+                <button type="button" onclick="saveEntryToFavorites()" style="
+                    width: 100%;
+                    margin-top: 12px;
+                    padding: 12px;
+                    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+                    border: none;
+                    border-radius: 10px;
+                    color: #dc2626;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='linear-gradient(135deg, #fca5a5 0%, #f87171 100%)'"
+                   onmouseout="this.style.background='linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'">
+                    ❤️ Save to Favorites
+                </button>
             </form>
         </div>
     </div>
@@ -4035,6 +4054,59 @@
 
         function closeEditModal() {
             document.getElementById('editModal').classList.remove('active');
+        }
+
+        async function saveEntryToFavorites() {
+            const entryId = document.getElementById('editEntryId').value;
+            const entry = entries.find(e => e.id == entryId);
+
+            if (!entry) {
+                showToast('Could not find entry');
+                return;
+            }
+
+            // Get current values from form (in case user edited before saving to favorites)
+            const foodName = document.getElementById('editFoodName').value;
+            const calories = parseInt(document.getElementById('editCalories').value) || 0;
+            const protein = parseFloat(document.getElementById('editProtein').value) || 0;
+            const carbs = parseFloat(document.getElementById('editCarbs').value) || 0;
+            const fat = parseFloat(document.getElementById('editFat').value) || 0;
+            const mealType = entry.meal_type || 'snack';
+
+            try {
+                const response = await fetch('/.netlify/functions/toggle-favorite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        mealName: foodName,
+                        mealType: mealType,
+                        calories: calories,
+                        protein: Math.round(protein * 10) / 10,
+                        carbs: Math.round(carbs * 10) / 10,
+                        fat: Math.round(fat * 10) / 10,
+                        notes: 'Saved from diary'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to save favorite');
+                }
+
+                if (data.action === 'added') {
+                    showToast('Saved to favorites! ❤️');
+                } else if (data.action === 'removed') {
+                    showToast('Removed from favorites');
+                }
+
+                closeEditModal();
+
+            } catch (err) {
+                console.error('Error saving to favorites:', err);
+                showToast('Failed to save to favorites');
+            }
         }
 
         async function saveEditEntry(e) {
