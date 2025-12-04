@@ -2323,7 +2323,32 @@ function validateMeal(meal, mealType) {
         issues.push(`Macro math error: ${meal.calories} cal listed but macros calculate to ${Math.round(calculatedCalories)} cal (${Math.round(percentOff*100)}% error)`);
     }
 
-    // Validation 2 & 3: REMOVED - Calorie ranges were too strict
+    // Validation 2: Minimum calorie check - catch single-ingredient "meals"
+    const mealCalories = (typeof meal.calories === 'number' && !isNaN(meal.calories)) ? meal.calories : 0;
+    const mealTypeForCal = (mealType || meal.type || '').toLowerCase();
+    let minCalories = 50; // Default minimum
+    if (mealTypeForCal === 'breakfast') {
+        minCalories = 200; // Breakfast: at least 200 cal
+    } else if (mealTypeForCal === 'lunch' || mealTypeForCal === 'dinner') {
+        minCalories = 300; // Main meals: at least 300 cal
+    } else if (mealTypeForCal === 'snack' || mealTypeForCal.includes('snack')) {
+        minCalories = 100; // Snacks: at least 100 cal
+    }
+
+    if (mealCalories < minCalories) {
+        issues.push(`Insufficient calories for ${mealTypeForCal}: ${mealCalories} cal (minimum ${minCalories} cal required)`);
+    }
+
+    // Validation 3: Minimum ingredient count - real meals have multiple ingredients
+    const ingredientCount = (meal.ingredients && Array.isArray(meal.ingredients)) ? meal.ingredients.length : 0;
+    let minIngredients = 1;
+    if (mealTypeForCal === 'breakfast' || mealTypeForCal === 'lunch' || mealTypeForCal === 'dinner') {
+        minIngredients = 2; // Main meals should have at least 2 ingredients
+    }
+
+    if (ingredientCount < minIngredients) {
+        issues.push(`Insufficient ingredients for ${mealTypeForCal}: ${ingredientCount} (minimum ${minIngredients} required)`);
+    }
 
     // Validation 4: Sanity check on macros
     if (meal.protein < 0 || meal.carbs < 0 || meal.fat < 0) {
@@ -2346,8 +2371,10 @@ function validateMeal(meal, mealType) {
         minProtein = 3; // Snacks: at least 3g protein (allows fruit-based snacks)
     }
 
-    if (minProtein > 0 && meal.protein < minProtein) {
-        issues.push(`Insufficient protein for ${mealTypeLower}: ${meal.protein}g (minimum ${minProtein}g required)`);
+    // Handle undefined/null/NaN protein values - treat as 0
+    const mealProtein = (typeof meal.protein === 'number' && !isNaN(meal.protein)) ? meal.protein : 0;
+    if (minProtein > 0 && mealProtein < minProtein) {
+        issues.push(`Insufficient protein for ${mealTypeLower}: ${mealProtein}g (minimum ${minProtein}g required)`);
     }
 
     // Validation 5: Protein source validation - catch impossible protein claims
@@ -2428,11 +2455,15 @@ function validateMeal(meal, mealType) {
         issues.unshift('Empty or placeholder meal detected - needs regeneration');
     }
 
-    // Check if protein is insufficient (blocking issue)
+    // Check for blocking issues - any of these should trigger regeneration
     const hasInsufficientProtein = issues.some(issue => issue.includes('Insufficient protein'));
+    const hasInsufficientCalories = issues.some(issue => issue.includes('Insufficient calories'));
+    const hasInsufficientIngredients = issues.some(issue => issue.includes('Insufficient ingredients'));
+
+    const hasBlockingIssue = isEmptyMeal || hasInsufficientProtein || hasInsufficientCalories || hasInsufficientIngredients;
 
     return {
-        valid: !isEmptyMeal && !hasInsufficientProtein, // Empty meals or low protein are invalid
+        valid: !hasBlockingIssue, // Any blocking issue makes meal invalid
         issues: issues,
         meal: meal
     };
@@ -3448,12 +3479,44 @@ ${mealExamples}`;
                     let validMeal = null;
                     let previousAttempt = null;
 
-                    while (retryCount < 2 && !validMeal) {
-                        const regeneratePrompt = `Generate a single ${meal.type} meal.
+                    while (retryCount < 3 && !validMeal) {
+                        // Calculate targets for the prompt
+                        const mealTypeName = meal.type?.toLowerCase() || 'meal';
+                        let targetCalPercent = 0.25;
+                        let minProteinRequired = 10;
+                        if (mealTypeName === 'breakfast') { targetCalPercent = 0.27; minProteinRequired = 10; }
+                        else if (mealTypeName === 'lunch') { targetCalPercent = 0.32; minProteinRequired = 15; }
+                        else if (mealTypeName === 'dinner') { targetCalPercent = 0.28; minProteinRequired = 15; }
+                        else if (mealTypeName === 'snack') { targetCalPercent = 0.13; minProteinRequired = 3; }
+
+                        const targetCal = Math.round(calories * targetCalPercent);
+                        const targetProt = Math.round(protein * targetCalPercent);
+
+                        const regeneratePrompt = `Generate a COMPLETE ${meal.type} meal with MULTIPLE ingredients.
+
+CRITICAL REQUIREMENTS:
+- This MUST be a real meal with 3-5 ingredients, NOT a single ingredient!
+- MUST include a PRIMARY PROTEIN SOURCE: chicken, fish, beef, eggs, Greek yogurt, tofu, etc.
+- MINIMUM PROTEIN: ${minProteinRequired}g (current issue: meal has insufficient protein)
+- Target: ~${targetCal} calories, ~${targetProt}g protein
+
 Diet preference: ${preference}
 Avoid: ${allergies}
 
-This meal should fit into a day's plan with the following targets.`;
+VALID PROTEIN SOURCES (pick at least one):
+- Chicken Breast (150-200g) = 45-60g protein
+- Salmon/Fish (150g) = 30-35g protein
+- Ground Turkey (150g) = 35-40g protein
+- Eggs (2-3) = 12-18g protein
+- Greek Yogurt Nonfat (200g) = 20g protein
+- Tofu Firm (150g) = 12g protein
+
+EXAMPLE ${meal.type.toUpperCase()} MEALS:
+${mealTypeName === 'breakfast' ? '- Scrambled Eggs (3) with Whole Wheat Toast (2 slices) and Avocado (50g)\n- Greek Yogurt (200g) with Oats (50g dry) and Blueberries (75g)\n- Turkey Sausage (100g) with Eggs (2) and Sweet Potato (100g)' : ''}
+${mealTypeName === 'lunch' || mealTypeName === 'dinner' ? '- Grilled Chicken Breast (180g) with Brown Rice (150g cooked) and Broccoli (100g)\n- Baked Salmon (150g) with Quinoa (150g cooked) and Asparagus (100g)\n- Ground Turkey (150g) with Sweet Potato (200g) and Green Beans (100g)' : ''}
+${mealTypeName === 'snack' ? '- Greek Yogurt (150g) with Almonds (28g) and Berries (75g)\n- Cottage Cheese (150g) with Apple (1 medium)\n- Hard Boiled Eggs (2) with Whole Wheat Crackers' : ''}
+
+Return JSON: {"type":"${meal.type}","name":"Meal Name with portions","ingredients":["Ingredient (amount)","..."],"instructions":"Brief cooking steps"}`;
 
                         // Build targets object for JS optimizer
                         // If meal has 0 calories (placeholder), calculate proper targets based on meal type
