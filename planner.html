@@ -2395,8 +2395,25 @@ function validateMeal(meal, mealType) {
         }
     }
 
+    // CRITICAL: Flag meals as invalid if they have no actual content
+    // This catches AI failures that return empty/placeholder meals
+    const isEmptyMeal = (
+        meal.calories === 0 ||
+        !meal.ingredients ||
+        !Array.isArray(meal.ingredients) ||
+        meal.ingredients.length === 0 ||
+        !meal.name ||
+        meal.name === 'Meal' ||
+        meal.name === 'Unnamed Meal' ||
+        meal.name.toLowerCase().startsWith('[add ')
+    );
+
+    if (isEmptyMeal) {
+        issues.unshift('Empty or placeholder meal detected - needs regeneration');
+    }
+
     return {
-        valid: true, // Always valid - issues are informational only
+        valid: !isEmptyMeal, // Only empty/placeholder meals are invalid; other issues are informational
         issues: issues,
         meal: meal
     };
@@ -3340,6 +3357,23 @@ ${mealExamples}`;
                 if (dayData.plan.length > expectedMealTypes.length) {
                     console.log('Trimming excess meals...');
                     dayData.plan = dayData.plan.slice(0, expectedMealTypes.length);
+                } else if (dayData.plan.length < expectedMealTypes.length) {
+                    // Pad with placeholder meals that will be regenerated
+                    console.log(`📝 Padding ${expectedMealTypes.length - dayData.plan.length} missing meals...`);
+                    while (dayData.plan.length < expectedMealTypes.length) {
+                        const missingIndex = dayData.plan.length;
+                        const missingType = expectedMealTypes[missingIndex];
+                        dayData.plan.push({
+                            type: missingType,
+                            name: 'Meal', // Will trigger regeneration
+                            calories: 0,
+                            protein: 0,
+                            carbs: 0,
+                            fat: 0,
+                            ingredients: [],
+                            instructions: ''
+                        });
+                    }
                 }
             }
 
@@ -3388,12 +3422,32 @@ Avoid: ${allergies}
 This meal should fit into a day's plan with the following targets.`;
 
                         // Build targets object for JS optimizer
-                        const mealTargets = {
-                            calories: meal.calories,
-                            protein: meal.protein,
-                            carbs: meal.carbs,
-                            fat: meal.fat
-                        };
+                        // If meal has 0 calories (placeholder), calculate proper targets based on meal type
+                        let mealTargets;
+                        if (meal.calories === 0) {
+                            // Calculate targets based on meal type distribution
+                            const mealType = meal.type?.toLowerCase() || 'meal';
+                            let calPercent = 0.25; // Default
+                            if (mealType === 'breakfast') calPercent = 0.27;
+                            else if (mealType === 'lunch') calPercent = 0.32;
+                            else if (mealType === 'dinner') calPercent = 0.28;
+                            else if (mealType === 'snack') calPercent = 0.13;
+
+                            mealTargets = {
+                                calories: Math.round(calories * calPercent),
+                                protein: Math.round(protein * calPercent),
+                                carbs: Math.round(carbs * calPercent),
+                                fat: Math.round(fat * calPercent)
+                            };
+                            console.log(`📊 Calculated targets for ${mealType}: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
+                        } else {
+                            mealTargets = {
+                                calories: meal.calories,
+                                protein: meal.protein,
+                                carbs: meal.carbs,
+                                fat: meal.fat
+                            };
+                        }
 
                         // Include validation errors as feedback if this is a retry
                         if (retryCount > 0 && previousAttempt) {
