@@ -114,29 +114,40 @@ async function handleCheckoutComplete(session) {
 
         console.log('Updated existing coach:', email);
     } else {
-        // Check if user already exists in Supabase Auth (but not in coaches table)
+        // Try to create new auth user, handle if already exists
         let userId;
+        const tempPassword = generateTempPassword();
 
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
-        const existingAuthUser = existingUsers?.users?.find(u => u.email === email);
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+            email: email,
+            password: tempPassword,
+            email_confirm: false
+        });
 
-        if (existingAuthUser) {
-            // User exists in auth, use their ID
-            userId = existingAuthUser.id;
-            console.log('Found existing auth user:', email);
-        } else {
-            // Create new auth user
-            const tempPassword = generateTempPassword();
-            const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-                email: email,
-                password: tempPassword,
-                email_confirm: false
-            });
+        if (authError) {
+            // If user already exists, find them
+            if (authError.message && authError.message.includes('already been registered')) {
+                console.log('User already exists, looking up by email:', email);
 
-            if (authError) {
+                // List users and find by email
+                const { data: userList } = await supabase.auth.admin.listUsers({
+                    page: 1,
+                    perPage: 1000
+                });
+
+                const existingUser = userList?.users?.find(u => u.email === email);
+                if (existingUser) {
+                    userId = existingUser.id;
+                    console.log('Found existing user ID:', userId);
+                } else {
+                    console.error('Could not find existing user');
+                    throw new Error('User exists but could not be found');
+                }
+            } else {
                 console.error('Error creating auth user:', authError);
                 throw authError;
             }
+        } else {
             userId = authUser.user.id;
             console.log('Created new auth user:', email);
         }
