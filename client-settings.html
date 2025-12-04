@@ -363,6 +363,218 @@
             font-size: 11px;
             font-weight: 600;
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        [data-theme="dark"] .modal-content {
+            background: #1e293b;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        [data-theme="dark"] .modal-header h2 {
+            color: #f1f5f9;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #1e293b;
+        }
+
+        [data-theme="dark"] .modal-close:hover {
+            color: #f1f5f9;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #334155;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        [data-theme="dark"] .form-group label {
+            color: #e2e8f0;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+
+        [data-theme="dark"] .form-group input {
+            background: #0f172a;
+            border-color: #334155;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .form-group input:focus {
+            border-color: #14b8a6;
+        }
+
+        .password-requirements {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .password-requirements {
+            background: #0f172a;
+            color: #94a3b8;
+        }
+
+        .password-requirements strong {
+            color: #334155;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .password-requirements strong {
+            color: #e2e8f0;
+        }
+
+        .password-requirements ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .password-requirements li {
+            margin-bottom: 4px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            display: block;
+        }
+
+        .message.success {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+            display: block;
+        }
+
+        [data-theme="dark"] .message.error {
+            background: #450a0a;
+            color: #fca5a5;
+            border-color: #7f1d1d;
+        }
+
+        [data-theme="dark"] .message.success {
+            background: #052e16;
+            color: #86efac;
+            border-color: #166534;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -408,6 +620,16 @@
         <!-- Account -->
         <div class="settings-card">
             <div class="settings-card-title">Account</div>
+            <div class="settings-item" onclick="openPasswordModal()">
+                <div class="settings-item-left">
+                    <div class="settings-icon">🔐</div>
+                    <div>
+                        <div class="settings-label">Change Password</div>
+                        <div class="settings-sublabel">Update your account password</div>
+                    </div>
+                </div>
+                <span class="settings-arrow">›</span>
+            </div>
             <div class="settings-item" onclick="logout()">
                 <div class="settings-item-left">
                     <div class="settings-icon">🚪</div>
@@ -420,6 +642,39 @@
 
         <div class="version-info">
             Zique Fitness Nutrition v1.0
+        </div>
+    </div>
+
+    <!-- Password Change Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change Password</h2>
+                <button class="modal-close" onclick="closePasswordModal()">&times;</button>
+            </div>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" required minlength="6" autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" required minlength="6" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" required minlength="6" autocomplete="new-password">
+                </div>
+                <div class="password-requirements">
+                    <strong>Password requirements:</strong>
+                    <ul>
+                        <li>At least 6 characters</li>
+                        <li>New passwords must match</li>
+                    </ul>
+                </div>
+                <div id="passwordMessage" class="message"></div>
+                <button type="submit" class="submit-btn" id="changePasswordBtn">Update Password</button>
+            </form>
         </div>
     </div>
 
@@ -533,6 +788,109 @@
                 window.location.href = 'client-dashboard.html';
             }
         }
+
+        // Password change modal functions
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordForm = document.getElementById('passwordForm');
+        const passwordMessage = document.getElementById('passwordMessage');
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
+
+        function openPasswordModal() {
+            passwordModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            // Reset form
+            passwordForm.reset();
+            passwordMessage.className = 'message';
+            passwordMessage.textContent = '';
+        }
+
+        function closePasswordModal() {
+            passwordModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal when clicking overlay
+        passwordModal.addEventListener('click', (e) => {
+            if (e.target === passwordModal) {
+                closePasswordModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && passwordModal.classList.contains('show')) {
+                closePasswordModal();
+            }
+        });
+
+        function showPasswordMessage(text, type) {
+            passwordMessage.textContent = text;
+            passwordMessage.className = `message ${type}`;
+        }
+
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                showPasswordMessage('New passwords do not match', 'error');
+                return;
+            }
+
+            // Validate password length
+            if (newPassword.length < 6) {
+                showPasswordMessage('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            changePasswordBtn.disabled = true;
+            changePasswordBtn.textContent = 'Updating...';
+            passwordMessage.className = 'message';
+
+            try {
+                // Get current session to get user email
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    throw new Error('Session expired. Please log in again.');
+                }
+
+                // Verify current password by re-authenticating
+                const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+                    email: session.user.email,
+                    password: currentPassword
+                });
+
+                if (signInError) {
+                    throw new Error('Current password is incorrect');
+                }
+
+                // Update the password
+                const { error: updateError } = await supabaseClient.auth.updateUser({
+                    password: newPassword
+                });
+
+                if (updateError) throw updateError;
+
+                showPasswordMessage('Password updated successfully!', 'success');
+
+                // Close modal after short delay
+                setTimeout(() => {
+                    closePasswordModal();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showPasswordMessage(error.message, 'error');
+            } finally {
+                changePasswordBtn.disabled = false;
+                changePasswordBtn.textContent = 'Update Password';
+            }
+        });
 
         init();
     </script>
