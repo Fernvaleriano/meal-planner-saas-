@@ -2516,6 +2516,15 @@
                             <div class="quick-add-text-sub">Add meals from your diet plans</div>
                         </div>
                     </button>
+                    <button class="quick-add-btn" onclick="openFavoritesPicker()" style="margin-top: 10px;">
+                        <div class="quick-add-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            <span style="font-size: 20px;">❤️</span>
+                        </div>
+                        <div class="quick-add-text">
+                            <div class="quick-add-text-main">From Favorites</div>
+                            <div class="quick-add-text-sub">Add your saved favorite meals</div>
+                        </div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -3034,6 +3043,25 @@
                     </div>
                     <div id="planMealsList" style="padding: 16px;">
                         <!-- Meals will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Picker Modal -->
+    <div class="modal-overlay" id="favoritesPickerModal">
+        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <button class="modal-close" onclick="closeFavoritesPicker()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">❤️ Add from Favorites</span>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px;">
+                <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 16px;">Tap a favorite meal to add it to your diary:</p>
+                <div id="favoritesList">
+                    <div class="empty-state">
+                        <div class="empty-icon">❤️</div>
+                        <p>Loading favorites...</p>
                     </div>
                 </div>
             </div>
@@ -4670,6 +4698,167 @@
                 console.error('Error adding meal from plan:', err);
                 removeOptimisticEntry(tempId);
                 showToast('Failed to add meal');
+            }
+        }
+
+        // ==========================================
+        // Favorites Picker Functions
+        // ==========================================
+        let clientFavorites = [];
+
+        async function openFavoritesPicker() {
+            closeFoodSearch();
+            document.getElementById('favoritesPickerModal').classList.add('active');
+            await loadClientFavorites();
+        }
+
+        function closeFavoritesPicker() {
+            document.getElementById('favoritesPickerModal').classList.remove('active');
+        }
+
+        async function loadClientFavorites() {
+            const container = document.getElementById('favoritesList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <p>Loading favorites...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/.netlify/functions/toggle-favorite?clientId=${clientId}`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error || 'Failed to load favorites');
+
+                clientFavorites = data.favorites || [];
+
+                if (clientFavorites.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">❤️</div>
+                            <p>No favorites yet</p>
+                            <p style="font-size: 0.85rem; color: var(--gray-400); margin-top: 8px;">
+                                Favorite meals from your meal plans to see them here
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = clientFavorites.map((fav, index) => {
+                    const icon = getMealTypeIcon(fav.meal_type);
+                    return `
+                        <div class="favorite-item" onclick="addFavoriteToDay(${index})" style="
+                            background: var(--gray-100);
+                            border-radius: 12px;
+                            padding: 14px;
+                            margin-bottom: 10px;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                            border: 2px solid transparent;
+                        " onmouseover="this.style.borderColor='var(--brand-primary)'; this.style.background='var(--gray-50)'"
+                           onmouseout="this.style.borderColor='transparent'; this.style.background='var(--gray-100)'">
+                            <div style="display: flex; gap: 12px; align-items: start;">
+                                <div style="font-size: 1.5rem;">${icon}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 4px;">${fav.meal_name || 'Unnamed Meal'}</div>
+                                    <div style="font-size: 0.8rem; color: var(--gray-500); text-transform: capitalize; margin-bottom: 6px;">${fav.meal_type || 'meal'}</div>
+                                    <div style="display: flex; gap: 12px; font-size: 0.8rem;">
+                                        <span style="color: var(--gray-600);">${fav.calories || 0} cal</span>
+                                        <span style="color: #3b82f6;">${fav.protein || 0}g P</span>
+                                        <span style="color: #f59e0b;">${fav.carbs || 0}g C</span>
+                                        <span style="color: #ef4444;">${fav.fat || 0}g F</span>
+                                    </div>
+                                </div>
+                                <div style="color: var(--brand-primary); font-size: 1.2rem;">+</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Error loading favorites:', err);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <p>Failed to load favorites</p>
+                    </div>
+                `;
+            }
+        }
+
+        function getMealTypeIcon(mealType) {
+            const type = (mealType || '').toLowerCase();
+            if (type === 'breakfast') return '🍳';
+            if (type === 'lunch') return '🥗';
+            if (type === 'dinner') return '🍽️';
+            if (type === 'snack') return '🍎';
+            return '🍴';
+        }
+
+        async function addFavoriteToDay(index) {
+            const fav = clientFavorites[index];
+            if (!fav) {
+                showToast('Could not find favorite');
+                return;
+            }
+
+            // Create optimistic entry
+            const tempId = 'temp-' + Date.now();
+            const optimisticEntry = {
+                id: tempId,
+                food_name: fav.meal_name,
+                number_of_servings: 1,
+                serving_unit: 'serving',
+                calories: fav.calories || 0,
+                protein: fav.protein || 0,
+                carbs: fav.carbs || 0,
+                fat: fav.fat || 0
+            };
+
+            // Add to UI immediately
+            addOptimisticEntry(currentMealType, optimisticEntry);
+            closeFavoritesPicker();
+            showToast('Adding...');
+
+            try {
+                const response = await fetch('/.netlify/functions/food-diary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        coachId,
+                        entryDate: formatDate(currentDate),
+                        mealType: currentMealType,
+                        foodName: fav.meal_name,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        numberOfServings: 1,
+                        calories: fav.calories || 0,
+                        protein: fav.protein || 0,
+                        carbs: fav.carbs || 0,
+                        fat: fav.fat || 0,
+                        foodSource: 'favorite',
+                        notes: `From favorites (${fav.meal_type || 'meal'})`
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to add food');
+
+                const data = await response.json();
+
+                // Update optimistic entry with real ID
+                if (data.entry) {
+                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
+                    entries.push(data.entry);
+                }
+
+                showToast('Favorite added!');
+            } catch (err) {
+                console.error('Error adding favorite:', err);
+                removeOptimisticEntry(tempId);
+                showToast('Failed to add favorite');
             }
         }
 
