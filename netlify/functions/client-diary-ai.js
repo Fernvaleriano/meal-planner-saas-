@@ -5,6 +5,25 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
+// Helper function to strip markdown formatting and special characters from text
+function stripMarkdown(text) {
+    if (!text) return text;
+    return String(text)
+        .replace(/\*\*\*/g, '')      // Bold italic ***text***
+        .replace(/\*\*/g, '')         // Bold **text**
+        .replace(/\*/g, '')           // Italic *text*
+        .replace(/___/g, '')          // Bold italic ___text___
+        .replace(/__/g, '')           // Bold __text__
+        .replace(/_/g, ' ')           // Italic _text_ (replace with space)
+        .replace(/~~~/g, '')          // Strikethrough
+        .replace(/~~/g, '')           // Strikethrough ~~text~~
+        .replace(/`/g, '')            // Code `text`
+        .replace(/#{1,6}\s*/g, '')    // Headers # ## ###
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Links [text](url)
+        .replace(/\s+/g, ' ')         // Multiple spaces to single
+        .trim();
+}
+
 const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -140,11 +159,15 @@ INSTRUCTIONS:
             // Not JSON, that's fine - it's a text response
         }
 
+        // Strip markdown/special characters from text responses
+        // (JSON responses use parsedResponse, so stripping the display text is safe)
+        const cleanResponse = stripMarkdown(aiResponse);
+
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
-                response: aiResponse,
+                response: cleanResponse,
                 parsed: parsedResponse,
                 remaining: remaining
             })
