@@ -165,7 +165,9 @@ ${clientContext}
 
 COACH'S QUESTION: "${question}"
 
-Provide a helpful, concise response based on the client's actual data. Include specific numbers and observations where relevant. If suggesting improvements, be encouraging and practical. Keep response under 200 words unless more detail is needed.`
+Provide a helpful, concise response based on the client's actual data. Include specific numbers and observations where relevant. If suggesting improvements, be encouraging and practical. Keep response under 200 words unless more detail is needed.
+
+IMPORTANT: Do NOT use any markdown formatting like **bold**, *italics*, or bullet points with asterisks. Write in plain text only using regular sentences and numbered lists (1. 2. 3.) if needed.`
                     }]
                 }],
                 generationConfig: {
