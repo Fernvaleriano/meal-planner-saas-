@@ -3267,7 +3267,13 @@ EXAMPLES:
 "Greek Yogurt (200g)" ✅
 
 FULL EXAMPLE (use this EXACT format - 3-4 ingredients with larger portions):
-{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Oatmeal (1 cup cooked) and Berries (100g)","ingredients":["Eggs (3 whole)","Oats (50g dry)","Blueberries (100g)","Butter (1 tsp)"],"instructions":"Scramble 3 eggs in 1 tsp butter. Cook oatmeal. Serve with fresh berries."}]}
+{"day":${day},"targets":{"calories":${calories},"protein":${protein},"carbs":${carbs},"fat":${fat}},"plan":[{"type":"breakfast","name":"Scrambled Eggs (3 whole) with Oatmeal (1 cup cooked) and Berries (100g)","ingredients":["Eggs (3 whole)","Oats (50g dry)","Blueberries (100g)","Butter (1 tsp)"],"instructions":"Scramble 3 eggs in 1 tsp butter. Cook oatmeal. Serve with fresh berries."},{"type":"lunch","name":"Grilled Chicken (200g) with Brown Rice (200g cooked)","ingredients":["Chicken Breast (200g)","Brown Rice (200g cooked)","Broccoli (150g)"],"instructions":"Grill chicken. Serve with rice and steamed broccoli."},{"type":"dinner","name":"Salmon (180g) with Quinoa (200g cooked)","ingredients":["Salmon (180g)","Quinoa (200g cooked)","Asparagus (150g)"],"instructions":"Bake salmon. Serve with quinoa and roasted asparagus."},{"type":"snack","name":"Greek Yogurt (200g) with Almonds (28g)","ingredients":["Greek Yogurt Nonfat (200g)","Almonds (28g)","Blueberries (75g)"],"instructions":"Mix yogurt with almonds and berries."}]}
+
+MEAL TYPE VALUES - Use these EXACT type values in lowercase:
+- "breakfast" for the breakfast meal
+- "lunch" for the lunch meal
+- "dinner" for the dinner meal
+- "snack" for ALL snack meals (use "snack" not "snacks" even if there are multiple snacks)
 
 CRITICAL REQUIREMENTS:
 1. Ingredients MUST be array of strings: ["Food Name (amount)", "Food Name (amount)"]
@@ -3334,6 +3340,27 @@ ${mealExamples}`;
                 if (dayData.plan.length > expectedMealTypes.length) {
                     console.log('Trimming excess meals...');
                     dayData.plan = dayData.plan.slice(0, expectedMealTypes.length);
+                }
+            }
+
+            // Enforce correct meal types based on expected structure
+            console.log('🔧 Enforcing correct meal types...');
+            for (let i = 0; i < dayData.plan.length; i++) {
+                const expectedType = expectedMealTypes[i] || 'meal';
+                const meal = dayData.plan[i];
+
+                // Fix missing or incorrect type
+                if (!meal.type || meal.type === 'meal' || meal.type === 'snacks') {
+                    console.log(`   Fixed meal ${i + 1} type: "${meal.type || 'undefined'}" → "${expectedType}"`);
+                    meal.type = expectedType;
+                }
+
+                // Ensure meal has required fields to prevent empty meals
+                if (!meal.name || meal.name === 'Meal' || meal.name === 'Unnamed Meal') {
+                    console.warn(`⚠️ Meal ${i + 1} (${expectedType}) has invalid name: "${meal.name}"`);
+                }
+                if (!meal.ingredients || !Array.isArray(meal.ingredients) || meal.ingredients.length === 0) {
+                    console.warn(`⚠️ Meal ${i + 1} (${expectedType}) has no ingredients`);
                 }
             }
         }
@@ -5622,6 +5649,12 @@ Include food name AND amount in parentheses.
 DO NOT include calories/protein/carbs/fat - backend will calculate from database.
 MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses
 
+MEAL TYPE VALUES - Use these EXACT type values in lowercase:
+- "breakfast" for the breakfast meal
+- "lunch" for the lunch meal
+- "dinner" for the dinner meal
+- "snack" for ALL snack meals (use "snack" not "snacks" even if there are multiple)
+
 Return ONLY valid JSON array of ${numMeals} meal objects. Each object must have:
 {"type":"meal_type","name":"Meal Name (portions)","ingredients":["Item (amount)",...],"instructions":"Brief cooking steps"}
 
@@ -5642,6 +5675,19 @@ NO markdown, NO backticks, NO extra text. ONLY the JSON array.`;
         // Validate we got the right number of meals
         if (newMeals.length !== numMeals) {
             console.warn(`Expected ${numMeals} meals, got ${newMeals.length}. Using what we got.`);
+        }
+
+        // Enforce correct meal types based on expected structure
+        console.log('🔧 Enforcing correct meal types for regenerated day...');
+        for (let i = 0; i < newMeals.length && i < expectedMealTypes.length; i++) {
+            const expectedType = expectedMealTypes[i] || 'meal';
+            const meal = newMeals[i];
+
+            // Fix missing or incorrect type
+            if (!meal.type || meal.type === 'meal' || meal.type === 'snacks') {
+                console.log(`   Fixed meal ${i + 1} type: "${meal.type || 'undefined'}" → "${expectedType}"`);
+                meal.type = expectedType;
+            }
         }
 
         // Add back custom meals (preserved)
