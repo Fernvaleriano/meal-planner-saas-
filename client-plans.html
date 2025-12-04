@@ -538,7 +538,7 @@
             const planName = plan.plan_name || planData.clientName || plan.client_name || 'Meal Plan';
 
             return `
-                <a href="view-plan.html?id=${plan.id}&clientView=true" class="plan-card ${isActive ? 'active' : ''}">
+                <a href="view-plan.html?planId=${plan.id}&clientView=true" class="plan-card ${isActive ? 'active' : ''}">
                     <div class="plan-header">
                         <div>
                             <div class="plan-name">${planName}</div>
