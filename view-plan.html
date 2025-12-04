@@ -1273,6 +1273,15 @@
             border-color: #334155;
         }
 
+        .protocol-description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        [data-theme="dark"] .protocol-description {
+            color: #94a3b8;
+        }
+
         [data-theme="dark"] .info-item {
             background: #334155;
         }
@@ -1407,7 +1416,7 @@
                 <span id="protocolToggleIcon">▼</span> Supplement Protocol
             </div>
             <div id="protocolContent">
-                <p style="color: #666; margin-bottom: 15px;">Your supplement and protocol schedule from your coach.</p>
+                <p class="protocol-description">Your supplement and protocol schedule from your coach.</p>
                 <div id="protocolsList"></div>
             </div>
         </div>

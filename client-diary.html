@@ -334,41 +334,62 @@
             color: #f1f5f9;
         }
 
+        /* Compact inline macro bars */
         .macro-bars {
             display: flex;
-            gap: 12px;
+            gap: 8px;
+            justify-content: space-between;
         }
 
         .macro-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             flex: 1;
+            min-width: 0;
         }
 
         .macro-bar-header {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
         }
 
         .macro-bar-label {
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 0.7rem;
+            font-weight: 700;
             color: var(--gray-600);
         }
+
+        .macro-bar-label.protein { color: #3b82f6; }
+        .macro-bar-label.carbs { color: #f59e0b; }
+        .macro-bar-label.fat { color: #ef4444; }
 
         [data-theme="dark"] .macro-bar-label {
             color: #94a3b8;
         }
+        [data-theme="dark"] .macro-bar-label.protein { color: #60a5fa; }
+        [data-theme="dark"] .macro-bar-label.carbs { color: #fbbf24; }
+        [data-theme="dark"] .macro-bar-label.fat { color: #f87171; }
 
         .macro-bar-value {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .macro-bar-value {
+            color: #94a3b8;
         }
 
         .macro-bar-track {
-            height: 8px;
+            flex: 1;
+            height: 6px;
             background: var(--gray-200);
-            border-radius: 4px;
+            border-radius: 3px;
             overflow: hidden;
+            min-width: 30px;
         }
 
         [data-theme="dark"] .macro-bar-track {
@@ -377,7 +398,7 @@
 
         .macro-bar-fill {
             height: 100%;
-            border-radius: 4px;
+            border-radius: 3px;
             transition: width 0.3s ease;
         }
 
@@ -1443,6 +1464,28 @@
             color: #d1fae5;
         }
 
+        /* Daily Report dark mode fixes */
+        [data-theme="dark"] .report-stat {
+            background: #334155;
+        }
+
+        [data-theme="dark"] .report-stat-value {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .report-stat-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .report-meals-title {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .report-meal-item {
+            color: #e2e8f0;
+            border-bottom-color: #475569;
+        }
+
         /* Copy Day Modal */
         .copy-day-options {
             padding: 20px;
@@ -2305,7 +2348,7 @@
             <div class="macro-bars">
                 <div class="macro-bar">
                     <div class="macro-bar-header">
-                        <span class="macro-bar-label">Protein</span>
+                        <span class="macro-bar-label protein">P:</span>
                         <span class="macro-bar-value" id="proteinValue">0/0g</span>
                     </div>
                     <div class="macro-bar-track">
@@ -2314,7 +2357,7 @@
                 </div>
                 <div class="macro-bar">
                     <div class="macro-bar-header">
-                        <span class="macro-bar-label">Carbs</span>
+                        <span class="macro-bar-label carbs">C:</span>
                         <span class="macro-bar-value" id="carbsValue">0/0g</span>
                     </div>
                     <div class="macro-bar-track">
@@ -2323,7 +2366,7 @@
                 </div>
                 <div class="macro-bar">
                     <div class="macro-bar-header">
-                        <span class="macro-bar-label">Fat</span>
+                        <span class="macro-bar-label fat">F:</span>
                         <span class="macro-bar-value" id="fatValue">0/0g</span>
                     </div>
                     <div class="macro-bar-track">
