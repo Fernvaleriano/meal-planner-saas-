@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS food_diary_entries (
 -- Indexes for faster queries
 CREATE INDEX IF NOT EXISTS idx_diary_client_date ON food_diary_entries(client_id, entry_date DESC);
 CREATE INDEX IF NOT EXISTS idx_diary_meal_type ON food_diary_entries(client_id, entry_date, meal_type);
+-- Optimized index covering the full query pattern (WHERE client_id, entry_date + ORDER BY meal_type, created_at)
+CREATE INDEX IF NOT EXISTS idx_diary_full_query ON food_diary_entries(client_id, entry_date, meal_type, created_at);
 
 -- Enable RLS
 ALTER TABLE food_diary_entries ENABLE ROW LEVEL SECURITY;

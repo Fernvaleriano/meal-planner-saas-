@@ -3270,11 +3270,11 @@
                     console.warn('Background session refresh failed:', err);
                 });
 
-                // Get client info
+                // Get client info (single query for all needed fields)
                 console.log('checkAuth: Getting client info for user:', session.user.id);
                 const { data: client, error: clientError } = await supabaseClient
                     .from('clients')
-                    .select('id, coach_id')
+                    .select('id, coach_id, can_edit_goals')
                     .eq('user_id', session.user.id)
                     .single();
 
@@ -3289,21 +3289,10 @@
                 clientId = client.id;
                 coachId = client.coach_id;
 
-                // Try to check goals permission (column may not exist yet)
-                try {
-                    const { data: permData } = await supabaseClient
-                        .from('clients')
-                        .select('can_edit_goals')
-                        .eq('id', client.id)
-                        .single();
-
-                    const goalsBtn = document.getElementById('goalsBtn');
-                    if (goalsBtn && permData && permData.can_edit_goals) {
-                        goalsBtn.style.display = 'flex';
-                    }
-                } catch (e) {
-                    // Column doesn't exist yet, that's fine
-                    console.log('can_edit_goals column not available');
+                // Show goals button if client has permission
+                const goalsBtn = document.getElementById('goalsBtn');
+                if (goalsBtn && client.can_edit_goals) {
+                    goalsBtn.style.display = 'flex';
                 }
 
                 return true;
