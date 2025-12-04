@@ -1,8 +1,10 @@
 // Netlify Function to invite a client to the portal
 const { createClient } = require('@supabase/supabase-js');
+const { sendInvitationEmail } = require('./utils/email-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const APP_URL = process.env.URL || 'https://cute-jalebi-b0f423.netlify.app';
 
 // Common headers for all responses
 const headers = {
@@ -41,13 +43,23 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key for admin operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Get client data
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', clientId)
-      .eq('coach_id', coachId)
-      .single();
+    // Get client data and coach data in parallel
+    const [clientResult, coachResult] = await Promise.all([
+      supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .eq('coach_id', coachId)
+        .single(),
+      supabase
+        .from('coaches')
+        .select('id, email, full_name')
+        .eq('id', coachId)
+        .single()
+    ]);
+
+    const { data: client, error: clientError } = clientResult;
+    const { data: coach, error: coachError } = coachResult;
 
     if (clientError || !client) {
       return {
@@ -163,17 +175,39 @@ exports.handler = async (event, context) => {
       console.log('Created new auth user:', authUser.id);
     }
 
-    // Send password reset email so client can set their own password
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-      client.email,
-      {
-        redirectTo: `${process.env.URL || 'https://cute-jalebi-b0f423.netlify.app'}/client-reset-password.html`
+    // Generate password reset link using Supabase Admin API
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email: client.email,
+      options: {
+        redirectTo: `${APP_URL}/client-reset-password.html`
       }
-    );
+    });
 
-    if (resetError) {
-      console.warn('Warning: Could not send password reset email:', resetError.message);
-      // Don't fail the whole invitation if email fails - we'll continue
+    if (linkError) {
+      console.error('Failed to generate reset link:', linkError.message);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to generate invitation link',
+          details: linkError.message
+        })
+      };
+    }
+
+    // Send custom branded invitation email
+    const emailResult = await sendInvitationEmail({
+      client,
+      coach,
+      resetLink: linkData.properties.action_link
+    });
+
+    if (!emailResult.success) {
+      console.warn('Warning: Could not send invitation email:', emailResult.error);
+      // Don't fail the whole invitation if email fails - user was still created
+    } else {
+      console.log('Invitation email sent successfully:', emailResult.messageId);
     }
 
     // Update client record with user_id and invitation timestamp
@@ -208,7 +242,10 @@ exports.handler = async (event, context) => {
         success: true,
         email: client.email,
         clientName: client.client_name,
-        message: 'Client invited successfully. Password reset email sent.'
+        emailSent: emailResult.success,
+        message: emailResult.success
+          ? 'Client invited successfully. Invitation email sent.'
+          : 'Client invited successfully, but email delivery may have failed. Please check the email address.'
       })
     };
 
