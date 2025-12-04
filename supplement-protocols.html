@@ -1407,7 +1407,7 @@
                 const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
                 if (refreshError || !refreshData?.session) {
-                    window.location.href = 'index.html';
+                    window.location.href = 'login.html';
                     return;
                 }
 
@@ -1450,7 +1450,7 @@
             } catch (error) {
                 console.error('Error initializing:', error);
                 alert('Error loading page: ' + error.message);
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             }
         }
 

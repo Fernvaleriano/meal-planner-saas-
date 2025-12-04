@@ -3,28 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="/js/theme.js"></script>
-    <meta name="theme-color" content="#0d9488">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Zique Fitness">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon.svg">
-    <title>Coach Login - Zique Fitness Nutrition</title>
+    <title>Zique Fitness - AI-Powered Nutrition Coaching Platform</title>
+    <meta name="description" content="The all-in-one platform for nutrition coaches. AI meal planning, client management, food diary tracking, and more. Start your 14-day free trial.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --brand-primary: #0d9488;
+            --brand-primary-dark: #0f766e;
             --brand-secondary: #0284c7;
             --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
             --gray-50: #f8fafc;
             --gray-100: #f1f5f9;
             --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
             --gray-400: #94a3b8;
             --gray-500: #64748b;
             --gray-600: #475569;
+            --gray-700: #334155;
             --gray-800: #1e293b;
             --gray-900: #0f172a;
         }
@@ -37,498 +34,1110 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            background: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.6;
         }
 
-        /* Left Panel - Branding */
-        .brand-panel {
-            flex: 1;
-            background: var(--brand-gradient);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 60px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .brand-panel::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-            animation: pulse 15s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(20px, 20px); }
-        }
-
-        .brand-content {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            color: white;
-            max-width: 480px;
-        }
-
-        .brand-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            margin-bottom: 48px;
-        }
-
-        .brand-logo-icon {
-            width: 64px;
-            height: 64px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
+            z-index: 1000;
+            border-bottom: 1px solid var(--gray-200);
         }
 
-        .brand-logo-text {
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: -0.025em;
-        }
-
-        .brand-tagline {
-            font-size: 2.5rem;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 24px;
-            letter-spacing: -0.025em;
-        }
-
-        .brand-description {
-            font-size: 1.125rem;
-            opacity: 0.9;
-            line-height: 1.7;
-            margin-bottom: 48px;
-        }
-
-        .brand-features {
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px 24px;
             display: flex;
-            flex-direction: column;
-            gap: 16px;
-            text-align: left;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .brand-feature {
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--brand-gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 1.25rem;
+        }
+
+        .nav-logo-text {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: var(--brand-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-link {
+            color: var(--gray-600);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--brand-primary);
+        }
+
+        .nav-buttons {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 1rem;
-            opacity: 0.95;
         }
 
-        .brand-feature-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 8px;
-            display: flex;
+        .btn {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
-        }
-
-        /* Right Panel - Login Form */
-        .login-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 60px;
-            background: white;
-        }
-
-        .login-container {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .login-header {
-            margin-bottom: 40px;
-        }
-
-        .login-header h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--gray-900);
-            margin-bottom: 8px;
-            letter-spacing: -0.025em;
-        }
-
-        .login-header p {
-            color: var(--gray-500);
-            font-size: 1rem;
-        }
-
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--gray-700);
+            padding: 12px 24px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid var(--gray-200);
-            border-radius: 12px;
-            font-size: 1rem;
-            font-family: inherit;
+            font-size: 0.95rem;
+            text-decoration: none;
             transition: all 0.2s;
-            background: var(--gray-50);
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
         }
 
-        input:hover {
-            border-color: var(--gray-300);
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-700);
         }
 
-        input:focus {
-            outline: none;
-            border-color: var(--brand-primary);
-            background: white;
-            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1);
+        .btn-ghost:hover {
+            background: var(--gray-100);
         }
 
-        input::placeholder {
-            color: var(--gray-400);
-        }
-
-        button {
-            width: 100%;
-            padding: 16px;
+        .btn-primary {
             background: var(--brand-gradient);
             color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s;
             box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
         }
 
-        button:hover {
+        .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
         }
 
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+        .btn-secondary {
+            background: white;
+            color: var(--gray-800);
+            border: 2px solid var(--gray-200);
         }
 
-        .message {
-            padding: 14px 16px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            font-size: 0.875rem;
-            display: none;
-            font-weight: 500;
-        }
-
-        .message.error {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .message.success {
-            background: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-        }
-
-        .signup-link {
-            text-align: center;
-            margin-top: 32px;
-            font-size: 0.9375rem;
-            color: var(--gray-500);
-        }
-
-        .signup-link a {
+        .btn-secondary:hover {
+            border-color: var(--brand-primary);
             color: var(--brand-primary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.2s;
         }
 
-        .signup-link a:hover {
-            color: #0f766e;
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 1.1rem;
         }
 
-        .client-login-link {
+        /* Hero Section */
+        .hero {
+            padding: 140px 24px 80px;
+            background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
             text-align: center;
-            margin-top: 16px;
-            padding-top: 24px;
+        }
+
+        .hero-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .hero-badge-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 24px;
+            color: var(--gray-900);
+        }
+
+        .hero h1 span {
+            background: var(--brand-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            padding-top: 40px;
             border-top: 1px solid var(--gray-200);
         }
 
-        .client-login-link a {
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .hero-stat-label {
+            font-size: 0.9rem;
             color: var(--gray-500);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 24px;
+            background: white;
+        }
+
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-label {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
+            color: var(--brand-primary);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--gray-500);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: var(--gray-50);
+            border-radius: 20px;
+            padding: 32px;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .feature-card:hover {
+            background: white;
+            border-color: var(--gray-200);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--brand-gradient);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            color: var(--gray-600);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 100px 24px;
+            background: var(--gray-900);
+            color: white;
+        }
+
+        .how-it-works .section-label {
+            background: rgba(255, 255, 255, 0.1);
+            color: #5eead4;
+        }
+
+        .how-it-works .section-title {
+            color: white;
+        }
+
+        .how-it-works .section-subtitle {
+            color: var(--gray-400);
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 48px;
+            margin-top: 64px;
+        }
+
+        .step {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 64px;
+            height: 64px;
+            background: var(--brand-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 0 auto 24px;
+        }
+
+        .step h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .step p {
+            color: var(--gray-400);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .step-connector {
+            position: absolute;
+            top: 32px;
+            left: calc(50% + 48px);
+            width: calc(100% - 96px);
+            height: 2px;
+            background: linear-gradient(90deg, #0d9488, #0284c7);
+            opacity: 0.3;
+        }
+
+        .step:last-child .step-connector {
+            display: none;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 100px 24px;
+            background: white;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            margin-top: 64px;
+        }
+
+        .testimonial-card {
+            background: var(--gray-50);
+            border-radius: 20px;
+            padding: 32px;
+            border: 1px solid var(--gray-100);
+        }
+
+        .testimonial-stars {
+            color: #fbbf24;
+            font-size: 1.25rem;
+            margin-bottom: 16px;
+        }
+
+        .testimonial-text {
+            color: var(--gray-700);
+            font-size: 1rem;
+            line-height: 1.7;
+            margin-bottom: 24px;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .testimonial-avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--brand-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .testimonial-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .testimonial-role {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        /* Pricing Preview */
+        .pricing-preview {
+            padding: 100px 24px;
+            background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            max-width: 800px;
+            margin: 64px auto 0;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            border: 2px solid var(--gray-200);
+            transition: all 0.3s;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--brand-primary);
+            box-shadow: 0 20px 40px rgba(13, 148, 136, 0.15);
+            transform: scale(1.02);
+        }
+
+        .pricing-card-badge {
+            display: inline-block;
+            background: var(--brand-gradient);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .pricing-price {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 24px;
+        }
+
+        .pricing-price-amount {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .pricing-price-period {
+            font-size: 1rem;
+            color: var(--gray-500);
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+
+        .pricing-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .pricing-features li::before {
+            content: "✓";
+            color: var(--brand-primary);
+            font-weight: 700;
+        }
+
+        .pricing-card .btn {
+            width: 100%;
+        }
+
+        /* FAQ Section */
+        .faq {
+            padding: 100px 24px;
+            background: white;
+        }
+
+        .faq-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            max-width: 900px;
+            margin: 64px auto 0;
+        }
+
+        .faq-item {
+            padding: 24px;
+            background: var(--gray-50);
+            border-radius: 16px;
+        }
+
+        .faq-question {
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 12px;
+            font-size: 1.05rem;
+        }
+
+        .faq-answer {
+            color: var(--gray-600);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 100px 24px;
+            background: var(--brand-gradient);
+            text-align: center;
+        }
+
+        .cta h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .cta p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 32px;
+        }
+
+        .cta .btn-secondary {
+            background: white;
+            color: var(--gray-900);
+            border: none;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        }
+
+        .cta .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 64px 24px 32px;
+            background: var(--gray-900);
+            color: var(--gray-400);
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand p {
+            margin-top: 16px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .footer-column h4 {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .footer-column a {
+            display: block;
+            color: var(--gray-400);
             text-decoration: none;
-            font-size: 0.875rem;
+            padding: 8px 0;
+            font-size: 0.9rem;
             transition: color 0.2s;
         }
 
-        .client-login-link a:hover {
-            color: var(--brand-primary);
+        .footer-column a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            padding-top: 32px;
+            border-top: 1px solid var(--gray-800);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .mobile-menu-btn svg {
+            width: 24px;
+            height: 24px;
+            color: var(--gray-700);
         }
 
         /* Responsive */
         @media (max-width: 1024px) {
-            .brand-panel {
+            .features-grid,
+            .testimonials-grid,
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .step-connector {
                 display: none;
             }
 
-            .login-panel {
-                padding: 40px 24px;
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        @media (max-width: 480px) {
-            .login-header h1 {
-                font-size: 1.75rem;
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
             }
-        }
 
-        /* ===== DARK MODE STYLES ===== */
-        [data-theme="dark"] body {
-            background: var(--gray-900);
-        }
+            .mobile-menu-btn {
+                display: block;
+            }
 
-        [data-theme="dark"] .login-panel {
-            background: var(--gray-800);
-        }
+            .hero {
+                padding: 120px 24px 60px;
+            }
 
-        [data-theme="dark"] .login-header h1 {
-            color: #f1f5f9;
-        }
+            .hero h1 {
+                font-size: 2.25rem;
+            }
 
-        [data-theme="dark"] .login-header p {
-            color: #94a3b8;
-        }
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
 
-        [data-theme="dark"] label {
-            color: #e2e8f0;
-        }
+            .hero-buttons {
+                flex-direction: column;
+            }
 
-        [data-theme="dark"] input {
-            background: #0f172a;
-            border-color: #334155;
-            color: #f1f5f9;
-        }
+            .hero-stats {
+                flex-direction: column;
+                gap: 24px;
+            }
 
-        [data-theme="dark"] input:hover {
-            border-color: #475569;
-        }
+            .features-grid,
+            .testimonials-grid,
+            .steps,
+            .pricing-cards,
+            .faq-grid {
+                grid-template-columns: 1fr;
+            }
 
-        [data-theme="dark"] input:focus {
-            background: #1e293b;
-            border-color: #0d9488;
-            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2);
-        }
+            .pricing-card.featured {
+                transform: none;
+            }
 
-        [data-theme="dark"] input::placeholder {
-            color: #64748b;
-        }
+            .section-title {
+                font-size: 2rem;
+            }
 
-        [data-theme="dark"] .message.error {
-            background: #450a0a;
-            color: #fca5a5;
-            border-color: #7f1d1d;
-        }
+            .cta h2 {
+                font-size: 2rem;
+            }
 
-        [data-theme="dark"] .message.success {
-            background: #052e16;
-            color: #86efac;
-            border-color: #166534;
-        }
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
 
-        [data-theme="dark"] .signup-link {
-            color: #94a3b8;
-        }
-
-        [data-theme="dark"] .client-login-link {
-            border-color: #334155;
-        }
-
-        [data-theme="dark"] .client-login-link a {
-            color: #94a3b8;
-        }
-
-        [data-theme="dark"] .client-login-link a:hover {
-            color: #2dd4bf;
+            .footer-bottom {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Left Panel - Branding -->
-    <div class="brand-panel">
-        <div class="brand-content">
-            <div class="brand-logo">
-                <div class="brand-logo-icon">Z</div>
-                <span class="brand-logo-text">Zique Fitness</span>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">Z</div>
+                <span class="nav-logo-text">Zique Fitness</span>
+            </a>
+
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#testimonials" class="nav-link">Testimonials</a>
+                <a href="pricing.html" class="nav-link">Pricing</a>
             </div>
-            <h2 class="brand-tagline">Transform Your Coaching Business</h2>
-            <p class="brand-description">
-                The all-in-one platform for nutrition coaches. Create personalized meal plans,
-                track client progress, and grow your business with AI-powered tools.
+
+            <div class="nav-buttons">
+                <a href="login.html" class="btn btn-ghost">Log In</a>
+                <a href="signup.html" class="btn btn-primary">Start Free Trial</a>
+            </div>
+
+            <button class="mobile-menu-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-badge">
+                <span class="hero-badge-dot"></span>
+                Trusted by 500+ nutrition coaches
+            </div>
+
+            <h1>The All-in-One Platform for <span>Nutrition Coaches</span></h1>
+
+            <p class="hero-subtitle">
+                Create personalized meal plans with AI, track client progress, and grow your coaching business - all in one powerful platform.
             </p>
-            <div class="brand-features">
-                <div class="brand-feature">
-                    <div class="brand-feature-icon">+</div>
-                    <span>AI-Powered Meal Plan Generation</span>
+
+            <div class="hero-buttons">
+                <a href="signup.html" class="btn btn-primary btn-large">Start Your 14-Day Free Trial</a>
+                <a href="#how-it-works" class="btn btn-secondary btn-large">See How It Works</a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-number">10,000+</div>
+                    <div class="hero-stat-label">Meal Plans Created</div>
                 </div>
-                <div class="brand-feature">
-                    <div class="brand-feature-icon">+</div>
-                    <span>Client Progress Tracking</span>
+                <div class="hero-stat">
+                    <div class="hero-stat-number">500+</div>
+                    <div class="hero-stat-label">Active Coaches</div>
                 </div>
-                <div class="brand-feature">
-                    <div class="brand-feature-icon">+</div>
-                    <span>Automated Check-in Reminders</span>
-                </div>
-                <div class="brand-feature">
-                    <div class="brand-feature-icon">+</div>
-                    <span>Supplement Protocol Management</span>
+                <div class="hero-stat">
+                    <div class="hero-stat-number">98%</div>
+                    <div class="hero-stat-label">Customer Satisfaction</div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Right Panel - Login Form -->
-    <div class="login-panel">
-        <div class="login-container">
-            <div class="login-header">
-                <h1>Welcome back</h1>
-                <p>Sign in to your coach dashboard</p>
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Features</span>
+                <h2 class="section-title">Everything You Need to Succeed</h2>
+                <p class="section-subtitle">Powerful tools designed specifically for nutrition coaches to save time and deliver better results.</p>
             </div>
 
-            <div id="message" class="message"></div>
-
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI Meal Planning</h3>
+                    <p>Generate personalized meal plans in seconds using advanced AI. Customize for any diet, allergy, or preference.</p>
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3>Client Management</h3>
+                    <p>Keep all your clients organized in one place. Track their goals, progress, and meal plan history effortlessly.</p>
                 </div>
 
-                <button type="submit" id="loginBtn">Sign In</button>
-            </form>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Food Diary Tracking</h3>
+                    <p>Clients can log their meals and track macros with our beautiful food diary. Get insights into their eating habits.</p>
+                </div>
 
-            <div class="signup-link">
-                Don't have an account? <a href="signup.html">Create one</a>
-            </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3>Weekly Check-ins</h3>
+                    <p>Automated check-in forms help you stay connected with clients and track their progress over time.</p>
+                </div>
 
-            <div class="client-login-link">
-                <a href="client-login.html">Client? Sign in here</a>
+                <div class="feature-card">
+                    <div class="feature-icon">💊</div>
+                    <h3>Supplement Protocols</h3>
+                    <p>Create and assign supplement schedules for each client. They'll get reminders at the right times.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📖</div>
+                    <h3>Recipe Management</h3>
+                    <p>Build your recipe library with nutritional info. Easily add recipes to client meal plans.</p>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">How It Works</span>
+                <h2 class="section-title">Get Started in 3 Simple Steps</h2>
+                <p class="section-subtitle">From signup to delivering your first AI-generated meal plan in minutes.</p>
+            </div>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Add Your Clients</h3>
+                    <p>Create client profiles with their goals, dietary preferences, allergies, and nutritional targets.</p>
+                    <div class="step-connector"></div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Generate Meal Plans</h3>
+                    <p>Use our AI planner to create customized meal plans in seconds. Review and adjust as needed.</p>
+                    <div class="step-connector"></div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Track & Optimize</h3>
+                    <p>Clients access their portal to view plans, log meals, and check in. You monitor progress and adjust.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials" id="testimonials">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Testimonials</span>
+                <h2 class="section-title">Loved by Coaches Worldwide</h2>
+                <p class="section-subtitle">See what nutrition professionals are saying about Zique Fitness.</p>
+            </div>
+
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"This platform has completely transformed how I run my nutrition coaching business. The AI meal planner saves me hours every week."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">SJ</div>
+                        <div>
+                            <div class="testimonial-name">Sarah Johnson</div>
+                            <div class="testimonial-role">Certified Nutritionist</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"My clients love the food diary feature. It keeps them accountable and gives me insights I never had before. Highly recommend!"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">MR</div>
+                        <div>
+                            <div class="testimonial-name">Mike Rodriguez</div>
+                            <div class="testimonial-role">Sports Nutritionist</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"Finally, a platform built for nutrition coaches. The client portal is beautiful and professional. My clients are impressed!"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">EW</div>
+                        <div>
+                            <div class="testimonial-name">Emily Watson</div>
+                            <div class="testimonial-role">Health Coach</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Preview -->
+    <section class="pricing-preview" id="pricing">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Pricing</span>
+                <h2 class="section-title">Simple, Transparent Pricing</h2>
+                <p class="section-subtitle">Start with a 14-day free trial. No credit card required.</p>
+            </div>
+
+            <div class="pricing-cards">
+                <div class="pricing-card">
+                    <h3>Basic</h3>
+                    <div class="pricing-price">
+                        <span class="pricing-price-amount">$29</span>
+                        <span class="pricing-price-period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Up to 25 active clients</li>
+                        <li>AI meal plan generator</li>
+                        <li>Client food diary</li>
+                        <li>Weekly check-in forms</li>
+                        <li>Recipe library</li>
+                    </ul>
+                    <a href="signup.html?plan=basic" class="btn btn-secondary">Start Free Trial</a>
+                </div>
+
+                <div class="pricing-card featured">
+                    <span class="pricing-card-badge">MOST POPULAR</span>
+                    <h3>Professional</h3>
+                    <div class="pricing-price">
+                        <span class="pricing-price-amount">$49</span>
+                        <span class="pricing-price-period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Unlimited clients</li>
+                        <li>Everything in Basic</li>
+                        <li>Supplement protocols</li>
+                        <li>Advanced analytics</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <a href="signup.html?plan=branded" class="btn btn-primary">Start Free Trial</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">FAQ</span>
+                <h2 class="section-title">Frequently Asked Questions</h2>
+                <p class="section-subtitle">Got questions? We've got answers.</p>
+            </div>
+
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3 class="faq-question">How does the free trial work?</h3>
+                    <p class="faq-answer">You get 14 days of full access to all features. No credit card required to start. At the end of your trial, you can choose a plan that works for you.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">Can I cancel anytime?</h3>
+                    <p class="faq-answer">Absolutely. There are no long-term contracts. You can cancel your subscription at any time from your account settings.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">How does the AI meal planner work?</h3>
+                    <p class="faq-answer">Our AI analyzes your client's goals, preferences, and restrictions to generate personalized meal plans. You can customize and adjust any plan before sharing.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">Do my clients need to pay anything?</h3>
+                    <p class="faq-answer">No, client access is included in your subscription. Your clients can access their portal, view meal plans, and log their food diary for free.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">Is my data secure?</h3>
+                    <p class="faq-answer">Yes, we take security seriously. All data is encrypted in transit and at rest. We use industry-standard security practices to protect your information.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">Can I import my existing clients?</h3>
+                    <p class="faq-answer">Yes! You can easily add clients manually or contact our support team for bulk import assistance if you have many clients to migrate.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="section-container">
+            <h2>Ready to Transform Your Coaching Business?</h2>
+            <p>Join hundreds of nutrition coaches who are saving time and delivering better results.</p>
+            <a href="signup.html" class="btn btn-secondary btn-large">Start Your Free 14-Day Trial</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="/" class="nav-logo">
+                        <div class="nav-logo-icon">Z</div>
+                        <span class="nav-logo-text" style="color: white;">Zique Fitness</span>
+                    </a>
+                    <p>The all-in-one platform for nutrition coaches. AI-powered meal planning, client management, and more.</p>
+                </div>
+
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="pricing.html">Pricing</a>
+                    <a href="#testimonials">Testimonials</a>
+                    <a href="#faq">FAQ</a>
+                </div>
+
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="#">About Us</a>
+                    <a href="#">Contact</a>
+                    <a href="#">Blog</a>
+                </div>
+
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="terms.html">Terms of Service</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Zique Fitness. All rights reserved.</p>
+                <p>Made with care for nutrition coaches worldwide.</p>
+            </div>
+        </div>
+    </footer>
+
     <script>
-        // Initialize Supabase client
-        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
-
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        const loginForm = document.getElementById('loginForm');
-        const loginBtn = document.getElementById('loginBtn');
-        const messageDiv = document.getElementById('message');
-
-        function showMessage(text, type) {
-            messageDiv.textContent = text;
-            messageDiv.className = `message ${type}`;
-            messageDiv.style.display = 'block';
-        }
-
-        function hideMessage() {
-            messageDiv.style.display = 'none';
-        }
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            hideMessage();
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Signing in...';
-
-            try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                showMessage('Login successful! Redirecting...', 'success');
-
-                // Redirect to dashboard after 1 second
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
-
-            } catch (error) {
-                showMessage(error.message, 'error');
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign In';
-            }
-        });
-
-        // Check if user is already logged in
-        supabaseClient.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                window.location.href = 'dashboard.html';
-            }
-        });
-    </script>
-
-    <!-- PWA Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('SW registered:', reg.scope))
-                    .catch(err => console.log('SW registration failed:', err));
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
             });
-        }
+        });
+
+        // Navbar background on scroll
+        const nav = document.querySelector('.nav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                nav.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
+            } else {
+                nav.style.boxShadow = 'none';
+            }
+        });
     </script>
 </body>
 </html>

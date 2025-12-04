@@ -3930,7 +3930,7 @@
 
             if (event === 'SIGNED_OUT') {
                 console.log('User signed out, redirecting to login');
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             } else if (event === 'TOKEN_REFRESHED' && currentUser && clientId) {
                 console.log('Token refreshed, reloading data');
                 refreshAllData();
@@ -3958,7 +3958,7 @@
                     console.error('Session refresh failed:', refreshError);
                     // If refresh fails, the session is likely expired
                     await supabaseClient.auth.signOut();
-                    window.location.href = 'index.html';
+                    window.location.href = 'login.html';
                     return;
                 }
 
@@ -3969,7 +3969,7 @@
                 if (!session || !session.access_token) {
                     console.error('No valid session after refresh');
                     await supabaseClient.auth.signOut();
-                    window.location.href = 'index.html';
+                    window.location.href = 'login.html';
                     return;
                 }
 
@@ -3986,7 +3986,7 @@
 
                 // If there's an error, sign out and redirect to be safe
                 await supabaseClient.auth.signOut();
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             }
         });
 
