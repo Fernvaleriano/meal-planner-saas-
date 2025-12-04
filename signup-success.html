@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <title>Welcome! - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--brand-gradient);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            color: white;
+        }
+
+        .brand-logo {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .brand-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .success-container {
+            background: white;
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 2.5rem;
+        }
+
+        h1 {
+            color: var(--gray-900);
+            margin-bottom: 12px;
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .subtitle {
+            color: var(--gray-500);
+            margin-bottom: 32px;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .next-steps {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .next-steps h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: var(--brand-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 2px;
+        }
+
+        .step-content p {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .btn-primary {
+            display: inline-block;
+            width: 100%;
+            padding: 16px 32px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+        }
+
+        .email-note {
+            margin-top: 24px;
+            padding: 16px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: #92400e;
+        }
+
+        .email-note strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Dark mode */
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #0f3b3b 0%, #0c2d4a 100%);
+        }
+
+        [data-theme="dark"] .success-container {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .success-icon {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+        }
+
+        [data-theme="dark"] h1 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .subtitle {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .next-steps {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .next-steps h2 {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .step-content h3 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .step-content p {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .email-note {
+            background: linear-gradient(135deg, #422006 0%, #78350f 100%);
+            color: #fcd34d;
+        }
+    </style>
+</head>
+<body>
+    <div class="brand-header">
+        <div class="brand-logo">Z</div>
+        <span class="brand-name">Zique Fitness</span>
+    </div>
+
+    <div class="success-container">
+        <div class="success-icon">🎉</div>
+        <h1>Welcome to Zique Fitness!</h1>
+        <p class="subtitle">Your account has been created successfully. Your 14-day free trial has started!</p>
+
+        <div class="next-steps">
+            <h2>Next Steps</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Check Your Email</h3>
+                    <p>We sent you a link to set your password</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Set Your Password</h3>
+                    <p>Click the link in the email to create your password</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Start Adding Clients</h3>
+                    <p>Log in and add your first client to get started</p>
+                </div>
+            </div>
+        </div>
+
+        <a href="index.html" class="btn-primary">Go to Login →</a>
+
+        <div class="email-note">
+            <strong>Didn't receive the email?</strong>
+            Check your spam folder or contact support@ziquefitness.com
+        </div>
+    </div>
+
+    <script>
+        // Optional: Verify the session with Stripe
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+
+        if (sessionId) {
+            console.log('Checkout session completed:', sessionId);
+            // Could verify session here if needed
+        }
+    </script>
+</body>
+</html>
