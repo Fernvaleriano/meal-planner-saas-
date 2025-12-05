@@ -12,8 +12,25 @@
  * 5. Send reminders and log them
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const { sendCheckinReminder } = require('./utils/email-service');
+console.log('[send-checkin-reminders] Module loading...');
+
+let createClient, sendCheckinReminder;
+
+try {
+    createClient = require('@supabase/supabase-js').createClient;
+    console.log('[send-checkin-reminders] Supabase loaded successfully');
+} catch (e) {
+    console.error('[send-checkin-reminders] Failed to load Supabase:', e.message);
+}
+
+try {
+    sendCheckinReminder = require('./utils/email-service').sendCheckinReminder;
+    console.log('[send-checkin-reminders] Email service loaded successfully');
+} catch (e) {
+    console.error('[send-checkin-reminders] Failed to load email service:', e.message);
+}
+
+console.log('[send-checkin-reminders] Module loaded successfully');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -97,6 +114,32 @@ exports.handler = async (event, context) => {
             isTestMode,
             timestamp: new Date().toISOString()
         });
+
+        // Check if required modules loaded
+        if (!createClient) {
+            console.error('Supabase client not available');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Server configuration error: Supabase module not loaded'
+                })
+            };
+        }
+
+        if (!sendCheckinReminder) {
+            console.error('Email service not available');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Server configuration error: Email service module not loaded'
+                })
+            };
+        }
+
         // Check for required environment variable
         if (!SUPABASE_SERVICE_KEY) {
             console.error('SUPABASE_SERVICE_KEY is not configured');
