@@ -283,7 +283,7 @@ a:hover {
 .brand-logo {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: 6px;
     text-decoration: none;
 }
 
