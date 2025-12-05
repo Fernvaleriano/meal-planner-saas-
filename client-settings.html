@@ -737,20 +737,30 @@
             // Get client data
             const { data: clientData, error: clientError } = await supabaseClient
                 .from('clients')
-                .select('*, coaches(name, email)')
+                .select('*')
                 .eq('user_id', session.user.id)
                 .single();
 
             if (clientData) {
-                document.getElementById('userName').textContent = clientData.name || 'Client';
+                document.getElementById('userName').textContent = clientData.client_name || clientData.name || 'Client';
 
                 // Set avatar initial
-                const name = clientData.name || session.user.email;
+                const name = clientData.client_name || clientData.name || session.user.email;
                 document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
 
-                // Set coach info
-                if (clientData.coaches) {
-                    document.getElementById('coachName').textContent = clientData.coaches.name || clientData.coaches.email;
+                // Fetch coach info separately using coach_id
+                if (clientData.coach_id) {
+                    const { data: coachData, error: coachError } = await supabaseClient
+                        .from('coaches')
+                        .select('name, email')
+                        .eq('id', clientData.coach_id)
+                        .single();
+
+                    if (coachData) {
+                        document.getElementById('coachName').textContent = coachData.name || coachData.email || 'Your Coach';
+                    } else {
+                        document.getElementById('coachName').textContent = 'Not assigned';
+                    }
                 } else {
                     document.getElementById('coachName').textContent = 'Not assigned';
                 }
