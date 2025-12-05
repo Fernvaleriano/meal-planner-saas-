@@ -887,37 +887,44 @@
             btn.textContent = 'Uploading...';
 
             try {
+                // Convert file to base64 for the Netlify function
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(selectedPhotoFile);
+                });
+
                 const photoType = document.getElementById('photoType').value || 'progress';
-                const fileName = `${clientId}/${Date.now()}_${photoType}.${selectedPhotoFile.name.split('.').pop()}`;
-                const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                    .from('progress-photos')
-                    .upload(fileName, selectedPhotoFile);
+                const takenDate = document.getElementById('photoDate').value;
 
-                if (uploadError) throw uploadError;
+                // Use Netlify function for upload (bypasses RLS)
+                const response = await fetch('/.netlify/functions/upload-progress-photo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        coachId: coachId,
+                        photoData: base64Data,
+                        photoType: photoType,
+                        takenDate: takenDate
+                    })
+                });
 
-                const { data: { publicUrl } } = supabaseClient.storage
-                    .from('progress-photos')
-                    .getPublicUrl(fileName);
+                const result = await response.json();
 
-                const { error: dbError } = await supabaseClient
-                    .from('progress_photos')
-                    .insert([{
-                        client_id: clientId,
-                        coach_id: coachId,
-                        photo_url: publicUrl,
-                        storage_path: fileName,
-                        photo_type: photoType,
-                        taken_date: document.getElementById('photoDate').value
-                    }]);
-
-                if (dbError) throw dbError;
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
 
                 closePhotoModal();
                 await loadPhotos();
                 alert('Photo uploaded!');
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error uploading photo');
+                alert('Error uploading photo: ' + error.message);
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Upload Photo';
