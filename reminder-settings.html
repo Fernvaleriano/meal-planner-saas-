@@ -1058,6 +1058,10 @@ Best,
             testBtn.textContent = 'Sending...';
 
             try {
+                // Get current user's email for test
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const userEmail = session?.user?.email;
+
                 const response = await fetch('/.netlify/functions/send-checkin-reminders', {
                     method: 'POST',
                     headers: {
@@ -1065,7 +1069,8 @@ Best,
                     },
                     body: JSON.stringify({
                         test: true,
-                        coachId: currentCoachId
+                        coachId: currentCoachId,
+                        testEmail: userEmail
                     })
                 });
 
