@@ -11,7 +11,7 @@
 
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
-const APP_URL = process.env.URL || 'https://cute-jalebi-b0f423.netlify.app';
+const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
 
 /**
  * Send an email using the configured provider
