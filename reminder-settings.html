@@ -1047,7 +1047,42 @@ Best,
         }
 
         async function sendTestReminder() {
-            showAlert('info', 'Test reminder feature coming soon! For now, save your settings and reminders will be sent automatically on the scheduled day.');
+            if (!currentCoachId) {
+                showAlert('error', 'Please wait for the page to load fully.');
+                return;
+            }
+
+            const testBtn = document.querySelector('.test-btn');
+            const originalText = testBtn.textContent;
+            testBtn.disabled = true;
+            testBtn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch('/.netlify/functions/send-checkin-reminders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        test: true,
+                        coachId: currentCoachId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('success', data.message || 'Test reminder sent! Check your email.');
+                } else {
+                    showAlert('error', data.error || data.message || 'Failed to send test reminder.');
+                }
+            } catch (error) {
+                console.error('Error sending test reminder:', error);
+                showAlert('error', 'Failed to send test reminder: ' + error.message);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = originalText;
+            }
         }
 
         function showAlert(type, message) {
