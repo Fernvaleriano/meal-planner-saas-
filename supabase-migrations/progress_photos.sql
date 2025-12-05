@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS progress_photos (
   id BIGSERIAL PRIMARY KEY,
   client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-  coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
+  coach_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   photo_url TEXT NOT NULL,
   storage_path TEXT NOT NULL,
   photo_type VARCHAR(50) DEFAULT 'progress', -- 'front', 'side', 'back', 'progress'
