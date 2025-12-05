@@ -53,7 +53,7 @@ exports.handler = async (event, context) => {
         .single(),
       supabase
         .from('coaches')
-        .select('id, email, full_name')
+        .select('id, email, full_name, email_from, email_from_name, email_domain_verified')
         .eq('id', coachId)
         .single()
     ]);

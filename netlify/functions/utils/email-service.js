@@ -9,8 +9,9 @@
  * Falls back to logging if no provider is configured (dev mode)
  */
 
-const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
-const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
+// Default email settings (fallback when coach doesn't have white-label)
+const DEFAULT_EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
+const DEFAULT_EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
 const APP_URL = process.env.URL || 'https://cute-jalebi-b0f423.netlify.app';
 
 /**
@@ -20,9 +21,14 @@ const APP_URL = process.env.URL || 'https://cute-jalebi-b0f423.netlify.app';
  * @param {string} options.subject - Email subject
  * @param {string} options.text - Plain text body
  * @param {string} options.html - HTML body (optional)
+ * @param {string} options.fromEmail - Custom from email (optional, for white-label)
+ * @param {string} options.fromName - Custom from name (optional, for white-label)
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-async function sendEmail({ to, subject, text, html }) {
+async function sendEmail({ to, subject, text, html, fromEmail, fromName }) {
+    // Use custom from address if provided (white-label), otherwise use defaults
+    const emailFrom = fromEmail || DEFAULT_EMAIL_FROM;
+    const emailFromName = fromName || DEFAULT_EMAIL_FROM_NAME;
     // Validate inputs
     if (!to || !subject || !text) {
         return { success: false, error: 'Missing required fields: to, subject, text' };
@@ -30,15 +36,15 @@ async function sendEmail({ to, subject, text, html }) {
 
     // Try providers in order of preference
     if (process.env.RESEND_API_KEY) {
-        return sendWithResend({ to, subject, text, html });
+        return sendWithResend({ to, subject, text, html, emailFrom, emailFromName });
     }
 
     if (process.env.SENDGRID_API_KEY) {
-        return sendWithSendGrid({ to, subject, text, html });
+        return sendWithSendGrid({ to, subject, text, html, emailFrom, emailFromName });
     }
 
     if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
-        return sendWithMailgun({ to, subject, text, html });
+        return sendWithMailgun({ to, subject, text, html, emailFrom, emailFromName });
     }
 
     // Development fallback - just log the email
@@ -58,7 +64,7 @@ async function sendEmail({ to, subject, text, html }) {
 /**
  * Send email using Resend
  */
-async function sendWithResend({ to, subject, text, html }) {
+async function sendWithResend({ to, subject, text, html, emailFrom, emailFromName }) {
     try {
         const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
@@ -67,7 +73,7 @@ async function sendWithResend({ to, subject, text, html }) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                from: `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
+                from: `${emailFromName} <${emailFrom}>`,
                 to: [to],
                 subject,
                 text,
@@ -92,7 +98,7 @@ async function sendWithResend({ to, subject, text, html }) {
 /**
  * Send email using SendGrid
  */
-async function sendWithSendGrid({ to, subject, text, html }) {
+async function sendWithSendGrid({ to, subject, text, html, emailFrom, emailFromName }) {
     try {
         const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
             method: 'POST',
@@ -102,7 +108,7 @@ async function sendWithSendGrid({ to, subject, text, html }) {
             },
             body: JSON.stringify({
                 personalizations: [{ to: [{ email: to }] }],
-                from: { email: EMAIL_FROM, name: EMAIL_FROM_NAME },
+                from: { email: emailFrom, name: emailFromName },
                 subject,
                 content: [
                     { type: 'text/plain', value: text },
@@ -129,11 +135,11 @@ async function sendWithSendGrid({ to, subject, text, html }) {
 /**
  * Send email using Mailgun
  */
-async function sendWithMailgun({ to, subject, text, html }) {
+async function sendWithMailgun({ to, subject, text, html, emailFrom, emailFromName }) {
     try {
         const domain = process.env.MAILGUN_DOMAIN;
         const formData = new URLSearchParams();
-        formData.append('from', `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`);
+        formData.append('from', `${emailFromName} <${emailFrom}>`);
         formData.append('to', to);
         formData.append('subject', subject);
         formData.append('text', text);
@@ -316,11 +322,17 @@ async function sendCheckinReminder({
         isFollowup
     });
 
+    // Use coach's white-label email settings if available and verified
+    const fromEmail = (coach?.email_domain_verified && coach?.email_from) ? coach.email_from : undefined;
+    const fromName = (coach?.email_domain_verified && coach?.email_from_name) ? coach.email_from_name : undefined;
+
     return sendEmail({
         to: client.email,
         subject: emailContent.subject,
         text: emailContent.text,
-        html: emailContent.html
+        html: emailContent.html,
+        fromEmail,
+        fromName
     });
 }
 
@@ -451,11 +463,17 @@ async function sendInvitationEmail({
         resetLink
     });
 
+    // Use coach's white-label email settings if available and verified
+    const fromEmail = (coach?.email_domain_verified && coach?.email_from) ? coach.email_from : undefined;
+    const fromName = (coach?.email_domain_verified && coach?.email_from_name) ? coach.email_from_name : undefined;
+
     return sendEmail({
         to: client.email,
         subject: emailContent.subject,
         text: emailContent.text,
-        html: emailContent.html
+        html: emailContent.html,
+        fromEmail,
+        fromName
     });
 }
 

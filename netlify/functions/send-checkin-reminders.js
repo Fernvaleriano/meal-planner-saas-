@@ -158,10 +158,10 @@ exports.handler = async (event, context) => {
 
             console.log(`Processing coach ${settings.coach_id}`);
 
-            // Get coach details
+            // Get coach details including white-label email settings
             const { data: coachData } = await supabase
                 .from('coaches')
-                .select('*')
+                .select('id, email, full_name, business_name, email_from, email_from_name, email_domain_verified')
                 .eq('id', settings.coach_id)
                 .single();
 
@@ -248,7 +248,13 @@ exports.handler = async (event, context) => {
 
                 const result = await sendCheckinReminder({
                     client,
-                    coach: { full_name: coachName, email: settings.coach?.email },
+                    coach: {
+                        full_name: coachName,
+                        email: coachData?.email || settings.coach?.email,
+                        email_from: coachData?.email_from,
+                        email_from_name: coachData?.email_from_name,
+                        email_domain_verified: coachData?.email_domain_verified
+                    },
                     settings,
                     isFollowup: false
                 });
@@ -424,10 +430,10 @@ async function processFollowupReminders(supabase, stats, now) {
                     continue;
                 }
 
-                // Get coach details
+                // Get coach details including white-label email settings
                 const { data: coachData } = await supabase
                     .from('coaches')
-                    .select('*')
+                    .select('id, email, full_name, business_name, email_from, email_from_name, email_domain_verified')
                     .eq('id', settings.coach_id)
                     .single();
 
@@ -438,7 +444,13 @@ async function processFollowupReminders(supabase, stats, now) {
 
                 const result = await sendCheckinReminder({
                     client,
-                    coach: { full_name: coachName },
+                    coach: {
+                        full_name: coachName,
+                        email: coachData?.email,
+                        email_from: coachData?.email_from,
+                        email_from_name: coachData?.email_from_name,
+                        email_domain_verified: coachData?.email_domain_verified
+                    },
                     settings,
                     isFollowup: true
                 });
