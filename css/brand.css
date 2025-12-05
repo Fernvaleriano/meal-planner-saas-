@@ -283,35 +283,13 @@ a:hover {
 .brand-logo {
     display: flex;
     align-items: center;
-    gap: 6px;
     text-decoration: none;
 }
 
-.brand-logo-icon {
-    width: 48px;
-    height: 48px;
-    background: transparent;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.brand-logo-icon img {
-    width: 100%;
-    height: 100%;
+.brand-logo-img {
+    height: 40px;
+    width: auto;
     object-fit: contain;
-}
-
-.brand-logo-text {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 1.375rem;
-    background: var(--brand-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
     letter-spacing: -0.025em;
 }
 
