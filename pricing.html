@@ -493,20 +493,20 @@
 
     <!-- Pricing Cards -->
     <section class="pricing-section">
-        <div class="pricing-cards">
-            <!-- Basic Plan -->
+        <div class="pricing-cards" style="grid-template-columns: repeat(3, 1fr); max-width: 1200px;">
+            <!-- Starter Plan -->
             <div class="pricing-card">
-                <div class="plan-name">Basic</div>
+                <div class="plan-name">Starter</div>
                 <div class="plan-description">Perfect for coaches just getting started</div>
                 <div class="plan-price">
                     <span class="price-currency">$</span>
-                    <span class="price-amount">29</span>
+                    <span class="price-amount">49</span>
                     <span class="price-period">/month</span>
                 </div>
                 <div class="plan-billing">Billed monthly. Cancel anytime.</div>
                 <ul class="plan-features">
-                    <li>Up to 25 active clients</li>
-                    <li>Custom meal plan builder</li>
+                    <li>Up to 10 active clients</li>
+                    <li>AI meal plan generator</li>
                     <li>Client food diary tracking</li>
                     <li>AI nutrition assistant</li>
                     <li>Weekly check-in forms</li>
@@ -515,23 +515,47 @@
                     <li class="disabled">Custom branding</li>
                     <li class="disabled">Supplement protocols</li>
                 </ul>
-                <a href="signup.html?plan=basic" class="btn-select secondary">Get Started</a>
+                <a href="signup.html?plan=starter" class="btn-select secondary">Get Started</a>
             </div>
 
-            <!-- Branded Plan -->
+            <!-- Growth Plan -->
             <div class="pricing-card popular">
                 <div class="popular-badge">Most Popular</div>
-                <div class="plan-name">Professional</div>
-                <div class="plan-description">For established coaches who want more</div>
+                <div class="plan-name">Growth</div>
+                <div class="plan-description">For growing coaching businesses</div>
                 <div class="plan-price">
                     <span class="price-currency">$</span>
-                    <span class="price-amount">49</span>
+                    <span class="price-amount">99</span>
                     <span class="price-period">/month</span>
                 </div>
                 <div class="plan-billing">Billed monthly. Cancel anytime.</div>
                 <ul class="plan-features">
-                    <li>Unlimited clients</li>
-                    <li>Custom meal plan builder</li>
+                    <li>Up to 50 active clients</li>
+                    <li>AI meal plan generator</li>
+                    <li>Client food diary tracking</li>
+                    <li>AI nutrition assistant</li>
+                    <li>Weekly check-in forms</li>
+                    <li>Recipe management</li>
+                    <li>Priority support</li>
+                    <li class="disabled">Custom branding</li>
+                    <li>Supplement protocols</li>
+                </ul>
+                <a href="signup.html?plan=growth" class="btn-select primary">Get Started</a>
+            </div>
+
+            <!-- Professional Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Professional</div>
+                <div class="plan-description">For established coaches who want it all</div>
+                <div class="plan-price">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount">199</span>
+                    <span class="price-period">/month</span>
+                </div>
+                <div class="plan-billing">Billed monthly. Cancel anytime.</div>
+                <ul class="plan-features">
+                    <li>Unlimited clients*</li>
+                    <li>AI meal plan generator</li>
                     <li>Client food diary tracking</li>
                     <li>AI nutrition assistant</li>
                     <li>Weekly check-in forms</li>
@@ -540,9 +564,12 @@
                     <li>Custom branding & logo</li>
                     <li>Supplement protocols</li>
                 </ul>
-                <a href="signup.html?plan=branded" class="btn-select primary">Get Started</a>
+                <a href="signup.html?plan=professional" class="btn-select secondary">Get Started</a>
             </div>
         </div>
+        <p style="text-align: center; color: var(--gray-500); font-size: 0.85rem; margin-top: 24px;">
+            *Unlimited clients up to 300 active clients. For higher volume needs, <a href="mailto:support@ziquefitness.com" style="color: var(--brand-primary);">contact us</a> for a custom plan.
+        </p>
     </section>
 
     <!-- Features -->
@@ -616,7 +643,7 @@
     <section class="cta-section">
         <h2>Ready to Grow Your Coaching Business?</h2>
         <p>Join hundreds of nutrition coaches who trust Zique Fitness to manage their clients.</p>
-        <a href="signup.html?plan=branded" class="btn-cta">Start Free Trial</a>
+        <a href="signup.html?plan=growth" class="btn-cta">Start Free Trial</a>
     </section>
 
     <!-- Footer -->

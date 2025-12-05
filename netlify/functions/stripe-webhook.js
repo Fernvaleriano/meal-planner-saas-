@@ -83,7 +83,7 @@ async function handleCheckoutComplete(session) {
     console.log('Processing checkout.session.completed:', session.id);
 
     const email = session.customer_email;
-    const plan = session.metadata?.plan || 'basic';
+    const plan = session.metadata?.plan || 'starter';
     const coachName = session.metadata?.coach_name || '';
     const customerId = session.customer;
     const subscriptionId = session.subscription;
@@ -234,11 +234,17 @@ async function handleSubscriptionUpdated(subscription) {
         .single();
 
     if (coach) {
-        // Map Stripe plan to our tiers
+        // Map Stripe price ID to our tiers
         const priceId = subscription.items.data[0]?.price?.id;
-        let tier = 'basic';
-        if (priceId === process.env.STRIPE_PRICE_BRANDED) {
-            tier = 'branded';
+        let tier = 'starter'; // Default to starter
+
+        // Map price IDs to tiers (supports both new and legacy env vars)
+        if (priceId === process.env.STRIPE_PRICE_STARTER || priceId === process.env.STRIPE_PRICE_BASIC) {
+            tier = 'starter';
+        } else if (priceId === process.env.STRIPE_PRICE_GROWTH) {
+            tier = 'growth';
+        } else if (priceId === process.env.STRIPE_PRICE_PROFESSIONAL || priceId === process.env.STRIPE_PRICE_BRANDED) {
+            tier = 'professional';
         }
 
         await supabase

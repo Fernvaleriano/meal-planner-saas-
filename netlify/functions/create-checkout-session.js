@@ -9,8 +9,12 @@ const headers = {
 
 // Price IDs from Stripe Dashboard - UPDATE THESE WITH YOUR ACTUAL PRICE IDS
 const PRICE_IDS = {
-    basic: process.env.STRIPE_PRICE_BASIC || 'price_basic_monthly',
-    branded: process.env.STRIPE_PRICE_BRANDED || 'price_branded_monthly'
+    starter: process.env.STRIPE_PRICE_STARTER || 'price_starter_monthly',
+    growth: process.env.STRIPE_PRICE_GROWTH || 'price_growth_monthly',
+    professional: process.env.STRIPE_PRICE_PROFESSIONAL || 'price_professional_monthly',
+    // Legacy support for existing subscribers
+    basic: process.env.STRIPE_PRICE_BASIC || process.env.STRIPE_PRICE_STARTER || 'price_starter_monthly',
+    branded: process.env.STRIPE_PRICE_BRANDED || process.env.STRIPE_PRICE_PROFESSIONAL || 'price_professional_monthly'
 };
 
 exports.handler = async (event) => {

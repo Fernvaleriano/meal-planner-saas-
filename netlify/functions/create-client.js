@@ -51,6 +51,66 @@ exports.handler = async (event, context) => {
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // Client limits by subscription tier
+    const CLIENT_LIMITS = {
+      starter: 10,
+      growth: 50,
+      professional: 300,
+      // Legacy tier support
+      basic: 10,
+      branded: 300
+    };
+
+    // Check coach's subscription tier and client count
+    const { data: coach, error: coachError } = await supabase
+      .from('coaches')
+      .select('subscription_tier, subscription_status')
+      .eq('id', coachId)
+      .single();
+
+    if (coachError || !coach) {
+      console.error('❌ Error fetching coach:', coachError);
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Coach not found' })
+      };
+    }
+
+    // Get current client count
+    const { count: currentClientCount, error: countError } = await supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('coach_id', coachId);
+
+    if (countError) {
+      console.error('❌ Error counting clients:', countError);
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Failed to check client limit' })
+      };
+    }
+
+    // Check against limit
+    const tier = coach.subscription_tier || 'starter';
+    const limit = CLIENT_LIMITS[tier] || 10;
+
+    if (currentClientCount >= limit) {
+      console.log(`⚠️ Client limit reached: ${currentClientCount}/${limit} for tier ${tier}`);
+      return {
+        statusCode: 403,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({
+          error: `You've reached your plan's limit of ${limit} clients. Please upgrade your plan to add more clients.`,
+          code: 'CLIENT_LIMIT_REACHED',
+          currentCount: currentClientCount,
+          limit: limit,
+          tier: tier
+        })
+      };
+    }
+
     // Insert new client with all fields
     const { data, error } = await supabase
       .from('clients')

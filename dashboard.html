@@ -207,11 +207,18 @@
             margin-bottom: 16px;
         }
 
+        .tier-badge.starter,
         .tier-badge.basic {
             background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
             color: #1e40af;
         }
 
+        .tier-badge.growth {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+        }
+
+        .tier-badge.professional,
         .tier-badge.branded {
             background: linear-gradient(135deg, #fae8ff 0%, #f3e8ff 100%);
             color: #7e22ce;
@@ -1389,8 +1396,8 @@
                 tierBadge.textContent = coachData.subscription_tier.toUpperCase();
                 tierBadge.className = `tier-badge ${coachData.subscription_tier}`;
 
-                // Show branding button only for branded tier
-                if (coachData.subscription_tier === 'branded') {
+                // Show branding button only for professional tier (or legacy branded tier)
+                if (coachData.subscription_tier === 'professional' || coachData.subscription_tier === 'branded') {
                     brandingBtn.parentElement.style.display = 'block';
                 } else {
                     brandingBtn.parentElement.style.display = 'none';
