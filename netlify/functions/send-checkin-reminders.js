@@ -70,6 +70,20 @@ exports.handler = async (event, context) => {
         return { statusCode: 204, headers, body: '' };
     }
 
+    // Parse request body for test mode
+    let requestBody = {};
+    if (event.body) {
+        try {
+            requestBody = JSON.parse(event.body);
+        } catch (e) {
+            // Not JSON, ignore
+        }
+    }
+
+    const isTestMode = requestBody.test === true;
+    const testCoachId = requestBody.coachId;
+    const testEmail = requestBody.testEmail;
+
     // Check if this is a scheduled invocation or manual trigger
     const isScheduled = context?.clientContext?.custom?.scheduled === true ||
                        event.headers?.['x-netlify-scheduled'] === 'true';
@@ -78,6 +92,7 @@ exports.handler = async (event, context) => {
     console.log('Check-in Reminder Function triggered', {
         isScheduled,
         isManual,
+        isTestMode,
         timestamp: new Date().toISOString()
     });
 
@@ -87,6 +102,68 @@ exports.handler = async (event, context) => {
         const currentDay = now.getUTCDay();
         const currentHour = now.getUTCHours();
         const weekStart = getWeekStart(now);
+
+        // Handle test mode - send a test email to the coach
+        if (isTestMode && testCoachId) {
+            console.log('Test mode: sending test reminder to coach', testCoachId);
+
+            // Get coach settings
+            const { data: settings, error: settingsError } = await supabase
+                .from('checkin_reminder_settings')
+                .select('*')
+                .eq('coach_id', testCoachId)
+                .single();
+
+            if (settingsError && settingsError.code !== 'PGRST116') {
+                throw settingsError;
+            }
+
+            // Get coach details
+            const { data: coachData } = await supabase
+                .from('coaches')
+                .select('*')
+                .eq('id', testCoachId)
+                .single();
+
+            const coachName = coachData?.full_name || coachData?.business_name || 'Your Coach';
+            const coachEmail = coachData?.email || testEmail;
+
+            if (!coachEmail) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        success: false,
+                        error: 'No email address found for test'
+                    })
+                };
+            }
+
+            // Send test email to coach
+            const result = await sendCheckinReminder({
+                client: {
+                    id: 'test',
+                    client_name: 'Test Client',
+                    email: coachEmail
+                },
+                coach: { full_name: coachName, email: coachEmail },
+                settings: settings || {},
+                isFollowup: false,
+                isTest: true
+            });
+
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: result.success,
+                    message: result.success
+                        ? `Test reminder sent to ${coachEmail}`
+                        : `Failed to send test: ${result.error}`,
+                    testMode: true
+                })
+            };
+        }
 
         console.log('Processing reminders', {
             currentDay,
