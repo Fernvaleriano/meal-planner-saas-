@@ -9,8 +9,7 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Scheduled function for check-in reminders
-# Runs every hour to send reminders at the right time for each coach's timezone
-[functions."send-checkin-reminders"]
-  schedule = "@hourly"
+# Note: Scheduled reminder sending can be re-enabled by adding:
+# [functions."send-checkin-reminders"]
+#   schedule = "@hourly"
 
