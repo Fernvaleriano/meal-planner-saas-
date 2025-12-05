@@ -118,69 +118,95 @@ exports.handler = async (event, context) => {
 
         // Handle test mode - send a test email to the coach
         if (isTestMode && testCoachId) {
-            console.log('Test mode: sending test reminder to coach', testCoachId);
+            console.log('Test mode: sending test reminder to coach', testCoachId, 'testEmail:', testEmail);
 
-            // Get coach settings
-            const { data: settings, error: settingsError } = await supabase
-                .from('checkin_reminder_settings')
-                .select('*')
-                .eq('coach_id', testCoachId)
-                .single();
+            try {
+                // Get coach settings
+                console.log('Fetching coach settings...');
+                const { data: settings, error: settingsError } = await supabase
+                    .from('checkin_reminder_settings')
+                    .select('*')
+                    .eq('coach_id', testCoachId)
+                    .single();
 
-            if (settingsError && settingsError.code !== 'PGRST116') {
-                throw settingsError;
-            }
+                if (settingsError && settingsError.code !== 'PGRST116') {
+                    console.error('Settings error:', settingsError);
+                    return {
+                        statusCode: 500,
+                        headers,
+                        body: JSON.stringify({
+                            success: false,
+                            error: `Failed to fetch settings: ${settingsError.message || settingsError.code || 'Unknown error'}`
+                        })
+                    };
+                }
+                console.log('Settings fetched:', settings ? 'found' : 'not found');
 
-            // Get coach details - query by user_id since testCoachId is the auth user ID
-            const { data: coachData, error: coachError } = await supabase
-                .from('coaches')
-                .select('*')
-                .eq('user_id', testCoachId)
-                .single();
+                // Get coach details - query by user_id since testCoachId is the auth user ID
+                console.log('Fetching coach data...');
+                const { data: coachData, error: coachError } = await supabase
+                    .from('coaches')
+                    .select('*')
+                    .eq('user_id', testCoachId)
+                    .single();
 
-            if (coachError && coachError.code !== 'PGRST116') {
-                console.error('Error fetching coach:', coachError);
-            }
+                if (coachError && coachError.code !== 'PGRST116') {
+                    console.error('Error fetching coach:', coachError);
+                }
+                console.log('Coach data fetched:', coachData ? 'found' : 'not found');
 
-            const coachName = coachData?.full_name || coachData?.business_name || 'Your Coach';
-            // Use email from coaches table, or fall back to testEmail passed from frontend
-            const coachEmail = coachData?.email || testEmail;
+                const coachName = coachData?.full_name || coachData?.business_name || 'Your Coach';
+                // Use email from coaches table, or fall back to testEmail passed from frontend
+                const coachEmail = coachData?.email || testEmail;
 
-            if (!coachEmail) {
+                if (!coachEmail) {
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({
+                            success: false,
+                            error: 'No email address found for test'
+                        })
+                    };
+                }
+
+                console.log('Sending test email to:', coachEmail);
+                // Send test email to coach
+                const result = await sendCheckinReminder({
+                    client: {
+                        id: 'test',
+                        client_name: 'Test Client',
+                        email: coachEmail
+                    },
+                    coach: { full_name: coachName, email: coachEmail },
+                    settings: settings || {},
+                    isFollowup: false,
+                    isTest: true
+                });
+                console.log('Email send result:', result);
+
                 return {
-                    statusCode: 400,
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        success: result.success,
+                        message: result.success
+                            ? `Test reminder sent to ${coachEmail}`
+                            : `Failed to send test: ${result.error}`,
+                        testMode: true
+                    })
+                };
+            } catch (testError) {
+                console.error('Test mode error:', testError);
+                return {
+                    statusCode: 500,
                     headers,
                     body: JSON.stringify({
                         success: false,
-                        error: 'No email address found for test'
+                        error: `Test mode failed: ${testError?.message || testError?.toString?.() || 'Unknown error'}`
                     })
                 };
             }
-
-            // Send test email to coach
-            const result = await sendCheckinReminder({
-                client: {
-                    id: 'test',
-                    client_name: 'Test Client',
-                    email: coachEmail
-                },
-                coach: { full_name: coachName, email: coachEmail },
-                settings: settings || {},
-                isFollowup: false,
-                isTest: true
-            });
-
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({
-                    success: result.success,
-                    message: result.success
-                        ? `Test reminder sent to ${coachEmail}`
-                        : `Failed to send test: ${result.error}`,
-                    testMode: true
-                })
-            };
         }
 
         console.log('Processing reminders', {
