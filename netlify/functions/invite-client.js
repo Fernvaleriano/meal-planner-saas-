@@ -4,7 +4,7 @@ const { sendInvitationEmail } = require('./utils/email-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const APP_URL = process.env.URL || 'https://cute-jalebi-b0f423.netlify.app';
+const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
 
 // Common headers for all responses
 const headers = {
