@@ -14,7 +14,7 @@ async function ensureBucketExists(supabase) {
 
     if (listError) {
       console.error('Error listing buckets:', listError);
-      return false;
+      return { success: false, error: listError.message };
     }
 
     const bucketExists = buckets.some(b => b.name === BUCKET_NAME);
@@ -28,15 +28,15 @@ async function ensureBucketExists(supabase) {
 
       if (createError) {
         console.error('Error creating bucket:', createError);
-        return false;
+        return { success: false, error: createError.message };
       }
       console.log('Bucket created successfully');
     }
 
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('Error ensuring bucket exists:', error);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -63,29 +63,60 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Check if service key is configured
+  if (!SUPABASE_SERVICE_KEY) {
+    console.error('SUPABASE_SERVICE_KEY environment variable is not set');
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Server configuration error: Missing service key' })
+    };
+  }
+
   try {
     const body = JSON.parse(event.body);
     const { clientId, coachId, photoData, photoType, notes, takenDate } = body;
 
-    // Validate required fields
-    if (!clientId || !coachId || !photoData) {
+    // Validate required fields with detailed error messages
+    if (!clientId) {
+      console.error('Missing clientId in request');
       return {
         statusCode: 400,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'Client ID, Coach ID, and photo data are required' })
+        body: JSON.stringify({ error: 'Client ID is required. Please refresh the page and try again.' })
       };
     }
+
+    if (!coachId) {
+      console.error('Missing coachId in request');
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Coach ID is required. Please refresh the page and try again.' })
+      };
+    }
+
+    if (!photoData) {
+      console.error('Missing photoData in request');
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Photo data is required. Please select a photo and try again.' })
+      };
+    }
+
+    console.log('Uploading photo for client:', clientId, 'coach:', coachId);
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // Ensure bucket exists (create if not)
-    const bucketReady = await ensureBucketExists(supabase);
-    if (!bucketReady) {
+    const bucketResult = await ensureBucketExists(supabase);
+    if (!bucketResult.success) {
       return {
         statusCode: 500,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'Failed to initialize storage bucket' })
+        body: JSON.stringify({ error: 'Failed to initialize storage bucket: ' + (bucketResult.error || 'Unknown error') })
       };
     }
 

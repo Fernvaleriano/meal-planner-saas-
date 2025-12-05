@@ -3440,7 +3440,17 @@
         }
 
         async function uploadPhoto() {
-            if (!selectedPhotoFile || !currentClientId) return;
+            if (!selectedPhotoFile) {
+                alert('Please select a photo first.');
+                return;
+            }
+
+            // Validate that client and coach IDs are available
+            if (!currentClientId || !currentCoachId) {
+                alert('Session data not loaded. Please refresh the page and try again.');
+                console.error('Missing IDs - clientId:', currentClientId, 'coachId:', currentCoachId);
+                return;
+            }
 
             const uploadBtn = document.getElementById('uploadBtn');
             const originalText = uploadBtn.textContent;
@@ -3893,6 +3903,13 @@
 
         async function saveMeasurement(event) {
             event.preventDefault();
+
+            // Validate that client and coach IDs are available
+            if (!currentClientId || !currentCoachId) {
+                alert('Session data not loaded. Please refresh the page and try again.');
+                console.error('Missing IDs - clientId:', currentClientId, 'coachId:', currentCoachId);
+                return;
+            }
 
             const saveBtn = document.getElementById('saveMeasurementBtn');
             const originalText = saveBtn.textContent;
