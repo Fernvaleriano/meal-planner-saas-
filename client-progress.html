@@ -642,6 +642,7 @@
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let clientId = null;
+        let coachId = null;
         let weightChart = null;
         let selectedPhotoFile = null;
 
@@ -664,7 +665,7 @@
                 }
                 const { data: client, error } = await supabaseClient
                     .from('clients')
-                    .select('id')
+                    .select('id, coach_id')
                     .eq('user_id', session.user.id)
                     .single();
 
@@ -676,6 +677,7 @@
                 }
 
                 clientId = client.id;
+                coachId = client.coach_id;
                 await loadMeasurements();
                 await loadPhotos();
             } catch (error) {
@@ -741,7 +743,7 @@
                         <div class="measurement-date">${new Date(m.measured_date).toLocaleDateString()}</div>
                         <div class="measurement-values">
                             ${m.weight ? `<span>${m.weight}</span> lbs` : ''}
-                            ${m.body_fat ? `<span>${m.body_fat}</span>%` : ''}
+                            ${m.body_fat_percentage ? `<span>${m.body_fat_percentage}</span>%` : ''}
                         </div>
                     </div>
                 `).join('');
@@ -829,9 +831,10 @@
             try {
                 const data = {
                     client_id: clientId,
-                    date: document.getElementById('measurementDate').value,
+                    coach_id: coachId,
+                    measured_date: document.getElementById('measurementDate').value,
                     weight: parseFloat(document.getElementById('weightInput').value) || null,
-                    body_fat: parseFloat(document.getElementById('bodyfatInput').value) || null,
+                    body_fat_percentage: parseFloat(document.getElementById('bodyfatInput').value) || null,
                     waist: parseFloat(document.getElementById('waistInput').value) || null,
                     hips: parseFloat(document.getElementById('hipsInput').value) || null,
                     notes: document.getElementById('measurementNotes').value || null
@@ -884,7 +887,8 @@
             btn.textContent = 'Uploading...';
 
             try {
-                const fileName = `${clientId}/${Date.now()}_${selectedPhotoFile.name}`;
+                const photoType = document.getElementById('photoType').value || 'progress';
+                const fileName = `${clientId}/${Date.now()}_${photoType}.${selectedPhotoFile.name.split('.').pop()}`;
                 const { data: uploadData, error: uploadError } = await supabaseClient.storage
                     .from('progress-photos')
                     .upload(fileName, selectedPhotoFile);
@@ -896,12 +900,14 @@
                     .getPublicUrl(fileName);
 
                 const { error: dbError } = await supabaseClient
-                    .from('client_photos')
+                    .from('progress_photos')
                     .insert([{
                         client_id: clientId,
+                        coach_id: coachId,
                         photo_url: publicUrl,
-                        photo_type: document.getElementById('photoType').value,
-                        date_taken: document.getElementById('photoDate').value
+                        storage_path: fileName,
+                        photo_type: photoType,
+                        taken_date: document.getElementById('photoDate').value
                     }]);
 
                 if (dbError) throw dbError;
