@@ -701,6 +701,21 @@
                     </div>
                 </div>
 
+                <!-- Profile Settings -->
+                <div class="settings-card">
+                    <div class="settings-card-title">Profile</div>
+                    <div class="settings-item" onclick="openNameModal()">
+                        <div class="settings-item-left">
+                            <div class="settings-icon">✏️</div>
+                            <div>
+                                <div class="settings-label">Display Name</div>
+                                <div class="settings-sublabel" id="currentNameDisplay">Set your name</div>
+                            </div>
+                        </div>
+                        <span class="settings-arrow">›</span>
+                    </div>
+                </div>
+
                 <!-- Account Settings -->
                 <div class="settings-card">
                     <div class="settings-card-title">Account</div>
@@ -770,6 +785,24 @@
         </div>
     </div>
 
+    <!-- Name Edit Modal -->
+    <div class="modal-overlay" id="nameModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Display Name</h2>
+                <button class="modal-close" onclick="closeNameModal()">&times;</button>
+            </div>
+            <form id="nameForm">
+                <div class="form-group">
+                    <label for="displayName">Your Name</label>
+                    <input type="text" id="displayName" required placeholder="Enter your display name">
+                </div>
+                <div id="nameMessage" class="message"></div>
+                <button type="submit" class="submit-btn" id="saveNameBtn">Save Name</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Sidebar section collapse functionality
@@ -830,6 +863,7 @@
 
                 const name = coachData.name || user.email.split('@')[0];
                 document.getElementById('profileName').textContent = name;
+                document.getElementById('currentNameDisplay').textContent = coachData.name ? name : 'Set your name';
 
                 const initial = name.charAt(0).toUpperCase();
                 document.getElementById('profileAvatar').textContent = initial;
@@ -983,6 +1017,97 @@
             } finally {
                 changePasswordBtn.disabled = false;
                 changePasswordBtn.textContent = 'Update Password';
+            }
+        });
+
+        // Name edit modal functions
+        const nameModal = document.getElementById('nameModal');
+        const nameForm = document.getElementById('nameForm');
+        const nameMessage = document.getElementById('nameMessage');
+        const saveNameBtn = document.getElementById('saveNameBtn');
+
+        function openNameModal() {
+            nameModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            // Pre-fill with current name
+            const currentName = document.getElementById('profileName').textContent;
+            document.getElementById('displayName').value = currentName || '';
+            nameMessage.className = 'message';
+            nameMessage.textContent = '';
+        }
+
+        function closeNameModal() {
+            nameModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal when clicking overlay
+        nameModal.addEventListener('click', (e) => {
+            if (e.target === nameModal) {
+                closeNameModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && nameModal.classList.contains('show')) {
+                closeNameModal();
+            }
+        });
+
+        function showNameMessage(text, type) {
+            nameMessage.textContent = text;
+            nameMessage.className = `message ${type}`;
+        }
+
+        nameForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const newName = document.getElementById('displayName').value.trim();
+
+            if (!newName) {
+                showNameMessage('Please enter a name', 'error');
+                return;
+            }
+
+            saveNameBtn.disabled = true;
+            saveNameBtn.textContent = 'Saving...';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    throw new Error('Not logged in');
+                }
+
+                // Update name in coaches table
+                const { error } = await supabaseClient
+                    .from('coaches')
+                    .update({ name: newName })
+                    .eq('id', session.user.id);
+
+                if (error) throw error;
+
+                // Update UI
+                document.getElementById('profileName').textContent = newName;
+                document.getElementById('currentNameDisplay').textContent = newName;
+                const initial = newName.charAt(0).toUpperCase();
+                document.getElementById('profileAvatar').textContent = initial;
+                document.getElementById('sidebarAvatar').textContent = initial;
+
+                showNameMessage('Name updated successfully!', 'success');
+
+                // Close modal after short delay
+                setTimeout(() => {
+                    closeNameModal();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error updating name:', error);
+                showNameMessage(error.message, 'error');
+            } finally {
+                saveNameBtn.disabled = false;
+                saveNameBtn.textContent = 'Save Name';
             }
         });
 
