@@ -1074,7 +1074,17 @@ Best,
                     })
                 });
 
-                const data = await response.json();
+                // Handle non-JSON error responses gracefully
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // Server returned non-JSON (e.g., plain text error)
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    data = { success: false, error: text || `Server error (${response.status})` };
+                }
 
                 if (data.success) {
                     showAlert('success', data.message || 'Test reminder sent! Check your email.');

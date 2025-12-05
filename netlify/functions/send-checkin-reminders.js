@@ -65,38 +65,38 @@ function shouldSendThisHour(scheduledHour, currentHour) {
  * Main handler - can be triggered by schedule or manually
  */
 exports.handler = async (event, context) => {
-    // Handle OPTIONS for CORS
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 204, headers, body: '' };
-    }
-
-    // Parse request body for test mode
-    let requestBody = {};
-    if (event.body) {
-        try {
-            requestBody = JSON.parse(event.body);
-        } catch (e) {
-            // Not JSON, ignore
-        }
-    }
-
-    const isTestMode = requestBody.test === true;
-    const testCoachId = requestBody.coachId;
-    const testEmail = requestBody.testEmail;
-
-    // Check if this is a scheduled invocation or manual trigger
-    const isScheduled = context?.clientContext?.custom?.scheduled === true ||
-                       event.headers?.['x-netlify-scheduled'] === 'true';
-    const isManual = event.httpMethod === 'POST' || event.httpMethod === 'GET';
-
-    console.log('Check-in Reminder Function triggered', {
-        isScheduled,
-        isManual,
-        isTestMode,
-        timestamp: new Date().toISOString()
-    });
-
+    // Wrap entire handler in try-catch for robust error handling
     try {
+        // Handle OPTIONS for CORS
+        if (event.httpMethod === 'OPTIONS') {
+            return { statusCode: 204, headers, body: '' };
+        }
+
+        // Parse request body for test mode
+        let requestBody = {};
+        if (event.body) {
+            try {
+                requestBody = JSON.parse(event.body);
+            } catch (e) {
+                // Not JSON, ignore
+            }
+        }
+
+        const isTestMode = requestBody.test === true;
+        const testCoachId = requestBody.coachId;
+        const testEmail = requestBody.testEmail;
+
+        // Check if this is a scheduled invocation or manual trigger
+        const isScheduled = context?.clientContext?.custom?.scheduled === true ||
+                           event.headers?.['x-netlify-scheduled'] === 'true';
+        const isManual = event.httpMethod === 'POST' || event.httpMethod === 'GET';
+
+        console.log('Check-in Reminder Function triggered', {
+            isScheduled,
+            isManual,
+            isTestMode,
+            timestamp: new Date().toISOString()
+        });
         // Check for required environment variable
         if (!SUPABASE_SERVICE_KEY) {
             console.error('SUPABASE_SERVICE_KEY is not configured');
@@ -423,12 +423,14 @@ exports.handler = async (event, context) => {
 
     } catch (error) {
         console.error('Error in send-checkin-reminders:', error);
+        // Ensure we always return valid JSON even for unexpected errors
+        const errorMessage = error?.message || error?.toString?.() || 'Unknown error occurred';
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
                 success: false,
-                error: error.message
+                error: errorMessage
             })
         };
     }
