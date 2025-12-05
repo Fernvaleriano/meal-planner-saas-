@@ -97,6 +97,19 @@ exports.handler = async (event, context) => {
     });
 
     try {
+        // Check for required environment variable
+        if (!SUPABASE_SERVICE_KEY) {
+            console.error('SUPABASE_SERVICE_KEY is not configured');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Server configuration error: Missing service key'
+                })
+            };
+        }
+
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
         const now = new Date();
         const currentDay = now.getUTCDay();
