@@ -757,7 +757,14 @@
                         .single();
 
                     if (coachData) {
-                        document.getElementById('coachName').textContent = coachData.name || coachData.email || 'Your Coach';
+                        // Use name, or extract name from email (before @), or fallback
+                        let coachDisplayName = coachData.name;
+                        if (!coachDisplayName && coachData.email) {
+                            // Extract name from email and capitalize first letter
+                            coachDisplayName = coachData.email.split('@')[0].replace(/[._-]/g, ' ');
+                            coachDisplayName = coachDisplayName.charAt(0).toUpperCase() + coachDisplayName.slice(1);
+                        }
+                        document.getElementById('coachName').textContent = coachDisplayName || 'Your Coach';
                     } else {
                         document.getElementById('coachName').textContent = 'Not assigned';
                     }
