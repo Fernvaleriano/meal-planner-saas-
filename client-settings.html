@@ -46,6 +46,39 @@
             font-size: 32px;
             color: white;
             margin: 0 auto 16px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .avatar:hover .avatar-overlay {
+            opacity: 1;
+        }
+
+        .avatar-overlay svg {
+            width: 24px;
+            height: 24px;
+            color: white;
         }
 
         .header h1 {
@@ -260,6 +293,13 @@
             justify-content: center;
             font-size: 18px;
             color: white;
+            overflow: hidden;
+        }
+
+        .coach-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .coach-details {
@@ -580,7 +620,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="avatar" id="userAvatar">👤</div>
+            <div class="avatar" id="userAvatar" onclick="document.getElementById('photoInput').click()" title="Click to change photo">
+                <span id="avatarInitial">👤</span>
+                <div class="avatar-overlay">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <input type="file" id="photoInput" accept="image/jpeg,image/png" style="display: none;" onchange="handlePhotoSelect(event)">
             <h1 id="userName">Loading...</h1>
             <p id="userEmail">Loading...</p>
         </div>
@@ -590,12 +639,27 @@
             <div class="settings-card-title">My Coach</div>
             <div class="settings-item" style="cursor: default;">
                 <div class="coach-info">
-                    <div class="coach-avatar">🏋️</div>
+                    <div class="coach-avatar" id="coachAvatar"><span id="coachAvatarInitial">🏋️</span></div>
                     <div class="coach-details">
                         <div class="coach-name" id="coachName">Loading...</div>
                         <div class="coach-label">Nutrition Coach</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Profile Photo -->
+        <div class="settings-card">
+            <div class="settings-card-title">Profile</div>
+            <div class="settings-item" onclick="document.getElementById('photoInput').click()">
+                <div class="settings-item-left">
+                    <div class="settings-icon">📷</div>
+                    <div>
+                        <div class="settings-label">Profile Photo</div>
+                        <div class="settings-sublabel" id="photoStatus">Add a profile photo</div>
+                    </div>
+                </div>
+                <span class="settings-arrow">›</span>
             </div>
         </div>
 
@@ -746,13 +810,24 @@
 
                 // Set avatar initial
                 const name = clientData.client_name || clientData.name || session.user.email;
-                document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+                document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
+
+                // Store client ID for photo upload
+                window.currentClientId = clientData.id;
+
+                // Display profile photo if available
+                if (clientData.profile_photo_url) {
+                    displayProfilePhoto(clientData.profile_photo_url);
+                    document.getElementById('photoStatus').textContent = 'Change your profile photo';
+                } else {
+                    document.getElementById('photoStatus').textContent = 'Add a profile photo';
+                }
 
                 // Fetch coach info separately using coach_id
                 if (clientData.coach_id) {
                     const { data: coachData, error: coachError } = await supabaseClient
                         .from('coaches')
-                        .select('name, email')
+                        .select('name, email, profile_photo_url')
                         .eq('id', clientData.coach_id)
                         .single();
 
@@ -765,6 +840,13 @@
                             coachDisplayName = coachDisplayName.charAt(0).toUpperCase() + coachDisplayName.slice(1);
                         }
                         document.getElementById('coachName').textContent = coachDisplayName || 'Your Coach';
+
+                        // Display coach profile photo if available
+                        if (coachData.profile_photo_url) {
+                            displayCoachPhoto(coachData.profile_photo_url);
+                        } else if (coachDisplayName) {
+                            document.getElementById('coachAvatarInitial').textContent = coachDisplayName.charAt(0).toUpperCase();
+                        }
                     } else {
                         document.getElementById('coachName').textContent = 'Not assigned';
                     }
@@ -912,6 +994,145 @@
                 changePasswordBtn.textContent = 'Update Password';
             }
         });
+
+        // Profile Photo Functions
+        function displayProfilePhoto(photoUrl) {
+            const avatarEl = document.getElementById('userAvatar');
+            const initialEl = document.getElementById('avatarInitial');
+
+            // Hide the initial text
+            if (initialEl) initialEl.style.display = 'none';
+
+            // Create or update profile avatar image
+            let avatarImg = avatarEl.querySelector('img');
+            if (!avatarImg) {
+                avatarImg = document.createElement('img');
+                avatarEl.insertBefore(avatarImg, avatarEl.firstChild);
+            }
+            avatarImg.src = photoUrl;
+            avatarImg.alt = 'Profile photo';
+        }
+
+        function displayCoachPhoto(photoUrl) {
+            const coachAvatarEl = document.getElementById('coachAvatar');
+            const coachInitialEl = document.getElementById('coachAvatarInitial');
+
+            // Hide the initial text
+            if (coachInitialEl) coachInitialEl.style.display = 'none';
+
+            // Create or update coach avatar image
+            let avatarImg = coachAvatarEl.querySelector('img');
+            if (!avatarImg) {
+                avatarImg = document.createElement('img');
+                coachAvatarEl.insertBefore(avatarImg, coachAvatarEl.firstChild);
+            }
+            avatarImg.src = photoUrl;
+            avatarImg.alt = 'Coach photo';
+        }
+
+        async function handlePhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                alert('Please select a JPG or PNG image');
+                return;
+            }
+
+            // Show loading state
+            const photoStatus = document.getElementById('photoStatus');
+            const originalStatus = photoStatus.textContent;
+            photoStatus.textContent = 'Uploading...';
+
+            try {
+                // Resize and compress image
+                const resizedData = await resizeImage(file, 500, 500, 0.8);
+
+                // Upload to server
+                const response = await fetch('/.netlify/functions/upload-profile-photo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: window.currentClientId,
+                        userType: 'client',
+                        photoData: resizedData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+
+                // Update display
+                displayProfilePhoto(result.photoUrl);
+                photoStatus.textContent = 'Photo updated successfully!';
+                setTimeout(() => {
+                    photoStatus.textContent = 'Change your profile photo';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error uploading photo:', error);
+                alert('Failed to upload photo: ' + error.message);
+                photoStatus.textContent = originalStatus;
+            }
+
+            // Clear the file input for future uploads
+            event.target.value = '';
+        }
+
+        function resizeImage(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Calculate new dimensions maintaining aspect ratio
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+
+                        // Make it square (crop to center)
+                        const size = Math.min(width, height);
+                        canvas.width = size;
+                        canvas.height = size;
+
+                        const ctx = canvas.getContext('2d');
+
+                        // Draw image centered and cropped to square
+                        ctx.drawImage(img,
+                            (img.width - Math.min(img.width, img.height)) / 2,
+                            (img.height - Math.min(img.width, img.height)) / 2,
+                            Math.min(img.width, img.height),
+                            Math.min(img.width, img.height),
+                            0, 0, size, size
+                        );
+
+                        // Convert to base64
+                        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        resolve(dataUrl);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
 
         init();
     </script>

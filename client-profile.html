@@ -70,6 +70,33 @@
             margin-bottom: 28px;
         }
 
+        .client-header-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .client-profile-avatar {
+            width: 72px;
+            height: 72px;
+            min-width: 72px;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 600;
+            color: white;
+            overflow: hidden;
+        }
+
+        .client-profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .client-name {
             font-size: 2rem;
             font-weight: 800;
@@ -3227,9 +3254,14 @@
             <!-- Client Info Card -->
         <div class="client-card" id="clientCard" style="display: none;">
             <div class="client-header">
-                <div>
-                    <div class="client-name" id="clientName">Loading...</div>
-                    <div class="client-meta" id="clientMeta"></div>
+                <div class="client-header-info">
+                    <div class="client-profile-avatar" id="clientAvatar">
+                        <span id="clientAvatarInitial">?</span>
+                    </div>
+                    <div>
+                        <div class="client-name" id="clientName">Loading...</div>
+                        <div class="client-meta" id="clientMeta"></div>
+                    </div>
                 </div>
                 <div class="client-actions">
                     <button class="btn btn-primary" onclick="generateNewPlan()">🔥 Generate New Plan</button>
@@ -4067,6 +4099,24 @@
 
         function displayClient(client) {
             document.getElementById('clientName').textContent = client.client_name;
+
+            // Display client avatar
+            const avatarEl = document.getElementById('clientAvatar');
+            const avatarInitialEl = document.getElementById('clientAvatarInitial');
+            const clientInitial = client.client_name ? client.client_name.charAt(0).toUpperCase() : '?';
+
+            if (client.profile_photo_url) {
+                avatarInitialEl.style.display = 'none';
+                let avatarImg = avatarEl.querySelector('img');
+                if (!avatarImg) {
+                    avatarImg = document.createElement('img');
+                    avatarEl.insertBefore(avatarImg, avatarEl.firstChild);
+                }
+                avatarImg.src = client.profile_photo_url;
+                avatarImg.alt = client.client_name;
+            } else {
+                avatarInitialEl.textContent = clientInitial;
+            }
 
             // Build meta information
             const metaItems = [];
