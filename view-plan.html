@@ -1874,13 +1874,30 @@
             try {
                 console.log('Loading plan:', planId, 'Client view:', isClientView);
 
-                // Clear any cached session data to force fresh fetch
-                await supabaseClient.auth.refreshSession();
+                // Try to refresh the session to get a fresh token
+                const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-                // Check if user is logged in
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                let session = null;
 
-                if (sessionError || !session) {
+                // Check if refresh was successful
+                if (refreshError) {
+                    console.error('Session refresh failed:', refreshError);
+                    // If refresh fails, try to get existing session as fallback
+                    const { data: { session: existingSession } } = await supabaseClient.auth.getSession();
+                    if (!existingSession) {
+                        alert('Please log in to view this plan.');
+                        const redirectUrl = isClientView ? 'client-login.html' : 'index.html';
+                        window.location.href = redirectUrl;
+                        return;
+                    }
+                    session = existingSession;
+                } else {
+                    session = refreshData?.session;
+                }
+
+                // Double-check we have a valid session
+                if (!session || !session.access_token) {
+                    console.error('No valid session after refresh');
                     alert('Please log in to view this plan.');
                     const redirectUrl = isClientView ? 'client-login.html' : 'index.html';
                     window.location.href = redirectUrl;

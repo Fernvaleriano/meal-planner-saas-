@@ -2831,12 +2831,30 @@
 
         // Check authentication and load data
         async function init() {
-            // Clear any cached session data to force fresh fetch
-            await supabaseClient.auth.refreshSession();
+            // Try to refresh the session to get a fresh token
+            const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
 
-            const { data: { session } } = await supabaseClient.auth.getSession();
+            let session = null;
 
-            if (!session) {
+            // Check if refresh was successful
+            if (refreshError) {
+                console.error('Session refresh failed:', refreshError);
+                // If refresh fails, try to get existing session as fallback
+                const { data: { session: existingSession } } = await supabaseClient.auth.getSession();
+                if (!existingSession) {
+                    // No valid session, redirect to login
+                    window.location.href = 'client-login.html';
+                    return;
+                }
+                session = existingSession;
+            } else {
+                // Use the refreshed session
+                session = refreshData?.session;
+            }
+
+            // Double-check we have a valid session
+            if (!session || !session.access_token) {
+                console.error('No valid session after refresh');
                 window.location.href = 'client-login.html';
                 return;
             }
