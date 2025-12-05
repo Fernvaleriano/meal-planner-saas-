@@ -438,14 +438,25 @@
 
         function updateBillingUI(coach) {
             const status = coach.subscription_status || 'none';
-            const tier = coach.subscription_tier || 'basic';
+            const tier = coach.subscription_tier || 'starter';
             const trialEnds = coach.trial_ends_at ? new Date(coach.trial_ends_at) : null;
             const periodEnd = coach.current_period_end ? new Date(coach.current_period_end) : null;
             const now = new Date();
 
+            // Plan names and prices for new tiers
+            const planInfo = {
+                starter: { name: 'Starter', price: '$49/mo', clients: '10 clients' },
+                growth: { name: 'Growth', price: '$99/mo', clients: '50 clients' },
+                professional: { name: 'Professional', price: '$199/mo', clients: 'Unlimited clients' },
+                // Legacy support
+                basic: { name: 'Starter', price: '$49/mo', clients: '10 clients' },
+                branded: { name: 'Professional', price: '$199/mo', clients: 'Unlimited clients' }
+            };
+
+            const currentPlan = planInfo[tier] || planInfo.starter;
+
             // Set plan name
-            document.getElementById('planName').textContent =
-                tier === 'branded' ? 'Professional ($49/mo)' : 'Basic ($29/mo)';
+            document.getElementById('planName').textContent = `${currentPlan.name} (${currentPlan.price})`;
 
             // Update status display
             const statusIcon = document.getElementById('statusIcon');
