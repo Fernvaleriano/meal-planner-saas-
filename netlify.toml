@@ -9,7 +9,7 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Note: Scheduled reminder sending can be re-enabled by adding:
-# [functions."send-checkin-reminders"]
-#   schedule = "@hourly"
+# Scheduled function - runs every hour to send check-in reminders
+[functions."send-checkin-reminders"]
+  schedule = "@hourly"
 
