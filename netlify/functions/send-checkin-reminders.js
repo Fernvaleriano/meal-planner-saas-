@@ -3,26 +3,27 @@
  *
  * Runs hourly to check which clients need reminders and sends them.
  * Configured via netlify.toml with schedule: "0 * * * *" (every hour)
- *
- * Logic:
- * 1. Get all coaches with reminders enabled
- * 2. For each coach, get their clients who need reminders
- * 3. Check if client has already submitted a check-in this week
- * 4. Check if a reminder was already sent today
- * 5. Send reminders and log them
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const { sendCheckinReminder } = require('./utils/email-service');
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-
-// Common headers
+// Common headers - defined before any requires
 const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*'
 };
+
+// Lazy load dependencies to prevent module crashes
+let createClient, sendCheckinReminder;
+function loadDependencies() {
+    if (!createClient) {
+        createClient = require('@supabase/supabase-js').createClient;
+    }
+    if (!sendCheckinReminder) {
+        sendCheckinReminder = require('./utils/email-service').sendCheckinReminder;
+    }
+}
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 /**
  * Get the start of the current week (Sunday)
@@ -98,7 +99,20 @@ exports.handler = async (event, context) => {
             timestamp: new Date().toISOString()
         });
 
-        // Debug mode - return diagnostic info
+        // Ping mode - ultra simple response with NO dependencies
+        if (requestBody.ping === true) {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    ping: 'pong',
+                    timestamp: new Date().toISOString()
+                })
+            };
+        }
+
+        // Debug mode - return diagnostic info (still no dependencies)
         if (requestBody.debug === true) {
             return {
                 statusCode: 200,
@@ -111,6 +125,20 @@ exports.handler = async (event, context) => {
                     hasSupabaseUrl: !!SUPABASE_URL,
                     nodeVersion: process.version,
                     timestamp: new Date().toISOString()
+                })
+            };
+        }
+
+        // Load dependencies only when needed (not for ping/debug)
+        try {
+            loadDependencies();
+        } catch (depError) {
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: `Failed to load dependencies: ${depError.message}`
                 })
             };
         }
