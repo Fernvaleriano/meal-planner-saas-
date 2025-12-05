@@ -26,6 +26,16 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Check if service key is configured
+  if (!SUPABASE_SERVICE_KEY) {
+    console.error('SUPABASE_SERVICE_KEY environment variable is not set');
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Server configuration error: Missing service key' })
+    };
+  }
+
   try {
     const body = JSON.parse(event.body);
     const {
@@ -46,13 +56,26 @@ exports.handler = async (event, context) => {
       notes
     } = body;
 
-    if (!clientId || !coachId) {
+    // Validate required fields with detailed error messages
+    if (!clientId) {
+      console.error('Missing clientId in request');
       return {
         statusCode: 400,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'Client ID and Coach ID are required' })
+        body: JSON.stringify({ error: 'Client ID is required. Please refresh the page and try again.' })
       };
     }
+
+    if (!coachId) {
+      console.error('Missing coachId in request');
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Coach ID is required. Please refresh the page and try again.' })
+      };
+    }
+
+    console.log('Saving measurement for client:', clientId, 'coach:', coachId);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
