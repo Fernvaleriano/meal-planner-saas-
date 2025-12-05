@@ -118,15 +118,22 @@ exports.handler = async (event, context) => {
                 throw settingsError;
             }
 
-            // Get coach details
-            const { data: coachData } = await supabase
+            // Get coach details - query by user_id since testCoachId is the auth user ID
+            const { data: coachData, error: coachError } = await supabase
                 .from('coaches')
                 .select('*')
-                .eq('id', testCoachId)
+                .eq('user_id', testCoachId)
                 .single();
 
+            if (coachError && coachError.code !== 'PGRST116') {
+                console.error('Error fetching coach:', coachError);
+            }
+
+            // Also get auth user data for email
+            const { data: authUser } = await supabase.auth.admin.getUserById(testCoachId);
+
             const coachName = coachData?.full_name || coachData?.business_name || 'Your Coach';
-            const coachEmail = coachData?.email || testEmail;
+            const coachEmail = coachData?.email || authUser?.user?.email || testEmail;
 
             if (!coachEmail) {
                 return {
