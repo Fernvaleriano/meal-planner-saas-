@@ -129,11 +129,9 @@ exports.handler = async (event, context) => {
                 console.error('Error fetching coach:', coachError);
             }
 
-            // Also get auth user data for email
-            const { data: authUser } = await supabase.auth.admin.getUserById(testCoachId);
-
             const coachName = coachData?.full_name || coachData?.business_name || 'Your Coach';
-            const coachEmail = coachData?.email || authUser?.user?.email || testEmail;
+            // Use email from coaches table, or fall back to testEmail passed from frontend
+            const coachEmail = coachData?.email || testEmail;
 
             if (!coachEmail) {
                 return {
