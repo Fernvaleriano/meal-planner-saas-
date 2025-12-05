@@ -9,6 +9,8 @@
  * Falls back to logging if no provider is configured (dev mode)
  */
 
+// Note: Using global fetch (available in Node 18+, which is set in netlify.toml)
+
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
 const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
