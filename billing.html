@@ -534,7 +534,51 @@
             const manageBtn = document.getElementById('manageBtn');
             if (status === 'none' || (status === 'trialing' && trialEnds && trialEnds < now)) {
                 manageBtn.textContent = 'Subscribe Now';
-            } else if (status === 'canceled') {
+            } else if (status === 'canceled' || status === 'canceling') {
+                manageBtn.textContent = 'Reactivate Subscription';
+                manageBtn.onclick = reactivateSubscription;
+            }
+        }
+
+        async function reactivateSubscription() {
+            const manageBtn = document.getElementById('manageBtn');
+            manageBtn.disabled = true;
+            manageBtn.textContent = 'Reactivating...';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    throw new Error('Not logged in');
+                }
+
+                const response = await fetch('/.netlify/functions/reactivate-subscription', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to reactivate subscription');
+                }
+
+                if (data.reactivated) {
+                    // Subscription was reactivated immediately (was just canceling)
+                    alert('Your subscription has been reactivated!');
+                    window.location.reload();
+                } else if (data.checkoutUrl) {
+                    // Redirect to checkout to create new subscription
+                    window.location.href = data.checkoutUrl;
+                }
+
+            } catch (error) {
+                console.error('Error reactivating subscription:', error);
+                alert('Error: ' + error.message);
+                manageBtn.disabled = false;
                 manageBtn.textContent = 'Reactivate Subscription';
             }
         }
