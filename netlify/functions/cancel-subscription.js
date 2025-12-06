@@ -82,13 +82,84 @@ exports.handler = async (event) => {
             };
         }
 
+        // First, retrieve the subscription to check its current status
+        let subscription;
+        try {
+            subscription = await stripe.subscriptions.retrieve(coach.stripe_subscription_id);
+        } catch (stripeError) {
+            // Subscription doesn't exist in Stripe
+            if (stripeError.code === 'resource_missing') {
+                // Update database to reflect canceled status
+                await supabase
+                    .from('coaches')
+                    .update({
+                        subscription_status: 'canceled',
+                        canceled_at: new Date().toISOString()
+                    })
+                    .eq('id', coach.id);
+
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        success: true,
+                        message: 'Subscription is already canceled',
+                        alreadyCanceled: true
+                    })
+                };
+            }
+            throw stripeError;
+        }
+
+        // Check if subscription is already canceled or canceling
+        if (subscription.status === 'canceled') {
+            // Update database to reflect canceled status
+            await supabase
+                .from('coaches')
+                .update({
+                    subscription_status: 'canceled',
+                    canceled_at: coach.canceled_at || new Date().toISOString()
+                })
+                .eq('id', coach.id);
+
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    message: 'Subscription is already canceled',
+                    alreadyCanceled: true
+                })
+            };
+        }
+
+        // If already set to cancel at period end
+        if (subscription.cancel_at_period_end) {
+            const cancelDate = new Date(subscription.current_period_end * 1000);
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    message: 'Subscription is already set to cancel',
+                    cancelAt: cancelDate.toISOString(),
+                    accessUntil: cancelDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    }),
+                    alreadyCanceling: true
+                })
+            };
+        }
+
         // Cancel subscription at period end (they keep access until then)
-        const subscription = await stripe.subscriptions.update(
+        const updatedSubscription = await stripe.subscriptions.update(
             coach.stripe_subscription_id,
             { cancel_at_period_end: true }
         );
 
-        const cancelDate = new Date(subscription.current_period_end * 1000);
+        const cancelDate = new Date(updatedSubscription.current_period_end * 1000);
 
         // Update coach record
         await supabase

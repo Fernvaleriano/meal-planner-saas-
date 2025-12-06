@@ -1450,14 +1450,23 @@
                     throw new Error(result.error || 'Failed to cancel subscription');
                 }
 
-                showCancelMessage('Subscription canceled successfully. You will retain access until ' + result.accessUntil, 'success');
-
-                // Update the UI
-                updateSubscriptionDisplay({
-                    subscription_status: 'canceling',
-                    cancel_at: result.cancelAt,
-                    subscription_tier: window.currentCoachData?.subscription_tier || 'starter'
-                });
+                // Handle different response types
+                if (result.alreadyCanceled) {
+                    showCancelMessage('Your subscription is already canceled.', 'success');
+                    updateSubscriptionDisplay({
+                        subscription_status: 'canceled',
+                        subscription_tier: window.currentCoachData?.subscription_tier || 'starter'
+                    });
+                } else if (result.alreadyCanceling) {
+                    showCancelMessage('Your subscription is already set to cancel on ' + result.accessUntil, 'success');
+                } else {
+                    showCancelMessage('Subscription canceled successfully. You will retain access until ' + result.accessUntil, 'success');
+                    updateSubscriptionDisplay({
+                        subscription_status: 'canceling',
+                        cancel_at: result.cancelAt,
+                        subscription_tier: window.currentCoachData?.subscription_tier || 'starter'
+                    });
+                }
 
                 // Close modal after delay
                 setTimeout(() => {
