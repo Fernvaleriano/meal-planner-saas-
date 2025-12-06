@@ -1493,11 +1493,13 @@
             const endDate = document.getElementById('subscriptionEndDate');
             const cancelRow = document.getElementById('cancelSubscriptionRow');
 
-            // Format tier name
+            // Format tier name (including legacy tier names)
             const tierNames = {
                 'starter': 'Starter Plan ($49/mo)',
+                'basic': 'Starter Plan ($49/mo)',
                 'growth': 'Growth Plan ($99/mo)',
-                'professional': 'Professional Plan ($199/mo)'
+                'professional': 'Professional Plan ($199/mo)',
+                'branded': 'Professional Plan ($199/mo)'
             };
             planDisplay.textContent = tierNames[coachData.subscription_tier] || 'Starter Plan';
 
