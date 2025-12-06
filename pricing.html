@@ -515,7 +515,7 @@
                     <li>Email support</li>
                     <li class="disabled">Custom branding</li>
                 </ul>
-                <a href="signup.html?plan=starter" class="btn-select secondary">Get Started</a>
+                <a href="signup.html?plan=starter" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('starter')">Get Started</a>
             </div>
 
             <!-- Growth Plan -->
@@ -540,7 +540,7 @@
                     <li>Priority support</li>
                     <li class="disabled">Custom branding</li>
                 </ul>
-                <a href="signup.html?plan=growth" class="btn-select primary">Get Started</a>
+                <a href="signup.html?plan=growth" class="btn-select primary" onclick="event.preventDefault(); selectPlan('growth')">Get Started</a>
             </div>
 
             <!-- Professional Plan -->
@@ -564,7 +564,7 @@
                     <li>Priority support</li>
                     <li>Custom branding & logo</li>
                 </ul>
-                <a href="signup.html?plan=professional" class="btn-select secondary">Get Started</a>
+                <a href="signup.html?plan=professional" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('professional')">Get Started</a>
             </div>
         </div>
     </section>
@@ -655,7 +655,73 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let isLoggedIn = false;
+        let currentSession = null;
+
+        // Check if user is logged in
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                isLoggedIn = true;
+                currentSession = session;
+                // Update button text for logged-in users
+                document.querySelectorAll('.btn-select').forEach(btn => {
+                    btn.textContent = 'Select Plan';
+                });
+            }
+        }
+
+        // Handle plan selection
+        async function selectPlan(plan) {
+            if (!isLoggedIn) {
+                // Not logged in - go to signup
+                window.location.href = `signup.html?plan=${plan}`;
+                return;
+            }
+
+            // Logged in - go directly to checkout
+            const btn = event.target;
+            btn.textContent = 'Loading...';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch('/.netlify/functions/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentSession.access_token}`
+                    },
+                    body: JSON.stringify({ plan })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create checkout session');
+                }
+
+                if (data.url) {
+                    window.location.href = data.url;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+                btn.textContent = 'Select Plan';
+                btn.style.pointerEvents = 'auto';
+            }
+        }
+
+        // Initialize on page load
+        checkAuth();
+
         function toggleFaq(element) {
             const item = element.parentElement;
             item.classList.toggle('open');
