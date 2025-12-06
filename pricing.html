@@ -665,22 +665,64 @@
 
         let isLoggedIn = false;
         let currentSession = null;
+        let authCheckComplete = false;
 
         // Check if user is logged in
         async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                isLoggedIn = true;
-                currentSession = session;
-                // Update button text for logged-in users
-                document.querySelectorAll('.btn-select').forEach(btn => {
-                    btn.textContent = 'Select Plan';
-                });
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                console.log('Pricing page auth check:', session ? 'Logged in' : 'Not logged in');
+
+                if (session) {
+                    isLoggedIn = true;
+                    currentSession = session;
+
+                    // Update header to show dashboard link instead of login
+                    const headerLinks = document.querySelector('.header-links');
+                    headerLinks.innerHTML = `
+                        <a href="dashboard.html">Go to Dashboard</a>
+                        <a href="#" class="btn-login" onclick="logout(); return false;">Logout</a>
+                    `;
+
+                    // Update button text for logged-in users
+                    document.querySelectorAll('.btn-select').forEach(btn => {
+                        btn.textContent = 'Subscribe Now';
+                    });
+
+                    // Update CTA button
+                    const ctaBtn = document.querySelector('.btn-cta');
+                    if (ctaBtn) {
+                        ctaBtn.textContent = 'Subscribe Now';
+                    }
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
             }
+
+            authCheckComplete = true;
+        }
+
+        // Logout function
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
         }
 
         // Handle plan selection
         async function selectPlan(plan) {
+            // Wait for auth check if not complete
+            if (!authCheckComplete) {
+                console.log('Waiting for auth check...');
+                await new Promise(resolve => {
+                    const checkInterval = setInterval(() => {
+                        if (authCheckComplete) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 50);
+                });
+            }
+
             if (!isLoggedIn) {
                 // Not logged in - go to signup
                 window.location.href = `signup.html?plan=${plan}`;
@@ -689,6 +731,7 @@
 
             // Logged in - go directly to checkout
             const btn = event.target;
+            const originalText = btn.textContent;
             btn.textContent = 'Loading...';
             btn.style.pointerEvents = 'none';
 
@@ -714,7 +757,7 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error: ' + error.message);
-                btn.textContent = 'Select Plan';
+                btn.textContent = originalText;
                 btn.style.pointerEvents = 'auto';
             }
         }
