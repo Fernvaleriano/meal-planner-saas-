@@ -127,9 +127,14 @@ exports.handler = async (event) => {
             sessionOptions.customer_email = email;
         }
 
-        // Only give trial to new users
+        // Only give trial to new users (but redirect based on whether they're logged in)
         if (!isExistingUser) {
             sessionOptions.subscription_data.trial_period_days = 14;
+        }
+
+        // If user is logged in, always go to dashboard. Only new signups go to signup-success
+        if (!coachId) {
+            // Not logged in - this is a brand new signup, they need email confirmation
             sessionOptions.success_url = `${baseUrl}/signup-success.html?session_id={CHECKOUT_SESSION_ID}`;
         }
 
