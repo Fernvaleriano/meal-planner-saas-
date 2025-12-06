@@ -1238,7 +1238,7 @@
         <div class="main-container">
         <div id="loadingDiv" class="loading">
             <div class="loading-spinner"></div>
-            Loading your dashboard...
+            <span id="loadingText">Loading your dashboard...</span>
         </div>
 
         <div id="dashboardContent" style="display: none;">
@@ -1626,6 +1626,7 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const justReactivated = urlParams.get('reactivated') === 'true';
                 const justSubscribed = urlParams.get('subscribed') === 'true';
+                const sessionId = urlParams.get('session_id');
 
                 // If just subscribed but DB still shows inactive status, wait for webhook to process
                 if (justSubscribed &&
@@ -1635,10 +1636,14 @@
                      coachData.subscription_status === 'canceling')) {
 
                     console.log('Just subscribed, waiting for webhook to process...');
+                    const loadingText = document.getElementById('loadingText');
+                    loadingText.textContent = 'Verifying your subscription...';
 
-                    // Wait up to 5 seconds, checking every second
-                    for (let i = 0; i < 5; i++) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Wait up to 15 seconds, checking every 2 seconds
+                    let subscriptionVerified = false;
+                    for (let i = 0; i < 8; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        loadingText.textContent = `Verifying your subscription... (${(i + 1) * 2}s)`;
 
                         const { data: refreshedCoach } = await supabaseClient
                             .from('coaches')
@@ -1649,17 +1654,50 @@
                         if (refreshedCoach &&
                             refreshedCoach.subscription_status &&
                             refreshedCoach.subscription_status !== 'none' &&
-                            refreshedCoach.subscription_status !== 'canceled') {
+                            refreshedCoach.subscription_status !== 'canceled' &&
+                            refreshedCoach.subscription_status !== 'canceling') {
                             console.log('Webhook processed, subscription active:', refreshedCoach.subscription_status);
                             coachData.subscription_status = refreshedCoach.subscription_status;
                             coachData.subscription_tier = refreshedCoach.subscription_tier;
+                            subscriptionVerified = true;
                             break;
                         }
                         console.log('Still waiting for webhook... attempt', i + 1);
                     }
 
+                    // If still not verified and we have a session ID, try the verify endpoint as backup
+                    if (!subscriptionVerified && sessionId) {
+                        console.log('Webhook not processed yet, trying verify-checkout endpoint...');
+                        loadingText.textContent = 'Finalizing your subscription...';
+                        try {
+                            const verifyResponse = await fetch('/.netlify/functions/verify-checkout-session', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${session.access_token}`
+                                },
+                                body: JSON.stringify({ sessionId: sessionId })
+                            });
+
+                            if (verifyResponse.ok) {
+                                const verifyData = await verifyResponse.json();
+                                if (verifyData.subscription_status &&
+                                    verifyData.subscription_status !== 'none' &&
+                                    verifyData.subscription_status !== 'canceled') {
+                                    console.log('Verified via checkout session:', verifyData.subscription_status);
+                                    coachData.subscription_status = verifyData.subscription_status;
+                                    coachData.subscription_tier = verifyData.subscription_tier || coachData.subscription_tier;
+                                    subscriptionVerified = true;
+                                }
+                            }
+                        } catch (verifyError) {
+                            console.error('Error verifying checkout session:', verifyError);
+                        }
+                    }
+
                     // Clean up URL
                     window.history.replaceState({}, '', 'dashboard.html');
+                    loadingText.textContent = 'Loading your dashboard...';
                 }
 
                 // If just reactivated but DB still shows canceled, trust the URL param

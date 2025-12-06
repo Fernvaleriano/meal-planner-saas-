@@ -115,7 +115,7 @@ exports.handler = async (event) => {
                     plan: plan
                 }
             },
-            success_url: `${baseUrl}/dashboard.html?subscribed=true`,
+            success_url: `${baseUrl}/dashboard.html?subscribed=true&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${baseUrl}/pricing.html?canceled=true`,
             allow_promotion_codes: true
         };
