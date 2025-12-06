@@ -1123,6 +1123,21 @@
 
                 if (coachError) throw coachError;
 
+                // Check subscription status
+                const status = coachData.subscription_status;
+                const trialEnds = coachData.trial_ends_at ? new Date(coachData.trial_ends_at) : null;
+                const now = new Date();
+
+                const hasValidSubscription =
+                    status === 'active' ||
+                    status === 'canceling' ||
+                    (status === 'trialing' && trialEnds && trialEnds > now);
+
+                if (!hasValidSubscription) {
+                    window.location.href = 'subscription-required.html';
+                    return;
+                }
+
                 // Update profile display
                 document.getElementById('profileEmail').textContent = user.email;
                 document.getElementById('sidebarEmail').textContent = user.email;

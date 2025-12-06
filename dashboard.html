@@ -1458,6 +1458,22 @@
                     console.log('Overriding subscription status due to reactivation URL param');
                 }
 
+                // Check if subscription is valid - redirect to subscription-required if not
+                const status = coachData.subscription_status;
+                const trialEnds = coachData.trial_ends_at ? new Date(coachData.trial_ends_at) : null;
+                const now = new Date();
+
+                const hasValidSubscription =
+                    status === 'active' ||
+                    status === 'canceling' || // Still has access until period end
+                    (status === 'trialing' && trialEnds && trialEnds > now);
+
+                if (!hasValidSubscription) {
+                    console.log('No valid subscription, redirecting to subscription-required');
+                    window.location.href = 'subscription-required.html';
+                    return;
+                }
+
                 // Update UI
                 userEmailSpan.textContent = user.email;
                 tierBadge.textContent = coachData.subscription_tier.toUpperCase();
