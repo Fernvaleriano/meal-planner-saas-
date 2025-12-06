@@ -1721,6 +1721,8 @@
                     // If still not verified and we have a session ID, try the verify endpoint as backup
                     if (!subscriptionVerified && sessionId) {
                         console.log('Webhook not processed yet, trying verify-checkout endpoint...');
+                        console.log('Session ID:', sessionId);
+                        console.log('Access token exists:', !!session.access_token);
                         loadingText.textContent = 'Finalizing your subscription...';
                         try {
                             const verifyResponse = await fetch('/.netlify/functions/verify-checkout-session', {
@@ -1732,8 +1734,11 @@
                                 body: JSON.stringify({ sessionId: sessionId })
                             });
 
+                            console.log('Verify response status:', verifyResponse.status);
+                            const verifyData = await verifyResponse.json();
+                            console.log('Verify response data:', verifyData);
+
                             if (verifyResponse.ok) {
-                                const verifyData = await verifyResponse.json();
                                 if (verifyData.subscription_status &&
                                     verifyData.subscription_status !== 'none' &&
                                     verifyData.subscription_status !== 'canceled') {
@@ -1742,6 +1747,8 @@
                                     coachData.subscription_tier = verifyData.subscription_tier || coachData.subscription_tier;
                                     subscriptionVerified = true;
                                 }
+                            } else {
+                                console.error('Verify endpoint failed:', verifyData.error || verifyData);
                             }
                         } catch (verifyError) {
                             console.error('Error verifying checkout session:', verifyError);

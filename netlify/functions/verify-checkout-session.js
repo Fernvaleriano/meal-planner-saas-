@@ -16,6 +16,8 @@ const headers = {
 };
 
 exports.handler = async (event) => {
+    console.log('verify-checkout-session called');
+
     // Handle CORS preflight
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 200, headers, body: '' };
@@ -26,6 +28,25 @@ exports.handler = async (event) => {
             statusCode: 405,
             headers,
             body: JSON.stringify({ error: 'Method not allowed' })
+        };
+    }
+
+    // Check environment variables
+    if (!process.env.STRIPE_SECRET_KEY) {
+        console.error('STRIPE_SECRET_KEY is not set');
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Server configuration error: Stripe key missing' })
+        };
+    }
+
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+        console.error('Supabase environment variables are not set');
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Server configuration error: Database config missing' })
         };
     }
 
@@ -63,9 +84,20 @@ exports.handler = async (event) => {
         }
 
         // Retrieve the checkout session from Stripe
-        const session = await stripe.checkout.sessions.retrieve(sessionId, {
-            expand: ['subscription']
-        });
+        console.log('Retrieving checkout session:', sessionId);
+        let session;
+        try {
+            session = await stripe.checkout.sessions.retrieve(sessionId, {
+                expand: ['subscription']
+            });
+        } catch (stripeError) {
+            console.error('Stripe session retrieval error:', stripeError.message);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Invalid or expired session ID' })
+            };
+        }
 
         if (!session) {
             return {
@@ -75,18 +107,21 @@ exports.handler = async (event) => {
             };
         }
 
+        console.log('Session retrieved:', { status: session.status, customer: session.customer });
+
         // Verify the session belongs to this user
-        const coachId = session.metadata?.coach_id;
+        const coachIdFromSession = session.metadata?.coach_id;
         const customerEmail = session.customer_email || session.customer_details?.email;
 
         // Get coach record
-        const { data: coach } = await supabase
+        const { data: coach, error: coachError } = await supabase
             .from('coaches')
             .select('id, email, subscription_status, subscription_tier')
             .eq('id', user.id)
             .single();
 
-        if (!coach) {
+        if (coachError || !coach) {
+            console.error('Coach lookup error:', coachError);
             return {
                 statusCode: 404,
                 headers,
@@ -94,9 +129,15 @@ exports.handler = async (event) => {
             };
         }
 
+        console.log('Coach found:', { id: coach.id, email: coach.email });
+
         // Verify the session matches the coach (by ID or email)
-        if (coachId && coachId !== coach.id && customerEmail !== coach.email) {
-            console.log('Session verification failed:', { coachId, customerEmail, coachEmail: coach.email });
+        // Only check if coachIdFromSession is a non-empty string
+        const coachIdMatches = !coachIdFromSession || coachIdFromSession === '' || coachIdFromSession === coach.id;
+        const emailMatches = customerEmail && customerEmail.toLowerCase() === coach.email.toLowerCase();
+
+        if (!coachIdMatches && !emailMatches) {
+            console.log('Session verification failed:', { coachIdFromSession, customerEmail, coachId: coach.id, coachEmail: coach.email });
             return {
                 statusCode: 403,
                 headers,
