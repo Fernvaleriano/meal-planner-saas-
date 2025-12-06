@@ -924,6 +924,142 @@
             color: #94a3b8;
         }
 
+        /* Subscription Modal Overlay */
+        .subscription-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .subscription-modal {
+            background: white;
+            border-radius: 24px;
+            padding: 48px 40px;
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .subscription-modal-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .subscription-modal h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 12px;
+        }
+
+        .subscription-modal p {
+            color: var(--gray-600);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .subscription-modal-features {
+            text-align: left;
+            background: var(--gray-50);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+        }
+
+        .subscription-modal-features .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .subscription-modal-features .check {
+            color: var(--brand-primary);
+            font-weight: bold;
+        }
+
+        .subscription-modal-btn {
+            display: block;
+            width: 100%;
+            padding: 16px 32px;
+            background: var(--brand-gradient);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .subscription-modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(13, 148, 136, 0.3);
+        }
+
+        .subscription-modal-logout {
+            background: none;
+            border: none;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: inherit;
+            padding: 8px;
+        }
+
+        .subscription-modal-logout:hover {
+            color: var(--brand-primary);
+            text-decoration: underline;
+        }
+
+        /* Dark mode for subscription modal */
+        [data-theme="dark"] .subscription-modal {
+            background: var(--gray-800);
+        }
+
+        [data-theme="dark"] .subscription-modal h2 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .subscription-modal p {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .subscription-modal-features {
+            background: var(--gray-900);
+        }
+
+        [data-theme="dark"] .subscription-modal-features .feature-item {
+            color: #cbd5e1;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .welcome-section {
@@ -1049,6 +1185,25 @@
 
     <!-- Mobile overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Subscription Required Modal (blocks dashboard until subscription is resolved) -->
+    <div class="subscription-modal-overlay" id="subscriptionModal" style="display: none;">
+        <div class="subscription-modal">
+            <div class="subscription-modal-icon" id="modalIcon">🔐</div>
+            <h2 id="modalTitle">Subscription Required</h2>
+            <p id="modalMessage">Your subscription has expired or is inactive. Please subscribe to continue using the dashboard.</p>
+
+            <div class="subscription-modal-features">
+                <div class="feature-item"><span class="check">✓</span> Unlimited client meal plans</div>
+                <div class="feature-item"><span class="check">✓</span> AI-powered meal generation</div>
+                <div class="feature-item"><span class="check">✓</span> Client portal access</div>
+                <div class="feature-item"><span class="check">✓</span> Recipe library & customization</div>
+            </div>
+
+            <a href="pricing.html" class="subscription-modal-btn" id="modalBtn">View Plans & Subscribe</a>
+            <button class="subscription-modal-logout" id="modalLogoutBtn">Log out and use a different account</button>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -1242,8 +1397,68 @@
         const logoutBtn = document.getElementById('logoutBtn');
         const brandingBtn = document.getElementById('brandingBtn');
 
+        // Subscription modal elements
+        const subscriptionModal = document.getElementById('subscriptionModal');
+        const modalIcon = document.getElementById('modalIcon');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalBtn = document.getElementById('modalBtn');
+        const modalLogoutBtn = document.getElementById('modalLogoutBtn');
+
         // Track if we're already loading to prevent multiple simultaneous loads
         let isLoading = false;
+
+        // Show subscription modal with customized content
+        function showSubscriptionModal(type) {
+            loadingDiv.style.display = 'none';
+
+            switch(type) {
+                case 'no_session':
+                    modalIcon.textContent = '🔐';
+                    modalTitle.textContent = 'Please Log In';
+                    modalMessage.textContent = 'You need to log in to access your coaching dashboard.';
+                    modalBtn.textContent = 'Go to Login';
+                    modalBtn.href = 'login.html';
+                    break;
+                case 'trial_expired':
+                    modalIcon.textContent = '⏰';
+                    modalTitle.textContent = 'Your Free Trial Has Ended';
+                    modalMessage.textContent = 'Your 14-day trial period has ended. Subscribe now to continue using all the features and keep serving your clients.';
+                    modalBtn.textContent = 'Choose a Plan';
+                    modalBtn.href = 'pricing.html';
+                    break;
+                case 'canceled':
+                    modalIcon.textContent = '😔';
+                    modalTitle.textContent = 'Subscription Canceled';
+                    modalMessage.textContent = "Your subscription has been canceled. We'd love to have you back! Reactivate your subscription to regain access to all features.";
+                    modalBtn.textContent = 'Reactivate Subscription';
+                    modalBtn.href = 'pricing.html';
+                    break;
+                case 'past_due':
+                    modalIcon.textContent = '💳';
+                    modalTitle.textContent = 'Payment Issue';
+                    modalMessage.textContent = "We couldn't process your last payment. Please update your payment method to restore access.";
+                    modalBtn.textContent = 'Update Payment Method';
+                    modalBtn.href = 'billing.html';
+                    break;
+                case 'no_subscription':
+                default:
+                    modalIcon.textContent = '🚀';
+                    modalTitle.textContent = 'Get Started with a Subscription';
+                    modalMessage.textContent = 'Choose a plan that fits your coaching business. Start with our Starter plan or go Pro for unlimited clients and custom branding.';
+                    modalBtn.textContent = 'View Plans & Pricing';
+                    modalBtn.href = 'pricing.html';
+                    break;
+            }
+
+            subscriptionModal.style.display = 'flex';
+        }
+
+        // Modal logout handler
+        modalLogoutBtn.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        });
 
         // Toast notification function
         function showSuccessToast(message) {
@@ -1358,7 +1573,7 @@
 
                 if (sessionError || !session) {
                     console.error('No session found:', sessionError);
-                    window.location.href = 'subscription-required.html?from=dashboard';
+                    showSubscriptionModal('no_session');
                     return;
                 }
 
@@ -1431,8 +1646,17 @@
                     (status === 'trialing' && trialEnds && trialEnds > now);
 
                 if (!hasValidSubscription) {
-                    console.log('No valid subscription, redirecting to subscription-required');
-                    window.location.href = 'subscription-required.html?from=dashboard';
+                    console.log('No valid subscription, showing subscription modal');
+                    // Determine the type of subscription issue
+                    if (status === 'trialing' && trialEnds && trialEnds <= now) {
+                        showSubscriptionModal('trial_expired');
+                    } else if (status === 'canceled') {
+                        showSubscriptionModal('canceled');
+                    } else if (status === 'past_due') {
+                        showSubscriptionModal('past_due');
+                    } else {
+                        showSubscriptionModal('no_subscription');
+                    }
                     return;
                 }
 
@@ -1478,8 +1702,8 @@
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                // Always redirect to subscription-required on any error (never sign out to avoid loops)
-                window.location.href = 'subscription-required.html?from=dashboard';
+                // Show modal instead of redirecting to avoid loops
+                showSubscriptionModal('no_subscription');
             } finally {
                 isLoading = false;
             }
