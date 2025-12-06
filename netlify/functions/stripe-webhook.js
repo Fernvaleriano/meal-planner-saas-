@@ -256,15 +256,38 @@ async function handleCheckoutComplete(session) {
                 trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
             });
 
-        // Send password reset email so they can set their password
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${process.env.URL || 'https://ziquefitnesnutrition.com'}/set-password.html`
-        });
+        // Generate password reset link and send custom welcome email
+        try {
+            const redirectUrl = `${process.env.URL || 'https://ziquefitnessnutrition.com'}/set-password.html`;
+            const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+                type: 'recovery',
+                email: email,
+                options: {
+                    redirectTo: redirectUrl
+                }
+            });
 
-        if (resetError) {
-            console.error('Error sending password reset email:', resetError);
-        } else {
-            console.log('Password reset email sent to:', email);
+            if (linkError) {
+                console.error('Error generating password reset link:', linkError);
+            } else if (linkData?.properties?.action_link) {
+                // Send custom welcome email via Resend
+                const { sendWelcomeEmail } = require('./utils/email-service');
+                const emailResult = await sendWelcomeEmail({
+                    coach: { email, name: coachName },
+                    plan: plan,
+                    resetLink: linkData.properties.action_link
+                });
+
+                if (emailResult.success) {
+                    console.log('Welcome email sent to:', email);
+                } else {
+                    console.error('Error sending welcome email:', emailResult.error);
+                }
+            } else {
+                console.error('No action_link in generateLink response');
+            }
+        } catch (emailError) {
+            console.error('Error in welcome email flow:', emailError);
         }
 
         // Notify admin of new signup

@@ -1086,6 +1086,124 @@ Date: ${new Date().toLocaleString()}
     return sendEmail({ to: adminEmail, subject, text, html });
 }
 
+/**
+ * Generate welcome email for new coach signups
+ */
+function generateWelcomeEmail({ coachName, plan = 'starter', resetLink }) {
+    const subject = 'Welcome to Zique Fitness Nutrition!';
+
+    const tierNames = {
+        'starter': 'Starter',
+        'growth': 'Growth',
+        'professional': 'Professional',
+        'basic': 'Starter',
+        'branded': 'Professional'
+    };
+    const planName = tierNames[plan] || 'Starter';
+
+    const textBody = `Hi ${coachName},
+
+Welcome to Zique Fitness Nutrition! Your ${planName} subscription is now active with a 14-day free trial.
+
+To get started, set up your password using the link below:
+${resetLink}
+
+This link will expire in 24 hours.
+
+With your new account, you can:
+- Create personalized meal plans for your clients
+- Use our AI-powered meal planner
+- Track client progress with food diaries
+- Send automated check-in reminders
+- Manage your entire nutrition coaching business
+
+We're excited to have you on board!
+
+Best,
+The Zique Team
+
+---
+Zique Fitness Nutrition
+${APP_URL}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Zique Fitness!</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your ${planName} subscription is active</p>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Hi <strong>${coachName}</strong>,</p>
+
+        <p style="margin-bottom: 20px; font-size: 16px;">Welcome aboard! Your 14-day free trial has started.</p>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Set Up Your Password</a>
+        </div>
+
+        <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours</p>
+
+        <div style="background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
+            <p style="font-weight: 600; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">With your new account, you can:</p>
+            <ul style="margin: 0; padding-left: 20px; color: #334155;">
+                <li style="margin-bottom: 8px;">Create personalized meal plans for your clients</li>
+                <li style="margin-bottom: 8px;">Use our AI-powered meal planner</li>
+                <li style="margin-bottom: 8px;">Track client progress with food diaries</li>
+                <li style="margin-bottom: 8px;">Send automated check-in reminders</li>
+                <li style="margin-bottom: 0;">Manage your entire nutrition coaching business</li>
+            </ul>
+        </div>
+
+        <p style="margin-top: 30px; color: #334155;">
+            We're excited to have you on board!<br><br>
+            Best,<br>
+            <strong>The Zique Team</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">Zique Fitness Nutrition</p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send welcome email to new coach
+ */
+async function sendWelcomeEmail({ coach, plan, resetLink }) {
+    if (!coach || !coach.email) {
+        return { success: false, error: 'Coach email not available' };
+    }
+
+    if (!resetLink) {
+        return { success: false, error: 'Reset link is required' };
+    }
+
+    const emailContent = generateWelcomeEmail({
+        coachName: coach.name || coach.email.split('@')[0],
+        plan: plan,
+        resetLink: resetLink
+    });
+
+    return sendEmail({
+        to: coach.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+    });
+}
+
 module.exports = {
     sendEmail,
     sendCheckinReminder,
@@ -1102,5 +1220,7 @@ module.exports = {
     generateTrialEndingEmail,
     sendNewCoachNotification,
     sendNewPaymentNotification,
-    sendCancellationNotification
+    sendCancellationNotification,
+    sendWelcomeEmail,
+    generateWelcomeEmail
 };
