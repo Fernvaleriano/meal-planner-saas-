@@ -1470,7 +1470,7 @@
 
                 if (!hasValidSubscription) {
                     console.log('No valid subscription, redirecting to subscription-required');
-                    window.location.href = 'subscription-required.html';
+                    window.location.href = 'subscription-required.html?from=dashboard';
                     return;
                 }
 
@@ -1527,7 +1527,7 @@
                 } else {
                     // Non-auth error - redirect to subscription page (might be missing data)
                     console.log('Non-auth error, redirecting to subscription-required');
-                    window.location.href = 'subscription-required.html';
+                    window.location.href = 'subscription-required.html?from=dashboard';
                 }
             } finally {
                 isLoading = false;

@@ -325,17 +325,24 @@
                 const trialEnds = coach.trial_ends_at ? new Date(coach.trial_ends_at) : null;
                 const now = new Date();
 
-                // Check if they actually have an active subscription
-                if (status === 'active') {
-                    // They have access, redirect to dashboard
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
+                // Check if we came from dashboard - if so, don't redirect back to avoid loops
+                const urlParams = new URLSearchParams(window.location.search);
+                const fromDashboard = urlParams.get('from') === 'dashboard';
 
-                if (status === 'trialing' && trialEnds && trialEnds > now) {
-                    // Trial is still valid, redirect to dashboard
-                    window.location.href = 'dashboard.html';
-                    return;
+                // Only redirect back to dashboard if we didn't just come from there
+                if (!fromDashboard) {
+                    // Check if they actually have an active subscription
+                    if (status === 'active') {
+                        // They have access, redirect to dashboard
+                        window.location.href = 'dashboard.html';
+                        return;
+                    }
+
+                    if (status === 'trialing' && trialEnds && trialEnds > now) {
+                        // Trial is still valid, redirect to dashboard
+                        window.location.href = 'dashboard.html';
+                        return;
+                    }
                 }
 
                 // Show the appropriate message based on status

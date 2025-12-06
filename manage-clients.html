@@ -1715,7 +1715,7 @@
                         (status === 'trialing' && trialEnds && trialEnds > now);
 
                     if (!hasValidSubscription) {
-                        window.location.href = 'subscription-required.html';
+                        window.location.href = 'subscription-required.html?from=dashboard';
                         return;
                     }
                 }
