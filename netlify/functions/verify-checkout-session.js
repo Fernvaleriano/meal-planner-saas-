@@ -16,6 +16,8 @@ const headers = {
 };
 
 exports.handler = async (event) => {
+    console.log('verify-checkout-session called');
+
     // Handle CORS preflight
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 200, headers, body: '' };
@@ -26,6 +28,25 @@ exports.handler = async (event) => {
             statusCode: 405,
             headers,
             body: JSON.stringify({ error: 'Method not allowed' })
+        };
+    }
+
+    // Check environment variables
+    if (!process.env.STRIPE_SECRET_KEY) {
+        console.error('STRIPE_SECRET_KEY is not set');
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Server configuration error: Stripe key missing' })
+        };
+    }
+
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+        console.error('Supabase environment variables are not set');
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Server configuration error: Database config missing' })
         };
     }
 
