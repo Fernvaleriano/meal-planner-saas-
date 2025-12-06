@@ -1627,9 +1627,43 @@
                 const justReactivated = urlParams.get('reactivated') === 'true';
                 const justSubscribed = urlParams.get('subscribed') === 'true';
 
-                // If just reactivated/subscribed but DB still shows canceled, trust the URL param
-                // (webhook may still be processing)
-                if ((justReactivated || justSubscribed) &&
+                // If just subscribed but DB still shows inactive status, wait for webhook to process
+                if (justSubscribed &&
+                    (!coachData.subscription_status ||
+                     coachData.subscription_status === 'none' ||
+                     coachData.subscription_status === 'canceled' ||
+                     coachData.subscription_status === 'canceling')) {
+
+                    console.log('Just subscribed, waiting for webhook to process...');
+
+                    // Wait up to 5 seconds, checking every second
+                    for (let i = 0; i < 5; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+
+                        const { data: refreshedCoach } = await supabaseClient
+                            .from('coaches')
+                            .select('subscription_status, subscription_tier')
+                            .eq('id', user.id)
+                            .single();
+
+                        if (refreshedCoach &&
+                            refreshedCoach.subscription_status &&
+                            refreshedCoach.subscription_status !== 'none' &&
+                            refreshedCoach.subscription_status !== 'canceled') {
+                            console.log('Webhook processed, subscription active:', refreshedCoach.subscription_status);
+                            coachData.subscription_status = refreshedCoach.subscription_status;
+                            coachData.subscription_tier = refreshedCoach.subscription_tier;
+                            break;
+                        }
+                        console.log('Still waiting for webhook... attempt', i + 1);
+                    }
+
+                    // Clean up URL
+                    window.history.replaceState({}, '', 'dashboard.html');
+                }
+
+                // If just reactivated but DB still shows canceled, trust the URL param
+                if (justReactivated &&
                     (coachData.subscription_status === 'canceled' || coachData.subscription_status === 'canceling')) {
                     coachData.subscription_status = 'active';
                     console.log('Overriding subscription status due to reactivation URL param');
