@@ -515,7 +515,7 @@
                     <li>Email support</li>
                     <li class="disabled">Custom branding</li>
                 </ul>
-                <a href="signup.html?plan=starter" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('starter', this)">Get Started</a>
+                <a href="signup.html?plan=starter" class="btn-select secondary" data-plan="starter">Get Started</a>
             </div>
 
             <!-- Growth Plan -->
@@ -540,7 +540,7 @@
                     <li>Priority support</li>
                     <li class="disabled">Custom branding</li>
                 </ul>
-                <a href="signup.html?plan=growth" class="btn-select primary" onclick="event.preventDefault(); selectPlan('growth', this)">Get Started</a>
+                <a href="signup.html?plan=growth" class="btn-select primary" data-plan="growth">Get Started</a>
             </div>
 
             <!-- Professional Plan -->
@@ -564,7 +564,7 @@
                     <li>Priority support</li>
                     <li>Custom branding & logo</li>
                 </ul>
-                <a href="signup.html?plan=professional" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('professional', this)">Get Started</a>
+                <a href="signup.html?plan=professional" class="btn-select secondary" data-plan="professional">Get Started</a>
             </div>
         </div>
     </section>
@@ -764,6 +764,15 @@
                 btn.style.pointerEvents = 'auto';
             }
         }
+
+        // Add click listeners to plan buttons
+        document.querySelectorAll('.btn-select[data-plan]').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const plan = this.dataset.plan;
+                await selectPlan(plan, this);
+            });
+        });
 
         // Initialize on page load
         checkAuth();
