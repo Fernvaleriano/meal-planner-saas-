@@ -466,23 +466,8 @@
     </div>
 
     <script>
-        // Get plan from URL if specified
-        const urlParams = new URLSearchParams(window.location.search);
-        const planFromUrl = urlParams.get('plan');
-        if (planFromUrl && ['starter', 'growth', 'professional'].includes(planFromUrl)) {
-            document.querySelector(`input[value="${planFromUrl}"]`).checked = true;
-            updatePlanSelection();
-        }
-
         // Handle plan card selection
         const planCards = document.querySelectorAll('.plan-card');
-        planCards.forEach(card => {
-            card.addEventListener('click', () => {
-                planCards.forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                card.querySelector('input').checked = true;
-            });
-        });
 
         function updatePlanSelection() {
             planCards.forEach(card => {
@@ -494,6 +479,23 @@
                 }
             });
         }
+
+        // Get plan from URL if specified
+        const urlParams = new URLSearchParams(window.location.search);
+        const planFromUrl = urlParams.get('plan');
+        if (planFromUrl && ['starter', 'growth', 'professional'].includes(planFromUrl)) {
+            document.querySelector(`input[value="${planFromUrl}"]`).checked = true;
+            updatePlanSelection();
+        }
+
+        // Add click handlers to plan cards
+        planCards.forEach(card => {
+            card.addEventListener('click', () => {
+                planCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                card.querySelector('input').checked = true;
+            });
+        });
 
         // Form handling
         const signupForm = document.getElementById('signupForm');
