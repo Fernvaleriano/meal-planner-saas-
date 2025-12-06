@@ -19,8 +19,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 // Price IDs for each tier (set these in Netlify environment variables)
 const PRICE_IDS = {
     starter: process.env.STRIPE_PRICE_STARTER,
+    basic: process.env.STRIPE_PRICE_STARTER,  // alias for starter
     growth: process.env.STRIPE_PRICE_GROWTH,
-    professional: process.env.STRIPE_PRICE_PROFESSIONAL
+    professional: process.env.STRIPE_PRICE_PROFESSIONAL,
+    branded: process.env.STRIPE_PRICE_PROFESSIONAL  // alias for professional
 };
 
 exports.handler = async (event) => {
