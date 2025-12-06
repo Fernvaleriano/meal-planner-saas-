@@ -1476,8 +1476,9 @@
 
                 // Update UI
                 userEmailSpan.textContent = user.email;
-                tierBadge.textContent = coachData.subscription_tier.toUpperCase();
-                tierBadge.className = `tier-badge ${coachData.subscription_tier}`;
+                const tier = coachData.subscription_tier || 'starter';
+                tierBadge.textContent = tier.toUpperCase();
+                tierBadge.className = `tier-badge ${tier}`;
 
                 // Show branding button only for professional tier (or legacy branded tier)
                 if (coachData.subscription_tier === 'professional' || coachData.subscription_tier === 'branded') {
@@ -1515,11 +1516,19 @@
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                alert('Error loading dashboard: ' + error.message);
 
-                // If there's an error, sign out and redirect to be safe
-                await supabaseClient.auth.signOut();
-                window.location.href = 'login.html';
+                // Check if it's an auth-related error
+                const errorMsg = error.message || '';
+                if (errorMsg.includes('JWT') || errorMsg.includes('expired') ||
+                    errorMsg.includes('invalid') || errorMsg.includes('not authenticated')) {
+                    // Auth error - sign out and redirect to login
+                    await supabaseClient.auth.signOut();
+                    window.location.href = 'login.html';
+                } else {
+                    // Non-auth error - redirect to subscription page (might be missing data)
+                    console.log('Non-auth error, redirecting to subscription-required');
+                    window.location.href = 'subscription-required.html';
+                }
             } finally {
                 isLoading = false;
             }
