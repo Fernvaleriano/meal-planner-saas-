@@ -7,12 +7,15 @@
  * - Mailgun: Set MAILGUN_API_KEY and MAILGUN_DOMAIN
  *
  * Falls back to logging if no provider is configured (dev mode)
+ *
+ * White-label support: Professional tier coaches can send from their own domain
  */
 
 // Note: Using global fetch (available in Node 18+, which is set in netlify.toml)
 
-const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
-const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
+// Default email settings (fallback when coach doesn't have white-label)
+const DEFAULT_EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
+const DEFAULT_EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
 const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
 
 /**
@@ -22,9 +25,15 @@ const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
  * @param {string} options.subject - Email subject
  * @param {string} options.text - Plain text body
  * @param {string} options.html - HTML body (optional)
+ * @param {string} options.fromEmail - Custom from email (optional, for white-label)
+ * @param {string} options.fromName - Custom from name (optional, for white-label)
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-async function sendEmail({ to, subject, text, html }) {
+async function sendEmail({ to, subject, text, html, fromEmail, fromName }) {
+    // Use custom from address if provided (white-label), otherwise use defaults
+    const emailFrom = fromEmail || DEFAULT_EMAIL_FROM;
+    const emailFromName = fromName || DEFAULT_EMAIL_FROM_NAME;
+
     // Validate inputs
     if (!to || !subject || !text) {
         return { success: false, error: 'Missing required fields: to, subject, text' };
@@ -32,19 +41,20 @@ async function sendEmail({ to, subject, text, html }) {
 
     // Try providers in order of preference
     if (process.env.RESEND_API_KEY) {
-        return sendWithResend({ to, subject, text, html });
+        return sendWithResend({ to, subject, text, html, emailFrom, emailFromName });
     }
 
     if (process.env.SENDGRID_API_KEY) {
-        return sendWithSendGrid({ to, subject, text, html });
+        return sendWithSendGrid({ to, subject, text, html, emailFrom, emailFromName });
     }
 
     if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
-        return sendWithMailgun({ to, subject, text, html });
+        return sendWithMailgun({ to, subject, text, html, emailFrom, emailFromName });
     }
 
     // Development fallback - just log the email
     console.log('=== EMAIL (Dev Mode - No provider configured) ===');
+    console.log('From:', `${emailFromName} <${emailFrom}>`);
     console.log('To:', to);
     console.log('Subject:', subject);
     console.log('Body:', text.substring(0, 200) + '...');
@@ -60,7 +70,7 @@ async function sendEmail({ to, subject, text, html }) {
 /**
  * Send email using Resend
  */
-async function sendWithResend({ to, subject, text, html }) {
+async function sendWithResend({ to, subject, text, html, emailFrom, emailFromName }) {
     try {
         const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
@@ -69,7 +79,7 @@ async function sendWithResend({ to, subject, text, html }) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                from: `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
+                from: `${emailFromName} <${emailFrom}>`,
                 to: [to],
                 subject,
                 text,
@@ -94,7 +104,7 @@ async function sendWithResend({ to, subject, text, html }) {
 /**
  * Send email using SendGrid
  */
-async function sendWithSendGrid({ to, subject, text, html }) {
+async function sendWithSendGrid({ to, subject, text, html, emailFrom, emailFromName }) {
     try {
         const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
             method: 'POST',
@@ -104,7 +114,7 @@ async function sendWithSendGrid({ to, subject, text, html }) {
             },
             body: JSON.stringify({
                 personalizations: [{ to: [{ email: to }] }],
-                from: { email: EMAIL_FROM, name: EMAIL_FROM_NAME },
+                from: { email: emailFrom, name: emailFromName },
                 subject,
                 content: [
                     { type: 'text/plain', value: text },
@@ -131,11 +141,11 @@ async function sendWithSendGrid({ to, subject, text, html }) {
 /**
  * Send email using Mailgun
  */
-async function sendWithMailgun({ to, subject, text, html }) {
+async function sendWithMailgun({ to, subject, text, html, emailFrom, emailFromName }) {
     try {
         const domain = process.env.MAILGUN_DOMAIN;
         const formData = new URLSearchParams();
-        formData.append('from', `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`);
+        formData.append('from', `${emailFromName} <${emailFrom}>`);
         formData.append('to', to);
         formData.append('subject', subject);
         formData.append('text', text);
@@ -176,6 +186,7 @@ async function sendWithMailgun({ to, subject, text, html }) {
  * @param {string} options.customSubject - Custom email subject (optional)
  * @param {string} options.customMessage - Custom email message (optional)
  * @param {boolean} options.isFollowup - Is this a follow-up reminder?
+ * @param {boolean} options.whiteLabel - Is this a white-label email? (no Zique branding)
  * @returns {Object} - { subject, text, html }
  */
 function generateReminderEmail({
@@ -185,7 +196,8 @@ function generateReminderEmail({
     clientId,
     customSubject,
     customMessage,
-    isFollowup = false
+    isFollowup = false,
+    whiteLabel = false
 }) {
     const checkinLink = `${APP_URL}/client-dashboard.html`;
 
@@ -204,6 +216,12 @@ function generateReminderEmail({
             subject = `Reminder: ${subject}`;
         }
     }
+
+    // Footer text - different for white-label
+    const footerText = whiteLabel ? coachName : 'Zique Fitness Nutrition';
+    const footerHtml = whiteLabel
+        ? `<p>${coachName}</p>`
+        : `<p>Zique Fitness Nutrition</p><p><a href="${APP_URL}" style="color: #0d9488;">Visit Dashboard</a></p>`;
 
     // Default message
     let textBody = `Hi ${clientName},
@@ -225,8 +243,7 @@ Best,
 ${coachName}
 
 ---
-Zique Fitness Nutrition
-${APP_URL}`;
+${footerText}`;
 
     // Use custom message if provided
     if (customMessage) {
@@ -280,8 +297,7 @@ ${APP_URL}`;
     </div>
 
     <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p>Zique Fitness Nutrition</p>
-        <p><a href="${APP_URL}" style="color: #0d9488;">Visit Dashboard</a></p>
+        ${footerHtml}
     </div>
 </body>
 </html>`;
@@ -308,6 +324,9 @@ async function sendCheckinReminder({
         return { success: false, error: 'Client email not available' };
     }
 
+    // Check if coach has white-label email enabled
+    const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
+
     const emailContent = generateReminderEmail({
         clientName: client.client_name || 'there',
         clientEmail: client.email,
@@ -315,14 +334,17 @@ async function sendCheckinReminder({
         clientId: client.id,
         customSubject: settings.email_subject,
         customMessage: settings.email_message,
-        isFollowup
+        isFollowup,
+        whiteLabel: hasWhiteLabel
     });
 
     return sendEmail({
         to: client.email,
         subject: emailContent.subject,
         text: emailContent.text,
-        html: emailContent.html
+        html: emailContent.html,
+        fromEmail: hasWhiteLabel ? coach.email_from : undefined,
+        fromName: hasWhiteLabel ? coach.email_from_name : undefined
     });
 }
 
@@ -333,19 +355,27 @@ async function sendCheckinReminder({
  * @param {string} options.clientEmail - Client's email
  * @param {string} options.coachName - Coach's name
  * @param {string} options.resetLink - Password reset link
+ * @param {boolean} options.whiteLabel - Is this a white-label email?
  * @returns {Object} - { subject, text, html }
  */
 function generateInvitationEmail({
     clientName,
     clientEmail,
     coachName = 'Your Coach',
-    resetLink
+    resetLink,
+    whiteLabel = false
 }) {
-    const subject = `${coachName} has invited you to Zique Fitness Nutrition`;
+    const subject = whiteLabel
+        ? `${coachName} has invited you to join`
+        : `${coachName} has invited you to Zique Fitness Nutrition`;
+
+    const footerText = whiteLabel ? coachName : 'Zique Fitness Nutrition';
+    const welcomeTitle = whiteLabel ? `Welcome!` : `Welcome to Zique Fitness`;
+    const welcomeSubtitle = 'Your nutrition coaching journey starts here';
 
     const textBody = `Hi ${clientName},
 
-Great news! ${coachName} has invited you to join Zique Fitness Nutrition - your personal nutrition coaching portal.
+Great news! ${coachName} has invited you to join ${whiteLabel ? 'their' : 'Zique Fitness Nutrition -'} your personal nutrition coaching portal.
 
 With your new account, you'll be able to:
 - View your personalized meal plans
@@ -366,8 +396,7 @@ Welcome aboard!
 ${coachName}
 
 ---
-Zique Fitness Nutrition
-${APP_URL}`;
+${footerText}`;
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -379,8 +408,8 @@ ${APP_URL}`;
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
     <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Zique Fitness</h1>
-        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your nutrition coaching journey starts here</p>
+        <h1 style="color: white; margin: 0; font-size: 28px;">${welcomeTitle}</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${welcomeSubtitle}</p>
     </div>
 
     <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
@@ -416,8 +445,7 @@ ${APP_URL}`;
     </div>
 
     <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p style="margin: 0;">Zique Fitness Nutrition</p>
-        <p style="margin: 5px 0 0 0;"><a href="${APP_URL}" style="color: #0d9488; text-decoration: none;">Visit Dashboard</a></p>
+        <p style="margin: 0;">${footerText}</p>
     </div>
 </body>
 </html>`;
@@ -446,18 +474,24 @@ async function sendInvitationEmail({
         return { success: false, error: 'Reset link is required' };
     }
 
+    // Check if coach has white-label email enabled
+    const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
+
     const emailContent = generateInvitationEmail({
         clientName: client.client_name || 'there',
         clientEmail: client.email,
         coachName: coach?.full_name || coach?.email || 'Your Coach',
-        resetLink
+        resetLink,
+        whiteLabel: hasWhiteLabel
     });
 
     return sendEmail({
         to: client.email,
         subject: emailContent.subject,
         text: emailContent.text,
-        html: emailContent.html
+        html: emailContent.html,
+        fromEmail: hasWhiteLabel ? coach.email_from : undefined,
+        fromName: hasWhiteLabel ? coach.email_from_name : undefined
     });
 }
 
