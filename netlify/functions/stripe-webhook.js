@@ -78,13 +78,14 @@ exports.handler = async (event) => {
     }
 };
 
-// Handle successful checkout - create coach account
+// Handle successful checkout - create or update coach account
 async function handleCheckoutComplete(session) {
     console.log('Processing checkout.session.completed:', session.id);
 
-    const email = session.customer_email;
+    const email = session.customer_email || session.customer_details?.email;
     const plan = session.metadata?.plan || 'starter';
     const coachName = session.metadata?.coach_name || '';
+    const coachId = session.metadata?.coach_id || null;
     const customerId = session.customer;
     const subscriptionId = session.subscription;
 
@@ -93,26 +94,92 @@ async function handleCheckoutComplete(session) {
         return;
     }
 
-    // Check if coach already exists
-    const { data: existingCoach } = await supabase
-        .from('coaches')
-        .select('id')
-        .eq('email', email)
-        .single();
+    // Check if coach already exists (by ID first, then email)
+    let existingCoach = null;
+
+    if (coachId) {
+        const { data } = await supabase
+            .from('coaches')
+            .select('id, email, subscription_status')
+            .eq('id', coachId)
+            .single();
+        existingCoach = data;
+    }
+
+    if (!existingCoach) {
+        const { data } = await supabase
+            .from('coaches')
+            .select('id, email, subscription_status')
+            .eq('email', email)
+            .single();
+        existingCoach = data;
+    }
 
     if (existingCoach) {
-        // Update existing coach with Stripe info
+        // Existing coach - this is a reactivation or plan change
+        const isReactivation = existingCoach.subscription_status === 'canceled' ||
+                               existingCoach.subscription_status === 'canceling';
+
+        // Get subscription details to check if trial or active
+        let newStatus = 'active';
+        let trialEndsAt = null;
+
+        if (subscriptionId) {
+            try {
+                const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                if (subscription.status === 'trialing') {
+                    newStatus = 'trialing';
+                    trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+                } else {
+                    newStatus = subscription.status;
+                }
+            } catch (e) {
+                console.log('Could not retrieve subscription:', e.message);
+            }
+        }
+
         await supabase
             .from('coaches')
             .update({
                 stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
                 subscription_tier: plan,
-                subscription_status: 'trialing', // 14-day trial
+                subscription_status: newStatus,
+                trial_ends_at: trialEndsAt,
+                canceled_at: null,  // Clear cancellation fields
+                cancel_at: null,
                 updated_at: new Date().toISOString()
             })
             .eq('id', existingCoach.id);
 
-        console.log('Updated existing coach:', email);
+        // Update subscriptions table too
+        await supabase
+            .from('subscriptions')
+            .upsert({
+                coach_id: existingCoach.id,
+                tier: plan,
+                status: newStatus,
+                stripe_subscription_id: subscriptionId,
+                trial_ends_at: trialEndsAt,
+                cancel_at: null,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'coach_id' });
+
+        // Send reactivation email if this was a reactivation
+        if (isReactivation) {
+            try {
+                const { sendReactivationEmail } = require('./utils/email-service');
+                await sendReactivationEmail({
+                    coach: { ...existingCoach, name: coachName },
+                    plan: plan
+                });
+                console.log('Sent reactivation email to:', email);
+            } catch (emailError) {
+                console.error('Error sending reactivation email:', emailError);
+            }
+        }
+
+        console.log('Updated existing coach:', email, isReactivation ? '(reactivation)' : '');
     } else {
         // Try to create new auth user, handle if already exists
         let userId;
@@ -299,27 +366,53 @@ async function handlePaymentSucceeded(invoice) {
     console.log('Payment succeeded for invoice:', invoice.id);
 
     const subscriptionId = invoice.subscription;
+    const customerId = invoice.customer;
     if (!subscriptionId) return;
 
-    const { data: coach } = await supabase
+    // Try to find coach by subscription ID first, then by customer ID
+    let coach = null;
+    const { data: coachBySubId } = await supabase
         .from('coaches')
-        .select('id')
+        .select('id, email, name, subscription_status')
         .eq('stripe_subscription_id', subscriptionId)
         .single();
 
+    coach = coachBySubId;
+
+    if (!coach && customerId) {
+        const { data: coachByCustomerId } = await supabase
+            .from('coaches')
+            .select('id, email, name, subscription_status')
+            .eq('stripe_customer_id', customerId)
+            .single();
+        coach = coachByCustomerId;
+    }
+
     if (coach) {
+        const wasReactivation = coach.subscription_status === 'canceled' ||
+                                coach.subscription_status === 'canceling';
+
         await supabase
             .from('coaches')
             .update({
                 subscription_status: 'active',
-                last_payment_at: new Date().toISOString()
+                stripe_subscription_id: subscriptionId,
+                last_payment_at: new Date().toISOString(),
+                canceled_at: null,
+                cancel_at: null
             })
             .eq('id', coach.id);
 
         await supabase
             .from('subscriptions')
-            .update({ status: 'active' })
+            .update({
+                status: 'active',
+                stripe_subscription_id: subscriptionId,
+                cancel_at: null
+            })
             .eq('coach_id', coach.id);
+
+        console.log('Payment succeeded for coach:', coach.email);
     }
 }
 
@@ -328,13 +421,27 @@ async function handlePaymentFailed(invoice) {
     console.log('Payment failed for invoice:', invoice.id);
 
     const subscriptionId = invoice.subscription;
+    const customerId = invoice.customer;
     if (!subscriptionId) return;
 
-    const { data: coach } = await supabase
+    // Try to find coach by subscription ID first, then by customer ID
+    let coach = null;
+    const { data: coachBySubId } = await supabase
         .from('coaches')
-        .select('id, email')
+        .select('id, email, name, subscription_tier')
         .eq('stripe_subscription_id', subscriptionId)
         .single();
+
+    coach = coachBySubId;
+
+    if (!coach && customerId) {
+        const { data: coachByCustomerId } = await supabase
+            .from('coaches')
+            .select('id, email, name, subscription_tier')
+            .eq('stripe_customer_id', customerId)
+            .single();
+        coach = coachByCustomerId;
+    }
 
     if (coach) {
         await supabase
@@ -349,7 +456,15 @@ async function handlePaymentFailed(invoice) {
             .update({ status: 'past_due' })
             .eq('coach_id', coach.id);
 
-        // TODO: Send payment failed email to coach
+        // Send payment failed email
+        try {
+            const { sendPaymentFailedEmail } = require('./utils/email-service');
+            await sendPaymentFailedEmail({ coach });
+            console.log('Sent payment failed email to:', coach.email);
+        } catch (emailError) {
+            console.error('Error sending payment failed email:', emailError);
+        }
+
         console.log('Payment failed for coach:', coach.email);
     }
 }

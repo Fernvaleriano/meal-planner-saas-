@@ -628,6 +628,327 @@ async function sendCancellationEmail({
     });
 }
 
+/**
+ * Generate reactivation confirmation email content
+ */
+function generateReactivationEmail({ coachName, plan = 'starter' }) {
+    const subject = 'Welcome back! Your subscription is active';
+
+    const tierNames = {
+        'starter': 'Starter',
+        'growth': 'Growth',
+        'professional': 'Professional',
+        'basic': 'Starter',
+        'branded': 'Professional'
+    };
+    const planName = tierNames[plan] || 'Starter';
+
+    const textBody = `Hi ${coachName},
+
+Welcome back! Your ${planName} subscription has been reactivated successfully.
+
+You now have full access to all features again:
+- Manage your clients and meal plans
+- Use the AI meal planner
+- Send check-in reminders
+- Access all your saved recipes and data
+
+Everything is right where you left it. Your clients can continue accessing their portals immediately.
+
+Log in to your dashboard:
+${APP_URL}/dashboard.html
+
+Thank you for continuing with Zique Fitness Nutrition!
+
+Best,
+The Zique Team
+
+---
+Zique Fitness Nutrition
+${APP_URL}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Welcome Back!</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Your subscription is active</p>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">Hi <strong>${coachName}</strong>,</p>
+
+        <p style="margin-bottom: 20px;">Your <strong>${planName}</strong> subscription has been reactivated successfully!</p>
+
+        <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #10b981;">
+            <p style="margin: 0; font-weight: 600; color: #065f46;">You now have full access to:</p>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #047857;">
+                <li>Manage clients and meal plans</li>
+                <li>AI meal planner</li>
+                <li>Check-in reminders</li>
+                <li>All your saved recipes and data</li>
+            </ul>
+        </div>
+
+        <p style="margin-bottom: 25px;">Everything is right where you left it. Your clients can continue accessing their portals immediately.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${APP_URL}/dashboard.html" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
+        </div>
+
+        <p style="margin-top: 30px; color: #64748b;">
+            Thank you for continuing with Zique Fitness Nutrition!<br><br>
+            Best,<br>
+            <strong>The Zique Team</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">Zique Fitness Nutrition</p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send reactivation confirmation email to coach
+ */
+async function sendReactivationEmail({ coach, plan }) {
+    if (!coach || !coach.email) {
+        return { success: false, error: 'Coach email not available' };
+    }
+
+    const emailContent = generateReactivationEmail({
+        coachName: coach.name || coach.email.split('@')[0],
+        plan: plan
+    });
+
+    return sendEmail({
+        to: coach.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+    });
+}
+
+/**
+ * Generate payment failed email content
+ */
+function generatePaymentFailedEmail({ coachName }) {
+    const subject = 'Action required: Your payment failed';
+
+    const textBody = `Hi ${coachName},
+
+We tried to process your subscription payment, but it was unsuccessful.
+
+Don't worry - your account is still active for now, but please update your payment method to avoid any interruption to your service.
+
+Update your payment method here:
+${APP_URL}/billing.html
+
+Common reasons for failed payments:
+- Expired credit card
+- Insufficient funds
+- Card issuer declined the transaction
+
+If you need help, just reply to this email.
+
+Best,
+The Zique Team
+
+---
+Zique Fitness Nutrition
+${APP_URL}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Payment Failed</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Action required</p>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">Hi <strong>${coachName}</strong>,</p>
+
+        <p style="margin-bottom: 20px;">We tried to process your subscription payment, but it was unsuccessful.</p>
+
+        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+            <p style="margin: 0; font-weight: 600; color: #92400e;">Your account is still active for now</p>
+            <p style="margin: 8px 0 0 0; color: #a16207;">Please update your payment method to avoid any interruption to your service.</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${APP_URL}/billing.html" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Update Payment Method</a>
+        </div>
+
+        <p style="margin-bottom: 15px;"><strong>Common reasons for failed payments:</strong></p>
+        <ul style="margin: 0 0 25px 0; padding-left: 20px; color: #64748b;">
+            <li>Expired credit card</li>
+            <li>Insufficient funds</li>
+            <li>Card issuer declined the transaction</li>
+        </ul>
+
+        <p style="margin-top: 30px; color: #64748b;">
+            If you need help, just reply to this email.<br><br>
+            Best,<br>
+            <strong>The Zique Team</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">Zique Fitness Nutrition</p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send payment failed email to coach
+ */
+async function sendPaymentFailedEmail({ coach }) {
+    if (!coach || !coach.email) {
+        return { success: false, error: 'Coach email not available' };
+    }
+
+    const emailContent = generatePaymentFailedEmail({
+        coachName: coach.name || coach.email.split('@')[0]
+    });
+
+    return sendEmail({
+        to: coach.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+    });
+}
+
+/**
+ * Generate trial ending soon email content
+ */
+function generateTrialEndingEmail({ coachName, daysLeft, trialEndDate }) {
+    const subject = `Your trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+
+    const formattedDate = trialEndDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const textBody = `Hi ${coachName},
+
+Just a heads up - your free trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'} (${formattedDate}).
+
+To continue using Zique Fitness Nutrition without interruption, add your payment method now:
+${APP_URL}/billing.html
+
+After your trial ends, you'll need an active subscription to:
+- Access your clients and meal plans
+- Use the AI meal planner
+- Send check-in reminders
+
+All your data will be safely preserved. You can reactivate anytime.
+
+Questions? Just reply to this email.
+
+Best,
+The Zique Team
+
+---
+Zique Fitness Nutrition
+${APP_URL}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Trial Ending Soon</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining</p>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">Hi <strong>${coachName}</strong>,</p>
+
+        <p style="margin-bottom: 20px;">Just a heads up - your free trial ends on <strong>${formattedDate}</strong>.</p>
+
+        <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+            <p style="margin: 0; font-weight: 600; color: #1e40af;">Add your payment method now to continue without interruption</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${APP_URL}/billing.html" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Add Payment Method</a>
+        </div>
+
+        <p style="margin-bottom: 15px; color: #64748b;"><strong>After your trial ends, you'll need an active subscription to:</strong></p>
+        <ul style="margin: 0 0 25px 0; padding-left: 20px; color: #64748b;">
+            <li>Access your clients and meal plans</li>
+            <li>Use the AI meal planner</li>
+            <li>Send check-in reminders</li>
+        </ul>
+
+        <p style="color: #64748b;">All your data will be safely preserved. You can reactivate anytime.</p>
+
+        <p style="margin-top: 30px; color: #64748b;">
+            Questions? Just reply to this email.<br><br>
+            Best,<br>
+            <strong>The Zique Team</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">Zique Fitness Nutrition</p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send trial ending soon email to coach
+ */
+async function sendTrialEndingEmail({ coach, daysLeft, trialEndDate }) {
+    if (!coach || !coach.email) {
+        return { success: false, error: 'Coach email not available' };
+    }
+
+    const emailContent = generateTrialEndingEmail({
+        coachName: coach.name || coach.email.split('@')[0],
+        daysLeft,
+        trialEndDate: trialEndDate instanceof Date ? trialEndDate : new Date(trialEndDate)
+    });
+
+    return sendEmail({
+        to: coach.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+    });
+}
+
 module.exports = {
     sendEmail,
     sendCheckinReminder,
@@ -635,5 +956,11 @@ module.exports = {
     sendInvitationEmail,
     generateInvitationEmail,
     sendCancellationEmail,
-    generateCancellationEmail
+    generateCancellationEmail,
+    sendReactivationEmail,
+    generateReactivationEmail,
+    sendPaymentFailedEmail,
+    generatePaymentFailedEmail,
+    sendTrialEndingEmail,
+    generateTrialEndingEmail
 };
