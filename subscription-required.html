@@ -300,8 +300,24 @@
                     .eq('id', session.user.id)
                     .single();
 
+                // If coach record not found, show default subscription page (don't redirect to avoid loops)
                 if (error || !coach) {
-                    window.location.href = 'login.html';
+                    console.error('Could not load coach data:', error);
+                    // Show the default subscription required page
+                    const statusIcon = document.getElementById('statusIcon');
+                    const statusEmoji = document.getElementById('statusEmoji');
+                    const statusTitle = document.getElementById('statusTitle');
+                    const statusMessage = document.getElementById('statusMessage');
+                    const ctaButton = document.getElementById('ctaButton');
+
+                    statusIcon.className = 'icon-container none';
+                    statusEmoji.textContent = '🚀';
+                    statusTitle.textContent = 'Get Started with a Subscription';
+                    statusMessage.textContent = 'Choose a plan that fits your coaching business. Start with our Starter plan or go Pro for unlimited clients and custom branding.';
+                    ctaButton.textContent = 'View Plans & Pricing';
+
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('content').style.display = 'block';
                     return;
                 }
 
@@ -366,7 +382,19 @@
 
             } catch (error) {
                 console.error('Error checking subscription:', error);
-                window.location.href = 'login.html';
+                // Show default page instead of redirecting (to avoid loops)
+                const statusIcon = document.getElementById('statusIcon');
+                const statusEmoji = document.getElementById('statusEmoji');
+                const statusTitle = document.getElementById('statusTitle');
+                const statusMessage = document.getElementById('statusMessage');
+
+                statusIcon.className = 'icon-container none';
+                statusEmoji.textContent = '🚀';
+                statusTitle.textContent = 'Subscription Required';
+                statusMessage.textContent = 'Please subscribe to access the coaching dashboard.';
+
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
             }
         }
 
