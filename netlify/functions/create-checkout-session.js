@@ -67,8 +67,8 @@ exports.handler = async (event) => {
                     name = coach.name || email;
                     coachId = coach.id;
                     existingCustomerId = coach.stripe_customer_id;
-                    // Don't give trial to users who already had a subscription
-                    isExistingUser = coach.subscription_status && coach.subscription_status !== 'none';
+                    // Don't give trial to users who already had a subscription OR have a Stripe customer ID
+                    isExistingUser = existingCustomerId || (coach.subscription_status && coach.subscription_status !== 'none');
                 }
             }
         }
