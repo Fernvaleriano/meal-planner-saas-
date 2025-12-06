@@ -1365,28 +1365,11 @@
             try {
                 console.log('Starting dashboard load...');
 
-                // First, try to refresh the session to get a fresh token
-                const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+                // Get current session - simpler approach, don't refresh on every load
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
-                let session = null;
-
-                // Check if refresh was successful
-                if (refreshError) {
-                    console.error('Session refresh failed:', refreshError);
-                    // If refresh fails, the session is likely expired
-                    // Clear any stale session data and redirect to login
-                    await supabaseClient.auth.signOut();
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                // Use the refreshed session
-                session = refreshData?.session;
-
-                // Double-check we have a valid session
-                if (!session || !session.access_token) {
-                    console.error('No valid session after refresh');
-                    await supabaseClient.auth.signOut();
+                if (sessionError || !session) {
+                    console.error('No session found:', sessionError);
                     window.location.href = 'login.html';
                     return;
                 }
@@ -1516,19 +1499,8 @@
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-
-                // Check if it's an auth-related error
-                const errorMsg = error.message || '';
-                if (errorMsg.includes('JWT') || errorMsg.includes('expired') ||
-                    errorMsg.includes('invalid') || errorMsg.includes('not authenticated')) {
-                    // Auth error - sign out and redirect to login
-                    await supabaseClient.auth.signOut();
-                    window.location.href = 'login.html';
-                } else {
-                    // Non-auth error - redirect to subscription page (might be missing data)
-                    console.log('Non-auth error, redirecting to subscription-required');
-                    window.location.href = 'subscription-required.html?from=dashboard';
-                }
+                // Always redirect to subscription-required on any error (never sign out to avoid loops)
+                window.location.href = 'subscription-required.html?from=dashboard';
             } finally {
                 isLoading = false;
             }
