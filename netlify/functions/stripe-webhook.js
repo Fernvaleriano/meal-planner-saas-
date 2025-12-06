@@ -168,10 +168,16 @@ async function handleCheckoutComplete(session) {
         // Send reactivation email if this was a reactivation
         if (isReactivation) {
             try {
-                const { sendReactivationEmail } = require('./utils/email-service');
+                const { sendReactivationEmail, sendNewPaymentNotification } = require('./utils/email-service');
                 await sendReactivationEmail({
                     coach: { ...existingCoach, name: coachName },
                     plan: plan
+                });
+                // Notify admin
+                await sendNewPaymentNotification({
+                    coach: { ...existingCoach, name: coachName },
+                    plan: plan,
+                    isReactivation: true
                 });
                 console.log('Sent reactivation email to:', email);
             } catch (emailError) {
@@ -259,6 +265,18 @@ async function handleCheckoutComplete(session) {
             console.error('Error sending password reset email:', resetError);
         } else {
             console.log('Password reset email sent to:', email);
+        }
+
+        // Notify admin of new signup
+        try {
+            const { sendNewCoachNotification } = require('./utils/email-service');
+            await sendNewCoachNotification({
+                coach: { email, name: coachName },
+                plan: plan
+            });
+            console.log('Sent new coach notification to admin');
+        } catch (notifyError) {
+            console.error('Error sending admin notification:', notifyError);
         }
 
         console.log('Created new coach:', email);

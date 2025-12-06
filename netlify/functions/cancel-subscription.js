@@ -111,10 +111,15 @@ exports.handler = async (event) => {
 
         // Send cancellation confirmation email
         try {
-            const { sendCancellationEmail } = require('./utils/email-service');
+            const { sendCancellationEmail, sendCancellationNotification } = require('./utils/email-service');
             await sendCancellationEmail({
                 coach,
                 cancelDate
+            });
+            // Notify admin
+            await sendCancellationNotification({
+                coach,
+                plan: coach.subscription_tier
             });
         } catch (emailError) {
             console.error('Failed to send cancellation email:', emailError);
