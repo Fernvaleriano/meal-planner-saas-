@@ -924,6 +924,29 @@
             currentUserId = session.user.id;
             document.getElementById('userEmail').textContent = session.user.email;
 
+            // Check subscription status
+            const { data: coachData, error: coachError } = await supabaseClient
+                .from('coaches')
+                .select('subscription_status, trial_ends_at')
+                .eq('id', currentUserId)
+                .single();
+
+            if (!coachError && coachData) {
+                const status = coachData.subscription_status;
+                const trialEnds = coachData.trial_ends_at ? new Date(coachData.trial_ends_at) : null;
+                const now = new Date();
+
+                const hasValidSubscription =
+                    status === 'active' ||
+                    status === 'canceling' ||
+                    (status === 'trialing' && trialEnds && trialEnds > now);
+
+                if (!hasValidSubscription) {
+                    window.location.href = 'subscription-required.html';
+                    return;
+                }
+            }
+
             setupCategoryTabs();
             await loadRecipes();
         }

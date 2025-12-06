@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zique Fitness">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon.svg">
+    <title>Subscription Required - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --red-500: #ef4444;
+            --red-600: #dc2626;
+            --amber-500: #f59e0b;
+            --amber-600: #d97706;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-50);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 40px;
+        }
+
+        .logo img {
+            height: 60px;
+            width: auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .icon-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 40px;
+        }
+
+        .icon-container.expired {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        .icon-container.canceled {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+
+        .icon-container.none {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: var(--gray-600);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .features {
+            text-align: left;
+            background: var(--gray-50);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .features h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .feature-item .check {
+            color: var(--brand-primary);
+            font-weight: bold;
+        }
+
+        .cta-button {
+            display: block;
+            width: 100%;
+            padding: 16px 32px;
+            background: var(--brand-gradient);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(13, 148, 136, 0.3);
+        }
+
+        .secondary-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--gray-500);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .secondary-link:hover {
+            color: var(--brand-primary);
+        }
+
+        .contact-support {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--gray-200);
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        .contact-support a {
+            color: var(--brand-primary);
+            text-decoration: none;
+        }
+
+        .contact-support a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 32px 24px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="assets/images/zique-full-logo.png" alt="Zique Fitness">
+        </div>
+
+        <div class="card">
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+            </div>
+
+            <div id="content" style="display: none;">
+                <div class="icon-container" id="statusIcon">
+                    <span id="statusEmoji"></span>
+                </div>
+
+                <h1 id="statusTitle">Subscription Required</h1>
+                <p class="subtitle" id="statusMessage">
+                    Your subscription has ended. Renew now to continue managing your clients and meal plans.
+                </p>
+
+                <div class="features">
+                    <h3>What you'll get</h3>
+                    <div class="feature-item">
+                        <span class="check">&#10003;</span>
+                        <span>Unlimited client meal plans</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check">&#10003;</span>
+                        <span>AI-powered meal generation</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check">&#10003;</span>
+                        <span>Client portal access</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check">&#10003;</span>
+                        <span>Recipe library & customization</span>
+                    </div>
+                </div>
+
+                <a href="pricing.html" class="cta-button" id="ctaButton">
+                    View Plans & Subscribe
+                </a>
+
+                <a href="#" class="secondary-link" id="logoutLink">
+                    Log out and use a different account
+                </a>
+
+                <div class="contact-support">
+                    Need help? <a href="mailto:support@ziquefitness.com">Contact Support</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://jcaxqzsnubetdhwoxbdg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjYXhxenNudWJldGRod294YmRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyMzE0ODIsImV4cCI6MjA1NjgwNzQ4Mn0.4CXaLReMnVX8OI6qBFVPaVNLDMNloD6GB3g10SVWU0o';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function checkSubscriptionStatus() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    // Not logged in, redirect to login
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: coach, error } = await supabaseClient
+                    .from('coaches')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error || !coach) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const status = coach.subscription_status;
+                const trialEnds = coach.trial_ends_at ? new Date(coach.trial_ends_at) : null;
+                const now = new Date();
+
+                // Check if they actually have an active subscription
+                if (status === 'active') {
+                    // They have access, redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+
+                if (status === 'trialing' && trialEnds && trialEnds > now) {
+                    // Trial is still valid, redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+
+                // Show the appropriate message based on status
+                const statusIcon = document.getElementById('statusIcon');
+                const statusEmoji = document.getElementById('statusEmoji');
+                const statusTitle = document.getElementById('statusTitle');
+                const statusMessage = document.getElementById('statusMessage');
+                const ctaButton = document.getElementById('ctaButton');
+
+                if (status === 'trialing' && trialEnds && trialEnds <= now) {
+                    // Trial expired
+                    statusIcon.className = 'icon-container expired';
+                    statusEmoji.textContent = '⏰';
+                    statusTitle.textContent = 'Your Free Trial Has Ended';
+                    statusMessage.textContent = 'Your 14-day trial period has ended. Subscribe now to continue using all the features and keep serving your clients.';
+                    ctaButton.textContent = 'Choose a Plan';
+                } else if (status === 'canceled') {
+                    // Subscription canceled
+                    statusIcon.className = 'icon-container canceled';
+                    statusEmoji.textContent = '😔';
+                    statusTitle.textContent = 'Subscription Canceled';
+                    statusMessage.textContent = 'Your subscription has been canceled. We\'d love to have you back! Reactivate your subscription to regain access to all features.';
+                    ctaButton.textContent = 'Reactivate Subscription';
+                } else if (status === 'past_due') {
+                    // Payment failed
+                    statusIcon.className = 'icon-container expired';
+                    statusEmoji.textContent = '💳';
+                    statusTitle.textContent = 'Payment Issue';
+                    statusMessage.textContent = 'We couldn\'t process your last payment. Please update your payment method to restore access.';
+                    ctaButton.textContent = 'Update Payment Method';
+                    ctaButton.href = 'billing.html';
+                } else {
+                    // No subscription / none
+                    statusIcon.className = 'icon-container none';
+                    statusEmoji.textContent = '🚀';
+                    statusTitle.textContent = 'Get Started with a Subscription';
+                    statusMessage.textContent = 'Choose a plan that fits your coaching business. Start with our Starter plan or go Pro for unlimited clients and custom branding.';
+                    ctaButton.textContent = 'View Plans & Pricing';
+                }
+
+                // Show content
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error checking subscription:', error);
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Logout handler
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        });
+
+        // Check status on load
+        checkSubscriptionStatus();
+    </script>
+</body>
+</html>
