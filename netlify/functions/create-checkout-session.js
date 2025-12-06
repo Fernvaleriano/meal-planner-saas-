@@ -67,8 +67,11 @@ exports.handler = async (event) => {
                     name = coach.name || email;
                     coachId = coach.id;
                     existingCustomerId = coach.stripe_customer_id;
-                    // Don't give trial to users who already had a subscription OR have a Stripe customer ID
-                    isExistingUser = existingCustomerId || (coach.subscription_status && coach.subscription_status !== 'none');
+                    // If coach record exists and user is logged in, they're an existing user - no trial
+                    // This covers: has stripe_customer_id, has any subscription_status (including canceled),
+                    // or simply has an existing account
+                    isExistingUser = true;
+                    console.log('Existing user detected:', { coachId, existingCustomerId, status: coach.subscription_status });
                 }
             }
         }
