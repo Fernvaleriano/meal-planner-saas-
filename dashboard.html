@@ -1299,22 +1299,10 @@
             }, 4000);
         }
 
-        // Listen for auth state changes to handle session expiration
+        // Listen for auth state changes (logging only, no redirects to avoid loops)
         supabaseClient.auth.onAuthStateChange((event, session) => {
             console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
-
-            if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-                // If signed out, redirect to login
-                if (event === 'SIGNED_OUT') {
-                    console.log('User signed out, redirecting to login');
-                    window.location.href = 'login.html';
-                }
-                // If token refreshed successfully, reload dashboard if it's currently showing
-                else if (event === 'TOKEN_REFRESHED' && dashboardContent.style.display !== 'none') {
-                    console.log('Token refreshed, reloading dashboard');
-                    loadDashboard();
-                }
-            }
+            // Don't redirect on SIGNED_OUT - let user stay on page or manually navigate
         });
 
         // Detect if page was loaded from back/forward cache and force reload
@@ -1370,7 +1358,7 @@
 
                 if (sessionError || !session) {
                     console.error('No session found:', sessionError);
-                    window.location.href = 'login.html';
+                    window.location.href = 'subscription-required.html?from=dashboard';
                     return;
                 }
 
@@ -1395,15 +1383,6 @@
 
                     if (coachError) {
                         console.error(`Database error (attempt ${retries + 1}):`, coachError);
-
-                        // Check if it's an auth error (expired token, invalid session, etc.)
-                        if (coachError.code === 'PGRST301' || coachError.message?.includes('JWT') ||
-                            coachError.message?.includes('expired') || coachError.message?.includes('invalid')) {
-                            console.error('Authentication error detected, session is invalid');
-                            await supabaseClient.auth.signOut();
-                            window.location.href = 'login.html';
-                            return;
-                        }
 
                         if (retries < maxRetries) {
                             // Wait before retrying (100ms, then 200ms)
