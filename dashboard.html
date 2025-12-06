@@ -51,10 +51,14 @@
 
         /* Header */
         .header {
-            background: white;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--gray-200);
             padding: 0 32px;
-            height: 72px;
+            padding-top: env(safe-area-inset-top);
+            min-height: calc(72px + env(safe-area-inset-top));
+            height: auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -163,6 +167,7 @@
             max-width: 1400px;
             margin: 0 auto;
             padding: 32px;
+            padding-bottom: calc(32px + env(safe-area-inset-bottom));
         }
 
         /* Welcome Section */
@@ -176,9 +181,9 @@
 
         .welcome-card {
             background: white;
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 40px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
             border: 1px solid var(--gray-100);
             position: relative;
             overflow: hidden;
@@ -245,13 +250,18 @@
 
         .stat-card {
             background: white;
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: 20px;
+            padding: 28px;
             min-width: 160px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
             border: 1px solid var(--gray-100);
             position: relative;
             overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
         }
 
         .stat-card::after {
@@ -342,11 +352,11 @@
 
         .action-card {
             background: white;
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 32px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
             border: 1px solid var(--gray-100);
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             position: relative;
             overflow: hidden;
         }
@@ -365,7 +375,7 @@
 
         .action-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 16px 32px rgba(0, 0, 0, 0.06);
             border-color: transparent;
         }
 
@@ -409,18 +419,21 @@
         .action-btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             background: var(--brand-gradient);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
+            padding: 14px 28px;
+            min-height: 48px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 0.9375rem;
             font-weight: 600;
             font-family: inherit;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+            -webkit-tap-highlight-color: transparent;
         }
 
         .action-btn:hover {
@@ -1070,11 +1083,17 @@
                 width: 100%;
                 justify-content: flex-start;
             }
+
+            .header {
+                padding: 0 20px;
+                padding-top: env(safe-area-inset-top);
+            }
         }
 
         @media (max-width: 768px) {
             .header {
                 padding: 0 16px;
+                padding-top: env(safe-area-inset-top);
             }
 
             .nav-links {
@@ -1082,11 +1101,13 @@
             }
 
             .container {
-                padding: 20px;
+                padding: 24px 20px;
+                padding-bottom: calc(24px + env(safe-area-inset-bottom));
             }
 
             .welcome-card {
-                padding: 24px;
+                padding: 28px;
+                border-radius: 20px;
             }
 
             .welcome-card h1 {
@@ -1095,15 +1116,47 @@
 
             .stats-grid {
                 flex-wrap: wrap;
+                gap: 16px;
             }
 
             .stat-card {
                 min-width: 140px;
                 flex: 1;
+                padding: 24px;
             }
 
             .action-cards {
                 grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .action-card {
+                padding: 28px;
+                border-radius: 20px;
+            }
+
+            .action-btn {
+                width: 100%;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 360px) {
+            .container {
+                padding: 16px;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            }
+
+            .welcome-card {
+                padding: 20px;
+            }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .action-card {
+                padding: 24px;
             }
         }
     </style>
