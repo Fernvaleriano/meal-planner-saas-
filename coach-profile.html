@@ -228,6 +228,150 @@
             color: #7e22ce;
         }
 
+        /* Subscription Status Badge */
+        .subscription-status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .subscription-status-badge.active {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+
+        .subscription-status-badge.trialing {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+        }
+
+        .subscription-status-badge.canceling {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+
+        .subscription-status-badge.canceled,
+        .subscription-status-badge.past_due {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+        }
+
+        /* Cancel Modal Warning */
+        .cancel-warning {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        [data-theme="dark"] .cancel-warning {
+            background: #450a0a;
+            border-color: #7f1d1d;
+        }
+
+        .cancel-warning p {
+            margin: 0;
+            color: #991b1b;
+            font-size: 0.9375rem;
+        }
+
+        [data-theme="dark"] .cancel-warning p {
+            color: #fca5a5;
+        }
+
+        .cancel-btn {
+            width: 100%;
+            padding: 14px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .cancel-btn:hover {
+            background: #b91c1c;
+        }
+
+        .cancel-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .keep-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: background 0.2s;
+        }
+
+        .keep-btn:hover {
+            background: var(--gray-200);
+        }
+
+        [data-theme="dark"] .keep-btn {
+            background: var(--gray-700);
+            color: var(--gray-200);
+        }
+
+        [data-theme="dark"] .keep-btn:hover {
+            background: var(--gray-600);
+        }
+
+        .cancellation-info {
+            background: var(--gray-50);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        [data-theme="dark"] .cancellation-info {
+            background: var(--gray-900);
+        }
+
+        .cancellation-info h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .cancellation-info h4 {
+            color: var(--gray-300);
+        }
+
+        .cancellation-info ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.8125rem;
+            color: var(--gray-600);
+        }
+
+        [data-theme="dark"] .cancellation-info ul {
+            color: var(--gray-400);
+        }
+
+        .cancellation-info li {
+            margin-bottom: 6px;
+        }
+
         /* Settings Card */
         .settings-card {
             background: white;
@@ -794,6 +938,40 @@
                     </div>
                 </div>
 
+                <!-- Subscription Settings -->
+                <div class="settings-card" id="subscriptionCard">
+                    <div class="settings-card-title">Subscription</div>
+                    <div class="settings-item" style="cursor: default;">
+                        <div class="settings-item-left">
+                            <div class="settings-icon">💳</div>
+                            <div>
+                                <div class="settings-label">Current Plan</div>
+                                <div class="settings-sublabel" id="subscriptionPlanDisplay">Loading...</div>
+                            </div>
+                        </div>
+                        <span id="subscriptionStatusBadge" class="subscription-status-badge active">Active</span>
+                    </div>
+                    <div class="settings-item" style="cursor: default;" id="subscriptionEndRow" style="display: none;">
+                        <div class="settings-item-left">
+                            <div class="settings-icon">📅</div>
+                            <div>
+                                <div class="settings-label" id="subscriptionEndLabel">Next billing date</div>
+                                <div class="settings-sublabel" id="subscriptionEndDate">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-item" id="cancelSubscriptionRow" onclick="openCancelModal()">
+                        <div class="settings-item-left">
+                            <div class="settings-icon">❌</div>
+                            <div>
+                                <div class="settings-label" style="color: #dc2626;">Cancel Subscription</div>
+                                <div class="settings-sublabel">Cancel at the end of your billing period</div>
+                            </div>
+                        </div>
+                        <span class="settings-arrow">›</span>
+                    </div>
+                </div>
+
                 <!-- Preferences -->
                 <div class="settings-card">
                     <div class="settings-card-title">Preferences</div>
@@ -863,6 +1041,31 @@
                 <div id="nameMessage" class="message"></div>
                 <button type="submit" class="submit-btn" id="saveNameBtn">Save Name</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Cancel Subscription Modal -->
+    <div class="modal-overlay" id="cancelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cancel Subscription</h2>
+                <button class="modal-close" onclick="closeCancelModal()">&times;</button>
+            </div>
+            <div class="cancel-warning">
+                <p>Are you sure you want to cancel your subscription?</p>
+            </div>
+            <div class="cancellation-info">
+                <h4>What happens when you cancel:</h4>
+                <ul>
+                    <li>You'll keep access until your billing period ends</li>
+                    <li>Your clients can still access their portals until then</li>
+                    <li>All your data will be preserved</li>
+                    <li>You can reactivate anytime before your access ends</li>
+                </ul>
+            </div>
+            <div id="cancelMessage" class="message"></div>
+            <button type="button" class="cancel-btn" id="confirmCancelBtn" onclick="confirmCancelSubscription()">Yes, Cancel My Subscription</button>
+            <button type="button" class="keep-btn" onclick="closeCancelModal()">Keep My Subscription</button>
         </div>
     </div>
 
@@ -951,6 +1154,9 @@
                 // Set dark mode toggle state
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
                 document.getElementById('darkModeToggle').checked = isDark;
+
+                // Update subscription display
+                updateSubscriptionDisplay(coachData);
 
                 // Show content
                 loadingDiv.style.display = 'none';
@@ -1184,6 +1390,158 @@
                 saveNameBtn.textContent = 'Save Name';
             }
         });
+
+        // Cancel Subscription Modal Functions
+        const cancelModal = document.getElementById('cancelModal');
+        const cancelMessage = document.getElementById('cancelMessage');
+        const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
+        function openCancelModal() {
+            cancelModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            cancelMessage.className = 'message';
+            cancelMessage.textContent = '';
+        }
+
+        function closeCancelModal() {
+            cancelModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        cancelModal.addEventListener('click', (e) => {
+            if (e.target === cancelModal) {
+                closeCancelModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && cancelModal.classList.contains('show')) {
+                closeCancelModal();
+            }
+        });
+
+        function showCancelMessage(text, type) {
+            cancelMessage.textContent = text;
+            cancelMessage.className = `message ${type}`;
+        }
+
+        async function confirmCancelSubscription() {
+            confirmCancelBtn.disabled = true;
+            confirmCancelBtn.textContent = 'Canceling...';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    throw new Error('Not logged in');
+                }
+
+                const response = await fetch('/.netlify/functions/cancel-subscription', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to cancel subscription');
+                }
+
+                showCancelMessage('Subscription canceled successfully. You will retain access until ' + result.accessUntil, 'success');
+
+                // Update the UI
+                updateSubscriptionDisplay({
+                    subscription_status: 'canceling',
+                    cancel_at: result.cancelAt,
+                    subscription_tier: window.currentCoachData?.subscription_tier || 'starter'
+                });
+
+                // Close modal after delay
+                setTimeout(() => {
+                    closeCancelModal();
+                }, 3000);
+
+            } catch (error) {
+                console.error('Error canceling subscription:', error);
+                showCancelMessage(error.message, 'error');
+            } finally {
+                confirmCancelBtn.disabled = false;
+                confirmCancelBtn.textContent = 'Yes, Cancel My Subscription';
+            }
+        }
+
+        // Update subscription display based on coach data
+        function updateSubscriptionDisplay(coachData) {
+            window.currentCoachData = coachData;
+
+            const planDisplay = document.getElementById('subscriptionPlanDisplay');
+            const statusBadge = document.getElementById('subscriptionStatusBadge');
+            const endRow = document.getElementById('subscriptionEndRow');
+            const endLabel = document.getElementById('subscriptionEndLabel');
+            const endDate = document.getElementById('subscriptionEndDate');
+            const cancelRow = document.getElementById('cancelSubscriptionRow');
+
+            // Format tier name
+            const tierNames = {
+                'starter': 'Starter Plan ($49/mo)',
+                'growth': 'Growth Plan ($99/mo)',
+                'professional': 'Professional Plan ($199/mo)'
+            };
+            planDisplay.textContent = tierNames[coachData.subscription_tier] || 'Starter Plan';
+
+            // Update status badge
+            const status = coachData.subscription_status || 'none';
+            statusBadge.className = `subscription-status-badge ${status}`;
+
+            const statusLabels = {
+                'active': 'Active',
+                'trialing': 'Trial',
+                'canceling': 'Canceling',
+                'canceled': 'Canceled',
+                'past_due': 'Past Due',
+                'none': 'No Subscription'
+            };
+            statusBadge.textContent = statusLabels[status] || status;
+
+            // Show/hide end date row and update label
+            if (status === 'canceling' && coachData.cancel_at) {
+                endRow.style.display = 'flex';
+                endLabel.textContent = 'Access ends on';
+                endDate.textContent = new Date(coachData.cancel_at).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                cancelRow.style.display = 'none';
+            } else if (status === 'trialing' && coachData.trial_ends_at) {
+                endRow.style.display = 'flex';
+                endLabel.textContent = 'Trial ends on';
+                endDate.textContent = new Date(coachData.trial_ends_at).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                cancelRow.style.display = 'flex';
+            } else if (coachData.current_period_end) {
+                endRow.style.display = 'flex';
+                endLabel.textContent = 'Next billing date';
+                endDate.textContent = new Date(coachData.current_period_end).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                cancelRow.style.display = 'flex';
+            } else {
+                endRow.style.display = 'none';
+                cancelRow.style.display = status === 'canceled' || status === 'none' ? 'none' : 'flex';
+            }
+        }
 
         // Profile Photo Functions
         function displayProfilePhoto(photoUrl) {

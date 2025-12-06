@@ -495,10 +495,145 @@ async function sendInvitationEmail({
     });
 }
 
+/**
+ * Generate subscription cancellation email content
+ * @param {Object} options
+ * @param {string} options.coachName - Coach's name
+ * @param {string} options.coachEmail - Coach's email
+ * @param {Date} options.cancelDate - When the subscription will end
+ * @param {string} options.tier - Current subscription tier
+ * @returns {Object} - { subject, text, html }
+ */
+function generateCancellationEmail({
+    coachName,
+    coachEmail,
+    cancelDate,
+    tier = 'starter'
+}) {
+    const subject = 'Your subscription cancellation is confirmed';
+    const formattedDate = cancelDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const textBody = `Hi ${coachName},
+
+We've received your request to cancel your subscription.
+
+Your subscription will remain active until ${formattedDate}. You'll continue to have full access to all your ${tier} features until then.
+
+Here's what happens next:
+- Your account will remain fully functional until ${formattedDate}
+- Your clients will still be able to access their portals
+- All your data (clients, meal plans, recipes) will be preserved
+- After ${formattedDate}, your account will be downgraded
+
+If you change your mind, you can reactivate your subscription anytime before ${formattedDate} from your account settings.
+
+We're sorry to see you go! If there's anything we could have done better, we'd love to hear from you.
+
+Thank you for being a part of Zique Fitness Nutrition.
+
+Best,
+The Zique Team
+
+---
+Zique Fitness Nutrition
+${APP_URL}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Cancellation Confirmed</h1>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">Hi <strong>${coachName}</strong>,</p>
+
+        <p style="margin-bottom: 20px;">We've received your request to cancel your subscription.</p>
+
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+            <p style="margin: 0; font-weight: 600; color: #92400e;">Your subscription will remain active until:</p>
+            <p style="margin: 8px 0 0 0; font-size: 1.25rem; color: #78350f;">${formattedDate}</p>
+        </div>
+
+        <p style="margin-bottom: 15px;"><strong>Here's what happens next:</strong></p>
+        <ul style="margin: 0 0 25px 0; padding-left: 20px; color: #475569;">
+            <li style="margin-bottom: 8px;">Your account will remain fully functional until the end date</li>
+            <li style="margin-bottom: 8px;">Your clients will still be able to access their portals</li>
+            <li style="margin-bottom: 8px;">All your data (clients, meal plans, recipes) will be preserved</li>
+            <li style="margin-bottom: 0;">After the end date, your account will be downgraded</li>
+        </ul>
+
+        <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #bbf7d0;">
+            <p style="margin: 0; color: #166534;"><strong>Changed your mind?</strong></p>
+            <p style="margin: 8px 0 0 0; color: #15803d;">You can reactivate your subscription anytime before ${formattedDate} from your account settings.</p>
+        </div>
+
+        <p style="margin-bottom: 20px; color: #64748b;">We're sorry to see you go! If there's anything we could have done better, we'd love to hear from you.</p>
+
+        <p style="margin-top: 30px; color: #64748b;">
+            Thank you for being a part of Zique Fitness Nutrition.<br><br>
+            Best,<br>
+            <strong>The Zique Team</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">Zique Fitness Nutrition</p>
+        <p style="margin: 8px 0 0 0;"><a href="${APP_URL}" style="color: #64748b;">Visit Dashboard</a></p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send a cancellation confirmation email to a coach
+ * @param {Object} options
+ * @param {Object} options.coach - Coach object from database
+ * @param {Date} options.cancelDate - When the subscription will end
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+async function sendCancellationEmail({
+    coach,
+    cancelDate
+}) {
+    if (!coach || !coach.email) {
+        return { success: false, error: 'Coach email not available' };
+    }
+
+    const emailContent = generateCancellationEmail({
+        coachName: coach.name || coach.email.split('@')[0],
+        coachEmail: coach.email,
+        cancelDate: cancelDate instanceof Date ? cancelDate : new Date(cancelDate),
+        tier: coach.subscription_tier || 'starter'
+    });
+
+    return sendEmail({
+        to: coach.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+    });
+}
+
 module.exports = {
     sendEmail,
     sendCheckinReminder,
     generateReminderEmail,
     sendInvitationEmail,
-    generateInvitationEmail
+    generateInvitationEmail,
+    sendCancellationEmail,
+    generateCancellationEmail
 };
