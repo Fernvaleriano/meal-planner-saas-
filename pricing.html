@@ -515,7 +515,7 @@
                     <li>Email support</li>
                     <li class="disabled">Custom branding</li>
                 </ul>
-                <a href="signup.html?plan=starter" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('starter')">Get Started</a>
+                <a href="signup.html?plan=starter" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('starter', this)">Get Started</a>
             </div>
 
             <!-- Growth Plan -->
@@ -540,7 +540,7 @@
                     <li>Priority support</li>
                     <li class="disabled">Custom branding</li>
                 </ul>
-                <a href="signup.html?plan=growth" class="btn-select primary" onclick="event.preventDefault(); selectPlan('growth')">Get Started</a>
+                <a href="signup.html?plan=growth" class="btn-select primary" onclick="event.preventDefault(); selectPlan('growth', this)">Get Started</a>
             </div>
 
             <!-- Professional Plan -->
@@ -564,7 +564,7 @@
                     <li>Priority support</li>
                     <li>Custom branding & logo</li>
                 </ul>
-                <a href="signup.html?plan=professional" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('professional')">Get Started</a>
+                <a href="signup.html?plan=professional" class="btn-select secondary" onclick="event.preventDefault(); selectPlan('professional', this)">Get Started</a>
             </div>
         </div>
     </section>
@@ -713,7 +713,7 @@
         }
 
         // Handle plan selection
-        async function selectPlan(plan) {
+        async function selectPlan(plan, btn) {
             // Wait for auth check if not complete
             if (!authCheckComplete) {
                 console.log('Waiting for auth check...');
@@ -734,7 +734,6 @@
             }
 
             // Logged in - go directly to checkout
-            const btn = event.target;
             const originalText = btn.textContent;
             btn.textContent = 'Loading...';
             btn.style.pointerEvents = 'none';
