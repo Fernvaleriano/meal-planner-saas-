@@ -289,22 +289,9 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
 
                 if (!session) {
-                    // Not logged in - show login prompt instead of redirecting (to avoid loops)
-                    const statusIcon = document.getElementById('statusIcon');
-                    const statusEmoji = document.getElementById('statusEmoji');
-                    const statusTitle = document.getElementById('statusTitle');
-                    const statusMessage = document.getElementById('statusMessage');
-                    const ctaButton = document.getElementById('ctaButton');
-
-                    statusIcon.className = 'icon-container none';
-                    statusEmoji.textContent = '🔐';
-                    statusTitle.textContent = 'Please Log In';
-                    statusMessage.textContent = 'You need to log in to access your coaching dashboard.';
-                    ctaButton.textContent = 'Go to Login';
-                    ctaButton.href = 'login.html';
-
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('content').style.display = 'block';
+                    // Not logged in - redirect to login page
+                    // This page is for subscription issues, not login issues
+                    window.location.href = 'login.html';
                     return;
                 }
 
