@@ -949,6 +949,143 @@ async function sendTrialEndingEmail({ coach, daysLeft, trialEndDate }) {
     });
 }
 
+/**
+ * Send admin notification for new coach signup
+ */
+async function sendNewCoachNotification({ coach, plan }) {
+    const adminEmail = process.env.ADMIN_EMAIL || 'contact@ziquefitness.com';
+
+    const tierNames = {
+        'starter': 'Starter ($49/mo)',
+        'growth': 'Growth ($99/mo)',
+        'professional': 'Professional ($199/mo)',
+        'basic': 'Starter ($49/mo)',
+        'branded': 'Professional ($199/mo)'
+    };
+    const planName = tierNames[plan] || plan;
+
+    const subject = `New Coach Signup: ${coach.name || coach.email}`;
+
+    const text = `New coach signed up!
+
+Name: ${coach.name || 'Not provided'}
+Email: ${coach.email}
+Plan: ${planName}
+Date: ${new Date().toLocaleString()}
+
+View in Supabase: https://supabase.com/dashboard
+View in Stripe: https://dashboard.stripe.com/customers
+`;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 20px; border-radius: 8px 8px 0 0;">
+        <h2 style="color: white; margin: 0;">New Coach Signup!</h2>
+    </div>
+    <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
+        <table style="width: 100%;">
+            <tr><td style="padding: 8px 0; color: #64748b;">Name:</td><td style="padding: 8px 0;"><strong>${coach.name || 'Not provided'}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Email:</td><td style="padding: 8px 0;"><strong>${coach.email}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Plan:</td><td style="padding: 8px 0;"><strong>${planName}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Date:</td><td style="padding: 8px 0;">${new Date().toLocaleString()}</td></tr>
+        </table>
+    </div>
+</body>
+</html>`;
+
+    return sendEmail({ to: adminEmail, subject, text, html });
+}
+
+/**
+ * Send admin notification for new payment/subscription
+ */
+async function sendNewPaymentNotification({ coach, plan, amount, isReactivation = false }) {
+    const adminEmail = process.env.ADMIN_EMAIL || 'contact@ziquefitness.com';
+
+    const tierNames = {
+        'starter': 'Starter',
+        'growth': 'Growth',
+        'professional': 'Professional',
+        'basic': 'Starter',
+        'branded': 'Professional'
+    };
+    const planName = tierNames[plan] || plan;
+
+    const subject = isReactivation
+        ? `Reactivation: ${coach.name || coach.email} is back!`
+        : `New Payment: ${coach.name || coach.email}`;
+
+    const text = `${isReactivation ? 'Coach reactivated!' : 'New payment received!'}
+
+Coach: ${coach.name || 'Unknown'} (${coach.email})
+Plan: ${planName}
+${amount ? `Amount: $${amount}` : ''}
+Date: ${new Date().toLocaleString()}
+`;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; padding: 20px;">
+    <div style="background: ${isReactivation ? '#10b981' : '#0d9488'}; padding: 20px; border-radius: 8px 8px 0 0;">
+        <h2 style="color: white; margin: 0;">${isReactivation ? 'Coach Reactivated!' : 'New Payment!'}</h2>
+    </div>
+    <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
+        <table style="width: 100%;">
+            <tr><td style="padding: 8px 0; color: #64748b;">Coach:</td><td style="padding: 8px 0;"><strong>${coach.name || 'Unknown'}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Email:</td><td style="padding: 8px 0;">${coach.email}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Plan:</td><td style="padding: 8px 0;"><strong>${planName}</strong></td></tr>
+            ${amount ? `<tr><td style="padding: 8px 0; color: #64748b;">Amount:</td><td style="padding: 8px 0; color: #10b981; font-weight: bold;">$${amount}</td></tr>` : ''}
+            <tr><td style="padding: 8px 0; color: #64748b;">Date:</td><td style="padding: 8px 0;">${new Date().toLocaleString()}</td></tr>
+        </table>
+    </div>
+</body>
+</html>`;
+
+    return sendEmail({ to: adminEmail, subject, text, html });
+}
+
+/**
+ * Send admin notification when subscription is canceled
+ */
+async function sendCancellationNotification({ coach, plan }) {
+    const adminEmail = process.env.ADMIN_EMAIL || 'contact@ziquefitness.com';
+
+    const subject = `Cancellation: ${coach.name || coach.email}`;
+
+    const text = `A coach has canceled their subscription.
+
+Coach: ${coach.name || 'Unknown'} (${coach.email})
+Plan: ${plan || 'Unknown'}
+Date: ${new Date().toLocaleString()}
+`;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; padding: 20px;">
+    <div style="background: #f59e0b; padding: 20px; border-radius: 8px 8px 0 0;">
+        <h2 style="color: white; margin: 0;">Subscription Canceled</h2>
+    </div>
+    <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
+        <table style="width: 100%;">
+            <tr><td style="padding: 8px 0; color: #64748b;">Coach:</td><td style="padding: 8px 0;"><strong>${coach.name || 'Unknown'}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Email:</td><td style="padding: 8px 0;">${coach.email}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Plan:</td><td style="padding: 8px 0;">${plan || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748b;">Date:</td><td style="padding: 8px 0;">${new Date().toLocaleString()}</td></tr>
+        </table>
+    </div>
+</body>
+</html>`;
+
+    return sendEmail({ to: adminEmail, subject, text, html });
+}
+
 module.exports = {
     sendEmail,
     sendCheckinReminder,
@@ -962,5 +1099,8 @@ module.exports = {
     sendPaymentFailedEmail,
     generatePaymentFailedEmail,
     sendTrialEndingEmail,
-    generateTrialEndingEmail
+    generateTrialEndingEmail,
+    sendNewCoachNotification,
+    sendNewPaymentNotification,
+    sendCancellationNotification
 };

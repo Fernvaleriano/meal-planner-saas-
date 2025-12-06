@@ -1245,6 +1245,60 @@
         // Track if we're already loading to prevent multiple simultaneous loads
         let isLoading = false;
 
+        // Toast notification function
+        function showSuccessToast(message) {
+            // Create toast container if it doesn't exist
+            let toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toastContainer';
+                toastContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000;';
+                document.body.appendChild(toastContainer);
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                color: white;
+                padding: 16px 24px;
+                border-radius: 12px;
+                margin-bottom: 10px;
+                box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                animation: slideIn 0.3s ease-out;
+                font-weight: 500;
+            `;
+            toast.innerHTML = `<span style="font-size: 20px;">✓</span> ${message}`;
+
+            // Add animation styles
+            if (!document.getElementById('toastStyles')) {
+                const style = document.createElement('style');
+                style.id = 'toastStyles';
+                style.textContent = `
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOut {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            toastContainer.appendChild(toast);
+
+            // Auto-remove after 4 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
         // Listen for auth state changes to handle session expiration
         supabaseClient.auth.onAuthStateChange((event, session) => {
             console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
@@ -1391,6 +1445,19 @@
 
                 console.log('Coach data loaded successfully');
 
+                // Check for URL parameters (reactivation/subscription success)
+                const urlParams = new URLSearchParams(window.location.search);
+                const justReactivated = urlParams.get('reactivated') === 'true';
+                const justSubscribed = urlParams.get('subscribed') === 'true';
+
+                // If just reactivated/subscribed but DB still shows canceled, trust the URL param
+                // (webhook may still be processing)
+                if ((justReactivated || justSubscribed) &&
+                    (coachData.subscription_status === 'canceled' || coachData.subscription_status === 'canceling')) {
+                    coachData.subscription_status = 'active';
+                    console.log('Overriding subscription status due to reactivation URL param');
+                }
+
                 // Update UI
                 userEmailSpan.textContent = user.email;
                 tierBadge.textContent = coachData.subscription_tier.toUpperCase();
@@ -1414,6 +1481,17 @@
 
                 // Check subscription status
                 checkSubscriptionStatus(coachData);
+
+                // Show success message if just reactivated or subscribed
+                if (justReactivated) {
+                    showSuccessToast('Subscription reactivated successfully!');
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } else if (justSubscribed) {
+                    showSuccessToast('Subscription activated successfully!');
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
 
                 // Hide loading, show dashboard
                 loadingDiv.style.display = 'none';
