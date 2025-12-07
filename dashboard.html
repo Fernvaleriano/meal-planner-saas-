@@ -1169,6 +1169,351 @@
             }
         }
 
+        /* Coach Stories Creator */
+        .coach-stories-creator {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stories-creator-header {
+            margin-bottom: 20px;
+        }
+
+        .stories-creator-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .stories-creator-title h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .stories-icon {
+            font-size: 1.5rem;
+        }
+
+        .stories-subtitle {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        .story-type-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .story-type-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 20px 16px;
+            background: var(--gray-50);
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .story-type-btn:hover {
+            background: #f0fdfa;
+            border-color: var(--brand-primary);
+            border-style: solid;
+        }
+
+        .story-type-btn .type-icon {
+            font-size: 2rem;
+        }
+
+        .story-type-btn .type-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .active-stories {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .active-stories-count {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+
+        .active-stories-count strong {
+            color: var(--brand-primary);
+        }
+
+        /* Story Creator Modal */
+        .story-creator-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .story-creator-dialog {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .story-creator-header-modal {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .story-creator-header-modal h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .close-modal-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .story-creator-body {
+            padding: 24px;
+        }
+
+        .image-upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .image-upload-area:hover {
+            border-color: var(--brand-primary);
+            background: #f0fdfa;
+        }
+
+        .image-upload-area .upload-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .image-upload-area .upload-text {
+            color: var(--gray-600);
+        }
+
+        .story-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            font-size: 1rem;
+            margin-top: 12px;
+        }
+
+        .story-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        .story-textarea {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .story-textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        .quote-templates {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .template-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .quote-template-btn {
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--gray-700);
+            cursor: pointer;
+        }
+
+        .quote-template-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .story-creator-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .cancel-btn {
+            padding: 12px 24px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            cursor: pointer;
+        }
+
+        .cancel-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .publish-btn {
+            padding: 12px 24px;
+            background: var(--brand-gradient);
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+        }
+
+        .publish-btn:hover {
+            opacity: 0.9;
+        }
+
+        .publish-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Dark mode for Stories Creator */
+        [data-theme="dark"] .coach-stories-creator {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .stories-creator-title h2 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .stories-subtitle {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .story-type-btn {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+        }
+
+        [data-theme="dark"] .story-type-btn:hover {
+            background: #134e4a;
+        }
+
+        [data-theme="dark"] .story-type-btn .type-label {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .story-creator-dialog {
+            background: var(--gray-800);
+        }
+
+        [data-theme="dark"] .story-creator-header-modal {
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .story-creator-header-modal h3 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .story-input,
+        [data-theme="dark"] .story-textarea {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .image-upload-area {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+        }
+
+        [data-theme="dark"] .image-upload-area .upload-text {
+            color: #94a3b8;
+        }
+
+        @media (max-width: 480px) {
+            .story-type-buttons {
+                flex-direction: column;
+            }
+
+            .story-type-btn {
+                flex-direction: row;
+                justify-content: flex-start;
+                padding: 16px;
+            }
+
+            .story-type-btn .type-icon {
+                font-size: 1.5rem;
+            }
+        }
+
         /* Dark mode for onboarding */
         [data-theme="dark"] .onboarding-section {
             background: var(--gray-800);
@@ -1687,6 +2032,80 @@
                 <div class="ai-attention-list" id="aiAttentionList" style="display: none;">
                     <h4>Needs Attention</h4>
                     <div class="attention-items" id="attentionItems"></div>
+                </div>
+            </div>
+
+            <!-- Coach Stories Section -->
+            <div class="coach-stories-creator" id="coachStoriesCreator">
+                <div class="stories-creator-header">
+                    <div class="stories-creator-title">
+                        <span class="stories-icon">📸</span>
+                        <h2>Client Stories</h2>
+                    </div>
+                    <span class="stories-subtitle">Share updates with all your clients (expires in 24h)</span>
+                </div>
+                <div class="stories-creator-content">
+                    <div class="story-type-buttons">
+                        <button class="story-type-btn" onclick="openStoryCreator('image')">
+                            <span class="type-icon">🖼️</span>
+                            <span class="type-label">Photo</span>
+                        </button>
+                        <button class="story-type-btn" onclick="openStoryCreator('quote')">
+                            <span class="type-icon">💬</span>
+                            <span class="type-label">Quote</span>
+                        </button>
+                        <button class="story-type-btn" onclick="openStoryCreator('link')">
+                            <span class="type-icon">🔗</span>
+                            <span class="type-label">Link</span>
+                        </button>
+                    </div>
+                    <div class="active-stories" id="activeStoriesPreview">
+                        <!-- Shows current active stories count -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Story Creator Modal -->
+            <div class="story-creator-modal" id="storyCreatorModal" style="display: none;">
+                <div class="story-creator-dialog">
+                    <div class="story-creator-header-modal">
+                        <h3 id="storyCreatorTitle">Create Story</h3>
+                        <button class="close-modal-btn" onclick="closeStoryCreator()">&times;</button>
+                    </div>
+                    <div class="story-creator-body">
+                        <!-- Image Story Form -->
+                        <div class="story-form" id="imageStoryForm" style="display: none;">
+                            <div class="image-upload-area" id="storyImageUpload" onclick="document.getElementById('storyImageInput').click()">
+                                <span class="upload-icon">📷</span>
+                                <span class="upload-text">Click to upload image</span>
+                            </div>
+                            <input type="file" id="storyImageInput" accept="image/*" style="display: none;" onchange="previewStoryImage(event)">
+                            <img id="storyImagePreview" style="display: none; max-width: 100%; border-radius: 12px; margin-top: 12px;">
+                            <input type="text" class="story-input" id="storyCaptionInput" placeholder="Add a caption (optional)">
+                        </div>
+
+                        <!-- Quote Story Form -->
+                        <div class="story-form" id="quoteStoryForm" style="display: none;">
+                            <textarea class="story-textarea" id="storyQuoteText" placeholder="Enter your quote or message..." rows="4"></textarea>
+                            <input type="text" class="story-input" id="storyQuoteAuthor" placeholder="Author (optional)">
+                            <div class="quote-templates">
+                                <span class="template-label">Quick templates:</span>
+                                <button class="quote-template-btn" onclick="useQuoteTemplate('motivation')">Motivation</button>
+                                <button class="quote-template-btn" onclick="useQuoteTemplate('tip')">Nutrition Tip</button>
+                                <button class="quote-template-btn" onclick="useQuoteTemplate('reminder')">Reminder</button>
+                            </div>
+                        </div>
+
+                        <!-- Link Story Form -->
+                        <div class="story-form" id="linkStoryForm" style="display: none;">
+                            <input type="url" class="story-input" id="storyLinkUrl" placeholder="Paste URL here...">
+                            <input type="text" class="story-input" id="storyLinkTitle" placeholder="Link title (optional)">
+                        </div>
+                    </div>
+                    <div class="story-creator-footer">
+                        <button class="cancel-btn" onclick="closeStoryCreator()">Cancel</button>
+                        <button class="publish-btn" id="publishStoryBtn" onclick="publishStory()">Publish Story</button>
+                    </div>
                 </div>
             </div>
 
@@ -2556,6 +2975,171 @@
                 loadAIActivitySummary(currentUserId);
             }
         });
+
+        // ========================================
+        // COACH STORIES CREATOR
+        // ========================================
+        let currentStoryType = null;
+        let storyImageBase64 = null;
+
+        function openStoryCreator(type) {
+            currentStoryType = type;
+            storyImageBase64 = null;
+
+            // Hide all forms
+            document.getElementById('imageStoryForm').style.display = 'none';
+            document.getElementById('quoteStoryForm').style.display = 'none';
+            document.getElementById('linkStoryForm').style.display = 'none';
+
+            // Show the relevant form
+            const titles = {
+                'image': 'Share a Photo',
+                'quote': 'Share a Quote',
+                'link': 'Share a Link'
+            };
+            document.getElementById('storyCreatorTitle').textContent = titles[type] || 'Create Story';
+            document.getElementById(`${type}StoryForm`).style.display = 'block';
+
+            // Show modal
+            document.getElementById('storyCreatorModal').style.display = 'flex';
+        }
+
+        function closeStoryCreator() {
+            document.getElementById('storyCreatorModal').style.display = 'none';
+            currentStoryType = null;
+            storyImageBase64 = null;
+
+            // Reset forms
+            document.getElementById('storyImageInput').value = '';
+            document.getElementById('storyImagePreview').style.display = 'none';
+            document.getElementById('storyImageUpload').style.display = 'block';
+            document.getElementById('storyCaptionInput').value = '';
+            document.getElementById('storyQuoteText').value = '';
+            document.getElementById('storyQuoteAuthor').value = '';
+            document.getElementById('storyLinkUrl').value = '';
+            document.getElementById('storyLinkTitle').value = '';
+        }
+
+        function previewStoryImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                storyImageBase64 = e.target.result;
+                document.getElementById('storyImagePreview').src = e.target.result;
+                document.getElementById('storyImagePreview').style.display = 'block';
+                document.getElementById('storyImageUpload').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function useQuoteTemplate(template) {
+            const templates = {
+                'motivation': "Believe in yourself. Every small step counts towards your bigger goals!",
+                'tip': "Pro tip: Drinking water before meals can help you feel fuller and support your nutrition goals.",
+                'reminder': "Don't forget to log your meals today! Consistency is key to success."
+            };
+            document.getElementById('storyQuoteText').value = templates[template] || '';
+        }
+
+        async function publishStory() {
+            const publishBtn = document.getElementById('publishStoryBtn');
+            publishBtn.disabled = true;
+            publishBtn.textContent = 'Publishing...';
+
+            try {
+                let storyData = {
+                    coachId: currentUserId,
+                    contentType: currentStoryType
+                };
+
+                if (currentStoryType === 'image') {
+                    if (!storyImageBase64) {
+                        alert('Please select an image');
+                        return;
+                    }
+                    storyData.imageBase64 = storyImageBase64;
+                    storyData.caption = document.getElementById('storyCaptionInput').value;
+                } else if (currentStoryType === 'quote') {
+                    const quoteText = document.getElementById('storyQuoteText').value.trim();
+                    if (!quoteText) {
+                        alert('Please enter a quote or message');
+                        return;
+                    }
+                    storyData.quoteText = quoteText;
+                    storyData.quoteAuthor = document.getElementById('storyQuoteAuthor').value;
+                } else if (currentStoryType === 'link') {
+                    const linkUrl = document.getElementById('storyLinkUrl').value.trim();
+                    if (!linkUrl) {
+                        alert('Please enter a URL');
+                        return;
+                    }
+                    storyData.linkUrl = linkUrl;
+                    storyData.linkTitle = document.getElementById('storyLinkTitle').value;
+                }
+
+                const response = await fetch('/.netlify/functions/create-story', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(storyData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to create story');
+                }
+
+                closeStoryCreator();
+                updateActiveStoriesCount();
+
+                // Show success message
+                alert('Story published! Your clients will see it for the next 24 hours.');
+
+            } catch (error) {
+                console.error('Error publishing story:', error);
+                alert('Failed to publish story: ' + error.message);
+            } finally {
+                publishBtn.disabled = false;
+                publishBtn.textContent = 'Publish Story';
+            }
+        }
+
+        async function updateActiveStoriesCount() {
+            if (!currentUserId) return;
+
+            try {
+                const response = await fetch(`/.netlify/functions/get-coach-stories?coachId=${currentUserId}&clientId=0`);
+                const data = await response.json();
+
+                const count = (data.stories || []).length;
+                const previewEl = document.getElementById('activeStoriesPreview');
+
+                if (count > 0) {
+                    previewEl.innerHTML = `
+                        <div class="active-stories-count">
+                            <strong>${count}</strong> active ${count === 1 ? 'story' : 'stories'} visible to clients
+                        </div>
+                    `;
+                } else {
+                    previewEl.innerHTML = `
+                        <div class="active-stories-count">
+                            No active stories. Share something with your clients!
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error fetching stories count:', e);
+            }
+        }
+
+        // Load active stories count on page load
+        setTimeout(() => {
+            if (currentUserId) {
+                updateActiveStoriesCount();
+            }
+        }, 2000);
 
         // Load dashboard on page load
         loadDashboard();
