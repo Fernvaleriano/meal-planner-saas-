@@ -7049,17 +7049,17 @@
 
             const food = pendingFoodLog;
 
-            try {
-                // Determine meal type or use current time to guess
-                let mealType = food.meal_type || 'snack';
-                const hour = new Date().getHours();
-                if (!food.meal_type) {
-                    if (hour >= 5 && hour < 11) mealType = 'breakfast';
-                    else if (hour >= 11 && hour < 15) mealType = 'lunch';
-                    else if (hour >= 15 && hour < 21) mealType = 'dinner';
-                    else mealType = 'snack';
-                }
+            // Determine meal type or use current time to guess
+            let mealType = food.meal_type || 'snack';
+            const hour = new Date().getHours();
+            if (!food.meal_type) {
+                if (hour >= 5 && hour < 11) mealType = 'breakfast';
+                else if (hour >= 11 && hour < 15) mealType = 'lunch';
+                else if (hour >= 15 && hour < 21) mealType = 'dinner';
+                else mealType = 'snack';
+            }
 
+            try {
                 // Add to diary using existing function
                 const response = await fetch('/.netlify/functions/food-diary', {
                     method: 'POST',
@@ -7079,16 +7079,18 @@
 
                 if (!response.ok) throw new Error('Failed to add food');
 
-                // Clear pending
+                // Clear pending and show success FIRST
                 pendingFoodLog = null;
-
-                // Refresh diary
-                await loadDiaryEntries();
-                updateSummary();
-                updateAISuggestions();
-
-                // Show success message
                 addChatMessage(`Added "${food.food_name}" to your ${mealType}!`, 'assistant');
+
+                // Refresh diary (errors here won't affect the success message)
+                try {
+                    await loadDiaryEntries();
+                    updateSummary();
+                    updateAISuggestions();
+                } catch (refreshErr) {
+                    console.error('Error refreshing diary:', refreshErr);
+                }
 
             } catch (err) {
                 console.error('Error adding food:', err);
