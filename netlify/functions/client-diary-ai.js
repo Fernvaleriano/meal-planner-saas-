@@ -78,7 +78,8 @@ You are a friendly AI nutrition assistant helping a client with their food diary
 1. Answer questions about nutrition and their progress
 2. Help them log food by parsing natural language (respond with JSON when they want to log)
 3. Suggest foods to help them hit their macro goals
-4. Provide encouragement and practical advice
+4. Create meal ideas from ingredients they have available
+5. Provide encouragement and practical advice
 
 TODAY'S PROGRESS:
 - Calories: ${totals?.calories || 0} / ${goals?.calorie_goal || 2000} (${remaining.calories} remaining)
@@ -92,22 +93,26 @@ ${todayEntries && todayEntries.length > 0
     : 'No foods logged yet today.'}
 
 INSTRUCTIONS:
-- If the user wants to LOG FOOD (e.g., "log 2 eggs", "I had chicken salad", "add protein shake"), respond with ONLY a JSON object in this exact format:
-{
-  "action": "log_food",
-  "food_name": "descriptive name of the food",
-  "calories": estimated_calories_number,
-  "protein": estimated_protein_grams,
-  "carbs": estimated_carbs_grams,
-  "fat": estimated_fat_grams,
-  "meal_type": "breakfast|lunch|dinner|snack",
-  "confirmation": "brief confirmation message"
-}
 
-- If the user is asking a QUESTION or wants ADVICE, respond with helpful text (not JSON).
-- Be encouraging and practical. Use their actual numbers.
-- Keep responses concise (under 150 words for advice).
-- When suggesting foods, consider what they still need (remaining macros).
+**FOOD LOGGING - When user wants to log food:**
+Trigger phrases include: "log", "add", "I had", "I ate", "I just ate", "for breakfast/lunch/dinner", "record", "put in", "track", "I'm eating", "I made", "let's log", "yes log it", "log that", "sounds good log it"
+Respond with ONLY this JSON (no markdown, no extra text):
+{"action":"log_food","food_name":"descriptive name","calories":number,"protein":number,"carbs":number,"fat":number,"meal_type":"breakfast|lunch|dinner|snack","confirmation":"brief message"}
+
+**INGREDIENT-BASED MEAL IDEAS - When user shares what ingredients they have:**
+Trigger phrases include: "I have", "in my fridge", "ingredients", "what can I make", "I only have", "all I have is", "I've got"
+1. Suggest 2-3 quick meal ideas using their ingredients that fit their remaining macros
+2. Keep suggestions simple and practical (5-15 min prep time)
+3. After suggesting, ask: "Would you like me to log one of these for you?"
+4. If they pick one, respond with the log_food JSON format above
+
+**GENERAL ADVICE/QUESTIONS:**
+- Be encouraging and practical
+- Use their actual numbers from today's progress
+- Keep responses concise (under 150 words)
+- When suggesting foods, consider what they still need (remaining macros)
+- If they need more protein, suggest high-protein options
+- If they're low on calories, suggest nutrient-dense foods
 `;
 
         // Call Gemini AI
@@ -150,13 +155,26 @@ INSTRUCTIONS:
         // Check if AI wants to log food (response is JSON)
         let parsedResponse = null;
         try {
+            // Strip markdown code blocks if present (```json ... ``` or ``` ... ```)
+            let cleanedResponse = aiResponse
+                .replace(/```json\s*/gi, '')
+                .replace(/```\s*/g, '')
+                .trim();
+
             // Try to extract JSON from the response
-            const jsonMatch = aiResponse.match(/\{[\s\S]*"action"[\s\S]*\}/);
+            const jsonMatch = cleanedResponse.match(/\{[\s\S]*?"action"\s*:\s*"log_food"[\s\S]*?\}/);
             if (jsonMatch) {
                 parsedResponse = JSON.parse(jsonMatch[0]);
+                // Validate required fields
+                if (parsedResponse.action === 'log_food' && parsedResponse.food_name && typeof parsedResponse.calories === 'number') {
+                    // Valid food log response
+                } else {
+                    parsedResponse = null; // Invalid structure
+                }
             }
         } catch (e) {
             // Not JSON, that's fine - it's a text response
+            parsedResponse = null;
         }
 
         // Strip markdown/special characters from text responses
