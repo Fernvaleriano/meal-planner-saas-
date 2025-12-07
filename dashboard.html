@@ -895,6 +895,280 @@
             color: #059669;
         }
 
+        /* AI Summary Section */
+        .ai-summary-section {
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--gray-100);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-summary-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+        }
+
+        .ai-summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .ai-summary-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ai-summary-title .ai-icon {
+            font-size: 1.5rem;
+        }
+
+        .ai-summary-title h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .ai-refresh-btn {
+            background: var(--gray-100);
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .ai-refresh-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        .ai-refresh-btn.spinning svg {
+            animation: spin 1s linear infinite;
+        }
+
+        .ai-summary-content {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--gray-700);
+            margin-bottom: 20px;
+        }
+
+        .ai-summary-loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--gray-500);
+        }
+
+        .ai-loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .ai-summary-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .ai-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .ai-stat-value {
+            display: block;
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .ai-stat-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .ai-attention-list {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .ai-attention-list h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+        }
+
+        .attention-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .attention-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--gray-50);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .attention-item:hover {
+            background: var(--gray-100);
+        }
+
+        .attention-item.priority-high {
+            background: #fef2f2;
+            border-left: 3px solid #ef4444;
+        }
+
+        .attention-item.priority-high:hover {
+            background: #fee2e2;
+        }
+
+        .attention-item.priority-medium {
+            background: #fffbeb;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .attention-item.priority-medium:hover {
+            background: #fef3c7;
+        }
+
+        .attention-item.priority-low {
+            border-left: 3px solid var(--gray-300);
+        }
+
+        .attention-icon {
+            font-size: 1.25rem;
+        }
+
+        .attention-content {
+            flex: 1;
+        }
+
+        .attention-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--gray-900);
+        }
+
+        .attention-message {
+            font-size: 0.8125rem;
+            color: var(--gray-600);
+        }
+
+        .attention-arrow {
+            color: var(--gray-400);
+        }
+
+        /* Dark mode for AI Summary */
+        [data-theme="dark"] .ai-summary-section {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .ai-summary-title h2 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .ai-summary-content {
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .ai-stat {
+            background: var(--gray-900);
+        }
+
+        [data-theme="dark"] .ai-stat-value {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .ai-stat-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .ai-attention-list h4 {
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .attention-item {
+            background: var(--gray-900);
+        }
+
+        [data-theme="dark"] .attention-item:hover {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .attention-item.priority-high {
+            background: #450a0a;
+        }
+
+        [data-theme="dark"] .attention-item.priority-medium {
+            background: #422006;
+        }
+
+        [data-theme="dark"] .attention-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .attention-message {
+            color: #94a3b8;
+        }
+
+        @media (max-width: 768px) {
+            .ai-summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .ai-summary-section {
+                padding: 20px;
+            }
+
+            .ai-summary-stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .ai-stat-value {
+                font-size: 1.5rem;
+            }
+        }
+
         /* Dark mode for onboarding */
         [data-theme="dark"] .onboarding-section {
             background: var(--gray-800);
@@ -1373,6 +1647,49 @@
                 </div>
             </div>
 
+            <!-- AI Activity Summary -->
+            <div class="ai-summary-section" id="aiSummarySection">
+                <div class="ai-summary-header">
+                    <div class="ai-summary-title">
+                        <span class="ai-icon">🤖</span>
+                        <h2>AI Activity Summary</h2>
+                    </div>
+                    <button class="ai-refresh-btn" id="refreshSummaryBtn" title="Refresh Summary">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="ai-summary-content" id="aiSummaryContent">
+                    <div class="ai-summary-loading">
+                        <div class="ai-loading-spinner"></div>
+                        <span>Analyzing client activity...</span>
+                    </div>
+                </div>
+                <div class="ai-summary-stats" id="aiSummaryStats" style="display: none;">
+                    <div class="ai-stat">
+                        <span class="ai-stat-value" id="statActiveWeek">-</span>
+                        <span class="ai-stat-label">Active This Week</span>
+                    </div>
+                    <div class="ai-stat">
+                        <span class="ai-stat-value" id="statCheckedIn">-</span>
+                        <span class="ai-stat-label">Checked In</span>
+                    </div>
+                    <div class="ai-stat">
+                        <span class="ai-stat-value" id="statMissedCheckIn">-</span>
+                        <span class="ai-stat-label">Missed Check-in</span>
+                    </div>
+                    <div class="ai-stat">
+                        <span class="ai-stat-value" id="statDietRequests">-</span>
+                        <span class="ai-stat-label">Diet Requests</span>
+                    </div>
+                </div>
+                <div class="ai-attention-list" id="aiAttentionList" style="display: none;">
+                    <h4>Needs Attention</h4>
+                    <div class="attention-items" id="attentionItems"></div>
+                </div>
+            </div>
+
             <div class="action-cards">
                 <div class="action-card">
                     <div class="action-card-icon">🍽️</div>
@@ -1817,6 +2134,9 @@
                 // Load notifications
                 loadNotifications(user.id);
 
+                // Load AI Activity Summary
+                loadAIActivitySummary(user.id);
+
                 // Check onboarding status
                 checkOnboardingStatus(user.id, coachData);
 
@@ -2154,6 +2474,88 @@
                     break;
             }
         }
+
+        // AI Activity Summary functions
+        async function loadAIActivitySummary(coachId) {
+            const summaryContent = document.getElementById('aiSummaryContent');
+            const summaryStats = document.getElementById('aiSummaryStats');
+            const attentionList = document.getElementById('aiAttentionList');
+            const attentionItems = document.getElementById('attentionItems');
+            const refreshBtn = document.getElementById('refreshSummaryBtn');
+
+            try {
+                refreshBtn.classList.add('spinning');
+                summaryContent.innerHTML = `
+                    <div class="ai-summary-loading">
+                        <div class="ai-loading-spinner"></div>
+                        <span>Analyzing client activity...</span>
+                    </div>
+                `;
+                summaryStats.style.display = 'none';
+                attentionList.style.display = 'none';
+
+                const response = await fetch(`/.netlify/functions/ai-activity-summary?coachId=${coachId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load summary');
+                }
+
+                // Display the AI summary text
+                summaryContent.innerHTML = `<p>${data.summary}</p>`;
+
+                // Update stats
+                if (data.stats) {
+                    document.getElementById('statActiveWeek').textContent = data.stats.activeThisWeek || 0;
+                    document.getElementById('statCheckedIn').textContent = data.stats.checkedInThisWeek || 0;
+                    document.getElementById('statMissedCheckIn').textContent = data.stats.missedCheckIns || 0;
+                    document.getElementById('statDietRequests').textContent = data.stats.pendingDietRequests || 0;
+                    summaryStats.style.display = 'grid';
+                }
+
+                // Display attention items
+                if (data.needsAttention && data.needsAttention.length > 0) {
+                    attentionItems.innerHTML = data.needsAttention.map(item => {
+                        const icon = getAttentionIcon(item.reason);
+                        return `
+                            <a href="client-profile.html?clientId=${item.clientId}" class="attention-item priority-${item.priority}">
+                                <span class="attention-icon">${icon}</span>
+                                <div class="attention-content">
+                                    <div class="attention-name">${item.clientName}</div>
+                                    <div class="attention-message">${item.message}</div>
+                                </div>
+                                <span class="attention-arrow">→</span>
+                            </a>
+                        `;
+                    }).join('');
+                    attentionList.style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error loading AI summary:', error);
+                summaryContent.innerHTML = `<p style="color: var(--gray-500);">Unable to load activity summary. <a href="javascript:loadAIActivitySummary('${coachId}')" style="color: var(--brand-primary);">Try again</a></p>`;
+            } finally {
+                refreshBtn.classList.remove('spinning');
+            }
+        }
+
+        function getAttentionIcon(reason) {
+            switch (reason) {
+                case 'diet_request': return '🍽️';
+                case 'high_stress': return '😰';
+                case 'low_energy': return '😴';
+                case 'low_adherence': return '📉';
+                case 'inactive': return '⏰';
+                default: return '⚠️';
+            }
+        }
+
+        // Refresh button click handler
+        document.getElementById('refreshSummaryBtn').addEventListener('click', () => {
+            if (currentUserId) {
+                loadAIActivitySummary(currentUserId);
+            }
+        });
 
         // Load dashboard on page load
         loadDashboard();

@@ -1,0 +1,338 @@
+// Netlify Function to generate AI-powered activity summary for coaches
+// Analyzes client activity, check-ins, and engagement to provide actionable insights
+const { createClient } = require('@supabase/supabase-js');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS'
+};
+
+exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: corsHeaders, body: '' };
+  }
+
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  try {
+    const coachId = event.queryStringParameters?.coachId;
+
+    if (!coachId) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Coach ID is required' })
+      };
+    }
+
+    if (!SUPABASE_SERVICE_KEY) {
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Server configuration error' })
+      };
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Fetch all active clients for this coach
+    const { data: clients, error: clientsError } = await supabase
+      .from('clients')
+      .select('id, client_name, last_activity_at, user_id, created_at')
+      .eq('coach_id', coachId)
+      .or('is_archived.eq.false,is_archived.is.null')
+      .order('client_name', { ascending: true });
+
+    if (clientsError) {
+      console.error('Error fetching clients:', clientsError);
+      throw clientsError;
+    }
+
+    if (!clients || clients.length === 0) {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          summary: "You don't have any active clients yet. Add your first client to start tracking their progress!",
+          stats: {
+            totalClients: 0,
+            activeThisWeek: 0,
+            inactiveClients: 0,
+            checkedInThisWeek: 0,
+            missedCheckIns: 0,
+            pendingDietRequests: 0
+          },
+          insights: [],
+          needsAttention: []
+        })
+      };
+    }
+
+    // Fetch recent check-ins (last 7 days)
+    const { data: recentCheckins, error: checkinsError } = await supabase
+      .from('client_checkins')
+      .select('id, client_id, checkin_date, energy_level, stress_level, meal_plan_adherence, request_new_diet, diet_request_reason, created_at')
+      .eq('coach_id', coachId)
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (checkinsError && checkinsError.code !== '42P01') {
+      console.error('Error fetching check-ins:', checkinsError);
+    }
+
+    // Fetch food diary entries to check engagement
+    const { data: diaryEntries, error: diaryError } = await supabase
+      .from('food_diary')
+      .select('id, client_id, created_at')
+      .in('client_id', clients.map(c => c.id))
+      .gte('created_at', sevenDaysAgo.toISOString());
+
+    if (diaryError && diaryError.code !== '42P01') {
+      console.error('Error fetching diary entries:', diaryError);
+    }
+
+    // Fetch pending diet requests (check-ins with request_new_diet = true that haven't been addressed)
+    const { data: dietRequests, error: dietRequestsError } = await supabase
+      .from('client_checkins')
+      .select('id, client_id, diet_request_reason, created_at')
+      .eq('coach_id', coachId)
+      .eq('request_new_diet', true)
+      .order('created_at', { ascending: false });
+
+    // Calculate stats
+    const clientStats = clients.map(client => {
+      const lastActivity = client.last_activity_at ? new Date(client.last_activity_at) : null;
+      const daysSinceActivity = lastActivity ? Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24)) : null;
+      const isActiveThisWeek = lastActivity && lastActivity >= sevenDaysAgo;
+      const hasPortalAccess = !!client.user_id;
+
+      const clientCheckins = (recentCheckins || []).filter(c => c.client_id === client.id);
+      const hasCheckedInThisWeek = clientCheckins.length > 0;
+      const latestCheckin = clientCheckins[0];
+
+      const clientDiaryCount = (diaryEntries || []).filter(d => d.client_id === client.id).length;
+      const hasDietRequest = (dietRequests || []).some(r => r.client_id === client.id);
+
+      return {
+        id: client.id,
+        name: client.client_name,
+        hasPortalAccess,
+        isActiveThisWeek,
+        daysSinceActivity,
+        hasCheckedInThisWeek,
+        latestCheckin,
+        diaryEntriesThisWeek: clientDiaryCount,
+        hasPendingDietRequest: hasDietRequest,
+        dietRequestReason: hasDietRequest ? (dietRequests || []).find(r => r.client_id === client.id)?.diet_request_reason : null
+      };
+    });
+
+    // Aggregate stats
+    const stats = {
+      totalClients: clients.length,
+      activeThisWeek: clientStats.filter(c => c.isActiveThisWeek).length,
+      inactiveClients: clientStats.filter(c => c.hasPortalAccess && !c.isActiveThisWeek).length,
+      clientsWithoutPortal: clientStats.filter(c => !c.hasPortalAccess).length,
+      checkedInThisWeek: clientStats.filter(c => c.hasCheckedInThisWeek).length,
+      missedCheckIns: clientStats.filter(c => c.hasPortalAccess && !c.hasCheckedInThisWeek).length,
+      pendingDietRequests: clientStats.filter(c => c.hasPendingDietRequest).length,
+      loggingFood: clientStats.filter(c => c.diaryEntriesThisWeek > 0).length
+    };
+
+    // Identify clients needing attention
+    const needsAttention = [];
+
+    // Priority 1: Pending diet requests
+    clientStats.filter(c => c.hasPendingDietRequest).forEach(c => {
+      needsAttention.push({
+        clientId: c.id,
+        clientName: c.name,
+        priority: 'high',
+        reason: 'diet_request',
+        message: `Requested a new meal plan${c.dietRequestReason ? `: "${c.dietRequestReason}"` : ''}`
+      });
+    });
+
+    // Priority 2: Low check-in scores (high stress, low energy, low adherence)
+    clientStats.filter(c => c.latestCheckin).forEach(c => {
+      const checkin = c.latestCheckin;
+      if (checkin.stress_level >= 8) {
+        needsAttention.push({
+          clientId: c.id,
+          clientName: c.name,
+          priority: 'high',
+          reason: 'high_stress',
+          message: `Reported high stress level (${checkin.stress_level}/10)`
+        });
+      }
+      if (checkin.energy_level <= 3) {
+        needsAttention.push({
+          clientId: c.id,
+          clientName: c.name,
+          priority: 'medium',
+          reason: 'low_energy',
+          message: `Reported low energy (${checkin.energy_level}/10)`
+        });
+      }
+      if (checkin.meal_plan_adherence <= 40) {
+        needsAttention.push({
+          clientId: c.id,
+          clientName: c.name,
+          priority: 'medium',
+          reason: 'low_adherence',
+          message: `Low meal plan adherence (${checkin.meal_plan_adherence}%)`
+        });
+      }
+    });
+
+    // Priority 3: Inactive clients with portal access
+    clientStats.filter(c => c.hasPortalAccess && c.daysSinceActivity > 14).forEach(c => {
+      needsAttention.push({
+        clientId: c.id,
+        clientName: c.name,
+        priority: 'low',
+        reason: 'inactive',
+        message: `No activity in ${c.daysSinceActivity} days`
+      });
+    });
+
+    // Generate AI summary using Gemini
+    let aiSummary = '';
+
+    if (GOOGLE_API_KEY) {
+      try {
+        const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+        const prompt = `You are a coaching assistant analyzing client activity for a fitness/nutrition coach. Based on the following data, provide a brief, friendly summary (2-3 sentences) highlighting the most important insights. Be encouraging but mention any clients needing attention.
+
+CLIENT ACTIVITY DATA:
+- Total active clients: ${stats.totalClients}
+- Active this week (logged in): ${stats.activeThisWeek} clients
+- Checked in this week: ${stats.checkedInThisWeek} clients
+- Logging food in diary: ${stats.loggingFood} clients
+- Missed check-ins: ${stats.missedCheckIns} clients
+- Pending diet requests: ${stats.pendingDietRequests}
+- Inactive (no login in 7+ days): ${stats.inactiveClients} clients
+- Clients without portal access: ${stats.clientsWithoutPortal}
+
+HIGH PRIORITY ISSUES:
+${needsAttention.filter(n => n.priority === 'high').map(n => `- ${n.clientName}: ${n.message}`).join('\n') || 'None'}
+
+Keep the summary concise, actionable, and coach-friendly. Start with the positive if there is any, then mention what needs attention.`;
+
+        const result = await model.generateContent(prompt);
+        aiSummary = result.response.text();
+      } catch (aiError) {
+        console.error('AI generation error:', aiError);
+        // Fall back to template-based summary
+        aiSummary = generateFallbackSummary(stats, needsAttention);
+      }
+    } else {
+      aiSummary = generateFallbackSummary(stats, needsAttention);
+    }
+
+    // Build categorized client lists for the UI
+    const activeClients = clientStats.filter(c => c.isActiveThisWeek).map(c => ({
+      id: c.id,
+      name: c.name,
+      lastActive: c.daysSinceActivity === 0 ? 'Today' : c.daysSinceActivity === 1 ? 'Yesterday' : `${c.daysSinceActivity} days ago`
+    }));
+
+    const inactiveClients = clientStats.filter(c => c.hasPortalAccess && !c.isActiveThisWeek).map(c => ({
+      id: c.id,
+      name: c.name,
+      daysSinceActivity: c.daysSinceActivity
+    }));
+
+    const checkedInClients = clientStats.filter(c => c.hasCheckedInThisWeek).map(c => ({
+      id: c.id,
+      name: c.name,
+      adherence: c.latestCheckin?.meal_plan_adherence
+    }));
+
+    const missedCheckInClients = clientStats.filter(c => c.hasPortalAccess && !c.hasCheckedInThisWeek).map(c => ({
+      id: c.id,
+      name: c.name
+    }));
+
+    return {
+      statusCode: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        summary: aiSummary,
+        stats,
+        needsAttention: needsAttention.slice(0, 10), // Limit to top 10
+        activeClients,
+        inactiveClients,
+        checkedInClients,
+        missedCheckInClients,
+        generatedAt: now.toISOString()
+      })
+    };
+
+  } catch (error) {
+    console.error('Function error:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: 'Failed to generate activity summary',
+        message: error.message
+      })
+    };
+  }
+};
+
+function generateFallbackSummary(stats, needsAttention) {
+  const parts = [];
+
+  if (stats.totalClients === 0) {
+    return "You don't have any active clients yet. Add your first client to get started!";
+  }
+
+  // Positive highlights
+  if (stats.activeThisWeek > 0) {
+    const percentage = Math.round((stats.activeThisWeek / stats.totalClients) * 100);
+    parts.push(`${stats.activeThisWeek} of ${stats.totalClients} clients (${percentage}%) have been active this week`);
+  }
+
+  if (stats.checkedInThisWeek > 0) {
+    parts.push(`${stats.checkedInThisWeek} client${stats.checkedInThisWeek > 1 ? 's' : ''} submitted check-ins`);
+  }
+
+  // Attention items
+  const highPriority = needsAttention.filter(n => n.priority === 'high');
+  if (highPriority.length > 0) {
+    if (highPriority.some(n => n.reason === 'diet_request')) {
+      const count = highPriority.filter(n => n.reason === 'diet_request').length;
+      parts.push(`${count} diet request${count > 1 ? 's' : ''} pending`);
+    }
+    if (highPriority.some(n => n.reason === 'high_stress')) {
+      const count = highPriority.filter(n => n.reason === 'high_stress').length;
+      parts.push(`${count} client${count > 1 ? 's' : ''} reported high stress`);
+    }
+  }
+
+  if (stats.missedCheckIns > 0 && stats.missedCheckIns > stats.checkedInThisWeek) {
+    parts.push(`${stats.missedCheckIns} client${stats.missedCheckIns > 1 ? 's' : ''} haven't checked in yet`);
+  }
+
+  return parts.join('. ') + '.';
+}

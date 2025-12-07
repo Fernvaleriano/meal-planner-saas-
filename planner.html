@@ -1389,6 +1389,13 @@
                     </div>
                 </div>
 
+                <!-- Plan Name -->
+                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
+                    <label class="font-bold text-purple-900 block mb-2">📝 Plan Name (Optional)</label>
+                    <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., Cutting Phase, Maintenance, Bulk Season...">
+                    <p class="text-xs text-purple-700 mt-1">Give your plan a name to help organize and identify it later</p>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label for="dp_age" class="font-semibold text-gray-700">Age</label><input type="number" id="dp_age" class="input-field" placeholder="30" required></div>
                     <div><label for="dp_gender" class="font-semibold text-gray-700">Gender</label><select id="dp_gender" class="input-field"><option value="male">Male</option><option value="female">Female</option></select></div>
@@ -1398,18 +1405,8 @@
                     <div><label for="dp_activity" class="font-semibold text-gray-700">Activity</label><select id="dp_activity" class="input-field"><option value="1.2">Sedentary</option><option value="1.55" selected>Moderate</option><option value="1.725">Very Active</option></select></div>
                 </div>
 
-                <div class="p-4 bg-blue-50 border-2 border-blue-400 rounded-lg">
-                    <label class="font-bold text-blue-900 block mb-2">📅 Number of Days</label>
-                    <select id="dp_days" class="input-field border-2 border-blue-500">
-                        <option value="1">1 Day</option>
-                        <option value="2">2 Days</option>
-                        <option value="3" selected>3 Days</option>
-                        <option value="4">4 Days</option>
-                        <option value="5">5 Days</option>
-                        <option value="6">6 Days</option>
-                        <option value="7">7 Days (Full Week)</option>
-                    </select>
-                </div>
+                <!-- Days selector hidden - defaulting to 1 day for simplicity -->
+                <input type="hidden" id="dp_days" value="1">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label class="font-semibold text-gray-700">Goal</label><select id="dp_goal" class="input-field"><option value="lose weight">Lose Weight</option><option value="maintain weight" selected>Maintain</option><option value="gain muscle">Gain Muscle</option></select></div>
@@ -4158,12 +4155,17 @@ async function saveCoachPlan(planData, clientName) {
     try {
         console.log('Saving plan to coach history...', planData.planId ? `(updating plan ${planData.planId})` : '(creating new plan)');
 
+        // Get plan name from form or planData
+        const planNameInput = document.getElementById('dp_plan_name');
+        const planName = planData.planName || (planNameInput ? planNameInput.value.trim() : '') || null;
+
         const payload = {
             coachId: currentCoach.id,
             clientName: clientName,
             planData: planData,
             clientId: planData.clientId,  // Always include clientId (validated above)
-            planId: planData.planId || null  // Include planId for updates (null for new plans)
+            planId: planData.planId || null,  // Include planId for updates (null for new plans)
+            planName: planName  // Custom plan name for organization
         };
 
         const response = await fetch(SAVE_COACH_PLAN_ENDPOINT, {
@@ -4180,11 +4182,12 @@ async function saveCoachPlan(planData, clientName) {
         const data = await response.json();
         console.log('Plan saved to history with ID:', data.planId);
 
-        // Store the planId and status in lastPlanQuery so it can be used when sharing
+        // Store the planId, planName and status in lastPlanQuery so it can be used when sharing
         if (lastPlanQuery) {
             lastPlanQuery.planId = data.planId;
+            lastPlanQuery.planName = data.planName || planName;
             lastPlanQuery.status = data.status || 'draft';
-            console.log('✅ Plan ID stored for sharing:', data.planId, 'Status:', lastPlanQuery.status);
+            console.log('✅ Plan ID stored for sharing:', data.planId, 'Name:', lastPlanQuery.planName, 'Status:', lastPlanQuery.status);
 
             // Update the UI to show draft status
             updatePlanStatusUI();
