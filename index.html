@@ -469,9 +469,9 @@
 
         .pricing-cards {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 32px;
-            max-width: 800px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 1000px;
             margin: 64px auto 0;
         }
 
@@ -673,13 +673,122 @@
             background: none;
             border: none;
             cursor: pointer;
-            padding: 8px;
+            padding: 12px;
+            margin: -12px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .mobile-menu-btn:hover {
+            background: var(--gray-100);
         }
 
         .mobile-menu-btn svg {
             width: 24px;
             height: 24px;
             color: var(--gray-700);
+        }
+
+        /* Mobile Menu Overlay */
+        .mobile-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .mobile-menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Mobile Menu Drawer */
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 300px;
+            max-width: 85vw;
+            background: white;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+
+        .mobile-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .mobile-menu-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin: -8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .mobile-menu-close:hover {
+            background: var(--gray-100);
+        }
+
+        .mobile-menu-close svg {
+            width: 24px;
+            height: 24px;
+            color: var(--gray-600);
+        }
+
+        .mobile-menu-nav {
+            flex: 1;
+            padding: 16px 0;
+            overflow-y: auto;
+        }
+
+        .mobile-menu-link {
+            display: block;
+            padding: 16px 24px;
+            color: var(--gray-700);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+
+        .mobile-menu-link:hover {
+            background: var(--gray-50);
+            color: var(--brand-primary);
+        }
+
+        .mobile-menu-buttons {
+            padding: 20px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mobile-menu-buttons .btn {
+            width: 100%;
+            justify-content: center;
         }
 
         /* Responsive */
@@ -697,10 +806,21 @@
             .footer-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+
+            .pricing-cards {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .pricing-card:last-child {
+                grid-column: span 2;
+                max-width: 400px;
+                margin: 0 auto;
+            }
         }
 
         @media (max-width: 768px) {
-            .nav-links {
+            .nav-links,
+            .nav-buttons {
                 display: none;
             }
 
@@ -709,7 +829,7 @@
             }
 
             .hero {
-                padding: 120px 24px 60px;
+                padding: 110px 20px 60px;
             }
 
             .hero h1 {
@@ -717,36 +837,87 @@
             }
 
             .hero-subtitle {
-                font-size: 1.1rem;
+                font-size: 1.05rem;
             }
 
             .hero-buttons {
                 flex-direction: column;
+                gap: 12px;
+            }
+
+            .hero-buttons .btn {
+                width: 100%;
             }
 
             .hero-stats {
                 flex-direction: column;
-                gap: 24px;
+                gap: 20px;
             }
 
             .features-grid,
             .testimonials-grid,
-            .steps,
-            .pricing-cards,
-            .faq-grid {
+            .steps {
                 grid-template-columns: 1fr;
+            }
+
+            .pricing-cards {
+                grid-template-columns: 1fr !important;
+            }
+
+            .pricing-card:last-child {
+                grid-column: span 1;
+                max-width: none;
             }
 
             .pricing-card.featured {
                 transform: none;
             }
 
+            .faq-grid {
+                grid-template-columns: 1fr;
+            }
+
             .section-title {
-                font-size: 2rem;
+                font-size: 1.875rem;
+            }
+
+            .section-subtitle {
+                font-size: 1rem;
+            }
+
+            .features,
+            .how-it-works,
+            .testimonials,
+            .pricing-preview,
+            .faq,
+            .cta {
+                padding: 60px 20px;
+            }
+
+            .section-header {
+                margin-bottom: 40px;
+            }
+
+            .feature-card,
+            .testimonial-card,
+            .faq-item {
+                padding: 24px;
+            }
+
+            .pricing-card {
+                padding: 28px;
             }
 
             .cta h2 {
-                font-size: 2rem;
+                font-size: 1.75rem;
+            }
+
+            .cta p {
+                font-size: 1.05rem;
+            }
+
+            .footer {
+                padding: 48px 20px 24px;
             }
 
             .footer-grid {
@@ -756,8 +927,152 @@
 
             .footer-bottom {
                 flex-direction: column;
-                gap: 16px;
+                gap: 12px;
                 text-align: center;
+            }
+        }
+
+        /* Small phones */
+        @media (max-width: 480px) {
+            .nav-container {
+                padding: 12px 16px;
+            }
+
+            .nav-logo-img {
+                height: 50px;
+            }
+
+            .hero {
+                padding: 100px 16px 48px;
+            }
+
+            .hero h1 {
+                font-size: 1.875rem;
+                line-height: 1.2;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+
+            .hero-badge {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+
+            .btn-large {
+                padding: 14px 24px;
+                font-size: 1rem;
+            }
+
+            .hero-stat-number {
+                font-size: 1.75rem;
+            }
+
+            .hero-stat-label {
+                font-size: 0.85rem;
+            }
+
+            .section-label {
+                font-size: 0.8rem;
+            }
+
+            .section-title {
+                font-size: 1.625rem;
+            }
+
+            .section-subtitle {
+                font-size: 0.95rem;
+            }
+
+            .feature-card h3,
+            .step h3,
+            .faq-question {
+                font-size: 1.1rem;
+            }
+
+            .feature-card p,
+            .step p,
+            .faq-answer,
+            .testimonial-text {
+                font-size: 0.9rem;
+            }
+
+            .pricing-price-amount {
+                font-size: 2.5rem;
+            }
+
+            .pricing-features li {
+                font-size: 0.9rem;
+                padding: 8px 0;
+            }
+
+            .cta h2 {
+                font-size: 1.5rem;
+            }
+
+            .cta p {
+                font-size: 0.95rem;
+            }
+
+            .steps {
+                gap: 32px;
+            }
+
+            .step-number {
+                width: 56px;
+                height: 56px;
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Extra small phones */
+        @media (max-width: 360px) {
+            .hero h1 {
+                font-size: 1.625rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            .btn-large {
+                padding: 12px 20px;
+                font-size: 0.95rem;
+            }
+
+            .pricing-price-amount {
+                font-size: 2.25rem;
+            }
+
+            .mobile-menu {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+
+        /* Ensure touch targets are at least 44px */
+        @media (max-width: 768px) {
+            .btn {
+                min-height: 48px;
+            }
+
+            .nav-link,
+            .footer-column a {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+        }
+
+        /* Safe area padding for notched devices */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            .mobile-menu-buttons {
+                padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            }
+
+            .footer {
+                padding-bottom: calc(32px + env(safe-area-inset-bottom));
             }
         }
     </style>
@@ -782,13 +1097,41 @@
                 <a href="signup.html" class="btn btn-primary">Start Free Trial</a>
             </div>
 
-            <button class="mobile-menu-btn">
+            <button class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
         </div>
     </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" aria-hidden="true"></div>
+
+    <!-- Mobile Menu Drawer -->
+    <div class="mobile-menu" role="dialog" aria-label="Mobile navigation menu">
+        <div class="mobile-menu-header">
+            <a href="/" class="nav-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="nav-logo-img" style="height: 45px;">
+            </a>
+            <button class="mobile-menu-close" aria-label="Close menu">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <nav class="mobile-menu-nav">
+            <a href="#features" class="mobile-menu-link">Features</a>
+            <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
+            <a href="#testimonials" class="mobile-menu-link">Testimonials</a>
+            <a href="pricing.html" class="mobile-menu-link">Pricing</a>
+            <a href="#faq" class="mobile-menu-link">FAQ</a>
+        </nav>
+        <div class="mobile-menu-buttons">
+            <a href="login.html" class="btn btn-ghost">Log In</a>
+            <a href="signup.html" class="btn btn-primary">Start Free Trial</a>
+        </div>
+    </div>
 
     <!-- Hero Section -->
     <section class="hero">
@@ -966,7 +1309,7 @@
                 <p class="section-subtitle">Start with a 14-day free trial. No credit card required.</p>
             </div>
 
-            <div class="pricing-cards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+            <div class="pricing-cards">
                 <div class="pricing-card">
                     <h3>Starter</h3>
                     <div class="pricing-price">
@@ -1110,6 +1453,43 @@
     </footer>
 
     <script>
+        // Mobile Menu Functionality
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        const mobileMenuClose = document.querySelector('.mobile-menu-close');
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
+        const mobileMenuLinks = document.querySelectorAll('.mobile-menu-link');
+
+        function openMobileMenu() {
+            mobileMenu.classList.add('active');
+            mobileMenuOverlay.classList.add('active');
+            mobileMenuBtn.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('active');
+            mobileMenuOverlay.classList.remove('active');
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+        }
+
+        mobileMenuBtn.addEventListener('click', openMobileMenu);
+        mobileMenuClose.addEventListener('click', closeMobileMenu);
+        mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+
+        // Close menu when clicking on a link
+        mobileMenuLinks.forEach(link => {
+            link.addEventListener('click', closeMobileMenu);
+        });
+
+        // Close menu on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                closeMobileMenu();
+            }
+        });
+
         // Smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
