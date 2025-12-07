@@ -1054,14 +1054,8 @@
             <div class="cancel-warning">
                 <p>Are you sure you want to cancel your subscription?</p>
             </div>
-            <div class="cancellation-info">
-                <h4>What happens when you cancel:</h4>
-                <ul>
-                    <li>You'll keep access until your billing period ends</li>
-                    <li>Your clients can still access their portals until then</li>
-                    <li>All your data will be preserved</li>
-                    <li>You can reactivate anytime before your access ends</li>
-                </ul>
+            <div class="cancellation-info" id="cancellationInfo">
+                <!-- Content will be set dynamically based on trial/paid status -->
             </div>
             <div id="cancelMessage" class="message"></div>
             <button type="button" class="cancel-btn" id="confirmCancelBtn" onclick="confirmCancelSubscription()">Yes, Cancel My Subscription</button>
@@ -1416,6 +1410,32 @@
             document.body.style.overflow = 'hidden';
             cancelMessage.className = 'message';
             cancelMessage.textContent = '';
+
+            // Set cancellation info based on trial/paid status
+            const cancellationInfo = document.getElementById('cancellationInfo');
+            const isTrialing = window.currentCoachData?.subscription_status === 'trialing';
+
+            if (isTrialing) {
+                cancellationInfo.innerHTML = `
+                    <h4>What happens when you cancel your trial:</h4>
+                    <ul>
+                        <li><strong>Your access will end immediately</strong></li>
+                        <li>Your clients will lose access to their portals right away</li>
+                        <li>All your data will be preserved</li>
+                        <li>You can resubscribe anytime to regain access</li>
+                    </ul>
+                `;
+            } else {
+                cancellationInfo.innerHTML = `
+                    <h4>What happens when you cancel:</h4>
+                    <ul>
+                        <li>You'll keep access until your billing period ends</li>
+                        <li>Your clients can still access their portals until then</li>
+                        <li>All your data will be preserved</li>
+                        <li>You can reactivate anytime before your access ends</li>
+                    </ul>
+                `;
+            }
         }
 
         function closeCancelModal() {
