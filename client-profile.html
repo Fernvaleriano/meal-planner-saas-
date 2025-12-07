@@ -3152,12 +3152,620 @@
             color: #94a3b8;
         }
 
+        /* ===== COMPREHENSIVE MOBILE STYLES ===== */
         @media (max-width: 768px) {
-            .macro-cards-grid {
-                grid-template-columns: 1fr;
+            /* Page Container */
+            .page-container {
+                padding: 16px;
             }
+
+            /* Client Card */
+            .client-card {
+                padding: 20px;
+                margin-bottom: 16px;
+            }
+
+            .client-header {
+                flex-direction: column;
+                gap: 16px;
+                margin-bottom: 20px;
+            }
+
+            .client-header-info {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 12px;
+                width: 100%;
+            }
+
+            .client-profile-avatar {
+                width: 80px;
+                height: 80px;
+                min-width: 80px;
+                font-size: 32px;
+            }
+
+            .client-name {
+                font-size: 1.5rem;
+                margin-bottom: 8px;
+                word-break: break-word;
+            }
+
+            .client-meta {
+                align-items: center;
+                font-size: 13px;
+            }
+
+            .client-meta-item {
+                justify-content: center;
+            }
+
+            /* Action Buttons - Stack Vertically */
+            .client-actions {
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+
+            .client-actions .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 14px 20px;
+                font-size: 14px;
+            }
+
+            /* Client Stats Grid */
+            .client-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .stat-value {
+                font-size: 1.4rem;
+            }
+
+            .stat-label {
+                font-size: 10px;
+            }
+
+            /* Reminder Status Section */
+            .reminder-status-section {
+                flex-direction: column;
+                gap: 12px;
+                padding: 16px;
+                text-align: center;
+            }
+
+            .reminder-status-info {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .reminder-toggle-btn {
+                width: 100%;
+            }
+
+            /* Goals Section */
+            .goals-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .goals-header {
+                margin-bottom: 16px;
+            }
+
+            .goals-title {
+                font-size: 18px;
+            }
+
+            /* Goals Mode Tabs */
+            .goals-mode-tabs {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .goals-mode-tab {
+                padding: 12px;
+                font-size: 13px;
+            }
+
+            /* Client Stats Card in Calculate Mode */
+            .client-stats-card {
+                padding: 16px;
+            }
+
+            .client-stats-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .client-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .client-stat-item {
+                padding: 10px 6px;
+            }
+
+            .client-stat-value {
+                font-size: 16px;
+            }
+
+            .client-stat-label {
+                font-size: 9px;
+            }
+
+            /* Calculate Result Card */
+            .calculate-result-card {
+                padding: 16px;
+            }
+
+            .calculate-result-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .calculate-result-title {
+                text-align: center;
+            }
+
+            .calculate-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
             .calculated-values-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .calculated-value-item {
+                padding: 12px 6px;
+            }
+
+            .calculated-value-number {
+                font-size: 22px;
+            }
+
+            .calculated-value-label {
+                font-size: 10px;
+            }
+
+            .calculate-formula-info {
+                font-size: 11px;
+                padding: 12px;
+                margin-top: 12px;
+            }
+
+            .apply-calculated-btn {
+                width: 100%;
+                padding: 14px;
+                font-size: 14px;
+            }
+
+            /* Macro Cards Grid */
+            .macro-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .macro-card {
+                padding: 14px;
+            }
+
+            /* Goals Grid (Custom Mode) */
+            .goals-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .goal-item {
+                padding: 12px;
+            }
+
+            .goal-item label {
+                font-size: 10px;
+            }
+
+            .goal-item input {
+                font-size: 16px;
+                padding: 8px;
+            }
+
+            /* Percentage Total Bar */
+            .percentage-total-bar {
+                flex-direction: column;
+                gap: 8px;
+                text-align: center;
+            }
+
+            .percentage-progress {
+                width: 100%;
+                margin: 0;
+            }
+
+            /* Goals Footer */
+            .goals-footer {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .permission-toggle {
+                justify-content: center;
+            }
+
+            .goals-save-btn {
+                width: 100%;
+            }
+
+            /* AI Assistant Section */
+            .ai-assistant-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .ai-assistant-title {
+                font-size: 18px;
+            }
+
+            .ai-assistant-description {
+                font-size: 13px;
+            }
+
+            .ai-quick-questions {
+                justify-content: center;
+            }
+
+            .ai-quick-btn {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+
+            .ai-input-container {
+                flex-direction: column;
+            }
+
+            .ai-ask-btn {
+                width: 100%;
+            }
+
+            /* Food Diary Section */
+            .diary-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .diary-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .diary-title {
+                font-size: 18px;
+                text-align: center;
+            }
+
+            .diary-date-nav {
+                justify-content: center;
+            }
+
+            .diary-summary {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .diary-summary-value {
+                font-size: 20px;
+            }
+
+            .diary-summary-label {
+                font-size: 10px;
+            }
+
+            .diary-food-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+                padding: 12px;
+            }
+
+            .diary-food-macros {
+                width: 100%;
+                justify-content: space-between;
+                font-size: 12px;
+            }
+
+            /* Plans Section */
+            .plans-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            .plans-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .plan-card {
+                padding: 16px;
+                padding-left: 40px;
+            }
+
+            .plan-card-checkbox {
+                top: 12px;
+                left: 12px;
+            }
+
+            .bulk-actions {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .bulk-actions-left {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn-delete-selected {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Protocols Section */
+            .protocols-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .protocol-card {
+                padding: 16px;
+            }
+
+            .protocol-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .protocol-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Favorites Section */
+            .favorites-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .favorites-header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .favorites-title {
+                font-size: 18px;
+            }
+
+            .favorites-stats {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .favorites-filter-bar {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .favorites-filter-btn {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            /* Photos Section */
+            .photos-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .photos-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .photos-title {
+                font-size: 18px;
+                text-align: center;
+            }
+
+            .photos-header > div {
+                justify-content: center;
+            }
+
+            .photo-carousel-wrapper {
+                padding: 0 10px;
+            }
+
+            .photo-card {
+                flex: 0 0 140px;
+                height: 180px;
+            }
+
+            /* Measurements Section */
+            .measurements-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .measurements-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .measurements-title {
+                font-size: 18px;
+                text-align: center;
+            }
+
+            .measurements-header > div {
+                justify-content: center;
+            }
+
+            .measurement-card {
+                padding: 12px;
+            }
+
+            .measurement-value {
+                font-size: 18px;
+            }
+
+            .measurement-label {
+                font-size: 10px;
+            }
+
+            /* Check-ins Section */
+            .checkins-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .checkins-header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .checkins-title {
+                font-size: 18px;
+                text-align: center;
+            }
+
+            .checkin-card {
+                padding: 16px;
+            }
+
+            .checkin-rating-item {
+                padding: 10px;
+            }
+
+            .checkin-rating-value {
+                font-size: 18px;
+            }
+
+            /* Collapsible Headers */
+            .collapsible-header {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .section-header.collapsible-header {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            /* Modals */
+            .photo-modal-content,
+            .protocol-modal-content {
+                margin: 20px auto;
+                padding: 20px;
+                width: 95%;
+            }
+
+            .upload-area {
+                padding: 30px 20px;
+            }
+
+            /* General Spacing Adjustments */
+            .section-header {
+                margin-bottom: 16px;
+            }
+
+            /* Edit Client Modal */
+            .edit-form {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            .modal-content {
+                margin: 10px;
+                padding: 20px;
+                max-height: 90vh;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+        }
+
+        /* Extra small screens (iPhone SE, etc.) */
+        @media (max-width: 375px) {
+            .page-container {
+                padding: 12px;
+            }
+
+            .client-card {
+                padding: 16px;
+            }
+
+            .client-name {
+                font-size: 1.25rem;
+            }
+
+            .client-stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                padding: 12px;
+            }
+
+            .stat-value {
+                font-size: 1.2rem;
+            }
+
+            .goals-mode-tab {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+
+            .calculated-values-grid {
+                gap: 8px;
+            }
+
+            .calculated-value-number {
+                font-size: 18px;
+            }
+
+            .diary-summary {
+                gap: 8px;
+            }
+
+            .diary-summary-value {
+                font-size: 18px;
+            }
+
+            .ai-quick-btn {
+                font-size: 11px;
+                padding: 6px 10px;
             }
         }
     </style>
