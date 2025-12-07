@@ -1,10 +1,15 @@
 // Netlify Function to invite a client to the portal
+// Sends an intake form link where clients fill out their profile and set password
 const { createClient } = require('@supabase/supabase-js');
-const { sendInvitationEmail } = require('./utils/email-service');
+const { sendIntakeInvitationEmail } = require('./utils/email-service');
+const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
+
+// Token expiry time (7 days)
+const TOKEN_EXPIRY_DAYS = 7;
 
 // Common headers for all responses
 const headers = {
@@ -13,6 +18,13 @@ const headers = {
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
+
+/**
+ * Generate a secure random token
+ */
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -53,7 +65,7 @@ exports.handler = async (event, context) => {
         .single(),
       supabase
         .from('coaches')
-        .select('id, email, full_name')
+        .select('id, email, full_name, white_label_enabled, email_from, email_from_name, email_from_verified')
         .eq('id', coachId)
         .single()
     ]);
@@ -93,128 +105,17 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Generate a random password (client will reset it via email)
-    const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10) + 'A1!';
+    // Generate intake token
+    const intakeToken = generateToken();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + TOKEN_EXPIRY_DAYS);
 
-    let authUser = null;
-
-    // Try to create the user first - this is more reliable than listUsers which has pagination
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: client.email,
-      password: randomPassword,
-      email_confirm: true
-    });
-
-    if (authError) {
-      console.log('Create user error:', authError.message);
-
-      // If user already exists, try to find them
-      if (authError.message.includes('already') || authError.message.includes('exists') || authError.message.includes('registered')) {
-        console.log('User may already exist, searching with pagination...');
-
-        // Search through all users with pagination
-        let page = 1;
-        let perPage = 100;
-        let found = false;
-
-        while (!found) {
-          const { data: usersPage, error: listError } = await supabase.auth.admin.listUsers({
-            page: page,
-            perPage: perPage
-          });
-
-          if (listError || !usersPage || !usersPage.users || usersPage.users.length === 0) {
-            break;
-          }
-
-          const existingUser = usersPage.users.find(u => u.email === client.email);
-          if (existingUser) {
-            console.log('Found existing auth user for email:', client.email);
-            authUser = existingUser;
-            found = true;
-            break;
-          }
-
-          // If we got fewer users than requested, we've reached the end
-          if (usersPage.users.length < perPage) {
-            break;
-          }
-
-          page++;
-          // Safety limit to prevent infinite loops
-          if (page > 100) {
-            break;
-          }
-        }
-
-        if (!authUser) {
-          console.error('Could not find or create user for email:', client.email);
-          return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-              error: 'Failed to create user account',
-              details: 'User may already exist but could not be found. Please contact support.'
-            })
-          };
-        }
-      } else {
-        // Some other error
-        console.error('Auth error:', authError);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            error: 'Failed to create user account',
-            details: authError.message
-          })
-        };
-      }
-    } else {
-      authUser = authData.user;
-      console.log('Created new auth user:', authUser.id);
-    }
-
-    // Generate password reset link using Supabase Admin API
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: client.email,
-      options: {
-        redirectTo: `${APP_URL}/client-reset-password.html`
-      }
-    });
-
-    if (linkError) {
-      console.error('Failed to generate reset link:', linkError.message);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          error: 'Failed to generate invitation link',
-          details: linkError.message
-        })
-      };
-    }
-
-    // Send custom branded invitation email
-    const emailResult = await sendInvitationEmail({
-      client,
-      coach,
-      resetLink: linkData.properties.action_link
-    });
-
-    if (!emailResult.success) {
-      console.warn('Warning: Could not send invitation email:', emailResult.error);
-      // Don't fail the whole invitation if email fails - user was still created
-    } else {
-      console.log('Invitation email sent successfully:', emailResult.messageId);
-    }
-
-    // Update client record with user_id and invitation timestamp
+    // Update client record with intake token
     const { error: updateError } = await supabase
       .from('clients')
       .update({
-        user_id: authUser.id,
+        intake_token: intakeToken,
+        intake_token_expires_at: expiresAt.toISOString(),
         invited_at: new Date().toISOString()
       })
       .eq('id', clientId)
@@ -222,18 +123,34 @@ exports.handler = async (event, context) => {
 
     if (updateError) {
       console.error('Update error:', updateError);
-      // Don't delete the user - they might need it later
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
-          error: 'Failed to update client record',
+          error: 'Failed to generate invitation',
           details: updateError.message
         })
       };
     }
 
-    console.log('Client invited successfully:', clientId);
+    // Build the intake form URL
+    const intakeFormUrl = `${APP_URL}/client-intake.html?token=${intakeToken}`;
+
+    // Send invitation email with intake form link
+    const emailResult = await sendIntakeInvitationEmail({
+      client,
+      coach,
+      intakeFormUrl
+    });
+
+    if (!emailResult.success) {
+      console.warn('Warning: Could not send invitation email:', emailResult.error);
+      // Don't fail - token was still created
+    } else {
+      console.log('Intake invitation email sent successfully:', emailResult.messageId);
+    }
+
+    console.log('Client invited successfully with intake form:', clientId);
 
     return {
       statusCode: 200,
@@ -244,8 +161,8 @@ exports.handler = async (event, context) => {
         clientName: client.client_name,
         emailSent: emailResult.success,
         message: emailResult.success
-          ? 'Client invited successfully. Invitation email sent.'
-          : 'Client invited successfully, but email delivery may have failed. Please check the email address.'
+          ? 'Invitation sent! Client will receive an email to complete their profile.'
+          : 'Invitation created, but email delivery may have failed. Please check the email address.'
       })
     };
 
