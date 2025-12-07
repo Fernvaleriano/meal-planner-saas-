@@ -41,9 +41,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { coachId, clientName, planData, clientId, planId } = JSON.parse(event.body);
+    const { coachId, clientName, planData, clientId, planId, planName } = JSON.parse(event.body);
 
-    console.log('📝 Saving plan for coach:', coachId, 'client:', clientName, 'clientId:', clientId, 'planId:', planId);
+    console.log('📝 Saving plan for coach:', coachId, 'client:', clientName, 'clientId:', clientId, 'planId:', planId, 'planName:', planName);
 
     if (!coachId || !planData) {
       return {
@@ -67,6 +67,11 @@ exports.handler = async (event, context) => {
         client_name: clientName || 'Unnamed Client',
         updated_at: new Date().toISOString()
       };
+
+      // Add plan_name if provided
+      if (planName) {
+        updateData.plan_name = planName;
+      }
 
       // Add client_id if provided
       if (clientId) {
@@ -101,6 +106,11 @@ exports.handler = async (event, context) => {
         status: 'draft', // Plans start as draft until coach submits to client
         created_at: new Date().toISOString()
       };
+
+      // Add plan_name if provided
+      if (planName) {
+        insertData.plan_name = planName;
+      }
 
       // Add client_id if provided
       if (clientId) {
@@ -153,6 +163,7 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         planId: data.id,
+        planName: data.plan_name || null,
         status: data.status || 'draft', // Default to draft if status column doesn't exist
         message: 'Plan saved as draft. Use "Submit to Client" to make it visible.'
       })
