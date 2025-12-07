@@ -496,6 +496,175 @@ async function sendInvitationEmail({
 }
 
 /**
+ * Generate intake form invitation email content
+ * @param {Object} options
+ * @param {string} options.clientName - Client's name (may be empty)
+ * @param {string} options.clientEmail - Client's email
+ * @param {string} options.coachName - Coach's name
+ * @param {string} options.intakeFormUrl - URL to the intake form
+ * @param {boolean} options.whiteLabel - Is this a white-label email?
+ * @returns {Object} - { subject, text, html }
+ */
+function generateIntakeInvitationEmail({
+    clientName,
+    clientEmail,
+    coachName = 'Your Coach',
+    intakeFormUrl,
+    whiteLabel = false
+}) {
+    const displayName = clientName || 'there';
+
+    const subject = whiteLabel
+        ? `${coachName} has invited you to join`
+        : `${coachName} has invited you to Zique Fitness Nutrition`;
+
+    const footerText = whiteLabel ? coachName : 'Zique Fitness Nutrition';
+    const welcomeTitle = whiteLabel ? `Welcome!` : `Welcome to Zique Fitness`;
+    const welcomeSubtitle = 'Your nutrition coaching journey starts here';
+
+    const textBody = `Hi ${displayName},
+
+Great news! ${coachName} has invited you to join ${whiteLabel ? 'their' : 'Zique Fitness Nutrition -'} your personal nutrition coaching portal.
+
+To get started, please complete your profile by clicking the link below. This will help your coach create a personalized meal plan just for you.
+
+Complete Your Profile:
+${intakeFormUrl}
+
+You'll be asked to provide:
+- Basic information (name, contact details)
+- Physical stats (weight, height, activity level)
+- Your nutrition goals
+- Food preferences and any allergies
+- A password for your account
+
+This link will expire in 7 days.
+
+Once you've completed your profile, you'll have access to:
+- Personalized meal plans
+- Daily food tracking
+- Weekly check-ins with your coach
+- Progress tracking
+
+If you have any questions, reach out to your coach directly.
+
+Welcome aboard!
+
+${coachName}
+
+---
+${footerText}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background-color: #0d9488; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px;">${welcomeTitle}</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${welcomeSubtitle}</p>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Hi <strong>${displayName}</strong>,</p>
+
+        <p style="margin-bottom: 20px; font-size: 16px;">Great news! <strong>${coachName}</strong> has invited you to join your personal nutrition coaching portal.</p>
+
+        <p style="margin-bottom: 20px;">To get started, please complete your profile. This will help your coach create a personalized meal plan just for you.</p>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="${intakeFormUrl}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Complete Your Profile</a>
+        </div>
+
+        <div style="background-color: #f0fdfa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
+            <p style="font-weight: 600; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">You'll be asked to provide:</p>
+            <ul style="margin: 0; padding-left: 20px; color: #334155;">
+                <li style="margin-bottom: 8px;">Basic information (name, contact details)</li>
+                <li style="margin-bottom: 8px;">Physical stats (weight, height, activity level)</li>
+                <li style="margin-bottom: 8px;">Your nutrition goals</li>
+                <li style="margin-bottom: 8px;">Food preferences and any allergies</li>
+                <li style="margin-bottom: 0;">A password for your account</li>
+            </ul>
+        </div>
+
+        <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 7 days</p>
+
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <p style="font-weight: 600; margin: 0 0 12px 0; color: #334155;">Once you've completed your profile, you'll have access to:</p>
+            <ul style="margin: 0; padding-left: 20px; color: #64748b;">
+                <li style="margin-bottom: 6px;">Personalized meal plans</li>
+                <li style="margin-bottom: 6px;">Daily food tracking</li>
+                <li style="margin-bottom: 6px;">Weekly check-ins with your coach</li>
+                <li style="margin-bottom: 0;">Progress tracking</li>
+            </ul>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;">
+
+        <p style="color: #64748b; font-size: 14px;">If you have any questions, reach out to your coach directly.</p>
+
+        <p style="margin-top: 25px; color: #334155;">
+            Welcome aboard!<br>
+            <strong>${coachName}</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">${footerText}</p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send an intake form invitation email to a new client
+ * @param {Object} options
+ * @param {Object} options.client - Client object from database
+ * @param {Object} options.coach - Coach object from database
+ * @param {string} options.intakeFormUrl - URL to the intake form with token
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+async function sendIntakeInvitationEmail({
+    client,
+    coach,
+    intakeFormUrl
+}) {
+    if (!client || !client.email) {
+        return { success: false, error: 'Client email not available' };
+    }
+
+    if (!intakeFormUrl) {
+        return { success: false, error: 'Intake form URL is required' };
+    }
+
+    // Check if coach has white-label email enabled
+    const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
+
+    const emailContent = generateIntakeInvitationEmail({
+        clientName: client.client_name || '',
+        clientEmail: client.email,
+        coachName: coach?.full_name || coach?.email || 'Your Coach',
+        intakeFormUrl,
+        whiteLabel: hasWhiteLabel
+    });
+
+    return sendEmail({
+        to: client.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html,
+        fromEmail: hasWhiteLabel ? coach.email_from : undefined,
+        fromName: hasWhiteLabel ? coach.email_from_name : undefined
+    });
+}
+
+/**
  * Generate subscription cancellation email content
  * @param {Object} options
  * @param {string} options.coachName - Coach's name
@@ -1315,6 +1484,8 @@ module.exports = {
     generateReminderEmail,
     sendInvitationEmail,
     generateInvitationEmail,
+    sendIntakeInvitationEmail,
+    generateIntakeInvitationEmail,
     sendCancellationEmail,
     generateCancellationEmail,
     sendReactivationEmail,
