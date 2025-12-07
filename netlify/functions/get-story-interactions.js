@@ -77,11 +77,11 @@ exports.handler = async (event) => {
     if (clientIds.length > 0) {
       const { data: clients } = await supabase
         .from('clients')
-        .select('id, name')
+        .select('id, client_name')
         .in('id', clientIds);
 
       (clients || []).forEach(c => {
-        clientMap[c.id] = c.name;
+        clientMap[c.id] = c.client_name;
       });
     }
 

@@ -56,11 +56,11 @@ exports.handler = async (event) => {
       // Get the client's name
       const { data: client } = await supabase
         .from('clients')
-        .select('name')
+        .select('client_name')
         .eq('id', clientId)
         .single();
 
-      const clientName = client?.name || 'A client';
+      const clientName = client?.client_name || 'A client';
 
       // Determine story description
       let storyDesc = 'your story';
