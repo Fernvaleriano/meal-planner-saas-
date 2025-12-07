@@ -4356,6 +4356,7 @@
         let clientPhotos = [];
         let clientMeasurements = [];
         let clientCheckins = [];
+        let canRequestNewPlan = true; // Client permission for requesting new plans
         let checkinFormData = {
             energyLevel: null,
             sleepQuality: null,
@@ -4409,6 +4410,9 @@
 
             currentClientId = clientData.id;
             currentCoachId = clientData.coach_id;
+
+            // Load client permissions (default to true if not set)
+            canRequestNewPlan = clientData.can_request_new_plan !== false;
 
             // Track client activity (last online)
             trackClientActivity(session.user.id);
@@ -5606,7 +5610,8 @@
                         <textarea id="checkinQuestions" placeholder="Anything you'd like to ask..."></textarea>
                     </div>
 
-                    <!-- Diet Request Section -->
+                    <!-- Diet Request Section (only shown if client has permission) -->
+                    ${canRequestNewPlan ? `
                     <div class="form-group" style="background: linear-gradient(135deg, #f0fdfa 0%, #e6fffa 100%); padding: 16px; border-radius: 8px; border-left: 4px solid #0d9488; margin-top: 20px;">
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;">
                             <input type="checkbox" id="requestNewDiet" onchange="toggleDietRequestReason()" style="width: 18px; height: 18px; cursor: pointer;">
@@ -5618,6 +5623,7 @@
                             <textarea id="dietRequestReason" placeholder="e.g., My goals have changed, I want more variety, current plan isn't working for me..." style="margin-top: 8px;"></textarea>
                         </div>
                     </div>
+                    ` : ''}
 
                     <button class="btn btn-primary" onclick="submitCheckin()" id="submitCheckinBtn" style="width: 100%; margin-top: 20px;">Submit Check-in</button>
                 </div>

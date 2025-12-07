@@ -1695,6 +1695,14 @@
         let isClientModified = false; // Track if client has modified the plan
         let isClientView = false; // Track if viewing as client
 
+        // Client permissions (default to true for coaches, loaded for clients)
+        let clientPermissions = {
+            canChangeMeals: true,
+            canReviseMeals: true,
+            canCustomMeals: true,
+            canRequestNewPlan: true
+        };
+
         // Store previous meal states for undo functionality - persisted to localStorage
         // Use same key as planner.html so undo states are shared between pages
         const UNDO_STATES_KEY = 'plannerUndoStates';
@@ -1933,7 +1941,7 @@
                     // For client view, verify the client owns this plan
                     const { data: clientData, error: clientError } = await supabaseClient
                         .from('clients')
-                        .select('id, coach_id')
+                        .select('id, coach_id, can_change_meals, can_revise_meals, can_custom_meals, can_request_new_plan')
                         .eq('user_id', currentUser.id)
                         .single();
 
@@ -1946,6 +1954,15 @@
                     // Store client ID and coach ID for saving modifications later
                     currentClientId = clientData.id;
                     currentCoachId = clientData.coach_id;
+
+                    // Load client permissions (default to true if not set)
+                    clientPermissions = {
+                        canChangeMeals: clientData.can_change_meals !== false,
+                        canReviseMeals: clientData.can_revise_meals !== false,
+                        canCustomMeals: clientData.can_custom_meals !== false,
+                        canRequestNewPlan: clientData.can_request_new_plan !== false
+                    };
+                    console.log('📋 Client permissions loaded:', clientPermissions);
 
                     // Load favorites for the client
                     await loadFavorites(clientData.id);
@@ -3520,21 +3537,35 @@
             const isCustomMeal = meal.isCustom === true;
 
             // Edit button for custom meals, Revise button for AI meals
-            const editOrReviseButton = isCustomMeal
-                ? `<button class="btn btn-edit" onclick="editCustomMeal(${changeParam})" title="Edit this custom meal">✎ Edit</button>`
-                : `<button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>`;
+            // Only show if client has permission (or if coach view)
+            let editOrReviseButton = '';
+            if (!isClientView || clientPermissions.canReviseMeals) {
+                editOrReviseButton = isCustomMeal
+                    ? `<button class="btn btn-edit" onclick="editCustomMeal(${changeParam})" title="Edit this custom meal">✎ Edit</button>`
+                    : `<button class="btn btn-revise" onclick="reviseMeal(${changeParam})">✏️ Revise</button>`;
+            }
 
             // Log to Diary button for clients only
             const logDiaryButton = isClientView
                 ? `<button class="btn btn-log-diary" onclick="logMealToDiary('${escapedMealName}', '${meal.type || ''}', ${meal.calories || 0}, ${meal.protein || 0}, ${meal.carbs || 0}, ${meal.fat || 0})" title="Log this meal to your diary">📋 Log</button>`
                 : '';
 
+            // Change meal button (only if client has permission or coach view)
+            const changeMealButton = (!isClientView || clientPermissions.canChangeMeals)
+                ? `<button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>`
+                : '';
+
+            // Custom meal button (only if client has permission or coach view)
+            const customMealButton = (!isClientView || clientPermissions.canCustomMeals)
+                ? `<button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>`
+                : '';
+
             let actionButtons = `
                 <button class="btn btn-favorite ${favoriteClass}" id="fav-${index}" onclick="toggleFavorite('${escapedMealName}', '${meal.type || ''}', ${meal.calories}, ${meal.protein}, ${meal.carbs}, ${meal.fat}, '${index}')" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">${favoriteIcon}</button>
                 ${logDiaryButton}
-                <button class="btn btn-change" onclick="changeMeal(${changeParam})">🔄 Change</button>
+                ${changeMealButton}
                 ${editOrReviseButton}
-                <button class="btn btn-custom" onclick="customMeal(${changeParam})" title="Create exact meal from scratch">🎯 Custom</button>
+                ${customMealButton}
                 <button class="btn btn-recipe" onclick="getRecipe('${escapedMealName}')" title="Get cooking instructions">📖 Recipe</button>
                 ${undoButton}
             `;

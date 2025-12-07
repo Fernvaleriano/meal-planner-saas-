@@ -2001,6 +2001,30 @@
                     <textarea id="clientNotes" placeholder="Any important information about this client..."></textarea>
                 </div>
 
+                <!-- Client Portal Permissions -->
+                <h3 style="margin: 25px 0 15px 0; color: #0d9488;">🔒 Client Portal Permissions</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Control what your client can do with their meal plans in the client portal.</p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 0;">
+                        <input type="checkbox" id="canChangeMeals" checked style="width: 18px; height: 18px;">
+                        <label for="canChangeMeals" style="font-size: 14px; cursor: pointer; margin: 0;">Can exchange meals</label>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 0;">
+                        <input type="checkbox" id="canReviseMeals" checked style="width: 18px; height: 18px;">
+                        <label for="canReviseMeals" style="font-size: 14px; cursor: pointer; margin: 0;">Can revise meals</label>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 0;">
+                        <input type="checkbox" id="canCustomMeals" checked style="width: 18px; height: 18px;">
+                        <label for="canCustomMeals" style="font-size: 14px; cursor: pointer; margin: 0;">Can create custom meals</label>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 0;">
+                        <input type="checkbox" id="canRequestNewPlan" checked style="width: 18px; height: 18px;">
+                        <label for="canRequestNewPlan" style="font-size: 14px; cursor: pointer; margin: 0;">Can request new plans</label>
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 12px; color: #888;">Unchecked permissions will hide those buttons from your client's view.</p>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeClientModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="saveClientBtn">Save Client</button>
@@ -2705,6 +2729,12 @@
             // Notes
             document.getElementById('clientNotes').value = client.notes || '';
 
+            // Client Portal Permissions (default to true if not set)
+            document.getElementById('canChangeMeals').checked = client.can_change_meals !== false;
+            document.getElementById('canReviseMeals').checked = client.can_revise_meals !== false;
+            document.getElementById('canCustomMeals').checked = client.can_custom_meals !== false;
+            document.getElementById('canRequestNewPlan').checked = client.can_request_new_plan !== false;
+
             clientModal.style.display = 'block';
         }
 
@@ -2779,6 +2809,12 @@
 
                     // Notes
                     notes: document.getElementById('clientNotes').value.trim() || null,
+
+                    // Client Portal Permissions
+                    canChangeMeals: document.getElementById('canChangeMeals').checked,
+                    canReviseMeals: document.getElementById('canReviseMeals').checked,
+                    canCustomMeals: document.getElementById('canCustomMeals').checked,
+                    canRequestNewPlan: document.getElementById('canRequestNewPlan').checked,
 
                     // Legacy field for compatibility
                     defaultDietaryRestrictions: []
