@@ -2468,338 +2468,407 @@
            REDESIGNED DASHBOARD - Premium UI
            ========================================== */
 
-        /* Daily Wins Section */
-        .daily-wins-section {
-            background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 50%, #99f6e4 100%);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid #5eead4;
+        /* Coach Stories Section */
+        .coach-stories-section {
+            margin-bottom: 20px;
+        }
+
+        .stories-container {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            overflow-x: auto;
+            padding: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .stories-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .story-bubble-wrapper {
+            flex-shrink: 0;
+        }
+
+        .story-bubble {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .story-ring {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            padding: 3px;
+            background: var(--gray-300);
+            transition: all 0.3s;
+        }
+
+        .story-ring.unseen {
+            background: var(--brand-gradient);
+            animation: pulse-ring 2s infinite;
+        }
+
+        .story-ring.seen {
+            background: var(--gray-300);
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(13, 148, 136, 0); }
+        }
+
+        .story-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            background: var(--gray-100);
+        }
+
+        .story-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-700);
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        /* Highlights */
+        .highlights-container {
+            display: flex;
+            gap: 16px;
+        }
+
+        .highlight-bubble {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .highlight-ring {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            padding: 3px;
+            background: var(--gray-200);
+            border: 2px solid var(--gray-300);
+        }
+
+        .highlight-icon {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .highlight-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-600);
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Full-screen Story Viewer */
+        .story-viewer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .story-viewer {
+            width: 100%;
+            max-width: 420px;
+            height: 100%;
+            max-height: 100vh;
             position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .story-progress-container {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px 8px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .story-progress-bar {
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
             overflow: hidden;
         }
 
-        .daily-wins-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(13, 148, 136, 0.1) 0%, transparent 70%);
-            pointer-events: none;
+        .story-progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 3px;
+            transition: width 0.1s linear;
         }
 
-        .wins-header {
+        .story-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            padding: 24px 16px 12px;
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            z-index: 10;
         }
 
-        .wins-title {
+        .story-user-info {
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: #0d9488;
         }
 
-        .wins-title-icon {
-            font-size: 1.5rem;
+        .story-header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
         }
 
-        .ai-encouragement {
-            background: white;
-            border-radius: 16px;
-            padding: 16px 20px;
-            margin-bottom: 20px;
-            border: 1px solid #99f6e4;
+        .story-user-details {
             display: flex;
-            gap: 12px;
-            align-items: flex-start;
+            flex-direction: column;
         }
 
-        .ai-avatar {
-            width: 40px;
-            height: 40px;
-            background: var(--brand-gradient);
-            border-radius: 12px;
+        .story-username {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .story-time {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .story-close-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
-            flex-shrink: 0;
         }
 
-        .ai-message {
+        .story-content {
             flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            overflow: hidden;
         }
 
-        .ai-message-label {
-            font-size: 11px;
+        .story-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .story-quote-card {
+            background: var(--brand-gradient);
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 340px;
+        }
+
+        .story-quote-text {
+            font-size: 1.5rem;
             font-weight: 700;
-            color: #0d9488;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            color: white;
+            line-height: 1.4;
+            margin-bottom: 16px;
+        }
+
+        .story-quote-author {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .story-link-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            max-width: 320px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .story-link-preview {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+        }
+
+        .story-link-info {
+            padding: 16px;
+        }
+
+        .story-link-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
             margin-bottom: 4px;
         }
 
-        .ai-message-text {
-            font-size: 0.95rem;
-            color: var(--gray-700);
-            line-height: 1.5;
-        }
-
-        .wins-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .win-card {
-            background: white;
-            border-radius: 14px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border: 1px solid #99f6e4;
-            transition: all 0.2s;
-        }
-
-        .win-card.achieved {
-            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-            border-color: #6ee7b7;
-        }
-
-        .win-card.achieved .win-icon {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-        }
-
-        .win-card.pending {
-            opacity: 0.7;
-        }
-
-        .win-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            flex-shrink: 0;
-        }
-
-        .win-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .win-title {
-            font-size: 0.875rem;
-            font-weight: 700;
-            color: var(--gray-800);
-            margin-bottom: 2px;
-        }
-
-        .win-subtitle {
-            font-size: 0.75rem;
+        .story-link-url {
+            font-size: 12px;
             color: var(--gray-500);
         }
 
-        .win-check {
-            color: #10b981;
-            font-size: 1.25rem;
+        /* Navigation areas */
+        .story-nav {
+            position: absolute;
+            top: 80px;
+            bottom: 120px;
+            width: 30%;
+            z-index: 5;
+            cursor: pointer;
         }
 
-        /* Badges Section */
-        .badges-section {
-            background: white;
-            border-radius: 14px;
+        .story-nav-prev {
+            left: 0;
+        }
+
+        .story-nav-next {
+            right: 0;
+        }
+
+        /* Footer */
+        .story-footer {
             padding: 16px;
-            border: 1px solid #99f6e4;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
         }
 
-        .badges-header {
+        .story-reactions {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 12px;
+            justify-content: center;
             margin-bottom: 12px;
         }
 
-        .badges-title {
-            font-size: 0.875rem;
-            font-weight: 700;
-            color: var(--gray-700);
-        }
-
-        .badges-count {
-            font-size: 0.75rem;
-            color: #0d9488;
-            font-weight: 600;
-        }
-
-        .badges-grid {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .badge-item {
+        .reaction-btn {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            border-radius: 50%;
             font-size: 1.5rem;
-            position: relative;
-            transition: transform 0.2s;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .badge-item:hover {
+        .reaction-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
             transform: scale(1.1);
         }
 
-        .badge-item.earned {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 2px solid #fbbf24;
+        .reaction-btn.reacted {
+            background: rgba(255, 255, 255, 0.3);
+            animation: bounce 0.3s;
         }
 
-        .badge-item.locked {
-            background: var(--gray-100);
-            border: 2px dashed var(--gray-300);
-            opacity: 0.5;
-            filter: grayscale(1);
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
         }
 
-        .badge-tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--gray-900);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            margin-bottom: 8px;
-        }
-
-        .badge-item:hover .badge-tooltip {
-            opacity: 1;
-        }
-
-        /* Personal Best Card */
-        .personal-best-card {
-            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            border: 1px solid #fcd34d;
-            border-radius: 14px;
-            padding: 16px;
-            margin-top: 12px;
+        .story-reply-container {
             display: flex;
-            align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
-        .personal-best-icon {
-            font-size: 2rem;
-        }
-
-        .personal-best-content {
+        .story-reply-input {
             flex: 1;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            color: white;
+            font-size: 14px;
         }
 
-        .personal-best-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: #b45309;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .story-reply-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
         }
 
-        .personal-best-value {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #92400e;
+        .story-reply-btn {
+            padding: 12px 20px;
+            background: var(--brand-primary);
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
         }
 
-        /* Dark mode for Daily Wins */
-        [data-theme="dark"] .daily-wins-section {
-            background: linear-gradient(135deg, #042f2e 0%, #134e4a 50%, #115e59 100%);
-            border-color: #14b8a6;
+        .story-reply-btn:hover {
+            background: var(--brand-secondary);
         }
 
-        [data-theme="dark"] .wins-title {
-            color: #5eead4;
+        /* Dark mode for Stories */
+        [data-theme="dark"] .story-label {
+            color: var(--gray-300);
         }
 
-        [data-theme="dark"] .ai-encouragement {
-            background: rgba(30, 41, 59, 0.8);
-            border-color: #0d9488;
+        [data-theme="dark"] .highlight-ring {
+            background: var(--gray-700);
+            border-color: var(--gray-600);
         }
 
-        [data-theme="dark"] .ai-message-text {
-            color: #e2e8f0;
+        [data-theme="dark"] .highlight-icon {
+            background: var(--gray-800);
         }
 
-        [data-theme="dark"] .win-card {
-            background: rgba(30, 41, 59, 0.8);
-            border-color: #0d9488;
-        }
-
-        [data-theme="dark"] .win-card.achieved {
-            background: rgba(16, 185, 129, 0.2);
-            border-color: #10b981;
-        }
-
-        [data-theme="dark"] .win-title {
-            color: #f1f5f9;
-        }
-
-        [data-theme="dark"] .win-subtitle {
-            color: #94a3b8;
-        }
-
-        [data-theme="dark"] .badges-section {
-            background: rgba(30, 41, 59, 0.8);
-            border-color: #0d9488;
-        }
-
-        [data-theme="dark"] .badges-title {
-            color: #e2e8f0;
-        }
-
-        [data-theme="dark"] .personal-best-card {
-            background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
-            border-color: #b45309;
-        }
-
-        [data-theme="dark"] .personal-best-label {
-            color: #fde68a;
-        }
-
-        [data-theme="dark"] .personal-best-value {
-            color: #fef3c7;
-        }
-
-        @media (max-width: 480px) {
-            .wins-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .daily-wins-section {
-                padding: 20px 16px;
-            }
+        [data-theme="dark"] .highlight-label {
+            color: var(--gray-400);
         }
 
         /* Greeting with Streak Badge */
@@ -3457,99 +3526,61 @@
                         </div>
                     </div>
 
-                    <!-- Daily Wins Section -->
-                    <div class="daily-wins-section" id="dailyWinsSection">
-                        <div class="wins-header">
-                            <div class="wins-title">
-                                <span class="wins-title-icon">🏆</span>
-                                Daily Wins
+                    <!-- Coach Stories Section -->
+                    <div class="coach-stories-section" id="coachStoriesSection">
+                        <div class="stories-container">
+                            <!-- Coach Story Bubble -->
+                            <div class="story-bubble-wrapper" id="storyBubbleWrapper" style="display: none;">
+                                <div class="story-bubble" id="storyBubble" onclick="openStoryViewer()">
+                                    <div class="story-ring unseen">
+                                        <img class="story-avatar" id="coachAvatar" src="" alt="Coach">
+                                    </div>
+                                    <span class="story-label">Coach</span>
+                                </div>
                             </div>
+                            <!-- Highlights Bubbles (pinned stories) -->
+                            <div class="highlights-container" id="highlightsContainer"></div>
                         </div>
+                    </div>
 
-                        <!-- AI Encouragement Message -->
-                        <div class="ai-encouragement">
-                            <div class="ai-avatar">🤖</div>
-                            <div class="ai-message">
-                                <div class="ai-message-label">Your AI Coach</div>
-                                <div class="ai-message-text" id="aiEncouragement">Loading your personalized message...</div>
-                            </div>
-                        </div>
+                    <!-- Full-screen Story Viewer Modal -->
+                    <div class="story-viewer-overlay" id="storyViewerOverlay" style="display: none;">
+                        <div class="story-viewer">
+                            <!-- Progress bars -->
+                            <div class="story-progress-container" id="storyProgressContainer"></div>
 
-                        <!-- Today's Wins Grid -->
-                        <div class="wins-grid" id="winsGrid">
-                            <div class="win-card pending" id="winMealsLogged">
-                                <div class="win-icon">🍽️</div>
-                                <div class="win-content">
-                                    <div class="win-title">Log a Meal</div>
-                                    <div class="win-subtitle">Track your nutrition</div>
+                            <!-- Header -->
+                            <div class="story-header">
+                                <div class="story-user-info">
+                                    <img class="story-header-avatar" id="storyHeaderAvatar" src="" alt="Coach">
+                                    <div class="story-user-details">
+                                        <span class="story-username" id="storyUsername">Your Coach</span>
+                                        <span class="story-time" id="storyTime">Just now</span>
+                                    </div>
                                 </div>
-                                <span class="win-check" style="display:none;">✓</span>
-                            </div>
-                            <div class="win-card pending" id="winProteinGoal">
-                                <div class="win-icon">💪</div>
-                                <div class="win-content">
-                                    <div class="win-title">Hit Protein Goal</div>
-                                    <div class="win-subtitle" id="proteinProgress">0% complete</div>
-                                </div>
-                                <span class="win-check" style="display:none;">✓</span>
-                            </div>
-                            <div class="win-card pending" id="winCalorieGoal">
-                                <div class="win-icon">🎯</div>
-                                <div class="win-content">
-                                    <div class="win-title">Stay on Track</div>
-                                    <div class="win-subtitle" id="calorieProgress">Calories on target</div>
-                                </div>
-                                <span class="win-check" style="display:none;">✓</span>
-                            </div>
-                            <div class="win-card pending" id="winStreak">
-                                <div class="win-icon">🔥</div>
-                                <div class="win-content">
-                                    <div class="win-title">Keep Your Streak</div>
-                                    <div class="win-subtitle" id="streakProgress">Log today to continue</div>
-                                </div>
-                                <span class="win-check" style="display:none;">✓</span>
-                            </div>
-                        </div>
-
-                        <!-- Badges Section -->
-                        <div class="badges-section">
-                            <div class="badges-header">
-                                <span class="badges-title">Your Badges</span>
-                                <span class="badges-count" id="badgesCount">0 earned</span>
-                            </div>
-                            <div class="badges-grid" id="badgesGrid">
-                                <div class="badge-item locked" data-badge="first-log">
-                                    🌟
-                                    <span class="badge-tooltip">First Log - Log your first meal</span>
-                                </div>
-                                <div class="badge-item locked" data-badge="week-warrior">
-                                    ⚔️
-                                    <span class="badge-tooltip">Week Warrior - 7 day streak</span>
-                                </div>
-                                <div class="badge-item locked" data-badge="protein-pro">
-                                    💪
-                                    <span class="badge-tooltip">Protein Pro - Hit protein 5 days</span>
-                                </div>
-                                <div class="badge-item locked" data-badge="checkin-champ">
-                                    ✅
-                                    <span class="badge-tooltip">Check-in Champ - Complete 4 check-ins</span>
-                                </div>
-                                <div class="badge-item locked" data-badge="consistency-king">
-                                    👑
-                                    <span class="badge-tooltip">Consistency King - 30 day streak</span>
-                                </div>
-                                <div class="badge-item locked" data-badge="meal-master">
-                                    🍽️
-                                    <span class="badge-tooltip">Meal Master - Log 100 meals</span>
-                                </div>
+                                <button class="story-close-btn" onclick="closeStoryViewer()">✕</button>
                             </div>
 
-                            <!-- Personal Best -->
-                            <div class="personal-best-card" id="personalBestCard" style="display:none;">
-                                <span class="personal-best-icon">🥇</span>
-                                <div class="personal-best-content">
-                                    <div class="personal-best-label">Personal Best</div>
-                                    <div class="personal-best-value" id="personalBestValue">-</div>
+                            <!-- Content area -->
+                            <div class="story-content" id="storyContent">
+                                <!-- Dynamic content: image, quote, or link -->
+                            </div>
+
+                            <!-- Navigation areas -->
+                            <div class="story-nav story-nav-prev" onclick="prevStory()"></div>
+                            <div class="story-nav story-nav-next" onclick="nextStory()"></div>
+
+                            <!-- Footer with reactions -->
+                            <div class="story-footer">
+                                <div class="story-reactions">
+                                    <button class="reaction-btn" onclick="reactToStory('🔥')">🔥</button>
+                                    <button class="reaction-btn" onclick="reactToStory('💪')">💪</button>
+                                    <button class="reaction-btn" onclick="reactToStory('❤️')">❤️</button>
+                                    <button class="reaction-btn" onclick="reactToStory('👏')">👏</button>
+                                </div>
+                                <div class="story-reply-container">
+                                    <input type="text" class="story-reply-input" id="storyReplyInput" placeholder="Send a message...">
+                                    <button class="story-reply-btn" onclick="sendStoryReply()">Send</button>
                                 </div>
                             </div>
                         </div>
@@ -5740,115 +5771,318 @@
         // Run dashboard extras after a short delay to ensure client ID is loaded
         setTimeout(initDashboardExtras, 1000);
 
-        // Load Daily Wins data from backend
-        async function loadDailyWins() {
-            if (!currentClientId) {
-                console.log('No client ID for daily wins');
+        // ========================================
+        // COACH STORIES FEATURE
+        // ========================================
+        let coachStories = [];
+        let currentStoryIndex = 0;
+        let storyTimer = null;
+        const STORY_DURATION = 5000; // 5 seconds per story
+
+        // Load coach stories
+        async function loadCoachStories() {
+            if (!currentClientId || !currentCoachId) {
+                console.log('No client/coach ID for stories');
                 return;
             }
 
             try {
-                const response = await fetch(`/.netlify/functions/client-daily-wins?clientId=${currentClientId}`);
-                if (!response.ok) throw new Error('Failed to load daily wins');
+                const response = await fetch(`/.netlify/functions/get-coach-stories?clientId=${currentClientId}&coachId=${currentCoachId}`);
+                if (!response.ok) throw new Error('Failed to load stories');
 
                 const data = await response.json();
-                updateDailyWinsUI(data);
+                coachStories = data.stories || [];
+
+                if (coachStories.length > 0) {
+                    displayStoryBubble(data.coachName, data.coachAvatar, data.hasUnseenStories);
+                }
+
+                // Load highlights too
+                if (data.highlights && data.highlights.length > 0) {
+                    displayHighlights(data.highlights);
+                }
             } catch (error) {
-                console.error('Error loading daily wins:', error);
-                // Set default encouragement on error
-                const aiMessage = document.getElementById('aiEncouragement');
-                if (aiMessage) {
-                    aiMessage.textContent = "Ready to make today a great day? Let's track your wins!";
+                console.error('Error loading stories:', error);
+            }
+        }
+
+        // Display the story bubble
+        function displayStoryBubble(coachName, coachAvatar, hasUnseen) {
+            const wrapper = document.getElementById('storyBubbleWrapper');
+            const avatar = document.getElementById('coachAvatar');
+            const ring = document.querySelector('.story-ring');
+            const label = document.querySelector('.story-label');
+
+            if (wrapper && avatar) {
+                wrapper.style.display = 'block';
+                avatar.src = coachAvatar || 'https://ui-avatars.com/api/?name=Coach&background=0d9488&color=fff';
+                if (label) label.textContent = coachName || 'Coach';
+
+                if (ring) {
+                    ring.classList.toggle('unseen', hasUnseen);
+                    ring.classList.toggle('seen', !hasUnseen);
                 }
             }
         }
 
-        // Update Daily Wins UI with data from backend
-        function updateDailyWinsUI(data) {
-            // Update AI encouragement
-            const aiMessage = document.getElementById('aiEncouragement');
-            if (aiMessage && data.encouragement) {
-                aiMessage.textContent = data.encouragement;
+        // Display highlight bubbles
+        function displayHighlights(highlights) {
+            const container = document.getElementById('highlightsContainer');
+            if (!container) return;
+
+            container.innerHTML = highlights.map(h => `
+                <div class="highlight-bubble" onclick="openHighlight('${h.id}')">
+                    <div class="highlight-ring">
+                        <div class="highlight-icon">${h.icon || '📌'}</div>
+                    </div>
+                    <span class="highlight-label">${h.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // Open story viewer
+        function openStoryViewer() {
+            if (coachStories.length === 0) return;
+
+            const overlay = document.getElementById('storyViewerOverlay');
+            overlay.style.display = 'flex';
+            currentStoryIndex = 0;
+
+            // Build progress bars
+            buildProgressBars();
+
+            // Show first story
+            showStory(0);
+
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close story viewer
+        function closeStoryViewer() {
+            const overlay = document.getElementById('storyViewerOverlay');
+            overlay.style.display = 'none';
+            clearInterval(storyTimer);
+            document.body.style.overflow = '';
+        }
+
+        // Build progress bars for stories
+        function buildProgressBars() {
+            const container = document.getElementById('storyProgressContainer');
+            container.innerHTML = coachStories.map((_, i) => `
+                <div class="story-progress-bar">
+                    <div class="story-progress-fill" id="progressFill${i}" style="width: 0%"></div>
+                </div>
+            `).join('');
+        }
+
+        // Show specific story
+        function showStory(index) {
+            if (index < 0 || index >= coachStories.length) {
+                closeStoryViewer();
+                return;
             }
 
-            // Update win cards
-            if (data.wins) {
-                updateWinCard('winMealsLogged', data.wins.mealsLogged,
-                    data.progress?.mealsLoggedToday > 0 ? `${data.progress.mealsLoggedToday} logged today` : 'Track your nutrition');
-                updateWinCard('winProteinGoal', data.wins.proteinGoal,
-                    `${data.progress?.proteinPercent || 0}% complete`);
-                updateWinCard('winCalorieGoal', data.wins.calorieGoal,
-                    `${data.progress?.caloriePercent || 0}% of target`);
-                updateWinCard('winStreak', data.wins.streak,
-                    data.progress?.streak > 0 ? `${data.progress.streak} day streak!` : 'Log today to start');
+            currentStoryIndex = index;
+            const story = coachStories[index];
+
+            // Update header
+            document.getElementById('storyUsername').textContent = story.coachName || 'Your Coach';
+            document.getElementById('storyTime').textContent = getTimeAgo(story.createdAt);
+            document.getElementById('storyHeaderAvatar').src = story.coachAvatar || 'https://ui-avatars.com/api/?name=Coach&background=0d9488&color=fff';
+
+            // Update content based on type
+            const contentEl = document.getElementById('storyContent');
+
+            if (story.type === 'image') {
+                contentEl.innerHTML = `
+                    <div style="text-align: center;">
+                        <img src="${story.imageUrl}" alt="Story" style="max-width: 100%; max-height: 70vh; border-radius: 12px;">
+                        ${story.caption ? `<p style="color: white; margin-top: 16px; font-size: 16px;">${story.caption}</p>` : ''}
+                    </div>
+                `;
+            } else if (story.type === 'quote') {
+                contentEl.innerHTML = `
+                    <div class="story-quote-card">
+                        <div class="story-quote-text">"${story.quoteText}"</div>
+                        ${story.quoteAuthor ? `<div class="story-quote-author">— ${story.quoteAuthor}</div>` : ''}
+                    </div>
+                `;
+            } else if (story.type === 'link') {
+                contentEl.innerHTML = `
+                    <a href="${story.linkUrl}" target="_blank" class="story-link-card" style="text-decoration: none;">
+                        ${story.linkPreviewImage ? `<img src="${story.linkPreviewImage}" class="story-link-preview" alt="">` : ''}
+                        <div class="story-link-info">
+                            <div class="story-link-title">${story.linkTitle || 'Check this out'}</div>
+                            <div class="story-link-url">${new URL(story.linkUrl).hostname}</div>
+                        </div>
+                    </a>
+                `;
             }
 
-            // Update badges
-            if (data.badges) {
-                Object.entries(data.badges).forEach(([badgeId, earned]) => {
-                    const badge = document.querySelector(`[data-badge="${badgeId}"]`);
-                    if (badge) {
-                        if (earned) {
-                            badge.classList.remove('locked');
-                            badge.classList.add('earned');
-                        } else {
-                            badge.classList.remove('earned');
-                            badge.classList.add('locked');
-                        }
-                    }
+            // Mark as viewed
+            markStoryViewed(story.id);
+
+            // Reset and start progress
+            resetProgressBars();
+            startStoryTimer(index);
+        }
+
+        // Reset all progress bars
+        function resetProgressBars() {
+            coachStories.forEach((_, i) => {
+                const fill = document.getElementById(`progressFill${i}`);
+                if (fill) {
+                    fill.style.transition = 'none';
+                    fill.style.width = i < currentStoryIndex ? '100%' : '0%';
+                }
+            });
+        }
+
+        // Start timer for current story
+        function startStoryTimer(index) {
+            clearInterval(storyTimer);
+
+            const fill = document.getElementById(`progressFill${index}`);
+            if (fill) {
+                fill.style.transition = `width ${STORY_DURATION}ms linear`;
+                setTimeout(() => fill.style.width = '100%', 50);
+            }
+
+            storyTimer = setTimeout(() => {
+                nextStory();
+            }, STORY_DURATION);
+        }
+
+        // Navigate stories
+        function nextStory() {
+            if (currentStoryIndex < coachStories.length - 1) {
+                showStory(currentStoryIndex + 1);
+            } else {
+                closeStoryViewer();
+            }
+        }
+
+        function prevStory() {
+            if (currentStoryIndex > 0) {
+                showStory(currentStoryIndex - 1);
+            }
+        }
+
+        // Mark story as viewed
+        async function markStoryViewed(storyId) {
+            try {
+                await fetch('/.netlify/functions/view-story', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ storyId, clientId: currentClientId })
                 });
 
-                // Update badge count
-                const badgesCount = document.getElementById('badgesCount');
-                if (badgesCount) {
-                    badgesCount.textContent = `${data.earnedBadgesCount || 0} earned`;
+                // Update ring to seen after viewing all
+                if (currentStoryIndex === coachStories.length - 1) {
+                    const ring = document.querySelector('.story-ring');
+                    if (ring) {
+                        ring.classList.remove('unseen');
+                        ring.classList.add('seen');
+                    }
                 }
-            }
-
-            // Show personal best if available
-            if (data.personalBest && data.personalBest.value > 0) {
-                const pbCard = document.getElementById('personalBestCard');
-                const pbValue = document.getElementById('personalBestValue');
-                if (pbCard && pbValue) {
-                    pbValue.textContent = data.personalBest.label;
-                    pbCard.style.display = 'flex';
-                }
+            } catch (e) {
+                console.error('Error marking story viewed:', e);
             }
         }
 
-        // Helper to update individual win card state
-        function updateWinCard(cardId, achieved, subtitle) {
-            const card = document.getElementById(cardId);
-            if (!card) return;
+        // React to story
+        async function reactToStory(emoji) {
+            const story = coachStories[currentStoryIndex];
+            if (!story) return;
 
-            if (achieved) {
-                card.classList.remove('pending');
-                card.classList.add('achieved');
-                const check = card.querySelector('.win-check');
-                if (check) check.style.display = 'block';
-            } else {
-                card.classList.remove('achieved');
-                card.classList.add('pending');
-                const check = card.querySelector('.win-check');
-                if (check) check.style.display = 'none';
-            }
+            // Visual feedback
+            event.target.classList.add('reacted');
+            setTimeout(() => event.target.classList.remove('reacted'), 300);
 
-            // Update subtitle
-            const subtitleEl = card.querySelector('.win-subtitle');
-            if (subtitleEl && subtitle) {
-                subtitleEl.textContent = subtitle;
+            try {
+                await fetch('/.netlify/functions/react-to-story', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storyId: story.id,
+                        clientId: currentClientId,
+                        reaction: emoji
+                    })
+                });
+            } catch (e) {
+                console.error('Error reacting to story:', e);
             }
         }
 
-        // Call loadDailyWins when page loads (after client ID is available)
+        // Send reply to story
+        async function sendStoryReply() {
+            const input = document.getElementById('storyReplyInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const story = coachStories[currentStoryIndex];
+            if (!story) return;
+
+            try {
+                await fetch('/.netlify/functions/reply-to-story', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storyId: story.id,
+                        clientId: currentClientId,
+                        coachId: currentCoachId,
+                        message
+                    })
+                });
+
+                input.value = '';
+                // Show confirmation
+                input.placeholder = 'Message sent!';
+                setTimeout(() => input.placeholder = 'Send a message...', 2000);
+            } catch (e) {
+                console.error('Error sending reply:', e);
+            }
+        }
+
+        // Open highlight stories
+        function openHighlight(highlightId) {
+            // TODO: Load and show highlight stories
+            console.log('Opening highlight:', highlightId);
+        }
+
+        // Helper: time ago
+        function getTimeAgo(dateString) {
+            const now = new Date();
+            const date = new Date(dateString);
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return 'Yesterday';
+        }
+
+        // Load stories when page loads
         setTimeout(() => {
-            if (currentClientId) {
-                loadDailyWins();
+            if (currentClientId && currentCoachId) {
+                loadCoachStories();
             } else {
-                // Wait a bit more for client ID
-                setTimeout(loadDailyWins, 1500);
+                setTimeout(loadCoachStories, 1500);
             }
         }, 1200);
+
+        // Keyboard navigation for stories
+        document.addEventListener('keydown', (e) => {
+            const overlay = document.getElementById('storyViewerOverlay');
+            if (overlay.style.display !== 'flex') return;
+
+            if (e.key === 'ArrowRight') nextStory();
+            if (e.key === 'ArrowLeft') prevStory();
+            if (e.key === 'Escape') closeStoryViewer();
+        });
     </script>
 
     <!-- Footer (hidden on mobile) -->
