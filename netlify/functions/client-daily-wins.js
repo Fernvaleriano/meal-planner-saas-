@@ -36,14 +36,14 @@ exports.handler = async (event, context) => {
     const { data: client } = await supabase
       .from('clients')
       .select('client_name')
-      .eq('user_id', clientId)
+      .eq('id', clientId)
       .single();
 
     const clientName = client?.client_name?.split(' ')[0] || 'there';
 
     // Get today's diary entries
     const { data: todayEntries } = await supabase
-      .from('food_diary')
+      .from('food_diary_entries')
       .select('calories, protein, carbs, fat')
       .eq('client_id', clientId)
       .eq('entry_date', today);
@@ -70,7 +70,7 @@ exports.handler = async (event, context) => {
 
     // Calculate streak - count consecutive days with diary entries
     const { data: recentEntries } = await supabase
-      .from('food_diary')
+      .from('food_diary_entries')
       .select('entry_date')
       .eq('client_id', clientId)
       .order('entry_date', { ascending: false })
@@ -96,13 +96,13 @@ exports.handler = async (event, context) => {
 
     // Get total meals logged ever
     const { count: totalMealsLogged } = await supabase
-      .from('food_diary')
+      .from('food_diary_entries')
       .select('*', { count: 'exact', head: true })
       .eq('client_id', clientId);
 
     // Get days where protein goal was hit
     const { data: allEntries } = await supabase
-      .from('food_diary')
+      .from('food_diary_entries')
       .select('entry_date, protein')
       .eq('client_id', clientId);
 
