@@ -36,9 +36,7 @@ exports.handler = async (event, context) => {
       allergies, dislikedFoods, preferredFoods, cookingEquipment,
       useProteinPowder, proteinPowderBrand, proteinPowderCalories,
       proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
-      useBrandedFoods,
-      // Client portal permissions
-      canChangeMeals, canReviseMeals, canCustomMeals, canRequestNewPlan
+      useBrandedFoods
     } = body;
 
     // Validate required fields
@@ -153,12 +151,7 @@ exports.handler = async (event, context) => {
           protein_powder_carbs: proteinPowderCarbs || null,
           protein_powder_fat: proteinPowderFat || null,
           // Branded fitness foods
-          use_branded_foods: useBrandedFoods || false,
-          // Client portal permissions (default to true)
-          can_change_meals: canChangeMeals !== false,
-          can_revise_meals: canReviseMeals !== false,
-          can_custom_meals: canCustomMeals !== false,
-          can_request_new_plan: canRequestNewPlan !== false
+          use_branded_foods: useBrandedFoods || false
         }
       ])
       .select()
