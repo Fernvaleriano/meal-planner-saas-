@@ -1,11 +1,11 @@
 // Netlify Function to generate AI-powered activity summary for coaches
 // Analyzes client activity, check-ins, and engagement to provide actionable insights
 const { createClient } = require('@supabase/supabase-js');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -212,14 +212,11 @@ exports.handler = async (event, context) => {
       });
     });
 
-    // Generate AI summary using Gemini
+    // Generate AI summary using Gemini REST API
     let aiSummary = '';
 
-    if (GOOGLE_API_KEY) {
+    if (GEMINI_API_KEY) {
       try {
-        const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
         const prompt = `You are a coaching assistant analyzing client activity for a fitness/nutrition coach. Based on the following data, provide a brief, friendly summary (2-3 sentences) highlighting the most important insights. Be encouraging but mention any clients needing attention.
 
 CLIENT ACTIVITY DATA:
@@ -237,8 +234,25 @@ ${needsAttention.filter(n => n.priority === 'high').map(n => `- ${n.clientName}:
 
 Keep the summary concise, actionable, and coach-friendly. Start with the positive if there is any, then mention what needs attention.`;
 
-        const result = await model.generateContent(prompt);
-        aiSummary = result.response.text();
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 300
+            }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          aiSummary = data.candidates?.[0]?.content?.parts?.[0]?.text || generateFallbackSummary(stats, needsAttention);
+        } else {
+          console.error('Gemini API error:', response.status);
+          aiSummary = generateFallbackSummary(stats, needsAttention);
+        }
       } catch (aiError) {
         console.error('AI generation error:', aiError);
         // Fall back to template-based summary
