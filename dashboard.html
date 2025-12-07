@@ -1762,6 +1762,173 @@
             color: var(--gray-700);
         }
 
+        /* Story Interactions Modal */
+        .interactions-modal-dialog {
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .interactions-modal-body {
+            overflow-y: auto;
+            max-height: 60vh;
+            padding: 16px;
+        }
+
+        .interactions-section {
+            margin-bottom: 24px;
+        }
+
+        .interactions-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .interactions-section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .interactions-section-title span {
+            font-size: 1rem;
+        }
+
+        .reaction-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .reaction-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--gray-50);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+
+        .reaction-emoji {
+            font-size: 1.1rem;
+        }
+
+        .reaction-count {
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .interaction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .interaction-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .interaction-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .interaction-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .interaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .interaction-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--gray-800);
+        }
+
+        .interaction-time {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .interaction-message {
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .interaction-reaction {
+            font-size: 1.25rem;
+        }
+
+        .no-interactions {
+            text-align: center;
+            padding: 24px;
+            color: var(--gray-500);
+        }
+
+        .no-interactions-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .story-card-stats {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .story-card-stats:hover {
+            opacity: 0.7;
+        }
+
+        /* Dark mode for interactions modal */
+        [data-theme="dark"] .interaction-item {
+            background: var(--gray-700);
+        }
+
+        [data-theme="dark"] .reaction-group {
+            background: var(--gray-700);
+        }
+
+        [data-theme="dark"] .interaction-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .interaction-message {
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .reaction-count {
+            color: #94a3b8;
+        }
+
         /* Dark mode for My Stories */
         [data-theme="dark"] .my-stories-section {
             background: var(--gray-800);
@@ -2550,6 +2717,19 @@
                 </div>
             </div>
 
+            <!-- Story Interactions Modal -->
+            <div class="story-creator-modal" id="storyInteractionsModal" style="display: none;">
+                <div class="story-creator-dialog interactions-modal-dialog">
+                    <div class="story-creator-header-modal">
+                        <h3>Story Interactions</h3>
+                        <button class="close-modal-btn" onclick="closeInteractionsModal()">&times;</button>
+                    </div>
+                    <div class="interactions-modal-body" id="interactionsModalBody">
+                        <div class="stories-loading">Loading interactions...</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="action-cards">
                 <div class="action-card">
                     <div class="action-card-icon">🍽️</div>
@@ -3191,6 +3371,21 @@
             }
         });
 
+        // Close modals when clicking outside
+        document.addEventListener('click', (e) => {
+            const interactionsModal = document.getElementById('storyInteractionsModal');
+            const deleteModal = document.getElementById('deleteStoryModal');
+
+            // Close interactions modal if clicking on the overlay (not the dialog)
+            if (e.target === interactionsModal) {
+                closeInteractionsModal();
+            }
+            // Close delete modal if clicking on the overlay
+            if (e.target === deleteModal) {
+                closeDeleteModal();
+            }
+        });
+
         // Mark all as read
         markAllRead.addEventListener('click', async () => {
             if (!currentUserId) return;
@@ -3660,7 +3855,7 @@
                             <span class="story-type-badge">${story.type}</span>
                             <span class="story-time-left ${timeClass}">${timeText}</span>
                         </div>
-                        <div class="story-card-stats">
+                        <div class="story-card-stats" onclick="openInteractionsModal('${story.id}')" title="Click to see who interacted">
                             <span class="story-stat">👁️ ${story.viewCount}</span>
                             <span class="story-stat">❤️ ${story.reactionCount}</span>
                             <span class="story-stat">💬 ${story.replyCount}</span>
@@ -3705,6 +3900,122 @@
         function closeDeleteModal() {
             document.getElementById('deleteStoryModal').style.display = 'none';
             storyToDelete = null;
+        }
+
+        // Story Interactions Modal Functions
+        async function openInteractionsModal(storyId) {
+            if (!currentUserId) return;
+
+            const modal = document.getElementById('storyInteractionsModal');
+            const body = document.getElementById('interactionsModalBody');
+
+            modal.style.display = 'flex';
+            body.innerHTML = '<div class="stories-loading">Loading interactions...</div>';
+
+            try {
+                const response = await fetch(`/.netlify/functions/get-story-interactions?storyId=${storyId}&coachId=${currentUserId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load interactions');
+                }
+
+                renderInteractions(data);
+            } catch (error) {
+                console.error('Error loading interactions:', error);
+                body.innerHTML = '<div class="no-interactions"><span class="no-interactions-icon">⚠️</span>Failed to load interactions</div>';
+            }
+        }
+
+        function closeInteractionsModal() {
+            document.getElementById('storyInteractionsModal').style.display = 'none';
+        }
+
+        function renderInteractions(data) {
+            const body = document.getElementById('interactionsModalBody');
+            const { reactions, reactionSummary, replies, totalReactions, totalReplies } = data;
+
+            if (totalReactions === 0 && totalReplies === 0) {
+                body.innerHTML = `
+                    <div class="no-interactions">
+                        <span class="no-interactions-icon">💭</span>
+                        <p>No interactions yet</p>
+                        <p style="font-size: 0.875rem; margin-top: 4px;">Your clients haven't reacted or commented on this story yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            // Reactions section
+            if (totalReactions > 0) {
+                html += `
+                    <div class="interactions-section">
+                        <div class="interactions-section-title">
+                            <span>❤️</span> Reactions (${totalReactions})
+                        </div>
+                        <div class="reaction-summary">
+                            ${Object.entries(reactionSummary).map(([emoji, names]) => `
+                                <div class="reaction-group">
+                                    <span class="reaction-emoji">${emoji}</span>
+                                    <span class="reaction-count">${names.length}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="interaction-list">
+                            ${reactions.map(r => `
+                                <div class="interaction-item">
+                                    <div class="interaction-avatar">${getInitials(r.clientName)}</div>
+                                    <div class="interaction-content">
+                                        <div class="interaction-header">
+                                            <span class="interaction-name">${escapeHtml(r.clientName)}</span>
+                                            <span class="interaction-time">${formatTimeAgo(r.reactedAt)}</span>
+                                        </div>
+                                        <div class="interaction-reaction">${r.reaction}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Replies/Comments section
+            if (totalReplies > 0) {
+                html += `
+                    <div class="interactions-section">
+                        <div class="interactions-section-title">
+                            <span>💬</span> Comments (${totalReplies})
+                        </div>
+                        <div class="interaction-list">
+                            ${replies.map(r => `
+                                <div class="interaction-item">
+                                    <div class="interaction-avatar">${getInitials(r.clientName)}</div>
+                                    <div class="interaction-content">
+                                        <div class="interaction-header">
+                                            <span class="interaction-name">${escapeHtml(r.clientName)}</span>
+                                            <span class="interaction-time">${formatTimeAgo(r.createdAt)}</span>
+                                        </div>
+                                        <div class="interaction-message">${escapeHtml(r.message)}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            body.innerHTML = html;
+        }
+
+        function getInitials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(' ');
+            if (parts.length === 1) {
+                return parts[0].charAt(0).toUpperCase();
+            }
+            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
         }
 
         async function confirmDeleteStory() {
