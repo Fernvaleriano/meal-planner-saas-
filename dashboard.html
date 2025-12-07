@@ -4024,7 +4024,7 @@
         }
 
         function openDeleteModal(storyId) {
-            const story = myStoriesData.find(s => s.id === storyId);
+            const story = myStoriesData.find(s => String(s.id) === String(storyId));
             if (!story) return;
 
             storyToDelete = story;
