@@ -5777,7 +5777,10 @@
         let coachStories = [];
         let currentStoryIndex = 0;
         let storyTimer = null;
-        const STORY_DURATION = 5000; // 5 seconds per story
+        let storyTimerPaused = false;
+        let storyTimerRemaining = 0;
+        let storyTimerStart = 0;
+        const STORY_DURATION = 10000; // 10 seconds per story
 
         // Load coach stories
         async function loadCoachStories() {
@@ -5856,14 +5859,29 @@
 
             // Prevent body scroll
             document.body.style.overflow = 'hidden';
+
+            // Add event listeners to pause timer when typing
+            const replyInput = document.getElementById('storyReplyInput');
+            if (replyInput) {
+                replyInput.addEventListener('focus', pauseStoryTimer);
+                replyInput.addEventListener('blur', resumeStoryTimer);
+            }
         }
 
         // Close story viewer
         function closeStoryViewer() {
             const overlay = document.getElementById('storyViewerOverlay');
             overlay.style.display = 'none';
-            clearInterval(storyTimer);
+            clearTimeout(storyTimer);
+            storyTimerPaused = false;
             document.body.style.overflow = '';
+
+            // Remove event listeners
+            const replyInput = document.getElementById('storyReplyInput');
+            if (replyInput) {
+                replyInput.removeEventListener('focus', pauseStoryTimer);
+                replyInput.removeEventListener('blur', resumeStoryTimer);
+            }
         }
 
         // Build progress bars for stories
@@ -5940,18 +5958,61 @@
         }
 
         // Start timer for current story
-        function startStoryTimer(index) {
-            clearInterval(storyTimer);
+        function startStoryTimer(index, duration = STORY_DURATION) {
+            clearTimeout(storyTimer);
+            storyTimerPaused = false;
+            storyTimerRemaining = duration;
+            storyTimerStart = Date.now();
 
             const fill = document.getElementById(`progressFill${index}`);
             if (fill) {
-                fill.style.transition = `width ${STORY_DURATION}ms linear`;
+                fill.style.transition = `width ${duration}ms linear`;
                 setTimeout(() => fill.style.width = '100%', 50);
             }
 
             storyTimer = setTimeout(() => {
                 nextStory();
-            }, STORY_DURATION);
+            }, duration);
+        }
+
+        // Pause story timer (when typing comment)
+        function pauseStoryTimer() {
+            if (storyTimerPaused || !storyTimer) return;
+
+            storyTimerPaused = true;
+            clearTimeout(storyTimer);
+            storyTimerRemaining = storyTimerRemaining - (Date.now() - storyTimerStart);
+
+            // Pause the progress bar animation
+            const fill = document.getElementById(`progressFill${currentStoryIndex}`);
+            if (fill) {
+                const computedWidth = getComputedStyle(fill).width;
+                fill.style.transition = 'none';
+                fill.style.width = computedWidth;
+            }
+        }
+
+        // Resume story timer (when done typing)
+        function resumeStoryTimer() {
+            if (!storyTimerPaused) return;
+
+            storyTimerPaused = false;
+            storyTimerStart = Date.now();
+
+            // Resume progress bar animation
+            const fill = document.getElementById(`progressFill${currentStoryIndex}`);
+            if (fill && storyTimerRemaining > 0) {
+                fill.style.transition = `width ${storyTimerRemaining}ms linear`;
+                setTimeout(() => fill.style.width = '100%', 50);
+            }
+
+            if (storyTimerRemaining > 0) {
+                storyTimer = setTimeout(() => {
+                    nextStory();
+                }, storyTimerRemaining);
+            } else {
+                nextStory();
+            }
         }
 
         // Navigate stories
