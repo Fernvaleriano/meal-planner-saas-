@@ -634,7 +634,10 @@
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
+
         let clientId = null;
+        let coachId = null;
         let ratings = { energy: null, sleep: null, hunger: null, stress: null };
         let checkinHistory = [];
         let historyOffset = 0;
@@ -657,15 +660,16 @@
                 return;
             }
 
-            // Get client record
+            // Get client record with coach_id
             const { data: client } = await supabaseClient
                 .from('clients')
-                .select('id')
+                .select('id, coach_id')
                 .eq('user_id', session.user.id)
                 .single();
 
             if (client) {
                 clientId = client.id;
+                coachId = client.coach_id;
                 // Load streak and history in parallel
                 await Promise.all([loadStreak(), loadCheckinHistory()]);
             }
@@ -718,23 +722,36 @@
             submitBtn.textContent = 'Submitting...';
 
             try {
-                const checkinData = {
-                    client_id: clientId,
-                    energy_level: ratings.energy,
-                    sleep_quality: ratings.sleep,
-                    hunger_level: ratings.hunger,
-                    stress_level: ratings.stress,
-                    adherence_percent: parseInt(document.getElementById('adherenceSlider').value),
-                    wins: document.getElementById('winsInput').value || null,
-                    challenges: document.getElementById('challengesInput').value || null,
-                    questions: document.getElementById('questionsInput').value || null
-                };
+                // Validate required fields
+                if (!ratings.energy || !ratings.sleep || !ratings.hunger || !ratings.stress) {
+                    alert('Please rate all wellness metrics before submitting.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Check-in';
+                    return;
+                }
 
-                const { error } = await supabaseClient
-                    .from('client_checkins')
-                    .insert([checkinData]);
+                // Use the Netlify function endpoint (same as dashboard)
+                const response = await fetch(CHECKIN_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        coachId: coachId,
+                        energyLevel: ratings.energy,
+                        sleepQuality: ratings.sleep,
+                        hungerLevel: ratings.hunger,
+                        stressLevel: ratings.stress,
+                        mealPlanAdherence: parseInt(document.getElementById('adherenceSlider').value),
+                        wins: document.getElementById('winsInput').value || null,
+                        challenges: document.getElementById('challengesInput').value || null,
+                        questions: document.getElementById('questionsInput').value || null
+                    })
+                });
 
-                if (error) throw error;
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to submit check-in');
+                }
 
                 alert('Check-in submitted successfully!');
 
@@ -754,7 +771,7 @@
 
             } catch (error) {
                 console.error('Error submitting check-in:', error);
-                alert('Error submitting check-in. Please try again.');
+                alert('Error submitting check-in: ' + error.message);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Check-in';
