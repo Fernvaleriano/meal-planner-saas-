@@ -255,19 +255,7 @@
             margin-bottom: 24px;
         }
 
-        .clients-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 24px;
-        }
-
-        @media (max-width: 440px) {
-            .clients-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* View Toggle */
+        /* View Controls */
         .view-controls {
             display: flex;
             justify-content: space-between;
@@ -275,52 +263,6 @@
             margin-bottom: 24px;
             flex-wrap: wrap;
             gap: 16px;
-        }
-
-        .view-toggle {
-            display: flex;
-            gap: 4px;
-            background: var(--gray-100);
-            padding: 4px;
-            border-radius: 10px;
-        }
-
-        .view-toggle-btn {
-            padding: 8px 16px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--gray-600);
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .view-toggle-btn.active {
-            background: white;
-            color: var(--brand-primary);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .view-toggle-btn:hover:not(.active) {
-            color: var(--gray-800);
-        }
-
-        [data-theme="dark"] .view-toggle {
-            background: var(--gray-800);
-        }
-
-        [data-theme="dark"] .view-toggle-btn {
-            color: var(--gray-400);
-        }
-
-        [data-theme="dark"] .view-toggle-btn.active {
-            background: var(--gray-700);
-            color: #2dd4bf;
         }
 
         .client-count {
@@ -422,39 +364,6 @@
 
         .table-row-clickable {
             cursor: pointer;
-        }
-
-        .client-card {
-            background: white;
-            border-radius: 20px;
-            padding: 28px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--gray-100);
-            transition: all 0.25s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .client-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--brand-gradient);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .client-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 16px 32px rgba(0, 0, 0, 0.06);
-            border-color: var(--brand-primary);
-        }
-
-        .client-card:hover::before {
-            opacity: 1;
         }
 
         .client-header {
@@ -1090,15 +999,6 @@
             color: #94a3b8;
         }
 
-        [data-theme="dark"] .client-card {
-            background: #1e293b;
-            border-color: #334155;
-        }
-
-        [data-theme="dark"] .client-card:hover {
-            border-color: #0d9488;
-        }
-
         [data-theme="dark"] .client-name {
             color: #f1f5f9;
         }
@@ -1211,16 +1111,6 @@
         [data-theme="dark"] .view-controls {
             background: #1e293b;
             border-color: #334155;
-        }
-
-        [data-theme="dark"] .view-toggle-btn {
-            background: #334155;
-            color: #94a3b8;
-        }
-
-        [data-theme="dark"] .view-toggle-btn.active {
-            background: #0d9488;
-            color: white;
         }
 
         [data-theme="dark"] .clients-table {
@@ -1408,20 +1298,6 @@
             50% { opacity: 0.5; }
         }
 
-        /* Archived Client Card Styles */
-        .client-card.archived {
-            opacity: 0.7;
-            background: var(--gray-100);
-        }
-
-        .client-card.archived::before {
-            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
-        }
-
-        [data-theme="dark"] .client-card.archived {
-            background: var(--gray-900);
-        }
-
         .archived-badge {
             display: inline-flex;
             align-items: center;
@@ -1568,24 +1444,6 @@
         <!-- View Controls -->
         <div id="viewControls" class="view-controls" style="display: none;">
             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                <div class="view-toggle">
-                    <button class="view-toggle-btn active" id="cardViewBtn" onclick="setView('cards')">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/>
-                            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/>
-                            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/>
-                            <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/>
-                        </svg>
-                        Cards
-                    </button>
-                    <button class="view-toggle-btn" id="tableViewBtn" onclick="setView('table')">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-width="2" d="M3 6h18M3 12h18M3 18h18"/>
-                        </svg>
-                        Table
-                    </button>
-                </div>
-
                 <!-- Search Box -->
                 <div class="search-container" id="searchContainer">
                     <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1609,10 +1467,6 @@
                 </button>
             </div>
             <span class="client-count" id="clientCount">0 clients</span>
-        </div>
-
-        <div id="clientsContainer" class="clients-grid" style="display: none;">
-            <!-- Client cards will be dynamically inserted here -->
         </div>
 
         <div id="clientsTableContainer" class="clients-table" style="display: none;">
@@ -1929,7 +1783,7 @@
         let clients = [];
         let archivedClients = [];
         let filteredClients = [];
-        let currentView = localStorage.getItem('clientsView') || 'cards';
+        let currentView = 'table'; // Table view is now the only view
         let showingArchived = false;
         let searchQuery = '';
 
@@ -1959,12 +1813,9 @@
         // UI Elements
         const loadingDiv = document.getElementById('loadingDiv');
         const emptyState = document.getElementById('emptyState');
-        const clientsContainer = document.getElementById('clientsContainer');
         const clientsTableContainer = document.getElementById('clientsTableContainer');
         const clientsTableBody = document.getElementById('clientsTableBody');
         const viewControls = document.getElementById('viewControls');
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const tableViewBtn = document.getElementById('tableViewBtn');
         const clientCountEl = document.getElementById('clientCount');
         const clientModal = document.getElementById('clientModal');
         const clientForm = document.getElementById('clientForm');
@@ -2272,144 +2123,21 @@
             }
         }
 
-        // Set view mode (cards or table)
-        function setView(view) {
-            currentView = view;
-            localStorage.setItem('clientsView', view);
-            applyView();
-        }
-
         // Render lock to prevent race conditions
         let isRendering = false;
 
-        // Apply current view
+        // Apply current view (table view only)
         async function applyView() {
             // Prevent concurrent renders
             if (isRendering) return;
             isRendering = true;
 
             try {
-                // Update button states
-                cardViewBtn.classList.toggle('active', currentView === 'cards');
-                tableViewBtn.classList.toggle('active', currentView === 'table');
-
-                if (currentView === 'cards') {
-                    clientsContainer.style.display = 'grid';
-                    clientsTableContainer.style.display = 'none';
-                    await renderClients();
-                } else {
-                    clientsContainer.style.display = 'none';
-                    clientsTableContainer.style.display = 'block';
-                    await renderClientsTable();
-                }
+                clientsTableContainer.style.display = 'block';
+                await renderClientsTable();
             } finally {
                 isRendering = false;
             }
-        }
-
-        // Render client cards
-        async function renderClients() {
-            clientsContainer.innerHTML = '';
-
-            // Fetch plan counts for all clients
-            const planCounts = await fetchPlanCounts();
-
-            filteredClients.forEach(client => {
-                const card = document.createElement('div');
-                card.className = `client-card${client.is_archived ? ' archived' : ''}`;
-                card.style.cursor = 'pointer';
-
-                // Add click handler to open client profile (only for active clients)
-                if (!client.is_archived) {
-                    card.addEventListener('click', () => {
-                        window.location.href = `client-profile.html?clientId=${client.id}`;
-                    });
-                }
-
-                // Parse dietary restrictions
-                const restrictions = Array.isArray(client.default_dietary_restrictions)
-                    ? client.default_dietary_restrictions
-                    : [];
-
-                // Format goal with badge class
-                const goalDisplay = client.default_goal
-                    ? client.default_goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-                    : 'Not set';
-                const goalClass = client.default_goal
-                    ? client.default_goal.replace('_', '-')
-                    : 'not-set';
-
-                // Get plan count for this client
-                const planCount = planCounts[client.id] || 0;
-
-                // Format last active
-                const lastActive = formatLastActive(client.last_activity_at);
-
-                // Build action buttons based on archived status
-                let actionButtons = '';
-                if (client.is_archived) {
-                    actionButtons = `
-                        <button class="btn btn-success btn-small" onclick="event.stopPropagation(); restoreClient(${client.id}, '${escapeHtml(client.client_name)}')">Restore</button>
-                        <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); permanentlyDeleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete Forever</button>
-                    `;
-                } else {
-                    actionButtons = `
-                        ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite to Portal</button>` : ''}
-                        <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
-                        <button class="btn btn-warning btn-small" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">Archive</button>
-                    `;
-                }
-
-                // Generate avatar HTML
-                const clientInitial = client.client_name ? client.client_name.charAt(0).toUpperCase() : '?';
-                const avatarContent = client.profile_photo_url
-                    ? `<img src="${client.profile_photo_url}" alt="${escapeHtml(client.client_name)}">`
-                    : clientInitial;
-
-                card.innerHTML = `
-                    <div class="client-header">
-                        <div class="client-header-left">
-                            <div class="client-avatar">${avatarContent}</div>
-                            <div>
-                                <div class="client-name">${escapeHtml(client.client_name)}</div>
-                                ${client.is_archived ? '<span class="archived-badge">📦 Archived</span>' : ''}
-                                ${client.email ? `<div class="client-info">📧 ${escapeHtml(client.email)}</div>` : ''}
-                                ${client.phone ? `<div class="client-info">📱 ${escapeHtml(client.phone)}</div>` : ''}
-                            </div>
-                        </div>
-                        <div class="client-actions">
-                            ${actionButtons}
-                        </div>
-                    </div>
-
-                    <div style="margin: 10px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <span class="goal-badge ${goalClass}">${goalDisplay}</span>
-                        ${!client.is_archived && client.user_id ? `
-                            <span class="last-active ${lastActive.class}">
-                                ${lastActive.showDot ? '<span class="online-dot"></span>' : ''}
-                                ${lastActive.text}
-                            </span>
-                        ` : ''}
-                    </div>
-
-                    ${restrictions.length > 0 ? `
-                        <div class="dietary-tags">
-                            ${restrictions.map(r => `<span class="dietary-tag">${escapeHtml(r)}</span>`).join('')}
-                        </div>
-                    ` : ''}
-
-                    ${client.notes ? `<div class="client-info" style="margin-top: 10px;"><strong>Notes:</strong> ${escapeHtml(client.notes)}</div>` : ''}
-
-                    <div class="client-stats">
-                        ${client.is_archived
-                            ? `📦 Archived: ${new Date(client.archived_at).toLocaleDateString()}`
-                            : `📊 ${planCount} ${planCount === 1 ? 'plan' : 'plans'} • 📅 Added: ${new Date(client.created_at).toLocaleDateString()}`
-                        }
-                    </div>
-                `;
-
-                clientsContainer.appendChild(card);
-            });
         }
 
         // Render clients in table view

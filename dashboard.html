@@ -1514,6 +1514,311 @@
             }
         }
 
+        /* My Stories Management Section */
+        .my-stories-section {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--gray-100);
+        }
+
+        .my-stories-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .my-stories-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .my-stories-title h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .refresh-stories-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .refresh-stories-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .my-stories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .story-card {
+            background: var(--gray-50);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s;
+        }
+
+        .story-card:hover {
+            border-color: var(--brand-primary);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
+        }
+
+        .story-card-preview {
+            width: 100%;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .story-card-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .story-card-preview.quote-preview {
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            padding: 16px;
+        }
+
+        .story-card-preview.quote-preview p {
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .story-card-preview.link-preview {
+            background: var(--gray-100);
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .story-card-preview.link-preview .link-icon {
+            font-size: 2rem;
+        }
+
+        .story-card-preview.link-preview .link-title {
+            font-size: 0.75rem;
+            color: var(--gray-600);
+            text-align: center;
+            padding: 0 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .story-card-info {
+            padding: 12px;
+        }
+
+        .story-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .story-type-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .story-time-left {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .story-time-left.expiring {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .story-card-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+        }
+
+        .story-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .story-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .story-delete-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: #fee2e2;
+            border: none;
+            border-radius: 8px;
+            color: #dc2626;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .story-delete-btn:hover {
+            background: #fecaca;
+        }
+
+        .my-stories-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-500);
+        }
+
+        .my-stories-empty .empty-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .my-stories-empty p {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+        }
+
+        .my-stories-empty .empty-hint {
+            font-size: 0.875rem;
+        }
+
+        .stories-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-500);
+            grid-column: 1 / -1;
+        }
+
+        .delete-confirm-btn {
+            padding: 12px 24px;
+            background: #dc2626;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+        }
+
+        .delete-confirm-btn:hover {
+            background: #b91c1c;
+        }
+
+        .delete-confirm-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .delete-story-preview {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+        }
+
+        /* Dark mode for My Stories */
+        [data-theme="dark"] .my-stories-section {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .my-stories-title h2 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .refresh-stories-btn {
+            background: var(--gray-700);
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .refresh-stories-btn:hover {
+            background: var(--gray-600);
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .story-card {
+            background: var(--gray-900);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .story-type-badge {
+            background: var(--gray-700);
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .story-card-preview.link-preview {
+            background: var(--gray-700);
+        }
+
+        [data-theme="dark"] .story-card-preview.link-preview .link-title {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .my-stories-empty p {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .delete-story-preview {
+            background: var(--gray-700);
+            color: #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+            .my-stories-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .story-card-preview {
+                height: 120px;
+            }
+        }
+
         /* Dark mode for onboarding */
         [data-theme="dark"] .onboarding-section {
             background: var(--gray-800);
@@ -2105,6 +2410,49 @@
                     <div class="story-creator-footer">
                         <button class="cancel-btn" onclick="closeStoryCreator()">Cancel</button>
                         <button class="publish-btn" id="publishStoryBtn" onclick="publishStory()">Publish Story</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Stories Management Section -->
+            <div class="my-stories-section" id="myStoriesSection">
+                <div class="my-stories-header">
+                    <div class="my-stories-title">
+                        <span class="stories-icon">📋</span>
+                        <h2>My Stories</h2>
+                    </div>
+                    <div class="my-stories-actions">
+                        <button class="refresh-stories-btn" onclick="loadMyStories()" title="Refresh">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="my-stories-grid" id="myStoriesGrid">
+                    <div class="stories-loading">Loading your stories...</div>
+                </div>
+                <div class="my-stories-empty" id="myStoriesEmpty" style="display: none;">
+                    <span class="empty-icon">📭</span>
+                    <p>No active stories</p>
+                    <span class="empty-hint">Create a story above to share with your clients!</span>
+                </div>
+            </div>
+
+            <!-- Delete Story Confirmation Modal -->
+            <div class="story-creator-modal" id="deleteStoryModal" style="display: none;">
+                <div class="story-creator-dialog" style="max-width: 400px;">
+                    <div class="story-creator-header-modal">
+                        <h3>Delete Story?</h3>
+                        <button class="close-modal-btn" onclick="closeDeleteModal()">&times;</button>
+                    </div>
+                    <div class="story-creator-body">
+                        <p style="color: var(--gray-600); margin-bottom: 8px;">Are you sure you want to delete this story? This action cannot be undone.</p>
+                        <div class="delete-story-preview" id="deleteStoryPreview"></div>
+                    </div>
+                    <div class="story-creator-footer">
+                        <button class="cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+                        <button class="delete-confirm-btn" id="confirmDeleteBtn" onclick="confirmDeleteStory()">Delete Story</button>
                     </div>
                 </div>
             </div>
@@ -3093,6 +3441,7 @@
 
                 closeStoryCreator();
                 updateActiveStoriesCount();
+                loadMyStories();
 
                 // Show success message
                 alert('Story published! Your clients will see it for the next 24 hours.');
@@ -3134,10 +3483,155 @@
             }
         }
 
+        // ========================================
+        // MY STORIES MANAGEMENT
+        // ========================================
+        let myStoriesData = [];
+        let storyToDelete = null;
+
+        async function loadMyStories() {
+            if (!currentUserId) return;
+
+            const grid = document.getElementById('myStoriesGrid');
+            const emptyState = document.getElementById('myStoriesEmpty');
+
+            grid.innerHTML = '<div class="stories-loading">Loading your stories...</div>';
+            emptyState.style.display = 'none';
+
+            try {
+                const response = await fetch(`/.netlify/functions/get-my-stories?coachId=${currentUserId}`);
+                const data = await response.json();
+
+                myStoriesData = data.stories || [];
+
+                if (myStoriesData.length === 0) {
+                    grid.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                grid.innerHTML = myStoriesData.map(story => renderStoryCard(story)).join('');
+
+            } catch (error) {
+                console.error('Error loading stories:', error);
+                grid.innerHTML = '<div class="stories-loading">Failed to load stories. <a href="javascript:loadMyStories()">Try again</a></div>';
+            }
+        }
+
+        function renderStoryCard(story) {
+            let previewHtml = '';
+
+            if (story.type === 'image') {
+                previewHtml = `<img src="${story.imageUrl}" alt="Story image">`;
+            } else if (story.type === 'quote') {
+                const text = story.quoteText || '';
+                previewHtml = `<div class="story-card-preview quote-preview"><p>"${escapeHtml(text)}"</p></div>`;
+            } else if (story.type === 'link') {
+                const title = story.linkTitle || story.linkUrl || 'Link';
+                previewHtml = `<div class="story-card-preview link-preview"><span class="link-icon">🔗</span><span class="link-title">${escapeHtml(title)}</span></div>`;
+            }
+
+            // Time remaining
+            const timeClass = story.hoursRemaining <= 4 ? 'expiring' : '';
+            const timeText = story.hoursRemaining > 0 ? `${story.hoursRemaining}h left` : 'Expired';
+
+            return `
+                <div class="story-card" data-story-id="${story.id}">
+                    ${story.type === 'image' ? `<div class="story-card-preview">${previewHtml}</div>` : previewHtml}
+                    <div class="story-card-info">
+                        <div class="story-card-meta">
+                            <span class="story-type-badge">${story.type}</span>
+                            <span class="story-time-left ${timeClass}">${timeText}</span>
+                        </div>
+                        <div class="story-card-stats">
+                            <span class="story-stat">👁️ ${story.viewCount}</span>
+                            <span class="story-stat">❤️ ${story.reactionCount}</span>
+                            <span class="story-stat">💬 ${story.replyCount}</span>
+                        </div>
+                        <div class="story-card-actions">
+                            <button class="story-delete-btn" onclick="openDeleteModal('${story.id}')">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function openDeleteModal(storyId) {
+            const story = myStoriesData.find(s => s.id === storyId);
+            if (!story) return;
+
+            storyToDelete = story;
+
+            let previewText = '';
+            if (story.type === 'image') {
+                previewText = story.caption || 'Photo story';
+            } else if (story.type === 'quote') {
+                previewText = `"${story.quoteText?.substring(0, 100)}${story.quoteText?.length > 100 ? '...' : ''}"`;
+            } else if (story.type === 'link') {
+                previewText = story.linkTitle || story.linkUrl;
+            }
+
+            document.getElementById('deleteStoryPreview').innerHTML = `
+                <strong>${story.type.charAt(0).toUpperCase() + story.type.slice(1)} Story</strong><br>
+                ${escapeHtml(previewText)}
+            `;
+
+            document.getElementById('deleteStoryModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteStoryModal').style.display = 'none';
+            storyToDelete = null;
+        }
+
+        async function confirmDeleteStory() {
+            if (!storyToDelete || !currentUserId) return;
+
+            const deleteBtn = document.getElementById('confirmDeleteBtn');
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+
+            try {
+                const response = await fetch('/.netlify/functions/delete-story', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storyId: storyToDelete.id,
+                        coachId: currentUserId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to delete story');
+                }
+
+                closeDeleteModal();
+                loadMyStories();
+                updateActiveStoriesCount();
+
+            } catch (error) {
+                console.error('Error deleting story:', error);
+                alert('Failed to delete story: ' + error.message);
+            } finally {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete Story';
+            }
+        }
+
         // Load active stories count on page load
         setTimeout(() => {
             if (currentUserId) {
                 updateActiveStoriesCount();
+                loadMyStories();
             }
         }, 2000);
 
