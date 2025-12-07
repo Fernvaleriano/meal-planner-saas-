@@ -263,8 +263,8 @@ ${footerText}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Weekly Check-in ${isFollowup ? 'Reminder' : 'Time'}</h1>
+    <div style="background-color: #0d9488; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Weekly Check-in ${isFollowup ? 'Reminder' : 'Time'}</h1>
     </div>
 
     <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
@@ -277,7 +277,7 @@ ${footerText}`;
         <p style="margin-bottom: 20px;">Your check-in helps track your journey and allows your coach to provide personalized guidance.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${checkinLink}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Submit Your Check-in</a>
+            <a href="${checkinLink}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Submit Your Check-in</a>
         </div>
 
         <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -407,8 +407,8 @@ ${footerText}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">${welcomeTitle}</h1>
+    <div style="background-color: #0d9488; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px;">${welcomeTitle}</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${welcomeSubtitle}</p>
     </div>
 
@@ -417,7 +417,7 @@ ${footerText}`;
 
         <p style="margin-bottom: 20px; font-size: 16px;">Great news! <strong>${coachName}</strong> has invited you to join your personal nutrition coaching portal.</p>
 
-        <div style="background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
+        <div style="background-color: #f0fdfa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
             <p style="font-weight: 600; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">With your new account, you'll be able to:</p>
             <ul style="margin: 0; padding-left: 20px; color: #334155;">
                 <li style="margin-bottom: 8px;">View your personalized meal plans</li>
@@ -429,7 +429,7 @@ ${footerText}`;
         </div>
 
         <div style="text-align: center; margin: 35px 0;">
-            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Set Up Your Password</a>
+            <a href="${resetLink}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Set Up Your Password</a>
         </div>
 
         <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours</p>
@@ -550,8 +550,8 @@ ${APP_URL}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Trial Canceled</h1>
+    <div style="background-color: #64748b; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Trial Canceled</h1>
     </div>
 
     <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
@@ -559,7 +559,7 @@ ${APP_URL}`;
 
         <p style="margin-bottom: 20px;">We've received your request to cancel your free trial.</p>
 
-        <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ef4444;">
+        <div style="background-color: #fee2e2; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ef4444;">
             <p style="margin: 0; font-weight: 600; color: #991b1b;">Your trial has ended</p>
             <p style="margin: 8px 0 0 0; color: #b91c1c;">Access to premium features has been removed immediately.</p>
         </div>
@@ -575,7 +575,7 @@ ${APP_URL}`;
         <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #bbf7d0;">
             <p style="margin: 0; color: #166534;"><strong>Ready to come back?</strong></p>
             <p style="margin: 8px 0 15px 0; color: #15803d;">You can reactivate your subscription anytime to regain full access.</p>
-            <a href="${APP_URL}/pricing.html" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">View Plans</a>
+            <a href="${APP_URL}/pricing.html" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">View Plans</a>
         </div>
 
         <p style="margin-bottom: 20px; color: #64748b;">We're sorry to see you go! If there's anything we could have done better, we'd love to hear from you.</p>
@@ -640,8 +640,8 @@ ${APP_URL}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Cancellation Confirmed</h1>
+    <div style="background-color: #64748b; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Cancellation Confirmed</h1>
     </div>
 
     <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
@@ -649,7 +649,7 @@ ${APP_URL}`;
 
         <p style="margin-bottom: 20px;">We've received your request to cancel your subscription.</p>
 
-        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+        <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
             <p style="margin: 0; font-weight: 600; color: #92400e;">Your subscription will remain active until:</p>
             <p style="margin: 8px 0 0 0; font-size: 1.25rem; color: #78350f;">${formattedDate}</p>
         </div>
@@ -767,8 +767,8 @@ ${APP_URL}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Welcome Back!</h1>
+    <div style="background-color: #0d9488; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Welcome Back!</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Your subscription is active</p>
     </div>
 
@@ -777,7 +777,7 @@ ${APP_URL}`;
 
         <p style="margin-bottom: 20px;">Your <strong>${planName}</strong> subscription has been reactivated successfully!</p>
 
-        <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #10b981;">
+        <div style="background-color: #d1fae5; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #10b981;">
             <p style="margin: 0; font-weight: 600; color: #065f46;">You now have full access to:</p>
             <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #047857;">
                 <li>Manage clients and meal plans</li>
@@ -790,7 +790,7 @@ ${APP_URL}`;
         <p style="margin-bottom: 25px;">Everything is right where you left it. Your clients can continue accessing their portals immediately.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${APP_URL}/dashboard.html" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
+            <a href="${APP_URL}/dashboard.html" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
         </div>
 
         <p style="margin-top: 30px; color: #64748b;">
@@ -868,8 +868,8 @@ ${APP_URL}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Payment Failed</h1>
+    <div style="background-color: #f59e0b; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Payment Failed</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Action required</p>
     </div>
 
@@ -884,7 +884,7 @@ ${APP_URL}`;
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${APP_URL}/billing.html" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Update Payment Method</a>
+            <a href="${APP_URL}/billing.html" style="display: inline-block; background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Update Payment Method</a>
         </div>
 
         <p style="margin-bottom: 15px;"><strong>Common reasons for failed payments:</strong></p>
@@ -975,8 +975,8 @@ ${APP_URL}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Trial Ending Soon</h1>
+    <div style="background-color: #0d9488; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Trial Ending Soon</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining</p>
     </div>
 
@@ -985,12 +985,12 @@ ${APP_URL}`;
 
         <p style="margin-bottom: 20px;">Just a heads up - your free trial ends on <strong>${formattedDate}</strong>.</p>
 
-        <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+        <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
             <p style="margin: 0; font-weight: 600; color: #1e40af;">Add your payment method now to continue without interruption</p>
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${APP_URL}/billing.html" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Add Payment Method</a>
+            <a href="${APP_URL}/billing.html" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Add Payment Method</a>
         </div>
 
         <p style="margin-bottom: 15px; color: #64748b;"><strong>After your trial ends, you'll need an active subscription to:</strong></p>
@@ -1073,8 +1073,8 @@ View in Stripe: https://dashboard.stripe.com/customers
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, sans-serif; padding: 20px;">
-    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 20px; border-radius: 8px 8px 0 0;">
-        <h2 style="color: white; margin: 0;">New Coach Signup!</h2>
+    <div style="background-color: #0d9488; padding: 20px; border-radius: 8px 8px 0 0;">
+        <h2 style="color: #ffffff; margin: 0;">New Coach Signup!</h2>
     </div>
     <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
         <table style="width: 100%;">
@@ -1123,7 +1123,7 @@ Date: ${new Date().toLocaleString()}
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, sans-serif; padding: 20px;">
     <div style="background: ${isReactivation ? '#10b981' : '#0d9488'}; padding: 20px; border-radius: 8px 8px 0 0;">
-        <h2 style="color: white; margin: 0;">${isReactivation ? 'Coach Reactivated!' : 'New Payment!'}</h2>
+        <h2 style="color: #ffffff; margin: 0;">${isReactivation ? 'Coach Reactivated!' : 'New Payment!'}</h2>
     </div>
     <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
         <table style="width: 100%;">
@@ -1161,7 +1161,7 @@ Date: ${new Date().toLocaleString()}
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, sans-serif; padding: 20px;">
     <div style="background: #f59e0b; padding: 20px; border-radius: 8px 8px 0 0;">
-        <h2 style="color: white; margin: 0;">Subscription Canceled</h2>
+        <h2 style="color: #ffffff; margin: 0;">Subscription Canceled</h2>
     </div>
     <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
         <table style="width: 100%;">
@@ -1225,44 +1225,58 @@ ${APP_URL}`;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${subject}</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Zique Fitness!</h1>
-        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your ${planName} subscription is active</p>
-    </div>
+<body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+            <td style="background-color: #0d9488; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Zique Fitness!</h1>
+                <p style="color: #e0f2f1; margin: 10px 0 0 0; font-size: 16px;">Your ${planName} subscription is active</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+                <p style="font-size: 18px; margin-bottom: 20px; color: #333333;">Hi <strong>${coachName}</strong>,</p>
 
-    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
-        <p style="font-size: 18px; margin-bottom: 20px;">Hi <strong>${coachName}</strong>,</p>
+                <p style="margin-bottom: 20px; font-size: 16px; color: #333333;">Welcome aboard! Your 14-day free trial has started.</p>
 
-        <p style="margin-bottom: 20px; font-size: 16px;">Welcome aboard! Your 14-day free trial has started.</p>
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 35px 0;">
+                    <tr>
+                        <td align="center">
+                            <a href="${resetLink}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 18px;">Set Up Your Password</a>
+                        </td>
+                    </tr>
+                </table>
 
-        <div style="text-align: center; margin: 35px 0;">
-            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Set Up Your Password</a>
-        </div>
+                <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours</p>
 
-        <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours</p>
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f0fdfa; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
+                    <tr>
+                        <td style="padding: 20px;">
+                            <p style="font-weight: bold; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">With your new account, you can:</p>
+                            <ul style="margin: 0; padding-left: 20px; color: #334155;">
+                                <li style="margin-bottom: 8px;">Create personalized meal plans for your clients</li>
+                                <li style="margin-bottom: 8px;">Use our AI-powered meal planner</li>
+                                <li style="margin-bottom: 8px;">Track client progress with food diaries</li>
+                                <li style="margin-bottom: 8px;">Send automated check-in reminders</li>
+                                <li style="margin-bottom: 0;">Manage your entire nutrition coaching business</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
 
-        <div style="background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
-            <p style="font-weight: 600; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">With your new account, you can:</p>
-            <ul style="margin: 0; padding-left: 20px; color: #334155;">
-                <li style="margin-bottom: 8px;">Create personalized meal plans for your clients</li>
-                <li style="margin-bottom: 8px;">Use our AI-powered meal planner</li>
-                <li style="margin-bottom: 8px;">Track client progress with food diaries</li>
-                <li style="margin-bottom: 8px;">Send automated check-in reminders</li>
-                <li style="margin-bottom: 0;">Manage your entire nutrition coaching business</li>
-            </ul>
-        </div>
-
-        <p style="margin-top: 30px; color: #334155;">
-            We're excited to have you on board!<br><br>
-            Best,<br>
-            <strong>The Zique Team</strong>
-        </p>
-    </div>
-
-    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p style="margin: 0;">Zique Fitness Nutrition</p>
-    </div>
+                <p style="margin-top: 30px; color: #334155;">
+                    We're excited to have you on board!<br><br>
+                    Best,<br>
+                    <strong>The Zique Team</strong>
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+                <p style="margin: 0;">Zique Fitness Nutrition</p>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>`;
 
