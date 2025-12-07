@@ -1,5 +1,5 @@
-// Netlify Function to dismiss/mark activity items as done
-// Allows coaches to check off items from their activity summary
+// Netlify Function to manage activity items (dismiss, pin, unpin)
+// Allows coaches to control items in their client briefing
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -8,7 +8,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS'
+    'Access-Control-Allow-Methods': 'POST, DELETE, PUT, OPTIONS'
 };
 
 exports.handler = async (event, context) => {
@@ -17,7 +17,7 @@ exports.handler = async (event, context) => {
         return { statusCode: 200, headers: corsHeaders, body: '' };
     }
 
-    if (!['POST', 'DELETE'].includes(event.httpMethod)) {
+    if (!['POST', 'DELETE', 'PUT'].includes(event.httpMethod)) {
         return {
             statusCode: 405,
             headers: corsHeaders,
@@ -27,7 +27,7 @@ exports.handler = async (event, context) => {
 
     try {
         const body = JSON.parse(event.body);
-        const { coachId, clientId, reason, relatedCheckinId, notes } = body;
+        const { coachId, clientId, reason, relatedCheckinId, notes, action } = body;
 
         // Validate required fields
         if (!coachId || !clientId || !reason) {
@@ -196,6 +196,93 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({
                     success: true,
                     message: 'Activity restored'
+                })
+            };
+
+        } else if (event.httpMethod === 'PUT') {
+            // Pin or unpin an activity item
+            const isPinning = action === 'pin';
+
+            // First, check if record exists
+            let existingRecord = null;
+            if (relatedCheckinId) {
+                const { data: existing } = await supabase
+                    .from('dismissed_activity_items')
+                    .select('id, is_pinned')
+                    .eq('coach_id', coachId)
+                    .eq('client_id', clientId)
+                    .eq('reason', reason)
+                    .eq('related_checkin_id', relatedCheckinId)
+                    .single();
+                existingRecord = existing;
+            } else {
+                const { data: existing } = await supabase
+                    .from('dismissed_activity_items')
+                    .select('id, is_pinned')
+                    .eq('coach_id', coachId)
+                    .eq('client_id', clientId)
+                    .eq('reason', reason)
+                    .is('related_checkin_id', null)
+                    .single();
+                existingRecord = existing;
+            }
+
+            let data, error;
+
+            if (existingRecord) {
+                // Update existing record
+                const result = await supabase
+                    .from('dismissed_activity_items')
+                    .update({
+                        is_pinned: isPinning,
+                        pinned_at: isPinning ? new Date().toISOString() : null
+                    })
+                    .eq('id', existingRecord.id)
+                    .select()
+                    .single();
+                data = result.data;
+                error = result.error;
+            } else if (isPinning) {
+                // Create new pinned record
+                const result = await supabase
+                    .from('dismissed_activity_items')
+                    .insert({
+                        coach_id: coachId,
+                        client_id: clientId,
+                        reason: reason,
+                        related_checkin_id: relatedCheckinId || null,
+                        is_pinned: true,
+                        pinned_at: new Date().toISOString(),
+                        dismissed_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+                data = result.data;
+                error = result.error;
+            }
+
+            if (error) {
+                console.log('Pin/unpin error:', error.message);
+                return {
+                    statusCode: 200,
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: true,
+                        message: isPinning ? 'Item pinned' : 'Item unpinned',
+                        pendingMigration: true
+                    })
+                };
+            }
+
+            console.log(`✅ ${isPinning ? 'Pinned' : 'Unpinned'} activity: ${reason} for client ${clientId}`);
+
+            return {
+                statusCode: 200,
+                headers: corsHeaders,
+                body: JSON.stringify({
+                    success: true,
+                    message: isPinning ? 'Item pinned' : 'Item unpinned',
+                    item: data
                 })
             };
         }
