@@ -314,7 +314,12 @@
             object-fit: cover;
             background: #f3f4f6;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s, opacity 0.3s ease-in;
+            opacity: 0;
+        }
+
+        .meal-card-image.loaded {
+            opacity: 1;
         }
 
         .meal-card-image:hover {
@@ -330,12 +335,20 @@
             height: 120px;
             min-width: 120px;
             border-radius: 0.5rem;
-            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+            background: linear-gradient(90deg, #e0f2fe 25%, #f0f9ff 50%, #e0f2fe 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2rem;
             cursor: pointer;
+            color: #94a3b8;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
         .meal-image-container {
@@ -7645,7 +7658,14 @@ function updateImageElement(container, imageUrl, mealName) {
     img.src = imageUrl;
     img.alt = mealName;
     img.className = 'meal-card-image';
+    img.loading = 'lazy';
+    img.decoding = 'async'; // Non-blocking decode
     img.onclick = () => showMealImageLarge({ src: imageUrl, alt: mealName });
+
+    // Smooth fade-in when image loads
+    img.onload = () => {
+        img.classList.add('loaded');
+    };
 
     // Handle image load errors - show placeholder instead of broken icon
     img.onerror = () => {
@@ -7658,6 +7678,7 @@ function updateImageElement(container, imageUrl, mealName) {
         placeholder.onclick = () => showMealImageLarge(placeholder);
         placeholder.innerHTML = '🍽️';
         placeholder.title = 'Image unavailable - click Generate Image to create one';
+        placeholder.style.animation = 'none'; // Stop shimmer on error
         // Replace the wrapper with the placeholder
         if (wrapper.parentNode) {
             wrapper.parentNode.replaceChild(placeholder, wrapper);

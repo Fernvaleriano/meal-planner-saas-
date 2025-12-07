@@ -120,11 +120,28 @@
             height: 140px;
             min-width: 140px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+            background: linear-gradient(90deg, #e0f2fe 25%, #f0f9ff 50%, #e0f2fe 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2.5rem;
+            color: #94a3b8;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .meal-card-image {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        .meal-card-image.loaded {
+            opacity: 1;
         }
 
         .meal-card-content {
@@ -6305,7 +6322,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             }
         }
 
-        // Apply image to container
+        // Apply image to container with smooth fade-in
         function applyImageToContainer(container, imageUrl, mealName) {
             if (!container || !container.classList.contains('meal-card-image-placeholder')) return;
 
@@ -6316,6 +6333,12 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             img.id = container.id;
             img.dataset.mealName = mealName;
             img.loading = 'lazy';
+            img.decoding = 'async'; // Non-blocking decode
+
+            // Smooth fade-in when image loads
+            img.onload = () => {
+                img.classList.add('loaded');
+            };
 
             img.onerror = () => {
                 const placeholder = document.createElement('div');
@@ -6324,6 +6347,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 placeholder.dataset.mealName = mealName;
                 placeholder.innerHTML = '🍽️';
                 placeholder.title = 'Image unavailable';
+                placeholder.style.animation = 'none'; // Stop shimmer on error
                 if (img.parentNode) {
                     img.parentNode.replaceChild(placeholder, img);
                 }

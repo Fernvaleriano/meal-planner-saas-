@@ -7,6 +7,25 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
 const BUCKET_NAME = 'meal-images';
 
+// Convert Supabase storage URL to optimized image URL using Supabase Image Transformations
+// This reduces image size significantly (from ~500KB to ~20KB for thumbnails)
+function getOptimizedImageUrl(originalUrl, width = 280, quality = 75) {
+  if (!originalUrl || !originalUrl.includes('supabase.co/storage')) {
+    return originalUrl;
+  }
+
+  // Convert /storage/v1/object/public/ to /storage/v1/render/image/public/
+  // and add transformation parameters
+  const optimizedUrl = originalUrl.replace(
+    '/storage/v1/object/public/',
+    '/storage/v1/render/image/public/'
+  );
+
+  // Add resize and quality parameters
+  const separator = optimizedUrl.includes('?') ? '&' : '?';
+  return `${optimizedUrl}${separator}width=${width}&quality=${quality}&resize=contain`;
+}
+
 // Helper function to ensure bucket exists
 async function ensureBucketExists(supabase) {
   try {
@@ -284,7 +303,7 @@ exports.handler = async (event, context) => {
           headers: { 'Access-Control-Allow-Origin': '*' },
           body: JSON.stringify({
             exists: true,
-            imageUrl: existingImage.image_url,
+            imageUrl: getOptimizedImageUrl(existingImage.image_url, 280, 75),
             mealName: existingImage.meal_name,
             matchedKey: existingImage.normalized_name
           })
@@ -348,7 +367,7 @@ exports.handler = async (event, context) => {
             headers: { 'Access-Control-Allow-Origin': '*' },
             body: JSON.stringify({
               success: true,
-              imageUrl: proteinMatch.image_url,
+              imageUrl: getOptimizedImageUrl(proteinMatch.image_url, 280, 75),
               mealName: proteinMatch.meal_name,
               cached: true,
               matchedKey: proteinMatch.normalized_name
@@ -381,7 +400,7 @@ exports.handler = async (event, context) => {
             headers: { 'Access-Control-Allow-Origin': '*' },
             body: JSON.stringify({
               success: true,
-              imageUrl: existingImage.image_url,
+              imageUrl: getOptimizedImageUrl(existingImage.image_url, 280, 75),
               mealName: existingImage.meal_name,
               cached: true
             })
@@ -458,7 +477,7 @@ exports.handler = async (event, context) => {
         headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify({
           success: true,
-          imageUrl: permanentImageUrl,
+          imageUrl: getOptimizedImageUrl(permanentImageUrl, 280, 75),
           mealName: mealName,
           cached: false
         })

@@ -5,6 +5,25 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+// Convert Supabase storage URL to optimized image URL using Supabase Image Transformations
+// This reduces image size significantly (from ~500KB to ~20KB for thumbnails)
+function getOptimizedImageUrl(originalUrl, width = 280, quality = 75) {
+  if (!originalUrl || !originalUrl.includes('supabase.co/storage')) {
+    return originalUrl;
+  }
+
+  // Convert /storage/v1/object/public/ to /storage/v1/render/image/public/
+  // and add transformation parameters
+  const optimizedUrl = originalUrl.replace(
+    '/storage/v1/object/public/',
+    '/storage/v1/render/image/public/'
+  );
+
+  // Add resize and quality parameters
+  const separator = optimizedUrl.includes('?') ? '&' : '?';
+  return `${optimizedUrl}${separator}width=${width}&quality=${quality}&resize=contain`;
+}
+
 // Known proteins for extraction
 const PROTEINS = [
   'chicken breast', 'chicken', 'ground turkey', 'turkey breast', 'turkey',
@@ -179,11 +198,13 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // Build response mapping meal names to image URLs
+    // Build response mapping meal names to optimized image URLs
+    // Use 280px width (2x for 140px display) with 75% quality for fast loading
     const results = {};
     mealNames.forEach(mealName => {
       const key = mealKeyMap[mealName];
-      results[mealName] = imageMap[key] || null;
+      const originalUrl = imageMap[key] || null;
+      results[mealName] = originalUrl ? getOptimizedImageUrl(originalUrl, 280, 75) : null;
     });
 
     return {
