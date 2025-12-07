@@ -2470,11 +2470,11 @@
 
         /* Daily Wins Section */
         .daily-wins-section {
-            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 50%, #f5d0fe 100%);
+            background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 50%, #99f6e4 100%);
             border-radius: 20px;
             padding: 24px;
             margin-bottom: 24px;
-            border: 1px solid #f0abfc;
+            border: 1px solid #5eead4;
             position: relative;
             overflow: hidden;
         }
@@ -2486,7 +2486,7 @@
             right: -20%;
             width: 200px;
             height: 200px;
-            background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(13, 148, 136, 0.1) 0%, transparent 70%);
             pointer-events: none;
         }
 
@@ -2503,7 +2503,7 @@
             gap: 10px;
             font-size: 1.25rem;
             font-weight: 800;
-            color: #7c3aed;
+            color: #0d9488;
         }
 
         .wins-title-icon {
@@ -2515,7 +2515,7 @@
             border-radius: 16px;
             padding: 16px 20px;
             margin-bottom: 20px;
-            border: 1px solid #e9d5ff;
+            border: 1px solid #99f6e4;
             display: flex;
             gap: 12px;
             align-items: flex-start;
@@ -2524,7 +2524,7 @@
         .ai-avatar {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            background: var(--brand-gradient);
             border-radius: 12px;
             display: flex;
             align-items: center;
@@ -2540,7 +2540,7 @@
         .ai-message-label {
             font-size: 11px;
             font-weight: 700;
-            color: #a855f7;
+            color: #0d9488;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 4px;
@@ -2566,7 +2566,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            border: 1px solid #e9d5ff;
+            border: 1px solid #99f6e4;
             transition: all 0.2s;
         }
 
@@ -2622,7 +2622,7 @@
             background: white;
             border-radius: 14px;
             padding: 16px;
-            border: 1px solid #e9d5ff;
+            border: 1px solid #99f6e4;
         }
 
         .badges-header {
@@ -2640,7 +2640,7 @@
 
         .badges-count {
             font-size: 0.75rem;
-            color: #a855f7;
+            color: #0d9488;
             font-weight: 600;
         }
 
@@ -2735,17 +2735,17 @@
 
         /* Dark mode for Daily Wins */
         [data-theme="dark"] .daily-wins-section {
-            background: linear-gradient(135deg, #2e1065 0%, #4c1d95 50%, #5b21b6 100%);
-            border-color: #7c3aed;
+            background: linear-gradient(135deg, #042f2e 0%, #134e4a 50%, #115e59 100%);
+            border-color: #14b8a6;
         }
 
         [data-theme="dark"] .wins-title {
-            color: #e9d5ff;
+            color: #5eead4;
         }
 
         [data-theme="dark"] .ai-encouragement {
             background: rgba(30, 41, 59, 0.8);
-            border-color: #6d28d9;
+            border-color: #0d9488;
         }
 
         [data-theme="dark"] .ai-message-text {
@@ -2754,7 +2754,7 @@
 
         [data-theme="dark"] .win-card {
             background: rgba(30, 41, 59, 0.8);
-            border-color: #6d28d9;
+            border-color: #0d9488;
         }
 
         [data-theme="dark"] .win-card.achieved {
@@ -2772,7 +2772,7 @@
 
         [data-theme="dark"] .badges-section {
             background: rgba(30, 41, 59, 0.8);
-            border-color: #6d28d9;
+            border-color: #0d9488;
         }
 
         [data-theme="dark"] .badges-title {
@@ -3681,16 +3681,6 @@
                                 <div class="action-name">Favorites</div>
                                 <div class="action-desc">Saved meals</div>
                             </a>
-                        </div>
-                    </div>
-
-                    <!-- Today's Meals Section -->
-                    <div class="recent-activity" id="todaysMealsSection">
-                        <div class="section-header">
-                            <h2 class="section-title-new">Today's Meals</h2>
-                        </div>
-                        <div class="activity-list" id="todaysMealsList">
-                            <div class="activity-empty">Loading meals...</div>
                         </div>
                     </div>
                 </div><!-- End desktop-main -->
@@ -5556,11 +5546,6 @@
                 // Update the macro rings UI
                 updateMacroRings(totals, targets);
 
-                // Store meal groups for Today's Meals section
-                if (data.mealGroups) {
-                    displayTodaysMeals(data.mealGroups);
-                }
-
             } catch (error) {
                 console.error('Error loading today progress:', error);
                 // Show zeros on error
@@ -5680,67 +5665,6 @@
             }
         }
 
-        // Display Today's Meals (called from loadTodayProgress with meal groups data)
-        function displayTodaysMeals(mealGroups) {
-            const mealsList = document.getElementById('todaysMealsList');
-            if (!mealsList) return;
-
-            const mealTypes = [
-                { key: 'breakfast', icon: '🌅', label: 'Breakfast' },
-                { key: 'lunch', icon: '☀️', label: 'Lunch' },
-                { key: 'dinner', icon: '🌙', label: 'Dinner' },
-                { key: 'snack', icon: '🍎', label: 'Snacks' }
-            ];
-
-            let totalItems = 0;
-            let html = '';
-
-            mealTypes.forEach(meal => {
-                const items = mealGroups[meal.key] || [];
-                const itemCount = items.length;
-                totalItems += itemCount;
-
-                const calories = items.reduce((sum, item) => sum + (item.calories || 0), 0);
-
-                if (itemCount > 0) {
-                    // Show meal with items
-                    const itemNames = items.slice(0, 2).map(i => i.food_name || i.name || 'Food').join(', ');
-                    const moreText = itemCount > 2 ? ` +${itemCount - 2} more` : '';
-
-                    html += `
-                        <a href="client-diary.html" class="activity-item" style="text-decoration: none;">
-                            <div class="activity-icon food">${meal.icon}</div>
-                            <div class="activity-content">
-                                <div class="activity-text">${meal.label}: ${itemNames}${moreText}</div>
-                                <div class="activity-time">${itemCount} item${itemCount > 1 ? 's' : ''} · ${calories} cal</div>
-                            </div>
-                        </a>
-                    `;
-                } else {
-                    // Show empty meal slot
-                    html += `
-                        <a href="client-diary.html" class="activity-item" style="text-decoration: none; opacity: 0.6;">
-                            <div class="activity-icon" style="background: var(--gray-100);">${meal.icon}</div>
-                            <div class="activity-content">
-                                <div class="activity-text">${meal.label}</div>
-                                <div class="activity-time">Tap to log</div>
-                            </div>
-                        </a>
-                    `;
-                }
-            });
-
-            if (totalItems === 0) {
-                mealsList.innerHTML = `
-                    <a href="client-diary.html" class="activity-empty" style="text-decoration: none; display: block;">
-                        No meals logged yet today. Tap to start logging!
-                    </a>
-                `;
-            } else {
-                mealsList.innerHTML = html;
-            }
-        }
-
         // Check if weekly check-in is due
         async function checkCheckinStatus() {
             try {
@@ -5806,7 +5730,6 @@
             }
 
             // Load new dashboard components
-            // Note: displayTodaysMeals is called from within loadTodayProgress
             await Promise.all([
                 loadTodayProgress(),
                 loadStreak(),
