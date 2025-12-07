@@ -2170,6 +2170,12 @@
             color: #f472b6;
         }
 
+        .ai-suggestion-chip.ingredients {
+            border-color: #fbbf24;
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
+
         .ai-chat-messages {
             max-height: 200px;
             overflow-y: auto;
@@ -6901,6 +6907,13 @@
                     action: 'What should I eat with ' + remaining.calories + ' calories left?'
                 });
             }
+
+            // Always add the "what's in my fridge" option as a helpful feature
+            suggestions.push({
+                type: 'ingredients',
+                text: '🍳 What can I make?',
+                action: 'I have some ingredients - help me make a meal'
+            });
 
             const container = document.getElementById('aiSuggestions');
             if (!container) return;
