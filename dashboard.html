@@ -1509,7 +1509,13 @@
 
         // Modal logout handler
         modalLogoutBtn.addEventListener('click', async () => {
-            await supabaseClient.auth.signOut();
+            try {
+                await supabaseClient.auth.signOut({ scope: 'local' });
+            } catch (err) {
+                console.error('Modal logout error:', err);
+            }
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
             window.location.href = 'login.html';
         });
 
@@ -1843,12 +1849,20 @@
         
         // Logout handler
         logoutBtn.addEventListener('click', async () => {
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) {
-                alert('Error logging out: ' + error.message);
-            } else {
-                window.location.href = 'login.html';
+            try {
+                // Use local scope to avoid 403 errors with global signOut
+                const { error } = await supabaseClient.auth.signOut({ scope: 'local' });
+                if (error) {
+                    console.error('Logout error:', error);
+                    // Even if there's an error, clear local state and redirect
+                }
+            } catch (err) {
+                console.error('Logout exception:', err);
             }
+            // Always clear local storage and redirect
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+            window.location.href = 'login.html';
         });
         
         // Notification functions

@@ -1130,12 +1130,14 @@ Best,
 
         // Logout handler
         async function logout() {
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) {
-                alert('Error logging out: ' + error.message);
-            } else {
-                window.location.href = 'login.html';
+            try {
+                await supabaseClient.auth.signOut({ scope: 'local' });
+            } catch (err) {
+                console.error('Logout error:', err);
             }
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+            window.location.href = 'login.html';
         }
 
         // Mobile menu toggle
