@@ -6033,69 +6033,141 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
         }
 
         // ============================================
-        // MEAL IMAGE LOADING
+        // MEAL IMAGE LOADING (Optimized with batch + cache)
         // ============================================
-        const MEAL_IMAGE_ENDPOINT = '/.netlify/functions/meal-image';
+        const MEAL_IMAGE_BATCH_ENDPOINT = '/.netlify/functions/meal-image-batch';
+        const IMAGE_CACHE_KEY = 'mealImageCache';
+        const IMAGE_CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
-        // Load cached meal images
+        // Get cached images from localStorage
+        function getImageCache() {
+            try {
+                const cached = localStorage.getItem(IMAGE_CACHE_KEY);
+                if (!cached) return {};
+                const { data, timestamp } = JSON.parse(cached);
+                if (Date.now() - timestamp > IMAGE_CACHE_EXPIRY) {
+                    localStorage.removeItem(IMAGE_CACHE_KEY);
+                    return {};
+                }
+                return data || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        // Save images to localStorage cache
+        function saveImageCache(newImages) {
+            try {
+                const existing = getImageCache();
+                const merged = { ...existing, ...newImages };
+                localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify({
+                    data: merged,
+                    timestamp: Date.now()
+                }));
+            } catch (e) {
+                console.warn('Failed to cache images:', e);
+            }
+        }
+
+        // Apply image to container
+        function applyImageToContainer(container, imageUrl, mealName) {
+            if (!container || !container.classList.contains('meal-card-image-placeholder')) return;
+
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = mealName;
+            img.className = 'meal-card-image';
+            img.id = container.id;
+            img.dataset.mealName = mealName;
+            img.loading = 'lazy';
+
+            img.onerror = () => {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'meal-card-image-placeholder';
+                placeholder.id = img.id;
+                placeholder.dataset.mealName = mealName;
+                placeholder.innerHTML = '🍽️';
+                placeholder.title = 'Image unavailable';
+                if (img.parentNode) {
+                    img.parentNode.replaceChild(placeholder, img);
+                }
+            };
+
+            container.replaceWith(img);
+        }
+
+        // Load cached meal images using batch endpoint
         async function loadCachedMealImages() {
-            console.log('🖼️ Loading cached meal images...');
+            console.log('🖼️ Loading meal images...');
             const imageContainers = document.querySelectorAll('.meal-card-image-placeholder[data-meal-name]');
-            console.log(`Found ${imageContainers.length} meals to check for cached images`);
 
             if (imageContainers.length === 0) return;
 
-            // Load all images in parallel
-            const promises = Array.from(imageContainers).map(async (container) => {
+            const containerMap = {};
+            const mealNames = [];
+            const localCache = getImageCache();
+            const needsFetch = [];
+
+            imageContainers.forEach(container => {
                 const mealName = container.dataset.mealName;
                 if (!mealName) return;
 
-                try {
-                    const response = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
-                    const data = await response.json();
+                containerMap[mealName] = containerMap[mealName] || [];
+                containerMap[mealName].push(container);
 
-                    if (data.exists && data.imageUrl) {
-                        console.log('✅ Found cached image for:', mealName);
-                        const currentContainer = document.getElementById(container.id);
-                        if (currentContainer && currentContainer.classList.contains('meal-card-image-placeholder')) {
-                            const img = document.createElement('img');
-                            img.src = data.imageUrl;
-                            img.alt = mealName;
-                            img.className = 'meal-card-image';
-                            img.id = currentContainer.id;
-                            img.dataset.mealName = mealName;
-
-                            // Handle image load errors - show placeholder instead of broken icon
-                            img.onerror = () => {
-                                console.warn(`Image failed to load for: ${mealName}`);
-                                const placeholder = document.createElement('div');
-                                placeholder.className = 'meal-card-image-placeholder';
-                                placeholder.id = img.id;
-                                placeholder.dataset.mealName = mealName;
-                                placeholder.innerHTML = '🍽️';
-                                placeholder.title = 'Image unavailable';
-                                if (img.parentNode) {
-                                    img.parentNode.replaceChild(placeholder, img);
-                                }
-                            };
-
-                            currentContainer.replaceWith(img);
-                        }
-                    }
-                } catch (error) {
-                    console.log('No cached image for:', mealName);
+                if (localCache[mealName]) {
+                    applyImageToContainer(container, localCache[mealName], mealName);
+                } else if (!mealNames.includes(mealName)) {
+                    mealNames.push(mealName);
+                    needsFetch.push(mealName);
                 }
             });
 
-            await Promise.all(promises);
-            console.log('🖼️ Finished loading cached images');
+            console.log(`📦 ${Object.keys(localCache).length} cached, ${needsFetch.length} need fetch`);
+
+            if (needsFetch.length === 0) {
+                console.log('🖼️ All images loaded from cache!');
+                return;
+            }
+
+            try {
+                const response = await fetch(MEAL_IMAGE_BATCH_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mealNames: needsFetch })
+                });
+
+                if (!response.ok) throw new Error('Batch fetch failed');
+
+                const data = await response.json();
+                const newImages = {};
+
+                Object.entries(data.images || {}).forEach(([mealName, imageUrl]) => {
+                    if (imageUrl) {
+                        newImages[mealName] = imageUrl;
+                        const containers = containerMap[mealName] || [];
+                        containers.forEach(container => {
+                            applyImageToContainer(container, imageUrl, mealName);
+                        });
+                    }
+                });
+
+                if (Object.keys(newImages).length > 0) {
+                    saveImageCache(newImages);
+                }
+
+                console.log(`🖼️ Loaded ${Object.keys(newImages).length} new images`);
+
+            } catch (error) {
+                console.error('Batch image fetch error:', error);
+            }
         }
 
-        // Load images after plan is displayed
+        // Load images after plan is displayed (reduced delay)
         const originalDisplayMealPlan = displayMealPlan;
         displayMealPlan = function() {
             originalDisplayMealPlan();
-            setTimeout(loadCachedMealImages, 800);
+            setTimeout(loadCachedMealImages, 100);
         };
     </script>
 

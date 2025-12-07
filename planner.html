@@ -7522,9 +7522,41 @@ setTimeout(() => {
 // MEAL IMAGE GENERATION
 // ============================================
 const MEAL_IMAGE_ENDPOINT = '/.netlify/functions/meal-image';
+const IMAGE_CACHE_KEY = 'mealImageCache';
+const IMAGE_CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
-// Cache for meal images to avoid repeated API calls
-const mealImageCache = {};
+// Load localStorage cache on init
+function loadImageCacheFromStorage() {
+    try {
+        const cached = localStorage.getItem(IMAGE_CACHE_KEY);
+        if (!cached) return {};
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp > IMAGE_CACHE_EXPIRY) {
+            localStorage.removeItem(IMAGE_CACHE_KEY);
+            return {};
+        }
+        return data || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+// Save to localStorage cache
+function saveImageToStorage(mealName, imageUrl) {
+    try {
+        const existing = loadImageCacheFromStorage();
+        existing[mealName] = imageUrl;
+        localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify({
+            data: existing,
+            timestamp: Date.now()
+        }));
+    } catch (e) {
+        console.warn('Failed to cache image:', e);
+    }
+}
+
+// Cache for meal images to avoid repeated API calls (initialized from localStorage)
+const mealImageCache = loadImageCacheFromStorage();
 
 // Fetch or generate meal image
 async function fetchMealImage(mealName, imageElementId, forceRegenerate = false) {
@@ -7555,6 +7587,7 @@ async function fetchMealImage(mealName, imageElementId, forceRegenerate = false)
 
             if (generateData.success && generateData.imageUrl) {
                 mealImageCache[mealName] = generateData.imageUrl;
+                saveImageToStorage(mealName, generateData.imageUrl);
                 updateImageElement(imageContainer, generateData.imageUrl, mealName);
             } else {
                 throw new Error(generateData.error || 'Failed to generate image');
@@ -7568,6 +7601,7 @@ async function fetchMealImage(mealName, imageElementId, forceRegenerate = false)
 
         if (checkData.exists && checkData.imageUrl) {
             mealImageCache[mealName] = checkData.imageUrl;
+            saveImageToStorage(mealName, checkData.imageUrl);
             updateImageElement(imageContainer, checkData.imageUrl, mealName);
             return;
         }
@@ -7583,6 +7617,7 @@ async function fetchMealImage(mealName, imageElementId, forceRegenerate = false)
 
         if (generateData.success && generateData.imageUrl) {
             mealImageCache[mealName] = generateData.imageUrl;
+            saveImageToStorage(mealName, generateData.imageUrl);
             updateImageElement(imageContainer, generateData.imageUrl, mealName);
         } else {
             throw new Error(generateData.error || 'Failed to generate image');
