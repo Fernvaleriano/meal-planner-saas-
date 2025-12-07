@@ -54,7 +54,7 @@ exports.handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body || '{}');
-        const { clientId, message, todayEntries, goals, totals } = body;
+        const { clientId, clientFirstName, message, todayEntries, goals, totals } = body;
 
         if (!clientId || !message) {
             return {
@@ -74,7 +74,7 @@ exports.handler = async (event) => {
 
         // Build context for AI
         const context = `
-You are a friendly AI nutrition assistant helping a client with their food diary. You can:
+You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''} You can:
 1. Answer questions about nutrition and their progress
 2. Help them log food by parsing natural language (respond with JSON when they want to log)
 3. Suggest foods to help them hit their macro goals
