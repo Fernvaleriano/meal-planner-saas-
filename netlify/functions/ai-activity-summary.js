@@ -1,5 +1,5 @@
-// Netlify Function to generate AI-powered client briefing for coaches
-// Provides a clean, narrative-style summary with specific client names and actionable insights
+// Netlify Function for AI-powered coach assistant
+// Supports GET for client data and POST for asking questions about clients
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -10,13 +10,18 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS'
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' };
+  }
+
+  // Handle POST requests for asking questions
+  if (event.httpMethod === 'POST') {
+    return handleQuestion(event);
   }
 
   if (event.httpMethod !== 'GET') {
@@ -509,4 +514,203 @@ function generateFallbackSummary(stats, needsAttention) {
   }
 
   return parts.join('. ') + '.';
+}
+
+// Handle POST requests for coach questions about their clients
+async function handleQuestion(event) {
+  try {
+    const body = JSON.parse(event.body || '{}');
+    const { coachId, question } = body;
+
+    if (!coachId || !question) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Coach ID and question are required' })
+      };
+    }
+
+    if (!SUPABASE_SERVICE_KEY) {
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Server configuration error' })
+      };
+    }
+
+    if (!GEMINI_API_KEY) {
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'AI not configured' })
+      };
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // Fetch all client data for this coach
+    const { data: clients, error: clientsError } = await supabase
+      .from('clients')
+      .select('id, client_name, last_activity_at, user_id, created_at')
+      .eq('coach_id', coachId)
+      .or('is_archived.eq.false,is_archived.is.null')
+      .order('client_name', { ascending: true });
+
+    if (clientsError) {
+      console.error('Error fetching clients:', clientsError);
+      throw clientsError;
+    }
+
+    if (!clients || clients.length === 0) {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          response: "You don't have any active clients yet. Add your first client to start tracking their progress."
+        })
+      };
+    }
+
+    // Fetch recent check-ins
+    const { data: recentCheckins } = await supabase
+      .from('client_checkins')
+      .select('id, client_id, checkin_date, energy_level, stress_level, meal_plan_adherence, request_new_diet, diet_request_reason, created_at')
+      .eq('coach_id', coachId)
+      .gte('created_at', fourteenDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+
+    // Fetch food diary counts
+    const { data: diaryEntries } = await supabase
+      .from('food_diary')
+      .select('id, client_id, created_at')
+      .in('client_id', clients.map(c => c.id))
+      .gte('created_at', sevenDaysAgo.toISOString());
+
+    // Build comprehensive client data
+    const clientData = clients.map(client => {
+      const lastActivity = client.last_activity_at ? new Date(client.last_activity_at) : null;
+      const daysSinceActivity = lastActivity ? Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24)) : null;
+      const isActiveThisWeek = lastActivity && lastActivity >= sevenDaysAgo;
+      const hasPortalAccess = !!client.user_id;
+
+      const clientCheckins = (recentCheckins || []).filter(c => c.client_id === client.id);
+      const latestCheckin = clientCheckins[0];
+      const diaryCount = (diaryEntries || []).filter(d => d.client_id === client.id).length;
+
+      return {
+        name: client.client_name,
+        hasPortalAccess,
+        isActive: isActiveThisWeek,
+        daysSinceActivity: daysSinceActivity !== null ? daysSinceActivity : 'never logged in',
+        hasCheckedInThisWeek: clientCheckins.some(c => new Date(c.created_at) >= sevenDaysAgo),
+        latestCheckin: latestCheckin ? {
+          date: latestCheckin.checkin_date,
+          energy: latestCheckin.energy_level,
+          stress: latestCheckin.stress_level,
+          adherence: latestCheckin.meal_plan_adherence,
+          requestedDiet: latestCheckin.request_new_diet,
+          dietReason: latestCheckin.diet_request_reason
+        } : null,
+        diaryEntriesThisWeek: diaryCount
+      };
+    });
+
+    // Build context for AI
+    const clientContext = clientData.map(c => {
+      let status = [];
+      if (c.isActive) status.push('active this week');
+      else if (c.daysSinceActivity === 'never logged in') status.push('never logged in');
+      else status.push(`inactive for ${c.daysSinceActivity} days`);
+
+      if (c.hasCheckedInThisWeek) status.push('checked in');
+      if (c.diaryEntriesThisWeek > 0) status.push(`${c.diaryEntriesThisWeek} food diary entries`);
+
+      if (c.latestCheckin) {
+        if (c.latestCheckin.stress >= 8) status.push(`high stress (${c.latestCheckin.stress}/10)`);
+        if (c.latestCheckin.energy <= 3) status.push(`low energy (${c.latestCheckin.energy}/10)`);
+        if (c.latestCheckin.adherence) status.push(`${c.latestCheckin.adherence}% adherence`);
+        if (c.latestCheckin.requestedDiet) status.push(`requested new diet${c.latestCheckin.dietReason ? ': ' + c.latestCheckin.dietReason : ''}`);
+      }
+
+      return `- ${c.name}: ${status.join(', ')}`;
+    }).join('\n');
+
+    // Calculate summary stats
+    const activeCount = clientData.filter(c => c.isActive).length;
+    const checkedInCount = clientData.filter(c => c.hasCheckedInThisWeek).length;
+    const inactiveOver7Days = clientData.filter(c => typeof c.daysSinceActivity === 'number' && c.daysSinceActivity > 7).length;
+    const dietRequests = clientData.filter(c => c.latestCheckin?.requestedDiet).length;
+    const highStress = clientData.filter(c => c.latestCheckin?.stress >= 8).length;
+
+    const prompt = `You are an AI assistant helping a fitness/nutrition coach manage their clients. Answer the coach's question based on the client data below.
+
+SUMMARY:
+- Total clients: ${clients.length}
+- Active this week: ${activeCount}
+- Checked in this week: ${checkedInCount}
+- Inactive over 7 days: ${inactiveOver7Days}
+- Pending diet requests: ${dietRequests}
+- Reporting high stress: ${highStress}
+
+CLIENT DETAILS:
+${clientContext}
+
+COACH'S QUESTION: "${question}"
+
+IMPORTANT RULES:
+1. Answer in plain text only - no special characters, no emojis, no asterisks, no markdown formatting
+2. Use specific client names when relevant
+3. Be concise and direct - give the information they asked for
+4. If listing clients, use simple numbered lists (1. 2. 3.) or just commas
+5. Keep response under 150 words unless more detail is needed`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500
+        }
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Gemini API error:', response.status);
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'AI request failed' })
+      };
+    }
+
+    const data = await response.json();
+    let aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Clean up any markdown that slipped through
+    aiResponse = aiResponse
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/`/g, '')
+      .trim();
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ response: aiResponse })
+    };
+
+  } catch (error) {
+    console.error('Question handler error:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Failed to process question', message: error.message })
+    };
+  }
 }

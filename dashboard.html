@@ -960,18 +960,110 @@
             animation: spin 1s linear infinite;
         }
 
-        .ai-briefing-content {
+        /* AI Assistant Prompt Box */
+        .ai-assistant-container {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
-        .ai-summary-loading {
+        .ai-prompt-box {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-prompt-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 0.9375rem;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            transition: all 0.2s;
+        }
+
+        .ai-prompt-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            background: white;
+        }
+
+        .ai-prompt-input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .ai-ask-btn {
+            padding: 14px 24px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-ask-btn:hover {
+            background: var(--brand-primary-dark, #4f46e5);
+            transform: translateY(-1px);
+        }
+
+        .ai-ask-btn:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ai-quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .quick-question-btn {
+            padding: 8px 14px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 0.8125rem;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-question-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        .ai-response-area {
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            min-height: 100px;
+        }
+
+        .ai-response-placeholder {
+            color: var(--gray-400);
+            font-size: 0.9375rem;
+            margin: 0;
+        }
+
+        .ai-response-text {
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            color: var(--gray-800);
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .ai-response-loading {
             display: flex;
             align-items: center;
             gap: 12px;
             color: var(--gray-500);
-            padding: 20px 0;
         }
 
         .ai-loading-spinner {
@@ -983,179 +1075,7 @@
             animation: spin 0.8s linear infinite;
         }
 
-        /* Briefing Sections */
-        .briefing-section {
-            padding: 16px;
-            border-radius: 12px;
-            background: var(--gray-50);
-        }
-
-        .briefing-section.action-required {
-            background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
-            border-left: 4px solid #ef4444;
-        }
-
-        .briefing-section.check-in-on {
-            background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
-            border-left: 4px solid #f59e0b;
-        }
-
-        .briefing-section.doing-well {
-            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-            border-left: 4px solid #22c55e;
-        }
-
-        .briefing-section.pinned-items {
-            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-            border-left: 4px solid #3b82f6;
-        }
-
-        .briefing-section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .briefing-section-icon {
-            font-size: 1.25rem;
-        }
-
-        .briefing-section-title {
-            font-size: 0.875rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--gray-700);
-        }
-
-        .briefing-section.action-required .briefing-section-title { color: #dc2626; }
-        .briefing-section.check-in-on .briefing-section-title { color: #d97706; }
-        .briefing-section.doing-well .briefing-section-title { color: #16a34a; }
-        .briefing-section.pinned-items .briefing-section-title { color: #2563eb; }
-
-        .briefing-narrative {
-            font-size: 0.9375rem;
-            line-height: 1.6;
-            color: var(--gray-700);
-            margin-bottom: 12px;
-        }
-
-        .briefing-clients {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .briefing-client {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-
-        .briefing-client:hover {
-            background: rgba(255, 255, 255, 0.95);
-            transform: translateX(4px);
-        }
-
-        .briefing-client-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .briefing-client-name {
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--gray-900);
-        }
-
-        .briefing-client-detail {
-            font-size: 0.8125rem;
-            color: var(--gray-600);
-            margin-left: auto;
-        }
-
-        .briefing-client-arrow {
-            color: var(--gray-400);
-            font-size: 0.875rem;
-        }
-
-        /* Pin Button */
-        .pin-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            transition: all 0.2s;
-            flex-shrink: 0;
-            color: var(--gray-400);
-        }
-
-        .pin-btn:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-        }
-
-        .pin-btn.pinned {
-            color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
-        }
-
-        .pin-btn.pinned:hover {
-            background: rgba(59, 130, 246, 0.2);
-        }
-
-        /* Empty state for briefing */
-        .briefing-empty {
-            text-align: center;
-            padding: 24px;
-            color: var(--gray-500);
-            font-size: 0.9375rem;
-        }
-
-        .briefing-empty-icon {
-            font-size: 2rem;
-            margin-bottom: 8px;
-        }
-
-        /* Quick stats bar */
-        .briefing-stats-bar {
-            display: flex;
-            gap: 16px;
-            padding: 12px 16px;
-            background: var(--gray-50);
-            border-radius: 10px;
-            margin-bottom: 4px;
-        }
-
-        .briefing-stat {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8125rem;
-            color: var(--gray-600);
-        }
-
-        .briefing-stat-value {
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-
-        /* Dark mode for AI Briefing */
+        /* Dark mode for AI Assistant */
         [data-theme="dark"] .ai-summary-section {
             background: var(--gray-800);
             border-color: var(--gray-700);
@@ -1165,73 +1085,42 @@
             color: #f1f5f9;
         }
 
-        [data-theme="dark"] .briefing-section {
+        [data-theme="dark"] .ai-prompt-input {
             background: var(--gray-900);
-        }
-
-        [data-theme="dark"] .briefing-section.action-required {
-            background: linear-gradient(135deg, #450a0a 0%, #3b0d0d 100%);
-        }
-
-        [data-theme="dark"] .briefing-section.check-in-on {
-            background: linear-gradient(135deg, #422006 0%, #3d1c04 100%);
-        }
-
-        [data-theme="dark"] .briefing-section.doing-well {
-            background: linear-gradient(135deg, #14532d 0%, #134e28 100%);
-        }
-
-        [data-theme="dark"] .briefing-section.pinned-items {
-            background: linear-gradient(135deg, #1e3a5f 0%, #1c3654 100%);
-        }
-
-        [data-theme="dark"] .briefing-narrative {
-            color: #cbd5e1;
-        }
-
-        [data-theme="dark"] .briefing-client {
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        [data-theme="dark"] .briefing-client:hover {
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        [data-theme="dark"] .briefing-client-name {
+            border-color: var(--gray-600);
             color: #f1f5f9;
         }
 
-        [data-theme="dark"] .briefing-client-detail {
-            color: #94a3b8;
-        }
-
-        [data-theme="dark"] .briefing-stats-bar {
+        [data-theme="dark"] .ai-prompt-input:focus {
             background: var(--gray-900);
+            border-color: var(--brand-primary);
         }
 
-        [data-theme="dark"] .briefing-stat-value {
-            color: #f1f5f9;
-        }
-
-        [data-theme="dark"] .pin-btn {
+        [data-theme="dark"] .ai-prompt-input::placeholder {
             color: #64748b;
         }
 
-        [data-theme="dark"] .pin-btn:hover {
-            background: rgba(59, 130, 246, 0.2);
-            color: #60a5fa;
+        [data-theme="dark"] .quick-question-btn {
+            background: var(--gray-700);
+            border-color: var(--gray-600);
+            color: #94a3b8;
         }
 
-        [data-theme="dark"] .pin-btn.pinned {
-            color: #60a5fa;
-            background: rgba(59, 130, 246, 0.2);
+        [data-theme="dark"] .quick-question-btn:hover {
+            background: var(--gray-600);
+            color: #f1f5f9;
         }
 
-        @media (max-width: 768px) {
-            .briefing-stats-bar {
-                flex-wrap: wrap;
-                gap: 12px;
-            }
+        [data-theme="dark"] .ai-response-area {
+            background: var(--gray-900);
+        }
+
+        [data-theme="dark"] .ai-response-text {
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .ai-response-placeholder {
+            color: #64748b;
         }
 
         @media (max-width: 480px) {
@@ -1239,13 +1128,12 @@
                 padding: 20px;
             }
 
-            .briefing-section {
-                padding: 12px;
+            .ai-prompt-box {
+                flex-direction: column;
             }
 
-            .briefing-stats-bar {
-                flex-direction: column;
-                gap: 8px;
+            .ai-ask-btn {
+                width: 100%;
             }
         }
 
@@ -2840,23 +2728,26 @@
                 </div>
             </div>
 
-            <!-- AI Activity Summary -->
+            <!-- AI Client Assistant -->
             <div class="ai-summary-section" id="aiSummarySection">
                 <div class="ai-summary-header">
                     <div class="ai-summary-title">
-                        <span class="ai-icon">🤖</span>
-                        <h2>Client Briefing</h2>
+                        <h2>Ask About Your Clients</h2>
                     </div>
-                    <button class="ai-refresh-btn" id="refreshSummaryBtn" title="Refresh Briefing">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                    </button>
                 </div>
-                <div class="ai-briefing-content" id="aiBriefingContent">
-                    <div class="ai-summary-loading">
-                        <div class="ai-loading-spinner"></div>
-                        <span>Preparing your briefing...</span>
+                <div class="ai-assistant-container">
+                    <div class="ai-prompt-box">
+                        <input type="text" id="aiPromptInput" class="ai-prompt-input" placeholder="Ask anything about your clients..." autocomplete="off">
+                        <button id="aiAskBtn" class="ai-ask-btn" onclick="askAIAssistant()">Ask</button>
+                    </div>
+                    <div class="ai-quick-questions">
+                        <button class="quick-question-btn" onclick="askQuickQuestion('Who has been inactive this week?')">Who's inactive?</button>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('Any pending diet requests?')">Diet requests?</button>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('How are my clients doing overall?')">Overall status?</button>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('Who reported high stress recently?')">High stress?</button>
+                    </div>
+                    <div class="ai-response-area" id="aiResponseArea">
+                        <p class="ai-response-placeholder">Ask a question to get insights about your clients.</p>
                     </div>
                 </div>
             </div>
@@ -3475,9 +3366,6 @@
                 // Load notifications
                 loadNotifications(user.id);
 
-                // Load AI Activity Summary
-                loadAIActivitySummary(user.id);
-
                 // Check onboarding status
                 checkOnboardingStatus(user.id, coachData);
 
@@ -3838,177 +3726,61 @@
             }
         }
 
-        // AI Activity Summary functions
-        async function loadAIActivitySummary(coachId) {
-            const briefingContent = document.getElementById('aiBriefingContent');
-            const refreshBtn = document.getElementById('refreshSummaryBtn');
+        // AI Client Assistant functions
+        async function askAIAssistant() {
+            const input = document.getElementById('aiPromptInput');
+            const responseArea = document.getElementById('aiResponseArea');
+            const askBtn = document.getElementById('aiAskBtn');
+            const question = input.value.trim();
 
-            try {
-                refreshBtn.classList.add('spinning');
-                briefingContent.innerHTML = `
-                    <div class="ai-summary-loading">
-                        <div class="ai-loading-spinner"></div>
-                        <span>Preparing your briefing...</span>
-                    </div>
-                `;
+            if (!question) return;
 
-                const response = await fetch(`/.netlify/functions/ai-activity-summary?coachId=${coachId}`);
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to load briefing');
-                }
-
-                // Build the briefing HTML
-                let html = '';
-
-                // Quick stats bar
-                if (data.stats) {
-                    html += `
-                        <div class="briefing-stats-bar">
-                            <div class="briefing-stat">
-                                <span class="briefing-stat-value">${data.stats.activeThisWeek || 0}</span>/${data.stats.totalClients || 0} active this week
-                            </div>
-                            <div class="briefing-stat">
-                                <span class="briefing-stat-value">${data.stats.checkedInThisWeek || 0}</span> check-ins
-                            </div>
-                            <div class="briefing-stat">
-                                <span class="briefing-stat-value">${data.stats.pendingDietRequests || 0}</span> diet requests
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Pinned items section (show first if any)
-                if (data.briefing?.pinned && data.briefing.pinned.length > 0) {
-                    html += renderBriefingSection('pinned-items', '📌', 'Pinned', '', data.briefing.pinned, true);
-                }
-
-                // Action Required section
-                if (data.briefing?.actionRequired?.items?.length > 0) {
-                    html += renderBriefingSection('action-required', '🔴', 'Needs Your Attention',
-                        data.briefing.actionRequired.narrative,
-                        data.briefing.actionRequired.items);
-                }
-
-                // Check In On section
-                if (data.briefing?.checkInOn?.items?.length > 0) {
-                    html += renderBriefingSection('check-in-on', '⚠️', 'Check In On',
-                        data.briefing.checkInOn.narrative,
-                        data.briefing.checkInOn.items);
-                }
-
-                // Doing Well section
-                if (data.briefing?.doingWell?.items?.length > 0 || data.briefing?.doingWell?.narrative) {
-                    html += renderBriefingSection('doing-well', '✅', 'Doing Well',
-                        data.briefing.doingWell.narrative,
-                        data.briefing.doingWell.items || []);
-                }
-
-                // Empty state if nothing to show
-                if (!html || html === '') {
-                    html = `
-                        <div class="briefing-empty">
-                            <div class="briefing-empty-icon">✨</div>
-                            <p>All caught up! No items need attention right now.</p>
-                        </div>
-                    `;
-                }
-
-                briefingContent.innerHTML = html;
-
-            } catch (error) {
-                console.error('Error loading briefing:', error);
-                briefingContent.innerHTML = `
-                    <div class="briefing-empty">
-                        <div class="briefing-empty-icon">😕</div>
-                        <p>Unable to load briefing. <a href="javascript:loadAIActivitySummary('${coachId}')" style="color: var(--brand-primary);">Try again</a></p>
-                    </div>
-                `;
-            } finally {
-                refreshBtn.classList.remove('spinning');
-            }
-        }
-
-        function renderBriefingSection(sectionClass, icon, title, narrative, items, isPinnedSection = false) {
-            let clientsHtml = '';
-
-            if (items && items.length > 0) {
-                clientsHtml = `<div class="briefing-clients">`;
-                items.forEach((item, index) => {
-                    const isPinned = isPinnedSection;
-                    const pinBtnClass = isPinned ? 'pin-btn pinned' : 'pin-btn';
-                    const pinIcon = isPinned ? '📌' : '📍';
-                    const pinTitle = isPinned ? 'Unpin this item' : 'Pin to keep visible';
-
-                    clientsHtml += `
-                        <div class="briefing-client" data-client-id="${item.clientId}" data-reason="${item.reason}" data-checkin-id="${item.relatedCheckinId || ''}">
-                            <a href="client-profile.html?clientId=${item.clientId}" class="briefing-client-link">
-                                <span class="briefing-client-name">${item.clientName}</span>
-                                <span class="briefing-client-detail">${item.message || ''}</span>
-                                <span class="briefing-client-arrow">→</span>
-                            </a>
-                            <button class="${pinBtnClass}" onclick="togglePinActivity(this, ${item.clientId}, '${item.reason}', ${item.relatedCheckinId || 'null'})" title="${pinTitle}">
-                                ${pinIcon}
-                            </button>
-                        </div>
-                    `;
-                });
-                clientsHtml += `</div>`;
-            }
-
-            return `
-                <div class="briefing-section ${sectionClass}">
-                    <div class="briefing-section-header">
-                        <span class="briefing-section-icon">${icon}</span>
-                        <span class="briefing-section-title">${title}</span>
-                    </div>
-                    ${narrative ? `<p class="briefing-narrative">${narrative}</p>` : ''}
-                    ${clientsHtml}
+            askBtn.disabled = true;
+            askBtn.textContent = '...';
+            responseArea.innerHTML = `
+                <div class="ai-response-loading">
+                    <div class="ai-loading-spinner"></div>
+                    <span>Thinking...</span>
                 </div>
             `;
-        }
-
-        // Toggle pin/unpin an activity item
-        async function togglePinActivity(button, clientId, reason, relatedCheckinId) {
-            const isPinned = button.classList.contains('pinned');
-            const action = isPinned ? 'unpin' : 'pin';
-
-            button.disabled = true;
-            button.innerHTML = '...';
 
             try {
-                const response = await fetch('/.netlify/functions/dismiss-activity', {
-                    method: 'PUT',
+                const response = await fetch('/.netlify/functions/ai-activity-summary', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         coachId: currentUserId,
-                        clientId: clientId,
-                        reason: reason,
-                        relatedCheckinId: relatedCheckinId,
-                        action: action
+                        question: question
                     })
                 });
 
+                const data = await response.json();
+
                 if (!response.ok) {
-                    throw new Error(`Failed to ${action} item`);
+                    throw new Error(data.error || 'Failed to get response');
                 }
 
-                // Refresh the briefing to show updated state
-                loadAIActivitySummary(currentUserId);
+                responseArea.innerHTML = `<p class="ai-response-text">${data.response}</p>`;
+                input.value = '';
 
             } catch (error) {
-                console.error(`Error ${action}ning activity:`, error);
-                button.disabled = false;
-                button.innerHTML = isPinned ? '📌' : '📍';
-                alert(`Failed to ${action} item. Please try again.`);
+                console.error('Error asking AI:', error);
+                responseArea.innerHTML = `<p class="ai-response-text" style="color: var(--gray-500);">Sorry, I couldn't process that question. Please try again.</p>`;
+            } finally {
+                askBtn.disabled = false;
+                askBtn.textContent = 'Ask';
             }
         }
 
-        // Refresh button click handler
-        document.getElementById('refreshSummaryBtn').addEventListener('click', () => {
-            if (currentUserId) {
-                loadAIActivitySummary(currentUserId);
+        function askQuickQuestion(question) {
+            document.getElementById('aiPromptInput').value = question;
+            askAIAssistant();
+        }
+
+        // Allow pressing Enter to submit
+        document.getElementById('aiPromptInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                askAIAssistant();
             }
         });
 
