@@ -23,6 +23,11 @@
             --gray-700: #334155;
             --gray-800: #1e293b;
             --gray-900: #0f172a;
+            /* Macro colors matching mockup */
+            --macro-calories: #3b82f6;
+            --macro-protein: #ef4444;
+            --macro-carbs: #eab308;
+            --macro-fat: #a855f7;
         }
 
         * {
@@ -38,10 +43,10 @@
             padding-bottom: 100px;
         }
 
-        /* Header */
+        /* ===== REDESIGNED HEADER ===== */
         .page-header {
             background: var(--brand-gradient);
-            padding: 20px 24px;
+            padding: 24px 24px 32px;
             color: white;
             position: sticky;
             top: 0;
@@ -51,209 +56,295 @@
         .header-content {
             max-width: 600px;
             margin: 0 auto;
+        }
+
+        .header-top {
             display: flex;
             align-items: center;
-            gap: 16px;
+            justify-content: space-between;
+            margin-bottom: 20px;
         }
 
         .back-btn {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             border: none;
             color: white;
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
             text-decoration: none;
+            transition: background 0.2s;
         }
 
-        .page-title {
-            font-size: 1.25rem;
-            font-weight: 700;
+        .back-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .back-btn svg {
+            width: 20px;
+            height: 20px;
         }
 
         .plan-count {
-            margin-left: auto;
             background: rgba(255,255,255,0.2);
-            padding: 8px 14px;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
+            backdrop-filter: blur(10px);
         }
 
-        /* Main Content */
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        /* ===== MAIN CONTENT ===== */
         .main-content {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 24px 20px;
         }
 
-        /* Active Plan Section */
+        /* ===== SECTION LABELS ===== */
+        .section-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 16px;
+            padding-left: 4px;
+        }
+
         .active-plan-section {
+            margin-bottom: 32px;
+        }
+
+        .other-plans-section {
             margin-bottom: 24px;
         }
 
-        .section-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--gray-500);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-
-        /* Plan Card */
+        /* ===== REDESIGNED PLAN CARDS ===== */
         .plan-card {
             background: white;
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: 20px;
+            padding: 24px;
             margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
             border: 1px solid var(--gray-100);
             text-decoration: none;
             display: block;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
 
         .plan-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
         .plan-card.active {
             border: 2px solid var(--brand-primary);
-            background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+            background: linear-gradient(135deg, #f0fdfa 0%, #f0f9ff 100%);
         }
 
         .plan-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .plan-info {
+            flex: 1;
         }
 
         .plan-name {
-            font-size: 1.1rem;
+            font-size: 1.125rem;
             font-weight: 700;
             color: var(--gray-800);
             margin-bottom: 4px;
+            letter-spacing: -0.01em;
         }
 
         .plan-date {
             font-size: 13px;
-            color: var(--gray-500);
+            color: var(--gray-400);
+            font-weight: 500;
         }
 
+        /* ===== BADGE STYLING ===== */
         .plan-badge {
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
+            flex-shrink: 0;
+            margin-left: 12px;
         }
 
         .plan-badge.active {
-            background: var(--brand-gradient);
+            background: var(--brand-primary);
             color: white;
         }
 
-        .plan-badge.completed {
-            background: var(--gray-200);
-            color: var(--gray-600);
-        }
-
-        .plan-stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid var(--gray-100);
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--brand-primary);
-        }
-
-        .stat-label {
-            font-size: 11px;
+        .plan-badge.previous {
+            background: var(--gray-100);
             color: var(--gray-500);
-            margin-top: 2px;
         }
 
-        .plan-arrow {
+        /* ===== MACRO PROGRESS BARS ===== */
+        .macro-bars {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            background: var(--gray-100);
+        }
+
+        .macro-bar {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .macro-bar.calories {
+            background: var(--macro-calories);
+            flex: 4;
+        }
+
+        .macro-bar.protein {
+            background: var(--macro-protein);
+            flex: 3;
+        }
+
+        .macro-bar.carbs {
+            background: var(--macro-carbs);
+            flex: 3;
+        }
+
+        .macro-bar.fat {
+            background: var(--macro-fat);
+            flex: 2;
+        }
+
+        /* ===== MACRO STATS ROW ===== */
+        .macro-stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .macro-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .macro-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .macro-dot.calories { background: var(--macro-calories); }
+        .macro-dot.protein { background: var(--macro-protein); }
+        .macro-dot.carbs { background: var(--macro-carbs); }
+        .macro-dot.fat { background: var(--macro-fat); }
+
+        .macro-text {
+            font-size: 13px;
+            color: var(--gray-600);
+            font-weight: 600;
+        }
+
+        .macro-label {
+            font-size: 13px;
             color: var(--gray-400);
-            font-size: 20px;
+            font-weight: 500;
         }
 
-        /* Empty State */
+        /* ===== EMPTY STATE ===== */
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 24px;
             color: var(--gray-500);
         }
 
         .empty-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
+            width: 80px;
+            height: 80px;
+            background: var(--gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 36px;
         }
 
         .empty-title {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 1.25rem;
+            font-weight: 700;
             color: var(--gray-700);
             margin-bottom: 8px;
         }
 
         .empty-desc {
-            font-size: 14px;
-            color: var(--gray-500);
+            font-size: 15px;
+            color: var(--gray-400);
+            max-width: 260px;
+            margin: 0 auto;
+            line-height: 1.5;
         }
 
-        /* Loading State */
+        /* ===== LOADING STATE ===== */
         .loading {
             text-align: center;
-            padding: 40px;
-            color: var(--gray-500);
+            padding: 60px 24px;
+            color: var(--gray-400);
         }
 
         .spinner {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             border: 3px solid var(--gray-200);
             border-top-color: var(--brand-primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        /* Bottom Navigation */
+        .loading-text {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        /* ===== BOTTOM NAVIGATION ===== */
         .bottom-nav {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             background: white;
-            border-top: 1px solid var(--gray-200);
+            border-top: 1px solid var(--gray-100);
             display: flex;
             justify-content: space-around;
-            padding: 12px 0;
-            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            padding: 10px 0;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
             z-index: 100;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.04);
         }
 
         .bottom-nav-item {
@@ -262,9 +353,12 @@
             align-items: center;
             gap: 4px;
             text-decoration: none;
-            color: var(--gray-500);
+            color: var(--gray-400);
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
+            padding: 4px 16px;
+            border-radius: 12px;
+            transition: all 0.2s;
         }
 
         .bottom-nav-item.active {
@@ -276,7 +370,7 @@
             height: 24px;
         }
 
-        /* Dark Mode */
+        /* ===== DARK MODE ===== */
         [data-theme="dark"] body {
             background: #0f172a;
         }
@@ -284,10 +378,11 @@
         [data-theme="dark"] .plan-card {
             background: #1e293b;
             border-color: #334155;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
 
         [data-theme="dark"] .plan-card:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
 
         [data-theme="dark"] .plan-card.active {
@@ -300,28 +395,32 @@
         }
 
         [data-theme="dark"] .plan-date {
-            color: #94a3b8;
+            color: #64748b;
         }
 
-        [data-theme="dark"] .plan-badge.completed {
+        [data-theme="dark"] .plan-badge.previous {
             background: #334155;
             color: #94a3b8;
         }
 
-        [data-theme="dark"] .plan-stats {
-            border-color: #334155;
+        [data-theme="dark"] .macro-bars {
+            background: #334155;
         }
 
-        [data-theme="dark"] .stat-value {
-            color: #14b8a6;
+        [data-theme="dark"] .macro-text {
+            color: #e2e8f0;
         }
 
-        [data-theme="dark"] .stat-label {
-            color: #94a3b8;
+        [data-theme="dark"] .macro-label {
+            color: #64748b;
         }
 
         [data-theme="dark"] .section-label {
-            color: #94a3b8;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .empty-icon {
+            background: #1e293b;
         }
 
         [data-theme="dark"] .empty-title {
@@ -329,20 +428,41 @@
         }
 
         [data-theme="dark"] .empty-desc {
-            color: #94a3b8;
+            color: #64748b;
         }
 
         [data-theme="dark"] .bottom-nav {
             background: #1e293b;
             border-color: #334155;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
         }
 
         [data-theme="dark"] .bottom-nav-item {
-            color: #94a3b8;
+            color: #64748b;
         }
 
         [data-theme="dark"] .bottom-nav-item.active {
             color: #14b8a6;
+        }
+
+        [data-theme="dark"] .loading {
+            color: #64748b;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            .page-title {
+                font-size: 1.75rem;
+            }
+
+            .macro-stats {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .macro-item {
+                flex: 0 0 calc(50% - 6px);
+            }
         }
     </style>
 </head>
@@ -350,9 +470,15 @@
     <!-- Header -->
     <header class="page-header">
         <div class="header-content">
-            <a href="client-dashboard.html" class="back-btn">&#8592;</a>
+            <div class="header-top">
+                <a href="client-dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="plan-count" id="planCount">0 plans</div>
+            </div>
             <h1 class="page-title">My Plans</h1>
-            <div class="plan-count" id="planCount">0 plans</div>
         </div>
     </header>
 
@@ -360,7 +486,7 @@
         <!-- Loading State -->
         <div class="loading" id="loadingState">
             <div class="spinner"></div>
-            <div>Loading your plans...</div>
+            <div class="loading-text">Loading your plans...</div>
         </div>
 
         <!-- Plans List -->
@@ -381,7 +507,7 @@
             <div class="empty-state" id="emptyState" style="display: none;">
                 <div class="empty-icon">📋</div>
                 <div class="empty-title">No Meal Plans Yet</div>
-                <div class="empty-desc">Your coach will share meal plans with you here.</div>
+                <div class="empty-desc">Your coach will share personalized meal plans with you here.</div>
             </div>
         </div>
     </div>
@@ -517,50 +643,66 @@
         }
 
         function createPlanCard(plan, isActive) {
-            const date = new Date(plan.created_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            });
+            const createdDate = new Date(plan.created_at);
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const date = `Created ${monthNames[createdDate.getMonth()]} ${createdDate.getFullYear()}`;
 
             // Extract macros from plan_data if available
             const planData = plan.plan_data || {};
             const dayTargets = planData.currentPlan?.[0]?.targets || {};
-            const calories = planData.calories || dayTargets.calories || plan.calories || '-';
-            const protein = planData.protein || dayTargets.protein || plan.protein || '-';
-            const carbs = planData.carbs || dayTargets.carbs || plan.carbs || '-';
-            const fat = planData.fat || dayTargets.fat || plan.fat || '-';
+            const calories = planData.calories || dayTargets.calories || plan.calories || null;
+            const protein = planData.protein || dayTargets.protein || plan.protein || null;
+            const carbs = planData.carbs || dayTargets.carbs || plan.carbs || null;
+            const fat = planData.fat || dayTargets.fat || plan.fat || null;
             const planName = plan.plan_name || planData.clientName || plan.client_name || 'Meal Plan';
+
+            // Build macro HTML only if we have data
+            let macroHTML = '';
+            if (calories || protein || carbs || fat) {
+                macroHTML = `
+                    <div class="macro-bars">
+                        <div class="macro-bar calories"></div>
+                        <div class="macro-bar protein"></div>
+                        <div class="macro-bar carbs"></div>
+                        <div class="macro-bar fat"></div>
+                    </div>
+                    <div class="macro-stats">
+                        <div class="macro-item">
+                            <div class="macro-dot calories"></div>
+                            <span class="macro-text">${calories || '-'}</span>
+                            <span class="macro-label">cal</span>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-dot protein"></div>
+                            <span class="macro-text">${protein || '-'}g</span>
+                            <span class="macro-label">protein</span>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-dot carbs"></div>
+                            <span class="macro-text">${carbs || '-'}g</span>
+                            <span class="macro-label">carbs</span>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-dot fat"></div>
+                            <span class="macro-text">${fat || '-'}g</span>
+                            <span class="macro-label">fat</span>
+                        </div>
+                    </div>
+                `;
+            }
 
             return `
                 <a href="view-plan.html?planId=${plan.id}&clientView=true" class="plan-card ${isActive ? 'active' : ''}">
                     <div class="plan-header">
-                        <div>
+                        <div class="plan-info">
                             <div class="plan-name">${planName}</div>
-                            <div class="plan-date">Created ${date}</div>
+                            <div class="plan-date">${date}</div>
                         </div>
-                        <span class="plan-badge ${isActive ? 'active' : 'completed'}">
+                        <span class="plan-badge ${isActive ? 'active' : 'previous'}">
                             ${isActive ? 'Active' : 'Previous'}
                         </span>
                     </div>
-                    <div class="plan-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">${calories}</div>
-                            <div class="stat-label">Calories</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${protein}${protein !== '-' ? 'g' : ''}</div>
-                            <div class="stat-label">Protein</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${carbs}${carbs !== '-' ? 'g' : ''}</div>
-                            <div class="stat-label">Carbs</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${fat}${fat !== '-' ? 'g' : ''}</div>
-                            <div class="stat-label">Fat</div>
-                        </div>
-                    </div>
+                    ${macroHTML}
                 </a>
             `;
         }
