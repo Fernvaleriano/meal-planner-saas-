@@ -2468,6 +2468,340 @@
            REDESIGNED DASHBOARD - Premium UI
            ========================================== */
 
+        /* Daily Wins Section */
+        .daily-wins-section {
+            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 50%, #f5d0fe 100%);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #f0abfc;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .daily-wins-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .wins-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .wins-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #7c3aed;
+        }
+
+        .wins-title-icon {
+            font-size: 1.5rem;
+        }
+
+        .ai-encouragement {
+            background: white;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e9d5ff;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .ai-message {
+            flex: 1;
+        }
+
+        .ai-message-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #a855f7;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .ai-message-text {
+            font-size: 0.95rem;
+            color: var(--gray-700);
+            line-height: 1.5;
+        }
+
+        .wins-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .win-card {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #e9d5ff;
+            transition: all 0.2s;
+        }
+
+        .win-card.achieved {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-color: #6ee7b7;
+        }
+
+        .win-card.achieved .win-icon {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        }
+
+        .win-card.pending {
+            opacity: 0.7;
+        }
+
+        .win-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .win-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .win-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+
+        .win-subtitle {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .win-check {
+            color: #10b981;
+            font-size: 1.25rem;
+        }
+
+        /* Badges Section */
+        .badges-section {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            border: 1px solid #e9d5ff;
+        }
+
+        .badges-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .badges-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--gray-700);
+        }
+
+        .badges-count {
+            font-size: 0.75rem;
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .badges-grid {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge-item {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .badge-item:hover {
+            transform: scale(1.1);
+        }
+
+        .badge-item.earned {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #fbbf24;
+        }
+
+        .badge-item.locked {
+            background: var(--gray-100);
+            border: 2px dashed var(--gray-300);
+            opacity: 0.5;
+            filter: grayscale(1);
+        }
+
+        .badge-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gray-900);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .badge-item:hover .badge-tooltip {
+            opacity: 1;
+        }
+
+        /* Personal Best Card */
+        .personal-best-card {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1px solid #fcd34d;
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .personal-best-icon {
+            font-size: 2rem;
+        }
+
+        .personal-best-content {
+            flex: 1;
+        }
+
+        .personal-best-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #b45309;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .personal-best-value {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #92400e;
+        }
+
+        /* Dark mode for Daily Wins */
+        [data-theme="dark"] .daily-wins-section {
+            background: linear-gradient(135deg, #2e1065 0%, #4c1d95 50%, #5b21b6 100%);
+            border-color: #7c3aed;
+        }
+
+        [data-theme="dark"] .wins-title {
+            color: #e9d5ff;
+        }
+
+        [data-theme="dark"] .ai-encouragement {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #6d28d9;
+        }
+
+        [data-theme="dark"] .ai-message-text {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .win-card {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #6d28d9;
+        }
+
+        [data-theme="dark"] .win-card.achieved {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+        }
+
+        [data-theme="dark"] .win-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .win-subtitle {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .badges-section {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #6d28d9;
+        }
+
+        [data-theme="dark"] .badges-title {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .personal-best-card {
+            background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+            border-color: #b45309;
+        }
+
+        [data-theme="dark"] .personal-best-label {
+            color: #fde68a;
+        }
+
+        [data-theme="dark"] .personal-best-value {
+            color: #fef3c7;
+        }
+
+        @media (max-width: 480px) {
+            .wins-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .daily-wins-section {
+                padding: 20px 16px;
+            }
+        }
+
         /* Greeting with Streak Badge */
         .greeting-section {
             margin-bottom: 24px;
@@ -3119,6 +3453,104 @@
                             <div class="streak-badge no-streak" id="streakBadge">
                                 <span class="streak-icon">🔥</span>
                                 <span class="streak-text" id="streakText">Start your streak!</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Wins Section -->
+                    <div class="daily-wins-section" id="dailyWinsSection">
+                        <div class="wins-header">
+                            <div class="wins-title">
+                                <span class="wins-title-icon">🏆</span>
+                                Daily Wins
+                            </div>
+                        </div>
+
+                        <!-- AI Encouragement Message -->
+                        <div class="ai-encouragement">
+                            <div class="ai-avatar">🤖</div>
+                            <div class="ai-message">
+                                <div class="ai-message-label">Your AI Coach</div>
+                                <div class="ai-message-text" id="aiEncouragement">Loading your personalized message...</div>
+                            </div>
+                        </div>
+
+                        <!-- Today's Wins Grid -->
+                        <div class="wins-grid" id="winsGrid">
+                            <div class="win-card pending" id="winMealsLogged">
+                                <div class="win-icon">🍽️</div>
+                                <div class="win-content">
+                                    <div class="win-title">Log a Meal</div>
+                                    <div class="win-subtitle">Track your nutrition</div>
+                                </div>
+                                <span class="win-check" style="display:none;">✓</span>
+                            </div>
+                            <div class="win-card pending" id="winProteinGoal">
+                                <div class="win-icon">💪</div>
+                                <div class="win-content">
+                                    <div class="win-title">Hit Protein Goal</div>
+                                    <div class="win-subtitle" id="proteinProgress">0% complete</div>
+                                </div>
+                                <span class="win-check" style="display:none;">✓</span>
+                            </div>
+                            <div class="win-card pending" id="winCalorieGoal">
+                                <div class="win-icon">🎯</div>
+                                <div class="win-content">
+                                    <div class="win-title">Stay on Track</div>
+                                    <div class="win-subtitle" id="calorieProgress">Calories on target</div>
+                                </div>
+                                <span class="win-check" style="display:none;">✓</span>
+                            </div>
+                            <div class="win-card pending" id="winStreak">
+                                <div class="win-icon">🔥</div>
+                                <div class="win-content">
+                                    <div class="win-title">Keep Your Streak</div>
+                                    <div class="win-subtitle" id="streakProgress">Log today to continue</div>
+                                </div>
+                                <span class="win-check" style="display:none;">✓</span>
+                            </div>
+                        </div>
+
+                        <!-- Badges Section -->
+                        <div class="badges-section">
+                            <div class="badges-header">
+                                <span class="badges-title">Your Badges</span>
+                                <span class="badges-count" id="badgesCount">0 earned</span>
+                            </div>
+                            <div class="badges-grid" id="badgesGrid">
+                                <div class="badge-item locked" data-badge="first-log">
+                                    🌟
+                                    <span class="badge-tooltip">First Log - Log your first meal</span>
+                                </div>
+                                <div class="badge-item locked" data-badge="week-warrior">
+                                    ⚔️
+                                    <span class="badge-tooltip">Week Warrior - 7 day streak</span>
+                                </div>
+                                <div class="badge-item locked" data-badge="protein-pro">
+                                    💪
+                                    <span class="badge-tooltip">Protein Pro - Hit protein 5 days</span>
+                                </div>
+                                <div class="badge-item locked" data-badge="checkin-champ">
+                                    ✅
+                                    <span class="badge-tooltip">Check-in Champ - Complete 4 check-ins</span>
+                                </div>
+                                <div class="badge-item locked" data-badge="consistency-king">
+                                    👑
+                                    <span class="badge-tooltip">Consistency King - 30 day streak</span>
+                                </div>
+                                <div class="badge-item locked" data-badge="meal-master">
+                                    🍽️
+                                    <span class="badge-tooltip">Meal Master - Log 100 meals</span>
+                                </div>
+                            </div>
+
+                            <!-- Personal Best -->
+                            <div class="personal-best-card" id="personalBestCard" style="display:none;">
+                                <span class="personal-best-icon">🥇</span>
+                                <div class="personal-best-content">
+                                    <div class="personal-best-label">Personal Best</div>
+                                    <div class="personal-best-value" id="personalBestValue">-</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -5384,6 +5816,116 @@
 
         // Run dashboard extras after a short delay to ensure client ID is loaded
         setTimeout(initDashboardExtras, 1000);
+
+        // Load Daily Wins data from backend
+        async function loadDailyWins() {
+            if (!currentClientId) {
+                console.log('No client ID for daily wins');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/.netlify/functions/client-daily-wins?clientId=${currentClientId}`);
+                if (!response.ok) throw new Error('Failed to load daily wins');
+
+                const data = await response.json();
+                updateDailyWinsUI(data);
+            } catch (error) {
+                console.error('Error loading daily wins:', error);
+                // Set default encouragement on error
+                const aiMessage = document.getElementById('aiEncouragement');
+                if (aiMessage) {
+                    aiMessage.textContent = "Ready to make today a great day? Let's track your wins!";
+                }
+            }
+        }
+
+        // Update Daily Wins UI with data from backend
+        function updateDailyWinsUI(data) {
+            // Update AI encouragement
+            const aiMessage = document.getElementById('aiEncouragement');
+            if (aiMessage && data.encouragement) {
+                aiMessage.textContent = data.encouragement;
+            }
+
+            // Update win cards
+            if (data.wins) {
+                updateWinCard('winMealsLogged', data.wins.mealsLogged,
+                    data.progress?.mealsLoggedToday > 0 ? `${data.progress.mealsLoggedToday} logged today` : 'Track your nutrition');
+                updateWinCard('winProteinGoal', data.wins.proteinGoal,
+                    `${data.progress?.proteinPercent || 0}% complete`);
+                updateWinCard('winCalorieGoal', data.wins.calorieGoal,
+                    `${data.progress?.caloriePercent || 0}% of target`);
+                updateWinCard('winStreak', data.wins.streak,
+                    data.progress?.streak > 0 ? `${data.progress.streak} day streak!` : 'Log today to start');
+            }
+
+            // Update badges
+            if (data.badges) {
+                Object.entries(data.badges).forEach(([badgeId, earned]) => {
+                    const badge = document.querySelector(`[data-badge="${badgeId}"]`);
+                    if (badge) {
+                        if (earned) {
+                            badge.classList.remove('locked');
+                            badge.classList.add('earned');
+                        } else {
+                            badge.classList.remove('earned');
+                            badge.classList.add('locked');
+                        }
+                    }
+                });
+
+                // Update badge count
+                const badgesCount = document.getElementById('badgesCount');
+                if (badgesCount) {
+                    badgesCount.textContent = `${data.earnedBadgesCount || 0} earned`;
+                }
+            }
+
+            // Show personal best if available
+            if (data.personalBest && data.personalBest.value > 0) {
+                const pbCard = document.getElementById('personalBestCard');
+                const pbValue = document.getElementById('personalBestValue');
+                if (pbCard && pbValue) {
+                    pbValue.textContent = data.personalBest.label;
+                    pbCard.style.display = 'flex';
+                }
+            }
+        }
+
+        // Helper to update individual win card state
+        function updateWinCard(cardId, achieved, subtitle) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+
+            if (achieved) {
+                card.classList.remove('pending');
+                card.classList.add('achieved');
+                const check = card.querySelector('.win-check');
+                if (check) check.style.display = 'block';
+            } else {
+                card.classList.remove('achieved');
+                card.classList.add('pending');
+                const check = card.querySelector('.win-check');
+                if (check) check.style.display = 'none';
+            }
+
+            // Update subtitle
+            const subtitleEl = card.querySelector('.win-subtitle');
+            if (subtitleEl && subtitle) {
+                subtitleEl.textContent = subtitle;
+            }
+        }
+
+        // Call loadDailyWins when page loads (after client ID is available)
+        setTimeout(() => {
+            if (currentClientId) {
+                loadDailyWins();
+            } else {
+                // Wait a bit more for client ID
+                setTimeout(loadDailyWins, 1500);
+            }
+        }, 1200);
     </script>
 
     <!-- Footer (hidden on mobile) -->
