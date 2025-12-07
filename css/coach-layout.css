@@ -254,6 +254,29 @@ body {
     color: var(--gray-300);
 }
 
+/* Logout link in settings section */
+.sidebar-nav-logout {
+    color: #dc2626 !important;
+    margin-top: 8px;
+    border-top: 1px solid var(--gray-100);
+    padding-top: 12px !important;
+}
+
+.sidebar-nav-logout:hover {
+    background: rgba(220, 38, 38, 0.1) !important;
+    color: #b91c1c !important;
+}
+
+[data-theme="dark"] .sidebar-nav-logout {
+    color: #f87171 !important;
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .sidebar-nav-logout:hover {
+    background: rgba(248, 113, 113, 0.1) !important;
+    color: #fca5a5 !important;
+}
+
 /* ===== MAIN CONTENT ===== */
 .main-content {
     margin-left: var(--sidebar-width);
