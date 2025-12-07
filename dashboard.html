@@ -1094,6 +1094,54 @@
             color: var(--gray-400);
         }
 
+        .attention-checkoff {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--gray-300);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+
+        .attention-checkoff:hover {
+            border-color: var(--brand-primary);
+            background: var(--brand-primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .attention-checkoff.checked {
+            border-color: #22c55e;
+            background: #22c55e;
+            color: white;
+        }
+
+        .attention-item.dismissing {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .attention-item.dismissed {
+            animation: slideOut 0.3s ease forwards;
+        }
+
+        @keyframes slideOut {
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+                height: 0;
+                margin: 0;
+                padding: 0;
+            }
+        }
+
         /* Dark mode for AI Summary */
         [data-theme="dark"] .ai-summary-section {
             background: var(--gray-800);
@@ -3808,19 +3856,25 @@
 
                 // Display attention items
                 if (data.needsAttention && data.needsAttention.length > 0) {
-                    attentionItems.innerHTML = data.needsAttention.map(item => {
+                    attentionItems.innerHTML = data.needsAttention.map((item, index) => {
                         const icon = getAttentionIcon(item.reason);
                         return `
-                            <a href="client-profile.html?clientId=${item.clientId}" class="attention-item priority-${item.priority}">
-                                <span class="attention-icon">${icon}</span>
-                                <div class="attention-content">
-                                    <div class="attention-name">${item.clientName}</div>
-                                    <div class="attention-message">${item.message}</div>
-                                </div>
-                                <span class="attention-arrow">→</span>
-                            </a>
+                            <div class="attention-item priority-${item.priority}" id="attention-item-${index}" data-client-id="${item.clientId}" data-reason="${item.reason}" data-checkin-id="${item.relatedCheckinId || ''}">
+                                <button class="attention-checkoff" onclick="dismissActivity(${index}, ${item.clientId}, '${item.reason}', ${item.relatedCheckinId || 'null'})" title="Mark as done">✓</button>
+                                <a href="client-profile.html?clientId=${item.clientId}" style="display: flex; align-items: center; gap: 12px; flex: 1; text-decoration: none; color: inherit;">
+                                    <span class="attention-icon">${icon}</span>
+                                    <div class="attention-content">
+                                        <div class="attention-name">${item.clientName}</div>
+                                        <div class="attention-message">${item.message}</div>
+                                    </div>
+                                    <span class="attention-arrow">→</span>
+                                </a>
+                            </div>
                         `;
                     }).join('');
+                    attentionList.style.display = 'block';
+                } else {
+                    attentionItems.innerHTML = '<p style="color: var(--gray-500); font-size: 0.875rem; text-align: center; padding: 12px;">All caught up! No items need attention.</p>';
                     attentionList.style.display = 'block';
                 }
 
@@ -3840,6 +3894,59 @@
                 case 'low_adherence': return '📉';
                 case 'inactive': return '⏰';
                 default: return '⚠️';
+            }
+        }
+
+        // Dismiss/check off an activity item
+        async function dismissActivity(index, clientId, reason, relatedCheckinId) {
+            const itemElement = document.getElementById(`attention-item-${index}`);
+            if (!itemElement) return;
+
+            // Add dismissing state
+            itemElement.classList.add('dismissing');
+            const checkButton = itemElement.querySelector('.attention-checkoff');
+            if (checkButton) checkButton.innerHTML = '...';
+
+            try {
+                const response = await fetch('/.netlify/functions/dismiss-activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        coachId: currentUserId,
+                        clientId: clientId,
+                        reason: reason,
+                        relatedCheckinId: relatedCheckinId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to dismiss activity');
+                }
+
+                // Mark as checked and animate out
+                if (checkButton) {
+                    checkButton.classList.add('checked');
+                    checkButton.innerHTML = '✓';
+                }
+                itemElement.classList.remove('dismissing');
+                itemElement.classList.add('dismissed');
+
+                // Remove element after animation
+                setTimeout(() => {
+                    itemElement.remove();
+
+                    // Check if no more items
+                    const attentionItems = document.getElementById('attentionItems');
+                    if (attentionItems && attentionItems.children.length === 0) {
+                        attentionItems.innerHTML = '<p style="color: var(--gray-500); font-size: 0.875rem; text-align: center; padding: 12px;">All caught up! No items need attention.</p>';
+                    }
+                }, 300);
+
+            } catch (error) {
+                console.error('Error dismissing activity:', error);
+                itemElement.classList.remove('dismissing');
+                if (checkButton) checkButton.innerHTML = '✓';
+                alert('Failed to mark item as done. Please try again.');
             }
         }
 

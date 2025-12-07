@@ -22,7 +22,9 @@ exports.handler = async (event, context) => {
       allergies, dislikedFoods, preferredFoods, cookingEquipment,
       useProteinPowder, proteinPowderBrand, proteinPowderCalories,
       proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
-      useBrandedFoods
+      useBrandedFoods,
+      // Client portal permissions
+      canChangeMeals, canReviseMeals, canCustomMeals, canRequestNewPlan
     } = body;
 
     // Validate required fields
@@ -74,6 +76,12 @@ exports.handler = async (event, context) => {
     if (proteinPowderFat !== undefined) updateData.protein_powder_fat = proteinPowderFat;
     // Branded fitness foods
     if (useBrandedFoods !== undefined) updateData.use_branded_foods = useBrandedFoods;
+
+    // Client portal permissions
+    if (canChangeMeals !== undefined) updateData.can_change_meals = canChangeMeals;
+    if (canReviseMeals !== undefined) updateData.can_revise_meals = canReviseMeals;
+    if (canCustomMeals !== undefined) updateData.can_custom_meals = canCustomMeals;
+    if (canRequestNewPlan !== undefined) updateData.can_request_new_plan = canRequestNewPlan;
 
     // Update client (verify it belongs to this coach)
     const { data, error } = await supabase

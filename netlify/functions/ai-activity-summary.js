@@ -115,6 +115,26 @@ exports.handler = async (event, context) => {
       .eq('request_new_diet', true)
       .order('created_at', { ascending: false });
 
+    // Fetch dismissed activity items to filter them out
+    const { data: dismissedItems, error: dismissedError } = await supabase
+      .from('dismissed_activity_items')
+      .select('client_id, reason, related_checkin_id')
+      .eq('coach_id', coachId);
+
+    if (dismissedError && dismissedError.code !== '42P01') {
+      console.error('Error fetching dismissed items:', dismissedError);
+    }
+
+    // Create a Set for quick lookup of dismissed items
+    const dismissedSet = new Set();
+    (dismissedItems || []).forEach(item => {
+      // Key format: clientId-reason or clientId-reason-checkinId
+      const key = item.related_checkin_id
+        ? `${item.client_id}-${item.reason}-${item.related_checkin_id}`
+        : `${item.client_id}-${item.reason}`;
+      dismissedSet.add(key);
+    });
+
     // Calculate stats
     const clientStats = clients.map(client => {
       const lastActivity = client.last_activity_at ? new Date(client.last_activity_at) : null;
@@ -155,16 +175,30 @@ exports.handler = async (event, context) => {
       loggingFood: clientStats.filter(c => c.diaryEntriesThisWeek > 0).length
     };
 
+    // Helper function to check if an item is dismissed
+    const isDismissed = (clientId, reason, checkinId = null) => {
+      const keyWithCheckin = `${clientId}-${reason}-${checkinId}`;
+      const keyWithoutCheckin = `${clientId}-${reason}`;
+      return dismissedSet.has(keyWithCheckin) || dismissedSet.has(keyWithoutCheckin);
+    };
+
     // Identify clients needing attention
     const needsAttention = [];
 
     // Priority 1: Pending diet requests
     clientStats.filter(c => c.hasPendingDietRequest).forEach(c => {
+      const dietRequest = (dietRequests || []).find(r => r.client_id === c.id);
+      const checkinId = dietRequest?.id;
+
+      // Skip if dismissed
+      if (isDismissed(c.id, 'diet_request', checkinId)) return;
+
       needsAttention.push({
         clientId: c.id,
         clientName: c.name,
         priority: 'high',
         reason: 'diet_request',
+        relatedCheckinId: checkinId,
         message: `Requested a new meal plan${c.dietRequestReason ? `: "${c.dietRequestReason}"` : ''}`
       });
     });
@@ -172,30 +206,35 @@ exports.handler = async (event, context) => {
     // Priority 2: Low check-in scores (high stress, low energy, low adherence)
     clientStats.filter(c => c.latestCheckin).forEach(c => {
       const checkin = c.latestCheckin;
-      if (checkin.stress_level >= 8) {
+      const checkinId = checkin.id;
+
+      if (checkin.stress_level >= 8 && !isDismissed(c.id, 'high_stress', checkinId)) {
         needsAttention.push({
           clientId: c.id,
           clientName: c.name,
           priority: 'high',
           reason: 'high_stress',
+          relatedCheckinId: checkinId,
           message: `Reported high stress level (${checkin.stress_level}/10)`
         });
       }
-      if (checkin.energy_level <= 3) {
+      if (checkin.energy_level <= 3 && !isDismissed(c.id, 'low_energy', checkinId)) {
         needsAttention.push({
           clientId: c.id,
           clientName: c.name,
           priority: 'medium',
           reason: 'low_energy',
+          relatedCheckinId: checkinId,
           message: `Reported low energy (${checkin.energy_level}/10)`
         });
       }
-      if (checkin.meal_plan_adherence <= 40) {
+      if (checkin.meal_plan_adherence <= 40 && !isDismissed(c.id, 'low_adherence', checkinId)) {
         needsAttention.push({
           clientId: c.id,
           clientName: c.name,
           priority: 'medium',
           reason: 'low_adherence',
+          relatedCheckinId: checkinId,
           message: `Low meal plan adherence (${checkin.meal_plan_adherence}%)`
         });
       }
@@ -203,6 +242,9 @@ exports.handler = async (event, context) => {
 
     // Priority 3: Inactive clients with portal access
     clientStats.filter(c => c.hasPortalAccess && c.daysSinceActivity > 14).forEach(c => {
+      // Skip if dismissed
+      if (isDismissed(c.id, 'inactive')) return;
+
       needsAttention.push({
         clientId: c.id,
         clientName: c.name,
