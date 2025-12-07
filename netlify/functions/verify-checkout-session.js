@@ -202,7 +202,7 @@ exports.handler = async (event) => {
         // Get plan from metadata
         const plan = session.metadata?.plan || 'starter';
 
-        // Update the coach record
+        // Update the coach record (only essential fields - webhook handles the rest)
         const { error: updateError } = await supabase
             .from('coaches')
             .update({
@@ -211,8 +211,6 @@ exports.handler = async (event) => {
                 subscription_tier: plan,
                 subscription_status: newStatus,
                 trial_ends_at: trialEndsAt,
-                canceled_at: null,
-                cancel_at: null,
                 updated_at: new Date().toISOString()
             })
             .eq('id', coach.id);
@@ -235,7 +233,6 @@ exports.handler = async (event) => {
                 status: newStatus,
                 stripe_subscription_id: typeof subscription === 'string' ? subscription : subscription.id,
                 trial_ends_at: trialEndsAt,
-                cancel_at: null,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'coach_id' });
 
