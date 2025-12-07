@@ -1889,7 +1889,7 @@
         let clients = [];
         let archivedClients = [];
         let filteredClients = [];
-        let currentView = 'table'; // Table view is now the only view
+        let currentView = window.innerWidth <= 768 ? 'cards' : 'cards'; // Default to cards
         let showingArchived = false;
         let searchQuery = '';
 
@@ -2233,18 +2233,125 @@
         // Render lock to prevent race conditions
         let isRendering = false;
 
-        // Apply current view (table view only)
+        // Set view mode
+        function setView(view) {
+            currentView = view;
+
+            // Update toggle buttons
+            document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === view);
+            });
+
+            applyView();
+        }
+
+        // Apply current view
         async function applyView() {
             // Prevent concurrent renders
             if (isRendering) return;
             isRendering = true;
 
             try {
-                clientsTableContainer.style.display = 'block';
-                await renderClientsTable();
+                // On mobile, always use cards
+                const isMobile = window.innerWidth <= 768;
+                const effectiveView = isMobile ? 'cards' : currentView;
+
+                if (effectiveView === 'cards') {
+                    clientsContainer.style.display = 'grid';
+                    clientsTableContainer.style.display = 'none';
+                    await renderClientCards();
+                } else {
+                    clientsContainer.style.display = 'none';
+                    clientsTableContainer.style.display = 'block';
+                    await renderClientsTable();
+                }
             } finally {
                 isRendering = false;
             }
+        }
+
+        // Render clients as cards
+        async function renderClientCards() {
+            clientsContainer.innerHTML = '';
+
+            // Fetch plan counts for all clients
+            const planCounts = await fetchPlanCounts();
+
+            filteredClients.forEach(client => {
+                const card = document.createElement('div');
+                card.className = 'client-card' + (client.is_archived ? ' archived' : '');
+
+                // Only make card clickable for active clients
+                if (!client.is_archived) {
+                    card.style.cursor = 'pointer';
+                    card.onclick = (e) => {
+                        if (!e.target.closest('button')) {
+                            window.location.href = `client-profile.html?clientId=${client.id}`;
+                        }
+                    };
+                }
+
+                // Format goal
+                const goalDisplay = client.default_goal
+                    ? client.default_goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    : 'Not set';
+                const goalClass = client.default_goal
+                    ? client.default_goal.replace('_', '-')
+                    : 'not-set';
+
+                // Get plan count
+                const planCount = planCounts[client.id] || 0;
+
+                // Get initials for avatar
+                const initials = client.client_name
+                    ? client.client_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    : '?';
+
+                // Avatar HTML
+                const avatarHtml = client.profile_photo_url
+                    ? `<img src="${client.profile_photo_url}" alt="${escapeHtml(client.client_name)}">`
+                    : initials;
+
+                // Build action buttons
+                let actionButtons = '';
+                if (client.is_archived) {
+                    actionButtons = `
+                        <button class="btn btn-success btn-small" onclick="event.stopPropagation(); restoreClient(${client.id}, '${escapeHtml(client.client_name)}')">Restore</button>
+                        <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
+                    `;
+                } else {
+                    actionButtons = `
+                        <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); window.location.href='client-profile.html?clientId=${client.id}'">View</button>
+                        <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
+                        <button class="btn btn-warning btn-small" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">Archive</button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div class="client-header-left">
+                            <div class="client-avatar">${avatarHtml}</div>
+                            <div>
+                                <div class="client-name">${escapeHtml(client.client_name)}</div>
+                                ${client.is_archived ? '<span class="archived-badge">Archived</span>' : ''}
+                                <span class="goal-badge ${goalClass}">${goalDisplay}</span>
+                            </div>
+                        </div>
+                        <div class="client-actions">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                    <div class="client-info">
+                        ${client.email ? `<div>📧 ${escapeHtml(client.email)}</div>` : ''}
+                        ${client.phone ? `<div>📱 ${escapeHtml(client.phone)}</div>` : ''}
+                    </div>
+                    <div class="client-stats">
+                        <strong>${planCount}</strong> meal plan${planCount !== 1 ? 's' : ''} created
+                    </div>
+                `;
+
+                clientsContainer.appendChild(card);
+            });
         }
 
         // Render clients in table view
