@@ -1469,6 +1469,10 @@
             <span class="client-count" id="clientCount">0 clients</span>
         </div>
 
+        <div id="clientsContainer" class="clients-grid" style="display: none;">
+            <!-- Client cards will be dynamically inserted here -->
+        </div>
+
         <div id="clientsTableContainer" class="clients-table" style="display: none;">
             <table>
                 <thead>
@@ -1813,6 +1817,7 @@
         // UI Elements
         const loadingDiv = document.getElementById('loadingDiv');
         const emptyState = document.getElementById('emptyState');
+        const clientsContainer = document.getElementById('clientsContainer');
         const clientsTableContainer = document.getElementById('clientsTableContainer');
         const clientsTableBody = document.getElementById('clientsTableBody');
         const viewControls = document.getElementById('viewControls');
