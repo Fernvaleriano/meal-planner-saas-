@@ -2025,13 +2025,15 @@
 
                 if (isClientView) {
                     // For client view, verify the client owns this plan
+                    // Use * to avoid errors if permission columns don't exist yet
                     const { data: clientData, error: clientError } = await supabaseClient
                         .from('clients')
-                        .select('id, coach_id, can_change_meals, can_revise_meals, can_custom_meals, can_request_new_plan')
+                        .select('*')
                         .eq('user_id', currentUser.id)
                         .single();
 
                     if (clientError || !clientData) {
+                        console.error('Client lookup error:', clientError);
                         alert('Client account not found. Please contact your coach.');
                         window.location.href = 'client-login.html';
                         return;
@@ -2041,7 +2043,7 @@
                     currentClientId = clientData.id;
                     currentCoachId = clientData.coach_id;
 
-                    // Load client permissions (default to true if not set)
+                    // Load client permissions (default to true if columns don't exist or not set)
                     clientPermissions = {
                         canChangeMeals: clientData.can_change_meals !== false,
                         canReviseMeals: clientData.can_revise_meals !== false,
