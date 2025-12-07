@@ -7303,12 +7303,12 @@ const MEAL_IMAGE_ENDPOINT = '/.netlify/functions/meal-image';
 const mealImageCache = {};
 
 // Fetch or generate meal image
-async function fetchMealImage(mealName, imageElementId) {
+async function fetchMealImage(mealName, imageElementId, forceRegenerate = false) {
     const imageContainer = document.getElementById(imageElementId);
     if (!imageContainer) return;
 
-    // Check cache first
-    if (mealImageCache[mealName]) {
+    // Check cache first (but skip if forcing regeneration)
+    if (!forceRegenerate && mealImageCache[mealName]) {
         updateImageElement(imageContainer, mealImageCache[mealName], mealName);
         return;
     }
@@ -7318,6 +7318,26 @@ async function fetchMealImage(mealName, imageElementId) {
     imageContainer.classList.add('loading');
 
     try {
+        // If forcing regeneration, skip the cache check and go straight to POST
+        if (forceRegenerate) {
+            console.log('Force regenerating image for:', mealName);
+            const generateResponse = await fetch(MEAL_IMAGE_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mealName, regenerate: true })
+            });
+
+            const generateData = await generateResponse.json();
+
+            if (generateData.success && generateData.imageUrl) {
+                mealImageCache[mealName] = generateData.imageUrl;
+                updateImageElement(imageContainer, generateData.imageUrl, mealName);
+            } else {
+                throw new Error(generateData.error || 'Failed to generate image');
+            }
+            return;
+        }
+
         // First check if image exists
         const checkResponse = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
         const checkData = await checkResponse.json();
@@ -7516,11 +7536,20 @@ document.addEventListener('click', async (e) => {
         const imageId = button.dataset.imageId;
         const mealName = button.dataset.mealName;
 
+        // Check if the current image is a placeholder (broken/missing image)
+        // If so, force regeneration to replace the broken cached entry
+        const imageElement = document.getElementById(imageId);
+        const isPlaceholder = imageElement && (
+            imageElement.classList.contains('meal-card-image-placeholder') ||
+            imageElement.innerHTML === '🍽️'
+        );
+
         // Disable button and show loading
         button.disabled = true;
         button.textContent = '⏳ Generating...';
 
-        await fetchMealImage(mealName, imageId);
+        // Force regenerate if it's a placeholder (broken image)
+        await fetchMealImage(mealName, imageId, isPlaceholder);
 
         // Re-enable button
         button.disabled = false;
