@@ -255,6 +255,61 @@
             transform: translateY(-2px);
         }
 
+        /* Log Entire Plan Button Styles */
+        .log-entire-plan-section {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .btn-log-entire-plan {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-log-entire-plan:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-log-entire-plan:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-log-entire-plan .btn-icon {
+            font-size: 1.2em;
+        }
+
+        .log-plan-hint {
+            margin: 10px 0 0 0;
+            color: #065f46;
+            font-size: 0.85em;
+        }
+
+        .log-progress-text {
+            color: #047857;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
         .portions-dropdown {
             position: absolute;
             background: white;
@@ -1429,6 +1484,15 @@
             </div>
         </div>
 
+        <!-- Log Entire Plan to Diary Button (Client View Only) -->
+        <div id="logEntirePlanSection" class="log-entire-plan-section" style="display: none;">
+            <button id="logEntirePlanBtn" class="btn btn-log-entire-plan" onclick="logEntirePlanToDiary()">
+                <span class="btn-icon">📋</span>
+                <span class="btn-text">Log Entire Plan to Diary</span>
+            </button>
+            <p class="log-plan-hint">Log all meals from this plan to today's food diary</p>
+        </div>
+
         <!-- Supplement Protocol Section (Client View) -->
         <div id="protocolSection" class="client-info" style="display: none; margin-top: 20px;">
             <div class="section-title" style="cursor: pointer;" onclick="toggleProtocolSection()">
@@ -1886,6 +1950,28 @@
                 const planText = mealCount > 1 ? 'Meal Plans' : 'Meal Plan';
                 document.getElementById('planHeader').textContent = `🔥 ${clientName}'s ${planText}`;
 
+                // Try to get client info for shared plan (if logged in as client)
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        const { data: clientData } = await supabaseClient
+                            .from('clients')
+                            .select('id, coach_id')
+                            .eq('user_id', session.user.id)
+                            .single();
+
+                        if (clientData) {
+                            currentClientId = clientData.id;
+                            currentCoachId = clientData.coach_id;
+                            isClientView = true;
+                            // Show "Log Entire Plan" button for logged-in clients
+                            document.getElementById('logEntirePlanSection').style.display = 'block';
+                        }
+                    }
+                } catch (e) {
+                    console.log('Not logged in as client for shared plan');
+                }
+
             } catch (error) {
                 console.error('❌ Error loading shared plan:', error);
                 alert('Failed to load shared plan. The link may be invalid or expired.');
@@ -2059,6 +2145,11 @@
                 }
 
                 displayMealPlan();
+
+                // Show "Log Entire Plan" button for client view
+                if (isClientView) {
+                    document.getElementById('logEntirePlanSection').style.display = 'block';
+                }
 
                 // Show modified indicator and reset button if client has modified the plan
                 if (isClientModified) {
@@ -5823,6 +5914,149 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 btn.disabled = false;
                 alert('Failed to log meal to diary. Please try again.');
             }
+        }
+
+        // Log entire meal plan to diary
+        async function logEntirePlanToDiary() {
+            // Ensure we have client context
+            if (!currentClientId) {
+                alert('Could not determine client. Please log in again.');
+                return;
+            }
+
+            // Collect all meals from the plan
+            let allMeals = [];
+
+            if (currentPlan.multiDay && currentPlan.days) {
+                // Multi-day plan: collect meals from all days
+                currentPlan.days.forEach((dayData, dayIndex) => {
+                    if (dayData.plan && Array.isArray(dayData.plan)) {
+                        dayData.plan.forEach(meal => {
+                            allMeals.push({
+                                name: meal.name,
+                                type: meal.type || '',
+                                calories: meal.calories || 0,
+                                protein: meal.protein || 0,
+                                carbs: meal.carbs || 0,
+                                fat: meal.fat || 0,
+                                dayLabel: `Day ${dayData.day}`
+                            });
+                        });
+                    }
+                });
+            } else if (currentPlan.meals) {
+                // Single-day plan
+                currentPlan.meals.forEach(meal => {
+                    allMeals.push({
+                        name: meal.name,
+                        type: meal.type || '',
+                        calories: meal.calories || 0,
+                        protein: meal.protein || 0,
+                        carbs: meal.carbs || 0,
+                        fat: meal.fat || 0,
+                        dayLabel: null
+                    });
+                });
+            }
+
+            if (allMeals.length === 0) {
+                alert('No meals found in this plan to log.');
+                return;
+            }
+
+            // Get button and section elements
+            const btn = document.getElementById('logEntirePlanBtn');
+            const section = document.getElementById('logEntirePlanSection');
+            const hint = section.querySelector('.log-plan-hint');
+            const originalBtnContent = btn.innerHTML;
+
+            // Disable button and show progress
+            btn.disabled = true;
+            btn.innerHTML = `<span class="btn-icon">⏳</span><span class="btn-text">Logging 0/${allMeals.length}...</span>`;
+            hint.innerHTML = '<span class="log-progress-text">Please wait while we log your meals...</span>';
+
+            const today = new Date().toISOString().split('T')[0];
+            let successCount = 0;
+            let failCount = 0;
+
+            // Log each meal
+            for (let i = 0; i < allMeals.length; i++) {
+                const meal = allMeals[i];
+
+                // Update progress
+                btn.innerHTML = `<span class="btn-icon">⏳</span><span class="btn-text">Logging ${i + 1}/${allMeals.length}...</span>`;
+
+                // Normalize meal type
+                let diaryMealType = meal.type.toLowerCase();
+                if (diaryMealType === 'snacks' || diaryMealType === 'snack1' || diaryMealType === 'snack2') {
+                    diaryMealType = 'snack';
+                }
+                if (!diaryMealType || diaryMealType === '') {
+                    diaryMealType = 'snack'; // Default to snack if no type specified
+                }
+
+                // Build notes
+                let notes = 'From meal plan';
+                if (meal.dayLabel) {
+                    notes = `From meal plan (${meal.dayLabel} - ${meal.type})`;
+                } else if (meal.type) {
+                    notes = `From meal plan (${meal.type})`;
+                }
+
+                try {
+                    const response = await fetch('/.netlify/functions/food-diary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            clientId: currentClientId,
+                            coachId: currentCoachId,
+                            entryDate: today,
+                            mealType: diaryMealType,
+                            foodName: meal.name,
+                            servingSize: 1,
+                            servingUnit: 'serving',
+                            numberOfServings: 1,
+                            calories: meal.calories,
+                            protein: meal.protein,
+                            carbs: meal.carbs,
+                            fat: meal.fat,
+                            foodSource: 'meal_plan',
+                            notes: notes
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        console.error('Failed to log meal:', meal.name, data.error);
+                    }
+                } catch (error) {
+                    failCount++;
+                    console.error('Error logging meal:', meal.name, error);
+                }
+            }
+
+            // Show final result
+            if (failCount === 0) {
+                btn.innerHTML = `<span class="btn-icon">✓</span><span class="btn-text">All ${successCount} Meals Logged!</span>`;
+                btn.style.background = 'linear-gradient(135deg, #15803d 0%, #166534 100%)';
+                hint.innerHTML = `<span class="log-progress-text" style="color: #15803d;">✓ Successfully logged all meals to today's diary. <a href="client-diary.html" style="color: #0369a1; font-weight: 600;">View Diary →</a></span>`;
+            } else {
+                btn.innerHTML = `<span class="btn-icon">⚠️</span><span class="btn-text">${successCount} Logged, ${failCount} Failed</span>`;
+                btn.style.background = 'linear-gradient(135deg, #ca8a04 0%, #a16207 100%)';
+                hint.innerHTML = `<span class="log-progress-text" style="color: #ca8a04;">Some meals could not be logged. Please try again or log them individually.</span>`;
+            }
+
+            // Reset button after delay
+            setTimeout(() => {
+                btn.innerHTML = originalBtnContent;
+                btn.style.background = '';
+                btn.disabled = false;
+                hint.textContent = 'Log all meals from this plan to today\'s food diary';
+            }, 5000);
         }
 
         async function toggleFavorite(mealName, mealType, calories, protein, carbs, fat, index) {
