@@ -82,7 +82,9 @@ exports.handler = async (event) => {
 async function handleCheckoutComplete(session) {
     console.log('Processing checkout.session.completed:', session.id);
 
-    const email = session.customer_email || session.customer_details?.email;
+    // Normalize email to lowercase to avoid case sensitivity issues
+    const rawEmail = session.customer_email || session.customer_details?.email;
+    const email = rawEmail ? rawEmail.toLowerCase() : null;
     const plan = session.metadata?.plan || 'starter';
     const coachName = session.metadata?.coach_name || '';
     const coachId = session.metadata?.coach_id || null;
@@ -107,10 +109,11 @@ async function handleCheckoutComplete(session) {
     }
 
     if (!existingCoach) {
+        // Use ilike for case-insensitive email matching
         const { data } = await supabase
             .from('coaches')
             .select('id, email, subscription_status')
-            .eq('email', email)
+            .ilike('email', email)
             .single();
         existingCoach = data;
     }
@@ -208,12 +211,13 @@ async function handleCheckoutComplete(session) {
                     perPage: 1000
                 });
 
-                const existingUser = userList?.users?.find(u => u.email === email);
+                // Case-insensitive email comparison
+                const existingUser = userList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
                 if (existingUser) {
                     userId = existingUser.id;
                     console.log('Found existing user ID:', userId);
                 } else {
-                    console.error('Could not find existing user');
+                    console.error('Could not find existing user with email:', email);
                     throw new Error('User exists but could not be found');
                 }
             } else {
