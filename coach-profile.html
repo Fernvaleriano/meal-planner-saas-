@@ -1474,6 +1474,17 @@
                     });
                 } else if (result.alreadyCanceling) {
                     showCancelMessage('Your subscription is already set to cancel on ' + result.accessUntil, 'success');
+                } else if (result.immediatelyCanceled) {
+                    // Trial was canceled immediately - no more access
+                    showCancelMessage('Your trial has been canceled. You no longer have access to premium features.', 'success');
+                    updateSubscriptionDisplay({
+                        subscription_status: 'canceled',
+                        subscription_tier: window.currentCoachData?.subscription_tier || 'starter'
+                    });
+                    // Redirect to pricing page after a delay
+                    setTimeout(() => {
+                        window.location.href = '/pricing.html';
+                    }, 3500);
                 } else {
                     showCancelMessage('Subscription canceled successfully. You will retain access until ' + result.accessUntil, 'success');
                     updateSubscriptionDisplay({
