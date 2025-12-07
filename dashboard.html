@@ -2084,6 +2084,165 @@
             }
         }
 
+        /* ===== SKELETON LOADING STYLES ===== */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg,
+                #e2e8f0 25%,
+                #f1f5f9 50%,
+                #e2e8f0 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        [data-theme="dark"] .skeleton {
+            background: linear-gradient(90deg,
+                #334155 25%,
+                #475569 50%,
+                #334155 75%
+            );
+            background-size: 200% 100%;
+        }
+
+        .skeleton-dashboard {
+            padding: 20px;
+        }
+
+        .skeleton-welcome {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        [data-theme="dark"] .skeleton-welcome {
+            background: #1e293b;
+        }
+
+        .skeleton-badge {
+            height: 24px;
+            width: 80px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-title {
+            height: 32px;
+            width: 200px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-subtitle {
+            height: 16px;
+            width: 320px;
+        }
+
+        .skeleton-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .skeleton-stat-card {
+            background: rgba(255,255,255,0.15);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        [data-theme="dark"] .skeleton-stat-card {
+            background: rgba(0,0,0,0.2);
+        }
+
+        .skeleton-stat-number {
+            height: 40px;
+            width: 60px;
+            margin: 0 auto 8px;
+        }
+
+        .skeleton-stat-label {
+            height: 14px;
+            width: 100px;
+            margin: 0 auto;
+        }
+
+        .skeleton-section {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        [data-theme="dark"] .skeleton-section {
+            background: #1e293b;
+        }
+
+        .skeleton-section-title {
+            height: 24px;
+            width: 180px;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .skeleton-action-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        [data-theme="dark"] .skeleton-action-card {
+            background: #334155;
+        }
+
+        .skeleton-action-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-action-title {
+            height: 20px;
+            width: 120px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-action-desc {
+            height: 14px;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-action-btn {
+            height: 40px;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .skeleton-stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .skeleton-action-grid {
+                grid-template-columns: 1fr;
+            }
+            .skeleton-subtitle {
+                width: 100%;
+            }
+        }
+
         /* ===== COACH BOTTOM NAVIGATION ===== */
         .coach-bottom-nav {
             display: none;
@@ -2307,8 +2466,49 @@
 
         <div class="main-container">
         <div id="loadingDiv" class="loading">
-            <div class="loading-spinner"></div>
-            <span id="loadingText">Loading your dashboard...</span>
+            <div class="skeleton-dashboard">
+                <!-- Welcome Section Skeleton -->
+                <div class="skeleton-welcome">
+                    <div class="skeleton skeleton-badge"></div>
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-subtitle"></div>
+                    <div class="skeleton-stats-grid">
+                        <div class="skeleton-stat-card">
+                            <div class="skeleton skeleton-stat-number"></div>
+                            <div class="skeleton skeleton-stat-label"></div>
+                        </div>
+                        <div class="skeleton-stat-card">
+                            <div class="skeleton skeleton-stat-number"></div>
+                            <div class="skeleton skeleton-stat-label"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Quick Actions Skeleton -->
+                <div class="skeleton-section">
+                    <div class="skeleton skeleton-section-title"></div>
+                    <div class="skeleton-action-grid">
+                        <div class="skeleton-action-card">
+                            <div class="skeleton skeleton-action-icon"></div>
+                            <div class="skeleton skeleton-action-title"></div>
+                            <div class="skeleton skeleton-action-desc"></div>
+                            <div class="skeleton skeleton-action-btn"></div>
+                        </div>
+                        <div class="skeleton-action-card">
+                            <div class="skeleton skeleton-action-icon"></div>
+                            <div class="skeleton skeleton-action-title"></div>
+                            <div class="skeleton skeleton-action-desc"></div>
+                            <div class="skeleton skeleton-action-btn"></div>
+                        </div>
+                        <div class="skeleton-action-card">
+                            <div class="skeleton skeleton-action-icon"></div>
+                            <div class="skeleton skeleton-action-title"></div>
+                            <div class="skeleton skeleton-action-desc"></div>
+                            <div class="skeleton skeleton-action-btn"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <span id="loadingText" style="display: none;">Loading your dashboard...</span>
         </div>
 
         <div id="dashboardContent" style="display: none;">

@@ -3768,6 +3768,253 @@
                 padding: 6px 10px;
             }
         }
+
+        /* ===== SKELETON LOADING STYLES ===== */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg,
+                #e2e8f0 25%,
+                #f1f5f9 50%,
+                #e2e8f0 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        [data-theme="dark"] .skeleton {
+            background: linear-gradient(90deg,
+                #334155 25%,
+                #475569 50%,
+                #334155 75%
+            );
+            background-size: 200% 100%;
+        }
+
+        /* Skeleton for loading containers */
+        .loading.skeleton-loading {
+            padding: 0;
+            text-align: left;
+        }
+
+        /* Skeleton Client Profile Card */
+        .skeleton-profile-card {
+            padding: 24px;
+        }
+
+        .skeleton-profile-header {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .skeleton-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .skeleton-profile-info {
+            flex: 1;
+        }
+
+        .skeleton-name {
+            height: 28px;
+            width: 180px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-meta-item {
+            height: 16px;
+            width: 140px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 16px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        [data-theme="dark"] .skeleton-stats-grid {
+            background: var(--gray-800);
+        }
+
+        .skeleton-stat {
+            text-align: center;
+        }
+
+        .skeleton-stat-value {
+            height: 32px;
+            width: 60px;
+            margin: 0 auto 8px;
+        }
+
+        .skeleton-stat-label {
+            height: 12px;
+            width: 80px;
+            margin: 0 auto;
+        }
+
+        /* Skeleton Section */
+        .skeleton-section {
+            padding: 20px;
+        }
+
+        .skeleton-section-title {
+            height: 24px;
+            width: 150px;
+            margin-bottom: 16px;
+        }
+
+        /* Skeleton Diary Items */
+        .skeleton-diary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .skeleton-diary-item {
+            background: var(--gray-700);
+        }
+
+        .skeleton-food-name {
+            height: 16px;
+            width: 120px;
+        }
+
+        .skeleton-food-macros {
+            display: flex;
+            gap: 12px;
+        }
+
+        .skeleton-macro {
+            height: 14px;
+            width: 40px;
+        }
+
+        /* Skeleton Plan Card */
+        .skeleton-plan-card {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .skeleton-plan-card {
+            background: var(--gray-700);
+        }
+
+        .skeleton-plan-title {
+            height: 20px;
+            width: 200px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-plan-meta {
+            height: 14px;
+            width: 150px;
+            margin-bottom: 8px;
+        }
+
+        /* Skeleton Photo Grid */
+        .skeleton-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+
+        .skeleton-photo {
+            aspect-ratio: 1;
+            border-radius: 8px;
+        }
+
+        /* Skeleton Checkin Card */
+        .skeleton-checkin {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .skeleton-checkin {
+            background: var(--gray-700);
+        }
+
+        .skeleton-checkin-date {
+            height: 16px;
+            width: 100px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-checkin-content {
+            height: 40px;
+            width: 100%;
+        }
+
+        /* Skeleton Measurements */
+        .skeleton-measurements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .skeleton-measurement {
+            background: var(--gray-50);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        [data-theme="dark"] .skeleton-measurement {
+            background: var(--gray-700);
+        }
+
+        .skeleton-measurement-value {
+            height: 24px;
+            width: 50px;
+            margin: 0 auto 8px;
+        }
+
+        .skeleton-measurement-label {
+            height: 12px;
+            width: 70px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 480px) {
+            .skeleton-profile-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .skeleton-profile-info {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .skeleton-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .skeleton-photo-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -4129,7 +4376,35 @@
 
             <!-- Meals Container -->
             <div id="diaryContainer">
-                <div class="loading">Loading food diary...</div>
+                <div class="loading skeleton-loading">
+                    <div class="skeleton-section">
+                        <div class="skeleton skeleton-section-title"></div>
+                        <div class="skeleton-diary-item">
+                            <div class="skeleton skeleton-food-name"></div>
+                            <div class="skeleton-food-macros">
+                                <div class="skeleton skeleton-macro"></div>
+                                <div class="skeleton skeleton-macro"></div>
+                                <div class="skeleton skeleton-macro"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-diary-item">
+                            <div class="skeleton skeleton-food-name"></div>
+                            <div class="skeleton-food-macros">
+                                <div class="skeleton skeleton-macro"></div>
+                                <div class="skeleton skeleton-macro"></div>
+                                <div class="skeleton skeleton-macro"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-diary-item">
+                            <div class="skeleton skeleton-food-name"></div>
+                            <div class="skeleton-food-macros">
+                                <div class="skeleton skeleton-macro"></div>
+                                <div class="skeleton skeleton-macro"></div>
+                                <div class="skeleton skeleton-macro"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -4156,7 +4431,18 @@
                     </button>
                 </div>
                 <div id="plansContainer">
-                    <div class="loading">Loading plans...</div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-plan-card">
+                            <div class="skeleton skeleton-plan-title"></div>
+                            <div class="skeleton skeleton-plan-meta"></div>
+                            <div class="skeleton skeleton-plan-meta" style="width: 100px;"></div>
+                        </div>
+                        <div class="skeleton-plan-card">
+                            <div class="skeleton skeleton-plan-title"></div>
+                            <div class="skeleton skeleton-plan-meta"></div>
+                            <div class="skeleton skeleton-plan-meta" style="width: 100px;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4171,7 +4457,12 @@
             </div>
             <div id="protocolsContent" class="collapsible-content collapsed">
                 <div id="protocolsContainer">
-                    <div class="loading">Loading protocols...</div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-plan-card">
+                            <div class="skeleton skeleton-plan-title"></div>
+                            <div class="skeleton skeleton-plan-meta"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4207,7 +4498,16 @@
                     <button class="favorites-filter-btn" data-filter="snack" onclick="filterFavorites('snack', this)">Snack</button>
                 </div>
                 <div id="favoritesContainer">
-                    <div class="loading">Loading favorites...</div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-plan-card">
+                            <div class="skeleton skeleton-plan-title"></div>
+                            <div class="skeleton skeleton-plan-meta"></div>
+                        </div>
+                        <div class="skeleton-plan-card">
+                            <div class="skeleton skeleton-plan-title"></div>
+                            <div class="skeleton skeleton-plan-meta"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4225,7 +4525,16 @@
             </div>
             <div id="photosContent" class="collapsible-content collapsed">
                 <div id="photosContainer">
-                    <div class="loading">Loading photos...</div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-photo-grid">
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4243,7 +4552,26 @@
             </div>
             <div id="measurementsContent" class="collapsible-content collapsed">
                 <div id="measurementsContainer">
-                    <div class="loading">Loading measurements...</div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-measurements-grid">
+                            <div class="skeleton-measurement">
+                                <div class="skeleton skeleton-measurement-value"></div>
+                                <div class="skeleton skeleton-measurement-label"></div>
+                            </div>
+                            <div class="skeleton-measurement">
+                                <div class="skeleton skeleton-measurement-value"></div>
+                                <div class="skeleton skeleton-measurement-label"></div>
+                            </div>
+                            <div class="skeleton-measurement">
+                                <div class="skeleton skeleton-measurement-value"></div>
+                                <div class="skeleton skeleton-measurement-label"></div>
+                            </div>
+                            <div class="skeleton-measurement">
+                                <div class="skeleton skeleton-measurement-value"></div>
+                                <div class="skeleton skeleton-measurement-label"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4258,7 +4586,16 @@
             </div>
             <div id="checkinsContent" class="collapsible-content collapsed">
                 <div id="checkinsContainer">
-                    <div class="loading">Loading check-ins...</div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-checkin">
+                            <div class="skeleton skeleton-checkin-date"></div>
+                            <div class="skeleton skeleton-checkin-content"></div>
+                        </div>
+                        <div class="skeleton-checkin">
+                            <div class="skeleton skeleton-checkin-date"></div>
+                            <div class="skeleton skeleton-checkin-content"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -3416,6 +3416,166 @@
                 grid-template-columns: repeat(3, 1fr);
             }
         }
+
+        /* ===== SKELETON LOADING STYLES ===== */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg,
+                #e2e8f0 25%,
+                #f1f5f9 50%,
+                #e2e8f0 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        [data-theme="dark"] .skeleton {
+            background: linear-gradient(90deg,
+                #334155 25%,
+                #475569 50%,
+                #334155 75%
+            );
+            background-size: 200% 100%;
+        }
+
+        .skeleton-loading {
+            padding: 0;
+        }
+
+        /* Skeleton Welcome Section */
+        .skeleton-welcome {
+            padding: 20px;
+        }
+
+        .skeleton-greeting {
+            height: 32px;
+            width: 220px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-subtitle {
+            height: 18px;
+            width: 180px;
+        }
+
+        /* Skeleton Macro Rings */
+        .skeleton-rings {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .skeleton-ring {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .skeleton-ring-circle {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-ring-label {
+            height: 14px;
+            width: 50px;
+        }
+
+        /* Skeleton Quick Actions */
+        .skeleton-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .skeleton-action-card {
+            background: var(--gray-50);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        [data-theme="dark"] .skeleton-action-card {
+            background: var(--gray-700);
+        }
+
+        .skeleton-action-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            margin: 0 auto 12px;
+        }
+
+        .skeleton-action-name {
+            height: 16px;
+            width: 70px;
+            margin: 0 auto 8px;
+        }
+
+        .skeleton-action-desc {
+            height: 12px;
+            width: 90px;
+            margin: 0 auto;
+        }
+
+        /* Skeleton Streak */
+        .skeleton-streak {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .skeleton-flame {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .skeleton-streak-text {
+            flex: 1;
+        }
+
+        .skeleton-streak-number {
+            height: 28px;
+            width: 80px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-streak-label {
+            height: 14px;
+            width: 120px;
+        }
+
+        @media (max-width: 768px) {
+            .skeleton-rings {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .skeleton-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .skeleton-ring-circle {
+                width: 70px;
+                height: 70px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .skeleton-actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
