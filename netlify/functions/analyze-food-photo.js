@@ -1,3 +1,5 @@
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
@@ -22,18 +24,16 @@ function stripMarkdown(text) {
 
 // CORS headers - defined outside handler to ensure they're always available
 const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    ...corsHeaders,
     'Content-Type': 'application/json'
 };
 
 exports.handler = async (event, context) => {
     // Wrap everything in try-catch to ensure we always return JSON
     try {
-        if (event.httpMethod === 'OPTIONS') {
-            return { statusCode: 200, headers, body: '' };
-        }
+        // Handle CORS preflight
+        const corsResponse = handleCors(event);
+        if (corsResponse) return corsResponse;
 
         if (event.httpMethod !== 'POST') {
             return {
@@ -42,6 +42,19 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'Method not allowed' })
             };
         }
+
+        // ✅ SECURITY: Verify authenticated user
+        const { user, error: authError } = await authenticateRequest(event);
+        if (authError) return authError;
+
+        // ✅ SECURITY: Rate limit - 20 photo analyses per minute per user
+        const rateLimit = checkRateLimit(user.id, 'analyze-food-photo', 20, 60000);
+        if (!rateLimit.allowed) {
+            console.warn(`🚫 Rate limit exceeded for user ${user.id} on analyze-food-photo`);
+            return rateLimitResponse(rateLimit.resetIn);
+        }
+
+        console.log(`🔐 Authenticated user ${user.id} analyzing food photo (${rateLimit.remaining} requests remaining)`);
 
         // Check if fetch is available (Node 18+ required)
         if (typeof fetch === 'undefined') {

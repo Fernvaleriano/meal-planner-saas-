@@ -1,27 +1,20 @@
 // Netlify Function to publish a meal plan (make it visible to client)
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
-    };
-  }
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -32,9 +25,16 @@ exports.handler = async (event, context) => {
     if (!planId || !coachId) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Plan ID and Coach ID are required' })
       };
     }
+
+    // ✅ SECURITY: Verify the authenticated user owns this coach account
+    const { user, error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
+
+    console.log(`🔐 Authenticated coach ${user.id} publishing plan ${planId}`);
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
