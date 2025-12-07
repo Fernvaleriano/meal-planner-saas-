@@ -464,6 +464,98 @@
                 flex: 0 0 calc(50% - 6px);
             }
         }
+
+        /* ===== SKELETON LOADING STYLES ===== */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg,
+                #e2e8f0 25%,
+                #f1f5f9 50%,
+                #e2e8f0 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        [data-theme="dark"] .skeleton {
+            background: linear-gradient(90deg,
+                #334155 25%,
+                #475569 50%,
+                #334155 75%
+            );
+            background-size: 200% 100%;
+        }
+
+        .loading.skeleton-loading {
+            padding: 20px;
+            text-align: left;
+        }
+
+        .skeleton-plan-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-md);
+        }
+
+        [data-theme="dark"] .skeleton-plan-card {
+            background: var(--gray-800);
+        }
+
+        .skeleton-plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-plan-title {
+            height: 24px;
+            width: 180px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-plan-date {
+            height: 16px;
+            width: 120px;
+        }
+
+        .skeleton-plan-badge {
+            height: 28px;
+            width: 80px;
+            border-radius: 20px;
+        }
+
+        .skeleton-macro-stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-macro-item {
+            flex: 1;
+            height: 40px;
+            border-radius: 10px;
+        }
+
+        .skeleton-plan-summary {
+            height: 60px;
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-view-btn {
+            height: 48px;
+            width: 100%;
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body>
@@ -484,9 +576,41 @@
 
     <div class="main-content">
         <!-- Loading State -->
-        <div class="loading" id="loadingState">
-            <div class="spinner"></div>
-            <div class="loading-text">Loading your plans...</div>
+        <div class="loading skeleton-loading" id="loadingState">
+            <div class="skeleton-plan-card">
+                <div class="skeleton-plan-header">
+                    <div>
+                        <div class="skeleton skeleton-plan-title"></div>
+                        <div class="skeleton skeleton-plan-date"></div>
+                    </div>
+                    <div class="skeleton skeleton-plan-badge"></div>
+                </div>
+                <div class="skeleton-macro-stats">
+                    <div class="skeleton skeleton-macro-item"></div>
+                    <div class="skeleton skeleton-macro-item"></div>
+                    <div class="skeleton skeleton-macro-item"></div>
+                    <div class="skeleton skeleton-macro-item"></div>
+                </div>
+                <div class="skeleton skeleton-plan-summary"></div>
+                <div class="skeleton skeleton-view-btn"></div>
+            </div>
+            <div class="skeleton-plan-card">
+                <div class="skeleton-plan-header">
+                    <div>
+                        <div class="skeleton skeleton-plan-title"></div>
+                        <div class="skeleton skeleton-plan-date"></div>
+                    </div>
+                    <div class="skeleton skeleton-plan-badge"></div>
+                </div>
+                <div class="skeleton-macro-stats">
+                    <div class="skeleton skeleton-macro-item"></div>
+                    <div class="skeleton skeleton-macro-item"></div>
+                    <div class="skeleton skeleton-macro-item"></div>
+                    <div class="skeleton skeleton-macro-item"></div>
+                </div>
+                <div class="skeleton skeleton-plan-summary"></div>
+                <div class="skeleton skeleton-view-btn"></div>
+            </div>
         </div>
 
         <!-- Plans List -->

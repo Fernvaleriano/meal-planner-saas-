@@ -460,6 +460,72 @@
         [data-theme="dark"] .bottom-nav { background: #1e293b; border-color: #334155; }
         [data-theme="dark"] .bottom-nav-item { color: #94a3b8; }
         [data-theme="dark"] .bottom-nav-item.active { color: #14b8a6; }
+
+        /* ===== SKELETON LOADING STYLES ===== */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg,
+                #e2e8f0 25%,
+                #f1f5f9 50%,
+                #e2e8f0 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        [data-theme="dark"] .skeleton {
+            background: linear-gradient(90deg,
+                #334155 25%,
+                #475569 50%,
+                #334155 75%
+            );
+            background-size: 200% 100%;
+        }
+
+        .loading.skeleton-loading {
+            padding: 0;
+            text-align: left;
+        }
+
+        .skeleton-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .skeleton-entry {
+            background: #0f172a;
+        }
+
+        .skeleton-entry-date {
+            height: 16px;
+            width: 100px;
+        }
+
+        .skeleton-entry-value {
+            height: 20px;
+            width: 60px;
+        }
+
+        .skeleton-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+
+        .skeleton-photo {
+            aspect-ratio: 1;
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body>
@@ -504,7 +570,20 @@
             <div class="section-card">
                 <h3 class="section-title">Recent Entries</h3>
                 <div id="measurementsContainer">
-                    <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-entry">
+                            <div class="skeleton skeleton-entry-date"></div>
+                            <div class="skeleton skeleton-entry-value"></div>
+                        </div>
+                        <div class="skeleton-entry">
+                            <div class="skeleton skeleton-entry-date"></div>
+                            <div class="skeleton skeleton-entry-value"></div>
+                        </div>
+                        <div class="skeleton-entry">
+                            <div class="skeleton skeleton-entry-date"></div>
+                            <div class="skeleton skeleton-entry-value"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -518,7 +597,16 @@
             <div class="section-card">
                 <h3 class="section-title">Progress Photos</h3>
                 <div id="photosContainer">
-                    <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-photo-grid">
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                            <div class="skeleton skeleton-photo"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

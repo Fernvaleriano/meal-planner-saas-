@@ -992,6 +992,115 @@
             }
         }
 
+        /* ===== SKELETON LOADING STYLES ===== */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg,
+                #e2e8f0 25%,
+                #f1f5f9 50%,
+                #e2e8f0 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        [data-theme="dark"] .skeleton {
+            background: linear-gradient(90deg,
+                #334155 25%,
+                #475569 50%,
+                #334155 75%
+            );
+            background-size: 200% 100%;
+        }
+
+        .skeleton-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .skeleton-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
+        .skeleton-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="dark"] .skeleton-card {
+            background: #1e293b;
+        }
+
+        .skeleton-card-header {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .skeleton-info {
+            flex: 1;
+        }
+
+        .skeleton-name {
+            height: 20px;
+            width: 140px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-badge {
+            height: 24px;
+            width: 90px;
+            border-radius: 12px;
+        }
+
+        .skeleton-contact {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-contact-line {
+            height: 14px;
+            width: 180px;
+        }
+
+        .skeleton-stats {
+            height: 16px;
+            width: 120px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .skeleton-btn {
+            height: 40px;
+            flex: 1;
+            border-radius: 10px;
+        }
+
         /* ===== COACH BOTTOM NAVIGATION ===== */
         .coach-bottom-nav {
             display: none;
@@ -1534,7 +1643,68 @@
         <div class="main-container">
 
         <div id="loadingDiv" class="loading">
-            Loading clients...
+            <div class="skeleton-cards-grid">
+                <!-- Skeleton Card 1 -->
+                <div class="skeleton-card">
+                    <div class="skeleton-card-header">
+                        <div class="skeleton skeleton-avatar"></div>
+                        <div class="skeleton-info">
+                            <div class="skeleton skeleton-name"></div>
+                            <div class="skeleton skeleton-badge"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-contact">
+                        <div class="skeleton skeleton-contact-line"></div>
+                        <div class="skeleton skeleton-contact-line" style="width: 150px;"></div>
+                    </div>
+                    <div class="skeleton skeleton-stats"></div>
+                    <div class="skeleton-actions">
+                        <div class="skeleton skeleton-btn"></div>
+                        <div class="skeleton skeleton-btn"></div>
+                        <div class="skeleton skeleton-btn"></div>
+                    </div>
+                </div>
+                <!-- Skeleton Card 2 -->
+                <div class="skeleton-card">
+                    <div class="skeleton-card-header">
+                        <div class="skeleton skeleton-avatar"></div>
+                        <div class="skeleton-info">
+                            <div class="skeleton skeleton-name" style="width: 120px;"></div>
+                            <div class="skeleton skeleton-badge"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-contact">
+                        <div class="skeleton skeleton-contact-line" style="width: 200px;"></div>
+                        <div class="skeleton skeleton-contact-line" style="width: 140px;"></div>
+                    </div>
+                    <div class="skeleton skeleton-stats" style="width: 100px;"></div>
+                    <div class="skeleton-actions">
+                        <div class="skeleton skeleton-btn"></div>
+                        <div class="skeleton skeleton-btn"></div>
+                        <div class="skeleton skeleton-btn"></div>
+                    </div>
+                </div>
+                <!-- Skeleton Card 3 -->
+                <div class="skeleton-card">
+                    <div class="skeleton-card-header">
+                        <div class="skeleton skeleton-avatar"></div>
+                        <div class="skeleton-info">
+                            <div class="skeleton skeleton-name" style="width: 160px;"></div>
+                            <div class="skeleton skeleton-badge"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-contact">
+                        <div class="skeleton skeleton-contact-line" style="width: 190px;"></div>
+                        <div class="skeleton skeleton-contact-line" style="width: 130px;"></div>
+                    </div>
+                    <div class="skeleton skeleton-stats" style="width: 140px;"></div>
+                    <div class="skeleton-actions">
+                        <div class="skeleton skeleton-btn"></div>
+                        <div class="skeleton skeleton-btn"></div>
+                        <div class="skeleton skeleton-btn"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="emptyState" class="empty-state" style="display: none;">
