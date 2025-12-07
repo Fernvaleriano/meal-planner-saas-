@@ -60,20 +60,68 @@ exports.handler = async (event, context) => {
 
         if (event.httpMethod === 'POST') {
             // Dismiss (mark as done) an activity item
-            const { data, error } = await supabase
-                .from('dismissed_activity_items')
-                .upsert({
-                    coach_id: coachId,
-                    client_id: clientId,
-                    reason: reason,
-                    related_checkin_id: relatedCheckinId || null,
-                    notes: notes || null,
-                    dismissed_at: new Date().toISOString()
-                }, {
-                    onConflict: 'coach_id,client_id,reason,related_checkin_id'
-                })
-                .select()
-                .single();
+            // Handle NULL related_checkin_id specially since PostgreSQL unique constraints
+            // don't work properly with NULLs (NULL != NULL)
+
+            let existingRecord = null;
+
+            // Check if this dismissal already exists
+            if (relatedCheckinId) {
+                // With checkin ID - use exact match
+                const { data: existing } = await supabase
+                    .from('dismissed_activity_items')
+                    .select('id')
+                    .eq('coach_id', coachId)
+                    .eq('client_id', clientId)
+                    .eq('reason', reason)
+                    .eq('related_checkin_id', relatedCheckinId)
+                    .single();
+                existingRecord = existing;
+            } else {
+                // Without checkin ID - match NULL
+                const { data: existing } = await supabase
+                    .from('dismissed_activity_items')
+                    .select('id')
+                    .eq('coach_id', coachId)
+                    .eq('client_id', clientId)
+                    .eq('reason', reason)
+                    .is('related_checkin_id', null)
+                    .single();
+                existingRecord = existing;
+            }
+
+            let data, error;
+
+            if (existingRecord) {
+                // Update existing record
+                const result = await supabase
+                    .from('dismissed_activity_items')
+                    .update({
+                        notes: notes || null,
+                        dismissed_at: new Date().toISOString()
+                    })
+                    .eq('id', existingRecord.id)
+                    .select()
+                    .single();
+                data = result.data;
+                error = result.error;
+            } else {
+                // Insert new record
+                const result = await supabase
+                    .from('dismissed_activity_items')
+                    .insert({
+                        coach_id: coachId,
+                        client_id: clientId,
+                        reason: reason,
+                        related_checkin_id: relatedCheckinId || null,
+                        notes: notes || null,
+                        dismissed_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+                data = result.data;
+                error = result.error;
+            }
 
             if (error) {
                 console.error('Error dismissing activity:', error);
@@ -107,12 +155,22 @@ exports.handler = async (event, context) => {
 
         } else if (event.httpMethod === 'DELETE') {
             // Un-dismiss (restore) an activity item
-            const { error } = await supabase
+            // Handle NULL related_checkin_id specially
+            let query = supabase
                 .from('dismissed_activity_items')
                 .delete()
                 .eq('coach_id', coachId)
                 .eq('client_id', clientId)
                 .eq('reason', reason);
+
+            // Add filter for related_checkin_id (handle NULL case)
+            if (relatedCheckinId) {
+                query = query.eq('related_checkin_id', relatedCheckinId);
+            } else {
+                query = query.is('related_checkin_id', null);
+            }
+
+            const { error } = await query;
 
             if (error) {
                 console.error('Error restoring activity:', error);
