@@ -305,6 +305,19 @@
         }
 
         /* Responsive */
+        /* Mobile logo - shown only when brand panel is hidden */
+        .mobile-logo {
+            display: none;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+
+        .mobile-logo-img {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
+        }
+
         @media (max-width: 1024px) {
             .brand-panel {
                 display: none;
@@ -313,11 +326,19 @@
             .login-panel {
                 padding: 40px 24px;
             }
+
+            .mobile-logo {
+                display: flex;
+            }
         }
 
         @media (max-width: 480px) {
             .login-header h1 {
                 font-size: 1.75rem;
+            }
+
+            .mobile-logo-img {
+                height: 50px;
             }
         }
 
@@ -435,6 +456,10 @@
     <!-- Right Panel - Login Form -->
     <div class="login-panel">
         <div class="login-container">
+            <!-- Mobile logo - visible when brand panel is hidden -->
+            <a href="index.html" class="mobile-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg" alt="Zique Fitness" class="mobile-logo-img">
+            </a>
             <div class="login-header">
                 <h1>Welcome back</h1>
                 <p>Sign in to your coach dashboard</p>

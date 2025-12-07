@@ -29,6 +29,24 @@
             margin: 0 auto;
         }
 
+        .page-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .page-logo-img {
+            height: 45px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        @media (max-width: 480px) {
+            .page-logo-img {
+                height: 38px;
+            }
+        }
+
         .header {
             text-align: center;
             padding: 30px 20px;
@@ -619,6 +637,11 @@
 </head>
 <body>
     <div class="container">
+        <!-- Page Logo -->
+        <a href="client-dashboard.html" class="page-logo">
+            <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg" alt="Zique Fitness" class="page-logo-img">
+        </a>
+
         <div class="header">
             <div class="avatar" id="userAvatar" onclick="document.getElementById('photoInput').click()" title="Click to change photo">
                 <span id="avatarInitial">👤</span>
