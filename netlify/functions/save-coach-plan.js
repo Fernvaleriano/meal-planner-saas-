@@ -53,24 +53,12 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Initialize Supabase client with service key
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    // Initialize Supabase client with service key (bypasses RLS)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false }
+    });
 
     let data, error;
-
-    // Helper function to check if error is related to client_id (foreign key or column not found)
-    const isClientIdError = (err) => {
-      if (!err) return false;
-      const msg = (err.message || '').toLowerCase();
-      const details = (err.details || '').toLowerCase();
-      const code = err.code || '';
-      // Check for foreign key violation (23503) or column not found (42703) related to client_id
-      const isClientIdMentioned = msg.includes('client_id') || details.includes('client_id');
-      const isForeignKeyError = msg.includes('foreign key') || msg.includes('violates') ||
-                                 code === '23503' || msg.includes('not present');
-      const isColumnNotFound = code === '42703' || msg.includes('column') || msg.includes('does not exist');
-      return isClientIdMentioned && (isForeignKeyError || isColumnNotFound);
-    };
 
     // If planId exists, UPDATE the existing plan instead of creating a new one
     if (planId) {
@@ -87,10 +75,8 @@ exports.handler = async (event, context) => {
         updateData.plan_name = planName;
       }
 
-      // Add client_id if provided
-      if (clientId) {
-        updateData.client_id = clientId;
-      }
+      // NOTE: client_id is intentionally NOT included to avoid foreign key issues
+      // Plans are linked to clients via client_name instead
 
       let result = await supabase
         .from('coach_meal_plans')
@@ -103,21 +89,6 @@ exports.handler = async (event, context) => {
       data = result.data;
       error = result.error;
 
-      // If error is related to client_id (foreign key or column not found), retry without client_id
-      if (error && isClientIdError(error)) {
-        console.log('⚠️ Client ID error, retrying without client_id...');
-        delete updateData.client_id;
-        result = await supabase
-          .from('coach_meal_plans')
-          .update(updateData)
-          .eq('id', planId)
-          .eq('coach_id', coachId)
-          .select()
-          .single();
-        data = result.data;
-        error = result.error;
-      }
-
       if (error) {
         console.error('❌ Update error:', error);
       } else {
@@ -127,12 +98,12 @@ exports.handler = async (event, context) => {
       // No planId - INSERT a new plan
       console.log('📝 Creating new plan');
 
-      // Prepare insert data (status column may not exist in older schemas)
+      // Prepare insert data
+      // NOTE: client_id is intentionally NOT included to avoid foreign key issues
       const insertData = {
         coach_id: coachId,
         client_name: clientName || 'Unnamed Client',
         plan_data: planData,
-        status: 'draft', // Plans start as draft until coach submits to client
         created_at: new Date().toISOString()
       };
 
@@ -141,12 +112,7 @@ exports.handler = async (event, context) => {
         insertData.plan_name = planName;
       }
 
-      // Add client_id if provided
-      if (clientId) {
-        insertData.client_id = clientId;
-      }
-
-      // Try to insert with all columns first
+      // Try to insert
       let result = await supabase
         .from('coach_meal_plans')
         .insert([insertData])
@@ -156,30 +122,8 @@ exports.handler = async (event, context) => {
       data = result.data;
       error = result.error;
 
-      // If error mentions status column doesn't exist, retry without it
-      if (error && (error.message.includes('status') || error.code === '42703')) {
-        console.log('⚠️ Status column not found, retrying without it...');
-        delete insertData.status;
-        result = await supabase
-          .from('coach_meal_plans')
-          .insert([insertData])
-          .select()
-          .single();
-        data = result.data;
-        error = result.error;
-      }
-
-      // If error is related to client_id (foreign key or column not found), retry without client_id
-      if (error && isClientIdError(error)) {
-        console.log('⚠️ Client ID error, retrying without client_id...');
-        delete insertData.client_id;
-        result = await supabase
-          .from('coach_meal_plans')
-          .insert([insertData])
-          .select()
-          .single();
-        data = result.data;
-        error = result.error;
+      if (error) {
+        console.error('❌ Insert error:', JSON.stringify(error));
       }
     }
 
