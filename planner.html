@@ -444,6 +444,72 @@
             z-index: 50;
         }
 
+        /* Image Gallery Styles */
+        .gallery-slot {
+            aspect-ratio: 1;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .gallery-slot:hover {
+            border-color: #8b5cf6;
+        }
+
+        .gallery-slot.selected {
+            border-color: #8b5cf6;
+            border-width: 3px;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+        }
+
+        .gallery-slot.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #8b5cf6;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .gallery-placeholder {
+            width: 100%;
+            height: 100%;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #9ca3af;
+        }
+
+        .gallery-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-slot.loading .gallery-placeholder {
+            background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
         .prose h3 { margin-bottom: 0.5em; }
         .prose ul { list-style-type: disc; padding-left: 1.5em; }
         .prose ol { list-style-type: decimal; padding-left: 1.5em; }
@@ -1589,6 +1655,66 @@
             <div class="flex gap-2">
                 <button onclick="closeImagePromptModal()" class="btn btn-secondary flex-1">Cancel</button>
                 <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1">🎨 Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM MEAL IMAGE GALLERY MODAL -->
+    <div id="custom-image-gallery-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-purple-600">📷 Custom Meal Image</h3>
+                <button onclick="closeCustomImageGalleryModal()" class="text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-gray-600 mb-2">Meal: <strong id="gallery-meal-name"></strong></p>
+
+            <!-- Prompt Input -->
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Describe how you want the image to look:</label>
+                <input type="text" id="gallery-image-prompt" class="input-field w-full"
+                       placeholder="e.g., Grilled chicken on a white plate with colorful vegetables">
+                <p class="text-xs text-gray-500 mt-1">💡 Be specific - mention plates, bowls, arrangement, cooking style, etc.</p>
+            </div>
+
+            <!-- Tries Counter -->
+            <div class="flex items-center justify-between mb-4 p-3 bg-purple-50 rounded-lg">
+                <span class="text-sm text-purple-700">Generations remaining: <strong id="gallery-tries-left">3</strong>/3</span>
+                <button onclick="generateCustomGalleryImage()" id="gallery-generate-btn" class="btn text-sm" style="background: #8b5cf6; color: white;">
+                    🎨 Generate Image
+                </button>
+            </div>
+
+            <!-- Image Gallery -->
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Generated Images (click to select):</label>
+                <div id="image-gallery-grid" class="grid grid-cols-3 gap-3">
+                    <div class="gallery-slot" data-slot="0">
+                        <div class="gallery-placeholder">1</div>
+                    </div>
+                    <div class="gallery-slot" data-slot="1">
+                        <div class="gallery-placeholder">2</div>
+                    </div>
+                    <div class="gallery-slot" data-slot="2">
+                        <div class="gallery-placeholder">3</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Option -->
+            <div class="mb-4 p-4 bg-blue-50 rounded-lg border-2 border-dashed border-blue-300">
+                <p class="text-sm text-blue-700 mb-2 font-semibold">📤 Or upload your own photo:</p>
+                <input type="file" id="gallery-upload-input" accept="image/*" class="hidden" onchange="handleGalleryUpload(event)">
+                <button onclick="document.getElementById('gallery-upload-input').click()" class="btn w-full" style="background: #0ea5e9; color: white;">
+                    Choose Photo from Device
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-2">
+                <button onclick="closeCustomImageGalleryModal()" class="btn btn-secondary flex-1">Cancel</button>
+                <button onclick="confirmGallerySelection()" id="gallery-confirm-btn" class="btn btn-primary flex-1" disabled>
+                    ✅ Use Selected Image
+                </button>
             </div>
         </div>
     </div>
@@ -3863,7 +3989,11 @@ function displayDietPlan(multiDayData) {
                             ${undoButton}
                         </div>
                         <div class="flex gap-2 mt-2">
-                            <button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" class="btn text-xs" style="background: #8b5cf6; color: white;">📷 Generate Image</button>
+                            ${isCustomMeal
+                                ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs" style="background: #8b5cf6; color: white;">📷 Generate Image</button>
+                                   <button data-action="upload-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs" style="background: #0ea5e9; color: white;">📤 Upload Photo</button>`
+                                : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" class="btn text-xs" style="background: #8b5cf6; color: white;">📷 Generate Image</button>`
+                            }
                         </div>
                         <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -7673,6 +7803,334 @@ displayDietPlan = function(multiDayData) {
         loadCachedMealImages();
     }, 800);
 };
+
+// ============================================
+// CUSTOM MEAL IMAGE GALLERY
+// ============================================
+let galleryState = {
+    mealName: '',
+    imageId: '',
+    dayIndex: null,
+    mealIndex: null,
+    triesLeft: 3,
+    generatedImages: [],  // Array of URLs
+    selectedIndex: -1,
+    uploadedImage: null
+};
+
+// Open custom image gallery modal
+function openCustomImageGalleryModal(mealName, imageId, dayIndex, mealIndex) {
+    galleryState = {
+        mealName: mealName,
+        imageId: imageId,
+        dayIndex: dayIndex,
+        mealIndex: mealIndex,
+        triesLeft: 3,
+        generatedImages: [],
+        selectedIndex: -1,
+        uploadedImage: null
+    };
+
+    // Update UI
+    document.getElementById('gallery-meal-name').textContent = mealName;
+    document.getElementById('gallery-image-prompt').value = mealName; // Pre-fill with meal name
+    document.getElementById('gallery-tries-left').textContent = '3';
+    document.getElementById('gallery-generate-btn').disabled = false;
+    document.getElementById('gallery-confirm-btn').disabled = true;
+
+    // Reset gallery slots
+    resetGallerySlots();
+
+    // Show modal
+    document.getElementById('custom-image-gallery-modal').classList.remove('hidden');
+}
+
+function closeCustomImageGalleryModal() {
+    document.getElementById('custom-image-gallery-modal').classList.add('hidden');
+    galleryState = {
+        mealName: '',
+        imageId: '',
+        dayIndex: null,
+        mealIndex: null,
+        triesLeft: 3,
+        generatedImages: [],
+        selectedIndex: -1,
+        uploadedImage: null
+    };
+}
+
+function resetGallerySlots() {
+    const slots = document.querySelectorAll('.gallery-slot');
+    slots.forEach((slot, index) => {
+        slot.innerHTML = `<div class="gallery-placeholder">${index + 1}</div>`;
+        slot.classList.remove('selected', 'loading');
+        slot.onclick = null;
+    });
+}
+
+// Generate image for gallery
+async function generateCustomGalleryImage() {
+    if (galleryState.triesLeft <= 0) {
+        alert('You have used all 3 generation attempts. Please select an image or upload your own.');
+        return;
+    }
+
+    const prompt = document.getElementById('gallery-image-prompt').value.trim();
+    if (!prompt) {
+        alert('Please enter a description for the image');
+        return;
+    }
+
+    const generateBtn = document.getElementById('gallery-generate-btn');
+    generateBtn.disabled = true;
+    generateBtn.textContent = '⏳ Generating...';
+
+    // Find the next available slot
+    const slotIndex = 3 - galleryState.triesLeft;
+    const slot = document.querySelector(`.gallery-slot[data-slot="${slotIndex}"]`);
+
+    if (slot) {
+        slot.classList.add('loading');
+        slot.innerHTML = `<div class="gallery-placeholder">⏳</div>`;
+    }
+
+    try {
+        const response = await fetch(MEAL_IMAGE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mealName: galleryState.mealName,
+                customPrompt: prompt,
+                regenerate: true  // Always generate fresh for gallery
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.imageUrl) {
+            galleryState.generatedImages[slotIndex] = data.imageUrl;
+            galleryState.triesLeft--;
+
+            // Update slot with image
+            if (slot) {
+                slot.classList.remove('loading');
+                slot.innerHTML = `<img src="${data.imageUrl}" alt="Generated option ${slotIndex + 1}">`;
+                slot.onclick = () => selectGalleryImage(slotIndex);
+            }
+
+            // Update tries counter
+            document.getElementById('gallery-tries-left').textContent = galleryState.triesLeft;
+
+            // Auto-select if it's the first image
+            if (galleryState.selectedIndex === -1) {
+                selectGalleryImage(slotIndex);
+            }
+
+            console.log(`✅ Generated image ${slotIndex + 1}/3`);
+        } else {
+            throw new Error(data.error || 'Failed to generate image');
+        }
+    } catch (error) {
+        console.error('Error generating image:', error);
+        if (slot) {
+            slot.classList.remove('loading');
+            slot.innerHTML = `<div class="gallery-placeholder" style="color: #ef4444;">❌</div>`;
+        }
+        alert('Failed to generate image. Please try again.');
+    } finally {
+        generateBtn.disabled = galleryState.triesLeft <= 0;
+        generateBtn.textContent = galleryState.triesLeft <= 0 ? 'No tries left' : '🎨 Generate Image';
+    }
+}
+
+// Select an image from gallery
+function selectGalleryImage(index) {
+    // Clear uploaded image selection if selecting generated
+    galleryState.uploadedImage = null;
+    galleryState.selectedIndex = index;
+
+    // Update UI
+    document.querySelectorAll('.gallery-slot').forEach((slot, i) => {
+        slot.classList.toggle('selected', i === index && galleryState.generatedImages[i]);
+    });
+
+    // Enable confirm button
+    document.getElementById('gallery-confirm-btn').disabled = false;
+}
+
+// Handle photo upload
+async function handleGalleryUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be less than 5MB');
+        return;
+    }
+
+    try {
+        // Show loading in a special "upload" display
+        const uploadBtn = event.target.previousElementSibling?.previousElementSibling;
+        if (uploadBtn) uploadBtn.textContent = '⏳ Uploading...';
+
+        // Convert to base64 for preview and upload
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64Data = e.target.result;
+
+            // Upload to Supabase storage
+            const response = await fetch('/.netlify/functions/upload-meal-photo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mealName: galleryState.mealName,
+                    imageData: base64Data,
+                    fileName: file.name
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.imageUrl) {
+                // Store uploaded image
+                galleryState.uploadedImage = data.imageUrl;
+                galleryState.selectedIndex = -1; // Deselect generated images
+
+                // Clear selected state from generated images
+                document.querySelectorAll('.gallery-slot').forEach(slot => {
+                    slot.classList.remove('selected');
+                });
+
+                // Enable confirm button
+                document.getElementById('gallery-confirm-btn').disabled = false;
+
+                alert('Photo uploaded! Click "Use Selected Image" to apply it.');
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+
+            if (uploadBtn) uploadBtn.textContent = 'Choose Photo from Device';
+        };
+
+        reader.readAsDataURL(file);
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload image. Please try again.');
+    }
+
+    // Reset file input
+    event.target.value = '';
+}
+
+// Confirm and apply selected image
+function confirmGallerySelection() {
+    let selectedImageUrl = null;
+
+    if (galleryState.uploadedImage) {
+        selectedImageUrl = galleryState.uploadedImage;
+    } else if (galleryState.selectedIndex >= 0 && galleryState.generatedImages[galleryState.selectedIndex]) {
+        selectedImageUrl = galleryState.generatedImages[galleryState.selectedIndex];
+    }
+
+    if (!selectedImageUrl) {
+        alert('Please select an image or upload your own');
+        return;
+    }
+
+    // Update the meal card image
+    const imageContainer = document.getElementById(galleryState.imageId);
+    if (imageContainer) {
+        updateImageElement(imageContainer, selectedImageUrl, galleryState.mealName);
+        mealImageCache[galleryState.mealName] = selectedImageUrl;
+    }
+
+    console.log('✅ Applied selected image for:', galleryState.mealName);
+    closeCustomImageGalleryModal();
+}
+
+// Handle custom image modal button click
+document.addEventListener('click', async (e) => {
+    if (e.target.matches('[data-action="custom-image-modal"]')) {
+        const button = e.target;
+        openCustomImageGalleryModal(
+            button.dataset.mealName,
+            button.dataset.imageId,
+            parseInt(button.dataset.dayIndex),
+            parseInt(button.dataset.mealIndex)
+        );
+    }
+
+    // Handle direct upload button (outside gallery)
+    if (e.target.matches('[data-action="upload-meal-image"]')) {
+        const button = e.target;
+        // Create a file input and trigger it
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image must be less than 5MB');
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = '⏳ Uploading...';
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const response = await fetch('/.netlify/functions/upload-meal-photo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            mealName: button.dataset.mealName,
+                            imageData: e.target.result,
+                            fileName: file.name
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.imageUrl) {
+                        const imageContainer = document.getElementById(button.dataset.imageId);
+                        if (imageContainer) {
+                            updateImageElement(imageContainer, data.imageUrl, button.dataset.mealName);
+                            mealImageCache[button.dataset.mealName] = data.imageUrl;
+                        }
+                        console.log('✅ Uploaded custom photo for:', button.dataset.mealName);
+                    } else {
+                        throw new Error(data.error || 'Upload failed');
+                    }
+
+                    button.disabled = false;
+                    button.textContent = '📤 Upload Photo';
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error uploading:', error);
+                alert('Failed to upload image');
+                button.disabled = false;
+                button.textContent = '📤 Upload Photo';
+            }
+        };
+        input.click();
+    }
+});
 </script>
 
 <!-- PWA Service Worker Registration -->
