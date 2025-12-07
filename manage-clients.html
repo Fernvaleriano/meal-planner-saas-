@@ -1767,7 +1767,13 @@
                 if (refreshError) {
                     console.error('Session refresh failed:', refreshError);
                     // If refresh fails, the session is likely expired
-                    await supabaseClient.auth.signOut();
+                    try {
+                        await supabaseClient.auth.signOut({ scope: 'local' });
+                    } catch (err) {
+                        console.error('Signout error:', err);
+                    }
+                    localStorage.removeItem('supabase.auth.token');
+                    sessionStorage.clear();
                     window.location.href = 'login.html';
                     return;
                 }
@@ -1778,7 +1784,13 @@
                 // Double-check we have a valid session
                 if (!session || !session.access_token) {
                     console.error('No valid session after refresh');
-                    await supabaseClient.auth.signOut();
+                    try {
+                        await supabaseClient.auth.signOut({ scope: 'local' });
+                    } catch (err) {
+                        console.error('Signout error:', err);
+                    }
+                    localStorage.removeItem('supabase.auth.token');
+                    sessionStorage.clear();
                     window.location.href = 'login.html';
                     return;
                 }
@@ -1828,7 +1840,13 @@
                 alert('Error loading page: ' + error.message);
 
                 // If there's an error, sign out and redirect to be safe
-                await supabaseClient.auth.signOut();
+                try {
+                    await supabaseClient.auth.signOut({ scope: 'local' });
+                } catch (err) {
+                    console.error('Signout error:', err);
+                }
+                localStorage.removeItem('supabase.auth.token');
+                sessionStorage.clear();
                 window.location.href = 'login.html';
             } finally {
                 isInitializing = false;
@@ -2624,12 +2642,14 @@
         });
 
         logoutBtn.addEventListener('click', async () => {
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) {
-                alert('Error logging out: ' + error.message);
-            } else {
-                window.location.href = 'login.html';
+            try {
+                await supabaseClient.auth.signOut({ scope: 'local' });
+            } catch (err) {
+                console.error('Logout error:', err);
             }
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+            window.location.href = 'login.html';
         });
 
         // Close modals when clicking outside

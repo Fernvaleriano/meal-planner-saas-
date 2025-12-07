@@ -542,7 +542,11 @@
 
                 if (clientError || !clientData) {
                     // User exists but is not a client - likely a coach
-                    await supabaseClient.auth.signOut();
+                    try {
+                        await supabaseClient.auth.signOut({ scope: 'local' });
+                    } catch (err) {
+                        console.error('Signout error:', err);
+                    }
                     throw new Error('This account is not registered as a client. Please use the coach login.');
                 }
 

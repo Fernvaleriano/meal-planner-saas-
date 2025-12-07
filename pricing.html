@@ -903,7 +903,13 @@
 
         // Logout function
         async function logout() {
-            await supabaseClient.auth.signOut();
+            try {
+                await supabaseClient.auth.signOut({ scope: 'local' });
+            } catch (err) {
+                console.error('Logout error:', err);
+            }
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
             window.location.reload();
         }
 

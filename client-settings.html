@@ -901,8 +901,14 @@
         }
 
         async function logout() {
-            await supabaseClient.auth.signOut();
+            try {
+                await supabaseClient.auth.signOut({ scope: 'local' });
+            } catch (err) {
+                console.error('Logout error:', err);
+            }
+            localStorage.removeItem('supabase.auth.token');
             localStorage.removeItem('zique-current-plan-id');
+            sessionStorage.clear();
             window.location.href = 'client-login.html';
         }
 
