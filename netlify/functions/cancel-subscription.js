@@ -153,48 +153,96 @@ exports.handler = async (event) => {
             };
         }
 
-        // Cancel subscription at period end (they keep access until then)
-        const updatedSubscription = await stripe.subscriptions.update(
-            coach.stripe_subscription_id,
-            { cancel_at_period_end: true }
-        );
+        // Check if subscription is in trial period
+        const isTrialing = subscription.status === 'trialing';
 
-        const cancelDate = new Date(updatedSubscription.current_period_end * 1000);
+        let cancelDate;
+        let immediatelyCanceled = false;
 
-        // Update coach record
-        await supabase
-            .from('coaches')
-            .update({
-                subscription_status: 'canceling',
-                canceled_at: new Date().toISOString(),
-                cancel_at: cancelDate.toISOString()
-            })
-            .eq('id', coach.id);
+        if (isTrialing) {
+            // Trial users lose access immediately - cancel the subscription now
+            await stripe.subscriptions.cancel(coach.stripe_subscription_id);
+            cancelDate = new Date();
+            immediatelyCanceled = true;
 
-        // Update subscriptions table
-        await supabase
-            .from('subscriptions')
-            .update({
-                status: 'canceling',
-                cancel_at: cancelDate.toISOString()
-            })
-            .eq('coach_id', coach.id);
+            // Update coach record - immediately canceled
+            await supabase
+                .from('coaches')
+                .update({
+                    subscription_status: 'canceled',
+                    canceled_at: new Date().toISOString(),
+                    cancel_at: null,
+                    trial_ends_at: null
+                })
+                .eq('id', coach.id);
+
+            // Update subscriptions table
+            await supabase
+                .from('subscriptions')
+                .update({
+                    status: 'canceled',
+                    cancel_at: null
+                })
+                .eq('coach_id', coach.id);
+        } else {
+            // Paid users keep access until end of billing period
+            const updatedSubscription = await stripe.subscriptions.update(
+                coach.stripe_subscription_id,
+                { cancel_at_period_end: true }
+            );
+
+            cancelDate = new Date(updatedSubscription.current_period_end * 1000);
+
+            // Update coach record
+            await supabase
+                .from('coaches')
+                .update({
+                    subscription_status: 'canceling',
+                    canceled_at: new Date().toISOString(),
+                    cancel_at: cancelDate.toISOString()
+                })
+                .eq('id', coach.id);
+
+            // Update subscriptions table
+            await supabase
+                .from('subscriptions')
+                .update({
+                    status: 'canceling',
+                    cancel_at: cancelDate.toISOString()
+                })
+                .eq('coach_id', coach.id);
+        }
 
         // Send cancellation confirmation email
         try {
             const { sendCancellationEmail, sendCancellationNotification } = require('./utils/email-service');
             await sendCancellationEmail({
                 coach,
-                cancelDate
+                cancelDate,
+                immediatelyCanceled
             });
             // Notify admin
             await sendCancellationNotification({
                 coach,
-                plan: coach.subscription_tier
+                plan: coach.subscription_tier,
+                immediatelyCanceled
             });
         } catch (emailError) {
             console.error('Failed to send cancellation email:', emailError);
             // Don't fail the request if email fails
+        }
+
+        // Return appropriate response based on cancellation type
+        if (immediatelyCanceled) {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    message: 'Your trial has been canceled. You no longer have access to premium features.',
+                    immediatelyCanceled: true
+                })
+            };
         }
 
         return {
