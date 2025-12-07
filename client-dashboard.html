@@ -3576,6 +3576,232 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Dashboard Loading State */
+        .dashboard-loading {
+            display: block;
+        }
+
+        .dashboard-content {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .dashboard-content.loaded {
+            opacity: 1;
+        }
+
+        .dashboard-skeleton {
+            padding: 0;
+        }
+
+        /* Skeleton Greeting Row */
+        .skeleton-greeting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            gap: 16px;
+        }
+
+        .skeleton-greeting-text {
+            flex: 1;
+        }
+
+        .skeleton-greeting-title {
+            height: 32px;
+            width: 250px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-greeting-sub {
+            height: 18px;
+            width: 180px;
+        }
+
+        .skeleton-streak-badge {
+            height: 40px;
+            width: 120px;
+            border-radius: 24px;
+        }
+
+        /* Skeleton Coach Stories */
+        .skeleton-stories {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .skeleton-story-bubble {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .skeleton-story-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+        }
+
+        .skeleton-story-label {
+            height: 12px;
+            width: 50px;
+        }
+
+        /* Skeleton Today Card */
+        .skeleton-today-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] .skeleton-today-card {
+            background: #1e293b;
+        }
+
+        .skeleton-today-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-today-title {
+            height: 24px;
+            width: 150px;
+        }
+
+        .skeleton-today-date {
+            height: 20px;
+            width: 100px;
+        }
+
+        .skeleton-macro-rings {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-macro-ring {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .skeleton-ring {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-ring-label {
+            height: 14px;
+            width: 60px;
+        }
+
+        .skeleton-progress-bar {
+            height: 12px;
+            width: 100%;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-log-btn {
+            height: 48px;
+            width: 100%;
+            border-radius: 12px;
+        }
+
+        /* Skeleton Quick Actions */
+        .skeleton-quick-actions {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] .skeleton-quick-actions {
+            background: #1e293b;
+        }
+
+        .skeleton-section-title {
+            height: 24px;
+            width: 140px;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-actions-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .skeleton-action-item {
+            background: var(--gray-50);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        [data-theme="dark"] .skeleton-action-item {
+            background: #0f172a;
+        }
+
+        .skeleton-action-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-action-title {
+            height: 16px;
+            width: 70px;
+            margin-bottom: 6px;
+        }
+
+        .skeleton-action-sub {
+            height: 12px;
+            width: 90px;
+        }
+
+        @media (max-width: 768px) {
+            .skeleton-macro-rings {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .skeleton-actions-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .skeleton-ring {
+                width: 70px;
+                height: 70px;
+            }
+
+            .skeleton-greeting-title {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .skeleton-actions-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .skeleton-greeting-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3672,21 +3898,112 @@
 
                 <!-- Main Content Area -->
                 <div class="desktop-main">
-                    <!-- Greeting Section with Streak Badge -->
-                    <div class="greeting-section">
-                        <div class="greeting-row">
-                            <div class="greeting-text">
-                                <h1>Welcome back, <span id="clientName">Client</span>!</h1>
-                                <p id="greetingSubtext">Let's make today count</p>
+                    <!-- Skeleton Loading State -->
+                    <div class="dashboard-skeleton" id="dashboardSkeleton">
+                        <!-- Skeleton Greeting -->
+                        <div class="skeleton-greeting-row">
+                            <div class="skeleton-greeting-text">
+                                <div class="skeleton skeleton-greeting-title"></div>
+                                <div class="skeleton skeleton-greeting-sub"></div>
                             </div>
-                            <div class="streak-badge no-streak" id="streakBadge">
-                                <span class="streak-icon">🔥</span>
-                                <span class="streak-text" id="streakText">Start your streak!</span>
+                            <div class="skeleton skeleton-streak-badge"></div>
+                        </div>
+
+                        <!-- Skeleton Stories -->
+                        <div class="skeleton-stories">
+                            <div class="skeleton-story-bubble">
+                                <div class="skeleton skeleton-story-avatar"></div>
+                                <div class="skeleton skeleton-story-label"></div>
+                            </div>
+                            <div class="skeleton-story-bubble">
+                                <div class="skeleton skeleton-story-avatar"></div>
+                                <div class="skeleton skeleton-story-label"></div>
+                            </div>
+                        </div>
+
+                        <!-- Skeleton Today's Progress -->
+                        <div class="skeleton-today-card">
+                            <div class="skeleton-today-header">
+                                <div class="skeleton skeleton-today-title"></div>
+                                <div class="skeleton skeleton-today-date"></div>
+                            </div>
+                            <div class="skeleton-macro-rings">
+                                <div class="skeleton-macro-ring">
+                                    <div class="skeleton skeleton-ring"></div>
+                                    <div class="skeleton skeleton-ring-label"></div>
+                                </div>
+                                <div class="skeleton-macro-ring">
+                                    <div class="skeleton skeleton-ring"></div>
+                                    <div class="skeleton skeleton-ring-label"></div>
+                                </div>
+                                <div class="skeleton-macro-ring">
+                                    <div class="skeleton skeleton-ring"></div>
+                                    <div class="skeleton skeleton-ring-label"></div>
+                                </div>
+                                <div class="skeleton-macro-ring">
+                                    <div class="skeleton skeleton-ring"></div>
+                                    <div class="skeleton skeleton-ring-label"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton skeleton-progress-bar"></div>
+                            <div class="skeleton skeleton-log-btn"></div>
+                        </div>
+
+                        <!-- Skeleton Quick Actions -->
+                        <div class="skeleton-quick-actions">
+                            <div class="skeleton skeleton-section-title"></div>
+                            <div class="skeleton-actions-cards">
+                                <div class="skeleton-action-item">
+                                    <div class="skeleton skeleton-action-icon-box"></div>
+                                    <div class="skeleton skeleton-action-title"></div>
+                                    <div class="skeleton skeleton-action-sub"></div>
+                                </div>
+                                <div class="skeleton-action-item">
+                                    <div class="skeleton skeleton-action-icon-box"></div>
+                                    <div class="skeleton skeleton-action-title"></div>
+                                    <div class="skeleton skeleton-action-sub"></div>
+                                </div>
+                                <div class="skeleton-action-item">
+                                    <div class="skeleton skeleton-action-icon-box"></div>
+                                    <div class="skeleton skeleton-action-title"></div>
+                                    <div class="skeleton skeleton-action-sub"></div>
+                                </div>
+                                <div class="skeleton-action-item">
+                                    <div class="skeleton skeleton-action-icon-box"></div>
+                                    <div class="skeleton skeleton-action-title"></div>
+                                    <div class="skeleton skeleton-action-sub"></div>
+                                </div>
+                                <div class="skeleton-action-item">
+                                    <div class="skeleton skeleton-action-icon-box"></div>
+                                    <div class="skeleton skeleton-action-title"></div>
+                                    <div class="skeleton skeleton-action-sub"></div>
+                                </div>
+                                <div class="skeleton-action-item">
+                                    <div class="skeleton skeleton-action-icon-box"></div>
+                                    <div class="skeleton skeleton-action-title"></div>
+                                    <div class="skeleton skeleton-action-sub"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Coach Stories Section -->
+                    <!-- Actual Dashboard Content (hidden until loaded) -->
+                    <div class="dashboard-content" id="dashboardContent">
+                        <!-- Greeting Section with Streak Badge -->
+                        <div class="greeting-section">
+                            <div class="greeting-row">
+                                <div class="greeting-text">
+                                    <h1>Welcome back, <span id="clientName">Client</span>!</h1>
+                                    <p id="greetingSubtext">Let's make today count</p>
+                                </div>
+                                <div class="streak-badge no-streak" id="streakBadge">
+                                    <span class="streak-icon">🔥</span>
+                                    <span class="streak-text" id="streakText">Start your streak!</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coach Stories Section -->
                     <div class="coach-stories-section" id="coachStoriesSection">
                         <div class="stories-container">
                             <!-- Coach Story Bubble -->
@@ -3874,6 +4191,7 @@
                             </a>
                         </div>
                     </div>
+                    </div><!-- End dashboard-content -->
                 </div><!-- End desktop-main -->
             </div><!-- End desktop-layout -->
         </div><!-- End container -->
@@ -5920,16 +6238,33 @@
                 return;
             }
 
-            // Load new dashboard components
+            // Load ALL dashboard components in parallel
             await Promise.all([
                 loadTodayProgress(),
                 loadStreak(),
-                checkCheckinStatus()
+                checkCheckinStatus(),
+                loadCoachStories()
             ]);
+
+            // After all loading is complete, hide skeleton and show content
+            showDashboardContent();
+        }
+
+        // Function to reveal dashboard content after loading
+        function showDashboardContent() {
+            const skeleton = document.getElementById('dashboardSkeleton');
+            const content = document.getElementById('dashboardContent');
+
+            if (skeleton && content) {
+                // Hide skeleton
+                skeleton.style.display = 'none';
+                // Show content with fade-in
+                content.classList.add('loaded');
+            }
         }
 
         // Run dashboard extras after a short delay to ensure client ID is loaded
-        setTimeout(initDashboardExtras, 1000);
+        setTimeout(initDashboardExtras, 800);
 
         // ========================================
         // COACH STORIES FEATURE
@@ -6225,14 +6560,7 @@
             return 'Yesterday';
         }
 
-        // Load stories when page loads
-        setTimeout(() => {
-            if (currentClientId && currentCoachId) {
-                loadCoachStories();
-            } else {
-                setTimeout(loadCoachStories, 1500);
-            }
-        }, 1200);
+        // Stories are now loaded in initDashboardExtras for coordinated loading
 
         // Keyboard navigation for stories
         document.addEventListener('keydown', (e) => {
