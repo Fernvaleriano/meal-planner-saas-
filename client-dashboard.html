@@ -3906,7 +3906,6 @@
                                 <div class="skeleton skeleton-greeting-title"></div>
                                 <div class="skeleton skeleton-greeting-sub"></div>
                             </div>
-                            <div class="skeleton skeleton-streak-badge"></div>
                         </div>
 
                         <!-- Skeleton Stories -->
@@ -3989,16 +3988,12 @@
 
                     <!-- Actual Dashboard Content (hidden until loaded) -->
                     <div class="dashboard-content" id="dashboardContent">
-                        <!-- Greeting Section with Streak Badge -->
+                        <!-- Greeting Section -->
                         <div class="greeting-section">
                             <div class="greeting-row">
                                 <div class="greeting-text">
                                     <h1>Welcome back, <span id="clientName">Client</span>!</h1>
                                     <p id="greetingSubtext">Let's make today count</p>
-                                </div>
-                                <div class="streak-badge no-streak" id="streakBadge">
-                                    <span class="streak-icon">🔥</span>
-                                    <span class="streak-text" id="streakText">Start your streak!</span>
                                 </div>
                             </div>
                         </div>
@@ -6241,7 +6236,6 @@
             // Load ALL dashboard components in parallel
             await Promise.all([
                 loadTodayProgress(),
-                loadStreak(),
                 checkCheckinStatus(),
                 loadCoachStories()
             ]);
