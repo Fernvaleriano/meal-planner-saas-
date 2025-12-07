@@ -3550,6 +3550,7 @@
         // State
         let clientId = null;
         let coachId = null;
+        let clientFirstName = null;
         let currentDate = new Date();
         let currentMealType = 'breakfast';
         let goals = { calorie_goal: 2000, protein_goal: 150, carbs_goal: 200, fat_goal: 65 };
@@ -3611,7 +3612,7 @@
                 console.log('checkAuth: Getting client info for user:', session.user.id);
                 const { data: client, error: clientError } = await supabaseClient
                     .from('clients')
-                    .select('id, coach_id, can_edit_goals')
+                    .select('id, coach_id, can_edit_goals, client_name')
                     .eq('user_id', session.user.id)
                     .single();
 
@@ -3625,6 +3626,8 @@
                 console.log('checkAuth: Success, clientId:', client.id);
                 clientId = client.id;
                 coachId = client.coach_id;
+                // Extract first name from client_name (e.g., "John Smith" -> "John")
+                clientFirstName = client.client_name?.split(' ')[0] || null;
 
                 // Show goals button if client has permission
                 const goalsBtn = document.getElementById('goalsBtn');
@@ -6937,6 +6940,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clientId: clientId,
+                        clientFirstName: clientFirstName,
                         message: message,
                         todayEntries: entries || [],
                         goals: goals || {},
