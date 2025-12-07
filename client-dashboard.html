@@ -3252,13 +3252,13 @@
                         </div>
                     </div>
 
-                    <!-- Recent Activity Section -->
-                    <div class="recent-activity">
+                    <!-- Today's Meals Section -->
+                    <div class="recent-activity" id="todaysMealsSection">
                         <div class="section-header">
-                            <h2 class="section-title-new">Recent Activity</h2>
+                            <h2 class="section-title-new">Today's Meals</h2>
                         </div>
-                        <div class="activity-list" id="activityList">
-                            <div class="activity-empty">Loading activity...</div>
+                        <div class="activity-list" id="todaysMealsList">
+                            <div class="activity-empty">Loading meals...</div>
                         </div>
                     </div>
                 </div><!-- End desktop-main -->
@@ -5089,60 +5089,48 @@
             document.getElementById('todayDate').textContent = today.toLocaleDateString('en-US', options);
         }
 
-        // Load today's progress from diary
+        // Load today's progress from diary API (same endpoint as diary page)
         async function loadTodayProgress() {
             try {
-                // Get today's date string
+                // Get today's date string (YYYY-MM-DD)
                 const today = new Date().toISOString().split('T')[0];
 
-                // Fetch today's diary entries
-                const { data: entries, error } = await supabaseClient
-                    .from('diary_entries')
-                    .select('calories, protein, carbs, fat')
-                    .eq('client_id', currentClientId)
-                    .eq('entry_date', today);
+                // Use the same API endpoint as the diary page
+                const response = await fetch(`/.netlify/functions/food-diary?clientId=${currentClientId}&date=${today}&_t=${Date.now()}`, {
+                    cache: 'no-store'
+                });
 
-                if (error) throw error;
+                if (!response.ok) throw new Error('Failed to fetch diary data');
 
-                // Sum up totals
-                let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-                if (entries && entries.length > 0) {
-                    entries.forEach(entry => {
-                        totals.calories += entry.calories || 0;
-                        totals.protein += entry.protein || 0;
-                        totals.carbs += entry.carbs || 0;
-                        totals.fat += entry.fat || 0;
-                    });
-                }
+                const data = await response.json();
 
-                // Get targets from active meal plan or use defaults
-                let targets = { calories: 1800, protein: 150, carbs: 180, fat: 60 };
+                // Get totals from API response
+                const totals = data.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-                // Try to get targets from active plan
-                const { data: plans } = await supabaseClient
-                    .from('coach_meal_plans')
-                    .select('plan_data')
-                    .eq('client_id', currentClientId)
-                    .eq('status', 'published')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+                // Get goals from API response or use defaults
+                const goals = data.goals || {};
+                const targets = {
+                    calories: goals.calorie_goal || 2000,
+                    protein: goals.protein_goal || 150,
+                    carbs: goals.carbs_goal || 200,
+                    fat: goals.fat_goal || 65
+                };
 
-                if (plans && plans[0]?.plan_data) {
-                    const planData = plans[0].plan_data;
-                    const dayTargets = planData.currentPlan?.[0]?.targets || {};
-                    targets.calories = planData.calories || dayTargets.calories || targets.calories;
-                    targets.protein = planData.protein || dayTargets.protein || targets.protein;
-                    targets.carbs = planData.carbs || dayTargets.carbs || targets.carbs;
-                    targets.fat = planData.fat || dayTargets.fat || targets.fat;
-                }
-
-                // Update the UI
+                // Update the macro rings UI
                 updateMacroRings(totals, targets);
+
+                // Store meal groups for Today's Meals section
+                if (data.mealGroups) {
+                    displayTodaysMeals(data.mealGroups);
+                }
 
             } catch (error) {
                 console.error('Error loading today progress:', error);
                 // Show zeros on error
-                updateMacroRings({ calories: 0, protein: 0, carbs: 0, fat: 0 }, { calories: 1800, protein: 150, carbs: 180, fat: 60 });
+                updateMacroRings(
+                    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                    { calories: 2000, protein: 150, carbs: 200, fat: 65 }
+                );
             }
         }
 
@@ -5191,36 +5179,43 @@
             document.getElementById('overallProgressBar').style.width = `${cappedPercent}%`;
         }
 
-        // Calculate and display streak
+        // Calculate and display streak by checking multiple days
         async function loadStreak() {
             try {
                 const streakBadge = document.getElementById('streakBadge');
                 const streakText = document.getElementById('streakText');
 
-                // Get diary entries from the last 30 days
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-                const { data: entries, error } = await supabaseClient
-                    .from('diary_entries')
-                    .select('entry_date')
-                    .eq('client_id', currentClientId)
-                    .gte('entry_date', thirtyDaysAgo.toISOString().split('T')[0])
-                    .order('entry_date', { ascending: false });
-
-                if (error) throw error;
-
-                // Get unique dates with entries
+                // Check the last 30 days for entries
                 const datesWithEntries = new Set();
-                if (entries) {
-                    entries.forEach(e => datesWithEntries.add(e.entry_date));
+                const today = new Date();
+
+                // Fetch diary data for recent days to calculate streak
+                for (let i = 0; i < 30; i++) {
+                    const checkDate = new Date(today);
+                    checkDate.setDate(today.getDate() - i);
+                    const dateStr = checkDate.toISOString().split('T')[0];
+
+                    try {
+                        const response = await fetch(`/.netlify/functions/food-diary?clientId=${currentClientId}&date=${dateStr}&_t=${Date.now()}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            // Check if there are any entries for this day
+                            if (data.entries && data.entries.length > 0) {
+                                datesWithEntries.add(dateStr);
+                            }
+                        }
+                    } catch (e) {
+                        // Skip this date on error
+                    }
+
+                    // Stop early if we found a gap (except for today)
+                    if (i > 0 && !datesWithEntries.has(dateStr)) {
+                        break;
+                    }
                 }
 
-                // Calculate streak (consecutive days from today going backwards)
+                // Calculate streak
                 let streak = 0;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
                 for (let i = 0; i < 30; i++) {
                     const checkDate = new Date(today);
                     checkDate.setDate(today.getDate() - i);
@@ -5248,97 +5243,64 @@
             }
         }
 
-        // Load recent activity
-        async function loadRecentActivity() {
-            const activityList = document.getElementById('activityList');
+        // Display Today's Meals (called from loadTodayProgress with meal groups data)
+        function displayTodaysMeals(mealGroups) {
+            const mealsList = document.getElementById('todaysMealsList');
+            if (!mealsList) return;
 
-            try {
-                const activities = [];
+            const mealTypes = [
+                { key: 'breakfast', icon: '🌅', label: 'Breakfast' },
+                { key: 'lunch', icon: '☀️', label: 'Lunch' },
+                { key: 'dinner', icon: '🌙', label: 'Dinner' },
+                { key: 'snack', icon: '🍎', label: 'Snacks' }
+            ];
 
-                // Get recent diary entries (last 3 days)
-                const threeDaysAgo = new Date();
-                threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+            let totalItems = 0;
+            let html = '';
 
-                const { data: diaryEntries } = await supabaseClient
-                    .from('diary_entries')
-                    .select('food_name, calories, entry_date, created_at')
-                    .eq('client_id', currentClientId)
-                    .gte('entry_date', threeDaysAgo.toISOString().split('T')[0])
-                    .order('created_at', { ascending: false })
-                    .limit(5);
+            mealTypes.forEach(meal => {
+                const items = mealGroups[meal.key] || [];
+                const itemCount = items.length;
+                totalItems += itemCount;
 
-                if (diaryEntries) {
-                    diaryEntries.forEach(entry => {
-                        activities.push({
-                            type: 'food',
-                            icon: '🍽️',
-                            text: `Logged ${entry.food_name || 'food'} - ${entry.calories || 0} cal`,
-                            time: new Date(entry.created_at)
-                        });
-                    });
-                }
+                const calories = items.reduce((sum, item) => sum + (item.calories || 0), 0);
 
-                // Get recent check-ins
-                const { data: checkins } = await supabaseClient
-                    .from('client_checkins')
-                    .select('created_at')
-                    .eq('client_id', currentClientId)
-                    .order('created_at', { ascending: false })
-                    .limit(2);
+                if (itemCount > 0) {
+                    // Show meal with items
+                    const itemNames = items.slice(0, 2).map(i => i.food_name || i.name || 'Food').join(', ');
+                    const moreText = itemCount > 2 ? ` +${itemCount - 2} more` : '';
 
-                if (checkins) {
-                    checkins.forEach(checkin => {
-                        activities.push({
-                            type: 'checkin',
-                            icon: '✅',
-                            text: 'Completed weekly check-in',
-                            time: new Date(checkin.created_at)
-                        });
-                    });
-                }
-
-                // Get recent photos
-                if (clientPhotos && clientPhotos.length > 0) {
-                    clientPhotos.slice(0, 2).forEach(photo => {
-                        activities.push({
-                            type: 'photo',
-                            icon: '📸',
-                            text: `Uploaded ${photo.photo_type || 'progress'} photo`,
-                            time: new Date(photo.created_at)
-                        });
-                    });
-                }
-
-                // Sort by time, most recent first
-                activities.sort((a, b) => b.time - a.time);
-
-                // Display
-                if (activities.length === 0) {
-                    activityList.innerHTML = `
-                        <div class="activity-empty">
-                            No recent activity. Start by logging a meal!
-                        </div>
+                    html += `
+                        <a href="client-diary.html" class="activity-item" style="text-decoration: none;">
+                            <div class="activity-icon food">${meal.icon}</div>
+                            <div class="activity-content">
+                                <div class="activity-text">${meal.label}: ${itemNames}${moreText}</div>
+                                <div class="activity-time">${itemCount} item${itemCount > 1 ? 's' : ''} · ${calories} cal</div>
+                            </div>
+                        </a>
                     `;
-                    return;
+                } else {
+                    // Show empty meal slot
+                    html += `
+                        <a href="client-diary.html" class="activity-item" style="text-decoration: none; opacity: 0.6;">
+                            <div class="activity-icon" style="background: var(--gray-100);">${meal.icon}</div>
+                            <div class="activity-content">
+                                <div class="activity-text">${meal.label}</div>
+                                <div class="activity-time">Tap to log</div>
+                            </div>
+                        </a>
+                    `;
                 }
+            });
 
-                // Show top 5
-                const topActivities = activities.slice(0, 5);
-                activityList.innerHTML = topActivities.map(activity => `
-                    <div class="activity-item">
-                        <div class="activity-icon ${activity.type}">${activity.icon}</div>
-                        <div class="activity-content">
-                            <div class="activity-text">${activity.text}</div>
-                            <div class="activity-time">${formatTimeAgo(activity.time)}</div>
-                        </div>
-                    </div>
-                `).join('');
-
-            } catch (error) {
-                console.error('Error loading recent activity:', error);
-                activityList.innerHTML = `
-                    <div class="activity-empty">Unable to load activity</div>
+            if (totalItems === 0) {
+                mealsList.innerHTML = `
+                    <a href="client-diary.html" class="activity-empty" style="text-decoration: none; display: block;">
+                        No meals logged yet today. Tap to start logging!
+                    </a>
                 `;
+            } else {
+                mealsList.innerHTML = html;
             }
         }
 
@@ -5407,10 +5369,10 @@
             }
 
             // Load new dashboard components
+            // Note: displayTodaysMeals is called from within loadTodayProgress
             await Promise.all([
                 loadTodayProgress(),
                 loadStreak(),
-                loadRecentActivity(),
                 checkCheckinStatus()
             ]);
         }
