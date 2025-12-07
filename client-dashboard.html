@@ -2463,6 +2463,556 @@
                 display: none;
             }
         }
+
+        /* ==========================================
+           REDESIGNED DASHBOARD - Premium UI
+           ========================================== */
+
+        /* Greeting with Streak Badge */
+        .greeting-section {
+            margin-bottom: 24px;
+        }
+
+        .greeting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .greeting-text h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            letter-spacing: -0.025em;
+            margin-bottom: 4px;
+        }
+
+        .greeting-text p {
+            font-size: 0.95rem;
+            color: var(--gray-500);
+        }
+
+        .streak-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 10px 16px;
+            border-radius: 50px;
+            border: 1px solid #fcd34d;
+        }
+
+        .streak-icon {
+            font-size: 1.25rem;
+        }
+
+        .streak-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: #92400e;
+        }
+
+        .streak-badge.no-streak {
+            background: var(--gray-100);
+            border-color: var(--gray-200);
+        }
+
+        .streak-badge.no-streak .streak-text {
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+
+        /* Today's Progress Card */
+        .today-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid var(--gray-100);
+        }
+
+        .today-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .today-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .today-date {
+            font-size: 13px;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        /* Macro Rings */
+        .macro-rings {
+            display: flex;
+            justify-content: space-around;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .macro-ring {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 90px;
+        }
+
+        .ring-container {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            margin-bottom: 8px;
+        }
+
+        .ring-svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .ring-bg {
+            fill: none;
+            stroke: var(--gray-100);
+            stroke-width: 6;
+        }
+
+        .ring-progress {
+            fill: none;
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .ring-progress.calories { stroke: #3b82f6; }
+        .ring-progress.protein { stroke: #ef4444; }
+        .ring-progress.carbs { stroke: #eab308; }
+        .ring-progress.fat { stroke: #a855f7; }
+
+        .ring-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .ring-current {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-800);
+            display: block;
+            line-height: 1;
+        }
+
+        .ring-target {
+            font-size: 10px;
+            color: var(--gray-400);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .ring-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: capitalize;
+        }
+
+        /* Overall Progress Bar */
+        .overall-progress {
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .progress-percent {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--brand-primary);
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--gray-100);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--brand-gradient);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Log Food Button */
+        .log-food-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+            text-decoration: none;
+        }
+
+        .log-food-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
+        }
+
+        /* Quick Actions Grid */
+        .quick-actions {
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title-new {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px 16px;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.2s;
+            border: 1px solid var(--gray-100);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            border-color: var(--gray-200);
+        }
+
+        .action-card:active {
+            transform: scale(0.98);
+        }
+
+        .action-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 24px;
+        }
+
+        .action-icon.diary { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
+        .action-icon.plans { background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%); }
+        .action-icon.checkin { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
+        .action-icon.progress { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
+        .action-icon.recipes { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+        .action-icon.favorites { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+
+        .action-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .action-desc {
+            font-size: 12px;
+            color: var(--gray-500);
+            line-height: 1.3;
+        }
+
+        /* Context Badge on Action Cards */
+        .action-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+
+        .action-badge.active {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .action-badge.due {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Recent Activity Section */
+        .recent-activity {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid var(--gray-100);
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+
+        .activity-item:hover {
+            background: var(--gray-100);
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.food { background: #d1fae5; }
+        .activity-icon.checkin { background: #e0f2fe; }
+        .activity-icon.plan { background: #ccfbf1; }
+        .activity-icon.photo { background: #fce7f3; }
+
+        .activity-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .activity-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .activity-empty {
+            text-align: center;
+            padding: 24px;
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+
+        /* Dark Mode for New Components */
+        [data-theme="dark"] .greeting-text h1 {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .greeting-text p {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .streak-badge {
+            background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+            border-color: #b45309;
+        }
+
+        [data-theme="dark"] .streak-badge .streak-text {
+            color: #fef3c7;
+        }
+
+        [data-theme="dark"] .streak-badge.no-streak {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .streak-badge.no-streak .streak-text {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .today-card,
+        [data-theme="dark"] .recent-activity {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .today-title,
+        [data-theme="dark"] .section-title-new {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .today-date {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .ring-bg {
+            stroke: #334155;
+        }
+
+        [data-theme="dark"] .ring-current {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .ring-target,
+        [data-theme="dark"] .ring-label {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .progress-bar-bg {
+            background: #334155;
+        }
+
+        [data-theme="dark"] .progress-label {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .action-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .action-card:hover {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .action-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .action-desc {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .activity-item {
+            background: #334155;
+        }
+
+        [data-theme="dark"] .activity-item:hover {
+            background: #3f4f63;
+        }
+
+        [data-theme="dark"] .activity-text {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .activity-time {
+            color: #64748b;
+        }
+
+        /* Responsive for New Components */
+        @media (max-width: 360px) {
+            .macro-rings {
+                gap: 8px;
+            }
+
+            .ring-container {
+                width: 60px;
+                height: 60px;
+            }
+
+            .ring-current {
+                font-size: 12px;
+            }
+
+            .ring-target {
+                font-size: 9px;
+            }
+
+            .action-card {
+                padding: 16px 12px;
+            }
+
+            .action-icon {
+                width: 48px;
+                height: 48px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .quick-actions-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+            }
+
+            .ring-container {
+                width: 80px;
+                height: 80px;
+            }
+
+            .ring-current {
+                font-size: 16px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .quick-actions-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -2559,97 +3109,162 @@
 
                 <!-- Main Content Area -->
                 <div class="desktop-main">
-                    <!-- Welcome Header -->
-                    <div class="welcome-header">
-                        <h1>Welcome back, <span id="clientName">Client</span>!</h1>
-                        <p>What would you like to do today?</p>
+                    <!-- Greeting Section with Streak Badge -->
+                    <div class="greeting-section">
+                        <div class="greeting-row">
+                            <div class="greeting-text">
+                                <h1>Welcome back, <span id="clientName">Client</span>!</h1>
+                                <p id="greetingSubtext">Let's make today count</p>
+                            </div>
+                            <div class="streak-badge no-streak" id="streakBadge">
+                                <span class="streak-icon">🔥</span>
+                                <span class="streak-text" id="streakText">Start your streak!</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Discover Section - MyFitnessPal Style -->
-                    <div class="discover-section">
-                <h2 class="discover-title">Discover</h2>
-                <div class="discover-grid">
-                    <a href="client-diary.html" class="discover-card">
-                        <div class="discover-icon" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                                <path d="M8 7h8M8 11h8M8 15h5"/>
-                            </svg>
+                    <!-- Today's Progress Card -->
+                    <div class="today-card">
+                        <div class="today-header">
+                            <div class="today-title">📊 Today's Progress</div>
+                            <div class="today-date" id="todayDate"></div>
                         </div>
-                        <div class="discover-name">Food Diary</div>
-                        <div class="discover-desc">Track calories</div>
-                    </a>
 
-                    <a href="client-plans.html" class="discover-card">
-                        <div class="discover-icon plans-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 3h18v18H3zM12 8v8M8 12h8"/>
-                            </svg>
+                        <!-- Macro Rings -->
+                        <div class="macro-rings">
+                            <div class="macro-ring">
+                                <div class="ring-container">
+                                    <svg class="ring-svg" viewBox="0 0 36 36">
+                                        <circle class="ring-bg" cx="18" cy="18" r="15.5"/>
+                                        <circle class="ring-progress calories" cx="18" cy="18" r="15.5"
+                                            stroke-dasharray="97.4" stroke-dashoffset="97.4" id="ringCalories"/>
+                                    </svg>
+                                    <div class="ring-value">
+                                        <span class="ring-current" id="currentCalories">0</span>
+                                        <span class="ring-target" id="targetCalories">/1800</span>
+                                    </div>
+                                </div>
+                                <span class="ring-label">Calories</span>
+                            </div>
+                            <div class="macro-ring">
+                                <div class="ring-container">
+                                    <svg class="ring-svg" viewBox="0 0 36 36">
+                                        <circle class="ring-bg" cx="18" cy="18" r="15.5"/>
+                                        <circle class="ring-progress protein" cx="18" cy="18" r="15.5"
+                                            stroke-dasharray="97.4" stroke-dashoffset="97.4" id="ringProtein"/>
+                                    </svg>
+                                    <div class="ring-value">
+                                        <span class="ring-current" id="currentProtein">0g</span>
+                                        <span class="ring-target" id="targetProtein">/150g</span>
+                                    </div>
+                                </div>
+                                <span class="ring-label">Protein</span>
+                            </div>
+                            <div class="macro-ring">
+                                <div class="ring-container">
+                                    <svg class="ring-svg" viewBox="0 0 36 36">
+                                        <circle class="ring-bg" cx="18" cy="18" r="15.5"/>
+                                        <circle class="ring-progress carbs" cx="18" cy="18" r="15.5"
+                                            stroke-dasharray="97.4" stroke-dashoffset="97.4" id="ringCarbs"/>
+                                    </svg>
+                                    <div class="ring-value">
+                                        <span class="ring-current" id="currentCarbs">0g</span>
+                                        <span class="ring-target" id="targetCarbs">/180g</span>
+                                    </div>
+                                </div>
+                                <span class="ring-label">Carbs</span>
+                            </div>
+                            <div class="macro-ring">
+                                <div class="ring-container">
+                                    <svg class="ring-svg" viewBox="0 0 36 36">
+                                        <circle class="ring-bg" cx="18" cy="18" r="15.5"/>
+                                        <circle class="ring-progress fat" cx="18" cy="18" r="15.5"
+                                            stroke-dasharray="97.4" stroke-dashoffset="97.4" id="ringFat"/>
+                                    </svg>
+                                    <div class="ring-value">
+                                        <span class="ring-current" id="currentFat">0g</span>
+                                        <span class="ring-target" id="targetFat">/60g</span>
+                                    </div>
+                                </div>
+                                <span class="ring-label">Fat</span>
+                            </div>
                         </div>
-                        <div class="discover-name">My Plans</div>
-                        <div class="discover-desc">Your meal plans</div>
-                    </a>
 
-                    <a href="client-checkin.html" class="discover-card">
-                        <div class="discover-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 11l3 3L22 4"/>
-                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                            </svg>
+                        <!-- Overall Progress Bar -->
+                        <div class="overall-progress">
+                            <div class="progress-header">
+                                <span class="progress-label">Daily Goal Progress</span>
+                                <span class="progress-percent" id="overallPercent">0%</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="overallProgressBar" style="width: 0%"></div>
+                            </div>
                         </div>
-                        <div class="discover-name">Check-in</div>
-                        <div class="discover-desc">Track your week</div>
-                    </a>
 
-                    <a href="client-progress.html" class="discover-card">
-                        <div class="discover-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M23 6l-9.5 9.5-5-5L1 18"/>
-                                <path d="M17 6h6v6"/>
+                        <!-- Log Food Button -->
+                        <a href="client-diary.html" class="log-food-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                        </div>
-                        <div class="discover-name">Progress</div>
-                        <div class="discover-desc">Weight & photos</div>
-                    </a>
+                            Log Food
+                        </a>
+                    </div>
 
-                    <a href="client-recipes.html" class="discover-card">
-                        <div class="discover-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                            </svg>
+                    <!-- Quick Actions Section -->
+                    <div class="quick-actions">
+                        <div class="section-header">
+                            <h2 class="section-title-new">Quick Actions</h2>
                         </div>
-                        <div class="discover-name">Recipes</div>
-                        <div class="discover-desc">Cook & enjoy</div>
-                    </a>
+                        <div class="quick-actions-grid">
+                            <a href="client-diary.html" class="action-card">
+                                <div class="action-icon diary">📝</div>
+                                <div class="action-name">Food Diary</div>
+                                <div class="action-desc">Track your meals</div>
+                            </a>
+                            <a href="client-plans.html" class="action-card">
+                                <div class="action-icon plans">🍽️</div>
+                                <div class="action-name">My Plans</div>
+                                <div class="action-desc">View meal plans</div>
+                                <span class="action-badge active" id="plansbadge" style="display:none;">Active</span>
+                            </a>
+                            <a href="client-checkin.html" class="action-card">
+                                <div class="action-icon checkin">✅</div>
+                                <div class="action-name">Check-in</div>
+                                <div class="action-desc">Weekly update</div>
+                                <span class="action-badge due" id="checkinBadge" style="display:none;">Due soon</span>
+                            </a>
+                            <a href="client-progress.html" class="action-card">
+                                <div class="action-icon progress">📈</div>
+                                <div class="action-name">Progress</div>
+                                <div class="action-desc">Track results</div>
+                            </a>
+                            <a href="client-recipes.html" class="action-card">
+                                <div class="action-icon recipes">👨‍🍳</div>
+                                <div class="action-name">Recipes</div>
+                                <div class="action-desc">Cook & enjoy</div>
+                            </a>
+                            <a href="client-favorites.html" class="action-card">
+                                <div class="action-icon favorites">❤️</div>
+                                <div class="action-name">Favorites</div>
+                                <div class="action-desc">Saved meals</div>
+                            </a>
+                        </div>
+                    </div>
 
-                    <a href="client-favorites.html" class="discover-card">
-                        <div class="discover-icon heart-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-                            </svg>
+                    <!-- Recent Activity Section -->
+                    <div class="recent-activity">
+                        <div class="section-header">
+                            <h2 class="section-title-new">Recent Activity</h2>
                         </div>
-                        <div class="discover-name">Favorites</div>
-                        <div class="discover-desc">Meals you love</div>
-                    </a>
-
-                    <a href="client-settings.html" class="discover-card">
-                        <div class="discover-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"/>
-                                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-                            </svg>
+                        <div class="activity-list" id="activityList">
+                            <div class="activity-empty">Loading activity...</div>
                         </div>
-                        <div class="discover-name">Settings</div>
-                        <div class="discover-desc">Your profile</div>
-                    </a>
-                    </div><!-- End discover-grid -->
-                </div><!-- End discover-section -->
-            </div><!-- End desktop-main -->
-        </div><!-- End desktop-layout -->
-    </div><!-- End container -->
-</div><!-- End main-content -->
+                    </div>
+                </div><!-- End desktop-main -->
+            </div><!-- End desktop-layout -->
+        </div><!-- End container -->
+    </div><!-- End main-content -->
 
     <!-- Photo Upload Modal -->
     <div id="photoUploadModal" class="photo-modal">
@@ -4465,8 +5080,343 @@
             }
         }
 
+        // ========== NEW DASHBOARD FUNCTIONS ==========
+
+        // Set today's date
+        function setTodayDate() {
+            const today = new Date();
+            const options = { weekday: 'short', month: 'short', day: 'numeric' };
+            document.getElementById('todayDate').textContent = today.toLocaleDateString('en-US', options);
+        }
+
+        // Load today's progress from diary
+        async function loadTodayProgress() {
+            try {
+                // Get today's date string
+                const today = new Date().toISOString().split('T')[0];
+
+                // Fetch today's diary entries
+                const { data: entries, error } = await supabaseClient
+                    .from('diary_entries')
+                    .select('calories, protein, carbs, fat')
+                    .eq('client_id', currentClientId)
+                    .eq('entry_date', today);
+
+                if (error) throw error;
+
+                // Sum up totals
+                let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+                if (entries && entries.length > 0) {
+                    entries.forEach(entry => {
+                        totals.calories += entry.calories || 0;
+                        totals.protein += entry.protein || 0;
+                        totals.carbs += entry.carbs || 0;
+                        totals.fat += entry.fat || 0;
+                    });
+                }
+
+                // Get targets from active meal plan or use defaults
+                let targets = { calories: 1800, protein: 150, carbs: 180, fat: 60 };
+
+                // Try to get targets from active plan
+                const { data: plans } = await supabaseClient
+                    .from('coach_meal_plans')
+                    .select('plan_data')
+                    .eq('client_id', currentClientId)
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (plans && plans[0]?.plan_data) {
+                    const planData = plans[0].plan_data;
+                    const dayTargets = planData.currentPlan?.[0]?.targets || {};
+                    targets.calories = planData.calories || dayTargets.calories || targets.calories;
+                    targets.protein = planData.protein || dayTargets.protein || targets.protein;
+                    targets.carbs = planData.carbs || dayTargets.carbs || targets.carbs;
+                    targets.fat = planData.fat || dayTargets.fat || targets.fat;
+                }
+
+                // Update the UI
+                updateMacroRings(totals, targets);
+
+            } catch (error) {
+                console.error('Error loading today progress:', error);
+                // Show zeros on error
+                updateMacroRings({ calories: 0, protein: 0, carbs: 0, fat: 0 }, { calories: 1800, protein: 150, carbs: 180, fat: 60 });
+            }
+        }
+
+        // Update macro rings with animation
+        function updateMacroRings(current, targets) {
+            const circumference = 97.4; // 2 * PI * 15.5
+
+            // Update each ring
+            const macros = ['calories', 'protein', 'carbs', 'fat'];
+
+            macros.forEach(macro => {
+                const ringEl = document.getElementById(`ring${macro.charAt(0).toUpperCase() + macro.slice(1)}`);
+                const currentEl = document.getElementById(`current${macro.charAt(0).toUpperCase() + macro.slice(1)}`);
+                const targetEl = document.getElementById(`target${macro.charAt(0).toUpperCase() + macro.slice(1)}`);
+
+                if (ringEl && currentEl && targetEl) {
+                    const percent = Math.min(current[macro] / targets[macro], 1);
+                    const offset = circumference - (percent * circumference);
+
+                    // Animate the ring
+                    setTimeout(() => {
+                        ringEl.style.strokeDashoffset = offset;
+                    }, 100);
+
+                    // Update text
+                    if (macro === 'calories') {
+                        currentEl.textContent = Math.round(current[macro]);
+                        targetEl.textContent = `/${targets[macro]}`;
+                    } else {
+                        currentEl.textContent = `${Math.round(current[macro])}g`;
+                        targetEl.textContent = `/${targets[macro]}g`;
+                    }
+                }
+            });
+
+            // Update overall progress
+            const avgPercent = Math.round(
+                ((current.calories / targets.calories) +
+                (current.protein / targets.protein) +
+                (current.carbs / targets.carbs) +
+                (current.fat / targets.fat)) / 4 * 100
+            );
+            const cappedPercent = Math.min(avgPercent, 100);
+
+            document.getElementById('overallPercent').textContent = `${cappedPercent}%`;
+            document.getElementById('overallProgressBar').style.width = `${cappedPercent}%`;
+        }
+
+        // Calculate and display streak
+        async function loadStreak() {
+            try {
+                const streakBadge = document.getElementById('streakBadge');
+                const streakText = document.getElementById('streakText');
+
+                // Get diary entries from the last 30 days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                const { data: entries, error } = await supabaseClient
+                    .from('diary_entries')
+                    .select('entry_date')
+                    .eq('client_id', currentClientId)
+                    .gte('entry_date', thirtyDaysAgo.toISOString().split('T')[0])
+                    .order('entry_date', { ascending: false });
+
+                if (error) throw error;
+
+                // Get unique dates with entries
+                const datesWithEntries = new Set();
+                if (entries) {
+                    entries.forEach(e => datesWithEntries.add(e.entry_date));
+                }
+
+                // Calculate streak (consecutive days from today going backwards)
+                let streak = 0;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                for (let i = 0; i < 30; i++) {
+                    const checkDate = new Date(today);
+                    checkDate.setDate(today.getDate() - i);
+                    const dateStr = checkDate.toISOString().split('T')[0];
+
+                    if (datesWithEntries.has(dateStr)) {
+                        streak++;
+                    } else if (i > 0) {
+                        // Allow today to be missing (not logged yet)
+                        break;
+                    }
+                }
+
+                // Update UI
+                if (streak > 0) {
+                    streakBadge.classList.remove('no-streak');
+                    streakText.textContent = `${streak} day streak!`;
+                } else {
+                    streakBadge.classList.add('no-streak');
+                    streakText.textContent = 'Start your streak!';
+                }
+
+            } catch (error) {
+                console.error('Error loading streak:', error);
+            }
+        }
+
+        // Load recent activity
+        async function loadRecentActivity() {
+            const activityList = document.getElementById('activityList');
+
+            try {
+                const activities = [];
+
+                // Get recent diary entries (last 3 days)
+                const threeDaysAgo = new Date();
+                threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+                const { data: diaryEntries } = await supabaseClient
+                    .from('diary_entries')
+                    .select('food_name, calories, entry_date, created_at')
+                    .eq('client_id', currentClientId)
+                    .gte('entry_date', threeDaysAgo.toISOString().split('T')[0])
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (diaryEntries) {
+                    diaryEntries.forEach(entry => {
+                        activities.push({
+                            type: 'food',
+                            icon: '🍽️',
+                            text: `Logged ${entry.food_name || 'food'} - ${entry.calories || 0} cal`,
+                            time: new Date(entry.created_at)
+                        });
+                    });
+                }
+
+                // Get recent check-ins
+                const { data: checkins } = await supabaseClient
+                    .from('client_checkins')
+                    .select('created_at')
+                    .eq('client_id', currentClientId)
+                    .order('created_at', { ascending: false })
+                    .limit(2);
+
+                if (checkins) {
+                    checkins.forEach(checkin => {
+                        activities.push({
+                            type: 'checkin',
+                            icon: '✅',
+                            text: 'Completed weekly check-in',
+                            time: new Date(checkin.created_at)
+                        });
+                    });
+                }
+
+                // Get recent photos
+                if (clientPhotos && clientPhotos.length > 0) {
+                    clientPhotos.slice(0, 2).forEach(photo => {
+                        activities.push({
+                            type: 'photo',
+                            icon: '📸',
+                            text: `Uploaded ${photo.photo_type || 'progress'} photo`,
+                            time: new Date(photo.created_at)
+                        });
+                    });
+                }
+
+                // Sort by time, most recent first
+                activities.sort((a, b) => b.time - a.time);
+
+                // Display
+                if (activities.length === 0) {
+                    activityList.innerHTML = `
+                        <div class="activity-empty">
+                            No recent activity. Start by logging a meal!
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Show top 5
+                const topActivities = activities.slice(0, 5);
+                activityList.innerHTML = topActivities.map(activity => `
+                    <div class="activity-item">
+                        <div class="activity-icon ${activity.type}">${activity.icon}</div>
+                        <div class="activity-content">
+                            <div class="activity-text">${activity.text}</div>
+                            <div class="activity-time">${formatTimeAgo(activity.time)}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                activityList.innerHTML = `
+                    <div class="activity-empty">Unable to load activity</div>
+                `;
+            }
+        }
+
+        // Check if weekly check-in is due
+        async function checkCheckinStatus() {
+            try {
+                const checkinBadge = document.getElementById('checkinBadge');
+                if (!checkinBadge) return;
+
+                // Get the most recent check-in
+                const { data: lastCheckin } = await supabaseClient
+                    .from('client_checkins')
+                    .select('created_at')
+                    .eq('client_id', currentClientId)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (lastCheckin) {
+                    const daysSince = Math.floor((new Date() - new Date(lastCheckin.created_at)) / (1000 * 60 * 60 * 24));
+                    if (daysSince >= 5) {
+                        checkinBadge.style.display = 'inline-block';
+                        checkinBadge.textContent = daysSince >= 7 ? 'Due now' : 'Due soon';
+                    }
+                } else {
+                    // No check-in ever, show badge
+                    checkinBadge.style.display = 'inline-block';
+                    checkinBadge.textContent = 'New!';
+                }
+            } catch (error) {
+                console.error('Error checking check-in status:', error);
+            }
+        }
+
+        // Update greeting based on time of day
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            const subtext = document.getElementById('greetingSubtext');
+            if (subtext) {
+                if (hour < 12) {
+                    subtext.textContent = "Good morning! Let's start the day right.";
+                } else if (hour < 17) {
+                    subtext.textContent = "Good afternoon! Keep up the great work.";
+                } else {
+                    subtext.textContent = "Good evening! How was your day?";
+                }
+            }
+        }
+
         // Initialize on page load
         init();
+
+        // Load new dashboard components after init
+        document.addEventListener('DOMContentLoaded', () => {
+            setTodayDate();
+            updateGreeting();
+        });
+
+        // Extended init to load new components
+        const originalInit = init;
+        async function initDashboardExtras() {
+            // Wait for currentClientId to be set
+            if (!currentClientId) {
+                setTimeout(initDashboardExtras, 500);
+                return;
+            }
+
+            // Load new dashboard components
+            await Promise.all([
+                loadTodayProgress(),
+                loadStreak(),
+                loadRecentActivity(),
+                checkCheckinStatus()
+            ]);
+        }
+
+        // Run dashboard extras after a short delay to ensure client ID is loaded
+        setTimeout(initDashboardExtras, 1000);
     </script>
 
     <!-- Footer (hidden on mobile) -->
