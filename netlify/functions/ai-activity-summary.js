@@ -1,5 +1,5 @@
-// Netlify Function to generate AI-powered activity summary for coaches
-// Analyzes client activity, check-ins, and engagement to provide actionable insights
+// Netlify Function to generate AI-powered client briefing for coaches
+// Provides a clean, narrative-style summary with specific client names and actionable insights
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -115,24 +115,35 @@ exports.handler = async (event, context) => {
       .eq('request_new_diet', true)
       .order('created_at', { ascending: false });
 
-    // Fetch dismissed activity items to filter them out
-    const { data: dismissedItems, error: dismissedError } = await supabase
+    // Fetch activity items (both dismissed/seen and pinned)
+    const { data: activityItems, error: activityError } = await supabase
       .from('dismissed_activity_items')
-      .select('client_id, reason, related_checkin_id')
+      .select('client_id, reason, related_checkin_id, is_pinned, pinned_at')
       .eq('coach_id', coachId);
 
-    if (dismissedError && dismissedError.code !== '42P01') {
-      console.error('Error fetching dismissed items:', dismissedError);
+    if (activityError && activityError.code !== '42P01') {
+      console.error('Error fetching activity items:', activityError);
     }
 
-    // Create a Set for quick lookup of dismissed items
+    // Create Sets for quick lookup of dismissed and pinned items
     const dismissedSet = new Set();
-    (dismissedItems || []).forEach(item => {
+    const pinnedItems = [];
+    (activityItems || []).forEach(item => {
       // Key format: clientId-reason or clientId-reason-checkinId
       const key = item.related_checkin_id
         ? `${item.client_id}-${item.reason}-${item.related_checkin_id}`
         : `${item.client_id}-${item.reason}`;
-      dismissedSet.add(key);
+
+      if (item.is_pinned) {
+        pinnedItems.push({
+          clientId: item.client_id,
+          reason: item.reason,
+          relatedCheckinId: item.related_checkin_id,
+          pinnedAt: item.pinned_at
+        });
+      } else {
+        dismissedSet.add(key);
+      }
     });
 
     // Calculate stats
@@ -254,27 +265,67 @@ exports.handler = async (event, context) => {
       });
     });
 
-    // Generate AI summary using Gemini REST API
-    let aiSummary = '';
+    // Categorize items into briefing sections
+    const actionRequired = needsAttention.filter(n => n.reason === 'diet_request');
+    const checkInOn = needsAttention.filter(n => ['high_stress', 'low_energy', 'low_adherence', 'inactive'].includes(n.reason));
+
+    // Build "Doing Well" section - clients with good engagement
+    const doingWell = [];
+    clientStats.filter(c => c.isActiveThisWeek && c.hasCheckedInThisWeek).forEach(c => {
+      const adherence = c.latestCheckin?.meal_plan_adherence;
+      if (adherence >= 80) {
+        doingWell.push({
+          clientId: c.id,
+          clientName: c.name,
+          message: `${adherence}% meal plan adherence this week`,
+          reason: 'high_adherence'
+        });
+      } else if (c.diaryEntriesThisWeek >= 5) {
+        doingWell.push({
+          clientId: c.id,
+          clientName: c.name,
+          message: `Logging meals consistently (${c.diaryEntriesThisWeek} entries this week)`,
+          reason: 'consistent_logging'
+        });
+      }
+    });
+
+    // Add pinned items with full client info
+    const pinnedWithDetails = pinnedItems.map(pin => {
+      const client = clientStats.find(c => c.id === pin.clientId);
+      return {
+        ...pin,
+        clientName: client?.name || 'Unknown Client',
+        message: getPinnedItemMessage(pin, client)
+      };
+    }).filter(p => p.clientName !== 'Unknown Client');
+
+    // Generate AI briefing using Gemini REST API
+    let briefing = {
+      actionRequired: { items: actionRequired, narrative: '' },
+      checkInOn: { items: checkInOn, narrative: '' },
+      doingWell: { items: doingWell.slice(0, 5), narrative: '' },
+      pinned: pinnedWithDetails
+    };
 
     if (GEMINI_API_KEY) {
       try {
-        const prompt = `You are a coaching assistant analyzing client activity for a fitness/nutrition coach. Based on the following data, provide a brief, friendly summary (2-3 sentences) highlighting the most important insights. Be encouraging but mention any clients needing attention.
+        const prompt = `You are a coaching assistant providing a quick daily briefing for a fitness/nutrition coach. Generate SHORT narrative summaries for each section (1-2 sentences max each, use specific client names).
 
-CLIENT ACTIVITY DATA:
-- Total active clients: ${stats.totalClients}
-- Active this week (logged in): ${stats.activeThisWeek} clients
-- Checked in this week: ${stats.checkedInThisWeek} clients
-- Logging food in diary: ${stats.loggingFood} clients
-- Missed check-ins: ${stats.missedCheckIns} clients
-- Pending diet requests: ${stats.pendingDietRequests}
-- Inactive (no login in 7+ days): ${stats.inactiveClients} clients
-- Clients without portal access: ${stats.clientsWithoutPortal}
+DATA:
+Action Required (${actionRequired.length} items):
+${actionRequired.map(n => `- ${n.clientName}: ${n.message}`).join('\n') || 'None'}
 
-HIGH PRIORITY ISSUES:
-${needsAttention.filter(n => n.priority === 'high').map(n => `- ${n.clientName}: ${n.message}`).join('\n') || 'None'}
+Check In On (${checkInOn.length} items):
+${checkInOn.map(n => `- ${n.clientName}: ${n.message}`).join('\n') || 'None'}
 
-Keep the summary concise, actionable, and coach-friendly. Start with the positive if there is any, then mention what needs attention.`;
+Doing Well (${doingWell.length} clients):
+${doingWell.slice(0, 5).map(n => `- ${n.clientName}: ${n.message}`).join('\n') || 'All clients maintaining baseline'}
+
+Overall Stats: ${stats.activeThisWeek}/${stats.totalClients} active this week, ${stats.checkedInThisWeek} check-ins submitted.
+
+Return ONLY a JSON object with this exact structure (no markdown, no code blocks):
+{"actionRequired":"brief narrative or empty string if none","checkInOn":"brief narrative or empty string if none","doingWell":"brief positive narrative"}`;
 
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
           method: 'POST',
@@ -283,25 +334,36 @@ Keep the summary concise, actionable, and coach-friendly. Start with the positiv
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 300
+              maxOutputTokens: 400
             }
           })
         });
 
         if (response.ok) {
           const data = await response.json();
-          aiSummary = data.candidates?.[0]?.content?.parts?.[0]?.text || generateFallbackSummary(stats, needsAttention);
+          const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          try {
+            // Clean up the response - remove markdown code blocks if present
+            const cleanedText = aiText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const narratives = JSON.parse(cleanedText);
+            briefing.actionRequired.narrative = narratives.actionRequired || '';
+            briefing.checkInOn.narrative = narratives.checkInOn || '';
+            briefing.doingWell.narrative = narratives.doingWell || '';
+          } catch (parseError) {
+            console.error('Failed to parse AI narratives:', parseError);
+            // Use fallback narratives
+            briefing = generateFallbackBriefing(briefing, stats);
+          }
         } else {
           console.error('Gemini API error:', response.status);
-          aiSummary = generateFallbackSummary(stats, needsAttention);
+          briefing = generateFallbackBriefing(briefing, stats);
         }
       } catch (aiError) {
         console.error('AI generation error:', aiError);
-        // Fall back to template-based summary
-        aiSummary = generateFallbackSummary(stats, needsAttention);
+        briefing = generateFallbackBriefing(briefing, stats);
       }
     } else {
-      aiSummary = generateFallbackSummary(stats, needsAttention);
+      briefing = generateFallbackBriefing(briefing, stats);
     }
 
     // Build categorized client lists for the UI
@@ -332,9 +394,11 @@ Keep the summary concise, actionable, and coach-friendly. Start with the positiv
       statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        summary: aiSummary,
+        briefing,
         stats,
-        needsAttention: needsAttention.slice(0, 10), // Limit to top 10
+        // Legacy fields for backwards compatibility
+        summary: briefing.actionRequired.narrative || briefing.checkInOn.narrative || briefing.doingWell.narrative,
+        needsAttention: needsAttention.slice(0, 10),
         activeClients,
         inactiveClients,
         checkedInClients,
@@ -356,6 +420,62 @@ Keep the summary concise, actionable, and coach-friendly. Start with the positiv
   }
 };
 
+// Helper function to get message for pinned items
+function getPinnedItemMessage(pin, client) {
+  switch (pin.reason) {
+    case 'diet_request':
+      return 'Requested a new meal plan';
+    case 'high_stress':
+      return `Reported high stress level`;
+    case 'low_energy':
+      return `Reported low energy`;
+    case 'low_adherence':
+      return `Low meal plan adherence`;
+    case 'inactive':
+      return `No recent activity`;
+    default:
+      return 'Needs attention';
+  }
+}
+
+// Generate fallback briefing when AI is unavailable
+function generateFallbackBriefing(briefing, stats) {
+  // Action Required narrative
+  if (briefing.actionRequired.items.length > 0) {
+    const names = briefing.actionRequired.items.map(i => i.clientName).slice(0, 3);
+    const extra = briefing.actionRequired.items.length > 3 ? ` and ${briefing.actionRequired.items.length - 3} more` : '';
+    briefing.actionRequired.narrative = `${names.join(', ')}${extra} requested new meal plans.`;
+  }
+
+  // Check In On narrative
+  if (briefing.checkInOn.items.length > 0) {
+    const stressItems = briefing.checkInOn.items.filter(i => i.reason === 'high_stress');
+    const inactiveItems = briefing.checkInOn.items.filter(i => i.reason === 'inactive');
+    const parts = [];
+
+    if (stressItems.length > 0) {
+      parts.push(`${stressItems.map(i => i.clientName).join(', ')} reported high stress`);
+    }
+    if (inactiveItems.length > 0) {
+      parts.push(`${inactiveItems.map(i => i.clientName).slice(0, 2).join(', ')} haven't logged in recently`);
+    }
+    briefing.checkInOn.narrative = parts.join('. ') + '.';
+  }
+
+  // Doing Well narrative
+  if (briefing.doingWell.items.length > 0) {
+    const names = briefing.doingWell.items.map(i => i.clientName).slice(0, 3);
+    briefing.doingWell.narrative = `${names.join(', ')} ${names.length > 1 ? 'are' : 'is'} showing strong engagement this week.`;
+  } else if (stats.activeThisWeek > 0) {
+    briefing.doingWell.narrative = `${stats.activeThisWeek} of ${stats.totalClients} clients active this week.`;
+  } else {
+    briefing.doingWell.narrative = 'Waiting for client activity this week.';
+  }
+
+  return briefing;
+}
+
+// Legacy function for backwards compatibility
 function generateFallbackSummary(stats, needsAttention) {
   const parts = [];
 
@@ -363,7 +483,6 @@ function generateFallbackSummary(stats, needsAttention) {
     return "You don't have any active clients yet. Add your first client to get started!";
   }
 
-  // Positive highlights
   if (stats.activeThisWeek > 0) {
     const percentage = Math.round((stats.activeThisWeek / stats.totalClients) * 100);
     parts.push(`${stats.activeThisWeek} of ${stats.totalClients} clients (${percentage}%) have been active this week`);
@@ -373,7 +492,6 @@ function generateFallbackSummary(stats, needsAttention) {
     parts.push(`${stats.checkedInThisWeek} client${stats.checkedInThisWeek > 1 ? 's' : ''} submitted check-ins`);
   }
 
-  // Attention items
   const highPriority = needsAttention.filter(n => n.priority === 'high');
   if (highPriority.length > 0) {
     if (highPriority.some(n => n.reason === 'diet_request')) {
