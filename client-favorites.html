@@ -27,13 +27,27 @@
         .header {
             background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
             color: white;
-            padding: 30px;
+            padding: 20px 30px;
             border-radius: 12px;
             margin-bottom: 30px;
             box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 16px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-logo {
+            height: 45px;
+            width: auto;
+            object-fit: contain;
+            flex-shrink: 0;
         }
 
         .header h1 {
@@ -47,6 +61,26 @@
             font-size: 14px;
             opacity: 0.9;
             margin-top: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                padding: 20px;
+            }
+
+            .header-left {
+                flex-direction: column;
+            }
+
+            .header-logo {
+                height: 40px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
         }
 
         .btn {
@@ -465,9 +499,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <div>
-                <h1><span style="font-size: 32px;">&#x2764;</span> My Favorite Meals</h1>
-                <p>Meals you've loved from your meal plans</p>
+            <div class="header-left">
+                <a href="client-dashboard.html">
+                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg" alt="Zique Fitness" class="header-logo">
+                </a>
+                <div>
+                    <h1><span style="font-size: 32px;">&#x2764;</span> My Favorite Meals</h1>
+                    <p>Meals you've loved from your meal plans</p>
+                </div>
             </div>
             <a href="client-dashboard.html" class="btn btn-secondary">Back to Dashboard</a>
         </div>
