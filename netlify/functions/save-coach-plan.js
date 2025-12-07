@@ -64,30 +64,46 @@ exports.handler = async (event, context) => {
     if (planId) {
       console.log('📝 Updating existing plan:', planId);
 
+      // First try with client_id
       const updateData = {
         plan_data: planData,
         client_name: clientName || 'Unnamed Client',
         updated_at: new Date().toISOString()
       };
 
-      // Add plan_name if provided
       if (planName) {
         updateData.plan_name = planName;
       }
 
-      // NOTE: client_id is intentionally NOT included to avoid foreign key issues
-      // Plans are linked to clients via client_name instead
+      if (clientId) {
+        updateData.client_id = clientId;
+      }
 
       let result = await supabase
         .from('coach_meal_plans')
         .update(updateData)
         .eq('id', planId)
-        .eq('coach_id', coachId) // Ensure coach owns this plan
+        .eq('coach_id', coachId)
         .select()
         .single();
 
       data = result.data;
       error = result.error;
+
+      // If any error and we included client_id, retry without it
+      if (error && clientId) {
+        console.log('⚠️ Update failed with client_id, retrying without it. Error:', error.message);
+        delete updateData.client_id;
+        result = await supabase
+          .from('coach_meal_plans')
+          .update(updateData)
+          .eq('id', planId)
+          .eq('coach_id', coachId)
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('❌ Update error:', error);
@@ -98,8 +114,6 @@ exports.handler = async (event, context) => {
       // No planId - INSERT a new plan
       console.log('📝 Creating new plan');
 
-      // Prepare insert data
-      // NOTE: client_id is intentionally NOT included to avoid foreign key issues
       const insertData = {
         coach_id: coachId,
         client_name: clientName || 'Unnamed Client',
@@ -107,9 +121,12 @@ exports.handler = async (event, context) => {
         created_at: new Date().toISOString()
       };
 
-      // Add plan_name if provided
       if (planName) {
         insertData.plan_name = planName;
+      }
+
+      if (clientId) {
+        insertData.client_id = clientId;
       }
 
       // Try to insert
@@ -122,8 +139,21 @@ exports.handler = async (event, context) => {
       data = result.data;
       error = result.error;
 
+      // If any error and we included client_id, retry without it
+      if (error && clientId) {
+        console.log('⚠️ Insert failed with client_id, retrying without it. Error:', error.message);
+        delete insertData.client_id;
+        result = await supabase
+          .from('coach_meal_plans')
+          .insert([insertData])
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      }
+
       if (error) {
-        console.error('❌ Insert error:', JSON.stringify(error));
+        console.error('❌ Insert error:', error);
       }
     }
 
@@ -150,8 +180,8 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         planId: data.id,
         planName: data.plan_name || null,
-        status: data.status || 'draft', // Default to draft if status column doesn't exist
-        message: 'Plan saved as draft. Use "Submit to Client" to make it visible.'
+        status: data.status || 'draft',
+        message: 'Plan saved successfully.'
       })
     };
 
