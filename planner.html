@@ -7060,11 +7060,80 @@ document.getElementById('dp_custom_targets').addEventListener('change', function
     const fields = document.getElementById('custom-targets-fields');
     if (this.checked) {
         fields.classList.remove('hidden');
+        prefillCustomTargets(); // Pre-fill with recommended values
         updateMacroFromPercentages(); // Calculate on open
     } else {
         fields.classList.add('hidden');
     }
 });
+
+// Pre-fill custom targets with calculated recommended values
+function prefillCustomTargets() {
+    // Get form values
+    const age = document.getElementById('dp_age').value;
+    const gender = document.getElementById('dp_gender').value;
+    const weight = document.getElementById('dp_weight').value;
+    const heightFt = document.getElementById('dp_height_ft').value;
+    const heightIn = document.getElementById('dp_height_in').value;
+    const activity = parseFloat(document.getElementById('dp_activity').value) || 1.2;
+    const goal = document.getElementById('dp_goal').value;
+    const calorieAdjustment = parseInt(document.getElementById('dp_calorie_adjustment').value) || 0;
+    const macroPreference = document.getElementById('dp_macro_preference').value;
+
+    // Validate required fields
+    if (!age || !weight || !heightFt) {
+        console.log('Missing required fields for calorie calculation');
+        return;
+    }
+
+    // Calculate BMR using Mifflin-St Jeor
+    let weightKg, heightCm;
+    if (currentUnitSystem === 'imperial') {
+        weightKg = parseFloat(weight) * 0.453592;
+        heightCm = (parseInt(heightFt) * 30.48) + (parseInt(heightIn || 0) * 2.54);
+    } else {
+        weightKg = parseFloat(weight);
+        heightCm = parseFloat(heightFt);
+    }
+
+    let bmr;
+    if (gender === 'male') {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * parseInt(age)) + 5;
+    } else {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * parseInt(age)) - 161;
+    }
+
+    let tdee = bmr * activity;
+    if (goal === 'lose weight') tdee -= 500;
+    if (goal === 'gain muscle') tdee += 300;
+    tdee += calorieAdjustment;
+
+    const calories = Math.round(tdee);
+
+    // Calculate macro percentages based on preference
+    let proteinPct, carbsPct, fatPct;
+    if (macroPreference === 'lower-carb') {
+        proteinPct = 35;
+        carbsPct = 25;
+        fatPct = 40;
+    } else if (macroPreference === 'higher-carb') {
+        proteinPct = 25;
+        carbsPct = 50;
+        fatPct = 25;
+    } else { // balanced
+        proteinPct = 30;
+        carbsPct = 40;
+        fatPct = 30;
+    }
+
+    // Pre-fill the fields
+    document.getElementById('dp_custom_calories').value = calories;
+    document.getElementById('dp_protein_pct').value = proteinPct;
+    document.getElementById('dp_carbs_pct').value = carbsPct;
+    document.getElementById('dp_fat_pct').value = fatPct;
+
+    console.log(`✅ Pre-filled custom targets: ${calories} cal, ${proteinPct}% P, ${carbsPct}% C, ${fatPct}% F`);
+}
 
 // Percentage-based macro calculator
 let lastEditedMacro = null; // Track which macro was edited last for auto-fill
