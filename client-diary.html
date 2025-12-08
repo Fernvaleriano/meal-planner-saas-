@@ -2616,7 +2616,7 @@
             <div class="meal-section" data-meal="breakfast">
                 <div class="meal-header" onclick="toggleMeal('breakfast')">
                     <div class="meal-title">
-                        <span class="meal-icon"><i data-lucide="sunrise" width="20" height="20"></i></span>
+                        <span class="meal-icon"><i data-lucide="sunrise" width="20" height="20" style="color: #f59e0b;"></i></span>
                         <span class="meal-name">Breakfast</span>
                     </div>
                     <span class="meal-calories" id="breakfastCals">0</span>
@@ -2650,7 +2650,7 @@
                         Add Food
                     </div>
                     <div class="save-meal-btn" id="saveBreakfastBtn" onclick="openSaveMealModal('breakfast')" style="display: none;">
-                        <i data-lucide="heart" width="16" height="16"></i> Save Meal
+                        <i data-lucide="heart" width="16" height="16" style="color: #ef4444;"></i> Save Meal
                     </div>
                 </div>
             </div>
@@ -2659,7 +2659,7 @@
             <div class="meal-section" data-meal="lunch">
                 <div class="meal-header" onclick="toggleMeal('lunch')">
                     <div class="meal-title">
-                        <span class="meal-icon"><i data-lucide="sun" width="20" height="20"></i></span>
+                        <span class="meal-icon"><i data-lucide="sun" width="20" height="20" style="color: #eab308;"></i></span>
                         <span class="meal-name">Lunch</span>
                     </div>
                     <span class="meal-calories" id="lunchCals">0</span>
@@ -2692,7 +2692,7 @@
                         Add Food
                     </div>
                     <div class="save-meal-btn" id="saveLunchBtn" onclick="openSaveMealModal('lunch')" style="display: none;">
-                        <i data-lucide="heart" width="16" height="16"></i> Save Meal
+                        <i data-lucide="heart" width="16" height="16" style="color: #ef4444;"></i> Save Meal
                     </div>
                 </div>
             </div>
@@ -2701,7 +2701,7 @@
             <div class="meal-section" data-meal="dinner">
                 <div class="meal-header" onclick="toggleMeal('dinner')">
                     <div class="meal-title">
-                        <span class="meal-icon"><i data-lucide="moon" width="20" height="20"></i></span>
+                        <span class="meal-icon"><i data-lucide="moon" width="20" height="20" style="color: #8b5cf6;"></i></span>
                         <span class="meal-name">Dinner</span>
                     </div>
                     <span class="meal-calories" id="dinnerCals">0</span>
@@ -2734,7 +2734,7 @@
                         Add Food
                     </div>
                     <div class="save-meal-btn" id="saveDinnerBtn" onclick="openSaveMealModal('dinner')" style="display: none;">
-                        <i data-lucide="heart" width="16" height="16"></i> Save Meal
+                        <i data-lucide="heart" width="16" height="16" style="color: #ef4444;"></i> Save Meal
                     </div>
                 </div>
             </div>
@@ -2743,7 +2743,7 @@
             <div class="meal-section" data-meal="snack">
                 <div class="meal-header" onclick="toggleMeal('snack')">
                     <div class="meal-title">
-                        <span class="meal-icon"><i data-lucide="apple" width="20" height="20"></i></span>
+                        <span class="meal-icon"><i data-lucide="apple" width="20" height="20" style="color: #ef4444;"></i></span>
                         <span class="meal-name">Snacks</span>
                     </div>
                     <span class="meal-calories" id="snackCals">0</span>
@@ -2768,7 +2768,7 @@
                         Add Food
                     </div>
                     <div class="save-meal-btn" id="saveSnackBtn" onclick="openSaveMealModal('snack')" style="display: none;">
-                        <i data-lucide="heart" width="16" height="16"></i> Save Meal
+                        <i data-lucide="heart" width="16" height="16" style="color: #ef4444;"></i> Save Meal
                     </div>
                 </div>
             </div>
@@ -2778,7 +2778,7 @@
         <div class="water-card" style="margin-top: 16px;">
             <div class="water-header">
                 <div class="water-title">
-                    <i data-lucide="droplets" width="20" height="20"></i>
+                    <i data-lucide="droplets" width="20" height="20" style="color: #06b6d4;"></i>
                     Water Intake
                 </div>
                 <button class="water-goal-btn" onclick="openWaterGoalModal()">Goal: <span id="waterGoalDisplay">8</span> glasses</button>
@@ -3455,13 +3455,13 @@
         <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="flex-shrink: 0;">
                 <button class="modal-close" onclick="closeFavoritesPicker()">&times;</button>
-                <span style="font-weight: 600; color: var(--gray-900); display: flex; align-items: center; gap: 8px;"><i data-lucide="heart" width="18" height="18"></i> Add from Favorites</span>
+                <span style="font-weight: 600; color: var(--gray-900); display: flex; align-items: center; gap: 8px;"><i data-lucide="heart" width="18" height="18" style="color: #ef4444;"></i> Add from Favorites</span>
             </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px;">
                 <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 16px;">Tap a favorite meal to add it to your diary:</p>
                 <div id="favoritesList">
                     <div class="empty-state">
-                        <div class="empty-icon"><i data-lucide="heart" width="32" height="32"></i></div>
+                        <div class="empty-icon"><i data-lucide="heart" width="32" height="32" style="color: #ef4444;"></i></div>
                         <p>Loading favorites...</p>
                     </div>
                 </div>
@@ -3472,7 +3472,7 @@
     <!-- Save Meal to Favorites Modal -->
     <div class="modal-overlay" id="saveMealModal">
         <div class="quick-add-modal">
-            <h2 style="margin-bottom: 16px; color: var(--gray-900); display: flex; align-items: center; gap: 8px;"><i data-lucide="heart" width="24" height="24"></i> Save Meal to Favorites</h2>
+            <h2 style="margin-bottom: 16px; color: var(--gray-900); display: flex; align-items: center; gap: 8px;"><i data-lucide="heart" width="24" height="24" style="color: #ef4444;"></i> Save Meal to Favorites</h2>
             <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 16px;">
                 Save all items in this meal as one favorite for quick logging later.
             </p>
@@ -5004,10 +5004,10 @@
 
             let mealsHtml = '';
             const mealTypeIcons = {
-                breakfast: '<i data-lucide="sunrise" width="18" height="18"></i>',
-                lunch: '<i data-lucide="sun" width="18" height="18"></i>',
-                dinner: '<i data-lucide="moon" width="18" height="18"></i>',
-                snack: '<i data-lucide="apple" width="18" height="18"></i>'
+                breakfast: '<i data-lucide="sunrise" width="18" height="18" style="color: #f59e0b;"></i>',
+                lunch: '<i data-lucide="sun" width="18" height="18" style="color: #eab308;"></i>',
+                dinner: '<i data-lucide="moon" width="18" height="18" style="color: #8b5cf6;"></i>',
+                snack: '<i data-lucide="apple" width="18" height="18" style="color: #ef4444;"></i>'
             };
 
             // Handle multi-day plans
@@ -5239,11 +5239,11 @@
 
         function getMealTypeIcon(mealType) {
             const type = (mealType || '').toLowerCase();
-            if (type === 'breakfast') return '<i data-lucide="sunrise" width="18" height="18"></i>';
-            if (type === 'lunch') return '<i data-lucide="sun" width="18" height="18"></i>';
-            if (type === 'dinner') return '<i data-lucide="moon" width="18" height="18"></i>';
-            if (type === 'snack') return '<i data-lucide="apple" width="18" height="18"></i>';
-            return '<i data-lucide="utensils" width="18" height="18"></i>';
+            if (type === 'breakfast') return '<i data-lucide="sunrise" width="18" height="18" style="color: #f59e0b;"></i>';
+            if (type === 'lunch') return '<i data-lucide="sun" width="18" height="18" style="color: #eab308;"></i>';
+            if (type === 'dinner') return '<i data-lucide="moon" width="18" height="18" style="color: #8b5cf6;"></i>';
+            if (type === 'snack') return '<i data-lucide="apple" width="18" height="18" style="color: #ef4444;"></i>';
+            return '<i data-lucide="utensils" width="18" height="18" style="color: #64748b;"></i>';
         }
 
         async function addFavoriteToDay(index) {
@@ -5842,29 +5842,29 @@
                 <div class="report-meals">
                     <div class="report-meals-title">Meals Breakdown</div>
                     <div class="report-meal-item">
-                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="sunrise" width="16" height="16"></i> Breakfast</span>
+                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="sunrise" width="16" height="16" style="color: #f59e0b;"></i> Breakfast</span>
                         <span>${breakfastCals} cal</span>
                     </div>
                     <div class="report-meal-item">
-                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="sun" width="16" height="16"></i> Lunch</span>
+                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="sun" width="16" height="16" style="color: #eab308;"></i> Lunch</span>
                         <span>${lunchCals} cal</span>
                     </div>
                     <div class="report-meal-item">
-                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="moon" width="16" height="16"></i> Dinner</span>
+                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="moon" width="16" height="16" style="color: #8b5cf6;"></i> Dinner</span>
                         <span>${dinnerCals} cal</span>
                     </div>
                     <div class="report-meal-item">
-                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="apple" width="16" height="16"></i> Snacks</span>
+                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="apple" width="16" height="16" style="color: #ef4444;"></i> Snacks</span>
                         <span>${snackCals} cal</span>
                     </div>
                     <div class="report-meal-item">
-                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="droplets" width="16" height="16"></i> Water</span>
+                        <span style="display: flex; align-items: center; gap: 6px;"><i data-lucide="droplets" width="16" height="16" style="color: #06b6d4;"></i> Water</span>
                         <span>${waterIntake}/${waterGoal} glasses</span>
                     </div>
                 </div>
 
                 <div class="report-insights">
-                    <div class="report-insights-title" style="display: flex; align-items: center; gap: 6px;"><i data-lucide="lightbulb" width="16" height="16"></i> Insights</div>
+                    <div class="report-insights-title" style="display: flex; align-items: center; gap: 6px;"><i data-lucide="lightbulb" width="16" height="16" style="color: #f59e0b;"></i> Insights</div>
                     ${insights.map(i => `<div class="report-insight">${i}</div>`).join('')}
                 </div>
             `;
