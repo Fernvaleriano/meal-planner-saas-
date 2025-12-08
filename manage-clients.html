@@ -1549,6 +1549,8 @@
         }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
+    <!-- API Helper for authenticated requests -->
+    <script src="/js/api-helper.js"></script>
 </head>
 <body>
     <!-- Sidebar -->
@@ -2238,19 +2240,12 @@
                 clientsTableContainer.style.display = 'none';
                 viewControls.style.display = 'none';
 
-                // Load active clients
-                const activeResponse = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
-                const activeData = await activeResponse.json();
-
-                if (!activeResponse.ok) {
-                    throw new Error(activeData.error || 'Failed to load clients');
-                }
-
+                // Load active clients (with authentication)
+                const activeData = await apiGet(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
                 clients = activeData.clients || [];
 
-                // Load archived clients count
-                const archivedResponse = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoachId}&archivedOnly=true`);
-                const archivedData = await archivedResponse.json();
+                // Load archived clients count (with authentication)
+                const archivedData = await apiGet(`/.netlify/functions/get-clients?coachId=${currentCoachId}&archivedOnly=true`);
                 archivedClients = archivedData.clients || [];
 
                 // Update archived count badge
@@ -2784,28 +2779,14 @@
                     defaultDietaryRestrictions: []
                 };
 
-                let response;
+                let data;
                 if (clientId) {
                     // Update existing client
                     payload.clientId = clientId;
-                    response = await fetch('/.netlify/functions/update-client', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                    data = await apiPut('/.netlify/functions/update-client', payload);
                 } else {
                     // Create new client
-                    response = await fetch('/.netlify/functions/create-client', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                }
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to save client');
+                    data = await apiPost('/.netlify/functions/create-client', payload);
                 }
 
                 alert(clientId ? 'Client updated successfully!' : 'Client added successfully!');
@@ -2828,20 +2809,10 @@
             }
 
             try {
-                const response = await fetch('/.netlify/functions/archive-client', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId: currentCoachId
-                    })
+                await apiPost('/.netlify/functions/archive-client', {
+                    clientId,
+                    coachId: currentCoachId
                 });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to archive client');
-                }
 
                 alert('Client archived successfully');
                 await loadClients();
@@ -2859,20 +2830,10 @@
             }
 
             try {
-                const response = await fetch('/.netlify/functions/restore-client', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId: currentCoachId
-                    })
+                await apiPost('/.netlify/functions/restore-client', {
+                    clientId,
+                    coachId: currentCoachId
                 });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to restore client');
-                }
 
                 alert('Client restored successfully');
                 await loadClients();
@@ -2895,20 +2856,19 @@
             }
 
             try {
-                const response = await fetch('/.netlify/functions/delete-client', {
+                // Use authenticated DELETE request
+                await authenticatedFetch('/.netlify/functions/delete-client', {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clientId,
                         coachId: currentCoachId
                     })
+                }).then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to delete client');
+                    }
                 });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to delete client');
-                }
 
                 alert('Client permanently deleted');
                 await loadClients();
@@ -2943,20 +2903,11 @@
             }
 
             try {
-                const response = await fetch('/.netlify/functions/invite-client', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId: currentCoachId
-                    })
+                // Use authenticated POST request
+                const data = await apiPost('/.netlify/functions/invite-client', {
+                    clientId,
+                    coachId: currentCoachId
                 });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || data.message || 'Failed to invite client');
-                }
 
                 // Show invitation modal
                 document.getElementById('inviteClientName').textContent = data.clientName || clientName;

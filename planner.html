@@ -2014,6 +2014,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/api-helper.js"></script>
 <script>
 // Sidebar section collapse functionality
 function toggleSidebarSection(label) {
@@ -2048,9 +2049,8 @@ const TOGGLE_FAVORITE_ENDPOINT = '/.netlify/functions/toggle-favorite';
 // Fetch favorites for a client
 async function getClientFavorites(clientId) {
     try {
-        const response = await fetch(`${TOGGLE_FAVORITE_ENDPOINT}?clientId=${clientId}`);
-        if (!response.ok) return [];
-        const data = await response.json();
+        // Use authenticated API call
+        const data = await apiGet(`${TOGGLE_FAVORITE_ENDPOINT}?clientId=${clientId}`);
         return data.favorites || [];
     } catch (error) {
         console.error('Error fetching favorites:', error);
@@ -2146,13 +2146,8 @@ async function loadClients() {
     try {
         if (!currentCoach) return;
 
-        const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoach.id}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to load clients');
-        }
-
+        // Use authenticated API call
+        const data = await apiGet(`/.netlify/functions/get-clients?coachId=${currentCoach.id}`);
         clientsList = data.clients || [];
 
         // Populate dropdown
@@ -2358,9 +2353,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // DIRECT NETLIFY FUNCTION CALL - Now using Claude 3.5 Sonnet
 async function callClaude(prompt, targets, previousAttempt = null) {
     try {
-        const response = await fetch(API_ENDPOINT, {
+        // Use authenticated API call
+        const response = await authenticatedFetch(API_ENDPOINT, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt,
                 targets,
@@ -2456,9 +2451,9 @@ async function callGemini(prompt, isJson = true, targets = null, previousAttempt
         if (mealsPerDay) requestBody.mealsPerDay = mealsPerDay;
         if (skipAutoScale) requestBody.skipAutoScale = true; // Don't auto-scale for revisions
 
-        const response = await fetch('/.netlify/functions/generate-meal-plan', {
+        // Use authenticated API call
+        const response = await authenticatedFetch('/.netlify/functions/generate-meal-plan', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
 
@@ -4284,21 +4279,11 @@ async function publishPlanToClient() {
     submitBtn.disabled = true;
 
     try {
-        const response = await fetch(PUBLISH_PLAN_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                planId: lastPlanQuery.planId,
-                coachId: currentCoach.id
-            })
+        // Use authenticated API call
+        const data = await apiPost(PUBLISH_PLAN_ENDPOINT, {
+            planId: lastPlanQuery.planId,
+            coachId: currentCoach.id
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to submit plan');
-        }
-
-        const data = await response.json();
         console.log('✅ Plan submitted to client:', data);
 
         // Update local status
@@ -4405,18 +4390,8 @@ async function saveCoachPlan(planData, clientName) {
             planName: planName  // Custom plan name for organization
         };
 
-        const response = await fetch(SAVE_COACH_PLAN_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to save plan');
-        }
-
-        const data = await response.json();
+        // Use authenticated API call
+        const data = await apiPost(SAVE_COACH_PLAN_ENDPOINT, payload);
         console.log('Plan saved to history with ID:', data.planId);
 
         // Store the planId, planName and status in lastPlanQuery so it can be used when sharing
@@ -4462,20 +4437,12 @@ async function saveCoachNotes() {
     saveBtn.disabled = true;
 
     try {
-        const response = await fetch(UPDATE_PLAN_NOTES_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                planId: lastPlanQuery.planId,
-                coachId: currentCoach.id,
-                notes: notes || null
-            })
+        // Use authenticated API call
+        await apiPost(UPDATE_PLAN_NOTES_ENDPOINT, {
+            planId: lastPlanQuery.planId,
+            coachId: currentCoach.id,
+            notes: notes || null
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to save notes');
-        }
 
         console.log('✅ Coach notes saved successfully');
         saveBtn.textContent = 'Saved!';
@@ -4525,21 +4492,12 @@ async function saveMealNote(dayIndex, mealIndex) {
     saveBtn.disabled = true;
 
     try {
-        // Update the plan data in database with the new note
-        const response = await fetch(UPDATE_PLAN_NOTES_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                planId: lastPlanQuery.planId,
-                coachId: currentCoach.id,
-                planData: lastPlanQuery  // Send full plan data including nutrition info
-            })
+        // Use authenticated API call
+        await apiPost(UPDATE_PLAN_NOTES_ENDPOINT, {
+            planId: lastPlanQuery.planId,
+            coachId: currentCoach.id,
+            planData: lastPlanQuery  // Send full plan data including nutrition info
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to save note');
-        }
 
         console.log(`✅ Meal note saved for Day ${dayIndex + 1}, Meal ${mealIndex + 1}`);
         saveBtn.textContent = 'Saved!';
@@ -5256,8 +5214,8 @@ async function loadSavedMeals() {
     }
 
     try {
-        const response = await fetch(`${SAVED_MEALS_ENDPOINT}?coachId=${currentCoach.id}`);
-        const data = await response.json();
+        // Use authenticated API call
+        const data = await apiGet(`${SAVED_MEALS_ENDPOINT}?coachId=${currentCoach.id}`);
 
         if (data.meals) {
             // Transform database format to match expected format
@@ -5289,16 +5247,11 @@ async function saveMealToLibrary(meal) {
     }
 
     try {
-        const response = await fetch(SAVED_MEALS_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                coachId: currentCoach.id,
-                mealData: meal
-            })
+        // Use authenticated API call
+        const data = await apiPost(SAVED_MEALS_ENDPOINT, {
+            coachId: currentCoach.id,
+            mealData: meal
         });
-
-        const data = await response.json();
 
         if (data.success && data.meal) {
             // Add to cache
@@ -5327,10 +5280,10 @@ async function deleteSavedMeal(mealId) {
     }
 
     try {
-        const response = await fetch(`${SAVED_MEALS_ENDPOINT}?mealId=${mealId}&coachId=${currentCoach.id}`, {
+        // Use authenticated DELETE call
+        const response = await authenticatedFetch(`${SAVED_MEALS_ENDPOINT}?mealId=${mealId}&coachId=${currentCoach.id}`, {
             method: 'DELETE'
         });
-
         const data = await response.json();
 
         if (data.success) {
@@ -6823,17 +6776,8 @@ async function sharePlan() {
             console.log('Linking shared plan to coach plan:', lastPlanQuery.planId);
         }
 
-        const response = await fetch(SAVE_PLAN_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to generate share link');
-        }
-
-        const data = await response.json();
+        // Use authenticated API call
+        const data = await apiPost(SAVE_PLAN_ENDPOINT, requestBody);
         currentShareUrl = data.shareUrl;
 
         console.log('Share link generated:', currentShareUrl);
@@ -7309,13 +7253,8 @@ async function loadTemplatesList() {
     select.innerHTML = '<option value="">Loading templates...</option>';
 
     try {
-        const response = await fetch(`${TEMPLATES_ENDPOINT}?coachId=${currentCoach.id}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to load templates');
-        }
-
+        // Use authenticated API call
+        const data = await apiGet(`${TEMPLATES_ENDPOINT}?coachId=${currentCoach.id}`);
         cachedTemplates = data.templates || [];
 
         // Clear and rebuild options
@@ -7378,28 +7317,17 @@ async function saveAsTemplate() {
     }));
 
     try {
-        const response = await fetch(TEMPLATES_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                coachId: currentCoach.id,
-                name: templateName,
-                description: templateDesc || '',
-                mealsStructure: lastPlanQuery.meals,
-                macroPreference: lastPlanQuery.macroPreference,
-                preference: lastPlanQuery.preference,
-                planData: planData
-            })
+        // Use authenticated API call
+        const data = await apiPost(TEMPLATES_ENDPOINT, {
+            coachId: currentCoach.id,
+            name: templateName,
+            description: templateDesc || '',
+            mealsStructure: lastPlanQuery.meals,
+            macroPreference: lastPlanQuery.macroPreference,
+            preference: lastPlanQuery.preference,
+            planData: planData
         });
-
-        const data = await response.json();
-        console.log('Template API response:', response.status, data);
-
-        if (!response.ok) {
-            const errorMsg = data.details || data.error || 'Failed to save template';
-            console.error('Template save failed:', errorMsg);
-            throw new Error(errorMsg);
-        }
+        console.log('Template API response:', data);
 
         alert(`Template "${templateName}" saved successfully!`);
         console.log('Template saved:', data.template);
@@ -7436,10 +7364,10 @@ async function deleteTemplate(templateId) {
     }
 
     try {
-        const response = await fetch(`${TEMPLATES_ENDPOINT}?templateId=${templateId}&coachId=${currentCoach.id}`, {
+        // Use authenticated DELETE call
+        const response = await authenticatedFetch(`${TEMPLATES_ENDPOINT}?templateId=${templateId}&coachId=${currentCoach.id}`, {
             method: 'DELETE'
         });
-
         const data = await response.json();
 
         if (!response.ok) {
@@ -7493,22 +7421,13 @@ async function editSelectedTemplate() {
     }
 
     try {
-        const response = await fetch(TEMPLATES_ENDPOINT, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                templateId: templateId,
-                coachId: currentCoach.id,
-                name: newName.trim(),
-                description: newDescription.trim()
-            })
+        // Use authenticated API call
+        const data = await apiPut(TEMPLATES_ENDPOINT, {
+            templateId: templateId,
+            coachId: currentCoach.id,
+            name: newName.trim(),
+            description: newDescription.trim()
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to update template');
-        }
 
         alert('Template updated successfully!');
         await loadTemplatesList();
@@ -7590,13 +7509,8 @@ async function fetchMealImage(mealName, imageElementId, forceRegenerate = false)
         // If forcing regeneration, skip the cache check and go straight to POST
         if (forceRegenerate) {
             console.log('Force regenerating image for:', mealName);
-            const generateResponse = await fetch(MEAL_IMAGE_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mealName, regenerate: true })
-            });
-
-            const generateData = await generateResponse.json();
+            // Use authenticated API call
+            const generateData = await apiPost(MEAL_IMAGE_ENDPOINT, { mealName, regenerate: true });
 
             if (generateData.success && generateData.imageUrl) {
                 mealImageCache[mealName] = generateData.imageUrl;
@@ -7608,9 +7522,8 @@ async function fetchMealImage(mealName, imageElementId, forceRegenerate = false)
             return;
         }
 
-        // First check if image exists
-        const checkResponse = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
-        const checkData = await checkResponse.json();
+        // First check if image exists (use authenticated call)
+        const checkData = await apiGet(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
 
         if (checkData.exists && checkData.imageUrl) {
             mealImageCache[mealName] = checkData.imageUrl;
@@ -7619,14 +7532,8 @@ async function fetchMealImage(mealName, imageElementId, forceRegenerate = false)
             return;
         }
 
-        // Image doesn't exist, generate it
-        const generateResponse = await fetch(MEAL_IMAGE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mealName })
-        });
-
-        const generateData = await generateResponse.json();
+        // Image doesn't exist, generate it (use authenticated call)
+        const generateData = await apiPost(MEAL_IMAGE_ENDPOINT, { mealName });
 
         if (generateData.success && generateData.imageUrl) {
             mealImageCache[mealName] = generateData.imageUrl;
@@ -7757,18 +7664,12 @@ async function regenerateMealImage(container, mealName, customPrompt = null) {
     }
 
     try {
-        // Call API with regenerate flag and optional custom prompt
-        const response = await fetch('/.netlify/functions/meal-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mealName,
-                regenerate: true,
-                customPrompt: customPrompt
-            })
+        // Use authenticated API call
+        const data = await apiPost('/.netlify/functions/meal-image', {
+            mealName,
+            regenerate: true,
+            customPrompt: customPrompt
         });
-
-        const data = await response.json();
 
         if (data.success && data.imageUrl) {
             // Update the image with new URL
@@ -7863,9 +7764,8 @@ document.addEventListener('click', async (e) => {
             if (!mealName) continue;
 
             try {
-                // First check if cached
-                const checkResponse = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
-                const checkData = await checkResponse.json();
+                // First check if cached (use authenticated call)
+                const checkData = await apiGet(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
 
                 if (checkData.exists && checkData.imageUrl) {
                     // Use cached image
@@ -7876,13 +7776,8 @@ document.addEventListener('click', async (e) => {
                     // Generate new image
                     button.textContent = `⏳ Generating ${completed + 1}/${total}...`;
 
-                    const generateResponse = await fetch(MEAL_IMAGE_ENDPOINT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mealName })
-                    });
-
-                    const generateData = await generateResponse.json();
+                    // Use authenticated API call
+                    const generateData = await apiPost(MEAL_IMAGE_ENDPOINT, { mealName });
 
                     if (generateData.success && generateData.imageUrl) {
                         mealImageCache[mealName] = generateData.imageUrl;
@@ -7923,8 +7818,8 @@ async function loadCachedMealImages() {
 
         // Check if image exists (don't generate, just load cached)
         try {
-            const response = await fetch(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
-            const data = await response.json();
+            // Use authenticated API call
+            const data = await apiGet(`${MEAL_IMAGE_ENDPOINT}?mealName=${encodeURIComponent(mealName)}`);
 
             if (data.exists && data.imageUrl) {
                 console.log('✅ Found cached image for:', mealName);
@@ -8045,17 +7940,12 @@ async function generateCustomGalleryImage() {
     }
 
     try {
-        const response = await fetch(MEAL_IMAGE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mealName: galleryState.mealName,
-                customPrompt: prompt,
-                regenerate: true  // Always generate fresh for gallery
-            })
+        // Use authenticated API call
+        const data = await apiPost(MEAL_IMAGE_ENDPOINT, {
+            mealName: galleryState.mealName,
+            customPrompt: prompt,
+            regenerate: true  // Always generate fresh for gallery
         });
-
-        const data = await response.json();
 
         if (data.success && data.imageUrl) {
             galleryState.generatedImages[slotIndex] = data.imageUrl;
@@ -8135,18 +8025,12 @@ async function handleGalleryUpload(event) {
         reader.onload = async (e) => {
             const base64Data = e.target.result;
 
-            // Upload to Supabase storage
-            const response = await fetch('/.netlify/functions/upload-meal-photo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mealName: galleryState.mealName,
-                    imageData: base64Data,
-                    fileName: file.name
-                })
+            // Upload to Supabase storage (use authenticated call)
+            const data = await apiPost('/.netlify/functions/upload-meal-photo', {
+                mealName: galleryState.mealName,
+                imageData: base64Data,
+                fileName: file.name
             });
-
-            const data = await response.json();
 
             if (data.success && data.imageUrl) {
                 // Store uploaded image
@@ -8244,17 +8128,12 @@ document.addEventListener('click', async (e) => {
             try {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const response = await fetch('/.netlify/functions/upload-meal-photo', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            mealName: button.dataset.mealName,
-                            imageData: e.target.result,
-                            fileName: file.name
-                        })
+                    // Use authenticated API call
+                    const data = await apiPost('/.netlify/functions/upload-meal-photo', {
+                        mealName: button.dataset.mealName,
+                        imageData: e.target.result,
+                        fileName: file.name
                     });
-
-                    const data = await response.json();
 
                     if (data.success && data.imageUrl) {
                         const imageContainer = document.getElementById(button.dataset.imageId);
