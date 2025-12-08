@@ -6279,12 +6279,28 @@
         function stopVoiceInput() {
             isListening = false;
             if (speechRecognition) {
-                speechRecognition.stop();
+                try {
+                    speechRecognition.abort(); // Force stop immediately
+                } catch (e) {
+                    console.log('Speech recognition abort error:', e);
+                }
+                try {
+                    speechRecognition.stop();
+                } catch (e) {
+                    console.log('Speech recognition stop error:', e);
+                }
+                // Clear all event handlers to prevent any callbacks
+                speechRecognition.onstart = null;
+                speechRecognition.onresult = null;
+                speechRecognition.onerror = null;
+                speechRecognition.onend = null;
                 speechRecognition = null;
             }
             const voiceBtn = document.getElementById('voiceInputBtn');
-            voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
-            voiceBtn.innerHTML = '<span style="font-size: 20px;">🎤</span>';
+            if (voiceBtn) {
+                voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
+                voiceBtn.innerHTML = '<span style="font-size: 20px;">🎤</span>';
+            }
 
             // Hide status after a short delay
             setTimeout(() => {
@@ -6296,6 +6312,9 @@
         }
 
         async function analyzeTextWithAI() {
+            // Stop voice input immediately when analyzing
+            stopVoiceInput();
+
             const text = document.getElementById('foodDescriptionInput').value.trim();
 
             if (!text) {
