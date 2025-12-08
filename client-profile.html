@@ -4120,6 +4120,7 @@
                 <div class="client-actions">
                     <button class="btn btn-primary" onclick="generateNewPlan()">🔥 Generate New Plan</button>
                     <button class="btn btn-edit" onclick="editClient()">✏️ Edit</button>
+                    <button class="btn btn-secondary" onclick="sendPasswordReset()" title="Send password reset email to client">🔑 Reset Password</button>
                     <button class="btn btn-back" onclick="window.location.href='manage-clients.html'">← Back</button>
                 </div>
             </div>
@@ -5872,6 +5873,58 @@
             // Redirect back to manage clients page
             // The manage-clients page will need to handle opening the edit modal
             window.location.href = `manage-clients.html?editClient=${currentClient.id}`;
+        }
+
+        async function sendPasswordReset() {
+            if (!currentClient) {
+                alert('No client loaded');
+                return;
+            }
+
+            if (!currentClient.email) {
+                alert('This client does not have an email address on file. Please add an email first.');
+                return;
+            }
+
+            if (!currentClient.user_id) {
+                alert('This client has not been invited to the portal yet. Send them an invitation first before resetting their password.');
+                return;
+            }
+
+            const confirmed = confirm(`Send a password reset email to ${currentClient.client_name} at ${currentClient.email}?`);
+            if (!confirmed) return;
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session?.access_token) {
+                    alert('Session expired. Please refresh the page.');
+                    return;
+                }
+
+                const response = await fetch('/.netlify/functions/send-client-password-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        clientId: currentClient.id,
+                        coachId: currentUser.id
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.error || 'Failed to send password reset');
+                }
+
+                alert(`✅ Password reset email sent to ${data.email}!\n\nThe client will receive an email with a link to reset their password.`);
+
+            } catch (error) {
+                console.error('Error sending password reset:', error);
+                alert('Failed to send password reset email: ' + error.message);
+            }
         }
 
         // ========== BULK SELECTION FUNCTIONS ==========
