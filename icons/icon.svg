@@ -1,5 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="100" fill="#0f172a"/>
-  <rect x="40" y="40" width="432" height="432" rx="80" fill="#0d9488"/>
-  <text x="256" y="320" font-family="Arial, sans-serif" font-size="280" font-weight="800" fill="white" text-anchor="middle">Z</text>
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5eead4;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#14b8a6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="#000000"/>
+
+  <g transform="translate(256, 256)">
+    <!-- Top arc segment (like an eye shape) -->
+    <path d="M-70,-110
+             C-20,-160 70,-150 100,-90
+             C60,-100 20,-90 0,-85
+             C-30,-90 -50,-105 -70,-110 Z"
+          fill="url(#logoGradient)"/>
+
+    <!-- Left arc segment -->
+    <path d="M-120,-50
+             C-160,20 -140,100 -70,130
+             C-80,90 -75,50 -65,20
+             C-70,-10 -90,-35 -120,-50 Z"
+          fill="url(#logoGradient)"/>
+
+    <!-- Right arc segment -->
+    <path d="M120,-50
+             C160,20 140,100 70,130
+             C80,90 75,50 65,20
+             C70,-10 90,-35 120,-50 Z"
+          fill="url(#logoGradient)"/>
+
+    <!-- Bottom left small arc -->
+    <path d="M-55,85
+             C-90,110 -100,140 -60,160
+             C-50,130 -35,110 -20,100
+             C-35,90 -45,85 -55,85 Z"
+          fill="url(#logoGradient)"/>
+
+    <!-- Bottom right small arc -->
+    <path d="M55,85
+             C90,110 100,140 60,160
+             C50,130 35,110 20,100
+             C35,90 45,85 55,85 Z"
+          fill="url(#logoGradient)"/>
+  </g>
 </svg>
