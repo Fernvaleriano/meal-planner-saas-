@@ -6026,11 +6026,19 @@
             document.getElementById('todayDate').textContent = today.toLocaleDateString('en-US', options);
         }
 
+        // Format date as YYYY-MM-DD using local timezone (not UTC)
+        function formatLocalDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // Load today's progress from diary API (same endpoint as diary page)
         async function loadTodayProgress() {
             try {
-                // Get today's date string (YYYY-MM-DD)
-                const today = new Date().toISOString().split('T')[0];
+                // Get today's date string (YYYY-MM-DD) using local timezone
+                const today = formatLocalDate(new Date());
 
                 // Use the same API endpoint as the diary page
                 const response = await fetch(`/.netlify/functions/food-diary?clientId=${currentClientId}&date=${today}&_t=${Date.now()}`, {
@@ -6125,7 +6133,7 @@
                 for (let i = 0; i < 30; i++) {
                     const checkDate = new Date(today);
                     checkDate.setDate(today.getDate() - i);
-                    const dateStr = checkDate.toISOString().split('T')[0];
+                    const dateStr = formatLocalDate(checkDate);
 
                     try {
                         const response = await fetch(`/.netlify/functions/food-diary?clientId=${currentClientId}&date=${dateStr}&_t=${Date.now()}`);
@@ -6151,7 +6159,7 @@
                 for (let i = 0; i < 30; i++) {
                     const checkDate = new Date(today);
                     checkDate.setDate(today.getDate() - i);
-                    const dateStr = checkDate.toISOString().split('T')[0];
+                    const dateStr = formatLocalDate(checkDate);
 
                     if (datesWithEntries.has(dateStr)) {
                         streak++;
