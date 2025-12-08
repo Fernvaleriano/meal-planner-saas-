@@ -8,13 +8,16 @@
  * @returns {Promise<string|null>} The JWT token or null if not logged in
  */
 async function getAuthToken() {
-    // Get supabase instance (should be initialized on the page)
-    if (typeof supabase === 'undefined') {
+    // Get supabase instance (pages may use 'supabase' or 'supabaseClient')
+    const supabaseInstance = (typeof supabaseClient !== 'undefined') ? supabaseClient :
+                             (typeof supabase !== 'undefined') ? supabase : null;
+
+    if (!supabaseInstance) {
         console.error('Supabase not initialized');
         return null;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseInstance.auth.getSession();
     return session?.access_token || null;
 }
 
