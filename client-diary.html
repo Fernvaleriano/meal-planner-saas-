@@ -2449,7 +2449,7 @@
         </a>
         <div class="nav-actions">
             <div class="streak-badge" id="streakBadge" title="Logging streak">
-                <span>🔥</span>
+                <span><i data-lucide="flame" width="18" height="18" style="color: #f97316;"></i></span>
                 <span id="streakCount">0</span>
                 <span>day streak</span>
             </div>
@@ -2823,10 +2823,10 @@
 
             <!-- Quick Action Buttons -->
             <div class="ai-quick-actions">
-                <button class="ai-quick-btn" onclick="askAI('What should I eat to hit my protein goal?')"><i data-lucide="dumbbell" width="14" height="14"></i> Need protein</button>
-                <button class="ai-quick-btn" onclick="askAI('Give me a healthy snack idea')"><i data-lucide="apple" width="14" height="14"></i> Snack ideas</button>
-                <button class="ai-quick-btn" onclick="askAI('How am I doing today?')"><i data-lucide="bar-chart-3" width="14" height="14"></i> My progress</button>
-                <button class="ai-quick-btn" onclick="askAI('What can I eat for dinner?')"><i data-lucide="utensils" width="14" height="14"></i> Dinner ideas</button>
+                <button class="ai-quick-btn" onclick="askAI('What should I eat to hit my protein goal?')"><i data-lucide="dumbbell" width="14" height="14" style="color: #ef4444;"></i> Need protein</button>
+                <button class="ai-quick-btn" onclick="askAI('Give me a healthy snack idea')"><i data-lucide="apple" width="14" height="14" style="color: #ef4444;"></i> Snack ideas</button>
+                <button class="ai-quick-btn" onclick="askAI('How am I doing today?')"><i data-lucide="bar-chart-3" width="14" height="14" style="color: #10b981;"></i> My progress</button>
+                <button class="ai-quick-btn" onclick="askAI('What can I eat for dinner?')"><i data-lucide="utensils" width="14" height="14" style="color: #8b5cf6;"></i> Dinner ideas</button>
             </div>
 
             <!-- Chat Messages -->
@@ -5931,10 +5931,12 @@
 
             if (currentStreak === 0) {
                 badge.classList.add('no-streak');
-                badge.innerHTML = '<span>🔥</span><span>Start your streak!</span>';
+                badge.innerHTML = '<span><i data-lucide="flame" width="18" height="18" style="color: #f97316;"></i></span><span>Start your streak!</span>';
+                lucide.createIcons();
             } else {
                 badge.classList.remove('no-streak');
-                badge.innerHTML = `<span>🔥</span><span id="streakCount">${currentStreak}</span><span>day${currentStreak !== 1 ? 's' : ''}</span>`;
+                badge.innerHTML = `<span><i data-lucide="flame" width="18" height="18" style="color: #f97316;"></i></span><span id="streakCount">${currentStreak}</span><span>day${currentStreak !== 1 ? 's' : ''}</span>`;
+                lucide.createIcons();
             }
         }
 
