@@ -2924,11 +2924,11 @@
                     <button class="action-btn" onclick="window.location.href='reminder-settings.html'">Configure Reminders</button>
                 </div>
 
-                <div class="action-card">
-                    <div class="action-card-icon">+</div>
+                <div class="action-card" id="brandingCard" style="display: none;">
+                    <div class="action-card-icon">🎨</div>
                     <h3>Customize Branding</h3>
                     <p>Upload your logo and set brand colors for a personalized experience.</p>
-                    <button class="action-btn" disabled id="brandingBtn">Coming Soon</button>
+                    <button class="action-btn" onclick="window.location.href='branding-settings.html'">Customize Branding</button>
                 </div>
             </div>
         </div>
@@ -3019,7 +3019,7 @@
         const logoutBtn = document.getElementById('logoutBtn');
         const logoutLink = document.getElementById('logoutLink');
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-        const brandingBtn = document.getElementById('brandingBtn');
+        const brandingCard = document.getElementById('brandingCard');
 
         // Subscription modal elements
         const subscriptionModal = document.getElementById('subscriptionModal');
@@ -3375,11 +3375,9 @@
                 tierBadge.textContent = tier.toUpperCase();
                 tierBadge.className = `tier-badge ${tier}`;
 
-                // Show branding button only for professional tier (or legacy branded tier)
+                // Show branding card only for professional tier (or legacy branded tier)
                 if (coachData.subscription_tier === 'professional' || coachData.subscription_tier === 'branded') {
-                    brandingBtn.parentElement.style.display = 'block';
-                } else {
-                    brandingBtn.parentElement.style.display = 'none';
+                    brandingCard.style.display = 'block';
                 }
 
                 // Fetch and display quick stats
