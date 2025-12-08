@@ -4064,7 +4064,7 @@
                     <!-- Today's Progress Card -->
                     <div class="today-card">
                         <div class="today-header">
-                            <div class="today-title">📊 Today's Progress</div>
+                            <div class="today-title" style="display: flex; align-items: center; gap: 8px;"><i data-lucide="bar-chart-3" width="20" height="20" style="color: #10b981;"></i> Today's Progress</div>
                             <div class="today-date" id="todayDate"></div>
                         </div>
 
@@ -4156,34 +4156,34 @@
                         </div>
                         <div class="quick-actions-grid">
                             <a href="client-diary.html" class="action-card">
-                                <div class="action-icon diary"><i data-lucide="notebook-pen"></i></div>
+                                <div class="action-icon diary"><i data-lucide="notebook-pen" style="color: #06b6d4;"></i></div>
                                 <div class="action-name">Food Diary</div>
                                 <div class="action-desc">Track your meals</div>
                             </a>
                             <a href="client-plans.html" class="action-card">
-                                <div class="action-icon plans"><i data-lucide="utensils"></i></div>
+                                <div class="action-icon plans"><i data-lucide="utensils" style="color: #8b5cf6;"></i></div>
                                 <div class="action-name">My Plans</div>
                                 <div class="action-desc">View meal plans</div>
                                 <span class="action-badge active" id="plansbadge" style="display:none;">Active</span>
                             </a>
                             <a href="client-checkin.html" class="action-card">
-                                <div class="action-icon checkin"><i data-lucide="clipboard-check"></i></div>
+                                <div class="action-icon checkin"><i data-lucide="clipboard-check" style="color: #10b981;"></i></div>
                                 <div class="action-name">Check-in</div>
                                 <div class="action-desc">Weekly update</div>
                                 <span class="action-badge due" id="checkinBadge" style="display:none;">Due soon</span>
                             </a>
                             <a href="client-progress.html" class="action-card">
-                                <div class="action-icon progress"><i data-lucide="trending-up"></i></div>
+                                <div class="action-icon progress"><i data-lucide="trending-up" style="color: #f59e0b;"></i></div>
                                 <div class="action-name">Progress</div>
                                 <div class="action-desc">Track results</div>
                             </a>
                             <a href="client-recipes.html" class="action-card">
-                                <div class="action-icon recipes"><i data-lucide="chef-hat"></i></div>
+                                <div class="action-icon recipes"><i data-lucide="chef-hat" style="color: #ec4899;"></i></div>
                                 <div class="action-name">Recipes</div>
                                 <div class="action-desc">Cook & enjoy</div>
                             </a>
                             <a href="client-favorites.html" class="action-card">
-                                <div class="action-icon favorites"><i data-lucide="heart"></i></div>
+                                <div class="action-icon favorites"><i data-lucide="heart" style="color: #ef4444;"></i></div>
                                 <div class="action-name">Favorites</div>
                                 <div class="action-desc">Saved meals</div>
                             </a>
@@ -5121,7 +5121,7 @@
             if (clientMeasurements.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📊</div>
+                        <div class="empty-state-icon"><i data-lucide="ruler" width="48" height="48" style="color: #10b981;"></i></div>
                         <h3>No Measurements Yet</h3>
                         <p>Track your progress by logging your first measurement!</p>
                     </div>
