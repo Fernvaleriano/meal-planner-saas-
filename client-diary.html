@@ -6158,6 +6158,7 @@
         let aiTextDetectedFoods = [];
         let speechRecognition = null;
         let isListening = false;
+        let audioStream = null; // Track the audio stream so we can stop it
 
         function openAITextModal() {
             closeFoodSearch();
@@ -6208,17 +6209,30 @@
             }
         }
 
-        function startVoiceInput() {
+        async function startVoiceInput() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            speechRecognition = new SpeechRecognition();
-            speechRecognition.continuous = false;
-            speechRecognition.interimResults = true;
-            speechRecognition.lang = 'en-US';
 
             const voiceBtn = document.getElementById('voiceInputBtn');
             const voiceStatus = document.getElementById('voiceStatus');
             const voiceStatusText = document.getElementById('voiceStatusText');
             const textInput = document.getElementById('foodDescriptionInput');
+
+            try {
+                // First, get direct access to microphone stream so we can stop it later
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('🎤 Microphone stream acquired');
+            } catch (err) {
+                console.error('Failed to get microphone access:', err);
+                voiceStatusText.textContent = '🚫 Microphone access denied';
+                voiceStatus.style.display = 'block';
+                setTimeout(() => { voiceStatus.style.display = 'none'; }, 3000);
+                return;
+            }
+
+            speechRecognition = new SpeechRecognition();
+            speechRecognition.continuous = false;
+            speechRecognition.interimResults = true;
+            speechRecognition.lang = 'en-US';
 
             speechRecognition.onstart = () => {
                 isListening = true;
@@ -6267,7 +6281,7 @@
             };
 
             speechRecognition.onend = () => {
-                // Auto-restart if still supposed to be listening (for continuous input)
+                // Auto-stop when speech recognition ends
                 if (isListening) {
                     stopVoiceInput();
                 }
@@ -6277,15 +6291,19 @@
         }
 
         function stopVoiceInput() {
+            console.log('🛑 Stopping voice input...');
             isListening = false;
+
             if (speechRecognition) {
                 try {
                     speechRecognition.abort(); // Force stop immediately
+                    console.log('Speech recognition aborted');
                 } catch (e) {
                     console.log('Speech recognition abort error:', e);
                 }
                 try {
                     speechRecognition.stop();
+                    console.log('Speech recognition stopped');
                 } catch (e) {
                     console.log('Speech recognition stop error:', e);
                 }
@@ -6294,8 +6312,24 @@
                 speechRecognition.onresult = null;
                 speechRecognition.onerror = null;
                 speechRecognition.onend = null;
+                speechRecognition.onaudiostart = null;
+                speechRecognition.onaudioend = null;
+                speechRecognition.onsoundstart = null;
+                speechRecognition.onsoundend = null;
+                speechRecognition.onspeechstart = null;
+                speechRecognition.onspeechend = null;
                 speechRecognition = null;
             }
+
+            // Stop any active audio stream tracks
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log('Audio track stopped:', track.kind);
+                });
+                audioStream = null;
+            }
+
             const voiceBtn = document.getElementById('voiceInputBtn');
             if (voiceBtn) {
                 voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
@@ -6309,6 +6343,8 @@
                     voiceStatus.style.display = 'none';
                 }
             }, 1500);
+
+            console.log('✅ Voice input stopped');
         }
 
         async function analyzeTextWithAI() {
@@ -6379,6 +6415,9 @@
         }
 
         async function addAITextFoods() {
+            // Stop microphone immediately - CRITICAL
+            stopVoiceInput();
+
             if (!clientId) {
                 showToast('Error: Not logged in');
                 return;
