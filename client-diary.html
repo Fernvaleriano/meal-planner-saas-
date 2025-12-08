@@ -3543,6 +3543,8 @@
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- API Helper for authenticated calls -->
+    <script src="/js/api-helper.js"></script>
     <!-- Barcode Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
@@ -3701,8 +3703,8 @@
             if (!clientId) return;
 
             try {
-                const response = await fetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
-                const data = await response.json();
+                // Use authenticated API call
+                const data = await apiGet(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
                 if (data.goals) {
                     // Merge with defaults to avoid null/undefined values
                     goals = {
@@ -3768,11 +3770,8 @@
                 const date = formatDate(currentDate);
                 const timestamp = Date.now(); // Cache buster
                 console.log('loadDiaryEntries: Fetching for clientId:', clientId, 'date:', date);
-                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${date}&_t=${timestamp}`, {
-                    cache: 'no-store' // Prevent browser caching
-                });
-                console.log('loadDiaryEntries: Response status:', response.status);
-                const data = await response.json();
+                // Use authenticated API call
+                const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientId}&date=${date}&_t=${timestamp}`);
                 console.log('loadDiaryEntries: Response data:', data);
 
                 entries = data.entries || [];
@@ -3997,7 +3996,8 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-                const response = await fetch(url, { signal: controller.signal });
+                // Use authenticated API call with timeout signal
+                const response = await authenticatedFetch(url, { method: 'GET', signal: controller.signal });
                 clearTimeout(timeoutId);
 
                 console.log('Response status:', response.status, response.ok);
@@ -4250,17 +4250,9 @@
                 };
                 console.log('POST payload:', payload);
 
-                const response = await fetch('/.netlify/functions/food-diary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                console.log('POST response status:', response.status);
-                const data = await response.json();
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/food-diary', payload);
                 console.log('POST response data:', data);
-
-                if (!response.ok) throw new Error(data.error || 'Failed to add food');
 
                 // Update optimistic entry with real ID from server
                 if (data.entry) {
@@ -4412,28 +4404,21 @@
             showToast('Adding...');
 
             try {
-                const response = await fetch('/.netlify/functions/food-diary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId,
-                        entryDate: formatDate(currentDate),
-                        mealType: currentMealType,
-                        foodName: foodName,
-                        numberOfServings: servings,
-                        calories: calories,
-                        protein: parseFloat(document.getElementById('quickProtein').value) || 0,
-                        carbs: parseFloat(document.getElementById('quickCarbs').value) || 0,
-                        fat: parseFloat(document.getElementById('quickFat').value) || 0,
-                        isQuickAdd: true,
-                        foodSource: 'custom'
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/food-diary', {
+                    clientId,
+                    coachId,
+                    entryDate: formatDate(currentDate),
+                    mealType: currentMealType,
+                    foodName: foodName,
+                    numberOfServings: servings,
+                    calories: calories,
+                    protein: parseFloat(document.getElementById('quickProtein').value) || 0,
+                    carbs: parseFloat(document.getElementById('quickCarbs').value) || 0,
+                    fat: parseFloat(document.getElementById('quickFat').value) || 0,
+                    isQuickAdd: true,
+                    foodSource: 'custom'
                 });
-
-                if (!response.ok) throw new Error('Failed to add food');
-
-                const data = await response.json();
 
                 // Update optimistic entry with real ID from server
                 if (data.entry) {
@@ -4466,22 +4451,15 @@
             e.preventDefault();
 
             try {
-                const response = await fetch('/.netlify/functions/calorie-goals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId,
-                        calorieGoal: parseInt(document.getElementById('goalCalories').value) || 2000,
-                        proteinGoal: parseInt(document.getElementById('goalProtein').value) || 150,
-                        carbsGoal: parseInt(document.getElementById('goalCarbs').value) || 200,
-                        fatGoal: parseInt(document.getElementById('goalFat').value) || 65
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/calorie-goals', {
+                    clientId,
+                    coachId,
+                    calorieGoal: parseInt(document.getElementById('goalCalories').value) || 2000,
+                    proteinGoal: parseInt(document.getElementById('goalProtein').value) || 150,
+                    carbsGoal: parseInt(document.getElementById('goalCarbs').value) || 200,
+                    fatGoal: parseInt(document.getElementById('goalFat').value) || 65
                 });
-
-                if (!response.ok) throw new Error('Failed to save goals');
-
-                const data = await response.json();
                 goals = data.goals;
 
                 closeGoalsModal();
@@ -4554,21 +4532,16 @@
             };
 
             try {
-                const response = await fetch('/.netlify/functions/food-diary', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        entryId: parseInt(entryId),
-                        foodName: newData.food_name,
-                        numberOfServings: newData.number_of_servings,
-                        calories: newData.calories,
-                        protein: newData.protein,
-                        carbs: newData.carbs,
-                        fat: newData.fat
-                    })
+                // Use authenticated API call
+                await apiPut('/.netlify/functions/food-diary', {
+                    entryId: parseInt(entryId),
+                    foodName: newData.food_name,
+                    numberOfServings: newData.number_of_servings,
+                    calories: newData.calories,
+                    protein: newData.protein,
+                    carbs: newData.carbs,
+                    fat: newData.fat
                 });
-
-                if (!response.ok) throw new Error('Failed to update entry');
 
                 closeEditModal();
 
@@ -4638,11 +4611,10 @@
             const mealType = entry?.meal_type || 'snack';
 
             try {
-                const response = await fetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
+                // Use authenticated DELETE call
+                await authenticatedFetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
                     method: 'DELETE'
                 });
-
-                if (!response.ok) throw new Error('Failed to delete entry');
 
                 closeEditModal();
 
@@ -4863,31 +4835,24 @@
             const servings = parseFloat(document.getElementById('barcodeServings').value) || 1;
 
             try {
-                const response = await fetch('/.netlify/functions/food-diary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId,
-                        entryDate: formatDate(currentDate),
-                        mealType: currentMealType,
-                        foodName: scannedProduct.name,
-                        brand: scannedProduct.brand,
-                        servingSize: 100,
-                        servingUnit: 'g',
-                        numberOfServings: servings,
-                        calories: Math.round(scannedProduct.calories * servings),
-                        protein: Math.round(scannedProduct.protein * servings * 10) / 10,
-                        carbs: Math.round(scannedProduct.carbs * servings * 10) / 10,
-                        fat: Math.round(scannedProduct.fat * servings * 10) / 10,
-                        externalId: scannedProduct.barcode,
-                        foodSource: 'barcode'
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/food-diary', {
+                    clientId,
+                    coachId,
+                    entryDate: formatDate(currentDate),
+                    mealType: currentMealType,
+                    foodName: scannedProduct.name,
+                    brand: scannedProduct.brand,
+                    servingSize: 100,
+                    servingUnit: 'g',
+                    numberOfServings: servings,
+                    calories: Math.round(scannedProduct.calories * servings),
+                    protein: Math.round(scannedProduct.protein * servings * 10) / 10,
+                    carbs: Math.round(scannedProduct.carbs * servings * 10) / 10,
+                    fat: Math.round(scannedProduct.fat * servings * 10) / 10,
+                    externalId: scannedProduct.barcode,
+                    foodSource: 'barcode'
                 });
-
-                if (!response.ok) throw new Error('Failed to add food');
-
-                const data = await response.json();
 
                 closeBarcodeResult();
                 showToast('Food added!');
@@ -5165,30 +5130,23 @@
             showToast('Adding...');
 
             try {
-                const response = await fetch('/.netlify/functions/food-diary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId,
-                        entryDate: formatDate(currentDate),
-                        mealType: currentMealType,
-                        foodName: meal.name,
-                        servingSize: 1,
-                        servingUnit: 'serving',
-                        numberOfServings: 1,
-                        calories: meal.calories || 0,
-                        protein: meal.protein || 0,
-                        carbs: meal.carbs || 0,
-                        fat: meal.fat || 0,
-                        foodSource: 'meal_plan',
-                        notes: `From meal plan (${mealType})`
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/food-diary', {
+                    clientId,
+                    coachId,
+                    entryDate: formatDate(currentDate),
+                    mealType: currentMealType,
+                    foodName: meal.name,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    numberOfServings: 1,
+                    calories: meal.calories || 0,
+                    protein: meal.protein || 0,
+                    carbs: meal.carbs || 0,
+                    fat: meal.fat || 0,
+                    foodSource: 'meal_plan',
+                    notes: `From meal plan (${mealType})`
                 });
-
-                if (!response.ok) throw new Error('Failed to add food');
-
-                const data = await response.json();
 
                 // Update optimistic entry with real ID
                 if (data.entry) {
@@ -5229,11 +5187,8 @@
             `;
 
             try {
-                const response = await fetch(`/.netlify/functions/toggle-favorite?clientId=${clientId}`);
-                const data = await response.json();
-
-                if (!response.ok) throw new Error(data.error || 'Failed to load favorites');
-
+                // Use authenticated API call
+                const data = await apiGet(`/.netlify/functions/toggle-favorite?clientId=${clientId}`);
                 clientFavorites = data.favorites || [];
 
                 if (clientFavorites.length === 0) {
@@ -5326,30 +5281,23 @@
             showToast('Adding...');
 
             try {
-                const response = await fetch('/.netlify/functions/food-diary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        coachId,
-                        entryDate: formatDate(currentDate),
-                        mealType: currentMealType,
-                        foodName: fav.meal_name,
-                        servingSize: 1,
-                        servingUnit: 'serving',
-                        numberOfServings: 1,
-                        calories: fav.calories || 0,
-                        protein: fav.protein || 0,
-                        carbs: fav.carbs || 0,
-                        fat: fav.fat || 0,
-                        foodSource: 'favorite',
-                        notes: `From favorites (${fav.meal_type || 'meal'})`
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/food-diary', {
+                    clientId,
+                    coachId,
+                    entryDate: formatDate(currentDate),
+                    mealType: currentMealType,
+                    foodName: fav.meal_name,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    numberOfServings: 1,
+                    calories: fav.calories || 0,
+                    protein: fav.protein || 0,
+                    carbs: fav.carbs || 0,
+                    fat: fav.fat || 0,
+                    foodSource: 'favorite',
+                    notes: `From favorites (${fav.meal_type || 'meal'})`
                 });
-
-                if (!response.ok) throw new Error('Failed to add food');
-
-                const data = await response.json();
 
                 // Update optimistic entry with real ID
                 if (data.entry) {
@@ -5441,26 +5389,17 @@
                 // Build the combined meal name with all items
                 const itemNames = saveMealData.entries.map(e => e.food_name).join(' + ');
 
-                const response = await fetch('/.netlify/functions/toggle-favorite', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: clientId,
-                        mealName: mealName,
-                        mealType: saveMealData.mealType,
-                        calories: Math.round(saveMealData.totals.calories),
-                        protein: Math.round(saveMealData.totals.protein * 10) / 10,
-                        carbs: Math.round(saveMealData.totals.carbs * 10) / 10,
-                        fat: Math.round(saveMealData.totals.fat * 10) / 10,
-                        notes: `Items: ${itemNames}`
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/toggle-favorite', {
+                    clientId: clientId,
+                    mealName: mealName,
+                    mealType: saveMealData.mealType,
+                    calories: Math.round(saveMealData.totals.calories),
+                    protein: Math.round(saveMealData.totals.protein * 10) / 10,
+                    carbs: Math.round(saveMealData.totals.carbs * 10) / 10,
+                    fat: Math.round(saveMealData.totals.fat * 10) / 10,
+                    notes: `Items: ${itemNames}`
                 });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to save favorite');
-                }
 
                 if (data.action === 'added') {
                     showToast('Meal saved to favorites! ❤️');
@@ -5556,10 +5495,10 @@
             console.log('DELETE - Attempting to delete entryId:', entryId);
 
             try {
-                const response = await fetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
+                // Use authenticated DELETE call
+                const response = await authenticatedFetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
                     method: 'DELETE'
                 });
-
                 const data = await response.json();
                 console.log('DELETE - Response:', response.status, data);
 
@@ -5680,9 +5619,8 @@
             showToast('Copying entries...');
 
             try {
-                // Fetch entries from source date
-                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${fromDate}`);
-                const data = await response.json();
+                // Fetch entries from source date (use authenticated call)
+                const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientId}&date=${fromDate}`);
 
                 if (!data.entries || data.entries.length === 0) {
                     showToast('No entries to copy from that date');
@@ -5692,10 +5630,9 @@
                 // Copy each entry to target date
                 let copiedCount = 0;
                 for (const entry of data.entries) {
-                    const copyResponse = await fetch('/.netlify/functions/food-diary', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
+                    try {
+                        // Use authenticated API call
+                        await apiPost('/.netlify/functions/food-diary', {
                             clientId,
                             coachId,
                             entryDate: toDate,
@@ -5711,10 +5648,9 @@
                             fat: entry.fat,
                             fiber: entry.fiber,
                             foodSource: 'copied'
-                        })
-                    });
-
-                    if (copyResponse.ok) copiedCount++;
+                        });
+                        copiedCount++;
+                    } catch (e) { /* ignore individual failures */ }
                 }
 
                 showToast(`Copied ${copiedCount} entries!`);
@@ -6095,21 +6031,12 @@
             const foodDetails = document.getElementById('photoFoodDetails').value.trim();
 
             try {
-                const response = await fetch('/.netlify/functions/analyze-food-photo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image: currentPhotoBase64,
-                        details: foodDetails || null
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/analyze-food-photo', {
+                    image: currentPhotoBase64,
+                    details: foodDetails || null
                 });
-
-                const data = await response.json();
-                console.log('AI Photo response:', response.status, data);
-
-                if (!response.ok) {
-                    throw new Error(data.error || data.details || 'Failed to analyze photo');
-                }
+                console.log('AI Photo response:', data);
 
                 aiDetectedFoods = data.foods || [];
 
@@ -6206,20 +6133,10 @@
                     };
                     console.log('addAIDetectedFoods: Adding food:', payload);
 
-                    const response = await fetch('/.netlify/functions/food-diary', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    const data = await response.json();
-                    console.log('addAIDetectedFoods: Response:', response.status, data);
-
-                    if (response.ok) {
-                        addedCount++;
-                    } else {
-                        errors.push(data.error || 'Unknown error');
-                    }
+                    // Use authenticated API call
+                    const data = await apiPost('/.netlify/functions/food-diary', payload);
+                    console.log('addAIDetectedFoods: Response:', data);
+                    addedCount++;
                 } catch (err) {
                     console.error('Error adding food:', err);
                     errors.push(err.message);
@@ -6390,18 +6307,9 @@
             document.getElementById('aiTextAnalyzing').style.display = 'block';
 
             try {
-                const response = await fetch('/.netlify/functions/analyze-food-text', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text })
-                });
-
-                const data = await response.json();
-                console.log('AI Text response:', response.status, data);
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to analyze food');
-                }
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/analyze-food-text', { text });
+                console.log('AI Text response:', data);
 
                 aiTextDetectedFoods = data.foods || [];
 
@@ -6487,18 +6395,9 @@
                         foodSource: 'ai_text'
                     };
 
-                    const response = await fetch('/.netlify/functions/food-diary', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    const data = await response.json();
-                    if (response.ok) {
-                        addedCount++;
-                    } else {
-                        errors.push(data.error || 'Unknown error');
-                    }
+                    // Use authenticated API call
+                    const data = await apiPost('/.netlify/functions/food-diary', payload);
+                    addedCount++;
                 } catch (err) {
                     console.error('Error adding food:', err);
                     errors.push(err.message);
@@ -6952,20 +6851,15 @@
             document.getElementById('aiSendBtn').disabled = true;
 
             try {
-                const response = await fetch('/.netlify/functions/client-diary-ai', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: clientId,
-                        clientFirstName: clientFirstName,
-                        message: message,
-                        todayEntries: entries || [],
-                        goals: goals || {},
-                        totals: currentTotals || { calories: 0, protein: 0, carbs: 0, fat: 0 }
-                    })
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/client-diary-ai', {
+                    clientId: clientId,
+                    clientFirstName: clientFirstName,
+                    message: message,
+                    todayEntries: entries || [],
+                    goals: goals || {},
+                    totals: currentTotals || { calories: 0, protein: 0, carbs: 0, fat: 0 }
                 });
-
-                const data = await response.json();
 
                 // Hide loading
                 document.getElementById('aiLoading').style.display = 'none';
@@ -7064,24 +6958,18 @@
             }
 
             try {
-                // Add to diary using existing function
-                const response = await fetch('/.netlify/functions/food-diary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId,
-                        foodName: food.food_name,
-                        calories: food.calories,
-                        protein: food.protein,
-                        carbs: food.carbs,
-                        fat: food.fat,
-                        mealType: mealType,
-                        date: formatDate(currentDate),
-                        servingSize: '1 serving'
-                    })
+                // Use authenticated API call
+                await apiPost('/.netlify/functions/food-diary', {
+                    clientId,
+                    foodName: food.food_name,
+                    calories: food.calories,
+                    protein: food.protein,
+                    carbs: food.carbs,
+                    fat: food.fat,
+                    mealType: mealType,
+                    date: formatDate(currentDate),
+                    servingSize: '1 serving'
                 });
-
-                if (!response.ok) throw new Error('Failed to add food');
 
                 // Clear pending and show success FIRST
                 pendingFoodLog = null;
