@@ -3309,7 +3309,7 @@
         <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <button class="modal-close" onclick="closeAITextModal()">&times;</button>
-                <span style="font-weight: 600; color: var(--gray-900);">🎤 AI Voice/Text Log</span>
+                <span style="font-weight: 600; color: var(--gray-900); display: flex; align-items: center; gap: 8px;"><i data-lucide="mic" width="20" height="20"></i> AI Voice/Text Log</span>
             </div>
             <div class="modal-body" style="padding: 20px;">
                 <div id="aiTextInput">
@@ -3325,13 +3325,13 @@
                             style="width: 100%; padding: 12px; padding-right: 50px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem; resize: none; box-sizing: border-box;"></textarea>
                         <button type="button" id="voiceInputBtn" onclick="toggleVoiceInput()"
                             style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                            <span style="font-size: 20px;">🎤</span>
+                            <i data-lucide="mic" width="20" height="20" style="color: white;"></i>
                         </button>
                     </div>
 
                     <!-- Voice status -->
                     <div id="voiceStatus" style="display: none; margin-top: 8px; padding: 8px 12px; background: #f0fdf4; border-radius: 8px; color: #166534; font-size: 0.85rem;">
-                        <span id="voiceStatusText">🎤 Listening...</span>
+                        <span id="voiceStatusText" style="display: flex; align-items: center; gap: 6px;"><i data-lucide="mic" width="16" height="16"></i> Listening...</span>
                     </div>
 
                     <!-- Browser support warning -->
@@ -6221,9 +6221,11 @@
             speechRecognition.onstart = () => {
                 isListening = true;
                 voiceBtn.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-                voiceBtn.innerHTML = '<span style="font-size: 20px;">⏹️</span>';
+                voiceBtn.innerHTML = '<i data-lucide="square" width="20" height="20" style="color: white;"></i>';
+                lucide.createIcons();
                 voiceStatus.style.display = 'block';
-                voiceStatusText.textContent = '🎤 Listening... Speak now';
+                voiceStatusText.innerHTML = '<i data-lucide="mic" width="14" height="14" style="display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Listening... Speak now';
+                lucide.createIcons();
             };
 
             speechRecognition.onresult = (event) => {
@@ -6241,7 +6243,8 @@
 
                 // Show interim results while speaking
                 if (interimTranscript) {
-                    voiceStatusText.textContent = '🎤 "' + interimTranscript + '"';
+                    voiceStatusText.innerHTML = '<i data-lucide="mic" width="14" height="14" style="display: inline-block; vertical-align: middle; margin-right: 4px;"></i> "' + interimTranscript + '"';
+                    lucide.createIcons();
                 }
 
                 // Append final results to text input
@@ -6281,7 +6284,8 @@
                 // Reset UI
                 if (voiceBtn) {
                     voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
-                    voiceBtn.innerHTML = '<span style="font-size: 20px;">🎤</span>';
+                    voiceBtn.innerHTML = '<i data-lucide="mic" width="20" height="20" style="color: white;"></i>';
+                    lucide.createIcons();
                 }
                 setTimeout(() => {
                     if (voiceStatus && !isListening) {
@@ -6292,7 +6296,7 @@
 
             try {
                 speechRecognition.start();
-                console.log('🎤 Speech recognition started');
+                console.log('Mic: Speech recognition started');
             } catch (err) {
                 console.error('Failed to start speech recognition:', err);
                 isListening = false;
@@ -6330,7 +6334,8 @@
             // Reset UI immediately
             if (voiceBtn) {
                 voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
-                voiceBtn.innerHTML = '<span style="font-size: 20px;">🎤</span>';
+                voiceBtn.innerHTML = '<i data-lucide="mic" width="20" height="20" style="color: white;"></i>';
+                lucide.createIcons();
             }
 
             setTimeout(() => {
