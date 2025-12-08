@@ -1453,10 +1453,25 @@
             }
         }
 
+        // Helper function for authenticated API calls
+        async function authFetch(url, options = {}) {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session?.access_token) {
+                throw new Error('Missing authorization token');
+            }
+
+            const headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${session.access_token}`
+            };
+
+            return fetch(url, { ...options, headers });
+        }
+
         // Load clients using Netlify function
         async function loadClients() {
             try {
-                const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentCoach.id}`);
+                const response = await authFetch(`/.netlify/functions/get-clients?coachId=${currentCoach.id}`);
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -1507,7 +1522,7 @@
             if (!selectedClientId || !currentCoach) return;
 
             try {
-                const response = await fetch(`${PROTOCOLS_ENDPOINT}?clientId=${selectedClientId}&coachId=${currentCoach.id}`);
+                const response = await authFetch(`${PROTOCOLS_ENDPOINT}?clientId=${selectedClientId}&coachId=${currentCoach.id}`);
                 const data = await response.json();
 
                 if (data.error) throw new Error(data.error);
@@ -1736,13 +1751,13 @@
                 let response;
                 if (editingProtocolId) {
                     payload.protocolId = editingProtocolId;
-                    response = await fetch(PROTOCOLS_ENDPOINT, {
+                    response = await authFetch(PROTOCOLS_ENDPOINT, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                 } else {
-                    response = await fetch(PROTOCOLS_ENDPOINT, {
+                    response = await authFetch(PROTOCOLS_ENDPOINT, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -1795,7 +1810,7 @@
             if (!confirm('Delete this protocol item?')) return;
 
             try {
-                const response = await fetch(`${PROTOCOLS_ENDPOINT}?protocolId=${protocolId}&coachId=${currentCoach.id}`, {
+                const response = await authFetch(`${PROTOCOLS_ENDPOINT}?protocolId=${protocolId}&coachId=${currentCoach.id}`, {
                     method: 'DELETE'
                 });
 
@@ -1886,7 +1901,7 @@
                         privateNotes: item.private_notes
                     };
 
-                    await fetch(PROTOCOLS_ENDPOINT, {
+                    await authFetch(PROTOCOLS_ENDPOINT, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -1995,7 +2010,7 @@
                     url += `&category=${encodeURIComponent(categoryFilter)}`;
                 }
 
-                const response = await fetch(url);
+                const response = await authFetch(url);
 
                 if (!response.ok) {
                     // If library feature is not available (table doesn't exist),
@@ -2201,13 +2216,13 @@
                 let response;
                 if (editingLibraryId) {
                     payload.supplementId = editingLibraryId;
-                    response = await fetch(LIBRARY_ENDPOINT, {
+                    response = await authFetch(LIBRARY_ENDPOINT, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                 } else {
-                    response = await fetch(LIBRARY_ENDPOINT, {
+                    response = await authFetch(LIBRARY_ENDPOINT, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -2267,7 +2282,7 @@
             if (!confirm('Delete this supplement from your library?')) return;
 
             try {
-                const response = await fetch(`${LIBRARY_ENDPOINT}?supplementId=${supplementId}&coachId=${currentCoach.id}&permanent=true`, {
+                const response = await authFetch(`${LIBRARY_ENDPOINT}?supplementId=${supplementId}&coachId=${currentCoach.id}&permanent=true`, {
                     method: 'DELETE'
                 });
 
@@ -2301,7 +2316,7 @@
             };
 
             try {
-                const response = await fetch(LIBRARY_ENDPOINT, {
+                const response = await authFetch(LIBRARY_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -2408,7 +2423,7 @@
             };
 
             try {
-                const response = await fetch(PROTOCOLS_ENDPOINT, {
+                const response = await authFetch(PROTOCOLS_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -2422,7 +2437,7 @@
                 // Update library usage count (optional, fire and forget)
                 // Using the pre-captured values to avoid any null reference issues
                 if (supplementId) {
-                    fetch(LIBRARY_ENDPOINT, {
+                    authFetch(LIBRARY_ENDPOINT, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
