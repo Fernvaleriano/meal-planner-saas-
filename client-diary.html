@@ -6158,7 +6158,6 @@
         let aiTextDetectedFoods = [];
         let speechRecognition = null;
         let isListening = false;
-        let audioStream = null; // Track the audio stream so we can stop it
 
         function openAITextModal() {
             closeFoodSearch();
@@ -6209,7 +6208,7 @@
             }
         }
 
-        async function startVoiceInput() {
+        function startVoiceInput() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
             const voiceBtn = document.getElementById('voiceInputBtn');
@@ -6217,22 +6216,17 @@
             const voiceStatusText = document.getElementById('voiceStatusText');
             const textInput = document.getElementById('foodDescriptionInput');
 
-            try {
-                // First, get direct access to microphone stream so we can stop it later
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                console.log('🎤 Microphone stream acquired');
-            } catch (err) {
-                console.error('Failed to get microphone access:', err);
-                voiceStatusText.textContent = '🚫 Microphone access denied';
-                voiceStatus.style.display = 'block';
-                setTimeout(() => { voiceStatus.style.display = 'none'; }, 3000);
-                return;
+            // Clean up any existing recognition first
+            if (speechRecognition) {
+                try { speechRecognition.abort(); } catch(e) {}
+                speechRecognition = null;
             }
 
             speechRecognition = new SpeechRecognition();
-            speechRecognition.continuous = false;
+            speechRecognition.continuous = false;  // Single result, then stop
             speechRecognition.interimResults = true;
             speechRecognition.lang = 'en-US';
+            speechRecognition.maxAlternatives = 1;
 
             speechRecognition.onstart = () => {
                 isListening = true;
@@ -6265,6 +6259,8 @@
                     const currentText = textInput.value.trim();
                     textInput.value = currentText ? currentText + ' ' + finalTranscript : finalTranscript;
                     voiceStatusText.textContent = '✓ Got it!';
+                    // Stop after getting final result since continuous is false
+                    stopVoiceInput();
                 }
             };
 
@@ -6274,75 +6270,84 @@
                     voiceStatusText.textContent = '🔇 No speech detected. Try again.';
                 } else if (event.error === 'not-allowed') {
                     voiceStatusText.textContent = '🚫 Microphone access denied';
+                } else if (event.error === 'aborted') {
+                    // This is expected when we call abort(), not an error
+                    console.log('Speech recognition was aborted');
                 } else {
                     voiceStatusText.textContent = '❌ Error: ' + event.error;
                 }
-                setTimeout(() => stopVoiceInput(), 2000);
-            };
-
-            speechRecognition.onend = () => {
-                // Auto-stop when speech recognition ends
-                if (isListening) {
-                    stopVoiceInput();
+                // Don't call stopVoiceInput here for 'aborted' since we already are stopping
+                if (event.error !== 'aborted') {
+                    setTimeout(() => stopVoiceInput(), 1000);
                 }
             };
 
-            speechRecognition.start();
+            speechRecognition.onend = () => {
+                console.log('🔇 Speech recognition ended naturally');
+                // Always clean up state when recognition ends
+                isListening = false;
+                speechRecognition = null;
+
+                // Reset UI
+                if (voiceBtn) {
+                    voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
+                    voiceBtn.innerHTML = '<span style="font-size: 20px;">🎤</span>';
+                }
+                setTimeout(() => {
+                    if (voiceStatus && !isListening) {
+                        voiceStatus.style.display = 'none';
+                    }
+                }, 1500);
+            };
+
+            try {
+                speechRecognition.start();
+                console.log('🎤 Speech recognition started');
+            } catch (err) {
+                console.error('Failed to start speech recognition:', err);
+                isListening = false;
+                speechRecognition = null;
+            }
         }
 
         function stopVoiceInput() {
             console.log('🛑 Stopping voice input...');
+
+            const voiceBtn = document.getElementById('voiceInputBtn');
+            const voiceStatus = document.getElementById('voiceStatus');
+
+            // Set flag first to prevent re-entry
             isListening = false;
 
             if (speechRecognition) {
+                // Clear handlers FIRST to prevent onend from firing after abort
+                const sr = speechRecognition;
+                speechRecognition = null;
+
+                sr.onstart = null;
+                sr.onresult = null;
+                sr.onerror = null;
+                sr.onend = null;
+
                 try {
-                    speechRecognition.abort(); // Force stop immediately
+                    sr.abort();
                     console.log('Speech recognition aborted');
                 } catch (e) {
                     console.log('Speech recognition abort error:', e);
                 }
-                try {
-                    speechRecognition.stop();
-                    console.log('Speech recognition stopped');
-                } catch (e) {
-                    console.log('Speech recognition stop error:', e);
-                }
-                // Clear all event handlers to prevent any callbacks
-                speechRecognition.onstart = null;
-                speechRecognition.onresult = null;
-                speechRecognition.onerror = null;
-                speechRecognition.onend = null;
-                speechRecognition.onaudiostart = null;
-                speechRecognition.onaudioend = null;
-                speechRecognition.onsoundstart = null;
-                speechRecognition.onsoundend = null;
-                speechRecognition.onspeechstart = null;
-                speechRecognition.onspeechend = null;
-                speechRecognition = null;
             }
 
-            // Stop any active audio stream tracks
-            if (audioStream) {
-                audioStream.getTracks().forEach(track => {
-                    track.stop();
-                    console.log('Audio track stopped:', track.kind);
-                });
-                audioStream = null;
-            }
-
-            const voiceBtn = document.getElementById('voiceInputBtn');
+            // Reset UI immediately
             if (voiceBtn) {
                 voiceBtn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
                 voiceBtn.innerHTML = '<span style="font-size: 20px;">🎤</span>';
             }
 
-            // Hide status after a short delay
             setTimeout(() => {
-                const voiceStatus = document.getElementById('voiceStatus');
                 if (voiceStatus && !isListening) {
                     voiceStatus.style.display = 'none';
                 }
-            }, 1500);
+            }, 1000);
 
             console.log('✅ Voice input stopped');
         }
