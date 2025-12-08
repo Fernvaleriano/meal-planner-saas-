@@ -1,14 +1,20 @@
 // Netlify Function to retrieve all clients for a coach
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
+
   // Only allow GET requests
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -21,9 +27,14 @@ exports.handler = async (event, context) => {
     if (!coachId) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Coach ID is required' })
       };
     }
+
+    // ✅ SECURITY: Verify the authenticated user owns this coach account
+    const { user, error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

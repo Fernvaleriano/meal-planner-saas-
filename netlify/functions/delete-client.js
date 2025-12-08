@@ -1,14 +1,20 @@
 // Netlify Function to delete a client
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
+
   // Only allow DELETE requests
   if (event.httpMethod !== 'DELETE') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -21,9 +27,16 @@ exports.handler = async (event, context) => {
     if (!clientId || !coachId) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Client ID and Coach ID are required' })
       };
     }
+
+    // ✅ SECURITY: Verify the authenticated user owns this coach account
+    const { user, error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
+
+    console.log(`🔐 Authenticated coach ${user.id} deleting client ${clientId}`);
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

@@ -2,6 +2,7 @@
 // Sends an intake form link where clients fill out their profile and set password
 const { createClient } = require('@supabase/supabase-js');
 const { sendIntakeInvitationEmail } = require('./utils/email-service');
+const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -14,9 +15,7 @@ const TOKEN_EXPIRY_DAYS = 7;
 // Common headers for all responses
 const headers = {
   'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  ...corsHeaders
 };
 
 /**
@@ -28,9 +27,8 @@ function generateToken() {
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers, body: '' };
-  }
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
@@ -51,6 +49,12 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Client ID and Coach ID are required' })
       };
     }
+
+    // ✅ SECURITY: Verify the authenticated user owns this coach account
+    const { user, error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
+
+    console.log(`🔐 Authenticated coach ${user.id} inviting client ${clientId}`);
 
     // Initialize Supabase client with service key for admin operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

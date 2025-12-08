@@ -1,20 +1,14 @@
 // Netlify Function for managing supplement library
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-};
-
 exports.handler = async (event, context) => {
     // Handle CORS preflight
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 200, headers: corsHeaders, body: '' };
-    }
+    const corsResponse = handleCors(event);
+    if (corsResponse) return corsResponse;
 
     if (!SUPABASE_SERVICE_KEY) {
         return {
@@ -37,6 +31,10 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'Coach ID is required' })
             };
         }
+
+        // ✅ SECURITY: Verify the authenticated user owns this coach account
+        const { user, error: authError } = await authenticateCoach(event, coachId);
+        if (authError) return authError;
 
         try {
             let query = supabase

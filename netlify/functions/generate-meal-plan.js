@@ -5129,14 +5129,35 @@ async function generateWithGemini(prompt) {
   return responseText;
 }
 
+// Import auth utilities
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+
 exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  // ✅ SECURITY: Verify authenticated user
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  // ✅ SECURITY: Rate limit - 10 meal plan generations per minute per user
+  const rateLimit = checkRateLimit(user.id, 'generate-meal-plan', 10, 60000);
+  if (!rateLimit.allowed) {
+    console.warn(`🚫 Rate limit exceeded for user ${user.id} on generate-meal-plan`);
+    return rateLimitResponse(rateLimit.resetIn);
+  }
+
+  console.log(`🔐 Authenticated user ${user.id} generating meal plan (${rateLimit.remaining} requests remaining)`);
 
   // Check if API key is configured (Claude primary, Gemini fallback)
   const hasClaudeKey = !!ANTHROPIC_API_KEY;
@@ -5146,6 +5167,7 @@ exports.handler = async (event, context) => {
     console.error('❌ No API keys configured (need ANTHROPIC_API_KEY or GEMINI_API_KEY)');
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'API key not configured' })
     };
   }
@@ -5156,6 +5178,7 @@ exports.handler = async (event, context) => {
     if (!prompt) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Prompt is required' })
       };
     }

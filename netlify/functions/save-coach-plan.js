@@ -1,25 +1,14 @@
 // Netlify Function to save a coach's meal plan
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-// Common CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
-
 exports.handler = async (event, context) => {
   // Handle CORS preflight requests
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: ''
-    };
-  }
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
@@ -52,6 +41,12 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Coach ID and plan data are required' })
       };
     }
+
+    // ✅ SECURITY: Verify the authenticated user owns this coach account
+    const { user, error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
+
+    console.log(`🔐 Authenticated coach ${user.id} saving meal plan`);
 
     // Initialize Supabase client with service key (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {

@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -25,16 +26,14 @@ function stripMarkdown(text) {
 }
 
 const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    ...corsHeaders,
     'Content-Type': 'application/json'
 };
 
 exports.handler = async (event) => {
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 200, headers, body: '' };
-    }
+    // Handle CORS preflight
+    const corsResponse = handleCors(event);
+    if (corsResponse) return corsResponse;
 
     if (event.httpMethod !== 'POST') {
         return {
@@ -42,6 +41,17 @@ exports.handler = async (event) => {
             headers,
             body: JSON.stringify({ error: 'Method not allowed' })
         };
+    }
+
+    // ✅ SECURITY: Verify authenticated user
+    const { user, error: authError } = await authenticateRequest(event);
+    if (authError) return authError;
+
+    // ✅ SECURITY: Rate limit - 30 AI messages per minute per user
+    const rateLimit = checkRateLimit(user.id, 'client-diary-ai', 30, 60000);
+    if (!rateLimit.allowed) {
+        console.warn(`🚫 Rate limit exceeded for user ${user.id} on client-diary-ai`);
+        return rateLimitResponse(rateLimit.resetIn);
     }
 
     if (!GEMINI_API_KEY) {

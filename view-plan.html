@@ -4929,7 +4929,7 @@ Be specific, practical, and actionable. Focus on making meal prep as easy and ef
                 content.innerHTML = `
                     <div style="text-align: center; color: #f44336; padding: 40px;">
                         <p style="font-weight: bold;">Error generating meal prep guide</p>
-                        <p style="font-size: 14px; margin-top: 10px;">${error.message}</p>
+                        <p style="font-size: 14px; margin-top: 10px;">${escapeHtml(error.message)}</p>
                     </div>
                 `;
             }
@@ -4988,7 +4988,7 @@ Keep it concise but complete.`;
                 const data = await response.json();
 
                 if (data.error) {
-                    content.innerHTML = `<p style="color: #dc2626;">${data.error}</p>`;
+                    content.innerHTML = `<p style="color: #dc2626;">${escapeHtml(data.error)}</p>`;
                 } else if (data.recipe || data.text || typeof data === 'string') {
                     const recipeText = data.recipe || data.text || data;
                     const html = formatMarkdown(recipeText);
@@ -4998,7 +4998,7 @@ Keep it concise but complete.`;
                 }
             } catch (error) {
                 console.error('❌ Error generating recipe:', error);
-                content.innerHTML = `<p style="color: #dc2626;">Error generating recipe: ${error.message}. Please try again.</p>`;
+                content.innerHTML = `<p style="color: #dc2626;">Error generating recipe: ${escapeHtml(error.message)}. Please try again.</p>`;
             }
         }
 
@@ -5006,13 +5006,23 @@ Keep it concise but complete.`;
             document.getElementById('recipeModal').style.display = 'none';
         }
 
-        // Simple markdown formatter
+        // ✅ SECURITY: Escape HTML special characters to prevent XSS
+        function escapeHtml(text) {
+            if (!text || typeof text !== 'string') return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Simple markdown formatter (with XSS protection)
         function formatMarkdown(text) {
             if (!text || typeof text !== 'string') {
                 console.error('formatMarkdown received invalid input:', text);
                 throw new Error('Invalid response format from AI');
             }
-            return text
+            // First escape HTML to prevent XSS, then apply markdown formatting
+            let escaped = escapeHtml(text);
+            return escaped
                 .replace(/^## (.+)$/gm, '<h2 style="font-size: 24px; font-weight: bold; margin: 30px 0 15px 0; color: #333;">$1</h2>')
                 .replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: 600; margin: 20px 0 10px 0; color: #555;">$1</h3>')
                 .replace(/^\* (.+)$/gm, '<li style="margin-left: 20px; margin-bottom: 8px;">$1</li>')
