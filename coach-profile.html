@@ -1015,6 +1015,21 @@
                     </div>
                 </div>
 
+                <!-- Branding Settings (Professional tier only) -->
+                <div class="settings-card" id="brandingCard" style="display: none;">
+                    <div class="settings-card-title">Branding</div>
+                    <div class="settings-item" onclick="window.location.href='branding-settings.html'">
+                        <div class="settings-item-left">
+                            <div class="settings-icon">🎨</div>
+                            <div>
+                                <div class="settings-label">Brand Settings</div>
+                                <div class="settings-sublabel">Customize colors, logos, and client experience</div>
+                            </div>
+                        </div>
+                        <span class="settings-arrow">›</span>
+                    </div>
+                </div>
+
                 <!-- Account Settings -->
                 <div class="settings-card">
                     <div class="settings-card-title">Account</div>
@@ -1290,6 +1305,12 @@
                 const tierBadge = document.getElementById('tierBadge');
                 tierBadge.textContent = coachData.subscription_tier.toUpperCase();
                 tierBadge.className = `profile-badge ${coachData.subscription_tier}`;
+
+                // Show branding settings for Professional tier
+                const hasBrandingAccess = ['professional', 'branded'].includes(coachData.subscription_tier);
+                if (hasBrandingAccess) {
+                    document.getElementById('brandingCard').style.display = 'block';
+                }
 
                 // Set dark mode toggle state
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';

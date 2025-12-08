@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="/js/theme.js"></script>
+    <script src="/js/branding.js"></script>
     <title>My Profile - Zique Fitness Nutrition</title>
     <style>
         * {
@@ -837,6 +838,11 @@
 
                 // Store client ID for photo upload
                 window.currentClientId = clientData.id;
+
+                // Initialize coach branding
+                if (window.ZiqueBranding && clientData.coach_id) {
+                    window.ZiqueBranding.init(clientData.coach_id);
+                }
 
                 // Display profile photo if available
                 if (clientData.profile_photo_url) {

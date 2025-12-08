@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Diary - Zique Fitness Nutrition</title>
     <script src="/js/theme.js"></script>
+    <script src="/js/branding.js"></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3632,6 +3633,12 @@
                 console.log('checkAuth: Success, clientId:', client.id);
                 clientId = client.id;
                 coachId = client.coach_id;
+
+                // Initialize coach branding
+                if (window.ZiqueBranding && coachId) {
+                    window.ZiqueBranding.init(coachId);
+                }
+
                 // Extract first name from client_name (e.g., "John Smith" -> "John")
                 clientFirstName = client.client_name?.split(' ')[0] || null;
 
