@@ -542,6 +542,7 @@
             font-weight: 600;
         }
     </style>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -633,23 +634,23 @@
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <a href="client-dashboard.html" class="bottom-nav-item">
-            <div class="nav-icon">🏠</div>
+            <div class="nav-icon"><i data-lucide="home"></i></div>
             <span class="nav-label">Home</span>
         </a>
         <a href="client-diary.html" class="bottom-nav-item">
-            <div class="nav-icon">📓</div>
+            <div class="nav-icon"><i data-lucide="notebook-pen"></i></div>
             <span class="nav-label">Diary</span>
         </a>
         <a href="client-recipes.html" class="bottom-nav-item active">
-            <div class="nav-icon">📖</div>
+            <div class="nav-icon"><i data-lucide="book-open"></i></div>
             <span class="nav-label">Recipes</span>
         </a>
         <a href="client-favorites.html" class="bottom-nav-item">
-            <div class="nav-icon">❤️</div>
+            <div class="nav-icon"><i data-lucide="heart"></i></div>
             <span class="nav-label">Favorites</span>
         </a>
         <a href="client-settings.html" class="bottom-nav-item">
-            <div class="nav-icon">👤</div>
+            <div class="nav-icon"><i data-lucide="user"></i></div>
             <span class="nav-label">Profile</span>
         </a>
     </nav>
@@ -1026,5 +1027,6 @@
             });
         }
     </script>
+<script>lucide.createIcons();</script>
 </body>
 </html>
