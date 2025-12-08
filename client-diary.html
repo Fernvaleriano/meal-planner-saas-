@@ -2449,7 +2449,7 @@
         </a>
         <div class="nav-actions">
             <div class="streak-badge" id="streakBadge" title="Logging streak">
-                <span><i data-lucide="flame" width="18" height="18" style="color: #f97316;"></i></span>
+                <span><i data-lucide="flame" width="18" height="18" style="color: white;"></i></span>
                 <span id="streakCount">0</span>
                 <span>day streak</span>
             </div>
@@ -5935,7 +5935,7 @@
                 lucide.createIcons();
             } else {
                 badge.classList.remove('no-streak');
-                badge.innerHTML = `<span><i data-lucide="flame" width="18" height="18" style="color: #f97316;"></i></span><span id="streakCount">${currentStreak}</span><span>day${currentStreak !== 1 ? 's' : ''}</span>`;
+                badge.innerHTML = `<span><i data-lucide="flame" width="18" height="18" style="color: white;"></i></span><span id="streakCount">${currentStreak}</span><span>day${currentStreak !== 1 ? 's' : ''}</span>`;
                 lucide.createIcons();
             }
         }
