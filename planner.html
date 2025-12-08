@@ -633,11 +633,25 @@
             font-size: 1em;
             margin-bottom: 15px;
             box-sizing: border-box;
+            color: #333 !important;
+            background: white !important;
+        }
+
+        .custom-meal-input::placeholder {
+            color: #999;
         }
 
         .custom-meal-input:focus {
             outline: none;
             border-color: #0d9488;
+        }
+
+        /* Fix for food search input in custom meal modal */
+        .custom-meal-modal input[type="text"],
+        .custom-meal-modal input[type="number"],
+        .custom-meal-modal textarea {
+            color: #333 !important;
+            background: white !important;
         }
 
         .food-search-container {
@@ -4139,7 +4153,6 @@ function displayDietPlan(multiDayData) {
 
     planHTML += `
         <div class="flex gap-2 mt-4 flex-wrap">
-            <button data-action="generate-all-images" class="btn w-full" style="background:#8b5cf6; color:white;">📷 Generate All Images</button>
             <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b; color:white;">📋 Meal Prep Guide</button>
             <button data-action="show-grocery-list" class="btn btn-secondary w-full" style="color:white;">📝 Grocery List</button>
             <button data-action="download-pdf" class="btn btn-primary w-full" style="color:white;">📥 Download PDF</button>
