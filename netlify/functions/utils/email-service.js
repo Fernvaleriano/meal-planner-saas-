@@ -187,6 +187,7 @@ async function sendWithMailgun({ to, subject, text, html, emailFrom, emailFromNa
  * @param {string} options.customMessage - Custom email message (optional)
  * @param {boolean} options.isFollowup - Is this a follow-up reminder?
  * @param {boolean} options.whiteLabel - Is this a white-label email? (no Zique branding)
+ * @param {Object} options.branding - Coach branding settings (optional)
  * @returns {Object} - { subject, text, html }
  */
 function generateReminderEmail({
@@ -197,7 +198,8 @@ function generateReminderEmail({
     customSubject,
     customMessage,
     isFollowup = false,
-    whiteLabel = false
+    whiteLabel = false,
+    branding = {}
 }) {
     const checkinLink = `${APP_URL}/client-dashboard.html`;
 
@@ -253,6 +255,16 @@ ${footerText}`;
             .replace(/{checkin_link}/g, checkinLink);
     }
 
+    // Get branding colors with fallbacks
+    const primaryColor = branding.brand_primary_color || '#0d9488';
+    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Zique Fitness Nutrition');
+    const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
+
+    // Logo HTML for email header
+    const logoHtml = logoUrl
+        ? `<img src="${logoUrl}" alt="${brandName}" style="max-width: 150px; height: auto; margin-bottom: 12px;">`
+        : '';
+
     // Generate HTML version
     const htmlBody = `
 <!DOCTYPE html>
@@ -262,8 +274,9 @@ ${footerText}`;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${subject}</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background-color: #0d9488; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background-color: ${primaryColor}; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        ${logoHtml}
         <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Weekly Check-in ${isFollowup ? 'Reminder' : 'Time'}</h1>
     </div>
 
@@ -277,7 +290,7 @@ ${footerText}`;
         <p style="margin-bottom: 20px;">Your check-in helps track your journey and allows your coach to provide personalized guidance.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${checkinLink}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Submit Your Check-in</a>
+            <a href="${checkinLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Submit Your Check-in</a>
         </div>
 
         <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -327,6 +340,9 @@ async function sendCheckinReminder({
     // Check if coach has white-label email enabled
     const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
 
+    // Check if coach has branding enabled (Professional tier)
+    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+
     const emailContent = generateReminderEmail({
         clientName: client.client_name || 'there',
         clientEmail: client.email,
@@ -335,7 +351,14 @@ async function sendCheckinReminder({
         customSubject: settings.email_subject,
         customMessage: settings.email_message,
         isFollowup,
-        whiteLabel: hasWhiteLabel
+        whiteLabel: hasWhiteLabel,
+        branding: hasBranding ? {
+            brand_name: coach?.brand_name,
+            brand_primary_color: coach?.brand_primary_color,
+            brand_logo_url: coach?.brand_logo_url,
+            brand_email_logo_url: coach?.brand_email_logo_url,
+            brand_email_footer: coach?.brand_email_footer
+        } : {}
     });
 
     return sendEmail({
@@ -356,6 +379,7 @@ async function sendCheckinReminder({
  * @param {string} options.coachName - Coach's name
  * @param {string} options.resetLink - Password reset link
  * @param {boolean} options.whiteLabel - Is this a white-label email?
+ * @param {Object} options.branding - Coach branding settings (optional)
  * @returns {Object} - { subject, text, html }
  */
 function generateInvitationEmail({
@@ -363,19 +387,30 @@ function generateInvitationEmail({
     clientEmail,
     coachName = 'Your Coach',
     resetLink,
-    whiteLabel = false
+    whiteLabel = false,
+    branding = {}
 }) {
-    const subject = whiteLabel
-        ? `${coachName} has invited you to join`
+    // Get branding colors with fallbacks
+    const primaryColor = branding.brand_primary_color || '#0d9488';
+    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Zique Fitness Nutrition');
+    const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
+
+    const subject = whiteLabel || branding.brand_name
+        ? `${coachName} has invited you to join ${brandName}`
         : `${coachName} has invited you to Zique Fitness Nutrition`;
 
-    const footerText = whiteLabel ? coachName : 'Zique Fitness Nutrition';
-    const welcomeTitle = whiteLabel ? `Welcome!` : `Welcome to Zique Fitness`;
+    const footerText = branding.brand_email_footer || brandName;
+    const welcomeTitle = branding.brand_name ? `Welcome to ${branding.brand_name}!` : (whiteLabel ? `Welcome!` : `Welcome to Zique Fitness`);
     const welcomeSubtitle = 'Your nutrition coaching journey starts here';
+
+    // Logo HTML for email header
+    const logoHtml = logoUrl
+        ? `<img src="${logoUrl}" alt="${brandName}" style="max-width: 150px; height: auto; margin-bottom: 12px;">`
+        : '';
 
     const textBody = `Hi ${clientName},
 
-Great news! ${coachName} has invited you to join ${whiteLabel ? 'their' : 'Zique Fitness Nutrition -'} your personal nutrition coaching portal.
+Great news! ${coachName} has invited you to join ${brandName} - your personal nutrition coaching portal.
 
 With your new account, you'll be able to:
 - View your personalized meal plans
@@ -407,7 +442,8 @@ ${footerText}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background-color: #0d9488; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <div style="background-color: ${primaryColor}; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        ${logoHtml}
         <h1 style="color: #ffffff; margin: 0; font-size: 28px;">${welcomeTitle}</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${welcomeSubtitle}</p>
     </div>
@@ -417,8 +453,8 @@ ${footerText}`;
 
         <p style="margin-bottom: 20px; font-size: 16px;">Great news! <strong>${coachName}</strong> has invited you to join your personal nutrition coaching portal.</p>
 
-        <div style="background-color: #f0fdfa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
-            <p style="font-weight: 600; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">With your new account, you'll be able to:</p>
+        <div style="background-color: ${primaryColor}10; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${primaryColor};">
+            <p style="font-weight: 600; margin: 0 0 12px 0; color: ${primaryColor}; font-size: 16px;">With your new account, you'll be able to:</p>
             <ul style="margin: 0; padding-left: 20px; color: #334155;">
                 <li style="margin-bottom: 8px;">View your personalized meal plans</li>
                 <li style="margin-bottom: 8px;">Track your daily food intake</li>
@@ -429,7 +465,7 @@ ${footerText}`;
         </div>
 
         <div style="text-align: center; margin: 35px 0;">
-            <a href="${resetLink}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Set Up Your Password</a>
+            <a href="${resetLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px;">Set Up Your Password</a>
         </div>
 
         <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours</p>
@@ -477,12 +513,22 @@ async function sendInvitationEmail({
     // Check if coach has white-label email enabled
     const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
 
+    // Check if coach has branding enabled (Professional tier)
+    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+
     const emailContent = generateInvitationEmail({
         clientName: client.client_name || 'there',
         clientEmail: client.email,
         coachName: coach?.full_name || coach?.email || 'Your Coach',
         resetLink,
-        whiteLabel: hasWhiteLabel
+        whiteLabel: hasWhiteLabel,
+        branding: hasBranding ? {
+            brand_name: coach?.brand_name,
+            brand_primary_color: coach?.brand_primary_color,
+            brand_logo_url: coach?.brand_logo_url,
+            brand_email_logo_url: coach?.brand_email_logo_url,
+            brand_email_footer: coach?.brand_email_footer
+        } : {}
     });
 
     return sendEmail({

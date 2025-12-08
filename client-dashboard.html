@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Dashboard - Zique Fitness Nutrition</title>
     <script src="/js/theme.js"></script>
+    <script src="/js/branding.js"></script>
     <!-- Prevent caching to avoid stale data on back navigation -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -4410,6 +4411,11 @@
 
             currentClientId = clientData.id;
             currentCoachId = clientData.coach_id;
+
+            // Initialize coach branding
+            if (window.ZiqueBranding && currentCoachId) {
+                window.ZiqueBranding.init(currentCoachId);
+            }
 
             // Load client permissions (default to true if not set)
             canRequestNewPlan = clientData.can_request_new_plan !== false;

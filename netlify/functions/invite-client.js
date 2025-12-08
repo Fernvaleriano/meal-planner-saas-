@@ -69,7 +69,7 @@ exports.handler = async (event, context) => {
         .single(),
       supabase
         .from('coaches')
-        .select('id, email, full_name, white_label_enabled, email_from, email_from_name, email_from_verified')
+        .select('id, email, full_name, white_label_enabled, email_from, email_from_name, email_from_verified, subscription_tier, brand_name, brand_primary_color, brand_logo_url, brand_email_logo_url, brand_email_footer')
         .eq('id', coachId)
         .single()
     ]);
