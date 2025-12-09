@@ -43,10 +43,15 @@
             box-sizing: border-box;
         }
 
+        html {
+            height: -webkit-fill-available; /* Safari iOS fix */
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--gray-50);
             min-height: 100vh;
+            min-height: -webkit-fill-available; /* Safari fix */
             display: flex;
             flex-direction: column;
         }
@@ -1928,7 +1933,12 @@
         /* Hide footer on mobile - bottom nav replaces it */
         @media (max-width: 768px) {
             .site-footer {
-                display: none;
+                display: none !important;
+                visibility: hidden;
+                height: 0;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
             }
         }
 
