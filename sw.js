@@ -33,8 +33,9 @@ const STATIC_FILES = [
 // CDN resources to cache (long-lived, rarely change)
 const CDN_FILES = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://unpkg.com/lucide@latest/dist/umd/lucide.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  'https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
 // API endpoints to cache (stale-while-revalidate)
@@ -42,7 +43,10 @@ const CDN_FILES = [
 const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/calorie-goals/,
   /\/\.netlify\/functions\/get-favorites/,
-  /\/\.netlify\/functions\/get-recipes/
+  /\/\.netlify\/functions\/get-recipes/,
+  /\/\.netlify\/functions\/get-branding/,
+  /\/\.netlify\/functions\/get-plans/,
+  /\/\.netlify\/functions\/get-profile/
 ];
 
 // Install event - cache static files and CDN resources
