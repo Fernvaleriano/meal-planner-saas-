@@ -4328,6 +4328,78 @@
                 align-items: flex-start;
             }
         }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            background: #34d399;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .toast-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: white;
+        }
+
+        .toast-message {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .toast-action {
+            background: rgba(52, 211, 153, 0.2);
+            border: 1px solid #34d399;
+            color: #34d399;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .toast-action:hover {
+            background: #34d399;
+            color: #065f46;
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
 </head>
@@ -7775,8 +7847,10 @@
                 document.getElementById('quickLogResult').innerHTML = '';
                 quickLogPendingFood = null;
 
-                // Show success toast
-                showToast(`Added "${food.food_name}" to ${mealType}!`);
+                // Show success toast with View Diary option
+                showToast(`Added "${food.food_name}"!`, 'View Diary', () => {
+                    window.location.href = 'client-diary.html';
+                });
 
                 // Refresh progress display
                 loadTodayProgress();
@@ -7785,6 +7859,29 @@
                 console.error('Error adding food:', err);
                 showToast('Failed to add. Try again.');
             }
+        }
+
+        // Show toast notification with optional action button
+        function showToast(message, actionText = null, actionCallback = null) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastAction = document.getElementById('toastAction');
+
+            toastMessage.textContent = message;
+
+            if (actionText && actionCallback) {
+                toastAction.textContent = actionText;
+                toastAction.style.display = 'block';
+                toastAction.onclick = () => {
+                    toast.classList.remove('show');
+                    actionCallback();
+                };
+            } else {
+                toastAction.style.display = 'none';
+            }
+
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 5000);
         }
 
         // Cancel quick log
@@ -7874,5 +7971,18 @@
     </script>
     <!-- Fallback for Safari PWA cached script -->
     <script>if(typeof lucide !== 'undefined') lucide.createIcons();</script>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-content">
+            <div class="toast-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <span class="toast-message" id="toastMessage">Item added!</span>
+        </div>
+        <button class="toast-action" id="toastAction" style="display: none;">View Diary</button>
+    </div>
 </body>
 </html>
