@@ -4076,6 +4076,32 @@
                 await loadDiaryEntries();
                 // Goals are already loaded by loadDiaryEntries() from the food-diary endpoint
                 console.log('Initial data loaded successfully');
+
+                // Check for action query parameter (from dashboard redirects)
+                const urlParams = new URLSearchParams(window.location.search);
+                const action = urlParams.get('action');
+                if (action) {
+                    // Clear the URL parameter
+                    window.history.replaceState({}, document.title, window.location.pathname);
+
+                    // Open the corresponding modal after a short delay
+                    setTimeout(() => {
+                        switch (action) {
+                            case 'photo':
+                                openAIPhotoModal();
+                                break;
+                            case 'favorites':
+                                openFavoritesPicker();
+                                break;
+                            case 'barcode':
+                                openBarcodeScanner();
+                                break;
+                            case 'search':
+                                openFoodSearch('snack');
+                                break;
+                        }
+                    }, 300);
+                }
             } catch (err) {
                 console.error('Error loading initial data:', err);
                 showToast('Failed to load data');
