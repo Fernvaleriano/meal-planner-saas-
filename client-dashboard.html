@@ -3174,18 +3174,18 @@
             font-weight: 600;
         }
 
-        /* ===== QUICK LOG SECTION ===== */
-        .quick-log-card {
+        /* ===== AI-FIRST HERO INPUT STYLES ===== */
+        .ai-hero-section {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            padding: 24px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             position: relative;
             overflow: hidden;
         }
 
-        .quick-log-card::before {
+        .ai-hero-section::before {
             content: '';
             position: absolute;
             top: 0;
@@ -3197,121 +3197,77 @@
             pointer-events: none;
         }
 
-        .quick-log-header {
+        .ai-hero-header {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             position: relative;
         }
 
-        .quick-log-icon {
-            width: 32px;
-            height: 32px;
+        .ai-hero-icon {
+            width: 36px;
+            height: 36px;
             background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.25rem;
         }
 
-        .quick-log-title {
+        .ai-hero-icon svg {
             color: white;
-            font-size: 1rem;
+        }
+
+        .ai-hero-title {
+            color: white;
+            font-size: 1.1rem;
             font-weight: 700;
         }
 
-        /* Compact Meal Type Selector */
-        .quick-log-meals {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 12px;
-            position: relative;
+        .ai-hero-subtitle {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-left: auto;
         }
 
-        .quick-log-meal-btn {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 8px 6px;
-            background: rgba(255, 255, 255, 0.05);
+        .ai-hero-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .ai-hero-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 16px;
+            padding-right: 50px;
             border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #94a3b8;
-            font-size: 0.7rem;
-            font-weight: 600;
-            cursor: pointer;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
             transition: all 0.2s;
         }
 
-        .quick-log-meal-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .quick-log-meal-btn.active {
-            background: rgba(13, 148, 136, 0.2);
-            border-color: var(--brand-primary);
-            color: white;
-        }
-
-        .quick-log-meal-btn.breakfast.active { border-color: #f59e0b; background: rgba(245, 158, 11, 0.2); }
-        .quick-log-meal-btn.lunch.active { border-color: #eab308; background: rgba(234, 179, 8, 0.2); }
-        .quick-log-meal-btn.dinner.active { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
-        .quick-log-meal-btn.snack.active { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
-
-        .quick-log-meal-btn .meal-emoji {
-            font-size: 1rem;
-        }
-
-        .quick-log-meal-btn .meal-label {
-            font-size: 0.65rem;
-        }
-
-        /* Hide labels on very small screens */
-        @media (max-width: 360px) {
-            .quick-log-meal-btn .meal-label {
-                display: none;
-            }
-            .quick-log-meal-btn {
-                padding: 10px 8px;
-            }
-            .quick-log-meal-btn .meal-emoji {
-                font-size: 1.2rem;
-            }
-        }
-
-        /* Compact Input */
-        .quick-log-input-row {
-            display: flex;
-            gap: 8px;
-            position: relative;
-        }
-
-        .quick-log-input {
-            flex: 1;
-            padding: 12px 14px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            font-size: 0.95rem;
-            font-family: inherit;
-        }
-
-        .quick-log-input::placeholder {
+        .ai-hero-textarea::placeholder {
             color: #64748b;
         }
 
-        .quick-log-input:focus {
+        .ai-hero-textarea:focus {
             outline: none;
             border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2);
         }
 
-        .quick-log-send-btn {
-            width: 44px;
-            height: 44px;
+        .ai-hero-send-btn {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 40px;
+            height: 40px;
             background: var(--brand-primary);
             border: none;
             border-radius: 12px;
@@ -3321,63 +3277,78 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            flex-shrink: 0;
         }
 
-        .quick-log-send-btn:hover {
+        .ai-hero-send-btn:hover {
             background: #0f766e;
+            transform: scale(1.05);
         }
 
-        .quick-log-send-btn:disabled {
+        .ai-hero-send-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
-        /* Quick Log Loading */
-        .quick-log-loading {
-            display: none;
-            align-items: center;
-            justify-content: center;
+        /* Meal Type Selector */
+        .meal-type-selector {
+            display: flex;
             gap: 8px;
-            padding: 12px;
-            color: #94a3b8;
-            font-size: 0.85rem;
+            margin-bottom: 16px;
+            position: relative;
         }
 
-        .quick-log-loading.visible {
+        .meal-type-btn {
+            flex: 1;
             display: flex;
-        }
-
-        .quick-log-loading .dots {
-            display: flex;
+            flex-direction: column;
+            align-items: center;
             gap: 4px;
+            padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .quick-log-loading .dots span {
-            width: 6px;
-            height: 6px;
-            background: var(--brand-primary);
-            border-radius: 50%;
-            animation: quickLogDot 1.4s infinite ease-in-out both;
+        .meal-type-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
         }
 
-        .quick-log-loading .dots span:nth-child(1) { animation-delay: -0.32s; }
-        .quick-log-loading .dots span:nth-child(2) { animation-delay: -0.16s; }
-        .quick-log-loading .dots span:nth-child(3) { animation-delay: 0; }
-
-        @keyframes quickLogDot {
-            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
+        .meal-type-btn.active {
+            background: rgba(13, 148, 136, 0.2);
+            border-color: var(--brand-primary);
+            color: white;
         }
 
-        /* Quick Log Result */
-        .quick-log-result {
+        .meal-type-btn .meal-icon {
+            font-size: 1.25rem;
+        }
+
+        .meal-type-btn.breakfast .meal-icon { color: #f59e0b; }
+        .meal-type-btn.lunch .meal-icon { color: #eab308; }
+        .meal-type-btn.dinner .meal-icon { color: #8b5cf6; }
+        .meal-type-btn.snack .meal-icon { color: #ef4444; }
+
+        .meal-type-btn.active.breakfast { border-color: #f59e0b; background: rgba(245, 158, 11, 0.2); }
+        .meal-type-btn.active.lunch { border-color: #eab308; background: rgba(234, 179, 8, 0.2); }
+        .meal-type-btn.active.dinner { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
+        .meal-type-btn.active.snack { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
+
+        /* AI Parsing Result Card */
+        .ai-parse-result {
             background: linear-gradient(135deg, #065f46 0%, #047857 100%);
             border: 2px solid #34d399;
-            border-radius: 12px;
-            padding: 14px;
-            margin-top: 12px;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
             animation: slideUp 0.3s ease;
+            position: relative;
         }
 
         @keyframes slideUp {
@@ -3385,69 +3356,144 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .quick-log-result-food {
+        .ai-parse-result-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .quick-log-result-name {
-            color: white;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .quick-log-result-cals {
+            gap: 8px;
+            margin-bottom: 12px;
             color: #34d399;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-result-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ai-parse-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .ai-parse-item-name {
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-item-cals {
+            color: #34d399;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-totals {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .ai-parse-total-item {
+            color: white;
+        }
+
+        .ai-parse-total-value {
+            font-size: 1.1rem;
             font-weight: 700;
         }
 
-        .quick-log-result-macros {
-            display: flex;
-            gap: 12px;
-            font-size: 0.8rem;
+        .ai-parse-total-label {
+            font-size: 0.7rem;
             color: #94a3b8;
-            margin-bottom: 12px;
+            text-transform: uppercase;
         }
 
-        .quick-log-result-actions {
+        .ai-parse-actions {
             display: flex;
-            gap: 8px;
+            gap: 10px;
         }
 
-        .quick-log-result-actions button {
+        .ai-parse-actions button {
             flex: 1;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .quick-log-confirm-btn {
+        .ai-parse-confirm-btn {
             background: #34d399;
             color: #065f46;
             border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-        .quick-log-confirm-btn:hover {
+        .ai-parse-confirm-btn:hover {
             background: #6ee7b7;
         }
 
-        .quick-log-cancel-btn {
+        .ai-parse-edit-btn {
             background: transparent;
             color: #94a3b8;
             border: 1px solid #475569;
         }
 
-        .quick-log-cancel-btn:hover {
+        .ai-parse-edit-btn:hover {
             background: rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
-        [data-theme="dark"] .quick-log-card {
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        /* AI Hero Loading State */
+        .ai-hero-loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            color: #94a3b8;
+        }
+
+        .ai-hero-loading.visible {
+            display: flex;
+        }
+
+        .ai-hero-loading .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .ai-hero-loading .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--brand-primary);
+            border-radius: 50%;
+            animation: aiDotPulse 1.4s infinite ease-in-out both;
+        }
+
+        .ai-hero-loading .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .ai-hero-loading .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .ai-hero-loading .loading-dots span:nth-child(3) { animation-delay: 0; }
+
+        @keyframes aiDotPulse {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
         }
 
         /* Today's Progress Card */
@@ -4657,47 +4703,48 @@
                         </div>
                     </div>
 
-                    <!-- Quick Log Section -->
-                    <div class="quick-log-card" id="quickLogCard">
-                        <div class="quick-log-header">
-                            <div class="quick-log-icon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <!-- AI-First Hero Input Section -->
+                    <div class="ai-hero-section" id="aiHeroSection">
+                        <div class="ai-hero-header">
+                            <div class="ai-hero-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 3l1.5 4.5H18l-3.5 2.5 1.5 4.5-4-3-4 3 1.5-4.5L6 7.5h4.5L12 3z"/>
                                 </svg>
                             </div>
-                            <div class="quick-log-title">Quick Log</div>
+                            <div class="ai-hero-title">What did you eat?</div>
+                            <div class="ai-hero-subtitle">AI-powered logging</div>
                         </div>
 
-                        <!-- Meal Type Buttons -->
-                        <div class="quick-log-meals">
-                            <button class="quick-log-meal-btn breakfast" data-meal="breakfast" onclick="selectQuickLogMeal('breakfast')">
-                                <span class="meal-emoji">☀️</span>
-                                <span class="meal-label">Bfast</span>
+                        <!-- Meal Type Selector -->
+                        <div class="meal-type-selector" id="mealTypeSelector">
+                            <button class="meal-type-btn breakfast" data-meal="breakfast" onclick="selectMealType('breakfast')">
+                                <span class="meal-icon">☀️</span>
+                                <span>Breakfast</span>
                             </button>
-                            <button class="quick-log-meal-btn lunch" data-meal="lunch" onclick="selectQuickLogMeal('lunch')">
-                                <span class="meal-emoji">🌤️</span>
-                                <span class="meal-label">Lunch</span>
+                            <button class="meal-type-btn lunch" data-meal="lunch" onclick="selectMealType('lunch')">
+                                <span class="meal-icon">🌤️</span>
+                                <span>Lunch</span>
                             </button>
-                            <button class="quick-log-meal-btn dinner" data-meal="dinner" onclick="selectQuickLogMeal('dinner')">
-                                <span class="meal-emoji">🌙</span>
-                                <span class="meal-label">Dinner</span>
+                            <button class="meal-type-btn dinner" data-meal="dinner" onclick="selectMealType('dinner')">
+                                <span class="meal-icon">🌙</span>
+                                <span>Dinner</span>
                             </button>
-                            <button class="quick-log-meal-btn snack" data-meal="snack" onclick="selectQuickLogMeal('snack')">
-                                <span class="meal-emoji">🍎</span>
-                                <span class="meal-label">Snack</span>
+                            <button class="meal-type-btn snack" data-meal="snack" onclick="selectMealType('snack')">
+                                <span class="meal-icon">🍎</span>
+                                <span>Snack</span>
                             </button>
                         </div>
 
-                        <!-- Input Row -->
-                        <div class="quick-log-input-row">
-                            <input
-                                type="text"
-                                class="quick-log-input"
-                                id="quickLogInput"
-                                placeholder="What did you eat?"
-                                onkeydown="handleQuickLogKeydown(event)"
-                            >
-                            <button class="quick-log-send-btn" id="quickLogSendBtn" onclick="sendQuickLog()">
+                        <!-- AI Input -->
+                        <div class="ai-hero-input-wrapper">
+                            <textarea
+                                class="ai-hero-textarea"
+                                id="aiHeroInput"
+                                placeholder="Describe what you ate... e.g., 'Grilled chicken with rice and vegetables' or 'A large coffee with oat milk'"
+                                rows="2"
+                                onkeydown="handleHeroKeydown(event)"
+                            ></textarea>
+                            <button class="ai-hero-send-btn" id="aiHeroSendBtn" onclick="sendHeroAIMessage()">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
                                 </svg>
@@ -4705,17 +4752,17 @@
                         </div>
 
                         <!-- Loading State -->
-                        <div class="quick-log-loading" id="quickLogLoading">
-                            <div class="dots">
+                        <div class="ai-hero-loading" id="aiHeroLoading">
+                            <div class="loading-dots">
                                 <span></span>
                                 <span></span>
                                 <span></span>
                             </div>
-                            <span>Analyzing...</span>
+                            <span>Analyzing your meal...</span>
                         </div>
 
-                        <!-- Result Container -->
-                        <div id="quickLogResult"></div>
+                        <!-- Parse Result Container (populated by JS) -->
+                        <div id="aiHeroParseResult"></div>
                     </div>
 
                     <!-- Today's Progress Card -->
@@ -7680,13 +7727,13 @@
         });
 
         // ==========================================
-        // QUICK LOG FUNCTIONALITY
+        // AI-FIRST HERO INPUT SECTION
         // ==========================================
-        let quickLogMealType = null;
-        let quickLogPendingFood = null;
+        let selectedMealType = null;
+        let pendingHeroFoodLog = null;
 
-        // Auto-select meal type based on time
-        function autoSelectQuickLogMeal() {
+        // Auto-select meal type based on time of day
+        function autoSelectMealType() {
             const hour = new Date().getHours();
             let mealType = 'snack';
 
@@ -7695,34 +7742,35 @@
             else if (hour >= 15 && hour < 21) mealType = 'dinner';
             else mealType = 'snack';
 
-            selectQuickLogMeal(mealType);
+            selectMealType(mealType);
         }
 
-        // Select meal type
-        function selectQuickLogMeal(mealType) {
-            quickLogMealType = mealType;
+        // Select meal type button
+        function selectMealType(mealType) {
+            selectedMealType = mealType;
 
-            document.querySelectorAll('.quick-log-meal-btn').forEach(btn => {
+            // Update button states
+            document.querySelectorAll('.meal-type-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
 
-            const activeBtn = document.querySelector(`.quick-log-meal-btn.${mealType}`);
+            const activeBtn = document.querySelector(`.meal-type-btn.${mealType}`);
             if (activeBtn) {
                 activeBtn.classList.add('active');
             }
         }
 
-        // Handle Enter key
-        function handleQuickLogKeydown(event) {
-            if (event.key === 'Enter') {
+        // Handle Enter key in hero input
+        function handleHeroKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                sendQuickLog();
+                sendHeroAIMessage();
             }
         }
 
-        // Send quick log to AI
-        async function sendQuickLog() {
-            const input = document.getElementById('quickLogInput');
+        // Send message from hero AI input
+        async function sendHeroAIMessage() {
+            const input = document.getElementById('aiHeroInput');
             const message = input.value.trim();
 
             if (!message) return;
@@ -7733,9 +7781,9 @@
             }
 
             // Show loading
-            document.getElementById('quickLogLoading').classList.add('visible');
-            document.getElementById('quickLogSendBtn').disabled = true;
-            document.getElementById('quickLogResult').innerHTML = '';
+            document.getElementById('aiHeroLoading').classList.add('visible');
+            document.getElementById('aiHeroSendBtn').disabled = true;
+            document.getElementById('aiHeroParseResult').innerHTML = '';
 
             // Get client first name from page
             const clientNameEl = document.getElementById('clientName');
@@ -7750,7 +7798,7 @@
                     body: JSON.stringify({
                         clientId: currentClientId,
                         clientFirstName: firstName,
-                        message: `Log for ${quickLogMealType || 'snack'}: ${message}`,
+                        message: `Log for ${selectedMealType || 'snack'}: ${message}`,
                         todayEntries: [],
                         goals: {},
                         totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -7760,61 +7808,92 @@
                 const data = await response.json();
 
                 // Hide loading
-                document.getElementById('quickLogLoading').classList.remove('visible');
-                document.getElementById('quickLogSendBtn').disabled = false;
+                document.getElementById('aiHeroLoading').classList.remove('visible');
+                document.getElementById('aiHeroSendBtn').disabled = false;
 
                 if (data.error) {
-                    showToast('AI error. Try again.');
+                    showToast('Sorry, AI encountered an error. Try again.');
                     return;
                 }
 
                 // Check if AI parsed food
                 if (data.parsed && data.parsed.action === 'log_food') {
-                    data.parsed.meal_type = quickLogMealType || data.parsed.meal_type || 'snack';
-                    quickLogPendingFood = data.parsed;
-                    showQuickLogResult(data.parsed);
+                    // Override meal type with our selected one
+                    data.parsed.meal_type = selectedMealType || data.parsed.meal_type || 'snack';
+                    pendingHeroFoodLog = data.parsed;
+                    showHeroParseResult(data.parsed);
                 } else {
-                    showToast(data.response || 'Could not parse food. Try again.');
+                    // Show message in a toast
+                    showToast(data.response || 'Couldn\'t parse that food. Try being more specific.');
                 }
 
             } catch (err) {
-                console.error('Quick log error:', err);
-                document.getElementById('quickLogLoading').classList.remove('visible');
-                document.getElementById('quickLogSendBtn').disabled = false;
-                showToast('Connection error. Try again.');
+                console.error('Hero AI error:', err);
+                document.getElementById('aiHeroLoading').classList.remove('visible');
+                document.getElementById('aiHeroSendBtn').disabled = false;
+                showToast('Couldn\'t connect to AI. Please try again.');
             }
         }
 
-        // Show parsed result
-        function showQuickLogResult(foodData) {
-            const container = document.getElementById('quickLogResult');
+        // Show parsed result in hero section
+        function showHeroParseResult(foodData) {
+            const container = document.getElementById('aiHeroParseResult');
             const mealLabel = foodData.meal_type ? foodData.meal_type.charAt(0).toUpperCase() + foodData.meal_type.slice(1) : 'Diary';
 
             container.innerHTML = `
-                <div class="quick-log-result">
-                    <div class="quick-log-result-food">
-                        <span class="quick-log-result-name">${foodData.food_name}</span>
-                        <span class="quick-log-result-cals">${foodData.calories} cal</span>
+                <div class="ai-parse-result">
+                    <div class="ai-parse-result-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>Ready to log</span>
                     </div>
-                    <div class="quick-log-result-macros">
-                        <span>P: ${foodData.protein}g</span>
-                        <span>C: ${foodData.carbs}g</span>
-                        <span>F: ${foodData.fat}g</span>
+                    <div class="ai-parse-result-items">
+                        <div class="ai-parse-item">
+                            <div>
+                                <div class="ai-parse-item-name">${foodData.food_name}</div>
+                            </div>
+                            <div class="ai-parse-item-cals">${foodData.calories} cal</div>
+                        </div>
                     </div>
-                    <div class="quick-log-result-actions">
-                        <button class="quick-log-cancel-btn" onclick="cancelQuickLog()">Cancel</button>
-                        <button class="quick-log-confirm-btn" onclick="confirmQuickLog()">Add to ${mealLabel}</button>
+                    <div class="ai-parse-totals">
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value">${foodData.calories}</div>
+                            <div class="ai-parse-total-label">Calories</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #3b82f6;">${foodData.protein}g</div>
+                            <div class="ai-parse-total-label">Protein</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #f59e0b;">${foodData.carbs}g</div>
+                            <div class="ai-parse-total-label">Carbs</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #ef4444;">${foodData.fat}g</div>
+                            <div class="ai-parse-total-label">Fat</div>
+                        </div>
+                    </div>
+                    <div class="ai-parse-actions">
+                        <button class="ai-parse-edit-btn" onclick="cancelHeroFoodLog()">Cancel</button>
+                        <button class="ai-parse-confirm-btn" onclick="confirmHeroFoodLog()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Add to ${mealLabel}
+                        </button>
                     </div>
                 </div>
             `;
         }
 
-        // Confirm and add food
-        async function confirmQuickLog() {
-            if (!quickLogPendingFood) return;
+        // Confirm and add food from hero input
+        async function confirmHeroFoodLog() {
+            if (!pendingHeroFoodLog) return;
 
-            const food = quickLogPendingFood;
-            const mealType = food.meal_type || quickLogMealType || 'snack';
+            const food = pendingHeroFoodLog;
+            const mealType = food.meal_type || selectedMealType || 'snack';
 
             // Get today's date in local timezone
             const today = formatLocalDate(new Date());
@@ -7843,9 +7922,9 @@
                 if (!response.ok) throw new Error('Failed to save');
 
                 // Clear input and result
-                document.getElementById('quickLogInput').value = '';
-                document.getElementById('quickLogResult').innerHTML = '';
-                quickLogPendingFood = null;
+                document.getElementById('aiHeroInput').value = '';
+                document.getElementById('aiHeroParseResult').innerHTML = '';
+                pendingHeroFoodLog = null;
 
                 // Show success toast with View Diary option
                 showToast(`Added "${food.food_name}"!`, 'View Diary', () => {
@@ -7857,8 +7936,14 @@
 
             } catch (err) {
                 console.error('Error adding food:', err);
-                showToast('Failed to add. Try again.');
+                showToast('Failed to add food. Please try again.');
             }
+        }
+
+        // Cancel hero food log
+        function cancelHeroFoodLog() {
+            pendingHeroFoodLog = null;
+            document.getElementById('aiHeroParseResult').innerHTML = '';
         }
 
         // Show toast notification with optional action button
@@ -7884,15 +7969,15 @@
             setTimeout(() => toast.classList.remove('show'), 5000);
         }
 
-        // Cancel quick log
-        function cancelQuickLog() {
-            quickLogPendingFood = null;
-            document.getElementById('quickLogResult').innerHTML = '';
+        // Initialize hero section on page load
+        function initAIHeroSection() {
+            // Auto-select meal type based on time
+            autoSelectMealType();
         }
 
-        // Initialize quick log on page load
+        // Call init when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            autoSelectQuickLogMeal();
+            initAIHeroSection();
         });
     </script>
 
