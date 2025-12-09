@@ -8481,7 +8481,10 @@
             try {
                 const response = await fetch('/.netlify/functions/analyze-food-photo', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${(await window.supabaseClient.auth.getSession()).data.session?.access_token}`
+                    },
                     body: JSON.stringify({ image: dashPhotoBase64, details: foodDetails || null })
                 });
                 const data = await response.json();
