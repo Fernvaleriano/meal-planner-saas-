@@ -625,6 +625,63 @@
             color: #10b981;
         }
 
+        .supplement-main {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .supplement-warning {
+            font-size: 0.75rem;
+            color: #f59e0b;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .supplement-item.off-schedule {
+            border-color: rgba(245, 158, 11, 0.4);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .supplement-item.off-schedule:hover {
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+
+        .supplement-restart-btn {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: none;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+
+        .supplement-restart-btn svg {
+            stroke: white;
+        }
+
+        .supplement-restart-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        [data-theme="dark"] .supplement-item.off-schedule {
+            border-color: rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        [data-theme="dark"] .supplement-warning {
+            color: #fbbf24;
+        }
+
         .no-supplements-message {
             text-align: center;
             padding: 20px;
@@ -4819,6 +4876,118 @@
             }
         }
 
+        // Check if a supplement is due today based on frequency settings
+        function isSupplementDueToday(protocol) {
+            const frequencyType = protocol.frequency_type || 'daily';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Daily supplements are always due
+            if (frequencyType === 'daily') {
+                return true;
+            }
+
+            // Get the start date (client's actual start or coach's suggested)
+            const startDateStr = protocol.client_start_date || protocol.start_date;
+
+            // If no start date set yet, show it so client can start
+            if (!startDateStr) {
+                return true;
+            }
+
+            const startDate = new Date(startDateStr);
+            startDate.setHours(0, 0, 0, 0);
+
+            // If today is before start date, not due yet
+            if (today < startDate) {
+                return false;
+            }
+
+            const daysSinceStart = Math.floor((today - startDate) / (24 * 60 * 60 * 1000));
+            const todayDayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+
+            switch (frequencyType) {
+                case 'every_other_day':
+                    // Due on day 0, 2, 4, 6, 8... (every even number of days since start)
+                    return daysSinceStart % 2 === 0;
+
+                case 'every_x_days':
+                    // Due every X days
+                    const interval = protocol.frequency_interval || 1;
+                    return daysSinceStart % interval === 0;
+
+                case 'specific_days':
+                    // Due on specific days of the week
+                    const specificDays = protocol.frequency_days || [];
+                    return specificDays.includes(todayDayOfWeek);
+
+                case 'once_weekly':
+                    // Due once a week on a specific day
+                    const weeklyDay = protocol.frequency_days && protocol.frequency_days[0];
+                    return weeklyDay !== undefined && weeklyDay === todayDayOfWeek;
+
+                default:
+                    return true;
+            }
+        }
+
+        // Get frequency display text
+        function getFrequencyText(protocol) {
+            const frequencyType = protocol.frequency_type || 'daily';
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            switch (frequencyType) {
+                case 'daily':
+                    return 'Daily';
+                case 'every_other_day':
+                    return 'Every other day';
+                case 'every_x_days':
+                    const interval = protocol.frequency_interval || 1;
+                    return `Every ${interval} days`;
+                case 'specific_days':
+                    const days = (protocol.frequency_days || []).map(d => dayNames[d]).join(', ');
+                    return days || 'Specific days';
+                case 'once_weekly':
+                    const day = protocol.frequency_days && protocol.frequency_days[0];
+                    return day !== undefined ? `Weekly (${dayNames[day]})` : 'Once weekly';
+                default:
+                    return '';
+            }
+        }
+
+        // Calculate days since last taken
+        function getDaysSinceLastTaken(protocol) {
+            if (!protocol.last_taken_date) return null;
+            const lastTaken = new Date(protocol.last_taken_date);
+            const today = new Date();
+            lastTaken.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0);
+            return Math.floor((today - lastTaken) / (24 * 60 * 60 * 1000));
+        }
+
+        // Check if protocol is off-schedule
+        function isOffSchedule(protocol) {
+            const frequencyType = protocol.frequency_type || 'daily';
+            const daysSince = getDaysSinceLastTaken(protocol);
+
+            if (daysSince === null || daysSince === 0) return false;
+
+            switch (frequencyType) {
+                case 'daily':
+                    return daysSince > 1;
+                case 'every_other_day':
+                    return daysSince > 3;
+                case 'every_x_days':
+                    const interval = protocol.frequency_interval || 1;
+                    return daysSince > interval + 2;
+                case 'specific_days':
+                case 'once_weekly':
+                    return daysSince > 10;
+                default:
+                    return daysSince > 3;
+            }
+        }
+
         // Load supplement checklist for today
         async function loadSupplementChecklist() {
             const checklistSection = document.getElementById('supplementChecklist');
@@ -4833,9 +5002,18 @@
                 if (!protocolsResponse.ok) throw new Error('Failed to fetch protocols');
 
                 const protocolsData = await protocolsResponse.json();
-                const protocols = protocolsData.protocols || [];
+                const allProtocols = protocolsData.protocols || [];
 
                 // If no protocols, hide the section
+                if (allProtocols.length === 0) {
+                    checklistSection.style.display = 'none';
+                    return;
+                }
+
+                // Filter to only supplements due today
+                const protocols = allProtocols.filter(p => isSupplementDueToday(p));
+
+                // If no supplements due today, hide the section
                 if (protocols.length === 0) {
                     checklistSection.style.display = 'none';
                     return;
@@ -4893,6 +5071,11 @@
 
                     grouped[timing].forEach(protocol => {
                         const isTaken = takenProtocolIds.has(protocol.id);
+                        const offSchedule = isOffSchedule(protocol);
+                        const daysSince = getDaysSinceLastTaken(protocol);
+                        const frequencyText = getFrequencyText(protocol);
+                        const isNonDaily = protocol.frequency_type && protocol.frequency_type !== 'daily';
+
                         totalCount++;
                         if (isTaken) takenCount++;
 
@@ -4908,19 +5091,45 @@
                             }
                         }
 
+                        // Build dose/frequency text
+                        let doseText = '';
+                        if (currentDose && isNonDaily) {
+                            doseText = `${currentDose} · ${frequencyText}`;
+                        } else if (currentDose) {
+                            doseText = currentDose;
+                        } else if (isNonDaily) {
+                            doseText = frequencyText;
+                        }
+
+                        // Off-schedule warning
+                        let warningHtml = '';
+                        if (offSchedule && daysSince) {
+                            warningHtml = `<div class="supplement-warning">Last taken ${daysSince} days ago</div>`;
+                        }
+
                         html += `
-                            <div class="supplement-item ${isTaken ? 'taken' : ''}"
-                                 data-protocol-id="${protocol.id}"
-                                 onclick="toggleSupplementIntake(${protocol.id}, ${isTaken})">
-                                <div class="supplement-checkbox">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
+                            <div class="supplement-item ${isTaken ? 'taken' : ''} ${offSchedule ? 'off-schedule' : ''}"
+                                 data-protocol-id="${protocol.id}">
+                                <div class="supplement-main" onclick="toggleSupplementIntake(${protocol.id}, ${isTaken})">
+                                    <div class="supplement-checkbox">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="supplement-info">
+                                        <div class="supplement-name">${protocol.name}</div>
+                                        ${doseText ? `<div class="supplement-dose">${doseText}</div>` : ''}
+                                        ${warningHtml}
+                                    </div>
                                 </div>
-                                <div class="supplement-info">
-                                    <div class="supplement-name">${protocol.name}</div>
-                                    ${currentDose ? `<div class="supplement-dose">${currentDose}</div>` : ''}
-                                </div>
+                                ${offSchedule ? `
+                                    <button class="supplement-restart-btn" onclick="restartSupplementSchedule(${protocol.id}); event.stopPropagation();" title="Restart Schedule">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                            <path d="M3 3v5h5"/>
+                                        </svg>
+                                    </button>
+                                ` : ''}
                             </div>
                         `;
                     });
@@ -4962,7 +5171,7 @@
                         method: 'DELETE'
                     });
                 } else {
-                    // Mark as taken
+                    // Mark as taken (this also sets client_start_date if not set)
                     await fetch('/.netlify/functions/supplement-intake', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -4979,6 +5188,27 @@
 
             } catch (error) {
                 console.error('Error toggling supplement intake:', error);
+            }
+        }
+
+        // Restart supplement schedule
+        async function restartSupplementSchedule(protocolId) {
+            try {
+                await fetch('/.netlify/functions/supplement-intake', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        protocolId: protocolId,
+                        action: 'restart'
+                    })
+                });
+
+                // Reload the checklist
+                await loadSupplementChecklist();
+
+            } catch (error) {
+                console.error('Error restarting supplement schedule:', error);
             }
         }
 
