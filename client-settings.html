@@ -692,7 +692,7 @@
         <!-- Preferences -->
         <div class="settings-card">
             <div class="settings-card-title">Preferences</div>
-            <div class="settings-item" onclick="toggleDarkMode()">
+            <div class="settings-item" onclick="toggleDarkMode(event)">
                 <div class="settings-item-left">
                     <div class="settings-icon"><i data-lucide="moon" style="color: #8b5cf6;"></i></div>
                     <div>
@@ -700,8 +700,8 @@
                         <div class="settings-sublabel">Easier on the eyes at night</div>
                     </div>
                 </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="darkModeToggle">
+                <label class="toggle-switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode(event)">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -882,21 +882,35 @@
             document.getElementById('darkModeToggle').checked = isDark;
         }
 
-        function toggleDarkMode() {
+        function toggleDarkMode(event) {
             const toggle = document.getElementById('darkModeToggle');
             let newTheme;
 
-            if (window.ZiqueTheme && window.ZiqueTheme.toggle) {
-                newTheme = window.ZiqueTheme.toggle();
-            } else {
-                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-                newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', newTheme);
-                localStorage.setItem('zique-theme', newTheme);
-            }
+            // If triggered from the checkbox change, use its current state
+            const fromCheckbox = event && event.target && event.target.id === 'darkModeToggle';
 
-            // Update checkbox to match new theme
-            toggle.checked = (newTheme === 'dark');
+            if (fromCheckbox) {
+                // Checkbox was clicked directly - use its new checked state
+                newTheme = toggle.checked ? 'dark' : 'light';
+                if (window.ZiqueTheme && window.ZiqueTheme.set) {
+                    window.ZiqueTheme.set(newTheme, true);
+                } else {
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('zique-theme', newTheme);
+                }
+            } else {
+                // Clicked on the row - toggle theme
+                if (window.ZiqueTheme && window.ZiqueTheme.toggle) {
+                    newTheme = window.ZiqueTheme.toggle();
+                } else {
+                    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                    newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('zique-theme', newTheme);
+                }
+                // Update checkbox to match new theme
+                toggle.checked = (newTheme === 'dark');
+            }
         }
 
         async function logout() {

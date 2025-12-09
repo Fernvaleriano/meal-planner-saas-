@@ -462,6 +462,132 @@
         [data-theme="dark"] .bottom-nav-item { color: #94a3b8; }
         [data-theme="dark"] .bottom-nav-item.active { color: #14b8a6; }
 
+        /* ===== COLLAPSIBLE LOGS STYLES ===== */
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .logs-header:hover {
+            opacity: 0.8;
+        }
+
+        .collapse-icon {
+            transition: transform 0.3s ease;
+            color: var(--gray-400);
+        }
+
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .logs-container {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .logs-container.collapsed {
+            max-height: 0 !important;
+        }
+
+        .measurement-entry {
+            display: flex;
+            flex-direction: column;
+            padding: 14px;
+            background: var(--gray-50);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .measurement-entry:hover {
+            background: var(--gray-100);
+        }
+
+        .measurement-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .measurement-entry-details {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease, margin-top 0.3s ease, padding-top 0.3s ease;
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        .measurement-entry.expanded .measurement-entry-details {
+            max-height: 300px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .measurement-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .measurement-detail-item {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .measurement-detail-item span {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .measurement-notes {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--gray-500);
+            font-style: italic;
+        }
+
+        .expand-indicator {
+            font-size: 12px;
+            color: var(--gray-400);
+            transition: transform 0.3s;
+        }
+
+        .measurement-entry.expanded .expand-indicator {
+            transform: rotate(180deg);
+        }
+
+        .show-more-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 10px;
+            color: var(--gray-600);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        .show-more-btn:hover {
+            background: var(--gray-200);
+        }
+
+        [data-theme="dark"] .measurement-entry:hover { background: #475569; }
+        [data-theme="dark"] .measurement-entry.expanded .measurement-entry-details { border-color: #475569; }
+        [data-theme="dark"] .measurement-detail-item { color: #94a3b8; }
+        [data-theme="dark"] .measurement-detail-item span { color: #f1f5f9; }
+        [data-theme="dark"] .measurement-notes { color: #64748b; }
+        [data-theme="dark"] .show-more-btn { background: #334155; color: #e2e8f0; }
+        [data-theme="dark"] .show-more-btn:hover { background: #475569; }
+
         /* ===== SKELETON LOADING STYLES ===== */
         @keyframes shimmer {
             0% { background-position: -200% 0; }
@@ -570,20 +696,27 @@
             </div>
 
             <div class="section-card">
-                <h3 class="section-title">Recent Entries</h3>
-                <div id="measurementsContainer">
-                    <div class="loading skeleton-loading">
-                        <div class="skeleton-entry">
-                            <div class="skeleton skeleton-entry-date"></div>
-                            <div class="skeleton skeleton-entry-value"></div>
-                        </div>
-                        <div class="skeleton-entry">
-                            <div class="skeleton skeleton-entry-date"></div>
-                            <div class="skeleton skeleton-entry-value"></div>
-                        </div>
-                        <div class="skeleton-entry">
-                            <div class="skeleton skeleton-entry-date"></div>
-                            <div class="skeleton skeleton-entry-value"></div>
+                <div class="logs-header" onclick="toggleLogsSection()">
+                    <h3 class="section-title" style="margin-bottom: 0;">Recent Entries</h3>
+                    <span class="collapse-icon" id="logsCollapseIcon">
+                        <i data-lucide="chevron-down" width="20" height="20"></i>
+                    </span>
+                </div>
+                <div class="logs-container" id="logsContainer">
+                    <div id="measurementsContainer" style="margin-top: 16px;">
+                        <div class="loading skeleton-loading">
+                            <div class="skeleton-entry">
+                                <div class="skeleton skeleton-entry-date"></div>
+                                <div class="skeleton skeleton-entry-value"></div>
+                            </div>
+                            <div class="skeleton-entry">
+                                <div class="skeleton skeleton-entry-date"></div>
+                                <div class="skeleton skeleton-entry-value"></div>
+                            </div>
+                            <div class="skeleton-entry">
+                                <div class="skeleton skeleton-entry-date"></div>
+                                <div class="skeleton skeleton-entry-value"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -638,12 +771,41 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
+                        <label>Chest (in)</label>
+                        <input type="number" id="chestInput" step="0.1" placeholder="40.0">
+                    </div>
+                    <div class="form-group">
                         <label>Waist (in)</label>
                         <input type="number" id="waistInput" step="0.1" placeholder="32.0">
                     </div>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
                         <label>Hips (in)</label>
                         <input type="number" id="hipsInput" step="0.1" placeholder="38.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Left Arm (in)</label>
+                        <input type="number" id="leftArmInput" step="0.1" placeholder="14.0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Right Arm (in)</label>
+                        <input type="number" id="rightArmInput" step="0.1" placeholder="14.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Left Thigh (in)</label>
+                        <input type="number" id="leftThighInput" step="0.1" placeholder="22.0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Right Thigh (in)</label>
+                        <input type="number" id="rightThighInput" step="0.1" placeholder="22.0">
+                    </div>
+                    <div class="form-group">
+                        <!-- Empty for alignment -->
                     </div>
                 </div>
                 <div class="form-group">
@@ -818,16 +980,63 @@
                     console.error('Chart error:', chartError);
                 }
 
-                // Show entries (use measured_date field from API)
-                container.innerHTML = measurements.slice(0, 10).map(m => `
-                    <div class="measurement-entry">
-                        <div class="measurement-date">${new Date(m.measured_date).toLocaleDateString()}</div>
-                        <div class="measurement-values">
-                            ${m.weight ? `<span>${m.weight}</span> lbs` : ''}
-                            ${m.body_fat_percentage ? `<span>${m.body_fat_percentage}</span>%` : ''}
+                // Show entries with collapsible details (use measured_date field from API)
+                const initialEntries = 5;
+                const allEntries = measurements.slice(0, 20);
+                let showingAll = false;
+
+                function renderMeasurementEntry(m, index) {
+                    const hasDetails = m.chest || m.waist || m.hips || m.left_arm || m.right_arm || m.left_thigh || m.right_thigh || m.notes;
+                    return `
+                        <div class="measurement-entry" onclick="toggleMeasurementEntry(this)" data-index="${index}">
+                            <div class="measurement-entry-header">
+                                <div>
+                                    <div class="measurement-date">${new Date(m.measured_date).toLocaleDateString()}</div>
+                                    <div class="measurement-values" style="margin-top: 4px;">
+                                        ${m.weight ? `<span>${m.weight}</span> lbs` : ''}
+                                        ${m.body_fat_percentage ? `&nbsp;|&nbsp;<span>${m.body_fat_percentage}</span>% BF` : ''}
+                                    </div>
+                                </div>
+                                ${hasDetails ? '<span class="expand-indicator">▼</span>' : ''}
+                            </div>
+                            ${hasDetails ? `
+                                <div class="measurement-entry-details">
+                                    <div class="measurement-detail-grid">
+                                        ${m.chest ? `<div class="measurement-detail-item">Chest: <span>${m.chest}"</span></div>` : ''}
+                                        ${m.waist ? `<div class="measurement-detail-item">Waist: <span>${m.waist}"</span></div>` : ''}
+                                        ${m.hips ? `<div class="measurement-detail-item">Hips: <span>${m.hips}"</span></div>` : ''}
+                                        ${m.left_arm ? `<div class="measurement-detail-item">L. Arm: <span>${m.left_arm}"</span></div>` : ''}
+                                        ${m.right_arm ? `<div class="measurement-detail-item">R. Arm: <span>${m.right_arm}"</span></div>` : ''}
+                                        ${m.left_thigh ? `<div class="measurement-detail-item">L. Thigh: <span>${m.left_thigh}"</span></div>` : ''}
+                                        ${m.right_thigh ? `<div class="measurement-detail-item">R. Thigh: <span>${m.right_thigh}"</span></div>` : ''}
+                                    </div>
+                                    ${m.notes ? `<div class="measurement-notes">"${m.notes}"</div>` : ''}
+                                </div>
+                            ` : ''}
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }
+
+                function renderEntries() {
+                    const entriesToShow = showingAll ? allEntries : allEntries.slice(0, initialEntries);
+                    let html = entriesToShow.map((m, i) => renderMeasurementEntry(m, i)).join('');
+
+                    if (allEntries.length > initialEntries) {
+                        const remaining = allEntries.length - initialEntries;
+                        html += `<button class="show-more-btn" onclick="event.stopPropagation(); toggleShowMore()">
+                            ${showingAll ? 'Show Less' : `Show ${remaining} More Entries`}
+                        </button>`;
+                    }
+                    container.innerHTML = html;
+                    lucide.createIcons();
+                }
+
+                window.toggleShowMore = function() {
+                    showingAll = !showingAll;
+                    renderEntries();
+                };
+
+                renderEntries();
 
             } catch (error) {
                 console.error('Error:', error);
@@ -916,8 +1125,13 @@
                     measured_date: document.getElementById('measurementDate').value,
                     weight: parseFloat(document.getElementById('weightInput').value) || null,
                     body_fat_percentage: parseFloat(document.getElementById('bodyfatInput').value) || null,
+                    chest: parseFloat(document.getElementById('chestInput').value) || null,
                     waist: parseFloat(document.getElementById('waistInput').value) || null,
                     hips: parseFloat(document.getElementById('hipsInput').value) || null,
+                    left_arm: parseFloat(document.getElementById('leftArmInput').value) || null,
+                    right_arm: parseFloat(document.getElementById('rightArmInput').value) || null,
+                    left_thigh: parseFloat(document.getElementById('leftThighInput').value) || null,
+                    right_thigh: parseFloat(document.getElementById('rightThighInput').value) || null,
                     notes: document.getElementById('measurementNotes').value || null
                 };
 
@@ -1014,6 +1228,20 @@
 
         function viewPhoto(url) {
             window.open(url, '_blank');
+        }
+
+        // Toggle individual measurement entry expansion
+        function toggleMeasurementEntry(entry) {
+            entry.classList.toggle('expanded');
+        }
+
+        // Toggle entire logs section collapse/expand
+        function toggleLogsSection() {
+            const container = document.getElementById('logsContainer');
+            const icon = document.getElementById('logsCollapseIcon');
+
+            container.classList.toggle('collapsed');
+            icon.classList.toggle('collapsed');
         }
     </script>
 
