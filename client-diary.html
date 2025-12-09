@@ -2382,6 +2382,593 @@
             color: white;
         }
 
+        /* ===== AI-FIRST HERO INPUT STYLES ===== */
+        .ai-hero-section {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 20px;
+            padding: 24px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(13, 148, 136, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .ai-hero-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .ai-hero-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .ai-hero-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .ai-hero-subtitle {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .ai-hero-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .ai-hero-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 16px;
+            padding-right: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            transition: all 0.2s;
+        }
+
+        .ai-hero-textarea::placeholder {
+            color: #64748b;
+        }
+
+        .ai-hero-textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2);
+        }
+
+        .ai-hero-send-btn {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 40px;
+            height: 40px;
+            background: var(--brand-primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-hero-send-btn:hover {
+            background: #0f766e;
+            transform: scale(1.05);
+        }
+
+        .ai-hero-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Meal Type Selector */
+        .meal-type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .meal-type-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .meal-type-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .meal-type-btn.active {
+            background: rgba(13, 148, 136, 0.2);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        .meal-type-btn .meal-icon {
+            font-size: 1.25rem;
+        }
+
+        .meal-type-btn.breakfast .meal-icon { color: #f59e0b; }
+        .meal-type-btn.lunch .meal-icon { color: #eab308; }
+        .meal-type-btn.dinner .meal-icon { color: #8b5cf6; }
+        .meal-type-btn.snack .meal-icon { color: #ef4444; }
+
+        .meal-type-btn.active.breakfast { border-color: #f59e0b; background: rgba(245, 158, 11, 0.2); }
+        .meal-type-btn.active.lunch { border-color: #eab308; background: rgba(234, 179, 8, 0.2); }
+        .meal-type-btn.active.dinner { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
+        .meal-type-btn.active.snack { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
+
+        /* AI Hero Alternatives */
+        .ai-hero-alternatives {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .ai-hero-alt-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-hero-alt-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .ai-hero-alt-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* AI Parsing Result Card */
+        .ai-parse-result {
+            background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            border: 2px solid #34d399;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+
+        .ai-parse-result-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: #34d399;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-result-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ai-parse-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .ai-parse-item-name {
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-item-qty {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .ai-parse-item-cals {
+            color: #34d399;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-totals {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .ai-parse-total-item {
+            color: white;
+        }
+
+        .ai-parse-total-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .ai-parse-total-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .ai-parse-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-parse-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-parse-confirm-btn {
+            background: #34d399;
+            color: #065f46;
+            border: none;
+        }
+
+        .ai-parse-confirm-btn:hover {
+            background: #6ee7b7;
+        }
+
+        .ai-parse-edit-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+        }
+
+        .ai-parse-edit-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* AI Hero Loading State */
+        .ai-hero-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            color: #94a3b8;
+        }
+
+        .ai-hero-loading .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .ai-hero-loading .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--brand-primary);
+            border-radius: 50%;
+            animation: aiDotPulse 1.4s infinite ease-in-out both;
+        }
+
+        .ai-hero-loading .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .ai-hero-loading .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .ai-hero-loading .loading-dots span:nth-child(3) { animation-delay: 0; }
+
+        /* Enhanced Summary Dashboard */
+        .enhanced-summary {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .enhanced-summary {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .summary-calories-display {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .calories-big-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1;
+        }
+
+        [data-theme="dark"] .calories-big-number {
+            color: #f1f5f9;
+        }
+
+        .calories-goal-text {
+            font-size: 1.1rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .calories-progress-bar {
+            height: 12px;
+            background: var(--gray-200);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        [data-theme="dark"] .calories-progress-bar {
+            background: #334155;
+        }
+
+        .calories-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--brand-primary) 0%, #0284c7 100%);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .calories-progress-fill.over {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .calories-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .calories-status.on-track {
+            color: #10b981;
+        }
+
+        .calories-status.over {
+            color: #ef4444;
+        }
+
+        /* Macro Bars Enhanced */
+        .macro-bars-enhanced {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .macro-bar-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .macro-bar-vertical-track {
+            width: 100%;
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .macro-bar-vertical-track {
+            background: #334155;
+        }
+
+        .macro-bar-vertical-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .macro-bar-vertical-fill.protein { background: #3b82f6; }
+        .macro-bar-vertical-fill.carbs { background: #f59e0b; }
+        .macro-bar-vertical-fill.fat { background: #ef4444; }
+
+        .macro-bar-vertical-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .macro-bar-vertical-value {
+            color: #f1f5f9;
+        }
+
+        .macro-bar-vertical-value.protein { color: #3b82f6; }
+        .macro-bar-vertical-value.carbs { color: #f59e0b; }
+        .macro-bar-vertical-value.fat { color: #ef4444; }
+
+        .macro-bar-vertical-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .macro-bar-vertical-goal {
+            font-size: 0.7rem;
+            color: var(--gray-400);
+        }
+
+        /* Meal Timeline Styles */
+        .meal-timeline {
+            position: relative;
+        }
+
+        .meal-timeline-section {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-100);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        [data-theme="dark"] .meal-timeline-section {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .meal-timeline-section.empty {
+            border-style: dashed;
+            border-color: var(--gray-200);
+        }
+
+        [data-theme="dark"] .meal-timeline-section.empty {
+            border-color: #475569;
+        }
+
+        .meal-timeline-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            gap: 12px;
+        }
+
+        .meal-timeline-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .meal-timeline-icon.breakfast { background: rgba(245, 158, 11, 0.15); }
+        .meal-timeline-icon.lunch { background: rgba(234, 179, 8, 0.15); }
+        .meal-timeline-icon.dinner { background: rgba(139, 92, 246, 0.15); }
+        .meal-timeline-icon.snack { background: rgba(239, 68, 68, 0.15); }
+
+        .meal-timeline-info {
+            flex: 1;
+        }
+
+        .meal-timeline-title {
+            font-weight: 700;
+            color: var(--gray-900);
+            font-size: 1rem;
+        }
+
+        [data-theme="dark"] .meal-timeline-title {
+            color: #f1f5f9;
+        }
+
+        .meal-timeline-summary {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .meal-timeline-cals {
+            font-weight: 700;
+            color: var(--gray-700);
+            font-size: 1rem;
+        }
+
+        [data-theme="dark"] .meal-timeline-cals {
+            color: #cbd5e1;
+        }
+
+        .meal-timeline-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+            color: var(--brand-primary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .meal-timeline-add:hover {
+            background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .meal-timeline-add:hover {
+            background: #334155;
+        }
+
+        .meal-timeline-entries {
+            border-top: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .meal-timeline-entries {
+            border-color: #334155;
+        }
+
         /* ===== SKELETON LOADING STYLES ===== */
         @keyframes shimmer {
             0% { background-position: -200% 0; }
@@ -2509,6 +3096,80 @@
                 </svg>
                 Weekly Summary
             </button>
+        </div>
+
+        <!-- AI-First Hero Input Section -->
+        <div class="ai-hero-section" id="aiHeroSection">
+            <div class="ai-hero-header">
+                <div class="ai-hero-icon">
+                    <i data-lucide="sparkles" width="20" height="20"></i>
+                </div>
+                <div class="ai-hero-title">What did you eat?</div>
+                <div class="ai-hero-subtitle">AI-powered logging</div>
+            </div>
+
+            <!-- Meal Type Selector -->
+            <div class="meal-type-selector" id="mealTypeSelector">
+                <button class="meal-type-btn breakfast" data-meal="breakfast" onclick="selectMealType('breakfast')">
+                    <span class="meal-icon"><i data-lucide="sunrise" width="20" height="20"></i></span>
+                    <span>Breakfast</span>
+                </button>
+                <button class="meal-type-btn lunch" data-meal="lunch" onclick="selectMealType('lunch')">
+                    <span class="meal-icon"><i data-lucide="sun" width="20" height="20"></i></span>
+                    <span>Lunch</span>
+                </button>
+                <button class="meal-type-btn dinner" data-meal="dinner" onclick="selectMealType('dinner')">
+                    <span class="meal-icon"><i data-lucide="moon" width="20" height="20"></i></span>
+                    <span>Dinner</span>
+                </button>
+                <button class="meal-type-btn snack" data-meal="snack" onclick="selectMealType('snack')">
+                    <span class="meal-icon"><i data-lucide="apple" width="20" height="20"></i></span>
+                    <span>Snack</span>
+                </button>
+            </div>
+
+            <!-- AI Input -->
+            <div class="ai-hero-input-wrapper">
+                <textarea
+                    class="ai-hero-textarea"
+                    id="aiHeroInput"
+                    placeholder="Describe what you ate... e.g., 'Grilled chicken with rice and vegetables' or 'A large coffee with oat milk'"
+                    rows="2"
+                    onkeydown="handleHeroKeydown(event)"
+                ></textarea>
+                <button class="ai-hero-send-btn" id="aiHeroSendBtn" onclick="sendHeroAIMessage()">
+                    <i data-lucide="send" width="18" height="18"></i>
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div class="ai-hero-loading" id="aiHeroLoading" style="display: none;">
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>Analyzing your meal...</span>
+            </div>
+
+            <!-- Parse Result Container (populated by JS) -->
+            <div id="aiHeroParseResult"></div>
+
+            <!-- Alternative Options -->
+            <div class="ai-hero-alternatives">
+                <button class="ai-hero-alt-btn" onclick="openAIPhotoModal()">
+                    <i data-lucide="camera" width="16" height="16"></i>
+                    Snap Photo
+                </button>
+                <button class="ai-hero-alt-btn" onclick="openFoodSearch(selectedMealType || 'snack')">
+                    <i data-lucide="search" width="16" height="16"></i>
+                    Search Foods
+                </button>
+                <button class="ai-hero-alt-btn" onclick="openQuickAdd()">
+                    <i data-lucide="plus" width="16" height="16"></i>
+                    Quick Add
+                </button>
+            </div>
         </div>
 
         <!-- Summary Card -->
@@ -6901,6 +7562,212 @@
             `).join('');
             lucide.createIcons();
         }
+
+        // ==========================================
+        // AI-FIRST HERO INPUT SECTION
+        // ==========================================
+        let selectedMealType = null;
+        let pendingHeroFoodLog = null;
+
+        // Auto-select meal type based on time of day
+        function autoSelectMealType() {
+            const hour = new Date().getHours();
+            let mealType = 'snack';
+
+            if (hour >= 5 && hour < 11) mealType = 'breakfast';
+            else if (hour >= 11 && hour < 15) mealType = 'lunch';
+            else if (hour >= 15 && hour < 21) mealType = 'dinner';
+            else mealType = 'snack';
+
+            selectMealType(mealType);
+        }
+
+        // Select meal type button
+        function selectMealType(mealType) {
+            selectedMealType = mealType;
+
+            // Update button states
+            document.querySelectorAll('.meal-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const activeBtn = document.querySelector(`.meal-type-btn.${mealType}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+
+        // Handle Enter key in hero input
+        function handleHeroKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendHeroAIMessage();
+            }
+        }
+
+        // Send message from hero AI input
+        async function sendHeroAIMessage() {
+            const input = document.getElementById('aiHeroInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Show loading
+            document.getElementById('aiHeroLoading').style.display = 'flex';
+            document.getElementById('aiHeroSendBtn').disabled = true;
+            document.getElementById('aiHeroParseResult').innerHTML = '';
+
+            try {
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/client-diary-ai', {
+                    clientId: clientId,
+                    clientFirstName: clientFirstName,
+                    message: `Log for ${selectedMealType || 'snack'}: ${message}`,
+                    todayEntries: entries || [],
+                    goals: goals || {},
+                    totals: currentTotals || { calories: 0, protein: 0, carbs: 0, fat: 0 }
+                });
+
+                // Hide loading
+                document.getElementById('aiHeroLoading').style.display = 'none';
+                document.getElementById('aiHeroSendBtn').disabled = false;
+
+                if (data.error) {
+                    showToast('Sorry, AI encountered an error. Try again.');
+                    return;
+                }
+
+                // Check if AI parsed food
+                if (data.parsed && data.parsed.action === 'log_food') {
+                    // Override meal type with our selected one
+                    data.parsed.meal_type = selectedMealType || data.parsed.meal_type || 'snack';
+                    pendingHeroFoodLog = data.parsed;
+                    showHeroParseResult(data.parsed);
+                } else {
+                    // Show message in a toast
+                    showToast(data.response || 'Couldn\'t parse that food. Try being more specific.');
+                }
+
+            } catch (err) {
+                console.error('Hero AI error:', err);
+                document.getElementById('aiHeroLoading').style.display = 'none';
+                document.getElementById('aiHeroSendBtn').disabled = false;
+                showToast('Couldn\'t connect to AI. Please try again.');
+            }
+        }
+
+        // Show parsed result in hero section
+        function showHeroParseResult(foodData) {
+            const container = document.getElementById('aiHeroParseResult');
+            const mealLabel = foodData.meal_type ? foodData.meal_type.charAt(0).toUpperCase() + foodData.meal_type.slice(1) : 'Diary';
+
+            container.innerHTML = `
+                <div class="ai-parse-result">
+                    <div class="ai-parse-result-header">
+                        <i data-lucide="check-circle" width="18" height="18"></i>
+                        <span>Ready to log</span>
+                    </div>
+                    <div class="ai-parse-result-items">
+                        <div class="ai-parse-item">
+                            <div>
+                                <div class="ai-parse-item-name">${foodData.food_name}</div>
+                            </div>
+                            <div class="ai-parse-item-cals">${foodData.calories} cal</div>
+                        </div>
+                    </div>
+                    <div class="ai-parse-totals">
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value">${foodData.calories}</div>
+                            <div class="ai-parse-total-label">Calories</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #3b82f6;">${foodData.protein}g</div>
+                            <div class="ai-parse-total-label">Protein</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #f59e0b;">${foodData.carbs}g</div>
+                            <div class="ai-parse-total-label">Carbs</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #ef4444;">${foodData.fat}g</div>
+                            <div class="ai-parse-total-label">Fat</div>
+                        </div>
+                    </div>
+                    <div class="ai-parse-actions">
+                        <button class="ai-parse-edit-btn" onclick="cancelHeroFoodLog()">Cancel</button>
+                        <button class="ai-parse-confirm-btn" onclick="confirmHeroFoodLog()">
+                            <i data-lucide="check" width="16" height="16"></i>
+                            Add to ${mealLabel}
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // Confirm and add food from hero input
+        async function confirmHeroFoodLog() {
+            if (!pendingHeroFoodLog) return;
+
+            const food = pendingHeroFoodLog;
+            const mealType = food.meal_type || selectedMealType || 'snack';
+
+            try {
+                // Use authenticated API call
+                await apiPost('/.netlify/functions/food-diary', {
+                    clientId,
+                    foodName: food.food_name,
+                    calories: food.calories,
+                    protein: food.protein,
+                    carbs: food.carbs,
+                    fat: food.fat,
+                    mealType: mealType,
+                    entryDate: formatDate(currentDate),
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    numberOfServings: 1
+                });
+
+                // Clear input and result
+                document.getElementById('aiHeroInput').value = '';
+                document.getElementById('aiHeroParseResult').innerHTML = '';
+                pendingHeroFoodLog = null;
+
+                // Show success
+                showToast(`Added "${food.food_name}" to ${mealType}!`);
+
+                // Refresh diary
+                await loadDiaryEntries();
+
+            } catch (err) {
+                console.error('Error adding food:', err);
+                showToast('Failed to add food. Please try again.');
+            }
+        }
+
+        // Cancel hero food log
+        function cancelHeroFoodLog() {
+            pendingHeroFoodLog = null;
+            document.getElementById('aiHeroParseResult').innerHTML = '';
+        }
+
+        // Initialize hero section on page load
+        function initAIHeroSection() {
+            // Auto-select meal type based on time
+            autoSelectMealType();
+
+            // Re-initialize lucide icons
+            setTimeout(() => {
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }, 100);
+        }
+
+        // Call init when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            initAIHeroSection();
+        });
 
         // Send message to AI
         async function sendAIMessage() {
