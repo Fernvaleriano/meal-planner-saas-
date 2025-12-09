@@ -3794,9 +3794,12 @@
                             <!-- Items will be rendered here -->
                         </div>
                     </div>
-                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 16px; text-align: center;">
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 12px; text-align: center;">
                         ⚠️ AI estimates may vary. Feel free to adjust values before adding.
                     </p>
+                    <button type="button" id="smartReanalyzeBtn" onclick="reanalyzeWithSmartAI()" style="width: 100%; margin-bottom: 16px; background: none; border: 1px dashed var(--gray-300); color: var(--gray-500); padding: 10px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                        <span>🔍</span> Not accurate? <strong style="color: var(--brand-primary);">Reanalyze with Smarter AI</strong>
+                    </button>
                     <div class="form-row">
                         <button type="button" class="btn btn-secondary" onclick="resetAIPhoto()" style="flex:1">Try Another</button>
                         <button type="button" class="btn btn-primary" onclick="addAIDetectedFoods()" style="flex:1">Add All to Diary</button>
@@ -6594,6 +6597,50 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        // Reanalyze photo with smarter AI (Claude 3.5 Sonnet)
+        async function reanalyzeWithSmartAI() {
+            if (!currentPhotoBase64) {
+                showToast('No photo to reanalyze');
+                return;
+            }
+
+            const btn = document.getElementById('smartReanalyzeBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--gray-300); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span> Analyzing with smarter AI...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            // Get optional food details from user
+            const foodDetails = document.getElementById('photoFoodDetails').value.trim();
+
+            try {
+                const data = await apiPost('/.netlify/functions/analyze-food-photo-smart', {
+                    image: currentPhotoBase64,
+                    details: foodDetails || null
+                });
+                console.log('Smart AI Photo response:', data);
+
+                if (data.foods && data.foods.length > 0) {
+                    aiDetectedFoods = data.foods;
+                    renderAIResults();
+                    showToast('✨ Reanalyzed with smarter AI!');
+                    // Hide the reanalyze button after successful use
+                    btn.style.display = 'none';
+                } else {
+                    showToast('Smart AI could not detect food items');
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
+            } catch (err) {
+                console.error('Error with smart analysis:', err);
+                showToast('Smart analysis failed. Try again.');
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
         }
 
         // Remove an AI detected food item
