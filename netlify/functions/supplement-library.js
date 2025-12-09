@@ -132,8 +132,14 @@ exports.handler = async (event, context) => {
                 .single());
 
             // If failed due to column not existing, retry without frequency fields
-            if (error && error.message && error.message.includes('column')) {
-                console.log('Retrying insert without frequency fields...');
+            // Check for various error patterns: column errors, undefined_column code (42703)
+            const isColumnError = error && (
+                (error.message && (error.message.includes('column') || error.message.includes('frequency'))) ||
+                error.code === '42703'
+            );
+
+            if (isColumnError) {
+                console.log('Column error detected, retrying insert without frequency fields...', error.message);
                 ({ data: supplement, error } = await supabase
                     .from('supplement_library')
                     .insert([insertData])
@@ -151,14 +157,20 @@ exports.handler = async (event, context) => {
         } catch (error) {
             console.error('Error creating supplement:', error);
             const details = error.message || String(error);
+            const errorCode = error.code || 'unknown';
             const isTableMissing = details.includes('relation') && details.includes('does not exist');
+            const isColumnMissing = details.includes('column') || errorCode === '42703';
             return {
                 statusCode: isTableMissing ? 404 : 500,
                 headers: corsHeaders,
                 body: JSON.stringify({
-                    error: isTableMissing ? 'Supplement library not set up' : 'Failed to create supplement',
+                    error: isTableMissing ? 'Supplement library not set up' :
+                           isColumnMissing ? 'Database schema needs update' :
+                           'Failed to create supplement',
                     details: details,
-                    hint: isTableMissing ? 'Run the supplement_library.sql migration in Supabase' : undefined
+                    code: errorCode,
+                    hint: isTableMissing ? 'Run the supplement_library.sql migration in Supabase' :
+                          isColumnMissing ? 'Run the supplement_library_frequency.sql migration' : undefined
                 })
             };
         }
@@ -220,8 +232,13 @@ exports.handler = async (event, context) => {
                 .single());
 
             // If failed due to column not existing, retry without frequency fields
-            if (error && error.message && error.message.includes('column')) {
-                console.log('Retrying update without frequency fields...');
+            const isColumnError = error && (
+                (error.message && (error.message.includes('column') || error.message.includes('frequency'))) ||
+                error.code === '42703'
+            );
+
+            if (isColumnError) {
+                console.log('Column error detected, retrying update without frequency fields...', error.message);
                 ({ data: supplement, error } = await supabase
                     .from('supplement_library')
                     .update(updateData)
