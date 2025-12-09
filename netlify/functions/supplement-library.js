@@ -92,6 +92,10 @@ exports.handler = async (event, context) => {
                 };
             }
 
+            // ✅ SECURITY: Verify the authenticated user owns this coach account
+            const { user, error: authError } = await authenticateCoach(event, coachId);
+            if (authError) return authError;
+
             const insertData = {
                 coach_id: coachId,
                 name: name.trim(),
@@ -155,6 +159,10 @@ exports.handler = async (event, context) => {
                 };
             }
 
+            // ✅ SECURITY: Verify the authenticated user owns this coach account
+            const { user, error: authError } = await authenticateCoach(event, coachId);
+            if (authError) return authError;
+
             const updateData = {
                 name: name?.trim(),
                 category: category || null,
@@ -212,6 +220,10 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'Supplement ID and Coach ID are required' })
             };
         }
+
+        // ✅ SECURITY: Verify the authenticated user owns this coach account
+        const { user, error: authError } = await authenticateCoach(event, coachId);
+        if (authError) return authError;
 
         try {
             if (permanent === 'true') {
