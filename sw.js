@@ -1,8 +1,8 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v5';
-const STATIC_CACHE = 'zique-static-v5';
-const DATA_CACHE = 'zique-data-v4';
-const CDN_CACHE = 'zique-cdn-v1';
+const CACHE_NAME = 'zique-fitness-v6';
+const STATIC_CACHE = 'zique-static-v6';
+const DATA_CACHE = 'zique-data-v5';
+const CDN_CACHE = 'zique-cdn-v2';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -23,18 +23,19 @@ const STATIC_FILES = [
   '/client-plans.html',
   '/client-login.html',
   // Styles
-  '/styles/brand.css',
-  '/styles/coach-layout.css',
+  '/css/coach-layout.css',
   // Core JS
   '/js/theme.js',
-  '/js/branding.js'
+  '/js/branding.js',
+  '/js/api-helper.js'
 ];
 
-// CDN resources to cache (long-lived, rarely change)
+// CDN resources to cache (versioned for long-term caching)
 const CDN_FILES = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://unpkg.com/lucide@latest/dist/umd/lucide.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  'https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js'
 ];
 
 // API endpoints to cache (stale-while-revalidate)
@@ -42,7 +43,10 @@ const CDN_FILES = [
 const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/calorie-goals/,
   /\/\.netlify\/functions\/get-favorites/,
-  /\/\.netlify\/functions\/get-recipes/
+  /\/\.netlify\/functions\/get-recipes/,
+  /\/\.netlify\/functions\/get-coach-branding/,
+  /\/\.netlify\/functions\/get-coach-plans/,
+  /\/\.netlify\/functions\/get-user-profile/
 ];
 
 // Install event - cache static files and CDN resources
