@@ -30,6 +30,11 @@ body {
     background: var(--gray-50);
     min-height: 100vh;
     color: var(--gray-800);
+    /* Native app feel */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 
 [data-theme="dark"] body {
