@@ -4520,6 +4520,272 @@
             background: #34d399;
             color: #065f46;
         }
+
+        /* ==========================================
+           Dashboard Modal Styles
+           ========================================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gray-50);
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease;
+        }
+
+        [data-theme="dark"] .modal-content {
+            background: #0f172a;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .modal-header {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--gray-500);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: var(--gray-900);
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: var(--gray-200);
+        }
+
+        [data-theme="dark"] .search-input {
+            background: #334155;
+            color: #f1f5f9;
+        }
+
+        .search-results {
+            min-height: 200px;
+        }
+
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-result-item:hover {
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .search-result-item {
+            background: #1e293b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .quick-add-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            margin: auto;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        [data-theme="dark"] .quick-add-modal {
+            background: #1e293b;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .photo-upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .photo-upload-area:hover {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        .photo-upload-area.has-image {
+            padding: 0;
+            border: none;
+        }
+
+        .photo-upload-area.has-image img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .photo-upload-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .photo-upload-text {
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+        }
+
+        .photo-upload-hint {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .ai-analyzing {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .ai-analyzing-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .ai-results {
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        [data-theme="dark"] .ai-results {
+            background: #334155;
+        }
+
+        .ai-results-header {
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-food-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .ai-food-item {
+            background: #1e293b;
+        }
+
+        .ai-food-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .favorite-item {
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .favorite-item:hover {
+            border-color: var(--brand-primary);
+            background: var(--gray-50);
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
 </head>
@@ -4820,7 +5086,13 @@
                             ></textarea>
                         </div>
                         <div class="ai-hero-input-actions">
-                            <button class="ai-hero-voice-btn" id="aiHeroVoiceBtn" onclick="toggleVoiceInput()">🎤</button>
+                            <button class="ai-hero-voice-btn" id="aiHeroVoiceBtn" onclick="toggleVoiceInput()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                    <line x1="12" x2="12" y1="19" y2="22"/>
+                                </svg>
+                            </button>
                             <button class="ai-hero-send-btn" id="aiHeroSendBtn" onclick="sendHeroAIMessage()">Log Food ➤</button>
                         </div>
 
@@ -4839,27 +5111,27 @@
 
                         <!-- Alternative Options -->
                         <div class="ai-hero-alternatives">
-                            <button class="ai-hero-alt-btn" onclick="openDashboardPhotoModal()">
+                            <button class="ai-hero-alt-btn" onclick="openDashPhotoModal()">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                                     <circle cx="12" cy="13" r="4"/>
                                 </svg>
                                 Snap Photo
                             </button>
-                            <button class="ai-hero-alt-btn" onclick="window.location.href='client-diary.html?openSearch=true'">
+                            <button class="ai-hero-alt-btn" onclick="openDashSearch()">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="11" cy="11" r="8"/>
                                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                                 </svg>
                                 Search Foods
                             </button>
-                            <button class="ai-hero-alt-btn" onclick="openDashboardFavoritesPicker()">
+                            <button class="ai-hero-alt-btn" onclick="openDashFavorites()">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                                 </svg>
                                 Favorites
                             </button>
-                            <button class="ai-hero-alt-btn" onclick="openDashboardBarcodeScanner()">
+                            <button class="ai-hero-alt-btn" onclick="openDashBarcodeScanner()">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
                                     <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
@@ -8141,18 +8413,507 @@
         }
 
         // ==========================================
-        // ALTERNATIVE INPUT FUNCTIONS
+        // DASHBOARD MODAL FUNCTIONS
         // ==========================================
-        function openDashboardPhotoModal() {
-            window.location.href = 'client-diary.html?action=photo';
+        let dashPhotoBase64 = null;
+        let dashDetectedFoods = [];
+        let dashScannedProduct = null;
+        let dashSelectedFood = null;
+        let dashHtml5QrCode = null;
+        let dashSearchTimeout = null;
+
+        // Get current meal type from selection or default to lunch
+        function getDashMealType() {
+            const selectedBtn = document.querySelector('.meal-type-btn.selected');
+            return selectedBtn ? selectedBtn.dataset.meal : 'lunch';
         }
 
-        function openDashboardFavoritesPicker() {
-            window.location.href = 'client-diary.html?action=favorites';
+        // ========== PHOTO MODAL ==========
+        function openDashPhotoModal() {
+            document.getElementById('dashPhotoModal').classList.add('active');
+            resetDashPhoto();
         }
 
-        function openDashboardBarcodeScanner() {
-            window.location.href = 'client-diary.html?action=barcode';
+        function closeDashPhotoModal() {
+            document.getElementById('dashPhotoModal').classList.remove('active');
+            resetDashPhoto();
+        }
+
+        function resetDashPhoto() {
+            document.getElementById('dashPhotoUpload').style.display = 'block';
+            document.getElementById('dashPhotoAnalyzing').style.display = 'none';
+            document.getElementById('dashPhotoResults').style.display = 'none';
+            document.getElementById('dashPhotoDetailsSection').style.display = 'none';
+            document.getElementById('dashPhotoFoodDetails').value = '';
+            document.getElementById('dashPhotoUploadArea').innerHTML = `
+                <div class="photo-upload-icon">📷</div>
+                <div class="photo-upload-text">Tap to take a photo or upload</div>
+                <div class="photo-upload-hint">AI will analyze your food and estimate calories</div>
+            `;
+            document.getElementById('dashPhotoUploadArea').classList.remove('has-image');
+            document.getElementById('dashPhotoInput').value = '';
+            dashDetectedFoods = [];
+            dashPhotoBase64 = null;
+        }
+
+        function handleDashPhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                dashPhotoBase64 = e.target.result;
+                const uploadArea = document.getElementById('dashPhotoUploadArea');
+                uploadArea.classList.add('has-image');
+                uploadArea.innerHTML = `<img src="${dashPhotoBase64}" alt="Food photo" style="cursor: pointer;" onclick="document.getElementById('dashPhotoInput').click()">`;
+                document.getElementById('dashPhotoDetailsSection').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function analyzeDashPhoto() {
+            document.getElementById('dashPhotoUpload').style.display = 'none';
+            document.getElementById('dashPhotoDetailsSection').style.display = 'none';
+            document.getElementById('dashPhotoAnalyzing').style.display = 'block';
+
+            const foodDetails = document.getElementById('dashPhotoFoodDetails').value.trim();
+
+            try {
+                const response = await fetch('/.netlify/functions/analyze-food-photo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dashPhotoBase64, details: foodDetails || null })
+                });
+                const data = await response.json();
+                dashDetectedFoods = data.foods || [];
+
+                if (dashDetectedFoods.length === 0) {
+                    showToast('Could not detect any food items');
+                    resetDashPhoto();
+                    return;
+                }
+                renderDashPhotoResults();
+            } catch (err) {
+                console.error('Error analyzing photo:', err);
+                showToast('Failed to analyze photo. Try again.');
+                resetDashPhoto();
+            }
+        }
+
+        function renderDashPhotoResults() {
+            document.getElementById('dashPhotoAnalyzing').style.display = 'none';
+            document.getElementById('dashPhotoResults').style.display = 'block';
+            const container = document.getElementById('dashPhotoDetectedItems');
+            container.innerHTML = dashDetectedFoods.map((food, idx) => `
+                <div class="ai-food-item" style="position: relative; padding-right: 40px;">
+                    <button onclick="removeDashPhotoFood(${idx})" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer;">×</button>
+                    <div class="ai-food-name">${food.name}</div>
+                    <div class="ai-food-macros" style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.85rem;">
+                        <span>${food.calories} cal</span>
+                        <span style="color: #3b82f6;">${food.protein}g P</span>
+                        <span style="color: #f59e0b;">${food.carbs}g C</span>
+                        <span style="color: #ef4444;">${food.fat}g F</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeDashPhotoFood(idx) {
+            dashDetectedFoods.splice(idx, 1);
+            if (dashDetectedFoods.length === 0) {
+                resetDashPhoto();
+            } else {
+                renderDashPhotoResults();
+            }
+        }
+
+        async function addDashPhotoFoods() {
+            if (!currentClientId || dashDetectedFoods.length === 0) return;
+            const foodsToAdd = [...dashDetectedFoods];
+            closeDashPhotoModal();
+            showToast('Adding foods...');
+
+            const mealType = getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            for (const food of foodsToAdd) {
+                try {
+                    await fetch('/.netlify/functions/diary-entry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            clientId: currentClientId,
+                            entryDate: today,
+                            mealType: mealType,
+                            foodName: food.name,
+                            calories: food.calories,
+                            protein: food.protein,
+                            carbs: food.carbs,
+                            fat: food.fat,
+                            servings: 1,
+                            foodSource: 'ai_photo'
+                        })
+                    });
+                } catch (err) {
+                    console.error('Error adding food:', err);
+                }
+            }
+            showToast(`Added ${foodsToAdd.length} food(s) to diary!`);
+            loadDashboardData();
+        }
+
+        // ========== SEARCH MODAL ==========
+        function openDashSearch() {
+            document.getElementById('dashSearchModal').classList.add('active');
+            document.getElementById('dashFoodSearchInput').value = '';
+            document.getElementById('dashSearchResults').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <p>Type to search for foods</p>
+                </div>
+            `;
+            setTimeout(() => document.getElementById('dashFoodSearchInput').focus(), 100);
+        }
+
+        function closeDashSearch() {
+            document.getElementById('dashSearchModal').classList.remove('active');
+        }
+
+        function debounceDashSearch() {
+            clearTimeout(dashSearchTimeout);
+            dashSearchTimeout = setTimeout(performDashSearch, 300);
+        }
+
+        async function performDashSearch() {
+            const query = document.getElementById('dashFoodSearchInput').value.trim();
+            const container = document.getElementById('dashSearchResults');
+
+            if (query.length < 2) {
+                container.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p>Type to search for foods</p></div>`;
+                return;
+            }
+
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><p>Searching...</p></div>`;
+
+            try {
+                const response = await fetch(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${currentClientId}`);
+                const data = await response.json();
+                const foods = data.foods || [];
+
+                if (foods.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🍽️</div><p>No foods found</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = foods.map((food, idx) => `
+                    <div class="search-result-item" onclick="selectDashSearchFood(${idx})">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: var(--gray-900);">${food.name}</div>
+                            <div style="font-size: 0.8rem; color: var(--gray-500);">${food.brand || ''}</div>
+                            <div style="font-size: 0.8rem; color: var(--gray-600); margin-top: 4px;">
+                                ${food.calories} cal • ${food.protein}g P • ${food.carbs}g C • ${food.fat}g F
+                            </div>
+                        </div>
+                        <div style="color: var(--brand-primary); font-size: 1.2rem;">+</div>
+                    </div>
+                `).join('');
+
+                window.dashSearchResults = foods;
+            } catch (err) {
+                console.error('Search error:', err);
+                container.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><p>Search failed</p></div>`;
+            }
+        }
+
+        function selectDashSearchFood(idx) {
+            dashSelectedFood = window.dashSearchResults[idx];
+            closeDashSearch();
+            showDashFoodSelect();
+        }
+
+        function showDashFoodSelect() {
+            document.getElementById('dashSelectFoodName').textContent = dashSelectedFood.name;
+            document.getElementById('dashSelectFoodBrand').textContent = dashSelectedFood.brand || '';
+            document.getElementById('dashSelectCalories').textContent = dashSelectedFood.calories;
+            document.getElementById('dashSelectProtein').textContent = dashSelectedFood.protein + 'g';
+            document.getElementById('dashSelectCarbs').textContent = dashSelectedFood.carbs + 'g';
+            document.getElementById('dashSelectFat').textContent = dashSelectedFood.fat + 'g';
+            document.getElementById('dashSelectServings').value = 1;
+            document.getElementById('dashFoodSelectModal').classList.add('active');
+        }
+
+        function closeDashFoodSelect() {
+            document.getElementById('dashFoodSelectModal').classList.remove('active');
+        }
+
+        async function addDashSelectedFood() {
+            if (!currentClientId || !dashSelectedFood) return;
+            const servings = parseFloat(document.getElementById('dashSelectServings').value) || 1;
+            const mealType = getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            closeDashFoodSelect();
+            showToast('Adding food...');
+
+            try {
+                await fetch('/.netlify/functions/diary-entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        entryDate: today,
+                        mealType: mealType,
+                        foodName: dashSelectedFood.name,
+                        calories: Math.round(dashSelectedFood.calories * servings),
+                        protein: Math.round(dashSelectedFood.protein * servings),
+                        carbs: Math.round(dashSelectedFood.carbs * servings),
+                        fat: Math.round(dashSelectedFood.fat * servings),
+                        servings: servings,
+                        foodSource: 'search'
+                    })
+                });
+                showToast('Food added to diary!');
+                loadDashboardData();
+            } catch (err) {
+                console.error('Error adding food:', err);
+                showToast('Failed to add food');
+            }
+        }
+
+        // ========== BARCODE SCANNER ==========
+        function openDashBarcodeScanner() {
+            document.getElementById('dashBarcodeModal').classList.add('active');
+            document.getElementById('dash-barcode-status').innerHTML = '<p>Starting camera...</p>';
+
+            if (typeof Html5Qrcode === 'undefined') {
+                // Load the library dynamically
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+                script.onload = startDashBarcodeScanner;
+                document.head.appendChild(script);
+            } else {
+                startDashBarcodeScanner();
+            }
+        }
+
+        function startDashBarcodeScanner() {
+            dashHtml5QrCode = new Html5Qrcode("dash-barcode-scanner");
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 150 },
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E
+                ]
+            };
+
+            dashHtml5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onDashBarcodeScanned,
+                () => {}
+            ).then(() => {
+                document.getElementById('dash-barcode-status').innerHTML = '<p>Point camera at barcode</p>';
+            }).catch((err) => {
+                document.getElementById('dash-barcode-status').innerHTML = `
+                    <p style="color: #ef4444;">Camera access denied</p>
+                    <p style="font-size: 0.875rem; margin-top: 8px;">Please allow camera access</p>
+                `;
+            });
+        }
+
+        function closeDashBarcodeScanner() {
+            if (dashHtml5QrCode) {
+                dashHtml5QrCode.stop().catch(() => {});
+            }
+            document.getElementById('dashBarcodeModal').classList.remove('active');
+        }
+
+        async function onDashBarcodeScanned(decodedText) {
+            if (dashHtml5QrCode) await dashHtml5QrCode.stop();
+            document.getElementById('dash-barcode-status').innerHTML = '<p>Looking up product...</p>';
+
+            try {
+                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
+                const data = await response.json();
+
+                if (data.status === 1 && data.product) {
+                    const product = data.product;
+                    dashScannedProduct = {
+                        barcode: decodedText,
+                        name: product.product_name || 'Unknown Product',
+                        brand: product.brands || '',
+                        image: product.image_small_url || null,
+                        calories: Math.round(product.nutriments?.['energy-kcal_100g'] || 0),
+                        protein: Math.round((product.nutriments?.proteins_100g || 0) * 10) / 10,
+                        carbs: Math.round((product.nutriments?.carbohydrates_100g || 0) * 10) / 10,
+                        fat: Math.round((product.nutriments?.fat_100g || 0) * 10) / 10,
+                        servingSize: product.serving_size || '100g'
+                    };
+                    showDashBarcodeResult();
+                } else {
+                    showToast('Product not found');
+                    document.getElementById('dash-barcode-status').innerHTML = `
+                        <p style="color: #f59e0b;">Product not found</p>
+                        <button onclick="closeDashBarcodeScanner(); setTimeout(openDashBarcodeScanner, 300);" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Scan Another</button>
+                    `;
+                }
+            } catch (err) {
+                showToast('Lookup failed');
+            }
+        }
+
+        function showDashBarcodeResult() {
+            closeDashBarcodeScanner();
+            document.getElementById('dashProductName').textContent = dashScannedProduct.name;
+            document.getElementById('dashProductBrand').textContent = dashScannedProduct.brand;
+            document.getElementById('dashProdCalories').textContent = dashScannedProduct.calories;
+            document.getElementById('dashProdProtein').textContent = dashScannedProduct.protein + 'g';
+            document.getElementById('dashProdCarbs').textContent = dashScannedProduct.carbs + 'g';
+            document.getElementById('dashProdFat').textContent = dashScannedProduct.fat + 'g';
+            document.getElementById('dashProdServing').textContent = `per ${dashScannedProduct.servingSize}`;
+            document.getElementById('dashBarcodeServings').value = 1;
+            const imageContainer = document.getElementById('dashProductImage');
+            imageContainer.innerHTML = dashScannedProduct.image
+                ? `<img src="${dashScannedProduct.image}" style="max-width: 120px; border-radius: 8px;">`
+                : '<div style="font-size: 3rem;">📦</div>';
+            document.getElementById('dashBarcodeResultModal').classList.add('active');
+        }
+
+        function closeDashBarcodeResult() {
+            document.getElementById('dashBarcodeResultModal').classList.remove('active');
+        }
+
+        async function addDashBarcodeFood() {
+            if (!currentClientId || !dashScannedProduct) return;
+            const servings = parseFloat(document.getElementById('dashBarcodeServings').value) || 1;
+            const mealType = getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            closeDashBarcodeResult();
+            showToast('Adding food...');
+
+            try {
+                await fetch('/.netlify/functions/diary-entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        entryDate: today,
+                        mealType: mealType,
+                        foodName: dashScannedProduct.name,
+                        calories: Math.round(dashScannedProduct.calories * servings),
+                        protein: Math.round(dashScannedProduct.protein * servings),
+                        carbs: Math.round(dashScannedProduct.carbs * servings),
+                        fat: Math.round(dashScannedProduct.fat * servings),
+                        servings: servings,
+                        foodSource: 'barcode',
+                        externalId: dashScannedProduct.barcode
+                    })
+                });
+                showToast('Food added to diary!');
+                loadDashboardData();
+            } catch (err) {
+                console.error('Error adding food:', err);
+                showToast('Failed to add food');
+            }
+        }
+
+        // ========== FAVORITES MODAL ==========
+        function openDashFavorites() {
+            document.getElementById('dashFavoritesModal').classList.add('active');
+            loadDashFavorites();
+        }
+
+        function closeDashFavorites() {
+            document.getElementById('dashFavoritesModal').classList.remove('active');
+        }
+
+        async function loadDashFavorites() {
+            const container = document.getElementById('dashFavoritesList');
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><p>Loading favorites...</p></div>`;
+
+            try {
+                const response = await fetch(`/.netlify/functions/toggle-favorite?clientId=${currentClientId}`);
+                const data = await response.json();
+                const favorites = data.favorites || [];
+
+                if (favorites.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">❤️</div>
+                            <p>No favorites yet</p>
+                            <p style="font-size: 0.85rem; color: var(--gray-400); margin-top: 8px;">
+                                Favorite meals from your meal plans to see them here
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                window.dashFavorites = favorites;
+                container.innerHTML = favorites.map((fav, idx) => {
+                    const icons = { breakfast: '☀️', lunch: '🌤️', dinner: '🌙', snack: '🍎' };
+                    const icon = icons[fav.meal_type] || '🍽️';
+                    return `
+                        <div class="favorite-item" onclick="addDashFavorite(${idx})">
+                            <div style="display: flex; gap: 12px; align-items: start;">
+                                <div style="font-size: 1.5rem;">${icon}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 4px;">${fav.meal_name || 'Unnamed Meal'}</div>
+                                    <div style="font-size: 0.8rem; color: var(--gray-500); text-transform: capitalize; margin-bottom: 6px;">${fav.meal_type || 'meal'}</div>
+                                    <div style="display: flex; gap: 12px; font-size: 0.8rem;">
+                                        <span style="color: var(--gray-600);">${fav.calories || 0} cal</span>
+                                        <span style="color: #3b82f6;">${fav.protein || 0}g P</span>
+                                        <span style="color: #f59e0b;">${fav.carbs || 0}g C</span>
+                                        <span style="color: #ef4444;">${fav.fat || 0}g F</span>
+                                    </div>
+                                </div>
+                                <div style="color: var(--brand-primary); font-size: 1.2rem;">+</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading favorites:', err);
+                container.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><p>Failed to load favorites</p></div>`;
+            }
+        }
+
+        async function addDashFavorite(idx) {
+            const fav = window.dashFavorites[idx];
+            if (!currentClientId || !fav) return;
+
+            const mealType = fav.meal_type || getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            closeDashFavorites();
+            showToast('Adding favorite...');
+
+            try {
+                await fetch('/.netlify/functions/diary-entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        entryDate: today,
+                        mealType: mealType,
+                        foodName: fav.meal_name || 'Favorite Meal',
+                        calories: fav.calories || 0,
+                        protein: fav.protein || 0,
+                        carbs: fav.carbs || 0,
+                        fat: fav.fat || 0,
+                        servings: 1,
+                        foodSource: 'favorite'
+                    })
+                });
+                showToast('Favorite added to diary!');
+                loadDashboardData();
+            } catch (err) {
+                console.error('Error adding favorite:', err);
+                showToast('Failed to add favorite');
+            }
         }
 
         // Call init when DOM is ready
@@ -8172,6 +8933,163 @@
             </div>
         </div>
     </footer>
+
+    <!-- AI Photo Modal -->
+    <div class="modal-overlay" id="dashPhotoModal">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeDashPhotoModal()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">📸 AI Photo Log</span>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="dashPhotoUpload">
+                    <div class="photo-upload-area" id="dashPhotoUploadArea" onclick="document.getElementById('dashPhotoInput').click()">
+                        <div class="photo-upload-icon">📷</div>
+                        <div class="photo-upload-text">Tap to take a photo or upload</div>
+                        <div class="photo-upload-hint">AI will analyze your food and estimate calories</div>
+                    </div>
+                    <input type="file" id="dashPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleDashPhotoSelect(event)">
+                </div>
+                <div id="dashPhotoDetailsSection" style="display: none; margin-top: 16px;">
+                    <label style="font-weight: 500; color: var(--gray-700); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+                        Add details (optional)
+                    </label>
+                    <input type="text" id="dashPhotoFoodDetails" placeholder="e.g., black tea unsweetened, turkey sandwich..." style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 0.95rem; box-sizing: border-box;">
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-top: 6px;">Help AI identify drinks or specific ingredients</p>
+                    <button type="button" class="btn btn-primary" onclick="analyzeDashPhoto()" style="width: 100%; margin-top: 12px;">Analyze Photo</button>
+                </div>
+                <div id="dashPhotoAnalyzing" style="display: none;">
+                    <div class="ai-analyzing">
+                        <div class="ai-analyzing-spinner"></div>
+                        <div class="ai-analyzing-text">Analyzing your food...</div>
+                        <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 8px;">This may take a few seconds</p>
+                    </div>
+                </div>
+                <div id="dashPhotoResults" style="display: none;">
+                    <div class="ai-results">
+                        <div class="ai-results-header"><span>✨</span> AI Detection Results</div>
+                        <div id="dashPhotoDetectedItems"></div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 16px; text-align: center;">⚠️ AI estimates may vary. Feel free to adjust values before adding.</p>
+                    <div class="form-row">
+                        <button type="button" class="btn btn-secondary" onclick="resetDashPhoto()" style="flex:1">Try Another</button>
+                        <button type="button" class="btn btn-primary" onclick="addDashPhotoFoods()" style="flex:1">Add All to Diary</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Food Search Modal -->
+    <div class="modal-overlay" id="dashSearchModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeDashSearch()">&times;</button>
+                <div class="search-input-wrapper">
+                    <input type="text" class="search-input" id="dashFoodSearchInput" placeholder="Search for food..." autocomplete="off" oninput="debounceDashSearch()">
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="search-results" id="dashSearchResults">
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <p>Type to search for foods</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div class="modal-overlay" id="dashBarcodeModal">
+        <div class="modal-content" style="background: #000;">
+            <div class="modal-header" style="background: #000; border-bottom: 1px solid #333;">
+                <button class="modal-close" onclick="closeDashBarcodeScanner()" style="color: white;">&times;</button>
+                <span style="color: white; font-weight: 600;">Scan Barcode</span>
+            </div>
+            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+                <div id="dash-barcode-scanner" style="width: 100%; max-width: 500px;"></div>
+                <div id="dash-barcode-status" style="color: white; text-align: center; padding: 20px;">
+                    <p>Point camera at barcode</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barcode Result Modal -->
+    <div class="modal-overlay" id="dashBarcodeResultModal">
+        <div class="quick-add-modal">
+            <h2 style="margin-bottom: 16px; color: var(--gray-900);">Product Found</h2>
+            <div id="dashBarcodeProductInfo">
+                <div class="product-image" id="dashProductImage" style="text-align: center; margin-bottom: 16px;"></div>
+                <div class="product-name" id="dashProductName" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;"></div>
+                <div class="product-brand" id="dashProductBrand" style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 16px;"></div>
+                <div class="product-nutrition" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                        <div><div style="font-size: 1.25rem; font-weight: 700;" id="dashProdCalories">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="dashProdProtein">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="dashProdCarbs">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="dashProdFat">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div></div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="dashProdServing">per 100g</div>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Servings</label>
+                    <input type="number" id="dashBarcodeServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+                </div>
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="closeDashBarcodeResult()" style="flex:1">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addDashBarcodeFood()" style="flex:1">Add Food</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Picker Modal -->
+    <div class="modal-overlay" id="dashFavoritesModal">
+        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <button class="modal-close" onclick="closeDashFavorites()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900); display: flex; align-items: center; gap: 8px;">❤️ Add from Favorites</span>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px;">
+                <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 16px;">Tap a favorite meal to add it to your diary:</p>
+                <div id="dashFavoritesList">
+                    <div class="empty-state">
+                        <div class="empty-icon">❤️</div>
+                        <p>Loading favorites...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Food Select Modal (for search/barcode results) -->
+    <div class="modal-overlay" id="dashFoodSelectModal">
+        <div class="quick-add-modal">
+            <h2 style="margin-bottom: 16px; color: var(--gray-900);">Add Food</h2>
+            <div id="dashFoodSelectInfo">
+                <div class="product-name" id="dashSelectFoodName" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;"></div>
+                <div class="product-brand" id="dashSelectFoodBrand" style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 16px;"></div>
+                <div class="product-nutrition" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                        <div><div style="font-size: 1.25rem; font-weight: 700;" id="dashSelectCalories">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="dashSelectProtein">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="dashSelectCarbs">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="dashSelectFat">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div></div>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Servings</label>
+                    <input type="number" id="dashSelectServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+                </div>
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="closeDashFoodSelect()" style="flex:1">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addDashSelectedFood()" style="flex:1">Add Food</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Bottom Navigation (App-like) -->
     <nav class="bottom-nav">
