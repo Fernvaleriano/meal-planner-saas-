@@ -3265,6 +3265,23 @@
             font-size: 1rem;
         }
 
+        .quick-log-meal-btn .meal-label {
+            font-size: 0.65rem;
+        }
+
+        /* Hide labels on very small screens */
+        @media (max-width: 360px) {
+            .quick-log-meal-btn .meal-label {
+                display: none;
+            }
+            .quick-log-meal-btn {
+                padding: 10px 8px;
+            }
+            .quick-log-meal-btn .meal-emoji {
+                font-size: 1.2rem;
+            }
+        }
+
         /* Compact Input */
         .quick-log-input-row {
             display: flex;
@@ -4572,7 +4589,9 @@
                     <div class="quick-log-card" id="quickLogCard">
                         <div class="quick-log-header">
                             <div class="quick-log-icon">
-                                <i data-lucide="sparkles" width="18" height="18" style="color: white;"></i>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="M12 3l1.5 4.5H18l-3.5 2.5 1.5 4.5-4-3-4 3 1.5-4.5L6 7.5h4.5L12 3z"/>
+                                </svg>
                             </div>
                             <div class="quick-log-title">Quick Log</div>
                         </div>
@@ -4581,19 +4600,19 @@
                         <div class="quick-log-meals">
                             <button class="quick-log-meal-btn breakfast" data-meal="breakfast" onclick="selectQuickLogMeal('breakfast')">
                                 <span class="meal-emoji">☀️</span>
-                                <span>Breakfast</span>
+                                <span class="meal-label">Bfast</span>
                             </button>
                             <button class="quick-log-meal-btn lunch" data-meal="lunch" onclick="selectQuickLogMeal('lunch')">
                                 <span class="meal-emoji">🌤️</span>
-                                <span>Lunch</span>
+                                <span class="meal-label">Lunch</span>
                             </button>
                             <button class="quick-log-meal-btn dinner" data-meal="dinner" onclick="selectQuickLogMeal('dinner')">
                                 <span class="meal-emoji">🌙</span>
-                                <span>Dinner</span>
+                                <span class="meal-label">Dinner</span>
                             </button>
                             <button class="quick-log-meal-btn snack" data-meal="snack" onclick="selectQuickLogMeal('snack')">
                                 <span class="meal-emoji">🍎</span>
-                                <span>Snack</span>
+                                <span class="meal-label">Snack</span>
                             </button>
                         </div>
 
@@ -4607,7 +4626,9 @@
                                 onkeydown="handleQuickLogKeydown(event)"
                             >
                             <button class="quick-log-send-btn" id="quickLogSendBtn" onclick="sendQuickLog()">
-                                <i data-lucide="send" width="18" height="18"></i>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
                             </button>
                         </div>
 
@@ -7634,21 +7655,29 @@
 
             if (!message) return;
 
+            if (!currentClientId) {
+                showToast('Please wait for page to load');
+                return;
+            }
+
             // Show loading
             document.getElementById('quickLogLoading').classList.add('visible');
             document.getElementById('quickLogSendBtn').disabled = true;
             document.getElementById('quickLogResult').innerHTML = '';
 
+            // Get client first name from page
+            const clientNameEl = document.getElementById('clientName');
+            const firstName = clientNameEl ? clientNameEl.textContent.split(' ')[0] : 'there';
+
             try {
                 const response = await fetch('/.netlify/functions/client-diary-ai', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${clientToken}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        clientId: clientId,
-                        clientFirstName: clientName?.split(' ')[0] || 'there',
+                        clientId: currentClientId,
+                        clientFirstName: firstName,
                         message: `Log for ${quickLogMealType || 'snack'}: ${message}`,
                         todayEntries: [],
                         goals: {},
@@ -7715,22 +7744,24 @@
             const food = quickLogPendingFood;
             const mealType = food.meal_type || quickLogMealType || 'snack';
 
+            // Get today's date in local timezone
+            const today = formatLocalDate(new Date());
+
             try {
                 const response = await fetch('/.netlify/functions/food-diary', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${clientToken}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        clientId: clientId,
+                        clientId: currentClientId,
                         foodName: food.food_name,
                         calories: food.calories,
                         protein: food.protein,
                         carbs: food.carbs,
                         fat: food.fat,
                         mealType: mealType,
-                        entryDate: new Date().toISOString().split('T')[0],
+                        entryDate: today,
                         servingSize: 1,
                         servingUnit: 'serving',
                         numberOfServings: 1
