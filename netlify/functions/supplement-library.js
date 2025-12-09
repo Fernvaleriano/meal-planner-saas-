@@ -96,6 +96,7 @@ exports.handler = async (event, context) => {
             const { user, error: authError } = await authenticateCoach(event, coachId);
             if (authError) return authError;
 
+            // Base insert data (core fields that always exist)
             const insertData = {
                 coach_id: coachId,
                 name: name.trim(),
@@ -109,18 +110,36 @@ exports.handler = async (event, context) => {
                 private_notes: privateNotes || null,
                 is_active: true,
                 usage_count: 0,
-                frequency_type: frequencyType || 'daily',
-                frequency_interval: frequencyInterval || null,
-                frequency_days: frequencyDays || null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
 
-            const { data: supplement, error } = await supabase
+            // Try with frequency fields first, fall back to without if columns don't exist
+            let supplement, error;
+
+            // First attempt: include frequency fields
+            const insertDataWithFrequency = {
+                ...insertData,
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null
+            };
+
+            ({ data: supplement, error } = await supabase
                 .from('supplement_library')
-                .insert([insertData])
+                .insert([insertDataWithFrequency])
                 .select()
-                .single();
+                .single());
+
+            // If failed due to column not existing, retry without frequency fields
+            if (error && error.message && error.message.includes('column')) {
+                console.log('Retrying insert without frequency fields...');
+                ({ data: supplement, error } = await supabase
+                    .from('supplement_library')
+                    .insert([insertData])
+                    .select()
+                    .single());
+            }
 
             if (error) throw error;
 
@@ -163,6 +182,7 @@ exports.handler = async (event, context) => {
             const { user, error: authError } = await authenticateCoach(event, coachId);
             if (authError) return authError;
 
+            // Base update data (core fields that always exist)
             const updateData = {
                 name: name?.trim(),
                 category: category || null,
@@ -173,9 +193,6 @@ exports.handler = async (event, context) => {
                 schedule: hasSchedule ? schedule : null,
                 notes: notes || null,
                 private_notes: privateNotes || null,
-                frequency_type: frequencyType || 'daily',
-                frequency_interval: frequencyInterval || null,
-                frequency_days: frequencyDays || null,
                 updated_at: new Date().toISOString()
             };
 
@@ -184,13 +201,35 @@ exports.handler = async (event, context) => {
                 updateData.is_active = isActive;
             }
 
-            const { data: supplement, error } = await supabase
+            // Try with frequency fields first, fall back to without if columns don't exist
+            let supplement, error;
+
+            const updateDataWithFrequency = {
+                ...updateData,
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null
+            };
+
+            ({ data: supplement, error } = await supabase
                 .from('supplement_library')
-                .update(updateData)
+                .update(updateDataWithFrequency)
                 .eq('id', supplementId)
                 .eq('coach_id', coachId)
                 .select()
-                .single();
+                .single());
+
+            // If failed due to column not existing, retry without frequency fields
+            if (error && error.message && error.message.includes('column')) {
+                console.log('Retrying update without frequency fields...');
+                ({ data: supplement, error } = await supabase
+                    .from('supplement_library')
+                    .update(updateData)
+                    .eq('id', supplementId)
+                    .eq('coach_id', coachId)
+                    .select()
+                    .single());
+            }
 
             if (error) throw error;
 
