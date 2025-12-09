@@ -8161,6 +8161,11 @@
 
         // Send message from hero AI input
         async function sendHeroAIMessage() {
+            // Stop voice input immediately if it's running
+            if (isRecording) {
+                stopVoiceInput();
+            }
+
             const input = document.getElementById('aiHeroInput');
             const message = input.value.trim();
 
