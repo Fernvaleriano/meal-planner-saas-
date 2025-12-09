@@ -5102,7 +5102,7 @@
                         </div>
                         <div class="ai-hero-input-actions">
                             <button class="ai-hero-voice-btn" id="aiHeroVoiceBtn" onclick="toggleVoiceInput()">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+                                <span style="font-size: 20px;">🎙️</span>
                             </button>
                             <button class="ai-hero-send-btn" id="aiHeroSendBtn" onclick="sendHeroAIMessage()">Log Food ➤</button>
                         </div>
@@ -8494,12 +8494,11 @@
             const foodDetails = document.getElementById('dashPhotoFoodDetails').value.trim();
 
             try {
-                const response = await fetch('/.netlify/functions/analyze-food-photo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: dashPhotoBase64, details: foodDetails || null })
+                // Use authenticated API call like the diary does
+                const data = await apiPost('/.netlify/functions/analyze-food-photo', {
+                    image: dashPhotoBase64,
+                    details: foodDetails || null
                 });
-                const data = await response.json();
                 dashDetectedFoods = data.foods || [];
 
                 if (dashDetectedFoods.length === 0) {
