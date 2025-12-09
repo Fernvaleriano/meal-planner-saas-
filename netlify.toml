@@ -5,6 +5,20 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Asset optimization - minify and compress
+[build.processing]
+  skip_processing = false
+[build.processing.css]
+  bundle = true
+  minify = true
+[build.processing.js]
+  bundle = true
+  minify = true
+[build.processing.html]
+  pretty_urls = false
+[build.processing.images]
+  compress = true
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
