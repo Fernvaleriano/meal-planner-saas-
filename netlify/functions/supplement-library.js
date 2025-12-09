@@ -82,7 +82,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes } = body;
+            const { coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, frequencyType, frequencyInterval, frequencyDays } = body;
 
             if (!coachId || !name) {
                 return {
@@ -105,6 +105,9 @@ exports.handler = async (event, context) => {
                 private_notes: privateNotes || null,
                 is_active: true,
                 usage_count: 0,
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
@@ -142,7 +145,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
         try {
             const body = JSON.parse(event.body);
-            const { supplementId, coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, isActive } = body;
+            const { supplementId, coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, isActive, frequencyType, frequencyInterval, frequencyDays } = body;
 
             if (!supplementId || !coachId) {
                 return {
@@ -162,6 +165,9 @@ exports.handler = async (event, context) => {
                 schedule: hasSchedule ? schedule : null,
                 notes: notes || null,
                 private_notes: privateNotes || null,
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null,
                 updated_at: new Date().toISOString()
             };
 
