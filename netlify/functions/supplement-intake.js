@@ -8,7 +8,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
 };
 
 exports.handler = async (event, context) => {
@@ -73,7 +73,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { clientId, protocolId, date } = body;
+            const { clientId, protocolId, date, setStartDate } = body;
 
             if (!clientId || !protocolId) {
                 return {
@@ -112,10 +112,35 @@ exports.handler = async (event, context) => {
                 throw error;
             }
 
+            // Update the protocol's last_taken_date
+            const updateData = { last_taken_date: targetDate };
+
+            // If this is the first check-off or restart, set client_start_date
+            if (setStartDate) {
+                updateData.client_start_date = targetDate;
+            } else {
+                // Check if client_start_date is not set yet
+                const { data: protocol } = await supabase
+                    .from('client_protocols')
+                    .select('client_start_date')
+                    .eq('id', protocolId)
+                    .single();
+
+                if (protocol && !protocol.client_start_date) {
+                    updateData.client_start_date = targetDate;
+                }
+            }
+
+            // Update the protocol
+            await supabase
+                .from('client_protocols')
+                .update(updateData)
+                .eq('id', protocolId);
+
             return {
                 statusCode: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ success: true, intake })
+                body: JSON.stringify({ success: true, intake, startDateSet: !!updateData.client_start_date })
             };
         } catch (error) {
             console.error('Error marking supplement as taken:', error);
@@ -123,6 +148,58 @@ exports.handler = async (event, context) => {
                 statusCode: 500,
                 headers: corsHeaders,
                 body: JSON.stringify({ error: 'Failed to mark supplement as taken', details: error.message })
+            };
+        }
+    }
+
+    // PUT - Restart schedule (set new client_start_date)
+    if (event.httpMethod === 'PUT') {
+        try {
+            const body = JSON.parse(event.body);
+            const { clientId, protocolId, action } = body;
+
+            if (!clientId || !protocolId) {
+                return {
+                    statusCode: 400,
+                    headers: corsHeaders,
+                    body: JSON.stringify({ error: 'Client ID and Protocol ID are required' })
+                };
+            }
+
+            if (action === 'restart') {
+                const today = new Date().toISOString().split('T')[0];
+
+                // Update client_start_date to today
+                const { data: protocol, error } = await supabase
+                    .from('client_protocols')
+                    .update({
+                        client_start_date: today,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', protocolId)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                return {
+                    statusCode: 200,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ success: true, message: 'Schedule restarted', protocol })
+                };
+            }
+
+            return {
+                statusCode: 400,
+                headers: corsHeaders,
+                body: JSON.stringify({ error: 'Invalid action' })
+            };
+        } catch (error) {
+            console.error('Error restarting schedule:', error);
+            return {
+                statusCode: 500,
+                headers: corsHeaders,
+                body: JSON.stringify({ error: 'Failed to restart schedule', details: error.message })
             };
         }
     }

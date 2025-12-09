@@ -67,7 +67,12 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { coachId, clientId, name, timing, timingCustom, dose, hasSchedule, schedule, startDate, notes, privateNotes } = body;
+            const {
+                coachId, clientId, name, timing, timingCustom, dose,
+                hasSchedule, schedule, startDate, notes, privateNotes,
+                // New frequency fields
+                frequencyType, frequencyInterval, frequencyDays
+            } = body;
 
             if (!coachId || !clientId || !name) {
                 return {
@@ -86,9 +91,13 @@ exports.handler = async (event, context) => {
                 dose: dose || null,
                 has_schedule: hasSchedule || false,
                 schedule: hasSchedule ? schedule : null,
-                start_date: hasSchedule ? startDate : null,
+                start_date: startDate || null,
                 notes: notes || null,
                 private_notes: privateNotes || null,
+                // New frequency fields
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || 1,
+                frequency_days: frequencyDays || null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
@@ -120,7 +129,14 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
         try {
             const body = JSON.parse(event.body);
-            const { protocolId, coachId, name, timing, timingCustom, dose, hasSchedule, schedule, startDate, notes, privateNotes } = body;
+            const {
+                protocolId, coachId, name, timing, timingCustom, dose,
+                hasSchedule, schedule, startDate, notes, privateNotes,
+                // New frequency fields
+                frequencyType, frequencyInterval, frequencyDays,
+                // Client-specific fields
+                clientStartDate, lastTakenDate
+            } = body;
 
             if (!protocolId || !coachId) {
                 return {
@@ -131,17 +147,26 @@ exports.handler = async (event, context) => {
             }
 
             const updateData = {
-                name: name?.trim(),
-                timing: timing || 'morning',
-                timing_custom: timingCustom || null,
-                dose: dose || null,
-                has_schedule: hasSchedule || false,
-                schedule: hasSchedule ? schedule : null,
-                start_date: hasSchedule ? startDate : null,
-                notes: notes || null,
-                private_notes: privateNotes || null,
                 updated_at: new Date().toISOString()
             };
+
+            // Only update fields that are provided
+            if (name !== undefined) updateData.name = name?.trim();
+            if (timing !== undefined) updateData.timing = timing || 'morning';
+            if (timingCustom !== undefined) updateData.timing_custom = timingCustom || null;
+            if (dose !== undefined) updateData.dose = dose || null;
+            if (hasSchedule !== undefined) updateData.has_schedule = hasSchedule || false;
+            if (schedule !== undefined) updateData.schedule = schedule || null;
+            if (startDate !== undefined) updateData.start_date = startDate || null;
+            if (notes !== undefined) updateData.notes = notes || null;
+            if (privateNotes !== undefined) updateData.private_notes = privateNotes || null;
+            // New frequency fields
+            if (frequencyType !== undefined) updateData.frequency_type = frequencyType || 'daily';
+            if (frequencyInterval !== undefined) updateData.frequency_interval = frequencyInterval || 1;
+            if (frequencyDays !== undefined) updateData.frequency_days = frequencyDays || null;
+            // Client-specific fields
+            if (clientStartDate !== undefined) updateData.client_start_date = clientStartDate || null;
+            if (lastTakenDate !== undefined) updateData.last_taken_date = lastTakenDate || null;
 
             const { data: protocol, error } = await supabase
                 .from('client_protocols')
