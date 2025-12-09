@@ -1857,8 +1857,9 @@
             align-items: center;
             padding: 8px 0;
             padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-            z-index: 9999;
+            z-index: 99999;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            pointer-events: auto !important;
         }
 
         [data-theme="dark"] .bottom-nav {
@@ -1882,6 +1883,9 @@
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
             user-select: none;
+            pointer-events: auto !important;
+            position: relative;
+            z-index: 1;
         }
 
         .bottom-nav-item:active {
@@ -8198,6 +8202,40 @@
     </nav>
 
     <script>
+        // Fix bottom nav click handling - ensure navigation works
+        document.addEventListener('DOMContentLoaded', function() {
+            const bottomNav = document.querySelector('.bottom-nav');
+            if (bottomNav) {
+                // Ensure bottom nav is on top
+                bottomNav.style.zIndex = '99999';
+                bottomNav.style.pointerEvents = 'auto';
+
+                // Add explicit click handlers to each nav item
+                const navItems = bottomNav.querySelectorAll('.bottom-nav-item');
+                navItems.forEach(item => {
+                    item.style.pointerEvents = 'auto';
+                    item.addEventListener('click', function(e) {
+                        const href = this.getAttribute('href');
+                        if (href) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.location.href = href;
+                        }
+                    }, true);
+
+                    // Also handle touch events for mobile
+                    item.addEventListener('touchend', function(e) {
+                        const href = this.getAttribute('href');
+                        if (href) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.location.href = href;
+                        }
+                    }, true);
+                });
+            }
+        });
+
         // Navigate to most recent meal plan
         function goToMealPlan() {
             // Find the first plan card and get its ID
