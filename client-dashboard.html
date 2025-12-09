@@ -1855,8 +1855,8 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding: 8px 0;
-            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            padding: 6px 0;
+            padding-bottom: env(safe-area-inset-bottom, 6px);
             z-index: 1000;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
         }
@@ -1873,10 +1873,10 @@
             justify-content: center;
             text-decoration: none;
             color: var(--gray-500);
-            padding: 8px 16px;
+            padding: 4px 12px;
             border-radius: 12px;
             transition: all 0.2s ease;
-            min-width: 64px;
+            min-width: 60px;
             -webkit-tap-highlight-color: transparent;
         }
 
