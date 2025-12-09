@@ -1342,6 +1342,36 @@
                     <input type="text" id="libraryTimingCustom" placeholder="e.g., 2x per week, Every other day...">
                 </div>
 
+                <div class="form-group">
+                    <label>Frequency</label>
+                    <select id="libraryFrequency" onchange="toggleLibraryFrequencyOptions()">
+                        <option value="daily">Daily</option>
+                        <option value="every_other_day">Every Other Day</option>
+                        <option value="every_x_days">Every X Days</option>
+                        <option value="specific_days">Specific Days of Week</option>
+                        <option value="once_weekly">Once Weekly</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="libraryFrequencyIntervalGroup">
+                    <label>Every how many days?</label>
+                    <input type="number" id="libraryFrequencyInterval" min="2" max="30" value="3" placeholder="e.g., 3">
+                    <small style="color: #6b7280; margin-top: 4px; display: block;">Supplement will be due every X days</small>
+                </div>
+
+                <div class="form-group hidden" id="libraryFrequencyDaysGroup">
+                    <label>Select Days</label>
+                    <div class="days-checkbox-group" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="0"> <span>Sun</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="1"> <span>Mon</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="2"> <span>Tue</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="3"> <span>Wed</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="4"> <span>Thu</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="5"> <span>Fri</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="6"> <span>Sat</span></label>
+                    </div>
+                </div>
+
                 <div class="schedule-toggle">
                     <label>
                         <input type="checkbox" id="libraryHasSchedule" onchange="toggleLibraryScheduleSection()">
@@ -2222,6 +2252,9 @@
             document.getElementById('librarySchedulePhasesContainer').innerHTML = '';
             toggleLibraryScheduleSection();
 
+            // Reset frequency options
+            resetLibraryFrequencyOptions();
+
             document.getElementById('libraryModal').classList.remove('hidden');
         }
 
@@ -2239,6 +2272,46 @@
             } else {
                 customGroup.classList.add('hidden');
             }
+        }
+
+        function toggleLibraryFrequencyOptions() {
+            const frequency = document.getElementById('libraryFrequency').value;
+            const intervalGroup = document.getElementById('libraryFrequencyIntervalGroup');
+            const daysGroup = document.getElementById('libraryFrequencyDaysGroup');
+
+            // Hide all first
+            intervalGroup.classList.add('hidden');
+            daysGroup.classList.add('hidden');
+
+            // Show relevant options
+            if (frequency === 'every_x_days') {
+                intervalGroup.classList.remove('hidden');
+            } else if (frequency === 'specific_days' || frequency === 'once_weekly') {
+                daysGroup.classList.remove('hidden');
+            }
+        }
+
+        function resetLibraryFrequencyOptions() {
+            document.getElementById('libraryFrequency').value = 'daily';
+            document.getElementById('libraryFrequencyInterval').value = '3';
+            document.getElementById('libraryFrequencyIntervalGroup').classList.add('hidden');
+            document.getElementById('libraryFrequencyDaysGroup').classList.add('hidden');
+            // Uncheck all day checkboxes
+            document.querySelectorAll('input[name="libraryFrequencyDay"]').forEach(cb => cb.checked = false);
+        }
+
+        function getLibrarySelectedDays() {
+            const days = [];
+            document.querySelectorAll('input[name="libraryFrequencyDay"]:checked').forEach(cb => {
+                days.push(parseInt(cb.value));
+            });
+            return days;
+        }
+
+        function setLibrarySelectedDays(days) {
+            document.querySelectorAll('input[name="libraryFrequencyDay"]').forEach(cb => {
+                cb.checked = days && days.includes(parseInt(cb.value));
+            });
         }
 
         function toggleLibraryScheduleSection() {
@@ -2320,6 +2393,11 @@
             const notes = document.getElementById('libraryNotes').value.trim();
             const privateNotes = document.getElementById('libraryPrivateNotes').value.trim();
 
+            // Frequency fields
+            const frequencyType = document.getElementById('libraryFrequency').value;
+            const frequencyInterval = parseInt(document.getElementById('libraryFrequencyInterval').value) || 3;
+            const frequencyDays = getLibrarySelectedDays();
+
             const payload = {
                 coachId: currentCoach.id,
                 name,
@@ -2330,7 +2408,10 @@
                 hasSchedule,
                 schedule: hasSchedule ? librarySchedulePhases : null,
                 notes,
-                privateNotes
+                privateNotes,
+                frequencyType,
+                frequencyInterval: frequencyType === 'every_x_days' ? frequencyInterval : null,
+                frequencyDays: (frequencyType === 'specific_days' || frequencyType === 'once_weekly') ? frequencyDays : null
             };
 
             try {
@@ -2395,6 +2476,12 @@
             librarySchedulePhases = supplement.schedule ? [...supplement.schedule] : [];
             renderLibrarySchedulePhases();
             toggleLibraryScheduleSection();
+
+            // Load frequency options
+            document.getElementById('libraryFrequency').value = supplement.frequency_type || 'daily';
+            document.getElementById('libraryFrequencyInterval').value = supplement.frequency_interval || 3;
+            setLibrarySelectedDays(supplement.frequency_days || []);
+            toggleLibraryFrequencyOptions();
 
             document.getElementById('libraryModal').classList.remove('hidden');
         }
