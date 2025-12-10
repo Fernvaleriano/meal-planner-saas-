@@ -1,7 +1,8 @@
+// Food photo analysis using Claude (Anthropic)
+const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-// Use Anthropic Claude instead of Gemini
-const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -22,7 +23,6 @@ function stripMarkdown(text) {
         .trim();
 }
 
-// CORS headers
 const headers = {
     ...corsHeaders,
     'Content-Type': 'application/json'
@@ -49,15 +49,18 @@ exports.handler = async (event, context) => {
         // Rate limit - 20 photo analyses per minute per user
         const rateLimit = checkRateLimit(user.id, 'analyze-food-photo', 20, 60000);
         if (!rateLimit.allowed) {
+            console.warn(`🚫 Rate limit exceeded for user ${user.id}`);
             return rateLimitResponse(rateLimit.resetIn);
         }
 
-        // Check for API key
-        if (!process.env.ANTHROPIC_API_KEY) {
+        console.log(`📸 Photo analysis for user ${user.id}`);
+
+        if (!ANTHROPIC_API_KEY) {
+            console.error('ANTHROPIC_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured' })
+                body: JSON.stringify({ error: 'AI analysis is not configured. Please add ANTHROPIC_API_KEY.' })
             };
         }
 
@@ -96,41 +99,36 @@ exports.handler = async (event, context) => {
         const mediaType = matches[1];
         const base64Data = matches[2];
 
+        console.log(`📷 Image size: ${base64Data.length} bytes, type: ${mediaType}`);
+
         // User-provided context
         const userContext = details ? details.trim() : null;
 
         // Initialize Anthropic client
-        const anthropic = new Anthropic({
-            apiKey: process.env.ANTHROPIC_API_KEY
-        });
+        let anthropic;
+        try {
+            anthropic = new Anthropic({
+                apiKey: ANTHROPIC_API_KEY,
+            });
+        } catch (initError) {
+            console.error('Failed to initialize Anthropic client:', initError);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to initialize AI client', details: initError.message })
+            };
+        }
 
-        // Call Claude API with vision
-        const message = await anthropic.messages.create({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1024,
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "image",
-                            source: {
-                                type: "base64",
-                                media_type: mediaType,
-                                data: base64Data
-                            }
-                        },
-                        {
-                            type: "text",
-                            text: `Analyze this food image and identify all food items visible. For each item, estimate the nutritional information.
-${userContext ? `
-IMPORTANT - User provided these details about the food: "${userContext}"
-Use this information to accurately identify and estimate the nutritional content.
-` : ''}
-Return ONLY a valid JSON array with this exact format (no markdown, no explanation, no code blocks):
+        console.log('🤖 Calling Claude for food analysis...');
+
+        // Build prompt
+        const analysisPrompt = `Analyze this food image and identify all food items visible. For each item, estimate the nutritional information.
+${userContext ? `\nIMPORTANT - User provided these details: "${userContext}"\nUse this information for your estimate.` : ''}
+
+Return ONLY a valid JSON array with this exact format (no markdown, no explanation):
 [
   {
-    "name": "Food item name with estimated portion size",
+    "name": "Food item name with portion size",
     "calories": 000,
     "protein": 00,
     "carbs": 00,
@@ -139,26 +137,55 @@ Return ONLY a valid JSON array with this exact format (no markdown, no explanati
 ]
 
 Guidelines:
-- Be specific about portions (e.g., "Grilled Chicken Breast, 6oz" not just "Chicken")
+- Be specific about portions (e.g., "Grilled Chicken Breast, 6oz")
 - Round calories to nearest 5, macros to nearest gram
-- If multiple items are visible, list each separately
-- If the user provided details, prioritize using that information
+- List each item separately
 - Return empty array [] if no food is visible
 
-Return ONLY the JSON array, nothing else.`
-                        }
-                    ]
-                }
-            ]
-        });
+Return ONLY the JSON array.`;
 
-        // Extract response
-        let content = '';
-        if (message.content && message.content[0] && message.content[0].text) {
-            content = message.content[0].text;
+        let message;
+        try {
+            message = await anthropic.messages.create({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 1024,
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "image",
+                                source: {
+                                    type: "base64",
+                                    media_type: mediaType,
+                                    data: base64Data
+                                }
+                            },
+                            {
+                                type: "text",
+                                text: analysisPrompt
+                            }
+                        ]
+                    }
+                ]
+            });
+        } catch (apiError) {
+            console.error('Anthropic API error:', apiError);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    error: 'AI analysis request failed',
+                    details: apiError.message || 'Unknown API error'
+                })
+            };
         }
 
-        console.log('Claude response:', content);
+        console.log('✅ Claude response received');
+
+        // Extract response
+        const content = message.content[0].text;
+        console.log('Response preview:', content.substring(0, 200));
 
         // Parse the response
         let foods = [];
@@ -167,7 +194,6 @@ Return ONLY the JSON array, nothing else.`
         try {
             foods = JSON.parse(trimmedContent);
         } catch (parseError) {
-            // Try to extract JSON from response
             let cleanContent = trimmedContent
                 .replace(/```json\s*/g, '')
                 .replace(/```\s*/g, '')
@@ -175,9 +201,13 @@ Return ONLY the JSON array, nothing else.`
 
             const jsonMatch = cleanContent.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
-                foods = JSON.parse(jsonMatch[0]);
+                try {
+                    foods = JSON.parse(jsonMatch[0]);
+                } catch (e) {
+                    console.error('Could not parse extracted JSON:', e);
+                }
             } else {
-                console.error('Could not parse Claude response:', trimmedContent);
+                console.error('Could not parse response:', trimmedContent);
             }
         }
 
