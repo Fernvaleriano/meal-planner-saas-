@@ -3699,6 +3699,18 @@
                 <span style="font-weight: 600; color: var(--gray-900);">📸 AI Photo Log</span>
             </div>
             <div class="modal-body" style="padding: 20px; max-height: 70vh; overflow-y: auto;">
+                <!-- Meal Type Selector -->
+                <div style="margin-bottom: 16px;">
+                    <label style="font-weight: 500; color: var(--gray-700); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+                        Add to meal:
+                    </label>
+                    <select id="aiPhotoMealType" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem; background: white; cursor: pointer;">
+                        <option value="breakfast">🌅 Breakfast</option>
+                        <option value="lunch">☀️ Lunch</option>
+                        <option value="dinner">🌙 Dinner</option>
+                        <option value="snack">🍎 Snack</option>
+                    </select>
+                </div>
                 <div id="aiPhotoUpload">
                     <div class="photo-upload-area" id="photoUploadArea" style="min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <div class="photo-upload-icon">📷</div>
@@ -3787,6 +3799,18 @@
                 <span style="font-weight: 600; color: var(--gray-900); display: flex; align-items: center; gap: 8px;"><i data-lucide="mic" width="20" height="20"></i> AI Voice/Text Log</span>
             </div>
             <div class="modal-body" style="padding: 20px;">
+                <!-- Meal Type Selector -->
+                <div style="margin-bottom: 16px;">
+                    <label style="font-weight: 500; color: var(--gray-700); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+                        Add to meal:
+                    </label>
+                    <select id="aiTextMealType" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem; background: white; cursor: pointer;">
+                        <option value="breakfast">🌅 Breakfast</option>
+                        <option value="lunch">☀️ Lunch</option>
+                        <option value="dinner">🌙 Dinner</option>
+                        <option value="snack">🍎 Snack</option>
+                    </select>
+                </div>
                 <div id="aiTextInput">
                     <p style="color: var(--gray-600); margin-bottom: 16px; font-size: 0.95rem;">
                         Describe what you ate and AI will estimate the calories and macros.
@@ -6362,6 +6386,20 @@
             closeFoodSearch();
             document.getElementById('aiPhotoModal').classList.add('active');
             resetAIPhoto();
+            // Initialize meal type selector based on current time
+            const mealSelector = document.getElementById('aiPhotoMealType');
+            if (mealSelector) {
+                mealSelector.value = getSuggestedMealType();
+            }
+        }
+
+        // Helper function to suggest meal type based on current time
+        function getSuggestedMealType() {
+            const hour = new Date().getHours();
+            if (hour < 11) return 'breakfast';
+            if (hour < 15) return 'lunch';
+            if (hour < 17) return 'snack';
+            return 'dinner';
         }
 
         function closeAIPhotoModal() {
@@ -6636,7 +6674,11 @@
 
         async function addAIDetectedFoods() {
             console.log('addAIDetectedFoods: Starting, foods:', aiDetectedFoods);
-            console.log('addAIDetectedFoods: clientId:', clientId, 'mealType:', currentMealType);
+
+            // Get meal type from dropdown BEFORE closing modal
+            const mealSelector = document.getElementById('aiPhotoMealType');
+            const selectedMealType = mealSelector ? mealSelector.value : getSuggestedMealType();
+            console.log('addAIDetectedFoods: clientId:', clientId, 'mealType:', selectedMealType);
 
             if (!clientId) {
                 showToast('Error: Not logged in');
@@ -6664,7 +6706,7 @@
                         clientId,
                         coachId,
                         entryDate: formatDate(currentDate),
-                        mealType: currentMealType,
+                        mealType: selectedMealType,
                         foodName: food.name,
                         numberOfServings: 1,
                         servingSize: 1,
@@ -6707,6 +6749,11 @@
             closeFoodSearch();
             document.getElementById('aiTextModal').classList.add('active');
             resetAIText();
+            // Initialize meal type selector based on current time
+            const mealSelector = document.getElementById('aiTextMealType');
+            if (mealSelector) {
+                mealSelector.value = getSuggestedMealType();
+            }
             // Check for speech recognition support
             checkVoiceSupport();
         }
@@ -6972,6 +7019,10 @@
             // Stop microphone immediately - CRITICAL
             stopVoiceInput();
 
+            // Get meal type from dropdown BEFORE closing modal
+            const mealSelector = document.getElementById('aiTextMealType');
+            const selectedMealType = mealSelector ? mealSelector.value : getSuggestedMealType();
+
             if (!clientId) {
                 showToast('Error: Not logged in');
                 return;
@@ -6995,7 +7046,7 @@
                         clientId,
                         coachId,
                         entryDate: formatDate(currentDate),
-                        mealType: currentMealType,
+                        mealType: selectedMealType,
                         foodName: food.name,
                         numberOfServings: 1,
                         servingSize: 1,
