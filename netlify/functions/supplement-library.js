@@ -109,18 +109,35 @@ exports.handler = async (event, context) => {
                 private_notes: privateNotes || null,
                 is_active: true,
                 usage_count: 0,
-                frequency_type: frequencyType || 'daily',
-                frequency_interval: frequencyInterval || null,
-                frequency_days: frequencyDays || null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
 
-            const { data: supplement, error } = await supabase
+            // Add frequency fields (these columns may not exist if migration hasn't been run)
+            const frequencyData = {
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null
+            };
+
+            // Try insert with frequency fields first
+            let { data: supplement, error } = await supabase
                 .from('supplement_library')
-                .insert([insertData])
+                .insert([{ ...insertData, ...frequencyData }])
                 .select()
                 .single();
+
+            // If insert failed due to missing frequency columns, retry without them
+            if (error && error.message && error.message.includes('frequency')) {
+                console.log('Frequency columns not found, retrying without them');
+                const retryResult = await supabase
+                    .from('supplement_library')
+                    .insert([insertData])
+                    .select()
+                    .single();
+                supplement = retryResult.data;
+                error = retryResult.error;
+            }
 
             if (error) throw error;
 
@@ -173,9 +190,6 @@ exports.handler = async (event, context) => {
                 schedule: hasSchedule ? schedule : null,
                 notes: notes || null,
                 private_notes: privateNotes || null,
-                frequency_type: frequencyType || 'daily',
-                frequency_interval: frequencyInterval || null,
-                frequency_days: frequencyDays || null,
                 updated_at: new Date().toISOString()
             };
 
@@ -184,13 +198,35 @@ exports.handler = async (event, context) => {
                 updateData.is_active = isActive;
             }
 
-            const { data: supplement, error } = await supabase
+            // Frequency fields (may not exist if migration hasn't been run)
+            const frequencyData = {
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null
+            };
+
+            // Try update with frequency fields first
+            let { data: supplement, error } = await supabase
                 .from('supplement_library')
-                .update(updateData)
+                .update({ ...updateData, ...frequencyData })
                 .eq('id', supplementId)
                 .eq('coach_id', coachId)
                 .select()
                 .single();
+
+            // If update failed due to missing frequency columns, retry without them
+            if (error && error.message && error.message.includes('frequency')) {
+                console.log('Frequency columns not found, retrying without them');
+                const retryResult = await supabase
+                    .from('supplement_library')
+                    .update(updateData)
+                    .eq('id', supplementId)
+                    .eq('coach_id', coachId)
+                    .select()
+                    .single();
+                supplement = retryResult.data;
+                error = retryResult.error;
+            }
 
             if (error) throw error;
 
