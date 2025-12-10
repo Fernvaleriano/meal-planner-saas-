@@ -48,16 +48,19 @@ exports.handler = async (event) => {
             };
         }
 
+        // Determine if this is a meal suggestion request (should return options)
+        const isMealSuggestionRequest = quickAction && ['alternatives', 'higher-protein', 'lower-carb', 'simpler', 'lower-cal'].includes(quickAction);
+
         // Build the prompt based on quick action or custom message
         let userRequest = message;
         if (quickAction) {
             const actionPrompts = {
                 'alternatives': `Suggest 3 alternative meals that could replace "${meal.name}" with similar macros (around ${meal.calories} cal, ${meal.protein}g protein). Keep the same meal type (${meal.type}).`,
-                'higher-protein': `Modify "${meal.name}" to have MORE protein while keeping calories similar. Current: ${meal.protein}g protein, ${meal.calories} cal. Target: at least ${Math.round(meal.protein * 1.3)}g protein.`,
-                'lower-carb': `Modify "${meal.name}" to have FEWER carbs while keeping protein similar. Current: ${meal.carbs}g carbs. Target: under ${Math.round(meal.carbs * 0.6)}g carbs.`,
-                'simpler': `Simplify "${meal.name}" to use fewer ingredients and be easier to prepare, while keeping similar nutrition.`,
+                'higher-protein': `Suggest 2-3 variations of "${meal.name}" with MORE protein while keeping calories similar. Current: ${meal.protein}g protein, ${meal.calories} cal. Target: at least ${Math.round(meal.protein * 1.3)}g protein.`,
+                'lower-carb': `Suggest 2-3 variations of "${meal.name}" with FEWER carbs while keeping protein similar. Current: ${meal.carbs}g carbs. Target: under ${Math.round(meal.carbs * 0.6)}g carbs.`,
+                'simpler': `Suggest 2-3 simpler versions of "${meal.name}" using fewer ingredients and easier preparation, while keeping similar nutrition.`,
                 'prep-tips': `Give meal prep tips and suggestions for "${meal.name}". Include storage tips, batch cooking ideas, and time-saving shortcuts.`,
-                'lower-cal': `Modify "${meal.name}" to have fewer calories while staying satisfying. Current: ${meal.calories} cal. Target: around ${Math.round(meal.calories * 0.75)} cal.`,
+                'lower-cal': `Suggest 2-3 variations of "${meal.name}" with fewer calories while staying satisfying. Current: ${meal.calories} cal. Target: around ${Math.round(meal.calories * 0.75)} cal.`,
                 'budget': `Suggest budget-friendly alternatives or modifications for "${meal.name}" using cheaper ingredients.`
             };
             userRequest = actionPrompts[quickAction] || message;
@@ -94,14 +97,42 @@ PREVIOUS CONVERSATION:
 ${chatHistory.slice(-4).map(msg => `${msg.role === 'user' ? 'Coach' : 'AI'}: ${msg.content}`).join('\n')}
 ` : '';
 
-        // Call Gemini AI
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `You are an AI assistant helping a nutrition coach brainstorm and refine meal ideas for their client. Be practical, specific, and provide actionable suggestions.
+        // Different prompt based on whether we need structured meal suggestions
+        let systemPrompt;
+        if (isMealSuggestionRequest) {
+            systemPrompt = `You are an AI assistant helping a nutrition coach brainstorm meal ideas. You MUST respond with a JSON object containing meal suggestions.
+
+${mealContext}
+${targetsContext}
+${preferencesContext}
+${historyContext}
+
+COACH'S REQUEST: "${userRequest}"
+
+You MUST respond with ONLY a valid JSON object in this exact format (no other text before or after):
+{
+    "message": "Brief explanation of your suggestions (1-2 sentences)",
+    "suggestions": [
+        {
+            "name": "Meal name with portions (e.g., '6oz Grilled Chicken with Roasted Vegetables')",
+            "calories": 450,
+            "protein": 40,
+            "carbs": 25,
+            "fat": 18,
+            "description": "Brief description of the meal"
+        }
+    ]
+}
+
+RULES:
+- Include 2-3 meal suggestions in the suggestions array
+- All macros must be realistic numbers (integers)
+- Meal names should include portion sizes
+- Consider client preferences and restrictions
+- Keep meals practical and easy to prepare
+- ONLY output valid JSON, nothing else`;
+        } else {
+            systemPrompt = `You are an AI assistant helping a nutrition coach brainstorm and refine meal ideas for their client. Be practical, specific, and provide actionable suggestions.
 
 ${mealContext}
 ${targetsContext}
@@ -122,11 +153,21 @@ IMPORTANT:
 - Do NOT use markdown formatting like **bold**, *italics*, or bullet points with asterisks
 - Use plain text with numbered lists (1. 2. 3.) or dashes (-)
 - Keep response under 250 words unless detailed instructions are needed
-- Be encouraging and helpful`
+- Be encouraging and helpful`;
+        }
+
+        // Call Gemini AI
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: systemPrompt
                     }]
                 }],
                 generationConfig: {
-                    temperature: 0.8,
+                    temperature: isMealSuggestionRequest ? 0.7 : 0.8,
                     maxOutputTokens: 1024
                 }
             })
@@ -152,27 +193,45 @@ IMPORTANT:
                 .join('');
         }
 
-        // Try to extract meal suggestions if present (for potential auto-apply feature)
-        let suggestedMeal = null;
+        // Try to parse JSON response for meal suggestions
+        let suggestions = [];
+        let responseMessage = aiResponse;
 
-        // Simple pattern to detect if AI suggested a specific meal with macros
-        const mealPattern = /(\d+)\s*cal.*?(\d+)g?\s*(?:protein|P).*?(\d+)g?\s*(?:carbs|C).*?(\d+)g?\s*(?:fat|F)/i;
-        const match = aiResponse.match(mealPattern);
-        if (match) {
-            suggestedMeal = {
-                calories: parseInt(match[1]),
-                protein: parseInt(match[2]),
-                carbs: parseInt(match[3]),
-                fat: parseInt(match[4])
-            };
+        if (isMealSuggestionRequest) {
+            try {
+                // Clean up the response - remove markdown code blocks if present
+                let cleanedResponse = aiResponse.trim();
+                if (cleanedResponse.startsWith('```json')) {
+                    cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                } else if (cleanedResponse.startsWith('```')) {
+                    cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                }
+
+                const parsed = JSON.parse(cleanedResponse);
+                if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
+                    suggestions = parsed.suggestions.map(s => ({
+                        name: s.name || 'Unnamed meal',
+                        calories: parseInt(s.calories) || 0,
+                        protein: parseInt(s.protein) || 0,
+                        carbs: parseInt(s.carbs) || 0,
+                        fat: parseInt(s.fat) || 0,
+                        description: s.description || ''
+                    }));
+                    responseMessage = parsed.message || 'Here are some suggestions:';
+                }
+            } catch (parseError) {
+                console.log('Could not parse JSON response, using as plain text:', parseError.message);
+                // Fall back to plain text response
+            }
         }
 
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
-                response: aiResponse,
-                suggestedMeal,
+                response: responseMessage,
+                suggestions: suggestions,
+                hasSuggestions: suggestions.length > 0,
                 originalMeal: {
                     type: meal.type,
                     name: meal.name,

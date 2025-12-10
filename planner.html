@@ -425,6 +425,13 @@
             opacity: 0.9;
         }
 
+        .ai-meal-suggestion:hover {
+            border-color: #7c3aed !important;
+            background: #f5f3ff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+        }
+
         .meal-card .text-blue-700 {
             word-wrap: break-word;
             overflow-wrap: break-word;
@@ -4254,7 +4261,7 @@ function displayDietPlan(multiDayData) {
                                 <div style="padding: 10px; border-top: 1px solid #ddd6fe; display: flex; gap: 6px;">
                                     <input type="text" id="ai-chat-input-${dayIndex}-${mealIndex}"
                                         placeholder="Ask about this meal..."
-                                        style="flex: 1; padding: 8px 10px; border: 1px solid #c4b5fd; border-radius: 4px; font-size: 12px;"
+                                        style="flex: 1; padding: 8px 10px; border: 1px solid #c4b5fd; border-radius: 4px; font-size: 12px; background: white; color: #1f2937;"
                                         onkeypress="if(event.key==='Enter')sendAiBrainstorm(${dayIndex},${mealIndex})">
                                     <button data-action="send-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
                                         style="padding: 8px 12px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -4797,11 +4804,44 @@ async function sendAiBrainstorm(dayIndex, mealIndex, quickAction = null) {
         // Store AI response in history
         mealChatHistory[chatKey].push({ role: 'assistant', content: data.response });
 
-        // Show AI response
+        // Show AI response message
         messagesEl.innerHTML += `
             <div style="margin-bottom: 8px;">
                 <span style="display: inline-block; background: #e9d5ff; color: #4c1d95; padding: 8px 12px; border-radius: 12px 12px 12px 2px; font-size: 11px; max-width: 90%; white-space: pre-wrap; line-height: 1.4;">${escapeHtml(data.response)}</span>
             </div>`;
+
+        // If there are clickable meal suggestions, display them
+        if (data.hasSuggestions && data.suggestions && data.suggestions.length > 0) {
+            let suggestionsHtml = `<div style="margin-top: 8px; margin-bottom: 8px;">
+                <p style="font-size: 10px; color: #6d28d9; margin-bottom: 6px; font-weight: 600;">Click to apply:</p>`;
+
+            data.suggestions.forEach((suggestion, idx) => {
+                const suggestionJson = JSON.stringify(suggestion).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                suggestionsHtml += `
+                    <div class="ai-meal-suggestion"
+                         onclick="applyMealSuggestion(${dayIndex}, ${mealIndex}, this)"
+                         data-suggestion="${suggestionJson}"
+                         style="background: white; border: 2px solid #c4b5fd; border-radius: 8px; padding: 10px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <p style="font-weight: 600; color: #4c1d95; font-size: 12px; margin-bottom: 4px;">${escapeHtml(suggestion.name)}</p>
+                                ${suggestion.description ? `<p style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">${escapeHtml(suggestion.description)}</p>` : ''}
+                                <div style="display: flex; gap: 8px; font-size: 10px;">
+                                    <span style="color: #dc2626; font-weight: 600;">${suggestion.calories} cal</span>
+                                    <span style="color: #2563eb;">${suggestion.protein}g P</span>
+                                    <span style="color: #16a34a;">${suggestion.carbs}g C</span>
+                                    <span style="color: #ca8a04;">${suggestion.fat}g F</span>
+                                </div>
+                            </div>
+                            <span style="background: #7c3aed; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap;">Apply</span>
+                        </div>
+                    </div>`;
+            });
+
+            suggestionsHtml += `</div>`;
+            messagesEl.innerHTML += suggestionsHtml;
+        }
+
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
     } catch (error) {
@@ -4815,6 +4855,52 @@ async function sendAiBrainstorm(dayIndex, mealIndex, quickAction = null) {
             <div style="margin-bottom: 8px;">
                 <span style="display: inline-block; background: #fee2e2; color: #dc2626; padding: 6px 10px; border-radius: 12px; font-size: 11px;">Sorry, something went wrong. Please try again.</span>
             </div>`;
+    }
+}
+
+// Apply a meal suggestion from AI brainstorm
+async function applyMealSuggestion(dayIndex, mealIndex, element) {
+    try {
+        const suggestionData = JSON.parse(element.dataset.suggestion.replace(/&quot;/g, '"'));
+
+        // Get current meal for undo
+        const currentMeal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+        const stateKey = `${dayIndex}-${mealIndex}`;
+        previousMealStates[stateKey] = JSON.parse(JSON.stringify(currentMeal));
+        saveUndoStates();
+
+        // Update the meal with AI suggestion
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = {
+            ...currentMeal,
+            name: suggestionData.name,
+            calories: suggestionData.calories,
+            protein: suggestionData.protein,
+            carbs: suggestionData.carbs,
+            fat: suggestionData.fat,
+            isCustom: false,
+            coach_note: currentMeal.coach_note || ''
+        };
+
+        // Visual feedback
+        element.style.background = '#d1fae5';
+        element.style.borderColor = '#10b981';
+        element.innerHTML = `<p style="color: #059669; font-weight: 600; text-align: center; font-size: 11px;">✅ Applied! Updating plan...</p>`;
+
+        // Re-render the plan
+        setTimeout(() => {
+            renderPlan(lastPlanQuery.currentPlan);
+
+            // Auto-save if plan exists
+            if (lastPlanQuery.planId) {
+                savePlanChanges();
+            }
+        }, 500);
+
+        console.log(`✅ Applied AI suggestion to Day ${dayIndex + 1}, Meal ${mealIndex + 1}:`, suggestionData.name);
+
+    } catch (error) {
+        console.error('Error applying meal suggestion:', error);
+        alert('Failed to apply suggestion. Please try again.');
     }
 }
 
