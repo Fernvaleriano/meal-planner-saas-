@@ -8550,7 +8550,7 @@
 
         // Get current meal type from selection or default to lunch
         function getDashMealType() {
-            const selectedBtn = document.querySelector('.meal-type-btn.selected');
+            const selectedBtn = document.querySelector('.meal-type-btn.active');
             return selectedBtn ? selectedBtn.dataset.meal : 'lunch';
         }
 
