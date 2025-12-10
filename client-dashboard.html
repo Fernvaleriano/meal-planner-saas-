@@ -2,10 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>My Dashboard - Zique Fitness Nutrition</title>
     <script src="/js/theme.js"></script>
     <script src="/js/gym-features.js"></script>
+    <script src="/js/branding.js" defer></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preload" href="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
     <!-- Prevent caching to avoid stale data on back navigation -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -484,6 +492,249 @@
         .no-protocols-icon {
             font-size: 48px;
             margin-bottom: 12px;
+        }
+
+        /* Supplement Checklist Section */
+        .supplement-checklist {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid var(--gray-100);
+        }
+
+        .supplement-checklist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .supplement-checklist-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .supplement-progress-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .supplement-timing-group {
+            margin-bottom: 16px;
+        }
+
+        .supplement-timing-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .supplement-timing-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .supplement-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            background: var(--gray-50);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid var(--gray-200);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .supplement-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .supplement-item:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-300);
+        }
+
+        .supplement-item.taken {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .supplement-checkbox {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid var(--gray-300);
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .supplement-item.taken .supplement-checkbox {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-color: #10b981;
+        }
+
+        .supplement-checkbox svg {
+            width: 14px;
+            height: 14px;
+            stroke: white;
+            stroke-width: 3;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .supplement-item.taken .supplement-checkbox svg {
+            opacity: 1;
+        }
+
+        .supplement-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .supplement-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .supplement-item.taken .supplement-name {
+            color: #059669;
+        }
+
+        .supplement-dose {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .supplement-item.taken .supplement-dose {
+            color: #10b981;
+        }
+
+        .supplement-main {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .supplement-warning {
+            font-size: 0.75rem;
+            color: #f59e0b;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .supplement-item.off-schedule {
+            border-color: rgba(245, 158, 11, 0.4);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .supplement-item.off-schedule:hover {
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+
+        .supplement-restart-btn {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: none;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+
+        .supplement-restart-btn svg {
+            stroke: white;
+        }
+
+        .supplement-restart-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        [data-theme="dark"] .supplement-item.off-schedule {
+            border-color: rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        [data-theme="dark"] .supplement-warning {
+            color: #fbbf24;
+        }
+
+        .no-supplements-message {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        [data-theme="dark"] .supplement-checklist {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .supplement-checklist-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .supplement-timing-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .supplement-item {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .supplement-item:hover {
+            background: #3f4f63;
+            border-color: #5a6b7d;
+        }
+
+        [data-theme="dark"] .supplement-item.taken {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        [data-theme="dark"] .supplement-checkbox {
+            background: #475569;
+            border-color: #64748b;
+        }
+
+        [data-theme="dark"] .supplement-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .supplement-dose {
+            color: #94a3b8;
         }
 
         /* Progress Photos Section */
@@ -1610,9 +1861,10 @@
             justify-content: space-around;
             align-items: center;
             padding: 8px 0;
-            padding-bottom: calc(8px + env(safe-area-inset-bottom));
-            z-index: 1000;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            z-index: 99999;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            pointer-events: auto !important;
         }
 
         [data-theme="dark"] .bottom-nav {
@@ -1631,7 +1883,14 @@
             border-radius: 12px;
             transition: all 0.2s ease;
             min-width: 64px;
+            min-height: 48px;
+            cursor: pointer;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+            pointer-events: auto !important;
+            position: relative;
+            z-index: 1;
         }
 
         .bottom-nav-item:active {
@@ -1676,7 +1935,7 @@
         .main-content {
             flex: 1;
             padding: 24px 16px;
-            padding-bottom: 100px; /* Space for bottom nav */
+            padding-bottom: 80px; /* Space for bottom nav */
         }
 
         /* Hide footer on mobile - bottom nav replaces it */
@@ -2522,6 +2781,11 @@
             50% { box-shadow: 0 0 0 8px rgba(13, 148, 136, 0); }
         }
 
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
         .story-avatar {
             width: 100%;
             height: 100%;
@@ -2779,7 +3043,8 @@
 
         /* Footer */
         .story-footer {
-            padding: 16px;
+            padding: 20px 16px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
             position: absolute;
             bottom: 0;
             left: 0;
@@ -2789,20 +3054,29 @@
 
         .story-reactions {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             justify-content: center;
-            margin-bottom: 12px;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
         .reaction-btn {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
+            min-width: 56px;
+            min-height: 56px;
             background: rgba(255, 255, 255, 0.15);
             border: none;
             border-radius: 50%;
             font-size: 1.5rem;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .reaction-btn:hover {
@@ -2885,6 +3159,22 @@
             flex-wrap: wrap;
         }
 
+        .greeting-with-avatar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .coach-greeting-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--brand-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+        }
+
         .greeting-text h1 {
             font-size: 1.75rem;
             font-weight: 800;
@@ -2926,6 +3216,404 @@
         .streak-badge.no-streak .streak-text {
             color: var(--gray-500);
             font-weight: 600;
+        }
+
+        /* ===== AI-FIRST HERO INPUT STYLES ===== */
+        .ai-hero-section {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 20px;
+            padding: 24px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(13, 148, 136, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .ai-hero-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .ai-hero-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .ai-hero-icon svg {
+            color: white;
+        }
+
+        .ai-hero-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .ai-hero-subtitle {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .ai-hero-input-wrapper {
+            margin-bottom: 12px;
+        }
+
+        .ai-hero-textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            transition: all 0.2s;
+        }
+
+        .ai-hero-textarea::placeholder {
+            color: #64748b;
+        }
+
+        .ai-hero-textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2);
+        }
+
+        .ai-hero-input-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .ai-hero-voice-btn {
+            width: 48px;
+            height: 48px;
+            min-height: 48px;
+            padding: 0 !important;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            overflow: visible;
+        }
+
+        .ai-hero-voice-btn svg {
+            width: 24px !important;
+            height: 24px !important;
+            min-width: 24px;
+            min-height: 24px;
+            stroke: white !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            flex-shrink: 0;
+        }
+
+        .ai-hero-voice-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .ai-hero-voice-btn.recording {
+            background: #ef4444;
+            border-color: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        .ai-hero-send-btn {
+            flex: 1;
+            height: 48px;
+            background: var(--brand-primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-hero-send-btn:hover {
+            background: #0f766e;
+        }
+
+        .ai-hero-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Meal Type Selector */
+        .meal-type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .meal-type-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .meal-type-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .meal-type-btn.active {
+            background: rgba(13, 148, 136, 0.2);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        .meal-type-btn .meal-icon {
+            font-size: 1.25rem;
+        }
+
+        .meal-type-btn.breakfast .meal-icon { color: #f59e0b; }
+        .meal-type-btn.lunch .meal-icon { color: #eab308; }
+        .meal-type-btn.dinner .meal-icon { color: #8b5cf6; }
+        .meal-type-btn.snack .meal-icon { color: #ef4444; }
+
+        .meal-type-btn.active.breakfast { border-color: #f59e0b; background: rgba(245, 158, 11, 0.2); }
+        .meal-type-btn.active.lunch { border-color: #eab308; background: rgba(234, 179, 8, 0.2); }
+        .meal-type-btn.active.dinner { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.2); }
+        .meal-type-btn.active.snack { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
+
+        /* AI Parsing Result Card */
+        .ai-parse-result {
+            background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            border: 2px solid #34d399;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-parse-result-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: #34d399;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-result-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ai-parse-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .ai-parse-item-name {
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-item-cals {
+            color: #34d399;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ai-parse-totals {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .ai-parse-total-item {
+            color: white;
+        }
+
+        .ai-parse-total-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .ai-parse-total-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .ai-parse-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-parse-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-parse-confirm-btn {
+            background: #34d399;
+            color: #065f46;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .ai-parse-confirm-btn:hover {
+            background: #6ee7b7;
+        }
+
+        .ai-parse-edit-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+        }
+
+        .ai-parse-edit-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* AI Hero Loading State */
+        .ai-hero-loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            color: #94a3b8;
+        }
+
+        .ai-hero-loading.visible {
+            display: flex;
+        }
+
+        .ai-hero-loading .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .ai-hero-loading .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--brand-primary);
+            border-radius: 50%;
+            animation: aiDotPulse 1.4s infinite ease-in-out both;
+        }
+
+        .ai-hero-loading .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .ai-hero-loading .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .ai-hero-loading .loading-dots span:nth-child(3) { animation-delay: 0; }
+
+        @keyframes aiDotPulse {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* AI Hero Alternatives */
+        .ai-hero-alternatives {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            position: relative;
+        }
+
+        .ai-hero-alt-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-hero-alt-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .ai-hero-alt-btn svg {
+            width: 16px;
+            height: 16px;
         }
 
         /* Today's Progress Card */
@@ -2974,6 +3662,7 @@
             align-items: center;
             flex: 1;
             max-width: 90px;
+            overflow: visible;
         }
 
         .ring-container {
@@ -2981,12 +3670,14 @@
             width: 70px;
             height: 70px;
             margin-bottom: 8px;
+            overflow: visible;
         }
 
         .ring-svg {
             transform: rotate(-90deg);
             width: 100%;
             height: 100%;
+            overflow: visible;
         }
 
         .ring-bg {
@@ -3803,7 +4494,376 @@
                 align-items: flex-start;
             }
         }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            background: #34d399;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .toast-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: white;
+        }
+
+        .toast-message {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .toast-action {
+            background: rgba(52, 211, 153, 0.2);
+            border: 1px solid #34d399;
+            color: #34d399;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .toast-action:hover {
+            background: #34d399;
+            color: #065f46;
+        }
+
+        /* ==========================================
+           Dashboard Modal Styles
+           ========================================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gray-50);
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease;
+        }
+
+        [data-theme="dark"] .modal-content {
+            background: #0f172a;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .modal-header {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--gray-500);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: var(--gray-900);
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: var(--gray-200);
+        }
+
+        [data-theme="dark"] .search-input {
+            background: #334155;
+            color: #f1f5f9;
+        }
+
+        .search-results {
+            min-height: 200px;
+        }
+
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-result-item:hover {
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .search-result-item {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .search-result-item:hover {
+            background: #334155;
+        }
+
+        .search-food-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .search-food-brand {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .search-food-macros {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            margin-top: 4px;
+        }
+
+        [data-theme="dark"] .search-food-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .search-food-brand,
+        [data-theme="dark"] .search-food-macros {
+            color: #94a3b8;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .quick-add-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            margin: auto;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        [data-theme="dark"] .quick-add-modal {
+            background: #1e293b;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .photo-upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .photo-upload-area:hover {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        .photo-upload-area.has-image {
+            padding: 0;
+            border: none;
+        }
+
+        .photo-upload-area.has-image img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .photo-upload-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .photo-upload-text {
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+        }
+
+        .photo-upload-hint {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .ai-analyzing {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .ai-analyzing-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .ai-results {
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        [data-theme="dark"] .ai-results {
+            background: #334155;
+        }
+
+        .ai-results-header {
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-food-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .ai-food-item {
+            background: #1e293b;
+        }
+
+        .ai-food-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .favorite-item {
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .favorite-item:hover {
+            border-color: var(--brand-primary);
+            background: var(--gray-50);
+        }
     </style>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
     <!-- Top Navigation Bar -->
@@ -3992,9 +5052,12 @@
                         <!-- Greeting Section -->
                         <div class="greeting-section">
                             <div class="greeting-row">
-                                <div class="greeting-text">
-                                    <h1>Welcome back, <span id="clientName">Client</span>!</h1>
-                                    <p id="greetingSubtext">Let's make today count</p>
+                                <div class="greeting-with-avatar">
+                                    <img id="clientGreetingAvatar" class="coach-greeting-avatar" style="display: none;" alt="You">
+                                    <div class="greeting-text">
+                                        <h1>Welcome back, <span id="clientName">Client</span>!</h1>
+                                        <p id="greetingSubtext">Let's make today count</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -4059,10 +5122,107 @@
                         </div>
                     </div>
 
+                    <!-- AI-First Hero Input Section -->
+                    <div class="ai-hero-section" id="aiHeroSection">
+                        <div class="ai-hero-header">
+                            <div class="ai-hero-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 3l1.5 4.5H18l-3.5 2.5 1.5 4.5-4-3-4 3 1.5-4.5L6 7.5h4.5L12 3z"/>
+                                </svg>
+                            </div>
+                            <div class="ai-hero-title">What did you eat?</div>
+                            <div class="ai-hero-subtitle">AI-powered logging</div>
+                        </div>
+
+                        <!-- Meal Type Selector -->
+                        <div class="meal-type-selector" id="mealTypeSelector">
+                            <button class="meal-type-btn breakfast" data-meal="breakfast" onclick="selectMealType('breakfast')">
+                                <span class="meal-icon">☀️</span>
+                                <span>Breakfast</span>
+                            </button>
+                            <button class="meal-type-btn lunch" data-meal="lunch" onclick="selectMealType('lunch')">
+                                <span class="meal-icon">🌤️</span>
+                                <span>Lunch</span>
+                            </button>
+                            <button class="meal-type-btn dinner" data-meal="dinner" onclick="selectMealType('dinner')">
+                                <span class="meal-icon">🌙</span>
+                                <span>Dinner</span>
+                            </button>
+                            <button class="meal-type-btn snack" data-meal="snack" onclick="selectMealType('snack')">
+                                <span class="meal-icon">🍎</span>
+                                <span>Snack</span>
+                            </button>
+                        </div>
+
+                        <!-- AI Input -->
+                        <div class="ai-hero-input-wrapper">
+                            <textarea
+                                class="ai-hero-textarea"
+                                id="aiHeroInput"
+                                placeholder="Describe what you ate... e.g., 'Grilled chicken with rice and vegetables' or 'A large coffee with oat milk'"
+                                rows="2"
+                                onkeydown="handleHeroKeydown(event)"
+                            ></textarea>
+                        </div>
+                        <div class="ai-hero-input-actions">
+                            <button class="ai-hero-voice-btn" id="aiHeroVoiceBtn" onclick="toggleVoiceInput()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+                            </button>
+                            <button class="ai-hero-send-btn" id="aiHeroSendBtn" onclick="sendHeroAIMessage()">Log Food ➤</button>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div class="ai-hero-loading" id="aiHeroLoading">
+                            <div class="loading-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <span>Analyzing your meal...</span>
+                        </div>
+
+                        <!-- Parse Result Container (populated by JS) -->
+                        <div id="aiHeroParseResult"></div>
+
+                        <!-- Alternative Options -->
+                        <div class="ai-hero-alternatives">
+                            <button class="ai-hero-alt-btn" onclick="openDashPhotoModal()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                    <circle cx="12" cy="13" r="4"/>
+                                </svg>
+                                Snap Photo
+                            </button>
+                            <button class="ai-hero-alt-btn" onclick="openDashSearch()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                Search Foods
+                            </button>
+                            <button class="ai-hero-alt-btn" onclick="openDashFavorites()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                                Favorites
+                            </button>
+                            <button class="ai-hero-alt-btn" onclick="openScanLabelModal()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <polyline points="10 9 9 9 8 9"/>
+                                </svg>
+                                Scan Label
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Today's Progress Card -->
                     <div class="today-card">
                         <div class="today-header">
-                            <div class="today-title">📊 Today's Progress</div>
+                            <div class="today-title" style="display: flex; align-items: center; gap: 8px;"><i data-lucide="bar-chart-3" width="20" height="20" style="color: #10b981;"></i> Today's Progress</div>
                             <div class="today-date" id="todayDate"></div>
                         </div>
 
@@ -4137,14 +5297,28 @@
                             </div>
                         </div>
 
-                        <!-- Log Food Button -->
+                        <!-- View Diary Button -->
                         <a href="client-diary.html" class="log-food-btn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                             </svg>
-                            Log Food
+                            View Diary
                         </a>
+                    </div>
+
+                    <!-- Supplement Checklist Section -->
+                    <div class="supplement-checklist" id="supplementChecklist" style="display: none;">
+                        <div class="supplement-checklist-header">
+                            <div class="supplement-checklist-title">
+                                <i data-lucide="pill" width="18" height="18" style="color: #10b981;"></i>
+                                Today's Supplements
+                            </div>
+                            <span class="supplement-progress-badge" id="supplementProgressBadge">0/0</span>
+                        </div>
+                        <div id="supplementChecklistContainer">
+                            <!-- Supplement items will be loaded here dynamically -->
+                        </div>
                     </div>
 
                     <!-- Quick Actions Section -->
@@ -4153,19 +5327,8 @@
                             <h2 class="section-title-new">Quick Actions</h2>
                         </div>
                         <div class="quick-actions-grid">
-                            <a href="client-diary.html" class="action-card">
-                                <div class="action-icon diary">📝</div>
-                                <div class="action-name">Food Diary</div>
-                                <div class="action-desc">Track your meals</div>
-                            </a>
-                            <a href="client-plans.html" class="action-card">
-                                <div class="action-icon plans">🍽️</div>
-                                <div class="action-name">My Plans</div>
-                                <div class="action-desc">View meal plans</div>
-                                <span class="action-badge active" id="plansbadge" style="display:none;">Active</span>
-                            </a>
                             <a href="client-checkin.html" class="action-card">
-                                <div class="action-icon checkin">✅</div>
+                                <div class="action-icon checkin"><i data-lucide="clipboard-check" style="color: #10b981;"></i></div>
                                 <div class="action-name">Check-in</div>
                                 <div class="action-desc">Weekly update</div>
                                 <span class="action-badge due" id="checkinBadge" style="display:none;">Due soon</span>
@@ -4176,20 +5339,42 @@
                                 <div class="action-desc">Track training</div>
                             </a>
                             <a href="client-progress.html" class="action-card">
-                                <div class="action-icon progress">📈</div>
+                                <div class="action-icon progress"><i data-lucide="trending-up" style="color: #f59e0b;"></i></div>
                                 <div class="action-name">Progress</div>
                                 <div class="action-desc">Track results</div>
                             </a>
                             <a href="client-recipes.html" class="action-card">
-                                <div class="action-icon recipes">👨‍🍳</div>
+                                <div class="action-icon recipes"><i data-lucide="chef-hat" style="color: #ec4899;"></i></div>
                                 <div class="action-name">Recipes</div>
                                 <div class="action-desc">Cook & enjoy</div>
                             </a>
                             <a href="client-favorites.html" class="action-card">
-                                <div class="action-icon favorites">❤️</div>
+                                <div class="action-icon favorites"><i data-lucide="heart" style="color: #ef4444;"></i></div>
                                 <div class="action-name">Favorites</div>
                                 <div class="action-desc">Saved meals</div>
                             </a>
+                        </div>
+                    </div>
+
+                    <!-- Meal Plans Section -->
+                    <div class="plans-section" id="plansSection" style="margin-top: 24px;">
+                        <h2 style="display: flex; align-items: center; gap: 10px;">
+                            <i data-lucide="utensils" width="22" height="22" style="color: #8b5cf6;"></i>
+                            My Meal Plans
+                        </h2>
+                        <div id="plansContainer">
+                            <!-- Meal plans will be loaded here dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Supplement Protocols Section -->
+                    <div class="protocols-section" id="protocolsSection" style="display: none; margin-top: 24px;">
+                        <h2 class="protocols-header" style="display: flex; align-items: center; gap: 10px;">
+                            <i data-lucide="pill" width="22" height="22" style="color: #10b981;"></i>
+                            Supplement Protocols
+                        </h2>
+                        <div id="protocolsContainer">
+                            <!-- Protocols will be loaded here dynamically -->
                         </div>
                     </div>
                     </div><!-- End dashboard-content -->
@@ -4340,6 +5525,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/api-helper.js"></script>
     <script>
         // Initialize Supabase client
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -4417,6 +5603,11 @@
             currentClientId = clientData.id;
             currentCoachId = clientData.coach_id;
 
+            // Initialize coach branding
+            if (window.ZiqueBranding && currentCoachId) {
+                window.ZiqueBranding.init(currentCoachId);
+            }
+
             // Load client permissions (default to true if not set)
             canRequestNewPlan = clientData.can_request_new_plan !== false;
 
@@ -4425,6 +5616,15 @@
 
             // Update UI with client info
             document.getElementById('clientName').textContent = clientData.client_name || 'Client';
+
+            // Display client avatar in greeting if they have a profile photo
+            if (clientData.profile_photo_url) {
+                const greetingAvatar = document.getElementById('clientGreetingAvatar');
+                if (greetingAvatar) {
+                    greetingAvatar.src = clientData.profile_photo_url;
+                    greetingAvatar.style.display = 'block';
+                }
+            }
 
             // Update profile section if it exists
             const profileName = document.getElementById('profileName');
@@ -4443,6 +5643,7 @@
             await Promise.all([
                 loadMealPlans(),
                 loadProtocols(),
+                loadSupplementChecklist(),
                 loadNotificationPreferences(),
                 loadPhotos(),
                 loadMeasurements(),
@@ -4591,6 +5792,342 @@
                 console.error('Error loading protocols:', error);
                 // Hide the section on error
                 protocolsSection.style.display = 'none';
+            }
+        }
+
+        // Check if a supplement is due today based on frequency settings
+        function isSupplementDueToday(protocol) {
+            const frequencyType = protocol.frequency_type || 'daily';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Daily supplements are always due
+            if (frequencyType === 'daily') {
+                return true;
+            }
+
+            // Get the start date (client's actual start or coach's suggested)
+            const startDateStr = protocol.client_start_date || protocol.start_date;
+
+            // If no start date set yet, show it so client can start
+            if (!startDateStr) {
+                return true;
+            }
+
+            const startDate = new Date(startDateStr);
+            startDate.setHours(0, 0, 0, 0);
+
+            // If today is before start date, not due yet
+            if (today < startDate) {
+                return false;
+            }
+
+            const daysSinceStart = Math.floor((today - startDate) / (24 * 60 * 60 * 1000));
+            const todayDayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+
+            switch (frequencyType) {
+                case 'every_other_day':
+                    // Due on day 0, 2, 4, 6, 8... (every even number of days since start)
+                    return daysSinceStart % 2 === 0;
+
+                case 'every_x_days':
+                    // Due every X days
+                    const interval = protocol.frequency_interval || 1;
+                    return daysSinceStart % interval === 0;
+
+                case 'specific_days':
+                    // Due on specific days of the week
+                    const specificDays = protocol.frequency_days || [];
+                    return specificDays.includes(todayDayOfWeek);
+
+                case 'once_weekly':
+                    // Due once a week on a specific day
+                    const weeklyDay = protocol.frequency_days && protocol.frequency_days[0];
+                    return weeklyDay !== undefined && weeklyDay === todayDayOfWeek;
+
+                default:
+                    return true;
+            }
+        }
+
+        // Get frequency display text
+        function getFrequencyText(protocol) {
+            const frequencyType = protocol.frequency_type || 'daily';
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            switch (frequencyType) {
+                case 'daily':
+                    return 'Daily';
+                case 'every_other_day':
+                    return 'Every other day';
+                case 'every_x_days':
+                    const interval = protocol.frequency_interval || 1;
+                    return `Every ${interval} days`;
+                case 'specific_days':
+                    const days = (protocol.frequency_days || []).map(d => dayNames[d]).join(', ');
+                    return days || 'Specific days';
+                case 'once_weekly':
+                    const day = protocol.frequency_days && protocol.frequency_days[0];
+                    return day !== undefined ? `Weekly (${dayNames[day]})` : 'Once weekly';
+                default:
+                    return '';
+            }
+        }
+
+        // Calculate days since last taken
+        function getDaysSinceLastTaken(protocol) {
+            if (!protocol.last_taken_date) return null;
+            const lastTaken = new Date(protocol.last_taken_date);
+            const today = new Date();
+            lastTaken.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0);
+            return Math.floor((today - lastTaken) / (24 * 60 * 60 * 1000));
+        }
+
+        // Check if protocol is off-schedule
+        function isOffSchedule(protocol) {
+            const frequencyType = protocol.frequency_type || 'daily';
+            const daysSince = getDaysSinceLastTaken(protocol);
+
+            if (daysSince === null || daysSince === 0) return false;
+
+            switch (frequencyType) {
+                case 'daily':
+                    return daysSince > 1;
+                case 'every_other_day':
+                    return daysSince > 3;
+                case 'every_x_days':
+                    const interval = protocol.frequency_interval || 1;
+                    return daysSince > interval + 2;
+                case 'specific_days':
+                case 'once_weekly':
+                    return daysSince > 10;
+                default:
+                    return daysSince > 3;
+            }
+        }
+
+        // Load supplement checklist for today
+        async function loadSupplementChecklist() {
+            const checklistSection = document.getElementById('supplementChecklist');
+            const checklistContainer = document.getElementById('supplementChecklistContainer');
+            const progressBadge = document.getElementById('supplementProgressBadge');
+
+            if (!checklistSection || !checklistContainer) return;
+
+            try {
+                // Fetch protocols
+                const protocolsResponse = await fetch(`/.netlify/functions/client-protocols?clientId=${currentClientId}&coachId=${currentCoachId}`);
+                if (!protocolsResponse.ok) throw new Error('Failed to fetch protocols');
+
+                const protocolsData = await protocolsResponse.json();
+                const allProtocols = protocolsData.protocols || [];
+
+                // If no protocols, hide the section
+                if (allProtocols.length === 0) {
+                    checklistSection.style.display = 'none';
+                    return;
+                }
+
+                // Filter to only supplements due today
+                const protocols = allProtocols.filter(p => isSupplementDueToday(p));
+
+                // If no supplements due today, hide the section
+                if (protocols.length === 0) {
+                    checklistSection.style.display = 'none';
+                    return;
+                }
+
+                // Fetch today's intake
+                const today = new Date().toISOString().split('T')[0];
+                const intakeResponse = await fetch(`/.netlify/functions/supplement-intake?clientId=${currentClientId}&date=${today}`);
+                const intakeData = await intakeResponse.json();
+                const takenProtocolIds = new Set((intakeData.intake || []).map(i => i.protocol_id));
+
+                // Show the section
+                checklistSection.style.display = 'block';
+
+                // Group protocols by timing
+                const timingOrder = ['morning', 'with_meals', 'pre_workout', 'post_workout', 'bedtime', 'custom'];
+                const timingLabels = {
+                    'morning': 'Morning',
+                    'pre_workout': 'Pre-Workout',
+                    'post_workout': 'Post-Workout',
+                    'bedtime': 'Bedtime',
+                    'with_meals': 'With Meals',
+                    'custom': 'Custom'
+                };
+                const timingIcons = {
+                    'morning': '🌅',
+                    'pre_workout': '💪',
+                    'post_workout': '🏋️',
+                    'bedtime': '🌙',
+                    'with_meals': '🍽️',
+                    'custom': '⏰'
+                };
+
+                // Group by timing
+                const grouped = {};
+                protocols.forEach(protocol => {
+                    const timing = protocol.timing || 'custom';
+                    if (!grouped[timing]) grouped[timing] = [];
+                    grouped[timing].push(protocol);
+                });
+
+                // Build HTML
+                let html = '';
+                let totalCount = 0;
+                let takenCount = 0;
+
+                timingOrder.forEach(timing => {
+                    if (!grouped[timing] || grouped[timing].length === 0) return;
+
+                    const label = timingLabels[timing] || timing;
+                    const icon = timingIcons[timing] || '💊';
+
+                    html += `<div class="supplement-timing-group">`;
+                    html += `<div class="supplement-timing-label">${icon} ${label}</div>`;
+
+                    grouped[timing].forEach(protocol => {
+                        const isTaken = takenProtocolIds.has(protocol.id);
+                        const offSchedule = isOffSchedule(protocol);
+                        const daysSince = getDaysSinceLastTaken(protocol);
+                        const frequencyText = getFrequencyText(protocol);
+                        const isNonDaily = protocol.frequency_type && protocol.frequency_type !== 'daily';
+
+                        totalCount++;
+                        if (isTaken) takenCount++;
+
+                        // Get current dose (handle scheduled protocols)
+                        let currentDose = protocol.dose || '';
+                        if (protocol.has_schedule && protocol.schedule && protocol.schedule.length > 0 && protocol.start_date) {
+                            const startDate = new Date(protocol.start_date);
+                            const now = new Date();
+                            const weeksDiff = Math.floor((now - startDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                            const currentPhase = protocol.schedule.find(p => weeksDiff >= p.weekStart && weeksDiff <= p.weekEnd);
+                            if (currentPhase) {
+                                currentDose = currentPhase.dose;
+                            }
+                        }
+
+                        // Build dose/frequency text
+                        let doseText = '';
+                        if (currentDose && isNonDaily) {
+                            doseText = `${currentDose} · ${frequencyText}`;
+                        } else if (currentDose) {
+                            doseText = currentDose;
+                        } else if (isNonDaily) {
+                            doseText = frequencyText;
+                        }
+
+                        // Off-schedule warning
+                        let warningHtml = '';
+                        if (offSchedule && daysSince) {
+                            warningHtml = `<div class="supplement-warning">Last taken ${daysSince} days ago</div>`;
+                        }
+
+                        html += `
+                            <div class="supplement-item ${isTaken ? 'taken' : ''} ${offSchedule ? 'off-schedule' : ''}"
+                                 data-protocol-id="${protocol.id}">
+                                <div class="supplement-main" onclick="toggleSupplementIntake(${protocol.id}, ${isTaken})">
+                                    <div class="supplement-checkbox">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="supplement-info">
+                                        <div class="supplement-name">${protocol.name}</div>
+                                        ${doseText ? `<div class="supplement-dose">${doseText}</div>` : ''}
+                                        ${warningHtml}
+                                    </div>
+                                </div>
+                                ${offSchedule ? `
+                                    <button class="supplement-restart-btn" onclick="restartSupplementSchedule(${protocol.id}); event.stopPropagation();" title="Restart Schedule">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                            <path d="M3 3v5h5"/>
+                                        </svg>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+
+                    html += `</div>`;
+                });
+
+                checklistContainer.innerHTML = html;
+                progressBadge.textContent = `${takenCount}/${totalCount}`;
+
+                // Update badge color based on completion
+                if (takenCount === totalCount && totalCount > 0) {
+                    progressBadge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                } else if (takenCount > 0) {
+                    progressBadge.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                } else {
+                    progressBadge.style.background = 'linear-gradient(135deg, #94a3b8, #64748b)';
+                }
+
+                // Re-init lucide icons
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+
+            } catch (error) {
+                console.error('Error loading supplement checklist:', error);
+                checklistSection.style.display = 'none';
+            }
+        }
+
+        // Toggle supplement intake (check/uncheck)
+        async function toggleSupplementIntake(protocolId, currentlyTaken) {
+            const today = new Date().toISOString().split('T')[0];
+
+            try {
+                if (currentlyTaken) {
+                    // Unmark as taken
+                    await fetch(`/.netlify/functions/supplement-intake?clientId=${currentClientId}&protocolId=${protocolId}&date=${today}`, {
+                        method: 'DELETE'
+                    });
+                } else {
+                    // Mark as taken (this also sets client_start_date if not set)
+                    await fetch('/.netlify/functions/supplement-intake', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            clientId: currentClientId,
+                            protocolId: protocolId,
+                            date: today
+                        })
+                    });
+                }
+
+                // Reload the checklist to reflect changes
+                await loadSupplementChecklist();
+
+            } catch (error) {
+                console.error('Error toggling supplement intake:', error);
+            }
+        }
+
+        // Restart supplement schedule
+        async function restartSupplementSchedule(protocolId) {
+            try {
+                await fetch('/.netlify/functions/supplement-intake', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        protocolId: protocolId,
+                        action: 'restart'
+                    })
+                });
+
+                // Reload the checklist
+                await loadSupplementChecklist();
+
+            } catch (error) {
+                console.error('Error restarting supplement schedule:', error);
             }
         }
 
@@ -5119,7 +6656,7 @@
             if (clientMeasurements.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📊</div>
+                        <div class="empty-state-icon"><i data-lucide="ruler" width="48" height="48" style="color: #10b981;"></i></div>
                         <h3>No Measurements Yet</h3>
                         <p>Track your progress by logging your first measurement!</p>
                     </div>
@@ -6648,6 +8185,1093 @@
             if (e.key === 'ArrowLeft') prevStory();
             if (e.key === 'Escape') closeStoryViewer();
         });
+
+        // ==========================================
+        // AI-FIRST HERO INPUT SECTION
+        // ==========================================
+        let selectedMealType = null;
+        let pendingHeroFoodLog = null;
+
+        // Auto-select meal type based on time of day
+        function autoSelectMealType() {
+            const hour = new Date().getHours();
+            let mealType = 'snack';
+
+            if (hour >= 5 && hour < 11) mealType = 'breakfast';
+            else if (hour >= 11 && hour < 15) mealType = 'lunch';
+            else if (hour >= 15 && hour < 21) mealType = 'dinner';
+            else mealType = 'snack';
+
+            selectMealType(mealType);
+        }
+
+        // Select meal type button
+        function selectMealType(mealType) {
+            selectedMealType = mealType;
+
+            // Update button states
+            document.querySelectorAll('.meal-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const activeBtn = document.querySelector(`.meal-type-btn.${mealType}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+
+        // Handle Enter key in hero input
+        function handleHeroKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendHeroAIMessage();
+            }
+        }
+
+        // Send message from hero AI input
+        async function sendHeroAIMessage() {
+            const input = document.getElementById('aiHeroInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            if (!currentClientId) {
+                showToast('Please wait for page to load');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('aiHeroLoading').classList.add('visible');
+            document.getElementById('aiHeroSendBtn').disabled = true;
+            document.getElementById('aiHeroParseResult').innerHTML = '';
+
+            // Get client first name from page
+            const clientNameEl = document.getElementById('clientName');
+            const firstName = clientNameEl ? clientNameEl.textContent.split(' ')[0] : 'there';
+
+            try {
+                // Use authenticated API call
+                const data = await apiPost('/.netlify/functions/client-diary-ai', {
+                    clientId: currentClientId,
+                    clientFirstName: firstName,
+                    message: `Log for ${selectedMealType || 'snack'}: ${message}`,
+                    todayEntries: [],
+                    goals: {},
+                    totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
+                });
+
+                // Hide loading
+                document.getElementById('aiHeroLoading').classList.remove('visible');
+                document.getElementById('aiHeroSendBtn').disabled = false;
+
+                if (data.error) {
+                    showToast('Sorry, AI encountered an error. Try again.');
+                    return;
+                }
+
+                // Check if AI parsed food
+                if (data.parsed && data.parsed.action === 'log_food') {
+                    // Override meal type with our selected one
+                    data.parsed.meal_type = selectedMealType || data.parsed.meal_type || 'snack';
+                    pendingHeroFoodLog = data.parsed;
+                    showHeroParseResult(data.parsed);
+                } else {
+                    // Show message in a toast
+                    showToast(data.response || 'Couldn\'t parse that food. Try being more specific.');
+                }
+
+            } catch (err) {
+                console.error('Hero AI error:', err);
+                document.getElementById('aiHeroLoading').classList.remove('visible');
+                document.getElementById('aiHeroSendBtn').disabled = false;
+                showToast('Couldn\'t connect to AI. Please try again.');
+            }
+        }
+
+        // Store base values for text AI food (per 1 serving)
+        let heroFoodBaseValues = null;
+
+        // Show parsed result in hero section
+        function showHeroParseResult(foodData) {
+            const container = document.getElementById('aiHeroParseResult');
+            const mealLabel = foodData.meal_type ? foodData.meal_type.charAt(0).toUpperCase() + foodData.meal_type.slice(1) : 'Diary';
+
+            // Store base values for serving recalculation
+            heroFoodBaseValues = {
+                food_name: foodData.food_name,
+                calories: foodData.calories,
+                protein: foodData.protein,
+                carbs: foodData.carbs,
+                fat: foodData.fat,
+                meal_type: foodData.meal_type
+            };
+
+            container.innerHTML = `
+                <div class="ai-parse-result">
+                    <div class="ai-parse-result-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>Ready to log</span>
+                    </div>
+                    <div class="ai-parse-result-items">
+                        <div class="ai-parse-item">
+                            <div>
+                                <div class="ai-parse-item-name">${foodData.food_name}</div>
+                            </div>
+                            <div class="ai-parse-item-cals" id="heroParseCaloriesLabel">${foodData.calories} cal</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0; justify-content: center;">
+                        <label style="font-size: 0.85rem; color: var(--gray-500);">Servings:</label>
+                        <input type="number" value="1" min="0.5" step="0.5" id="heroServingsInput"
+                            style="width: 70px; padding: 6px 8px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.9rem; text-align: center;"
+                            oninput="recalculateHeroFoodMacros()">
+                    </div>
+                    <div class="ai-parse-totals">
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" id="heroParseCalories">${foodData.calories}</div>
+                            <div class="ai-parse-total-label">Calories</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #3b82f6;" id="heroParseProtein">${foodData.protein}g</div>
+                            <div class="ai-parse-total-label">Protein</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #f59e0b;" id="heroParseCarbs">${foodData.carbs}g</div>
+                            <div class="ai-parse-total-label">Carbs</div>
+                        </div>
+                        <div class="ai-parse-total-item">
+                            <div class="ai-parse-total-value" style="color: #ef4444;" id="heroParseFat">${foodData.fat}g</div>
+                            <div class="ai-parse-total-label">Fat</div>
+                        </div>
+                    </div>
+                    <div class="ai-parse-actions">
+                        <button class="ai-parse-edit-btn" onclick="cancelHeroFoodLog()">Cancel</button>
+                        <button class="ai-parse-confirm-btn" onclick="confirmHeroFoodLog()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Add to ${mealLabel}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function recalculateHeroFoodMacros() {
+            if (!heroFoodBaseValues) return;
+            const servings = parseFloat(document.getElementById('heroServingsInput').value) || 1;
+
+            const calories = Math.round(heroFoodBaseValues.calories * servings);
+            const protein = Math.round(heroFoodBaseValues.protein * servings);
+            const carbs = Math.round(heroFoodBaseValues.carbs * servings);
+            const fat = Math.round(heroFoodBaseValues.fat * servings);
+
+            document.getElementById('heroParseCaloriesLabel').textContent = `${calories} cal`;
+            document.getElementById('heroParseCalories').textContent = calories;
+            document.getElementById('heroParseProtein').textContent = `${protein}g`;
+            document.getElementById('heroParseCarbs').textContent = `${carbs}g`;
+            document.getElementById('heroParseFat').textContent = `${fat}g`;
+
+            // Update pending food log with recalculated values
+            if (pendingHeroFoodLog) {
+                pendingHeroFoodLog.calories = calories;
+                pendingHeroFoodLog.protein = protein;
+                pendingHeroFoodLog.carbs = carbs;
+                pendingHeroFoodLog.fat = fat;
+                pendingHeroFoodLog.servings = servings;
+            }
+        }
+
+        // Confirm and add food from hero input
+        async function confirmHeroFoodLog() {
+            if (!pendingHeroFoodLog) return;
+
+            const food = pendingHeroFoodLog;
+            const mealType = food.meal_type || selectedMealType || 'snack';
+            const servingsInput = document.getElementById('heroServingsInput');
+            const servings = servingsInput ? (parseFloat(servingsInput.value) || 1) : 1;
+
+            // Get today's date in local timezone
+            const today = formatLocalDate(new Date());
+
+            try {
+                const response = await fetch('/.netlify/functions/food-diary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        clientId: currentClientId,
+                        foodName: food.food_name,
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        mealType: mealType,
+                        entryDate: today,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        numberOfServings: servings
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to save');
+
+                // Clear input and result
+                document.getElementById('aiHeroInput').value = '';
+                document.getElementById('aiHeroParseResult').innerHTML = '';
+                pendingHeroFoodLog = null;
+                heroFoodBaseValues = null;
+
+                // Show success toast with View Diary option
+                showToast(`Added "${food.food_name}"!`, 'View Diary', () => {
+                    window.location.href = 'client-diary.html';
+                });
+
+                // Refresh progress display
+                loadTodayProgress();
+
+            } catch (err) {
+                console.error('Error adding food:', err);
+                showToast('Failed to add food. Please try again.');
+            }
+        }
+
+        // Cancel hero food log
+        function cancelHeroFoodLog() {
+            pendingHeroFoodLog = null;
+            heroFoodBaseValues = null;
+            document.getElementById('aiHeroParseResult').innerHTML = '';
+        }
+
+        // Show toast notification with optional action button
+        function showToast(message, actionText = null, actionCallback = null) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastAction = document.getElementById('toastAction');
+
+            toastMessage.textContent = message;
+
+            if (actionText && actionCallback) {
+                toastAction.textContent = actionText;
+                toastAction.style.display = 'block';
+                toastAction.onclick = () => {
+                    toast.classList.remove('show');
+                    actionCallback();
+                };
+            } else {
+                toastAction.style.display = 'none';
+            }
+
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 5000);
+        }
+
+        // Initialize hero section on page load
+        function initAIHeroSection() {
+            // Auto-select meal type based on time
+            autoSelectMealType();
+        }
+
+        // ==========================================
+        // VOICE INPUT FUNCTIONALITY
+        // ==========================================
+        let isRecording = false;
+        let recognition = null;
+
+        function toggleVoiceInput() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                showToast('Voice input not supported in this browser');
+                return;
+            }
+
+            if (isRecording) {
+                stopVoiceInput();
+            } else {
+                startVoiceInput();
+            }
+        }
+
+        function startVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                document.getElementById('aiHeroVoiceBtn').classList.add('recording');
+                showToast('Listening... speak now');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                const input = document.getElementById('aiHeroInput');
+                input.value = transcript;
+                input.focus();
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Voice recognition error:', event.error);
+                stopVoiceInput();
+                if (event.error === 'not-allowed') {
+                    showToast('Microphone access denied');
+                } else {
+                    showToast('Voice input error. Try again.');
+                }
+            };
+
+            recognition.onend = () => {
+                stopVoiceInput();
+            };
+
+            recognition.start();
+        }
+
+        function stopVoiceInput() {
+            isRecording = false;
+            document.getElementById('aiHeroVoiceBtn').classList.remove('recording');
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        // ==========================================
+        // DASHBOARD MODAL FUNCTIONS
+        // ==========================================
+        let dashPhotoBase64 = null;
+        let dashDetectedFoods = [];
+        let dashSelectedFood = null;
+        let dashSearchTimeout = null;
+
+        // Get current meal type from selection or default to lunch
+        function getDashMealType() {
+            const selectedBtn = document.querySelector('.meal-type-btn.selected');
+            return selectedBtn ? selectedBtn.dataset.meal : 'lunch';
+        }
+
+        // ========== PHOTO MODAL ==========
+        function openDashPhotoModal() {
+            document.getElementById('dashPhotoModal').classList.add('active');
+            resetDashPhoto();
+        }
+
+        function closeDashPhotoModal() {
+            document.getElementById('dashPhotoModal').classList.remove('active');
+            resetDashPhoto();
+        }
+
+        function resetDashPhoto() {
+            // Show upload section, hide everything else
+            document.getElementById('dashPhotoUpload').style.display = 'block';
+            document.getElementById('dashPhotoAnalyzing').style.display = 'none';
+            document.getElementById('dashPhotoResults').style.display = 'none';
+            document.getElementById('dashPhotoDetailsSection').style.display = 'none';
+            document.getElementById('dashPhotoPreview').style.display = 'none';
+            document.getElementById('dashPhotoFoodDetails').value = '';
+
+            // Show the upload area with buttons
+            const uploadArea = document.getElementById('dashPhotoUploadArea');
+            uploadArea.style.display = 'flex';
+            uploadArea.innerHTML = `
+                <div class="photo-upload-icon">📷</div>
+                <div class="photo-upload-text" style="margin-bottom: 16px;">Take a photo or upload from gallery</div>
+                <div style="display: flex; gap: 12px; width: 100%; max-width: 300px;">
+                    <button type="button" onclick="document.getElementById('dashCameraInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Camera
+                    </button>
+                    <button type="button" onclick="document.getElementById('dashUploadInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Upload
+                    </button>
+                </div>
+                <div class="photo-upload-hint" style="margin-top: 12px;">AI will analyze your food and estimate calories</div>
+            `;
+
+            // Reset file inputs
+            const cameraInput = document.getElementById('dashCameraInput');
+            const uploadInput = document.getElementById('dashUploadInput');
+            if (cameraInput) cameraInput.value = '';
+            if (uploadInput) uploadInput.value = '';
+
+            // Reset data
+            dashDetectedFoods = [];
+            dashPhotoBase64 = null;
+
+            // Reset reanalyze button visibility
+            const reanalyzeBtn = document.getElementById('dashSmartReanalyzeBtn');
+            if (reanalyzeBtn) {
+                reanalyzeBtn.style.display = 'flex';
+                reanalyzeBtn.disabled = false;
+                reanalyzeBtn.style.opacity = '1';
+                reanalyzeBtn.innerHTML = '<span>🔍</span> Not accurate? <strong style="color: var(--brand-primary);">Reanalyze with Smarter AI</strong>';
+            }
+        }
+
+        function handleDashPhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                console.log('No file selected');
+                return;
+            }
+            console.log('📸 Photo selected:', file.name, file.type, file.size);
+
+            // Compress image before storing
+            compressImage(file, 1200, 0.8).then(compressedBase64 => {
+                dashPhotoBase64 = compressedBase64;
+                console.log('📸 Photo compressed, base64 length:', dashPhotoBase64.length);
+
+                // Show preview image
+                const previewSection = document.getElementById('dashPhotoPreview');
+                const previewImg = document.getElementById('dashPhotoPreviewImg');
+                if (previewSection && previewImg) {
+                    previewImg.src = dashPhotoBase64;
+                    previewSection.style.display = 'block';
+                }
+
+                // Hide the upload buttons, show the details section
+                document.getElementById('dashPhotoUploadArea').style.display = 'none';
+                document.getElementById('dashPhotoDetailsSection').style.display = 'block';
+            }).catch(err => {
+                console.error('Error compressing image:', err);
+                showToast('Error processing photo. Please try again.');
+            });
+        }
+
+        // Compress image to reduce payload size
+        function compressImage(file, maxWidth, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Scale down if needed
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Convert to JPEG with compression
+                        const compressed = canvas.toDataURL('image/jpeg', quality);
+                        console.log('📸 Original size:', e.target.result.length, '-> Compressed:', compressed.length);
+                        resolve(compressed);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function analyzeDashPhoto() {
+            console.log('📸 Dashboard photo analysis started');
+            console.log('dashPhotoBase64 exists:', !!dashPhotoBase64);
+            console.log('dashPhotoBase64 length:', dashPhotoBase64 ? dashPhotoBase64.length : 0);
+
+            // Check if we have a photo
+            if (!dashPhotoBase64) {
+                console.error('No photo data available');
+                showToast('Please take or upload a photo first');
+                return;
+            }
+
+            // Hide upload and details sections, show analyzing
+            document.getElementById('dashPhotoUpload').style.display = 'none';
+            document.getElementById('dashPhotoPreview').style.display = 'none';
+            document.getElementById('dashPhotoDetailsSection').style.display = 'none';
+            document.getElementById('dashPhotoAnalyzing').style.display = 'block';
+
+            const detailsInput = document.getElementById('dashPhotoFoodDetails');
+            const foodDetails = detailsInput ? detailsInput.value.trim() : '';
+
+            try {
+                console.log('Calling photo analysis API...');
+                console.log('Request payload - image length:', dashPhotoBase64.length, 'details:', foodDetails || 'none');
+
+                const data = await apiPost('/.netlify/functions/analyze-food-photo', {
+                    image: dashPhotoBase64,
+                    details: foodDetails || null
+                });
+                console.log('Photo analysis response:', data);
+                dashDetectedFoods = data.foods || [];
+
+                if (dashDetectedFoods.length === 0) {
+                    showToast('Could not detect any food items. Try a clearer photo.');
+                    resetDashPhoto();
+                    return;
+                }
+                renderDashPhotoResults();
+            } catch (err) {
+                console.error('Error analyzing photo:', err);
+                console.error('Error details:', err.message, err.stack);
+                showToast(err.message || 'Failed to analyze photo. Try again.');
+                resetDashPhoto();
+            }
+        }
+
+        // Store base values for photo foods (per 1 serving)
+        let dashPhotoBaseValues = [];
+
+        function renderDashPhotoResults() {
+            document.getElementById('dashPhotoAnalyzing').style.display = 'none';
+            document.getElementById('dashPhotoResults').style.display = 'block';
+            const container = document.getElementById('dashPhotoDetectedItems');
+
+            // Store base values for serving recalculation
+            dashPhotoBaseValues = dashDetectedFoods.map(food => ({
+                name: food.name,
+                calories: food.calories,
+                protein: food.protein,
+                carbs: food.carbs,
+                fat: food.fat,
+                servings: 1
+            }));
+
+            container.innerHTML = dashDetectedFoods.map((food, idx) => `
+                <div class="ai-food-item" style="position: relative; padding-right: 40px;" id="dashPhotoFood-${idx}">
+                    <button onclick="removeDashPhotoFood(${idx})" style="position: absolute; right: 8px; top: 8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px;">×</button>
+                    <div class="ai-food-name">${food.name}</div>
+                    <div class="ai-food-macros" style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; margin-bottom: 8px;">
+                        <span id="dashPhotoCalories-${idx}">${food.calories} cal</span>
+                        <span style="color: #3b82f6;" id="dashPhotoProtein-${idx}">${food.protein}g P</span>
+                        <span style="color: #f59e0b;" id="dashPhotoCarbs-${idx}">${food.carbs}g C</span>
+                        <span style="color: #ef4444;" id="dashPhotoFat-${idx}">${food.fat}g F</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 0.8rem; color: var(--gray-500);">Servings:</label>
+                        <input type="number" value="1" min="0.5" step="0.5"
+                            style="width: 70px; padding: 6px 8px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.85rem;"
+                            oninput="recalculateDashPhotoMacros(${idx}, this.value)"
+                            id="dashPhotoServings-${idx}">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function recalculateDashPhotoMacros(idx, servingsValue) {
+            const servings = parseFloat(servingsValue) || 1;
+            const base = dashPhotoBaseValues[idx];
+            if (!base) return;
+
+            // Update displayed values
+            const calories = Math.round(base.calories * servings);
+            const protein = Math.round(base.protein * servings);
+            const carbs = Math.round(base.carbs * servings);
+            const fat = Math.round(base.fat * servings);
+
+            document.getElementById(`dashPhotoCalories-${idx}`).textContent = `${calories} cal`;
+            document.getElementById(`dashPhotoProtein-${idx}`).textContent = `${protein}g P`;
+            document.getElementById(`dashPhotoCarbs-${idx}`).textContent = `${carbs}g C`;
+            document.getElementById(`dashPhotoFat-${idx}`).textContent = `${fat}g F`;
+
+            // Update the dashDetectedFoods array with current values
+            dashDetectedFoods[idx] = {
+                ...dashDetectedFoods[idx],
+                calories,
+                protein,
+                carbs,
+                fat,
+                servings
+            };
+        }
+
+        // Reanalyze photo with smarter AI (Claude 3.5 Sonnet) - Dashboard version
+        async function dashReanalyzeWithSmartAI() {
+            console.log('🔍 Dashboard reanalyze with Smart AI button clicked');
+            console.log('dashPhotoBase64 exists:', !!dashPhotoBase64);
+            console.log('dashPhotoBase64 length:', dashPhotoBase64 ? dashPhotoBase64.length : 0);
+
+            if (!dashPhotoBase64) {
+                showToast('No photo to reanalyze. Please take a new photo first.');
+                console.error('No photo data available for reanalysis');
+                return;
+            }
+
+            const btn = document.getElementById('dashSmartReanalyzeBtn');
+            if (!btn) {
+                console.error('Reanalyze button not found');
+                return;
+            }
+
+            // Store original content for potential restoration
+            const originalContent = '<span>🔍</span> Not accurate? <strong style="color: var(--brand-primary);">Reanalyze with Smarter AI</strong>';
+            btn.innerHTML = '<span style="width: 16px; height: 16px; border: 2px solid var(--gray-300); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span> Analyzing with smarter AI...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            // Get optional food details
+            const detailsInput = document.getElementById('dashPhotoFoodDetails');
+            const foodDetails = detailsInput ? detailsInput.value.trim() : '';
+
+            try {
+                console.log('Calling smart analysis API...');
+                console.log('Request payload - image length:', dashPhotoBase64.length, 'details:', foodDetails || 'none');
+
+                const data = await apiPost('/.netlify/functions/analyze-food-photo-smart', {
+                    image: dashPhotoBase64,
+                    details: foodDetails || null
+                });
+                console.log('Smart AI Photo response:', data);
+
+                if (data.foods && data.foods.length > 0) {
+                    dashDetectedFoods = data.foods;
+                    renderDashPhotoResults();
+                    showToast('Reanalyzed with smarter AI!');
+                    btn.style.display = 'none';
+                } else {
+                    showToast('Smart AI could not detect food items. Try a clearer photo.');
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
+            } catch (err) {
+                console.error('Error with smart analysis:', err);
+                console.error('Error details:', err.message, err.stack);
+                showToast(err.message || 'Smart analysis failed. Try again.');
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
+        function removeDashPhotoFood(idx) {
+            dashDetectedFoods.splice(idx, 1);
+            if (dashDetectedFoods.length === 0) {
+                resetDashPhoto();
+            } else {
+                renderDashPhotoResults();
+            }
+        }
+
+        async function addDashPhotoFoods() {
+            if (!currentClientId || dashDetectedFoods.length === 0) {
+                showToast('No foods to add');
+                return;
+            }
+
+            // Gather current values including adjusted servings
+            const foodsToAdd = dashDetectedFoods.map((food, idx) => {
+                const servingsInput = document.getElementById(`dashPhotoServings-${idx}`);
+                const servings = servingsInput ? (parseFloat(servingsInput.value) || 1) : 1;
+                const base = dashPhotoBaseValues[idx] || food;
+                return {
+                    name: food.name,
+                    calories: Math.round(base.calories * servings),
+                    protein: Math.round(base.protein * servings),
+                    carbs: Math.round(base.carbs * servings),
+                    fat: Math.round(base.fat * servings),
+                    servings
+                };
+            });
+
+            closeDashPhotoModal();
+            showToast('Adding foods...');
+
+            const mealType = getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            let addedCount = 0;
+            let errors = [];
+
+            for (const food of foodsToAdd) {
+                try {
+                    const payload = {
+                        clientId: currentClientId,
+                        entryDate: today,
+                        mealType: mealType,
+                        foodName: food.name,
+                        numberOfServings: food.servings,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        foodSource: 'ai_photo'
+                    };
+                    console.log('Adding food to diary:', payload);
+
+                    // Use authenticated API call
+                    await apiPost('/.netlify/functions/food-diary', payload);
+                    addedCount++;
+                } catch (err) {
+                    console.error('Error adding food:', err);
+                    errors.push(err.message);
+                }
+            }
+
+            if (errors.length > 0) {
+                showToast(`Added ${addedCount}/${foodsToAdd.length} items. Some errors occurred.`);
+            } else {
+                showToast(`Added ${addedCount} food(s) to diary!`);
+            }
+        }
+
+        // ========== SEARCH MODAL ==========
+        function openDashSearch() {
+            document.getElementById('dashSearchModal').classList.add('active');
+            document.getElementById('dashFoodSearchInput').value = '';
+            document.getElementById('dashSearchResults').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <p>Type to search for foods</p>
+                </div>
+            `;
+            setTimeout(() => document.getElementById('dashFoodSearchInput').focus(), 100);
+        }
+
+        function closeDashSearch() {
+            document.getElementById('dashSearchModal').classList.remove('active');
+        }
+
+        function debounceDashSearch() {
+            clearTimeout(dashSearchTimeout);
+            dashSearchTimeout = setTimeout(performDashSearch, 300);
+        }
+
+        async function performDashSearch() {
+            const query = document.getElementById('dashFoodSearchInput').value.trim();
+            const container = document.getElementById('dashSearchResults');
+
+            if (query.length < 2) {
+                container.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p>Type to search for foods</p></div>`;
+                return;
+            }
+
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><p>Searching...</p></div>`;
+
+            try {
+                // Use authenticated API call
+                const data = await apiGet(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${currentClientId}`);
+                const foods = data.results || [];
+
+                if (foods.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🍽️</div><p>No foods found</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = foods.map((food, idx) => `
+                    <div class="search-result-item" onclick="selectDashSearchFood(${idx})">
+                        <div style="flex: 1;">
+                            <div class="search-food-name">${food.name}</div>
+                            <div class="search-food-brand">${food.brand || ''}</div>
+                            <div class="search-food-macros">
+                                ${food.calories} cal • ${food.protein}g P • ${food.carbs}g C • ${food.fat}g F
+                            </div>
+                        </div>
+                        <div style="color: var(--brand-primary); font-size: 1.2rem;">+</div>
+                    </div>
+                `).join('');
+
+                window.dashSearchResults = foods;
+            } catch (err) {
+                console.error('Search error:', err);
+                container.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><p>Search failed</p></div>`;
+            }
+        }
+
+        function selectDashSearchFood(idx) {
+            dashSelectedFood = window.dashSearchResults[idx];
+            closeDashSearch();
+            showDashFoodSelect();
+        }
+
+        function showDashFoodSelect() {
+            document.getElementById('dashSelectFoodName').textContent = dashSelectedFood.name;
+            document.getElementById('dashSelectFoodBrand').textContent = dashSelectedFood.brand || '';
+            document.getElementById('dashSelectCalories').textContent = dashSelectedFood.calories;
+            document.getElementById('dashSelectProtein').textContent = dashSelectedFood.protein + 'g';
+            document.getElementById('dashSelectCarbs').textContent = dashSelectedFood.carbs + 'g';
+            document.getElementById('dashSelectFat').textContent = dashSelectedFood.fat + 'g';
+            document.getElementById('dashSelectServings').value = 1;
+            document.getElementById('dashFoodSelectModal').classList.add('active');
+        }
+
+        function closeDashFoodSelect() {
+            document.getElementById('dashFoodSelectModal').classList.remove('active');
+        }
+
+        async function addDashSelectedFood() {
+            if (!currentClientId || !dashSelectedFood) return;
+            const servings = parseFloat(document.getElementById('dashSelectServings').value) || 1;
+            const mealType = getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            closeDashFoodSelect();
+            showToast('Adding food...');
+
+            try {
+                const payload = {
+                    clientId: currentClientId,
+                    entryDate: today,
+                    mealType: mealType,
+                    foodName: dashSelectedFood.name,
+                    numberOfServings: servings,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    calories: Math.round(dashSelectedFood.calories * servings),
+                    protein: Math.round(dashSelectedFood.protein * servings),
+                    carbs: Math.round(dashSelectedFood.carbs * servings),
+                    fat: Math.round(dashSelectedFood.fat * servings),
+                    foodSource: 'search'
+                };
+                await apiPost('/.netlify/functions/food-diary', payload);
+                showToast('Food added to diary!');
+            } catch (err) {
+                console.error('Error adding food:', err);
+                showToast('Failed to add food');
+            }
+        }
+
+        // ========== SCAN LABEL (AI Nutrition Label Reader) ==========
+        let scanLabelBase64 = null;
+        let scanLabelBaseValues = null; // Store base values per serving for recalculation
+
+        function openScanLabelModal() {
+            document.getElementById('dashScanLabelModal').classList.add('active');
+            resetScanLabel();
+        }
+
+        function closeScanLabelModal() {
+            document.getElementById('dashScanLabelModal').classList.remove('active');
+            resetScanLabel();
+        }
+
+        function resetScanLabel() {
+            document.getElementById('scanLabelUpload').style.display = 'block';
+            document.getElementById('scanLabelUploadArea').style.display = 'flex';
+            document.getElementById('scanLabelPreview').style.display = 'none';
+            document.getElementById('scanLabelAnalyzing').style.display = 'none';
+            document.getElementById('scanLabelResults').style.display = 'none';
+            scanLabelBase64 = null;
+            scanLabelBaseValues = null;
+            // Reset file inputs
+            const cameraInput = document.getElementById('scanLabelCameraInput');
+            const uploadInput = document.getElementById('scanLabelUploadInput');
+            if (cameraInput) cameraInput.value = '';
+            if (uploadInput) uploadInput.value = '';
+        }
+
+        function handleScanLabelSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            compressImage(file, 1200, 0.8).then(compressedBase64 => {
+                scanLabelBase64 = compressedBase64;
+
+                // Show preview
+                document.getElementById('scanLabelPreviewImg').src = scanLabelBase64;
+                document.getElementById('scanLabelPreview').style.display = 'block';
+                document.getElementById('scanLabelUploadArea').style.display = 'none';
+
+                // Auto-analyze after selecting photo
+                analyzeScanLabel();
+            }).catch(err => {
+                console.error('Error compressing image:', err);
+                showToast('Error processing photo');
+            });
+        }
+
+        async function analyzeScanLabel() {
+            if (!scanLabelBase64) {
+                showToast('Please take a photo first');
+                return;
+            }
+
+            document.getElementById('scanLabelUpload').style.display = 'none';
+            document.getElementById('scanLabelAnalyzing').style.display = 'block';
+
+            try {
+                const data = await apiPost('/.netlify/functions/analyze-nutrition-label', {
+                    image: scanLabelBase64
+                });
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Store base values for serving recalculation
+                scanLabelBaseValues = {
+                    name: data.name || 'Food Item',
+                    calories: data.calories || 0,
+                    protein: data.protein || 0,
+                    carbs: data.carbs || 0,
+                    fat: data.fat || 0,
+                    servingSize: data.servingSize || '1 serving'
+                };
+
+                // Display results
+                document.getElementById('scanLabelProductName').textContent = scanLabelBaseValues.name;
+                document.getElementById('scanLabelServingInfo').textContent = `per ${scanLabelBaseValues.servingSize}`;
+                document.getElementById('scanLabelServings').value = 1;
+                recalculateScanLabelMacros();
+
+                document.getElementById('scanLabelAnalyzing').style.display = 'none';
+                document.getElementById('scanLabelResults').style.display = 'block';
+
+            } catch (err) {
+                console.error('Error analyzing label:', err);
+                showToast(err.message || 'Failed to read nutrition label. Try a clearer photo.');
+                resetScanLabel();
+            }
+        }
+
+        function recalculateScanLabelMacros() {
+            if (!scanLabelBaseValues) return;
+            const servings = parseFloat(document.getElementById('scanLabelServings').value) || 1;
+
+            document.getElementById('scanLabelCalories').textContent = Math.round(scanLabelBaseValues.calories * servings);
+            document.getElementById('scanLabelProtein').textContent = Math.round(scanLabelBaseValues.protein * servings) + 'g';
+            document.getElementById('scanLabelCarbs').textContent = Math.round(scanLabelBaseValues.carbs * servings) + 'g';
+            document.getElementById('scanLabelFat').textContent = Math.round(scanLabelBaseValues.fat * servings) + 'g';
+        }
+
+        async function addScanLabelFood() {
+            if (!currentClientId || !scanLabelBaseValues) return;
+            const servings = parseFloat(document.getElementById('scanLabelServings').value) || 1;
+            const mealType = getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            closeScanLabelModal();
+            showToast('Adding food...');
+
+            try {
+                const payload = {
+                    clientId: currentClientId,
+                    entryDate: today,
+                    mealType: mealType,
+                    foodName: scanLabelBaseValues.name,
+                    numberOfServings: servings,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    calories: Math.round(scanLabelBaseValues.calories * servings),
+                    protein: Math.round(scanLabelBaseValues.protein * servings),
+                    carbs: Math.round(scanLabelBaseValues.carbs * servings),
+                    fat: Math.round(scanLabelBaseValues.fat * servings),
+                    foodSource: 'nutrition_label'
+                };
+                await apiPost('/.netlify/functions/food-diary', payload);
+                showToast('Food added to diary!');
+            } catch (err) {
+                console.error('Error adding food:', err);
+                showToast('Failed to add food');
+            }
+        }
+
+        // ========== FAVORITES MODAL ==========
+        function openDashFavorites() {
+            document.getElementById('dashFavoritesModal').classList.add('active');
+            loadDashFavorites();
+        }
+
+        function closeDashFavorites() {
+            document.getElementById('dashFavoritesModal').classList.remove('active');
+        }
+
+        async function loadDashFavorites() {
+            const container = document.getElementById('dashFavoritesList');
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><p>Loading favorites...</p></div>`;
+
+            try {
+                const response = await fetch(`/.netlify/functions/toggle-favorite?clientId=${currentClientId}`);
+                const data = await response.json();
+                const favorites = data.favorites || [];
+
+                if (favorites.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">❤️</div>
+                            <p>No favorites yet</p>
+                            <p style="font-size: 0.85rem; color: var(--gray-400); margin-top: 8px;">
+                                Favorite meals from your meal plans to see them here
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                window.dashFavorites = favorites;
+                container.innerHTML = favorites.map((fav, idx) => {
+                    const icons = { breakfast: '☀️', lunch: '🌤️', dinner: '🌙', snack: '🍎' };
+                    const icon = icons[fav.meal_type] || '🍽️';
+                    return `
+                        <div class="favorite-item" onclick="addDashFavorite(${idx})">
+                            <div style="display: flex; gap: 12px; align-items: start;">
+                                <div style="font-size: 1.5rem;">${icon}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 4px;">${fav.meal_name || 'Unnamed Meal'}</div>
+                                    <div style="font-size: 0.8rem; color: var(--gray-500); text-transform: capitalize; margin-bottom: 6px;">${fav.meal_type || 'meal'}</div>
+                                    <div style="display: flex; gap: 12px; font-size: 0.8rem;">
+                                        <span style="color: var(--gray-600);">${fav.calories || 0} cal</span>
+                                        <span style="color: #3b82f6;">${fav.protein || 0}g P</span>
+                                        <span style="color: #f59e0b;">${fav.carbs || 0}g C</span>
+                                        <span style="color: #ef4444;">${fav.fat || 0}g F</span>
+                                    </div>
+                                </div>
+                                <div style="color: var(--brand-primary); font-size: 1.2rem;">+</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading favorites:', err);
+                container.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><p>Failed to load favorites</p></div>`;
+            }
+        }
+
+        async function addDashFavorite(idx) {
+            const fav = window.dashFavorites[idx];
+            if (!currentClientId || !fav) return;
+
+            const mealType = fav.meal_type || getDashMealType();
+            const today = new Date().toISOString().split('T')[0];
+
+            closeDashFavorites();
+            showToast('Adding favorite...');
+
+            try {
+                const payload = {
+                    clientId: currentClientId,
+                    entryDate: today,
+                    mealType: mealType,
+                    foodName: fav.meal_name || 'Favorite Meal',
+                    numberOfServings: 1,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    calories: fav.calories || 0,
+                    protein: fav.protein || 0,
+                    carbs: fav.carbs || 0,
+                    fat: fav.fat || 0,
+                    foodSource: 'favorite'
+                };
+                await apiPost('/.netlify/functions/food-diary', payload);
+                showToast('Favorite added to diary!');
+            } catch (err) {
+                console.error('Error adding favorite:', err);
+                showToast('Failed to add favorite');
+            }
+        }
+
+        // Call init when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            initAIHeroSection();
+        });
     </script>
 
     <!-- Footer (hidden on mobile) -->
@@ -6662,30 +9286,215 @@
         </div>
     </footer>
 
+    <!-- AI Photo Modal -->
+    <div class="modal-overlay" id="dashPhotoModal">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeDashPhotoModal()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">📸 AI Photo Log</span>
+            </div>
+            <div class="modal-body" style="padding: 20px; max-height: 70vh; overflow-y: auto;">
+                <div id="dashPhotoUpload">
+                    <div class="photo-upload-area" id="dashPhotoUploadArea" style="min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div class="photo-upload-icon">📷</div>
+                        <div class="photo-upload-text" style="margin-bottom: 16px;">Take a photo or upload from gallery</div>
+                        <div style="display: flex; gap: 12px; width: 100%; max-width: 300px;">
+                            <button type="button" onclick="document.getElementById('dashCameraInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                Camera
+                            </button>
+                            <button type="button" onclick="document.getElementById('dashUploadInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                Upload
+                            </button>
+                        </div>
+                        <div class="photo-upload-hint" style="margin-top: 12px;">AI will analyze your food and estimate calories</div>
+                    </div>
+                    <!-- Camera input (opens camera) -->
+                    <input type="file" id="dashCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleDashPhotoSelect(event)">
+                    <!-- Upload input (opens gallery) -->
+                    <input type="file" id="dashUploadInput" accept="image/*" style="display: none;" onchange="handleDashPhotoSelect(event)">
+                </div>
+                <div id="dashPhotoPreview" style="display: none; margin-top: 16px; text-align: center;">
+                    <img id="dashPhotoPreviewImg" src="" alt="Food photo" style="max-width: 100%; max-height: 200px; border-radius: 12px; object-fit: contain;">
+                </div>
+                <div id="dashPhotoDetailsSection" style="display: none; margin-top: 16px;">
+                    <label style="font-weight: 500; color: var(--gray-700); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+                        Add details (optional)
+                    </label>
+                    <input type="text" id="dashPhotoFoodDetails" placeholder="e.g., black tea unsweetened, turkey sandwich..." style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 0.95rem; box-sizing: border-box;">
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-top: 6px;">Help AI identify drinks or specific ingredients</p>
+                    <button type="button" class="btn btn-primary" onclick="analyzeDashPhoto()" style="width: 100%; margin-top: 12px;">Analyze Photo</button>
+                </div>
+                <div id="dashPhotoAnalyzing" style="display: none;">
+                    <div class="ai-analyzing">
+                        <div class="ai-analyzing-spinner"></div>
+                        <div class="ai-analyzing-text">Analyzing your food...</div>
+                        <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 8px;">This may take a few seconds</p>
+                    </div>
+                </div>
+                <div id="dashPhotoResults" style="display: none;">
+                    <div class="ai-results" style="max-height: 300px; overflow-y: auto;">
+                        <div class="ai-results-header"><span>✨</span> AI Detection Results</div>
+                        <div id="dashPhotoDetectedItems" style="max-height: 250px; overflow-y: auto; padding-right: 8px;"></div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 12px; text-align: center;">⚠️ AI estimates may vary. Feel free to adjust values before adding.</p>
+                    <button type="button" id="dashSmartReanalyzeBtn" onclick="dashReanalyzeWithSmartAI()" style="width: 100%; margin-bottom: 16px; background: none; border: 1px dashed var(--gray-300); color: var(--gray-500); padding: 10px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                        <span>🔍</span> Not accurate? <strong style="color: var(--brand-primary);">Reanalyze with Smarter AI</strong>
+                    </button>
+                    <div class="form-row">
+                        <button type="button" class="btn btn-secondary" onclick="resetDashPhoto()" style="flex:1">Try Another</button>
+                        <button type="button" class="btn btn-primary" onclick="addDashPhotoFoods()" style="flex:1">Add All to Diary</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Food Search Modal -->
+    <div class="modal-overlay" id="dashSearchModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeDashSearch()">&times;</button>
+                <div class="search-input-wrapper">
+                    <input type="text" class="search-input" id="dashFoodSearchInput" placeholder="Search for food..." autocomplete="off" oninput="debounceDashSearch()">
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="search-results" id="dashSearchResults">
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <p>Type to search for foods</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Label Modal -->
+    <div class="modal-overlay" id="dashScanLabelModal">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeScanLabelModal()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">📋 Scan Nutrition Label</span>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="scanLabelUpload">
+                    <div class="photo-upload-area" id="scanLabelUploadArea" style="min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div class="photo-upload-icon">📋</div>
+                        <div class="photo-upload-text" style="margin-bottom: 16px;">Take a photo of the nutrition label</div>
+                        <div style="display: flex; gap: 12px; width: 100%; max-width: 300px;">
+                            <button type="button" onclick="document.getElementById('scanLabelCameraInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                Camera
+                            </button>
+                            <button type="button" onclick="document.getElementById('scanLabelUploadInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                Upload
+                            </button>
+                        </div>
+                        <div class="photo-upload-hint" style="margin-top: 12px;">AI will extract exact nutrition facts from the label</div>
+                    </div>
+                    <input type="file" id="scanLabelCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleScanLabelSelect(event)">
+                    <input type="file" id="scanLabelUploadInput" accept="image/*" style="display: none;" onchange="handleScanLabelSelect(event)">
+                </div>
+                <div id="scanLabelPreview" style="display: none; margin-top: 16px; text-align: center;">
+                    <img id="scanLabelPreviewImg" src="" alt="Nutrition label" style="max-width: 100%; max-height: 200px; border-radius: 12px; object-fit: contain;">
+                </div>
+                <div id="scanLabelAnalyzing" style="display: none;">
+                    <div class="ai-analyzing">
+                        <div class="ai-analyzing-spinner"></div>
+                        <div class="ai-analyzing-text">Reading nutrition label...</div>
+                        <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 8px;">Extracting nutrition facts</p>
+                    </div>
+                </div>
+                <div id="scanLabelResults" style="display: none;">
+                    <div style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; color: var(--gray-900);" id="scanLabelProductName">Product</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: var(--gray-900);" id="scanLabelCalories">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="scanLabelProtein">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="scanLabelCarbs">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="scanLabelFat">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div></div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="scanLabelServingInfo">per serving</div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Number of Servings</label>
+                        <input type="number" id="scanLabelServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;" oninput="recalculateScanLabelMacros()">
+                    </div>
+                    <div class="form-row">
+                        <button type="button" class="btn btn-secondary" onclick="resetScanLabel()" style="flex:1">Try Another</button>
+                        <button type="button" class="btn btn-primary" onclick="addScanLabelFood()" style="flex:1">Add to Diary</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Picker Modal -->
+    <div class="modal-overlay" id="dashFavoritesModal">
+        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <button class="modal-close" onclick="closeDashFavorites()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900); display: flex; align-items: center; gap: 8px;">❤️ Add from Favorites</span>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px;">
+                <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 16px;">Tap a favorite meal to add it to your diary:</p>
+                <div id="dashFavoritesList">
+                    <div class="empty-state">
+                        <div class="empty-icon">❤️</div>
+                        <p>Loading favorites...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Food Select Modal (for search/barcode results) -->
+    <div class="modal-overlay" id="dashFoodSelectModal">
+        <div class="quick-add-modal">
+            <h2 style="margin-bottom: 16px; color: var(--gray-900);">Add Food</h2>
+            <div id="dashFoodSelectInfo">
+                <div class="product-name" id="dashSelectFoodName" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;"></div>
+                <div class="product-brand" id="dashSelectFoodBrand" style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 16px;"></div>
+                <div class="product-nutrition" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                        <div><div style="font-size: 1.25rem; font-weight: 700;" id="dashSelectCalories">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="dashSelectProtein">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="dashSelectCarbs">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div></div>
+                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="dashSelectFat">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div></div>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Servings</label>
+                    <input type="number" id="dashSelectServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+                </div>
+            </div>
+            <div class="form-row">
+                <button type="button" class="btn btn-secondary" onclick="closeDashFoodSelect()" style="flex:1">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addDashSelectedFood()" style="flex:1">Add Food</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Navigation (App-like) -->
     <nav class="bottom-nav">
         <a href="client-dashboard.html" class="bottom-nav-item active">
             <div class="nav-icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                </svg>
+                <i data-lucide="home" width="24" height="24"></i>
             </div>
             <span class="nav-label">Home</span>
         </a>
         <a href="client-diary.html" class="bottom-nav-item">
             <div class="nav-icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6M9 16h6"/>
-                </svg>
+                <i data-lucide="notebook-pen" width="24" height="24"></i>
             </div>
             <span class="nav-label">Diary</span>
         </a>
         <a href="client-plans.html" class="bottom-nav-item">
             <div class="nav-icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                </svg>
+                <i data-lucide="utensils" width="24" height="24"></i>
             </div>
             <span class="nav-label">Meal Plans</span>
         </a>
@@ -6699,15 +9508,47 @@
         </a>
         <a href="client-settings.html" class="bottom-nav-item">
             <div class="nav-icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
+                <i data-lucide="user" width="24" height="24"></i>
             </div>
             <span class="nav-label">Profile</span>
         </a>
     </nav>
 
     <script>
+        // Fix bottom nav click handling - ensure navigation works
+        document.addEventListener('DOMContentLoaded', function() {
+            const bottomNav = document.querySelector('.bottom-nav');
+            if (bottomNav) {
+                // Ensure bottom nav is on top
+                bottomNav.style.zIndex = '99999';
+                bottomNav.style.pointerEvents = 'auto';
+
+                // Add explicit click handlers to each nav item
+                const navItems = bottomNav.querySelectorAll('.bottom-nav-item');
+                navItems.forEach(item => {
+                    item.style.pointerEvents = 'auto';
+                    item.addEventListener('click', function(e) {
+                        const href = this.getAttribute('href');
+                        if (href) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.location.href = href;
+                        }
+                    }, true);
+
+                    // Also handle touch events for mobile
+                    item.addEventListener('touchend', function(e) {
+                        const href = this.getAttribute('href');
+                        if (href) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.location.href = href;
+                        }
+                    }, true);
+                });
+            }
+        });
+
         // Navigate to most recent meal plan
         function goToMealPlan() {
             // Find the first plan card and get its ID
@@ -6740,5 +9581,20 @@
             });
         }
     </script>
+    <!-- Fallback for Safari PWA cached script -->
+    <script>if(typeof lucide !== 'undefined') lucide.createIcons();</script>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-content">
+            <div class="toast-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <span class="toast-message" id="toastMessage">Item added!</span>
+        </div>
+        <button class="toast-action" id="toastAction" style="display: none;">View Diary</button>
+    </div>
 </body>
 </html>

@@ -82,7 +82,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes } = body;
+            const { coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, frequencyType, frequencyInterval, frequencyDays } = body;
 
             if (!coachId || !name) {
                 return {
@@ -91,6 +91,10 @@ exports.handler = async (event, context) => {
                     body: JSON.stringify({ error: 'Coach ID and name are required' })
                 };
             }
+
+            // ✅ SECURITY: Verify the authenticated user owns this coach account
+            const { user, error: authError } = await authenticateCoach(event, coachId);
+            if (authError) return authError;
 
             const insertData = {
                 coach_id: coachId,
@@ -109,11 +113,31 @@ exports.handler = async (event, context) => {
                 updated_at: new Date().toISOString()
             };
 
-            const { data: supplement, error } = await supabase
+            // Add frequency fields (these columns may not exist if migration hasn't been run)
+            const frequencyData = {
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null
+            };
+
+            // Try insert with frequency fields first
+            let { data: supplement, error } = await supabase
                 .from('supplement_library')
-                .insert([insertData])
+                .insert([{ ...insertData, ...frequencyData }])
                 .select()
                 .single();
+
+            // If insert failed due to missing frequency columns, retry without them
+            if (error && error.message && error.message.includes('frequency')) {
+                console.log('Frequency columns not found, retrying without them');
+                const retryResult = await supabase
+                    .from('supplement_library')
+                    .insert([insertData])
+                    .select()
+                    .single();
+                supplement = retryResult.data;
+                error = retryResult.error;
+            }
 
             if (error) throw error;
 
@@ -142,7 +166,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
         try {
             const body = JSON.parse(event.body);
-            const { supplementId, coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, isActive } = body;
+            const { supplementId, coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, isActive, frequencyType, frequencyInterval, frequencyDays } = body;
 
             if (!supplementId || !coachId) {
                 return {
@@ -151,6 +175,10 @@ exports.handler = async (event, context) => {
                     body: JSON.stringify({ error: 'Supplement ID and Coach ID are required' })
                 };
             }
+
+            // ✅ SECURITY: Verify the authenticated user owns this coach account
+            const { user, error: authError } = await authenticateCoach(event, coachId);
+            if (authError) return authError;
 
             const updateData = {
                 name: name?.trim(),
@@ -170,13 +198,35 @@ exports.handler = async (event, context) => {
                 updateData.is_active = isActive;
             }
 
-            const { data: supplement, error } = await supabase
+            // Frequency fields (may not exist if migration hasn't been run)
+            const frequencyData = {
+                frequency_type: frequencyType || 'daily',
+                frequency_interval: frequencyInterval || null,
+                frequency_days: frequencyDays || null
+            };
+
+            // Try update with frequency fields first
+            let { data: supplement, error } = await supabase
                 .from('supplement_library')
-                .update(updateData)
+                .update({ ...updateData, ...frequencyData })
                 .eq('id', supplementId)
                 .eq('coach_id', coachId)
                 .select()
                 .single();
+
+            // If update failed due to missing frequency columns, retry without them
+            if (error && error.message && error.message.includes('frequency')) {
+                console.log('Frequency columns not found, retrying without them');
+                const retryResult = await supabase
+                    .from('supplement_library')
+                    .update(updateData)
+                    .eq('id', supplementId)
+                    .eq('coach_id', coachId)
+                    .select()
+                    .single();
+                supplement = retryResult.data;
+                error = retryResult.error;
+            }
 
             if (error) throw error;
 
@@ -206,6 +256,10 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'Supplement ID and Coach ID are required' })
             };
         }
+
+        // ✅ SECURITY: Verify the authenticated user owns this coach account
+        const { user, error: authError } = await authenticateCoach(event, coachId);
+        if (authError) return authError;
 
         try {
             if (permanent === 'true') {

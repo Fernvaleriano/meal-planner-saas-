@@ -1,27 +1,8 @@
-// Food photo analysis using Claude (Anthropic)
+// Nutrition label analysis using Claude AI
 const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-
-// Helper function to strip markdown formatting from text
-function stripMarkdown(text) {
-    if (!text) return text;
-    return String(text)
-        .replace(/\*\*\*/g, '')
-        .replace(/\*\*/g, '')
-        .replace(/\*/g, '')
-        .replace(/___/g, '')
-        .replace(/__/g, '')
-        .replace(/_/g, ' ')
-        .replace(/~~~/g, '')
-        .replace(/~~/g, '')
-        .replace(/`/g, '')
-        .replace(/#{1,6}\s*/g, '')
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
 
 const headers = {
     ...corsHeaders,
@@ -46,21 +27,21 @@ exports.handler = async (event, context) => {
         const { user, error: authError } = await authenticateRequest(event);
         if (authError) return authError;
 
-        // Rate limit - 20 photo analyses per minute per user
-        const rateLimit = checkRateLimit(user.id, 'analyze-food-photo', 20, 60000);
+        // Rate limit - 20 label scans per minute per user
+        const rateLimit = checkRateLimit(user.id, 'analyze-nutrition-label', 20, 60000);
         if (!rateLimit.allowed) {
-            console.warn(`🚫 Rate limit exceeded for user ${user.id}`);
+            console.warn(`🚫 Rate limit exceeded for user ${user.id} on analyze-nutrition-label`);
             return rateLimitResponse(rateLimit.resetIn);
         }
 
-        console.log(`📸 Photo analysis for user ${user.id}`);
+        console.log(`📋 Nutrition label scan for user ${user.id} (${rateLimit.remaining} requests remaining)`);
 
         if (!ANTHROPIC_API_KEY) {
             console.error('ANTHROPIC_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'AI analysis is not configured. Please add ANTHROPIC_API_KEY.' })
+                body: JSON.stringify({ error: 'AI analysis is not configured.' })
             };
         }
 
@@ -76,7 +57,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { image, details } = body;
+        const { image } = body;
 
         if (!image) {
             return {
@@ -99,11 +80,6 @@ exports.handler = async (event, context) => {
         const mediaType = matches[1];
         const base64Data = matches[2];
 
-        console.log(`📷 Image size: ${base64Data.length} bytes, type: ${mediaType}`);
-
-        // User-provided context
-        const userContext = details ? details.trim() : null;
-
         // Initialize Anthropic client
         let anthropic;
         try {
@@ -115,40 +91,47 @@ exports.handler = async (event, context) => {
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'Failed to initialize AI client', details: initError.message })
+                body: JSON.stringify({ error: 'Failed to initialize AI client' })
             };
         }
 
-        console.log('🤖 Calling Claude for food analysis...');
+        console.log('📋 Calling Claude to read nutrition label...');
 
-        // Build prompt
-        const analysisPrompt = `Analyze this food image and identify all food items visible. For each item, estimate the nutritional information.
-${userContext ? `\nIMPORTANT - User provided these details: "${userContext}"\nUse this information for your estimate.` : ''}
+        // Build the prompt for nutrition label reading
+        const analysisPrompt = `You are reading a nutrition facts label from a food product. Extract the nutritional information accurately.
 
-Return ONLY a valid JSON array with this exact format (no markdown, no explanation):
-[
-  {
-    "name": "Food item name with portion size",
-    "calories": 000,
-    "protein": 00,
-    "carbs": 00,
-    "fat": 00
-  }
-]
+Look for and extract:
+1. Product name (from the label or packaging if visible)
+2. Serving size (e.g., "1 cup", "2 cookies", "100g")
+3. Calories per serving
+4. Protein (in grams)
+5. Total Carbohydrates (in grams)
+6. Total Fat (in grams)
 
-Guidelines:
-- Be specific about portions (e.g., "Grilled Chicken Breast, 6oz")
-- Round calories to nearest 5, macros to nearest gram
-- List each item separately
-- Return empty array [] if no food is visible
+Return ONLY a valid JSON object with this exact format (no markdown, no explanation, no code blocks):
+{
+  "name": "Product name or generic description",
+  "servingSize": "serving size as shown on label",
+  "calories": 000,
+  "protein": 00,
+  "carbs": 00,
+  "fat": 00
+}
 
-Return ONLY the JSON array.`;
+Important:
+- Use the exact values from the label, don't estimate
+- If the product name is not visible, use a generic description based on what you can see
+- Round to whole numbers
+- If a value is not visible or unclear, use 0
+- If this is NOT a nutrition label, return: {"error": "No nutrition label detected"}
+
+Return ONLY the JSON object, nothing else.`;
 
         let message;
         try {
             message = await anthropic.messages.create({
                 model: "claude-sonnet-4-20250514",
-                max_tokens: 1024,
+                max_tokens: 512,
                 messages: [
                     {
                         role: "user",
@@ -183,58 +166,79 @@ Return ONLY the JSON array.`;
 
         console.log('✅ Claude response received');
 
-        // Extract response
+        // Extract text from response
         const content = message.content[0].text;
-        console.log('Response preview:', content.substring(0, 200));
+        console.log('Claude response:', content.substring(0, 300));
 
         // Parse the response
-        let foods = [];
+        let result;
         const trimmedContent = content.trim();
 
         try {
-            foods = JSON.parse(trimmedContent);
+            result = JSON.parse(trimmedContent);
         } catch (parseError) {
+            // Try to extract JSON from markdown code blocks
             let cleanContent = trimmedContent
                 .replace(/```json\s*/g, '')
                 .replace(/```\s*/g, '')
                 .trim();
 
-            const jsonMatch = cleanContent.match(/\[[\s\S]*\]/);
+            const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
-                    foods = JSON.parse(jsonMatch[0]);
+                    result = JSON.parse(jsonMatch[0]);
                 } catch (e) {
                     console.error('Could not parse extracted JSON:', e);
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({ error: 'Could not read nutrition label. Please try a clearer photo.' })
+                    };
                 }
             } else {
-                console.error('Could not parse response:', trimmedContent);
+                console.error('Could not parse Claude response:', trimmedContent);
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ error: 'Could not read nutrition label. Please try a clearer photo.' })
+                };
             }
         }
 
-        // Validate and clean data
-        foods = foods.filter(f => f && f.name && typeof f.calories === 'number');
-        foods = foods.map(f => ({
-            name: stripMarkdown(f.name).substring(0, 100),
-            calories: Math.max(0, Math.round(f.calories)),
-            protein: Math.max(0, Math.round(f.protein || 0)),
-            carbs: Math.max(0, Math.round(f.carbs || 0)),
-            fat: Math.max(0, Math.round(f.fat || 0))
-        }));
+        // Check for error response
+        if (result.error) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: result.error })
+            };
+        }
+
+        // Validate and clean the data
+        const nutritionData = {
+            name: (result.name || 'Food Item').substring(0, 100),
+            servingSize: (result.servingSize || '1 serving').substring(0, 50),
+            calories: Math.max(0, Math.round(result.calories || 0)),
+            protein: Math.max(0, Math.round(result.protein || 0)),
+            carbs: Math.max(0, Math.round(result.carbs || 0)),
+            fat: Math.max(0, Math.round(result.fat || 0))
+        };
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ foods })
+            body: JSON.stringify(nutritionData)
         };
 
     } catch (error) {
-        console.error('Error analyzing food photo:', error);
+        console.error('Error in nutrition label analysis:', error);
+        console.error('Error stack:', error.stack);
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
-                error: 'Failed to analyze image',
-                details: error.message
+                error: 'Label analysis failed',
+                details: error.message || 'Unknown error'
             })
         };
     }

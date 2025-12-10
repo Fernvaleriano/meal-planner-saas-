@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
     <title>Manage Recipes - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -662,6 +663,8 @@
         }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
     <!-- Sidebar -->
@@ -681,19 +684,19 @@
                 </div>
                 <div class="sidebar-nav-items">
                     <a href="dashboard.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">📊</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
                         Dashboard
                     </a>
                     <a href="manage-clients.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">👥</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
                         Clients
                     </a>
                     <a href="manage-recipes.html" class="sidebar-nav-item active">
-                        <span class="sidebar-nav-icon">📖</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
                         Recipes
                     </a>
                     <a href="planner.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">🍽️</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
                     </a>
                 </div>
@@ -707,15 +710,15 @@
                 </div>
                 <div class="sidebar-nav-items">
                     <a href="coach-profile.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">👤</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
                         My Profile
                     </a>
                     <a href="supplement-protocols.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">💊</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
                         Supplements
                     </a>
                     <a href="reminder-settings.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">🔔</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
                         Reminders
                     </a>
                 </div>
@@ -1175,5 +1178,6 @@
 
         init();
     </script>
+<script>lucide.createIcons();</script>
 </body>
 </html>

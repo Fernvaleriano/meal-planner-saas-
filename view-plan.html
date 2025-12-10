@@ -2,20 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
     <meta name="theme-color" content="#0d9488">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zique Fitness">
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/logo.png">
     <title>Your Meal Plan - Zique Fitness Nutrition</title>
-    <!-- Prevent caching to avoid stale data on back navigation -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -603,6 +604,276 @@
 
         .btn-secondary:hover {
             background: #5a6268;
+        }
+
+        /* Grocery List Styles */
+        .btn-grocery {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.1em;
+        }
+
+        .btn-grocery:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+        }
+
+        .grocery-modal-content {
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0 !important;
+        }
+
+        .grocery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        [data-theme="dark"] .grocery-header {
+            background: #1e293b;
+            border-color: #475569;
+        }
+
+        .grocery-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        [data-theme="dark"] .grocery-header h2 {
+            color: #f8fafc;
+        }
+
+        .grocery-progress {
+            font-size: 0.95rem;
+            color: #059669;
+            font-weight: 600;
+            background: #ecfdf5;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        [data-theme="dark"] .grocery-progress {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        #groceryListContent {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            min-height: 200px;
+            max-height: 50vh;
+        }
+
+        .grocery-category {
+            margin-bottom: 0;
+        }
+
+        .grocery-category-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            background: #f1f5f9;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #334155;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .grocery-category-header:hover {
+            background: #e2e8f0;
+        }
+
+        [data-theme="dark"] .grocery-category-header {
+            background: #334155;
+            color: #e2e8f0;
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .grocery-category-header:hover {
+            background: #475569;
+        }
+
+        .grocery-category-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .grocery-items {
+            padding: 0;
+            background: white;
+        }
+
+        [data-theme="dark"] .grocery-items {
+            background: #1e293b;
+        }
+
+        .grocery-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: background 0.15s;
+            background: white;
+        }
+
+        .grocery-item:hover {
+            background: #f0fdf4;
+        }
+
+        [data-theme="dark"] .grocery-item {
+            border-color: #334155;
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .grocery-item:hover {
+            background: #334155;
+        }
+
+        .grocery-item.checked {
+            opacity: 0.6;
+            background: #f8fafc;
+        }
+
+        [data-theme="dark"] .grocery-item.checked {
+            background: #0f172a;
+        }
+
+        .grocery-item.checked .grocery-item-text {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .grocery-checkbox {
+            width: 26px;
+            height: 26px;
+            border: 2px solid #94a3b8;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        [data-theme="dark"] .grocery-checkbox {
+            border-color: #64748b;
+        }
+
+        .grocery-item.checked .grocery-checkbox {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .grocery-item-text {
+            flex: 1;
+            color: #0f172a;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .grocery-item-text {
+            color: #f1f5f9;
+        }
+
+        .grocery-item-qty {
+            font-weight: 700;
+            color: #059669;
+            margin-right: 4px;
+        }
+
+        [data-theme="dark"] .grocery-item-qty {
+            color: #34d399;
+        }
+
+        .grocery-actions {
+            padding: 16px 20px;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        [data-theme="dark"] .grocery-actions {
+            background: #1e293b;
+            border-color: #475569;
+        }
+
+        .grocery-btn-clear {
+            background: #fef2f2;
+            color: #dc2626;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .grocery-btn-clear:hover {
+            background: #fee2e2;
+        }
+
+        [data-theme="dark"] .grocery-btn-clear {
+            background: #450a0a;
+            color: #fca5a5;
+        }
+
+        .grocery-btn-done {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .grocery-btn-done:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .grocery-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #475569;
+        }
+
+        [data-theme="dark"] .grocery-empty {
+            color: #94a3b8;
+        }
+
+        .grocery-empty-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
         }
 
         .revise-section {
@@ -1468,6 +1739,8 @@
             color: #f1f5f9;
         }
     </style>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
     <div class="container">
@@ -1524,6 +1797,7 @@
         <div id="mealsContainer"></div>
 
         <div class="action-buttons">
+            <button id="groceryListBtn" class="btn btn-grocery" onclick="showGroceryListModal()">🛒 Grocery List</button>
             <button class="btn btn-primary" onclick="showMealPrepGuide()" style="background:#ff6b6b;">📋 Meal Prep Guide</button>
             <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
             <button id="sharePlanBtn" class="btn btn-share" onclick="generateShareLink()" style="display: none;">🔗 Share Plan Link</button>
@@ -1581,6 +1855,23 @@
             </div>
             <button class="btn btn-copy" onclick="copyShareLink()">📋 Copy Link</button>
             <button class="btn btn-close-modal" onclick="closeShareModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Grocery List Modal -->
+    <div id="groceryListModal" class="modal-overlay">
+        <div class="modal-content grocery-modal-content" style="padding: 0;">
+            <div class="grocery-header">
+                <h2>🛒 Shopping List</h2>
+                <span class="grocery-progress" id="groceryProgress">0/0 items</span>
+            </div>
+            <div id="groceryListContent">
+                <!-- Grocery items will be rendered here -->
+            </div>
+            <div class="grocery-actions">
+                <button class="grocery-btn-clear" onclick="clearGroceryChecks()">Clear All</button>
+                <button class="grocery-btn-done" onclick="closeGroceryListModal()">Done</button>
+            </div>
         </div>
     </div>
 
@@ -5862,6 +6153,197 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             });
 
             return byCategory;
+        }
+
+        // ========== INTERACTIVE GROCERY LIST FUNCTIONS ==========
+
+        // Get storage key for this plan's grocery checks
+        function getGroceryStorageKey() {
+            const planId = new URLSearchParams(window.location.search).get('planId') || 'default';
+            return `grocery-checks-${planId}`;
+        }
+
+        // Load checked items from localStorage
+        function loadGroceryChecks() {
+            try {
+                const stored = localStorage.getItem(getGroceryStorageKey());
+                return stored ? JSON.parse(stored) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        // Save checked items to localStorage
+        function saveGroceryChecks(checks) {
+            localStorage.setItem(getGroceryStorageKey(), JSON.stringify(checks));
+        }
+
+        // Category colors for visual distinction
+        const CATEGORY_COLORS = {
+            proteins: '#ef4444',
+            carbs: '#eab308',
+            vegetables: '#22c55e',
+            fruits: '#a855f7',
+            fats: '#f97316',
+            dairy: '#3b82f6',
+            condiments: '#6b7280',
+            other: '#78716c'
+        };
+
+        const CATEGORY_LABELS = {
+            proteins: 'Proteins',
+            carbs: 'Carbs & Grains',
+            vegetables: 'Vegetables',
+            fruits: 'Fruits',
+            fats: 'Fats & Nuts',
+            dairy: 'Dairy',
+            condiments: 'Condiments',
+            other: 'Other'
+        };
+
+        // Show grocery list modal
+        function showGroceryListModal() {
+            const modal = document.getElementById('groceryListModal');
+            const content = document.getElementById('groceryListContent');
+            const progress = document.getElementById('groceryProgress');
+
+            const groceryByCategory = aggregateGroceryListByCategory();
+            const categoryOrder = ['proteins', 'carbs', 'vegetables', 'fruits', 'fats', 'dairy', 'condiments', 'other'];
+            const checks = loadGroceryChecks();
+
+            // Count total items
+            let totalItems = 0;
+            let checkedItems = 0;
+            categoryOrder.forEach(cat => {
+                const items = groceryByCategory[cat] || [];
+                items.forEach(item => {
+                    totalItems++;
+                    const itemKey = `${cat}-${item.name}-${item.unit}`;
+                    if (checks[itemKey]) checkedItems++;
+                });
+            });
+
+            const hasItems = totalItems > 0;
+
+            if (!hasItems) {
+                content.innerHTML = `
+                    <div class="grocery-empty">
+                        <div class="grocery-empty-icon">🛒</div>
+                        <p>No items in your shopping list.</p>
+                        <p style="font-size: 0.9em; margin-top: 8px;">Add meals to your plan first.</p>
+                    </div>
+                `;
+                progress.textContent = '0/0 items';
+            } else {
+                let html = '';
+
+                categoryOrder.forEach(cat => {
+                    const items = groceryByCategory[cat] || [];
+                    if (items.length === 0) return;
+
+                    const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
+                    const label = CATEGORY_LABELS[cat] || cat;
+
+                    html += `
+                        <div class="grocery-category">
+                            <div class="grocery-category-header">
+                                <span class="grocery-category-dot" style="background: ${color};"></span>
+                                ${label} (${items.length})
+                            </div>
+                            <div class="grocery-items">
+                    `;
+
+                    items.forEach(item => {
+                        const itemKey = `${cat}-${item.name}-${item.unit}`;
+                        const isChecked = checks[itemKey];
+
+                        // Format quantity
+                        let qty = item.quantity;
+                        if (Number.isInteger(qty) || Math.abs(qty - Math.round(qty)) < 0.01) {
+                            qty = Math.round(qty);
+                        } else if (qty < 10) {
+                            qty = qty.toFixed(1);
+                        } else {
+                            qty = Math.round(qty);
+                        }
+
+                        html += `
+                            <div class="grocery-item ${isChecked ? 'checked' : ''}" onclick="toggleGroceryItem(this, '${itemKey}')" data-key="${itemKey}">
+                                <div class="grocery-checkbox">${isChecked ? '✓' : ''}</div>
+                                <div class="grocery-item-text">
+                                    <span class="grocery-item-qty">${qty} ${item.unit}</span> ${item.name}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+
+                content.innerHTML = html;
+                progress.textContent = `${checkedItems}/${totalItems} items`;
+            }
+
+            modal.classList.add('show');
+        }
+
+        // Toggle a grocery item checkbox
+        function toggleGroceryItem(element, itemKey) {
+            const checks = loadGroceryChecks();
+            const isNowChecked = !checks[itemKey];
+
+            if (isNowChecked) {
+                checks[itemKey] = true;
+            } else {
+                delete checks[itemKey];
+            }
+
+            saveGroceryChecks(checks);
+
+            // Update UI
+            element.classList.toggle('checked', isNowChecked);
+            const checkbox = element.querySelector('.grocery-checkbox');
+            checkbox.textContent = isNowChecked ? '✓' : '';
+
+            // Update progress
+            updateGroceryProgress();
+        }
+
+        // Update progress counter
+        function updateGroceryProgress() {
+            const checks = loadGroceryChecks();
+            const groceryByCategory = aggregateGroceryListByCategory();
+            const categoryOrder = ['proteins', 'carbs', 'vegetables', 'fruits', 'fats', 'dairy', 'condiments', 'other'];
+
+            let totalItems = 0;
+            let checkedItems = 0;
+
+            categoryOrder.forEach(cat => {
+                const items = groceryByCategory[cat] || [];
+                items.forEach(item => {
+                    totalItems++;
+                    const itemKey = `${cat}-${item.name}-${item.unit}`;
+                    if (checks[itemKey]) checkedItems++;
+                });
+            });
+
+            document.getElementById('groceryProgress').textContent = `${checkedItems}/${totalItems} items`;
+        }
+
+        // Clear all checked items
+        function clearGroceryChecks() {
+            if (confirm('Clear all checked items?')) {
+                localStorage.removeItem(getGroceryStorageKey());
+                showGroceryListModal(); // Refresh the list
+            }
+        }
+
+        // Close grocery list modal
+        function closeGroceryListModal() {
+            document.getElementById('groceryListModal').classList.remove('show');
         }
 
         // ========== FAVORITES FUNCTIONS ==========

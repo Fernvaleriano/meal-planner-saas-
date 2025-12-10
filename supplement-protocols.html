@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
     <title>Supplement Protocols - Zique Fitness Nutrition</title>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -535,6 +537,38 @@
             margin-left: 30px;
         }
 
+        .day-checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .day-checkbox:hover {
+            background: #e5e7eb;
+        }
+
+        .day-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .day-checkbox input[type="checkbox"]:checked + span {
+            color: #7c3aed;
+            font-weight: 600;
+        }
+
+        .day-checkbox:has(input:checked) {
+            background: #ede9fe;
+            border: 1px solid #7c3aed;
+        }
+
         .schedule-phases {
             background: #faf5ff;
             border-radius: 8px;
@@ -940,6 +974,8 @@
             color: #94a3b8;
         }
     </style>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
     <!-- Sidebar -->
@@ -959,19 +995,19 @@
                 </div>
                 <div class="sidebar-nav-items">
                     <a href="dashboard.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">📊</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
                         Dashboard
                     </a>
                     <a href="manage-clients.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">👥</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
                         Clients
                     </a>
                     <a href="manage-recipes.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">📖</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
                         Recipes
                     </a>
                     <a href="planner.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">🍽️</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
                     </a>
                 </div>
@@ -985,15 +1021,15 @@
                 </div>
                 <div class="sidebar-nav-items">
                     <a href="coach-profile.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">👤</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
                         My Profile
                     </a>
                     <a href="supplement-protocols.html" class="sidebar-nav-item active">
-                        <span class="sidebar-nav-icon">💊</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
                         Supplements
                     </a>
                     <a href="reminder-settings.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">🔔</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
                         Reminders
                     </a>
                 </div>
@@ -1148,6 +1184,36 @@
                     <input type="text" id="protocolTimingCustom" placeholder="e.g., 2x per week, Every other day...">
                 </div>
 
+                <div class="form-group">
+                    <label>Frequency</label>
+                    <select id="protocolFrequency" onchange="toggleFrequencyOptions()">
+                        <option value="daily">Daily</option>
+                        <option value="every_other_day">Every Other Day</option>
+                        <option value="every_x_days">Every X Days</option>
+                        <option value="specific_days">Specific Days of Week</option>
+                        <option value="once_weekly">Once Weekly</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="frequencyIntervalGroup">
+                    <label>Every how many days?</label>
+                    <input type="number" id="protocolFrequencyInterval" min="2" max="30" value="3" placeholder="e.g., 3">
+                    <small style="color: #6b7280; margin-top: 4px; display: block;">Supplement will be due every X days</small>
+                </div>
+
+                <div class="form-group hidden" id="frequencyDaysGroup">
+                    <label>Select Days</label>
+                    <div class="days-checkbox-group" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        <label class="day-checkbox"><input type="checkbox" name="frequencyDay" value="0"> <span>Sun</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="frequencyDay" value="1"> <span>Mon</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="frequencyDay" value="2"> <span>Tue</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="frequencyDay" value="3"> <span>Wed</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="frequencyDay" value="4"> <span>Thu</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="frequencyDay" value="5"> <span>Fri</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="frequencyDay" value="6"> <span>Sat</span></label>
+                    </div>
+                </div>
+
                 <div class="schedule-toggle">
                     <label>
                         <input type="checkbox" id="protocolHasSchedule" onchange="toggleScheduleSection()">
@@ -1276,6 +1342,36 @@
                 <div class="form-group hidden" id="libraryCustomTimingGroup">
                     <label>Custom Timing</label>
                     <input type="text" id="libraryTimingCustom" placeholder="e.g., 2x per week, Every other day...">
+                </div>
+
+                <div class="form-group">
+                    <label>Frequency</label>
+                    <select id="libraryFrequency" onchange="toggleLibraryFrequencyOptions()">
+                        <option value="daily">Daily</option>
+                        <option value="every_other_day">Every Other Day</option>
+                        <option value="every_x_days">Every X Days</option>
+                        <option value="specific_days">Specific Days of Week</option>
+                        <option value="once_weekly">Once Weekly</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="libraryFrequencyIntervalGroup">
+                    <label>Every how many days?</label>
+                    <input type="number" id="libraryFrequencyInterval" min="2" max="30" value="3" placeholder="e.g., 3">
+                    <small style="color: #6b7280; margin-top: 4px; display: block;">Supplement will be due every X days</small>
+                </div>
+
+                <div class="form-group hidden" id="libraryFrequencyDaysGroup">
+                    <label>Select Days</label>
+                    <div class="days-checkbox-group" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="0"> <span>Sun</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="1"> <span>Mon</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="2"> <span>Tue</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="3"> <span>Wed</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="4"> <span>Thu</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="5"> <span>Fri</span></label>
+                        <label class="day-checkbox"><input type="checkbox" name="libraryFrequencyDay" value="6"> <span>Sat</span></label>
+                    </div>
                 </div>
 
                 <div class="schedule-toggle">
@@ -1635,6 +1731,9 @@
             document.getElementById('schedulePhasesContainer').innerHTML = '';
             toggleScheduleSection();
 
+            // Reset frequency options
+            resetFrequencyOptions();
+
             document.getElementById('protocolModal').classList.remove('hidden');
         }
 
@@ -1652,6 +1751,46 @@
             } else {
                 customGroup.classList.add('hidden');
             }
+        }
+
+        function toggleFrequencyOptions() {
+            const frequency = document.getElementById('protocolFrequency').value;
+            const intervalGroup = document.getElementById('frequencyIntervalGroup');
+            const daysGroup = document.getElementById('frequencyDaysGroup');
+
+            // Hide all first
+            intervalGroup.classList.add('hidden');
+            daysGroup.classList.add('hidden');
+
+            // Show relevant options
+            if (frequency === 'every_x_days') {
+                intervalGroup.classList.remove('hidden');
+            } else if (frequency === 'specific_days' || frequency === 'once_weekly') {
+                daysGroup.classList.remove('hidden');
+            }
+        }
+
+        function resetFrequencyOptions() {
+            document.getElementById('protocolFrequency').value = 'daily';
+            document.getElementById('protocolFrequencyInterval').value = '3';
+            document.getElementById('frequencyIntervalGroup').classList.add('hidden');
+            document.getElementById('frequencyDaysGroup').classList.add('hidden');
+            // Uncheck all day checkboxes
+            document.querySelectorAll('input[name="frequencyDay"]').forEach(cb => cb.checked = false);
+        }
+
+        function getSelectedDays() {
+            const days = [];
+            document.querySelectorAll('input[name="frequencyDay"]:checked').forEach(cb => {
+                days.push(parseInt(cb.value));
+            });
+            return days;
+        }
+
+        function setSelectedDays(days) {
+            document.querySelectorAll('input[name="frequencyDay"]').forEach(cb => {
+                cb.checked = days && days.includes(parseInt(cb.value));
+            });
         }
 
         function toggleScheduleSection() {
@@ -1733,6 +1872,11 @@
             const notes = document.getElementById('protocolNotes').value.trim();
             const privateNotes = document.getElementById('protocolPrivateNotes').value.trim();
 
+            // Frequency fields
+            const frequencyType = document.getElementById('protocolFrequency').value;
+            const frequencyInterval = parseInt(document.getElementById('protocolFrequencyInterval').value) || 3;
+            const frequencyDays = getSelectedDays();
+
             const payload = {
                 coachId: currentCoach.id,
                 clientId: parseInt(selectedClientId),
@@ -1744,7 +1888,10 @@
                 schedule: hasSchedule ? schedulePhases : null,
                 startDate: hasSchedule ? startDate : null,
                 notes,
-                privateNotes
+                privateNotes,
+                frequencyType,
+                frequencyInterval: frequencyType === 'every_x_days' ? frequencyInterval : null,
+                frequencyDays: (frequencyType === 'specific_days' || frequencyType === 'once_weekly') ? frequencyDays : null
             };
 
             try {
@@ -1802,6 +1949,12 @@
             schedulePhases = protocol.schedule ? [...protocol.schedule] : [];
             renderSchedulePhases();
             toggleScheduleSection();
+
+            // Load frequency options
+            document.getElementById('protocolFrequency').value = protocol.frequency_type || 'daily';
+            document.getElementById('protocolFrequencyInterval').value = protocol.frequency_interval || 3;
+            setSelectedDays(protocol.frequency_days || []);
+            toggleFrequencyOptions();
 
             document.getElementById('protocolModal').classList.remove('hidden');
         }
@@ -2101,6 +2254,9 @@
             document.getElementById('librarySchedulePhasesContainer').innerHTML = '';
             toggleLibraryScheduleSection();
 
+            // Reset frequency options
+            resetLibraryFrequencyOptions();
+
             document.getElementById('libraryModal').classList.remove('hidden');
         }
 
@@ -2118,6 +2274,46 @@
             } else {
                 customGroup.classList.add('hidden');
             }
+        }
+
+        function toggleLibraryFrequencyOptions() {
+            const frequency = document.getElementById('libraryFrequency').value;
+            const intervalGroup = document.getElementById('libraryFrequencyIntervalGroup');
+            const daysGroup = document.getElementById('libraryFrequencyDaysGroup');
+
+            // Hide all first
+            intervalGroup.classList.add('hidden');
+            daysGroup.classList.add('hidden');
+
+            // Show relevant options
+            if (frequency === 'every_x_days') {
+                intervalGroup.classList.remove('hidden');
+            } else if (frequency === 'specific_days' || frequency === 'once_weekly') {
+                daysGroup.classList.remove('hidden');
+            }
+        }
+
+        function resetLibraryFrequencyOptions() {
+            document.getElementById('libraryFrequency').value = 'daily';
+            document.getElementById('libraryFrequencyInterval').value = '3';
+            document.getElementById('libraryFrequencyIntervalGroup').classList.add('hidden');
+            document.getElementById('libraryFrequencyDaysGroup').classList.add('hidden');
+            // Uncheck all day checkboxes
+            document.querySelectorAll('input[name="libraryFrequencyDay"]').forEach(cb => cb.checked = false);
+        }
+
+        function getLibrarySelectedDays() {
+            const days = [];
+            document.querySelectorAll('input[name="libraryFrequencyDay"]:checked').forEach(cb => {
+                days.push(parseInt(cb.value));
+            });
+            return days;
+        }
+
+        function setLibrarySelectedDays(days) {
+            document.querySelectorAll('input[name="libraryFrequencyDay"]').forEach(cb => {
+                cb.checked = days && days.includes(parseInt(cb.value));
+            });
         }
 
         function toggleLibraryScheduleSection() {
@@ -2199,6 +2395,11 @@
             const notes = document.getElementById('libraryNotes').value.trim();
             const privateNotes = document.getElementById('libraryPrivateNotes').value.trim();
 
+            // Frequency fields
+            const frequencyType = document.getElementById('libraryFrequency').value;
+            const frequencyInterval = parseInt(document.getElementById('libraryFrequencyInterval').value) || 3;
+            const frequencyDays = getLibrarySelectedDays();
+
             const payload = {
                 coachId: currentCoach.id,
                 name,
@@ -2209,7 +2410,10 @@
                 hasSchedule,
                 schedule: hasSchedule ? librarySchedulePhases : null,
                 notes,
-                privateNotes
+                privateNotes,
+                frequencyType,
+                frequencyInterval: frequencyType === 'every_x_days' ? frequencyInterval : null,
+                frequencyDays: (frequencyType === 'specific_days' || frequencyType === 'once_weekly') ? frequencyDays : null
             };
 
             try {
@@ -2274,6 +2478,12 @@
             librarySchedulePhases = supplement.schedule ? [...supplement.schedule] : [];
             renderLibrarySchedulePhases();
             toggleLibraryScheduleSection();
+
+            // Load frequency options
+            document.getElementById('libraryFrequency').value = supplement.frequency_type || 'daily';
+            document.getElementById('libraryFrequencyInterval').value = supplement.frequency_interval || 3;
+            setLibrarySelectedDays(supplement.frequency_days || []);
+            toggleLibraryFrequencyOptions();
 
             document.getElementById('libraryModal').classList.remove('hidden');
         }

@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
+    <script src="/js/branding.js" defer></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preload" href="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
     <title>Recipes - Zique Fitness Nutrition</title>
     <style>
         * {
@@ -540,6 +548,8 @@
             font-weight: 600;
         }
     </style>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
     <div class="header">
@@ -631,23 +641,23 @@
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <a href="client-dashboard.html" class="bottom-nav-item">
-            <div class="nav-icon">🏠</div>
+            <div class="nav-icon"><i data-lucide="home"></i></div>
             <span class="nav-label">Home</span>
         </a>
         <a href="client-diary.html" class="bottom-nav-item">
-            <div class="nav-icon">📓</div>
+            <div class="nav-icon"><i data-lucide="notebook-pen"></i></div>
             <span class="nav-label">Diary</span>
         </a>
         <a href="client-recipes.html" class="bottom-nav-item active">
-            <div class="nav-icon">📖</div>
+            <div class="nav-icon"><i data-lucide="book-open"></i></div>
             <span class="nav-label">Recipes</span>
         </a>
         <a href="client-favorites.html" class="bottom-nav-item">
-            <div class="nav-icon">❤️</div>
+            <div class="nav-icon"><i data-lucide="heart"></i></div>
             <span class="nav-label">Favorites</span>
         </a>
         <a href="client-settings.html" class="bottom-nav-item">
-            <div class="nav-icon">👤</div>
+            <div class="nav-icon"><i data-lucide="user"></i></div>
             <span class="nav-label">Profile</span>
         </a>
     </nav>
@@ -698,6 +708,11 @@
             if (clientData) {
                 currentClientId = clientData.id;
                 currentCoachId = clientData.coach_id;
+
+                // Initialize coach branding
+                if (window.ZiqueBranding && currentCoachId) {
+                    window.ZiqueBranding.init(currentCoachId);
+                }
             }
 
             setupCategoryTabs();

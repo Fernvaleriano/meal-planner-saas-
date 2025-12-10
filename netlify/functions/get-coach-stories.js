@@ -31,12 +31,14 @@ exports.handler = async (event) => {
     // Get coach info
     const { data: coach } = await supabase
       .from('coaches')
-      .select('business_name, profile_image')
+      .select('brand_name, brand_logo_url, profile_photo_url, show_avatar_in_greeting')
       .eq('id', coachId)
       .single();
 
-    const coachName = coach?.business_name || 'Your Coach';
-    const coachAvatar = coach?.profile_image || null;
+    const coachName = coach?.brand_name || 'Your Coach';
+    // Prefer profile photo over brand logo for avatar
+    const coachAvatar = coach?.profile_photo_url || coach?.brand_logo_url || null;
+    const showAvatarInGreeting = coach?.show_avatar_in_greeting !== false; // Default to true
 
     // Get active stories (less than 24 hours old)
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -59,6 +61,7 @@ exports.handler = async (event) => {
           stories: [],
           coachName,
           coachAvatar,
+          showAvatarInGreeting,
           hasUnseenStories: false,
           highlights: []
         })
@@ -107,6 +110,7 @@ exports.handler = async (event) => {
         stories: formattedStories,
         coachName,
         coachAvatar,
+        showAvatarInGreeting,
         hasUnseenStories,
         highlights: highlights || []
       })

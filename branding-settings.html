@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <meta name="theme-color" content="#0d9488">
+    <title>Brand Settings - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Pickr Color Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-primary-dark: #0f766e;
+            --brand-secondary: #0284c7;
+            --brand-accent: #10b981;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
+
+        [data-theme="dark"] body {
+            background: var(--gray-900);
+            color: var(--gray-100);
+        }
+
+        /* Layout */
+        .branding-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            min-height: 100vh;
+            gap: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .branding-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Main Content */
+        .branding-main {
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .back-btn {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+            color: var(--gray-400);
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .page-title {
+            color: var(--gray-100);
+        }
+
+        .page-subtitle {
+            font-size: 0.9375rem;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .pro-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Section Cards */
+        .settings-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .settings-section {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        [data-theme="dark"] .section-title {
+            color: var(--gray-100);
+        }
+
+        .section-title-icon {
+            font-size: 1.25rem;
+        }
+
+        .section-description {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .form-label {
+            color: var(--gray-300);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: white;
+            color: var(--gray-800);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        [data-theme="dark"] .form-input {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+            color: var(--gray-100);
+        }
+
+        .form-hint {
+            font-size: 0.8125rem;
+            color: var(--gray-500);
+            margin-top: 6px;
+        }
+
+        /* Color Picker */
+        .color-picker-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .color-picker-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .color-picker-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 10px;
+            border: 2px solid var(--gray-200);
+            transition: border-color 0.2s;
+        }
+
+        .color-picker-wrapper:hover {
+            border-color: var(--gray-300);
+        }
+
+        [data-theme="dark"] .color-picker-wrapper {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+        }
+
+        .color-swatch {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.05);
+        }
+
+        .color-hex-input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-family: monospace;
+            text-transform: uppercase;
+            background: white;
+            color: var(--gray-800);
+        }
+
+        [data-theme="dark"] .color-hex-input {
+            background: var(--gray-800);
+            border-color: var(--gray-600);
+            color: var(--gray-100);
+        }
+
+        /* Logo Upload */
+        .logo-upload-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .logo-upload-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .logo-upload-item {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .logo-upload-preview {
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 150px;
+            background: var(--gray-100);
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .logo-upload-preview:hover {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        .logo-upload-preview.has-image {
+            border-style: solid;
+            border-color: var(--gray-200);
+        }
+
+        [data-theme="dark"] .logo-upload-preview {
+            background: var(--gray-800);
+            border-color: var(--gray-600);
+        }
+
+        .logo-upload-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 12px;
+        }
+
+        .logo-upload-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray-400);
+        }
+
+        .logo-upload-placeholder svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-upload-placeholder span {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .logo-upload-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .logo-upload-preview:hover .logo-upload-overlay {
+            opacity: 1;
+        }
+
+        .logo-upload-overlay-content {
+            display: flex;
+            gap: 8px;
+        }
+
+        .logo-upload-overlay button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .logo-upload-overlay button:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-upload-overlay .change-btn {
+            background: white;
+            color: var(--gray-800);
+        }
+
+        .logo-upload-overlay .remove-btn {
+            background: var(--error);
+            color: white;
+        }
+
+        .logo-upload-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .logo-upload-label {
+            color: var(--gray-300);
+        }
+
+        .logo-upload-hint {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        /* Preview Panel */
+        .preview-panel {
+            background: var(--gray-900);
+            border-left: 1px solid var(--gray-700);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .preview-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: auto;
+                max-height: 50vh;
+                border-left: none;
+                border-top: 1px solid var(--gray-700);
+                border-radius: 24px 24px 0 0;
+                z-index: 100;
+                transform: translateY(calc(100% - 60px));
+                transition: transform 0.3s ease;
+            }
+
+            .preview-panel.expanded {
+                transform: translateY(0);
+            }
+
+            .preview-panel-toggle {
+                display: flex;
+            }
+        }
+
+        .preview-panel-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            cursor: pointer;
+            color: var(--gray-400);
+        }
+
+        .preview-panel-toggle span {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .preview-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .preview-device-toggle {
+            display: flex;
+            background: var(--gray-800);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .preview-device-btn {
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .preview-device-btn.active {
+            background: var(--gray-700);
+            color: white;
+        }
+
+        /* Dashboard Mockup */
+        .mockup-container {
+            background: var(--gray-800);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--gray-700);
+        }
+
+        .mockup-browser-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--gray-800);
+            border-bottom: 1px solid var(--gray-700);
+        }
+
+        .mockup-browser-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .mockup-browser-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .mockup-browser-dot.red { background: #ff5f57; }
+        .mockup-browser-dot.yellow { background: #ffbd2e; }
+        .mockup-browser-dot.green { background: #28c940; }
+
+        .mockup-browser-url {
+            flex: 1;
+            background: var(--gray-900);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-align: center;
+        }
+
+        .mockup-content {
+            padding: 0;
+            background: white;
+            min-height: 400px;
+        }
+
+        /* Mockup Header */
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--preview-primary, var(--brand-primary));
+            color: white;
+        }
+
+        .mockup-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mockup-logo-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            overflow: hidden;
+        }
+
+        .mockup-logo-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .mockup-logo-text {
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .mockup-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mockup-user-avatar {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Mockup Body */
+        .mockup-body {
+            padding: 20px;
+            background: var(--gray-50);
+        }
+
+        .mockup-welcome {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .mockup-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .mockup-card {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .mockup-card-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .mockup-card-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .mockup-progress {
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .mockup-progress-fill {
+            height: 100%;
+            background: var(--preview-primary, var(--brand-primary));
+            border-radius: 3px;
+            width: 65%;
+        }
+
+        .mockup-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mockup-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: default;
+        }
+
+        .mockup-btn-primary {
+            background: var(--preview-primary, var(--brand-primary));
+            color: white;
+        }
+
+        .mockup-btn-secondary {
+            background: var(--preview-secondary, var(--brand-secondary));
+            color: white;
+        }
+
+        .mockup-links {
+            margin-top: 20px;
+        }
+
+        .mockup-links-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 10px;
+        }
+
+        .mockup-link {
+            display: block;
+            padding: 8px 0;
+            color: var(--preview-primary, var(--brand-primary));
+            font-size: 0.875rem;
+            text-decoration: none;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .mockup-link:last-child {
+            border-bottom: none;
+        }
+
+        /* Mobile Mockup */
+        .mockup-container.mobile {
+            max-width: 280px;
+            margin: 0 auto;
+            border-radius: 24px;
+        }
+
+        .mockup-container.mobile .mockup-browser-bar {
+            display: none;
+        }
+
+        .mockup-container.mobile .mockup-content {
+            border-radius: 24px;
+        }
+
+        /* Email Preview Section */
+        .email-preview-section {
+            margin-top: 24px;
+        }
+
+        .email-preview-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .email-preview-btn {
+            padding: 10px 16px;
+            background: var(--gray-700);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .email-preview-btn:hover {
+            background: var(--gray-600);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .action-buttons {
+            border-color: var(--gray-700);
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--brand-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        [data-theme="dark"] .btn-secondary {
+            background: var(--gray-700);
+            color: var(--gray-200);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: var(--gray-800);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .loading-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Upgrade CTA */
+        .upgrade-cta {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            color: white;
+        }
+
+        .upgrade-cta h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .upgrade-cta p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 24px;
+        }
+
+        .upgrade-cta .btn {
+            background: white;
+            color: #4f46e5;
+        }
+
+        /* Email Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .modal-content {
+            background: var(--gray-800);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .modal-header {
+            border-color: var(--gray-700);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .modal-close {
+            background: var(--gray-700);
+            color: var(--gray-400);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .email-mockup {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .email-mockup-header {
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .email-mockup-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 8px;
+        }
+
+        .email-mockup-body {
+            padding: 32px 24px;
+        }
+
+        .email-mockup-body h2 {
+            font-size: 1.25rem;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .email-mockup-body p {
+            color: var(--gray-600);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .email-mockup-btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: var(--preview-primary, var(--brand-primary));
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .email-mockup-footer {
+            padding: 24px;
+            background: var(--gray-50);
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            padding: 20px 24px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .modal-footer {
+            border-color: var(--gray-700);
+        }
+
+        /* Preset Colors */
+        .color-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .color-preset {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-preset:hover {
+            transform: scale(1.1);
+        }
+
+        .color-preset.selected {
+            border-color: var(--gray-900);
+            box-shadow: 0 0 0 2px white;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Menu
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
+                        Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
+                        Clients
+                    </a>
+                    <a href="manage-recipes.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
+                        Recipes
+                    </a>
+                    <a href="planner.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
+                        AI Planner
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="coach-profile.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
+                        My Profile
+                    </a>
+                    <a href="branding-settings.html" class="sidebar-nav-item active">
+                        <span class="sidebar-nav-icon">🎨</span>
+                        Branding
+                    </a>
+                    <a href="supplement-protocols.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
+                        Supplements
+                    </a>
+                    <a href="reminder-settings.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
+                        Reminders
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="sidebarAvatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebarEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content Area -->
+    <div class="branding-layout">
+        <!-- Settings Form -->
+        <main class="branding-main main-content">
+            <header class="main-header">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <h1 class="main-header-title">Brand Settings</h1>
+            </header>
+
+            <div class="main-container" id="mainContent" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Customize Your Brand</h1>
+                        <p class="page-subtitle">Make your coaching platform uniquely yours</p>
+                    </div>
+                    <span class="pro-badge">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        Professional
+                    </span>
+                </div>
+
+                <!-- Brand Identity Section -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🏷️</span>
+                            Brand Identity
+                        </h2>
+                    </div>
+                    <p class="section-description">Upload your logos and set your brand name. These will appear on your client portal and emails.</p>
+
+                    <div class="form-group">
+                        <label class="form-label" for="brandName">Brand Name</label>
+                        <input type="text" id="brandName" class="form-input" placeholder="Your Company Name" maxlength="100">
+                        <p class="form-hint">This replaces "Zique Fitness Nutrition" throughout the app</p>
+                    </div>
+
+                    <div class="logo-upload-grid">
+                        <!-- Main Logo -->
+                        <div class="logo-upload-item">
+                            <div class="logo-upload-preview" id="logoPreview" onclick="triggerLogoUpload('logo')">
+                                <div class="logo-upload-placeholder" id="logoPlaceholder">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span>Upload Logo</span>
+                                </div>
+                                <img id="logoImage" style="display: none;">
+                                <div class="logo-upload-overlay" id="logoOverlay" style="display: none;">
+                                    <div class="logo-upload-overlay-content">
+                                        <button type="button" class="change-btn" onclick="event.stopPropagation(); triggerLogoUpload('logo')">Change</button>
+                                        <button type="button" class="remove-btn" onclick="event.stopPropagation(); removeLogo('logo')">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="logo-upload-label">Main Logo</span>
+                            <span class="logo-upload-hint">Recommended: 200x200px, PNG or SVG</span>
+                            <input type="file" id="logoInput" accept="image/png,image/jpeg,image/svg+xml" style="display: none;" onchange="handleLogoUpload(event, 'logo')">
+                        </div>
+
+                        <!-- Favicon -->
+                        <div class="logo-upload-item">
+                            <div class="logo-upload-preview" id="faviconPreview" onclick="triggerLogoUpload('favicon')">
+                                <div class="logo-upload-placeholder" id="faviconPlaceholder">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span>Upload Favicon</span>
+                                </div>
+                                <img id="faviconImage" style="display: none;">
+                                <div class="logo-upload-overlay" id="faviconOverlay" style="display: none;">
+                                    <div class="logo-upload-overlay-content">
+                                        <button type="button" class="change-btn" onclick="event.stopPropagation(); triggerLogoUpload('favicon')">Change</button>
+                                        <button type="button" class="remove-btn" onclick="event.stopPropagation(); removeLogo('favicon')">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="logo-upload-label">Favicon</span>
+                            <span class="logo-upload-hint">32x32px or 64x64px, PNG or ICO</span>
+                            <input type="file" id="faviconInput" accept="image/png,image/x-icon,image/jpeg" style="display: none;" onchange="handleLogoUpload(event, 'favicon')">
+                        </div>
+
+                        <!-- Email Logo -->
+                        <div class="logo-upload-item">
+                            <div class="logo-upload-preview" id="emailLogoPreview" onclick="triggerLogoUpload('email_logo')">
+                                <div class="logo-upload-placeholder" id="emailLogoPlaceholder">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span>Upload Email Logo</span>
+                                </div>
+                                <img id="emailLogoImage" style="display: none;">
+                                <div class="logo-upload-overlay" id="emailLogoOverlay" style="display: none;">
+                                    <div class="logo-upload-overlay-content">
+                                        <button type="button" class="change-btn" onclick="event.stopPropagation(); triggerLogoUpload('email_logo')">Change</button>
+                                        <button type="button" class="remove-btn" onclick="event.stopPropagation(); removeLogo('email_logo')">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="logo-upload-label">Email Logo</span>
+                            <span class="logo-upload-hint">Used in email headers, PNG recommended</span>
+                            <input type="file" id="emailLogoInput" accept="image/png,image/jpeg" style="display: none;" onchange="handleLogoUpload(event, 'email_logo')">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Colors Section -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🎨</span>
+                            Brand Colors
+                        </h2>
+                    </div>
+                    <p class="section-description">Choose colors that match your brand. Changes update the preview instantly.</p>
+
+                    <div class="color-picker-group">
+                        <!-- Primary Color -->
+                        <div class="color-picker-item">
+                            <label class="form-label">Primary Color</label>
+                            <div class="color-picker-wrapper">
+                                <div class="color-swatch" id="primarySwatch" style="background: #0d9488;"></div>
+                                <input type="text" class="color-hex-input" id="primaryColor" value="#0d9488" maxlength="7">
+                            </div>
+                        </div>
+
+                        <!-- Secondary Color -->
+                        <div class="color-picker-item">
+                            <label class="form-label">Secondary Color</label>
+                            <div class="color-picker-wrapper">
+                                <div class="color-swatch" id="secondarySwatch" style="background: #0284c7;"></div>
+                                <input type="text" class="color-hex-input" id="secondaryColor" value="#0284c7" maxlength="7">
+                            </div>
+                        </div>
+
+                        <!-- Accent Color -->
+                        <div class="color-picker-item">
+                            <label class="form-label">Accent Color</label>
+                            <div class="color-picker-wrapper">
+                                <div class="color-swatch" id="accentSwatch" style="background: #10b981;"></div>
+                                <input type="text" class="color-hex-input" id="accentColor" value="#10b981" maxlength="7">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Color Presets -->
+                    <div>
+                        <label class="form-label" style="margin-top: 16px;">Quick Presets</label>
+                        <div class="color-presets" id="colorPresets">
+                            <!-- Presets will be added by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Branding Section -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">📧</span>
+                            Email Branding
+                        </h2>
+                    </div>
+                    <p class="section-description">Customize how your emails appear to clients.</p>
+
+                    <div class="form-group">
+                        <label class="form-label" for="emailFooter">Email Footer Text</label>
+                        <textarea id="emailFooter" class="form-input" rows="3" placeholder="Custom footer text for your emails..." maxlength="500"></textarea>
+                        <p class="form-hint">Appears at the bottom of all emails sent to clients</p>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <label class="form-label">Preview Emails</label>
+                        <div class="email-preview-buttons">
+                            <button type="button" class="email-preview-btn" onclick="openEmailPreview('invitation')">
+                                📨 Invitation Email
+                            </button>
+                            <button type="button" class="email-preview-btn" onclick="openEmailPreview('reminder')">
+                                🔔 Check-in Reminder
+                            </button>
+                            <button type="button" class="email-preview-btn" onclick="sendTestEmail()">
+                                📤 Send Test Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveBranding()">
+                        Save Changes
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="resetToDefaults()">
+                        Reset to Defaults
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upgrade CTA (shown if not Professional tier) -->
+            <div class="main-container" id="upgradeCta" style="display: none;">
+                <div class="upgrade-cta">
+                    <h2>Unlock Brand Customization</h2>
+                    <p>Upgrade to Professional tier to customize your brand colors, logos, and create a white-label experience for your clients.</p>
+                    <button class="btn" onclick="window.location.href='pricing.html'">Upgrade Now</button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div class="main-container" id="loadingState">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px; color: var(--gray-500);">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 16px;">Loading branding settings...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Live Preview Panel -->
+        <aside class="preview-panel" id="previewPanel">
+            <div class="preview-panel-toggle" onclick="togglePreviewPanel()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                </svg>
+                <span>Live Preview</span>
+            </div>
+
+            <div class="preview-header">
+                <h3 class="preview-title">Live Preview</h3>
+                <div class="preview-device-toggle">
+                    <button class="preview-device-btn active" onclick="setPreviewDevice('desktop')">Desktop</button>
+                    <button class="preview-device-btn" onclick="setPreviewDevice('mobile')">Mobile</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Mockup -->
+            <div class="mockup-container" id="mockupContainer">
+                <div class="mockup-browser-bar">
+                    <div class="mockup-browser-dots">
+                        <div class="mockup-browser-dot red"></div>
+                        <div class="mockup-browser-dot yellow"></div>
+                        <div class="mockup-browser-dot green"></div>
+                    </div>
+                    <div class="mockup-browser-url" id="mockupUrl">yourbrand.ziquefitness.com</div>
+                </div>
+                <div class="mockup-content">
+                    <div class="mockup-header" id="mockupHeader">
+                        <div class="mockup-logo">
+                            <div class="mockup-logo-img" id="mockupLogoImg">
+                                <span id="mockupLogoInitial">Z</span>
+                                <img id="mockupLogoImage" style="display: none;">
+                            </div>
+                            <span class="mockup-logo-text" id="mockupLogoText">Zique Fitness</span>
+                        </div>
+                        <div class="mockup-user">
+                            <div class="mockup-user-avatar">SC</div>
+                        </div>
+                    </div>
+                    <div class="mockup-body">
+                        <div class="mockup-welcome">Welcome back, Sarah!</div>
+                        <div class="mockup-cards">
+                            <div class="mockup-card">
+                                <div class="mockup-card-label">Today's Calories</div>
+                                <div class="mockup-card-value">1,850</div>
+                                <div class="mockup-progress">
+                                    <div class="mockup-progress-fill" id="mockupProgress"></div>
+                                </div>
+                            </div>
+                            <div class="mockup-card">
+                                <div class="mockup-card-label">Weekly Goal</div>
+                                <div class="mockup-card-value">65%</div>
+                                <div class="mockup-progress">
+                                    <div class="mockup-progress-fill" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mockup-buttons">
+                            <button class="mockup-btn mockup-btn-primary" id="mockupBtnPrimary">View Meal Plan</button>
+                            <button class="mockup-btn mockup-btn-secondary" id="mockupBtnSecondary">Log Food</button>
+                        </div>
+                        <div class="mockup-links">
+                            <div class="mockup-links-title">Quick Links</div>
+                            <a href="#" class="mockup-link" id="mockupLink1">My Favorites</a>
+                            <a href="#" class="mockup-link" id="mockupLink2">Weekly Check-in</a>
+                            <a href="#" class="mockup-link" id="mockupLink3">Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Preview Section -->
+            <div class="email-preview-section">
+                <h4 class="preview-title" style="margin-bottom: 12px;">Email Preview</h4>
+                <div class="email-preview-buttons">
+                    <button type="button" class="email-preview-btn" onclick="openEmailPreview('invitation')">Preview Invitation</button>
+                    <button type="button" class="email-preview-btn" onclick="openEmailPreview('reminder')">Preview Reminder</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Email Preview Modal -->
+    <div class="modal-overlay" id="emailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="emailModalTitle">Email Preview</h3>
+                <button class="modal-close" onclick="closeEmailModal()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="email-mockup" id="emailMockup">
+                    <!-- Email content will be rendered here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEmailModal()">Close</button>
+                <button class="btn btn-primary" onclick="sendTestEmail()">Send Test to Me</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Pickr Color Picker Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Sidebar section collapse functionality
+        function toggleSidebarSection(label) {
+            const section = label.parentElement;
+            section.classList.toggle('collapsed');
+            const sectionName = section.dataset.section;
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            collapsedSections[sectionName] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
+        }
+
+        // Restore sidebar collapsed state
+        (function restoreSidebarState() {
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            document.querySelectorAll('.sidebar-nav-section').forEach(section => {
+                const sectionName = section.dataset.section;
+                if (collapsedSections[sectionName]) {
+                    section.classList.add('collapsed');
+                }
+            });
+        })();
+
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State
+        let currentBranding = {
+            brand_name: '',
+            brand_primary_color: '#0d9488',
+            brand_secondary_color: '#0284c7',
+            brand_accent_color: '#10b981',
+            brand_logo_url: null,
+            brand_favicon_url: null,
+            brand_email_logo_url: null,
+            brand_email_footer: ''
+        };
+        let originalBranding = {};
+        let hasChanges = false;
+        let colorPickers = {};
+        let currentCoach = null;
+
+        // Color presets
+        const COLOR_PRESETS = [
+            { name: 'Teal', primary: '#0d9488', secondary: '#0284c7', accent: '#10b981' },
+            { name: 'Blue', primary: '#3b82f6', secondary: '#6366f1', accent: '#8b5cf6' },
+            { name: 'Purple', primary: '#8b5cf6', secondary: '#a855f7', accent: '#d946ef' },
+            { name: 'Red', primary: '#ef4444', secondary: '#f97316', accent: '#eab308' },
+            { name: 'Green', primary: '#22c55e', secondary: '#10b981', accent: '#14b8a6' },
+            { name: 'Orange', primary: '#f97316', secondary: '#fb923c', accent: '#fbbf24' },
+            { name: 'Pink', primary: '#ec4899', secondary: '#f472b6', accent: '#f9a8d4' },
+            { name: 'Gray', primary: '#6b7280', secondary: '#4b5563', accent: '#9ca3af' }
+        ];
+
+        // Initialize page
+        async function init() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Load coach data
+                const { data: coach, error } = await supabaseClient
+                    .from('coaches')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) throw error;
+
+                currentCoach = coach;
+
+                // Update sidebar
+                document.getElementById('sidebarEmail').textContent = session.user.email;
+                const initial = (coach.name || session.user.email).charAt(0).toUpperCase();
+                document.getElementById('sidebarAvatar').textContent = initial;
+
+                // Check subscription tier
+                const hasBrandingAccess = ['professional', 'branded'].includes(coach.subscription_tier);
+
+                document.getElementById('loadingState').style.display = 'none';
+
+                if (!hasBrandingAccess) {
+                    document.getElementById('upgradeCta').style.display = 'block';
+                    document.getElementById('previewPanel').style.display = 'none';
+                    return;
+                }
+
+                // Show branding settings
+                document.getElementById('mainContent').style.display = 'block';
+
+                // Load branding data
+                await loadBranding();
+
+                // Initialize color pickers
+                initColorPickers();
+
+                // Render color presets
+                renderColorPresets();
+
+                // Setup event listeners
+                setupEventListeners();
+
+            } catch (error) {
+                console.error('Error initializing:', error);
+                showToast('Error loading branding settings', 'error');
+            }
+        }
+
+        // Load branding from API
+        async function loadBranding() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const response = await fetch('/.netlify/functions/get-coach-branding', {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load branding');
+
+                const data = await response.json();
+
+                // Update state
+                currentBranding = {
+                    brand_name: data.raw?.brand_name || '',
+                    brand_primary_color: data.raw?.brand_primary_color || '#0d9488',
+                    brand_secondary_color: data.raw?.brand_secondary_color || '#0284c7',
+                    brand_accent_color: data.raw?.brand_accent_color || '#10b981',
+                    brand_logo_url: data.raw?.brand_logo_url || null,
+                    brand_favicon_url: data.raw?.brand_favicon_url || null,
+                    brand_email_logo_url: data.raw?.brand_email_logo_url || null,
+                    brand_email_footer: data.raw?.brand_email_footer || ''
+                };
+
+                originalBranding = { ...currentBranding };
+
+                // Update form
+                document.getElementById('brandName').value = currentBranding.brand_name;
+                document.getElementById('primaryColor').value = currentBranding.brand_primary_color;
+                document.getElementById('secondaryColor').value = currentBranding.brand_secondary_color;
+                document.getElementById('accentColor').value = currentBranding.brand_accent_color;
+                document.getElementById('emailFooter').value = currentBranding.brand_email_footer;
+
+                // Update color swatches
+                document.getElementById('primarySwatch').style.background = currentBranding.brand_primary_color;
+                document.getElementById('secondarySwatch').style.background = currentBranding.brand_secondary_color;
+                document.getElementById('accentSwatch').style.background = currentBranding.brand_accent_color;
+
+                // Update logo previews
+                updateLogoPreview('logo', currentBranding.brand_logo_url);
+                updateLogoPreview('favicon', currentBranding.brand_favicon_url);
+                updateLogoPreview('email_logo', currentBranding.brand_email_logo_url);
+
+                // Update preview
+                updatePreview();
+
+            } catch (error) {
+                console.error('Error loading branding:', error);
+            }
+        }
+
+        // Initialize Pickr color pickers
+        function initColorPickers() {
+            const colors = ['primary', 'secondary', 'accent'];
+
+            colors.forEach(color => {
+                const swatch = document.getElementById(`${color}Swatch`);
+                const input = document.getElementById(`${color}Color`);
+
+                const pickr = Pickr.create({
+                    el: swatch,
+                    theme: 'nano',
+                    default: input.value,
+                    swatches: COLOR_PRESETS.map(p => p[color === 'primary' ? 'primary' : color === 'secondary' ? 'secondary' : 'accent']),
+                    components: {
+                        preview: true,
+                        opacity: false,
+                        hue: true,
+                        interaction: {
+                            hex: true,
+                            input: true,
+                            save: true
+                        }
+                    }
+                });
+
+                pickr.on('save', (colorObj) => {
+                    const hex = colorObj.toHEXA().toString();
+                    input.value = hex;
+                    currentBranding[`brand_${color}_color`] = hex;
+                    swatch.style.background = hex;
+                    updatePreview();
+                    markChanged();
+                    pickr.hide();
+                });
+
+                colorPickers[color] = pickr;
+
+                // Sync hex input
+                input.addEventListener('input', (e) => {
+                    let value = e.target.value;
+                    if (!value.startsWith('#')) {
+                        value = '#' + value;
+                    }
+                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        swatch.style.background = value;
+                        currentBranding[`brand_${color}_color`] = value;
+                        pickr.setColor(value);
+                        updatePreview();
+                        markChanged();
+                    }
+                });
+            });
+        }
+
+        // Render color presets
+        function renderColorPresets() {
+            const container = document.getElementById('colorPresets');
+            container.innerHTML = '';
+
+            COLOR_PRESETS.forEach(preset => {
+                const btn = document.createElement('button');
+                btn.className = 'color-preset';
+                btn.style.background = `linear-gradient(135deg, ${preset.primary} 0%, ${preset.secondary} 100%)`;
+                btn.title = preset.name;
+                btn.onclick = () => applyPreset(preset);
+                container.appendChild(btn);
+            });
+        }
+
+        // Apply color preset
+        function applyPreset(preset) {
+            currentBranding.brand_primary_color = preset.primary;
+            currentBranding.brand_secondary_color = preset.secondary;
+            currentBranding.brand_accent_color = preset.accent;
+
+            // Update inputs
+            document.getElementById('primaryColor').value = preset.primary;
+            document.getElementById('secondaryColor').value = preset.secondary;
+            document.getElementById('accentColor').value = preset.accent;
+
+            // Update swatches
+            document.getElementById('primarySwatch').style.background = preset.primary;
+            document.getElementById('secondarySwatch').style.background = preset.secondary;
+            document.getElementById('accentSwatch').style.background = preset.accent;
+
+            // Update pickers
+            if (colorPickers.primary) colorPickers.primary.setColor(preset.primary);
+            if (colorPickers.secondary) colorPickers.secondary.setColor(preset.secondary);
+            if (colorPickers.accent) colorPickers.accent.setColor(preset.accent);
+
+            updatePreview();
+            markChanged();
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Brand name
+            document.getElementById('brandName').addEventListener('input', (e) => {
+                currentBranding.brand_name = e.target.value;
+                updatePreview();
+                markChanged();
+            });
+
+            // Email footer
+            document.getElementById('emailFooter').addEventListener('input', (e) => {
+                currentBranding.brand_email_footer = e.target.value;
+                markChanged();
+            });
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                await supabaseClient.auth.signOut({ scope: 'local' });
+                window.location.href = 'login.html';
+            });
+        }
+
+        // Update live preview
+        function updatePreview() {
+            const primary = currentBranding.brand_primary_color;
+            const secondary = currentBranding.brand_secondary_color;
+            const brandName = currentBranding.brand_name || 'Zique Fitness';
+
+            // Update CSS variables for preview
+            document.documentElement.style.setProperty('--preview-primary', primary);
+            document.documentElement.style.setProperty('--preview-secondary', secondary);
+
+            // Update mockup header
+            document.getElementById('mockupHeader').style.background = primary;
+
+            // Update mockup elements
+            document.getElementById('mockupLogoText').textContent = brandName.length > 20 ? brandName.substring(0, 20) + '...' : brandName;
+            document.getElementById('mockupLogoInitial').textContent = brandName.charAt(0).toUpperCase();
+
+            // Update logo in mockup
+            if (currentBranding.brand_logo_url) {
+                document.getElementById('mockupLogoImage').src = currentBranding.brand_logo_url;
+                document.getElementById('mockupLogoImage').style.display = 'block';
+                document.getElementById('mockupLogoInitial').style.display = 'none';
+            } else {
+                document.getElementById('mockupLogoImage').style.display = 'none';
+                document.getElementById('mockupLogoInitial').style.display = 'block';
+            }
+
+            // Update buttons
+            document.getElementById('mockupBtnPrimary').style.background = primary;
+            document.getElementById('mockupBtnSecondary').style.background = secondary;
+
+            // Update progress bar
+            document.getElementById('mockupProgress').style.background = primary;
+
+            // Update links
+            document.querySelectorAll('.mockup-link').forEach(link => {
+                link.style.color = primary;
+            });
+        }
+
+        // Logo upload functions
+        function triggerLogoUpload(type) {
+            const inputMap = {
+                'logo': 'logoInput',
+                'favicon': 'faviconInput',
+                'email_logo': 'emailLogoInput'
+            };
+            document.getElementById(inputMap[type]).click();
+        }
+
+        async function handleLogoUpload(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showLoading(true);
+
+            try {
+                // Read file as base64
+                const base64 = await readFileAsBase64(file);
+
+                // Upload via API
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const response = await fetch('/.netlify/functions/upload-brand-logo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        logoType: type,
+                        imageData: base64
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+
+                // Update state
+                const fieldMap = {
+                    'logo': 'brand_logo_url',
+                    'favicon': 'brand_favicon_url',
+                    'email_logo': 'brand_email_logo_url'
+                };
+                currentBranding[fieldMap[type]] = result.logoUrl;
+
+                // Update preview
+                updateLogoPreview(type, result.logoUrl);
+                updatePreview();
+
+                showToast(`${type.replace('_', ' ')} uploaded successfully`, 'success');
+
+            } catch (error) {
+                console.error('Error uploading logo:', error);
+                showToast(error.message, 'error');
+            } finally {
+                showLoading(false);
+                event.target.value = '';
+            }
+        }
+
+        async function removeLogo(type) {
+            if (!confirm('Remove this logo?')) return;
+
+            showLoading(true);
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const response = await fetch('/.netlify/functions/upload-brand-logo', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ logoType: type })
+                });
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Failed to remove logo');
+                }
+
+                // Update state
+                const fieldMap = {
+                    'logo': 'brand_logo_url',
+                    'favicon': 'brand_favicon_url',
+                    'email_logo': 'brand_email_logo_url'
+                };
+                currentBranding[fieldMap[type]] = null;
+
+                // Update preview
+                updateLogoPreview(type, null);
+                updatePreview();
+
+                showToast('Logo removed', 'success');
+
+            } catch (error) {
+                console.error('Error removing logo:', error);
+                showToast(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateLogoPreview(type, url) {
+            const idMap = {
+                'logo': { preview: 'logoPreview', image: 'logoImage', placeholder: 'logoPlaceholder', overlay: 'logoOverlay' },
+                'favicon': { preview: 'faviconPreview', image: 'faviconImage', placeholder: 'faviconPlaceholder', overlay: 'faviconOverlay' },
+                'email_logo': { preview: 'emailLogoPreview', image: 'emailLogoImage', placeholder: 'emailLogoPlaceholder', overlay: 'emailLogoOverlay' }
+            };
+
+            const ids = idMap[type];
+            const preview = document.getElementById(ids.preview);
+            const image = document.getElementById(ids.image);
+            const placeholder = document.getElementById(ids.placeholder);
+            const overlay = document.getElementById(ids.overlay);
+
+            if (url) {
+                image.src = url;
+                image.style.display = 'block';
+                placeholder.style.display = 'none';
+                overlay.style.display = 'flex';
+                preview.classList.add('has-image');
+            } else {
+                image.style.display = 'none';
+                placeholder.style.display = 'flex';
+                overlay.style.display = 'none';
+                preview.classList.remove('has-image');
+            }
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Save branding
+        async function saveBranding() {
+            showLoading(true);
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const response = await fetch('/.netlify/functions/save-coach-branding', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        brand_name: currentBranding.brand_name || null,
+                        brand_primary_color: currentBranding.brand_primary_color,
+                        brand_secondary_color: currentBranding.brand_secondary_color,
+                        brand_accent_color: currentBranding.brand_accent_color,
+                        brand_email_footer: currentBranding.brand_email_footer || null
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to save branding');
+                }
+
+                originalBranding = { ...currentBranding };
+                hasChanges = false;
+
+                showToast('Branding saved successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error saving branding:', error);
+                showToast(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Reset to defaults
+        function resetToDefaults() {
+            if (!confirm('Reset all branding to defaults? This will remove your custom colors and logos.')) return;
+
+            currentBranding = {
+                brand_name: '',
+                brand_primary_color: '#0d9488',
+                brand_secondary_color: '#0284c7',
+                brand_accent_color: '#10b981',
+                brand_logo_url: null,
+                brand_favicon_url: null,
+                brand_email_logo_url: null,
+                brand_email_footer: ''
+            };
+
+            // Update form
+            document.getElementById('brandName').value = '';
+            document.getElementById('primaryColor').value = '#0d9488';
+            document.getElementById('secondaryColor').value = '#0284c7';
+            document.getElementById('accentColor').value = '#10b981';
+            document.getElementById('emailFooter').value = '';
+
+            // Update swatches
+            document.getElementById('primarySwatch').style.background = '#0d9488';
+            document.getElementById('secondarySwatch').style.background = '#0284c7';
+            document.getElementById('accentSwatch').style.background = '#10b981';
+
+            // Update pickers
+            if (colorPickers.primary) colorPickers.primary.setColor('#0d9488');
+            if (colorPickers.secondary) colorPickers.secondary.setColor('#0284c7');
+            if (colorPickers.accent) colorPickers.accent.setColor('#10b981');
+
+            // Update logo previews
+            updateLogoPreview('logo', null);
+            updateLogoPreview('favicon', null);
+            updateLogoPreview('email_logo', null);
+
+            updatePreview();
+            markChanged();
+        }
+
+        // Email preview
+        function openEmailPreview(type) {
+            const modal = document.getElementById('emailModal');
+            const title = document.getElementById('emailModalTitle');
+            const mockup = document.getElementById('emailMockup');
+
+            title.textContent = type === 'invitation' ? 'Client Invitation Email' : 'Check-in Reminder Email';
+
+            const brandName = currentBranding.brand_name || 'Zique Fitness Nutrition';
+            const primaryColor = currentBranding.brand_primary_color;
+            const logoUrl = currentBranding.brand_email_logo_url || currentBranding.brand_logo_url;
+            const footer = currentBranding.brand_email_footer || `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`;
+
+            const logoHtml = logoUrl
+                ? `<img src="${logoUrl}" alt="${brandName}" class="email-mockup-logo" style="max-width: 150px; height: auto;">`
+                : `<h2 style="color: ${primaryColor}; margin: 0;">${brandName}</h2>`;
+
+            if (type === 'invitation') {
+                mockup.innerHTML = `
+                    <div class="email-mockup-header" style="background: linear-gradient(135deg, ${primaryColor}15 0%, ${primaryColor}05 100%);">
+                        ${logoHtml}
+                    </div>
+                    <div class="email-mockup-body">
+                        <h2>Welcome to ${brandName}!</h2>
+                        <p>Hi Sarah,</p>
+                        <p>Coach John has invited you to join their nutrition coaching program. Click the button below to complete your registration and get started.</p>
+                        <a href="#" class="email-mockup-btn" style="background: ${primaryColor};">Complete Sign Up</a>
+                    </div>
+                    <div class="email-mockup-footer">
+                        ${footer}
+                    </div>
+                `;
+            } else {
+                mockup.innerHTML = `
+                    <div class="email-mockup-header" style="background: linear-gradient(135deg, ${primaryColor}15 0%, ${primaryColor}05 100%);">
+                        ${logoHtml}
+                    </div>
+                    <div class="email-mockup-body">
+                        <h2>Time for Your Weekly Check-in!</h2>
+                        <p>Hi Sarah,</p>
+                        <p>It's time for your weekly check-in! Let us know how your week went so we can continue to optimize your meal plan.</p>
+                        <a href="#" class="email-mockup-btn" style="background: ${primaryColor};">Submit Check-in</a>
+                    </div>
+                    <div class="email-mockup-footer">
+                        ${footer}
+                    </div>
+                `;
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.remove('show');
+        }
+
+        // Send test email
+        async function sendTestEmail() {
+            showLoading(true);
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                const response = await fetch('/.netlify/functions/send-test-branding-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Failed to send test email');
+                }
+
+                showToast('Test email sent to your inbox!', 'success');
+                closeEmailModal();
+
+            } catch (error) {
+                console.error('Error sending test email:', error);
+                showToast(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Preview device toggle
+        function setPreviewDevice(device) {
+            const container = document.getElementById('mockupContainer');
+            const buttons = document.querySelectorAll('.preview-device-btn');
+
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (device === 'mobile') {
+                container.classList.add('mobile');
+            } else {
+                container.classList.remove('mobile');
+            }
+        }
+
+        // Toggle preview panel (mobile)
+        function togglePreviewPanel() {
+            document.getElementById('previewPanel').classList.toggle('expanded');
+        }
+
+        // Mark as changed
+        function markChanged() {
+            hasChanges = true;
+        }
+
+        // Show toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+
+            toast.className = `toast ${type}`;
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Show/hide loading
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('show', show);
+        }
+
+        // Mobile sidebar toggle
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        });
+
+        document.getElementById('sidebarOverlay').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        });
+
+        // Warn before leaving with unsaved changes
+        window.addEventListener('beforeunload', (e) => {
+            if (hasChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

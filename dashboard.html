@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
     <script src="/js/gym-features.js"></script>
     <meta name="theme-color" content="#0d9488">
@@ -10,12 +11,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zique Fitness">
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/logo.png">
     <title>Dashboard - Zique Fitness Nutrition</title>
-    <!-- Prevent caching to avoid stale data on back navigation -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -2485,6 +2486,8 @@
         }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
     <!-- Sidebar -->
@@ -2504,19 +2507,19 @@
                 </div>
                 <div class="sidebar-nav-items">
                     <a href="dashboard.html" class="sidebar-nav-item active">
-                        <span class="sidebar-nav-icon">📊</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
                         Dashboard
                     </a>
                     <a href="manage-clients.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">👥</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
                         Clients
                     </a>
                     <a href="manage-recipes.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">📖</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
                         Recipes
                     </a>
                     <a href="planner.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">🍽️</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
                     </a>
                     <a href="coach-workouts.html" class="sidebar-nav-item" data-gym-feature style="display:none;">
@@ -2534,19 +2537,19 @@
                 </div>
                 <div class="sidebar-nav-items">
                     <a href="coach-profile.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">👤</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
                         My Profile
                     </a>
                     <a href="supplement-protocols.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">💊</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
                         Supplements
                     </a>
                     <a href="reminder-settings.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon">🔔</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
                         Reminders
                     </a>
                     <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink">
-                        <span class="sidebar-nav-icon">🚪</span>
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
                         Log Out
                     </a>
                 </div>
@@ -2902,7 +2905,7 @@
 
             <div class="action-cards">
                 <div class="action-card">
-                    <div class="action-card-icon">🍽️</div>
+                    <div class="action-card-icon">✨</div>
                     <h3>AI Meal Planner</h3>
                     <p>Create personalized meal plans, single meals, cheat meal advice and more with AI assistance.</p>
                     <button class="action-btn" onclick="window.location.href='planner.html'">Open Planner</button>
@@ -2930,17 +2933,17 @@
                 </div>
 
                 <div class="action-card">
-                    <div class="action-card-icon">+</div>
+                    <div class="action-card-icon">🔔</div>
                     <h3>Check-in Reminders</h3>
                     <p>Automate weekly check-in reminders to your clients via email notifications.</p>
                     <button class="action-btn" onclick="window.location.href='reminder-settings.html'">Configure Reminders</button>
                 </div>
 
-                <div class="action-card">
-                    <div class="action-card-icon">+</div>
+                <div class="action-card" id="brandingCard" style="display: none;">
+                    <div class="action-card-icon">🎨</div>
                     <h3>Customize Branding</h3>
                     <p>Upload your logo and set brand colors for a personalized experience.</p>
-                    <button class="action-btn" disabled id="brandingBtn">Coming Soon</button>
+                    <button class="action-btn" onclick="window.location.href='branding-settings.html'">Customize Branding</button>
                 </div>
             </div>
         </div>
@@ -2953,41 +2956,31 @@
         <div class="coach-bottom-nav-inner">
             <a href="dashboard.html" class="coach-nav-item active">
                 <div class="coach-nav-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                    </svg>
+                    <i data-lucide="layout-dashboard" width="24" height="24"></i>
                 </div>
                 <span class="coach-nav-label">Dashboard</span>
             </a>
             <a href="manage-clients.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
+                    <i data-lucide="users" width="24" height="24"></i>
                 </div>
                 <span class="coach-nav-label">Clients</span>
             </a>
             <a href="planner.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                    </svg>
+                    <i data-lucide="utensils-crossed" width="24" height="24"></i>
                 </div>
                 <span class="coach-nav-label">Planner</span>
             </a>
             <a href="coach-profile.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
+                    <i data-lucide="user" width="24" height="24"></i>
                 </div>
                 <span class="coach-nav-label">Profile</span>
             </a>
             <a href="#" class="coach-nav-item coach-nav-logout" id="mobileLogoutBtn">
                 <div class="coach-nav-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                    </svg>
+                    <i data-lucide="log-out" width="24" height="24"></i>
                 </div>
                 <span class="coach-nav-label">Logout</span>
             </a>
@@ -3031,7 +3024,7 @@
         const logoutBtn = document.getElementById('logoutBtn');
         const logoutLink = document.getElementById('logoutLink');
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-        const brandingBtn = document.getElementById('brandingBtn');
+        const brandingCard = document.getElementById('brandingCard');
 
         // Subscription modal elements
         const subscriptionModal = document.getElementById('subscriptionModal');
@@ -3387,11 +3380,9 @@
                 tierBadge.textContent = tier.toUpperCase();
                 tierBadge.className = `tier-badge ${tier}`;
 
-                // Show branding button only for professional tier (or legacy branded tier)
+                // Show branding card only for professional tier (or legacy branded tier)
                 if (coachData.subscription_tier === 'professional' || coachData.subscription_tier === 'branded') {
-                    brandingBtn.parentElement.style.display = 'block';
-                } else {
-                    brandingBtn.parentElement.style.display = 'none';
+                    brandingCard.style.display = 'block';
                 }
 
                 // Fetch and display quick stats

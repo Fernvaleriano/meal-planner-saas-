@@ -1,7 +1,8 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v3';
-const STATIC_CACHE = 'zique-static-v3';
-const DATA_CACHE = 'zique-data-v2';
+const CACHE_NAME = 'zique-fitness-v7';
+const STATIC_CACHE = 'zique-static-v7';
+const DATA_CACHE = 'zique-data-v5';
+const CDN_CACHE = 'zique-cdn-v3';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -23,7 +24,18 @@ const STATIC_FILES = [
   '/client-login.html',
   // Styles
   '/styles/brand.css',
-  '/styles/coach-layout.css'
+  '/styles/coach-layout.css',
+  // Core JS
+  '/js/theme.js',
+  '/js/branding.js'
+];
+
+// CDN resources to cache (long-lived, rarely change)
+const CDN_FILES = [
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
 // API endpoints to cache (stale-while-revalidate)
@@ -31,31 +43,54 @@ const STATIC_FILES = [
 const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/calorie-goals/,
   /\/\.netlify\/functions\/get-favorites/,
-  /\/\.netlify\/functions\/get-recipes/
+  /\/\.netlify\/functions\/get-recipes/,
+  /\/\.netlify\/functions\/get-branding/,
+  /\/\.netlify\/functions\/get-plans/,
+  /\/\.netlify\/functions\/get-profile/
 ];
 
-// Install event - cache static files
+// Install event - cache static files and CDN resources
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
-        console.log('[SW] Caching static files');
-        return cache.addAll(STATIC_FILES);
-      })
-      .then(() => self.skipWaiting())
-      .catch((err) => console.log('[SW] Cache error:', err))
+    Promise.all([
+      // Cache static files
+      caches.open(STATIC_CACHE)
+        .then((cache) => {
+          console.log('[SW] Caching static files');
+          return cache.addAll(STATIC_FILES);
+        }),
+      // Cache CDN resources
+      caches.open(CDN_CACHE)
+        .then((cache) => {
+          console.log('[SW] Caching CDN resources');
+          return Promise.all(
+            CDN_FILES.map(url =>
+              fetch(url, { mode: 'cors' })
+                .then(response => {
+                  if (response.ok) {
+                    return cache.put(url, response);
+                  }
+                })
+                .catch(err => console.log('[SW] CDN cache error:', url, err))
+            )
+          );
+        })
+    ])
+    .then(() => self.skipWaiting())
+    .catch((err) => console.log('[SW] Cache error:', err))
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker...');
+  const keepCaches = [CACHE_NAME, STATIC_CACHE, DATA_CACHE, CDN_CACHE];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE)
+          .filter((name) => !keepCaches.includes(name))
           .map((name) => {
             console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);
@@ -95,6 +130,34 @@ self.addEventListener('fetch', (event) => {
         }).catch(() => null);
 
         // Return cached immediately if available, otherwise wait for network
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // Handle CDN requests - cache first with background update
+  if (url.hostname.includes('cdn.jsdelivr.net') ||
+      url.hostname.includes('unpkg.com') ||
+      url.hostname.includes('cdnjs.cloudflare.com')) {
+    event.respondWith(
+      caches.open(CDN_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
+
+        // Fetch fresh in background - use credentials: 'omit' to avoid CORS issues
+        const fetchPromise = fetch(request.url, { mode: 'cors', credentials: 'omit' })
+          .then((networkResponse) => {
+            if (networkResponse.ok) {
+              cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => null);
+
+        // Return cached immediately if available
         if (cachedResponse) {
           return cachedResponse;
         }
