@@ -100,7 +100,7 @@ ${chatHistory.slice(-4).map(msg => `${msg.role === 'user' ? 'Coach' : 'AI'}: ${m
         // Different prompt based on whether we need structured meal suggestions
         let systemPrompt;
         if (isMealSuggestionRequest) {
-            systemPrompt = `You are an AI assistant helping a nutrition coach brainstorm meal ideas. You MUST respond with a JSON object containing meal suggestions.
+            systemPrompt = `You are an AI assistant helping a nutrition coach brainstorm meal ideas. You MUST respond with a JSON object containing meal suggestions WITH full recipes.
 
 ${mealContext}
 ${targetsContext}
@@ -119,7 +119,9 @@ You MUST respond with ONLY a valid JSON object in this exact format (no other te
             "protein": 40,
             "carbs": 25,
             "fat": 18,
-            "description": "Brief description of the meal"
+            "description": "Brief description of the meal",
+            "ingredients": ["6oz chicken breast", "1 cup broccoli", "1 tbsp olive oil", "salt and pepper to taste"],
+            "instructions": "1. Season chicken with salt and pepper. 2. Heat olive oil in a pan over medium-high heat. 3. Cook chicken 6-7 minutes per side until internal temp reaches 165°F. 4. Steam broccoli for 4-5 minutes. 5. Serve chicken over vegetables."
         }
     ]
 }
@@ -128,6 +130,8 @@ RULES:
 - Include 2-3 meal suggestions in the suggestions array
 - All macros must be realistic numbers (integers)
 - Meal names should include portion sizes
+- MUST include ingredients array with specific quantities
+- MUST include instructions as a single string with numbered steps
 - Consider client preferences and restrictions
 - Keep meals practical and easy to prepare
 - ONLY output valid JSON, nothing else`;
@@ -215,7 +219,9 @@ IMPORTANT:
                         protein: parseInt(s.protein) || 0,
                         carbs: parseInt(s.carbs) || 0,
                         fat: parseInt(s.fat) || 0,
-                        description: s.description || ''
+                        description: s.description || '',
+                        ingredients: Array.isArray(s.ingredients) ? s.ingredients : [],
+                        instructions: s.instructions || ''
                     }));
                     responseMessage = parsed.message || 'Here are some suggestions:';
                 }
