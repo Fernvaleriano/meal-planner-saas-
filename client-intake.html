@@ -241,6 +241,55 @@
             color: var(--gray-700);
         }
 
+        /* Unit Toggle Styles */
+        .unit-toggle-container {
+            display: flex;
+            gap: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid var(--gray-200);
+        }
+
+        .unit-toggle-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .unit-toggle-btn:hover {
+            background: var(--gray-50);
+        }
+
+        .unit-toggle-btn.active {
+            background: var(--brand-gradient);
+            color: white;
+        }
+
+        [data-theme="dark"] .unit-toggle-container {
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .unit-toggle-btn {
+            background: var(--gray-900);
+            color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .unit-toggle-btn:hover {
+            background: var(--gray-800);
+        }
+
+        [data-theme="dark"] .unit-toggle-btn.active {
+            background: var(--brand-gradient);
+            color: white;
+        }
+
         .info-box {
             background: rgba(13, 148, 136, 0.08);
             border: 1px solid rgba(13, 148, 136, 0.2);
@@ -562,22 +611,55 @@
                         Physical Stats
                     </h2>
 
-                    <div class="form-row">
+                    <!-- Unit System Toggle -->
+                    <div class="form-row single" style="margin-bottom: 20px;">
                         <div class="form-group">
-                            <label for="weight">Weight (lbs) <span class="required">*</span></label>
-                            <input type="number" id="weight" name="weight" placeholder="150" min="50" max="800" step="0.1" required>
+                            <label>Unit System</label>
+                            <div class="unit-toggle-container">
+                                <button type="button" class="unit-toggle-btn active" data-unit="imperial" id="imperialBtn">
+                                    Imperial (lbs, ft/in)
+                                </button>
+                                <button type="button" class="unit-toggle-btn" data-unit="metric" id="metricBtn">
+                                    Metric (kg, cm)
+                                </button>
+                            </div>
+                            <input type="hidden" id="unitSystem" name="unitSystem" value="imperial">
                         </div>
-                        <div class="form-group">
-                            <label>Height <span class="required">*</span></label>
-                            <div class="height-inputs">
-                                <div class="form-group">
-                                    <input type="number" id="heightFt" name="heightFt" placeholder="5" min="3" max="8" required>
-                                    <span style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">feet</span>
+                    </div>
+
+                    <!-- Imperial Weight/Height -->
+                    <div id="imperialFields">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="weight">Weight (lbs) <span class="required">*</span></label>
+                                <input type="number" id="weight" name="weight" placeholder="150" min="50" max="800" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Height <span class="required">*</span></label>
+                                <div class="height-inputs">
+                                    <div class="form-group">
+                                        <input type="number" id="heightFt" name="heightFt" placeholder="5" min="3" max="8">
+                                        <span style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">feet</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="number" id="heightIn" name="heightIn" placeholder="10" min="0" max="11">
+                                        <span style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">inches</span>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <input type="number" id="heightIn" name="heightIn" placeholder="10" min="0" max="11" required>
-                                    <span style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">inches</span>
-                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metric Weight/Height (hidden by default) -->
+                    <div id="metricFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="weightKg">Weight (kg) <span class="required">*</span></label>
+                                <input type="number" id="weightKg" name="weightKg" placeholder="68" min="20" max="400" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="heightCm">Height (cm) <span class="required">*</span></label>
+                                <input type="number" id="heightCm" name="heightCm" placeholder="170" min="100" max="250" step="0.1">
                             </div>
                         </div>
                     </div>
@@ -826,6 +908,43 @@
             });
         });
 
+        // Unit system toggle
+        const imperialBtn = document.getElementById('imperialBtn');
+        const metricBtn = document.getElementById('metricBtn');
+        const imperialFields = document.getElementById('imperialFields');
+        const metricFields = document.getElementById('metricFields');
+        const unitSystemInput = document.getElementById('unitSystem');
+
+        function setUnitSystem(system) {
+            unitSystemInput.value = system;
+            if (system === 'imperial') {
+                imperialBtn.classList.add('active');
+                metricBtn.classList.remove('active');
+                imperialFields.style.display = 'block';
+                metricFields.style.display = 'none';
+            } else {
+                metricBtn.classList.add('active');
+                imperialBtn.classList.remove('active');
+                metricFields.style.display = 'block';
+                imperialFields.style.display = 'none';
+            }
+        }
+
+        imperialBtn.addEventListener('click', () => setUnitSystem('imperial'));
+        metricBtn.addEventListener('click', () => setUnitSystem('metric'));
+
+        // Conversion helpers
+        function kgToLbs(kg) {
+            return kg * 2.20462;
+        }
+
+        function cmToFtIn(cm) {
+            const totalInches = cm / 2.54;
+            const feet = Math.floor(totalInches / 12);
+            const inches = Math.round(totalInches % 12);
+            return { feet, inches };
+        }
+
         // Validate intake token
         async function validateToken() {
             if (!token) {
@@ -911,6 +1030,41 @@
             const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
                 .map(cb => cb.value);
 
+            const unitSystem = document.getElementById('unitSystem').value;
+            let weight, heightFt, heightIn;
+
+            // Handle unit conversion - always store in imperial
+            if (unitSystem === 'metric') {
+                const weightKg = parseFloat(document.getElementById('weightKg').value);
+                const heightCm = parseFloat(document.getElementById('heightCm').value);
+
+                // Validate metric inputs
+                if (!weightKg || !heightCm) {
+                    showFormMessage('Please enter your weight and height.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Complete Registration';
+                    return;
+                }
+
+                // Convert to imperial for storage
+                weight = Math.round(kgToLbs(weightKg) * 10) / 10;
+                const heightConverted = cmToFtIn(heightCm);
+                heightFt = heightConverted.feet;
+                heightIn = heightConverted.inches;
+            } else {
+                weight = parseFloat(document.getElementById('weight').value);
+                heightFt = parseInt(document.getElementById('heightFt').value);
+                heightIn = parseInt(document.getElementById('heightIn').value);
+
+                // Validate imperial inputs
+                if (!weight || (!heightFt && heightFt !== 0)) {
+                    showFormMessage('Please enter your weight and height.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Complete Registration';
+                    return;
+                }
+            }
+
             const formData = {
                 token: token,
                 name: document.getElementById('name').value.trim(),
@@ -918,9 +1072,9 @@
                 phone: document.getElementById('phone').value.trim(),
                 age: parseInt(document.getElementById('age').value),
                 gender: document.getElementById('gender').value,
-                weight: parseFloat(document.getElementById('weight').value),
-                heightFt: parseInt(document.getElementById('heightFt').value),
-                heightIn: parseInt(document.getElementById('heightIn').value),
+                weight: weight,
+                heightFt: heightFt,
+                heightIn: heightIn || 0,
                 activityLevel: parseFloat(document.getElementById('activityLevel').value),
                 goal: document.getElementById('goal').value,
                 budget: document.getElementById('budget').value,
@@ -931,7 +1085,8 @@
                 dislikedFoods: document.getElementById('dislikedFoods').value.trim(),
                 preferredFoods: document.getElementById('preferredFoods').value.trim() || null,
                 cookingEquipment: equipment.length > 0 ? equipment : null,
-                password: password
+                password: password,
+                unitPreference: unitSystem
             };
 
             submitBtn.disabled = true;

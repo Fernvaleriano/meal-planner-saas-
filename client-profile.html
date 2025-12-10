@@ -2811,6 +2811,57 @@
             gap: 8px;
         }
 
+        .client-stats-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .coach-unit-toggle {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .coach-unit-toggle .unit-btn {
+            padding: 4px 10px;
+            border: none;
+            background: white;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .coach-unit-toggle .unit-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .coach-unit-toggle .unit-btn.active {
+            background: #0d9488;
+            color: white;
+        }
+
+        [data-theme="dark"] .coach-unit-toggle {
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .coach-unit-toggle .unit-btn {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .coach-unit-toggle .unit-btn:hover {
+            background: #334155;
+        }
+
+        [data-theme="dark"] .coach-unit-toggle .unit-btn.active {
+            background: #0d9488;
+            color: white;
+        }
+
         .client-stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -4170,9 +4221,15 @@
                         <div class="client-stats-title">
                             📋 Client Stats
                         </div>
-                        <button class="btn btn-secondary btn-small" onclick="editClient()" style="font-size: 12px; padding: 6px 12px;">
-                            Edit Stats
-                        </button>
+                        <div class="client-stats-actions">
+                            <div class="coach-unit-toggle" title="Toggle between Imperial and Metric units">
+                                <button type="button" class="unit-btn active" data-unit="imperial" onclick="setCoachDisplayUnit('imperial')">lbs</button>
+                                <button type="button" class="unit-btn" data-unit="metric" onclick="setCoachDisplayUnit('metric')">kg</button>
+                            </div>
+                            <button class="btn btn-secondary btn-small" onclick="editClient()" style="font-size: 12px; padding: 6px 12px;">
+                                Edit Stats
+                            </button>
+                        </div>
                     </div>
                     <div class="client-stats-grid" id="clientStatsGrid">
                         <!-- Populated by JavaScript -->
@@ -4876,6 +4933,41 @@
         let clientFavorites = [];
         let currentFavoritesFilter = 'all';
         let clientProtocols = [];
+        let coachDisplayUnit = 'imperial';  // Coach's preferred display unit
+
+        // Unit conversion helper functions
+        function lbsToKg(lbs) {
+            return Math.round(lbs * 0.453592 * 10) / 10;
+        }
+
+        function kgToLbs(kg) {
+            return Math.round(kg * 2.20462 * 10) / 10;
+        }
+
+        function ftInToCm(ft, inches) {
+            const totalInches = (ft * 12) + (inches || 0);
+            return Math.round(totalInches * 2.54 * 10) / 10;
+        }
+
+        function cmToFtIn(cm) {
+            const totalInches = cm / 2.54;
+            const feet = Math.floor(totalInches / 12);
+            const inches = Math.round(totalInches % 12);
+            return { feet, inches };
+        }
+
+        // Set coach's display unit preference
+        function setCoachDisplayUnit(unit) {
+            coachDisplayUnit = unit;
+            // Update button states
+            document.querySelectorAll('.coach-unit-toggle .unit-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.unit === unit);
+            });
+            // Re-render stats with new unit
+            displayStats();
+            // Save preference to localStorage
+            localStorage.setItem('coachDisplayUnit', unit);
+        }
 
         // Logout function
         async function logout() {
@@ -4931,6 +5023,16 @@
                 alert('No client specified');
                 window.location.href = 'manage-clients.html';
                 return;
+            }
+
+            // Load coach's saved unit preference
+            const savedUnit = localStorage.getItem('coachDisplayUnit');
+            if (savedUnit && (savedUnit === 'imperial' || savedUnit === 'metric')) {
+                coachDisplayUnit = savedUnit;
+                // Update button states
+                document.querySelectorAll('.coach-unit-toggle .unit-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.unit === savedUnit);
+                });
             }
 
             try {
@@ -5187,7 +5289,13 @@
             }
 
             if (currentClient.weight) {
-                stats.push({ label: 'Weight', value: currentClient.weight + ' lbs' });
+                // Display weight in coach's preferred unit
+                if (coachDisplayUnit === 'metric') {
+                    const weightKg = lbsToKg(currentClient.weight);
+                    stats.push({ label: 'Weight', value: weightKg + ' kg' });
+                } else {
+                    stats.push({ label: 'Weight', value: currentClient.weight + ' lbs' });
+                }
             } else {
                 missingStats.push('Weight');
             }
@@ -5195,7 +5303,13 @@
             if (currentClient.height_ft || currentClient.height_in) {
                 const ft = currentClient.height_ft || 0;
                 const inches = currentClient.height_in || 0;
-                stats.push({ label: 'Height', value: `${ft}'${inches}"` });
+                // Display height in coach's preferred unit
+                if (coachDisplayUnit === 'metric') {
+                    const heightCm = ftInToCm(ft, inches);
+                    stats.push({ label: 'Height', value: heightCm + ' cm' });
+                } else {
+                    stats.push({ label: 'Height', value: `${ft}'${inches}"` });
+                }
             } else {
                 missingStats.push('Height');
             }
