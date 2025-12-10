@@ -4888,7 +4888,7 @@ async function applyMealSuggestion(dayIndex, mealIndex, element) {
 
         // Re-render the plan
         setTimeout(() => {
-            renderPlan(lastPlanQuery.currentPlan);
+            displayDietPlan(lastPlanQuery.currentPlan);
 
             // Auto-save if plan exists
             if (lastPlanQuery.planId) {
