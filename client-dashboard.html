@@ -8472,22 +8472,23 @@
         }
 
         async function analyzeDashPhoto() {
+            console.log('📸 Dashboard photo analysis started');
+            console.log('dashPhotoBase64 exists:', !!dashPhotoBase64);
+
             document.getElementById('dashPhotoUpload').style.display = 'none';
             document.getElementById('dashPhotoDetailsSection').style.display = 'none';
             document.getElementById('dashPhotoAnalyzing').style.display = 'block';
 
-            const foodDetails = document.getElementById('dashPhotoFoodDetails').value.trim();
+            const detailsInput = document.getElementById('dashPhotoFoodDetails');
+            const foodDetails = detailsInput ? detailsInput.value.trim() : '';
 
             try {
-                const response = await fetch('/.netlify/functions/analyze-food-photo', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${(await window.supabaseClient.auth.getSession()).data.session?.access_token}`
-                    },
-                    body: JSON.stringify({ image: dashPhotoBase64, details: foodDetails || null })
+                console.log('Calling photo analysis API...');
+                const data = await apiPost('/.netlify/functions/analyze-food-photo', {
+                    image: dashPhotoBase64,
+                    details: foodDetails || null
                 });
-                const data = await response.json();
+                console.log('Photo analysis response:', data);
                 dashDetectedFoods = data.foods || [];
 
                 if (dashDetectedFoods.length === 0) {
@@ -8498,7 +8499,7 @@
                 renderDashPhotoResults();
             } catch (err) {
                 console.error('Error analyzing photo:', err);
-                showToast('Failed to analyze photo. Try again.');
+                showToast(err.message || 'Failed to analyze photo. Try again.');
                 resetDashPhoto();
             }
         }
@@ -8523,37 +8524,42 @@
 
         // Reanalyze photo with smarter AI (Claude 3.5 Sonnet) - Dashboard version
         async function dashReanalyzeWithSmartAI() {
+            console.log('🔍 Dashboard reanalyze button clicked');
+            console.log('dashPhotoBase64 exists:', !!dashPhotoBase64);
+
             if (!dashPhotoBase64) {
                 showToast('No photo to reanalyze');
+                console.error('No photo data available');
                 return;
             }
 
             const btn = document.getElementById('dashSmartReanalyzeBtn');
+            if (!btn) {
+                console.error('Reanalyze button not found');
+                return;
+            }
+
             const originalContent = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--gray-300); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span> Analyzing with smarter AI...';
+            btn.innerHTML = '<span style="width: 16px; height: 16px; border: 2px solid var(--gray-300); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span> Analyzing with smarter AI...';
             btn.disabled = true;
             btn.style.opacity = '0.7';
 
             // Get optional food details
-            const foodDetails = document.getElementById('dashPhotoDetails')?.value?.trim() || null;
+            const detailsInput = document.getElementById('dashPhotoFoodDetails');
+            const foodDetails = detailsInput ? detailsInput.value.trim() : '';
 
             try {
-                const response = await fetch('/.netlify/functions/analyze-food-photo-smart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${(await window.supabaseClient.auth.getSession()).data.session?.access_token}`
-                    },
-                    body: JSON.stringify({ image: dashPhotoBase64, details: foodDetails })
+                console.log('Calling smart analysis API...');
+                const data = await apiPost('/.netlify/functions/analyze-food-photo-smart', {
+                    image: dashPhotoBase64,
+                    details: foodDetails || null
                 });
-
-                const data = await response.json();
                 console.log('Smart AI Photo response:', data);
 
                 if (data.foods && data.foods.length > 0) {
                     dashDetectedFoods = data.foods;
                     renderDashPhotoResults();
-                    showToast('✨ Reanalyzed with smarter AI!');
+                    showToast('Reanalyzed with smarter AI!');
                     btn.style.display = 'none';
                 } else {
                     showToast('Smart AI could not detect food items');
@@ -8563,7 +8569,7 @@
                 }
             } catch (err) {
                 console.error('Error with smart analysis:', err);
-                showToast('Smart analysis failed. Try again.');
+                showToast(err.message || 'Smart analysis failed. Try again.');
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
                 btn.style.opacity = '1';
