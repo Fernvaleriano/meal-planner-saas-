@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Dashboard - Zique Fitness Nutrition</title>
     <script src="/js/theme.js"></script>
+    <script src="/js/gym-features.js"></script>
     <!-- Prevent caching to avoid stale data on back navigation -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -4169,6 +4170,11 @@
                                 <div class="action-desc">Weekly update</div>
                                 <span class="action-badge due" id="checkinBadge" style="display:none;">Due soon</span>
                             </a>
+                            <a href="client-workouts.html" class="action-card" data-gym-feature style="display:none;">
+                                <div class="action-icon workouts">🏋️</div>
+                                <div class="action-name">Workouts</div>
+                                <div class="action-desc">Track training</div>
+                            </a>
                             <a href="client-progress.html" class="action-card">
                                 <div class="action-icon progress">📈</div>
                                 <div class="action-name">Progress</div>
@@ -6251,7 +6257,9 @@
             await Promise.all([
                 loadTodayProgress(),
                 checkCheckinStatus(),
-                loadCoachStories()
+                loadCoachStories(),
+                // Initialize gym features (show/hide based on coach's beta status)
+                currentCoachId ? initGymFeatures({ coachId: currentCoachId }) : Promise.resolve()
             ]);
 
             // After all loading is complete, hide skeleton and show content
@@ -6680,6 +6688,14 @@
                 </svg>
             </div>
             <span class="nav-label">Meal Plans</span>
+        </a>
+        <a href="client-workouts.html" class="bottom-nav-item" data-gym-feature style="display:none;">
+            <div class="nav-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
+            </div>
+            <span class="nav-label">Workouts</span>
         </a>
         <a href="client-settings.html" class="bottom-nav-item">
             <div class="nav-icon">

@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Builder - Zique Fitness</title>
+    <script src="/js/theme.js"></script>
+    <script src="/js/gym-features.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --gray-50: #0f172a;
+            --gray-100: #1e293b;
+            --gray-200: #334155;
+            --gray-300: #475569;
+            --gray-400: #64748b;
+            --gray-500: #94a3b8;
+            --gray-600: #cbd5e1;
+            --gray-700: #e2e8f0;
+            --gray-800: #f1f5f9;
+            --gray-900: #f8fafc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .top-nav {
+            background: var(--brand-gradient);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-back {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .nav-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .btn-primary {
+            background: white;
+            color: var(--brand-primary);
+        }
+
+        /* Main Layout */
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 68px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            overflow-y: auto;
+        }
+
+        [data-theme="dark"] .sidebar {
+            background: var(--gray-100);
+            border-color: var(--gray-200);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .sidebar-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: var(--gray-50);
+            color: var(--gray-900);
+        }
+
+        /* Program List */
+        .program-list {
+            padding: 12px;
+        }
+
+        .program-item {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .program-item:hover {
+            background: var(--gray-100);
+        }
+
+        .program-item.active {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: var(--brand-primary);
+        }
+
+        .program-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .program-meta {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        .new-program-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--gray-100);
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            color: var(--gray-600);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        [data-theme="dark"] .new-program-btn {
+            background: var(--gray-200);
+            border-color: var(--gray-400);
+        }
+
+        /* Builder Area */
+        .builder-area {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .builder-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+        }
+
+        [data-theme="dark"] .builder-card {
+            background: var(--gray-100);
+        }
+
+        .builder-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Workout Day */
+        .workout-day {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        [data-theme="dark"] .workout-day {
+            background: var(--gray-200);
+        }
+
+        .workout-day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .workout-day-title {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .workout-day-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: var(--gray-200);
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Exercise Item */
+        .exercise-item {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .exercise-item {
+            background: var(--gray-100);
+        }
+
+        .exercise-drag {
+            color: var(--gray-400);
+            cursor: grab;
+        }
+
+        .exercise-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: var(--gray-200);
+            object-fit: cover;
+        }
+
+        .exercise-info {
+            flex: 1;
+        }
+
+        .exercise-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .exercise-config {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .config-input {
+            width: 60px;
+            padding: 6px;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .config-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .add-exercise-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 2px dashed var(--gray-300);
+            border-radius: 8px;
+            color: var(--gray-500);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Exercise Library Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        [data-theme="dark"] .modal {
+            background: var(--gray-100);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            cursor: pointer;
+            font-size: 1.25rem;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+
+        /* Exercise Library Filters */
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        [data-theme="dark"] .filter-chip {
+            background: var(--gray-200);
+        }
+
+        .filter-chip.active {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        /* Exercise Grid */
+        .exercise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .exercise-card {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        [data-theme="dark"] .exercise-card {
+            background: var(--gray-200);
+        }
+
+        .exercise-card:hover {
+            border-color: var(--brand-primary);
+        }
+
+        .exercise-card-thumb {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--gray-200);
+            margin-bottom: 12px;
+        }
+
+        .exercise-card-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .exercise-card-meta {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        /* Client Assignment */
+        .client-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .client-card {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        [data-theme="dark"] .client-card {
+            background: var(--gray-200);
+        }
+
+        .client-card.selected {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .client-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        .client-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .client-email {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            color: var(--gray-500);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <a href="dashboard.html" class="nav-back">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Dashboard
+        </a>
+        <span class="nav-title">Workout Builder</span>
+        <div class="nav-actions">
+            <button class="btn btn-secondary" onclick="previewProgram()">Preview</button>
+            <button class="btn btn-primary" onclick="saveProgram()">Save Program</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Sidebar - Program List -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">Your Programs</div>
+                <input type="text" class="sidebar-search" placeholder="Search programs..." oninput="searchPrograms(this.value)">
+            </div>
+            <div class="program-list" id="programList">
+                <!-- Programs will be loaded here -->
+            </div>
+            <div style="padding: 12px;">
+                <button class="new-program-btn" onclick="createNewProgram()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    New Program
+                </button>
+            </div>
+        </div>
+
+        <!-- Builder Area -->
+        <div class="builder-area">
+            <!-- Program Details -->
+            <div class="builder-card">
+                <h2 class="builder-title">Program Details</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Program Name</label>
+                        <input type="text" class="form-input" id="programName" placeholder="e.g., 4-Week Strength Program">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Program Type</label>
+                        <select class="form-select" id="programType">
+                            <option value="strength">Strength</option>
+                            <option value="hypertrophy">Hypertrophy</option>
+                            <option value="endurance">Endurance</option>
+                            <option value="weight_loss">Weight Loss</option>
+                            <option value="general">General Fitness</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Difficulty</label>
+                        <select class="form-select" id="programDifficulty">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Days Per Week</label>
+                        <select class="form-select" id="daysPerWeek">
+                            <option value="2">2 days</option>
+                            <option value="3" selected>3 days</option>
+                            <option value="4">4 days</option>
+                            <option value="5">5 days</option>
+                            <option value="6">6 days</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="programDescription" placeholder="Describe the program goals and structure..."></textarea>
+                </div>
+            </div>
+
+            <!-- Workout Days -->
+            <div class="builder-card">
+                <h2 class="builder-title">Workout Days</h2>
+                <div id="workoutDays">
+                    <!-- Workout days will be added here -->
+                </div>
+                <button class="new-program-btn" onclick="addWorkoutDay()" style="margin-top: 16px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Workout Day
+                </button>
+            </div>
+
+            <!-- Assign to Clients -->
+            <div class="builder-card">
+                <h2 class="builder-title">Assign to Clients</h2>
+                <div class="client-list" id="clientList">
+                    <!-- Clients will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise Library Modal -->
+    <div class="modal-overlay" id="exerciseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Exercise</h3>
+                <button class="modal-close" onclick="closeExerciseModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-input" placeholder="Search exercises..." oninput="searchExercises(this.value)" style="margin-bottom: 16px;">
+
+                <div class="filter-row">
+                    <button class="filter-chip active" onclick="filterByMuscle('all')">All</button>
+                    <button class="filter-chip" onclick="filterByMuscle('chest')">Chest</button>
+                    <button class="filter-chip" onclick="filterByMuscle('back')">Back</button>
+                    <button class="filter-chip" onclick="filterByMuscle('shoulders')">Shoulders</button>
+                    <button class="filter-chip" onclick="filterByMuscle('legs')">Legs</button>
+                    <button class="filter-chip" onclick="filterByMuscle('arms')">Arms</button>
+                    <button class="filter-chip" onclick="filterByMuscle('core')">Core</button>
+                </div>
+
+                <div class="exercise-grid" id="exerciseGrid">
+                    <!-- Exercises will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanpsb5FhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4NTA1ODcsImV4cCI6MjA2MDQyNjU4N30.api2M4E4Ah3V2WnxPRVDMq6yoGLPzjsB8qECLO7mK8U';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentCoachId = null;
+        let currentProgramId = null;
+        let programs = [];
+        let exercises = [];
+        let clients = [];
+        let workoutDays = [];
+        let selectedClients = new Set();
+        let currentDayIndex = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadPrograms();
+            await loadExercises();
+            await loadClients();
+            addWorkoutDay(); // Start with one day
+        });
+
+        // Auth check
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            currentCoachId = session.user.id;
+
+            // Check if gym features are enabled
+            const enabled = await initGymFeatures({ email: session.user.email });
+            if (!enabled) {
+                alert('Gym features are not enabled for your account yet.');
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        // Load programs
+        async function loadPrograms() {
+            try {
+                const response = await fetch(`/.netlify/functions/workout-programs?coachId=${currentCoachId}`);
+                const data = await response.json();
+                programs = data.programs || [];
+                renderProgramList();
+            } catch (err) {
+                console.error('Error loading programs:', err);
+            }
+        }
+
+        // Render program list
+        function renderProgramList() {
+            const container = document.getElementById('programList');
+            if (programs.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-text">No programs yet</div></div>';
+                return;
+            }
+
+            container.innerHTML = programs.map(p => `
+                <div class="program-item ${p.id === currentProgramId ? 'active' : ''}" onclick="selectProgram(${p.id})">
+                    <div class="program-name">${p.name}</div>
+                    <div class="program-meta">${p.difficulty || 'Intermediate'} • ${p.days_per_week || 3} days/week</div>
+                </div>
+            `).join('');
+        }
+
+        // Select program
+        function selectProgram(programId) {
+            currentProgramId = programId;
+            const program = programs.find(p => p.id === programId);
+            if (program) {
+                document.getElementById('programName').value = program.name;
+                document.getElementById('programType').value = program.program_type || 'strength';
+                document.getElementById('programDifficulty').value = program.difficulty || 'intermediate';
+                document.getElementById('daysPerWeek').value = program.days_per_week || 3;
+                document.getElementById('programDescription').value = program.description || '';
+
+                // Load workout days from program_data
+                workoutDays = program.program_data?.days || [];
+                renderWorkoutDays();
+            }
+            renderProgramList();
+        }
+
+        // Create new program
+        function createNewProgram() {
+            currentProgramId = null;
+            document.getElementById('programName').value = '';
+            document.getElementById('programType').value = 'strength';
+            document.getElementById('programDifficulty').value = 'intermediate';
+            document.getElementById('daysPerWeek').value = '3';
+            document.getElementById('programDescription').value = '';
+            workoutDays = [];
+            addWorkoutDay();
+            renderProgramList();
+        }
+
+        // Add workout day
+        function addWorkoutDay() {
+            const dayNum = workoutDays.length + 1;
+            workoutDays.push({
+                name: `Day ${dayNum}`,
+                exercises: []
+            });
+            renderWorkoutDays();
+        }
+
+        // Render workout days
+        function renderWorkoutDays() {
+            const container = document.getElementById('workoutDays');
+            container.innerHTML = workoutDays.map((day, dayIndex) => `
+                <div class="workout-day">
+                    <div class="workout-day-header">
+                        <input type="text" class="form-input" value="${day.name}" style="max-width: 200px;"
+                            onchange="updateDayName(${dayIndex}, this.value)">
+                        <div class="workout-day-actions">
+                            <button class="icon-btn" onclick="removeWorkoutDay(${dayIndex})">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="exercises-${dayIndex}">
+                        ${day.exercises.map((ex, exIndex) => renderExerciseItem(ex, dayIndex, exIndex)).join('')}
+                    </div>
+                    <button class="add-exercise-btn" onclick="openExerciseModal(${dayIndex})">
+                        + Add Exercise
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Render exercise item
+        function renderExerciseItem(exercise, dayIndex, exIndex) {
+            return `
+                <div class="exercise-item">
+                    <div class="exercise-drag">⋮⋮</div>
+                    <img class="exercise-thumb" src="${exercise.thumbnailUrl || '/img/exercise-placeholder.png'}" alt="">
+                    <div class="exercise-info">
+                        <div class="exercise-name">${exercise.name}</div>
+                        <div class="exercise-config">
+                            <div>
+                                <input type="number" class="config-input" value="${exercise.sets || 3}"
+                                    onchange="updateExercise(${dayIndex}, ${exIndex}, 'sets', this.value)">
+                                <div class="config-label">Sets</div>
+                            </div>
+                            <div>
+                                <input type="number" class="config-input" value="${exercise.reps || 10}"
+                                    onchange="updateExercise(${dayIndex}, ${exIndex}, 'reps', this.value)">
+                                <div class="config-label">Reps</div>
+                            </div>
+                            <div>
+                                <input type="number" class="config-input" value="${exercise.restSeconds || 90}"
+                                    onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
+                                <div class="config-label">Rest (s)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="icon-btn" onclick="removeExercise(${dayIndex}, ${exIndex})">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }
+
+        // Update day name
+        function updateDayName(dayIndex, name) {
+            workoutDays[dayIndex].name = name;
+        }
+
+        // Remove workout day
+        function removeWorkoutDay(dayIndex) {
+            if (confirm('Remove this workout day?')) {
+                workoutDays.splice(dayIndex, 1);
+                renderWorkoutDays();
+            }
+        }
+
+        // Update exercise
+        function updateExercise(dayIndex, exIndex, field, value) {
+            workoutDays[dayIndex].exercises[exIndex][field] = parseInt(value) || value;
+        }
+
+        // Remove exercise
+        function removeExercise(dayIndex, exIndex) {
+            workoutDays[dayIndex].exercises.splice(exIndex, 1);
+            renderWorkoutDays();
+        }
+
+        // Exercise modal
+        function openExerciseModal(dayIndex) {
+            currentDayIndex = dayIndex;
+            document.getElementById('exerciseModal').classList.add('active');
+            renderExerciseGrid();
+        }
+
+        function closeExerciseModal() {
+            document.getElementById('exerciseModal').classList.remove('active');
+        }
+
+        // Load exercises
+        async function loadExercises() {
+            try {
+                const response = await fetch(`/.netlify/functions/exercises?coachId=${currentCoachId}&limit=100`);
+                const data = await response.json();
+                exercises = data.exercises || [];
+                renderExerciseGrid();
+            } catch (err) {
+                console.error('Error loading exercises:', err);
+                // Use placeholder exercises
+                exercises = [
+                    { id: 1, name: 'Bench Press', muscle_group: 'chest', equipment: 'barbell' },
+                    { id: 2, name: 'Squat', muscle_group: 'legs', equipment: 'barbell' },
+                    { id: 3, name: 'Deadlift', muscle_group: 'back', equipment: 'barbell' },
+                    { id: 4, name: 'Shoulder Press', muscle_group: 'shoulders', equipment: 'dumbbell' },
+                    { id: 5, name: 'Bicep Curl', muscle_group: 'arms', equipment: 'dumbbell' },
+                    { id: 6, name: 'Lat Pulldown', muscle_group: 'back', equipment: 'cable' },
+                    { id: 7, name: 'Leg Press', muscle_group: 'legs', equipment: 'machine' },
+                    { id: 8, name: 'Plank', muscle_group: 'core', equipment: 'bodyweight' },
+                ];
+                renderExerciseGrid();
+            }
+        }
+
+        // Render exercise grid
+        let currentMuscleFilter = 'all';
+        function renderExerciseGrid(searchTerm = '') {
+            const container = document.getElementById('exerciseGrid');
+            let filtered = exercises;
+
+            if (currentMuscleFilter !== 'all') {
+                filtered = filtered.filter(e => e.muscle_group === currentMuscleFilter);
+            }
+            if (searchTerm) {
+                filtered = filtered.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            }
+
+            container.innerHTML = filtered.map(ex => `
+                <div class="exercise-card" onclick="addExerciseToDay(${JSON.stringify(ex).replace(/"/g, '&quot;')})">
+                    <img class="exercise-card-thumb" src="${ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.png'}" alt="">
+                    <div class="exercise-card-name">${ex.name}</div>
+                    <div class="exercise-card-meta">${ex.muscle_group || 'General'} • ${ex.equipment || 'Any'}</div>
+                </div>
+            `).join('');
+        }
+
+        // Filter by muscle
+        function filterByMuscle(muscle) {
+            currentMuscleFilter = muscle;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            renderExerciseGrid();
+        }
+
+        // Search exercises
+        function searchExercises(term) {
+            renderExerciseGrid(term);
+        }
+
+        // Add exercise to day
+        function addExerciseToDay(exercise) {
+            workoutDays[currentDayIndex].exercises.push({
+                id: exercise.id,
+                name: exercise.name,
+                thumbnailUrl: exercise.thumbnail_url || exercise.animation_url,
+                sets: 3,
+                reps: 10,
+                restSeconds: 90
+            });
+            renderWorkoutDays();
+            closeExerciseModal();
+        }
+
+        // Load clients
+        async function loadClients() {
+            try {
+                const { data: clientsData } = await supabase
+                    .from('clients')
+                    .select('id, client_name, email')
+                    .eq('coach_id', currentCoachId)
+                    .eq('is_archived', false)
+                    .order('client_name');
+
+                clients = clientsData || [];
+                renderClientList();
+            } catch (err) {
+                console.error('Error loading clients:', err);
+            }
+        }
+
+        // Render client list
+        function renderClientList() {
+            const container = document.getElementById('clientList');
+            if (clients.length === 0) {
+                container.innerHTML = '<div class="empty-text">No clients yet</div>';
+                return;
+            }
+
+            container.innerHTML = clients.map(client => `
+                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}"
+                    onclick="toggleClient(${client.id})">
+                    <div class="client-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
+                    <div>
+                        <div class="client-name">${client.client_name}</div>
+                        <div class="client-email">${client.email || 'No email'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle client selection
+        function toggleClient(clientId) {
+            if (selectedClients.has(clientId)) {
+                selectedClients.delete(clientId);
+            } else {
+                selectedClients.add(clientId);
+            }
+            renderClientList();
+        }
+
+        // Save program
+        async function saveProgram() {
+            const name = document.getElementById('programName').value.trim();
+            if (!name) {
+                alert('Please enter a program name');
+                return;
+            }
+
+            const programData = {
+                coachId: currentCoachId,
+                name,
+                description: document.getElementById('programDescription').value,
+                programType: document.getElementById('programType').value,
+                difficulty: document.getElementById('programDifficulty').value,
+                daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
+                programData: { days: workoutDays }
+            };
+
+            try {
+                let response;
+                if (currentProgramId) {
+                    programData.programId = currentProgramId;
+                    response = await fetch('/.netlify/functions/workout-programs', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(programData)
+                    });
+                } else {
+                    response = await fetch('/.netlify/functions/workout-programs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(programData)
+                    });
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    currentProgramId = result.program.id;
+
+                    // Assign to selected clients
+                    for (const clientId of selectedClients) {
+                        await fetch('/.netlify/functions/workout-assignments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                clientId,
+                                coachId: currentCoachId,
+                                programId: currentProgramId,
+                                name: programData.name,
+                                workoutData: { days: workoutDays, exercises: workoutDays.flatMap(d => d.exercises) }
+                            })
+                        });
+                    }
+
+                    alert('Program saved successfully!');
+                    await loadPrograms();
+                } else {
+                    alert('Error saving program: ' + (result.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Error saving program:', err);
+                alert('Error saving program');
+            }
+        }
+
+        // Preview program
+        function previewProgram() {
+            alert('Preview feature coming soon!');
+        }
+
+        // Search programs
+        function searchPrograms(term) {
+            const filtered = programs.filter(p =>
+                p.name.toLowerCase().includes(term.toLowerCase())
+            );
+            const container = document.getElementById('programList');
+            container.innerHTML = filtered.map(p => `
+                <div class="program-item ${p.id === currentProgramId ? 'active' : ''}" onclick="selectProgram(${p.id})">
+                    <div class="program-name">${p.name}</div>
+                    <div class="program-meta">${p.difficulty || 'Intermediate'} • ${p.days_per_week || 3} days/week</div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
