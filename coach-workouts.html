@@ -199,6 +199,215 @@
             border-color: var(--gray-400);
         }
 
+        .ai-generate-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+            border-color: #7c3aed !important;
+            color: white !important;
+        }
+
+        .ai-generate-btn:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
+        }
+
+        [data-theme="dark"] .ai-generate-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%) !important;
+            border-color: #6d28d9 !important;
+        }
+
+        /* AI Generate Modal */
+        .ai-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .ai-modal-overlay.show {
+            display: flex;
+        }
+
+        .ai-modal {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .ai-modal {
+            background: var(--gray-700);
+        }
+
+        .ai-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        [data-theme="dark"] .ai-modal-header {
+            border-color: var(--gray-600);
+        }
+
+        .ai-modal-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.25rem;
+            margin: 0;
+        }
+
+        .ai-modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: var(--gray-500);
+            border-radius: 8px;
+        }
+
+        .ai-modal-close:hover {
+            background: var(--gray-100);
+        }
+
+        .ai-modal-body {
+            padding: 24px;
+        }
+
+        .ai-form-group {
+            margin-bottom: 20px;
+        }
+
+        .ai-form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .ai-form-group label {
+            color: var(--gray-200);
+        }
+
+        .ai-form-group input,
+        .ai-form-group select,
+        .ai-form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        [data-theme="dark"] .ai-form-group input,
+        [data-theme="dark"] .ai-form-group select,
+        [data-theme="dark"] .ai-form-group textarea {
+            background: var(--gray-800);
+            border-color: var(--gray-600);
+            color: var(--gray-100);
+        }
+
+        .ai-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .equipment-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .equipment-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        [data-theme="dark"] .equipment-checkbox {
+            background: var(--gray-600);
+        }
+
+        .equipment-checkbox input {
+            width: auto;
+        }
+
+        .ai-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        [data-theme="dark"] .ai-modal-footer {
+            border-color: var(--gray-600);
+        }
+
+        .ai-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+        }
+
+        .ai-btn-cancel {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .ai-btn-generate {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+        }
+
+        .ai-btn-generate:hover:not(:disabled) {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        }
+
+        .ai-btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .ai-generating {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Builder Area */
         .builder-area {
             flex: 1;
@@ -622,12 +831,18 @@
             <div class="program-list" id="programList">
                 <!-- Programs will be loaded here -->
             </div>
-            <div style="padding: 12px;">
+            <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
                 <button class="new-program-btn" onclick="createNewProgram()">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
                     New Program
+                </button>
+                <button class="new-program-btn ai-generate-btn" onclick="openAIGenerateModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                    AI Generate
                 </button>
             </div>
         </div>
@@ -726,6 +941,117 @@
                 <div class="exercise-grid" id="exerciseGrid">
                     <!-- Exercises will be loaded here -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Generate Modal -->
+    <div class="ai-modal-overlay" id="aiGenerateModal">
+        <div class="ai-modal">
+            <div class="ai-modal-header">
+                <h2>
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                    AI Workout Generator
+                </h2>
+                <button class="ai-modal-close" onclick="closeAIGenerateModal()">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="ai-modal-body">
+                <div class="ai-form-group">
+                    <label>Client Name (optional)</label>
+                    <input type="text" id="aiClientName" placeholder="e.g., John Smith">
+                </div>
+
+                <div class="ai-form-row">
+                    <div class="ai-form-group">
+                        <label>Training Goal</label>
+                        <select id="aiGoal">
+                            <option value="strength">Strength</option>
+                            <option value="hypertrophy" selected>Hypertrophy (Muscle Building)</option>
+                            <option value="fat_loss">Fat Loss</option>
+                            <option value="general_fitness">General Fitness</option>
+                            <option value="endurance">Endurance</option>
+                        </select>
+                    </div>
+                    <div class="ai-form-group">
+                        <label>Experience Level</label>
+                        <select id="aiExperience">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate" selected>Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="ai-form-row">
+                    <div class="ai-form-group">
+                        <label>Days Per Week</label>
+                        <select id="aiDaysPerWeek">
+                            <option value="2">2 days</option>
+                            <option value="3">3 days</option>
+                            <option value="4" selected>4 days</option>
+                            <option value="5">5 days</option>
+                            <option value="6">6 days</option>
+                        </select>
+                    </div>
+                    <div class="ai-form-group">
+                        <label>Program Duration</label>
+                        <select id="aiDuration">
+                            <option value="2">2 weeks</option>
+                            <option value="4" selected>4 weeks</option>
+                            <option value="6">6 weeks</option>
+                            <option value="8">8 weeks</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="ai-form-group">
+                    <label>Available Equipment</label>
+                    <div class="equipment-checkboxes">
+                        <label class="equipment-checkbox">
+                            <input type="checkbox" name="aiEquipment" value="barbell" checked> Barbell
+                        </label>
+                        <label class="equipment-checkbox">
+                            <input type="checkbox" name="aiEquipment" value="dumbbell" checked> Dumbbells
+                        </label>
+                        <label class="equipment-checkbox">
+                            <input type="checkbox" name="aiEquipment" value="cable" checked> Cables
+                        </label>
+                        <label class="equipment-checkbox">
+                            <input type="checkbox" name="aiEquipment" value="machine" checked> Machines
+                        </label>
+                        <label class="equipment-checkbox">
+                            <input type="checkbox" name="aiEquipment" value="bodyweight" checked> Bodyweight
+                        </label>
+                        <label class="equipment-checkbox">
+                            <input type="checkbox" name="aiEquipment" value="kettlebell"> Kettlebells
+                        </label>
+                        <label class="equipment-checkbox">
+                            <input type="checkbox" name="aiEquipment" value="bands"> Resistance Bands
+                        </label>
+                    </div>
+                </div>
+
+                <div class="ai-form-group">
+                    <label>Injuries or Limitations (optional)</label>
+                    <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid heavy overhead work">
+                </div>
+
+                <div class="ai-form-group">
+                    <label>Additional Preferences (optional)</label>
+                    <textarea id="aiPreferences" rows="2" placeholder="e.g., Include more compound movements, prefer shorter workouts"></textarea>
+                </div>
+            </div>
+            <div class="ai-modal-footer">
+                <button class="ai-btn ai-btn-cancel" onclick="closeAIGenerateModal()">Cancel</button>
+                <button class="ai-btn ai-btn-generate" id="aiGenerateBtn" onclick="generateAIWorkout()">
+                    Generate Program
+                </button>
             </div>
         </div>
     </div>
@@ -1140,6 +1466,232 @@
                 </div>
             `).join('');
         }
+
+        // AI Generate Modal Functions
+        function openAIGenerateModal() {
+            document.getElementById('aiGenerateModal').classList.add('show');
+        }
+
+        function closeAIGenerateModal() {
+            document.getElementById('aiGenerateModal').classList.remove('show');
+        }
+
+        async function generateAIWorkout() {
+            const btn = document.getElementById('aiGenerateBtn');
+            const originalText = btn.innerHTML;
+
+            // Gather form data
+            const clientName = document.getElementById('aiClientName').value;
+            const goal = document.getElementById('aiGoal').value;
+            const experience = document.getElementById('aiExperience').value;
+            const daysPerWeek = parseInt(document.getElementById('aiDaysPerWeek').value);
+            const duration = parseInt(document.getElementById('aiDuration').value);
+            const injuries = document.getElementById('aiInjuries').value;
+            const preferences = document.getElementById('aiPreferences').value;
+
+            // Get selected equipment
+            const equipment = Array.from(document.querySelectorAll('input[name="aiEquipment"]:checked'))
+                .map(cb => cb.value);
+
+            if (equipment.length === 0) {
+                alert('Please select at least one type of equipment.');
+                return;
+            }
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="ai-generating"><span class="ai-spinner"></span>Generating...</span>';
+
+            try {
+                const response = await fetch('/.netlify/functions/generate-workout-claude', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientName,
+                        goal,
+                        experience,
+                        daysPerWeek,
+                        duration,
+                        equipment,
+                        injuries: injuries || null,
+                        preferences: preferences || null
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to generate workout');
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.program) {
+                    // Close modal
+                    closeAIGenerateModal();
+
+                    // Populate the form with generated program
+                    populateGeneratedProgram(result.program);
+
+                    // Show success message
+                    alert('Workout program generated successfully! Review and customize as needed.');
+                } else {
+                    throw new Error('Invalid response from AI');
+                }
+
+            } catch (error) {
+                console.error('AI generation error:', error);
+                alert('Failed to generate workout: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        function populateGeneratedProgram(program) {
+            // Reset current program
+            currentProgramId = null;
+
+            // Populate program details
+            document.getElementById('programName').value = program.programName || 'AI Generated Program';
+            document.getElementById('programType').value = program.goal || 'strength';
+            document.getElementById('programDifficulty').value = program.difficulty || 'intermediate';
+            document.getElementById('daysPerWeek').value = program.daysPerWeek || 3;
+            document.getElementById('programDescription').value = program.description || '';
+
+            // Clear existing workout days
+            workoutDays = [];
+            document.getElementById('workoutDays').innerHTML = '';
+
+            // Convert AI program structure to our format
+            if (program.weeks && program.weeks.length > 0) {
+                // Use the first week as the template
+                const firstWeek = program.weeks[0];
+
+                if (firstWeek.workouts && firstWeek.workouts.length > 0) {
+                    firstWeek.workouts.forEach((workout, index) => {
+                        const dayData = {
+                            name: workout.name || `Day ${index + 1}`,
+                            targetMuscles: workout.targetMuscles || [],
+                            exercises: (workout.exercises || []).map(ex => ({
+                                name: ex.name,
+                                muscleGroup: ex.muscleGroup,
+                                sets: ex.sets || 3,
+                                reps: ex.reps || '8-12',
+                                restSeconds: ex.restSeconds || 90,
+                                notes: ex.notes || '',
+                                alternatives: ex.alternatives || []
+                            }))
+                        };
+
+                        workoutDays.push(dayData);
+                    });
+                }
+            }
+
+            // Render workout days
+            renderWorkoutDays();
+
+            // Store progression notes in description if not already there
+            if (program.progressionNotes && !document.getElementById('programDescription').value.includes('Progression')) {
+                document.getElementById('programDescription').value +=
+                    '\n\nProgression: ' + program.progressionNotes;
+            }
+
+            // Scroll to top of builder
+            document.querySelector('.builder-area').scrollTo(0, 0);
+        }
+
+        function renderWorkoutDays() {
+            const container = document.getElementById('workoutDays');
+            container.innerHTML = workoutDays.map((day, dayIndex) => `
+                <div class="workout-day" data-day="${dayIndex}">
+                    <div class="workout-day-header">
+                        <input type="text" class="day-name-input" value="${day.name}" onchange="updateDayName(${dayIndex}, this.value)">
+                        <button class="delete-day-btn" onclick="removeWorkoutDay(${dayIndex})">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="exercise-list" id="exerciseList-${dayIndex}">
+                        ${day.exercises.map((ex, exIndex) => renderExerciseItem(ex, dayIndex, exIndex)).join('')}
+                    </div>
+                    <button class="add-exercise-btn" onclick="openExerciseLibrary(${dayIndex})">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Exercise
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderExerciseItem(exercise, dayIndex, exIndex) {
+            return `
+                <div class="exercise-item" data-day="${dayIndex}" data-exercise="${exIndex}">
+                    <div class="exercise-info">
+                        <div class="exercise-name">${exercise.name}</div>
+                        <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} • ${exercise.restSeconds}s rest</div>
+                        ${exercise.notes ? `<div class="exercise-notes">${exercise.notes}</div>` : ''}
+                    </div>
+                    <div class="exercise-actions">
+                        <button class="exercise-action-btn" onclick="editExercise(${dayIndex}, ${exIndex})" title="Edit">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </button>
+                        <button class="exercise-action-btn" onclick="removeExercise(${dayIndex}, ${exIndex})" title="Remove">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateDayName(dayIndex, name) {
+            if (workoutDays[dayIndex]) {
+                workoutDays[dayIndex].name = name;
+            }
+        }
+
+        function removeWorkoutDay(dayIndex) {
+            if (confirm('Are you sure you want to remove this workout day?')) {
+                workoutDays.splice(dayIndex, 1);
+                renderWorkoutDays();
+            }
+        }
+
+        function removeExercise(dayIndex, exIndex) {
+            if (workoutDays[dayIndex] && workoutDays[dayIndex].exercises[exIndex]) {
+                workoutDays[dayIndex].exercises.splice(exIndex, 1);
+                renderWorkoutDays();
+            }
+        }
+
+        function editExercise(dayIndex, exIndex) {
+            const exercise = workoutDays[dayIndex]?.exercises[exIndex];
+            if (!exercise) return;
+
+            const newSets = prompt('Sets:', exercise.sets);
+            if (newSets !== null) exercise.sets = parseInt(newSets) || exercise.sets;
+
+            const newReps = prompt('Reps (e.g., "8-12" or "10"):', exercise.reps);
+            if (newReps !== null) exercise.reps = newReps || exercise.reps;
+
+            const newRest = prompt('Rest (seconds):', exercise.restSeconds);
+            if (newRest !== null) exercise.restSeconds = parseInt(newRest) || exercise.restSeconds;
+
+            renderWorkoutDays();
+        }
+
+        // Close modal on outside click
+        document.getElementById('aiGenerateModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAIGenerateModal();
+            }
+        });
     </script>
 </body>
 </html>
