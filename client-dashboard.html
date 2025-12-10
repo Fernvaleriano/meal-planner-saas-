@@ -8525,10 +8525,10 @@
             }
             console.log('📸 Photo selected:', file.name, file.type, file.size);
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                dashPhotoBase64 = e.target.result;
-                console.log('📸 Photo loaded, base64 length:', dashPhotoBase64.length);
+            // Compress image before storing
+            compressImage(file, 1200, 0.8).then(compressedBase64 => {
+                dashPhotoBase64 = compressedBase64;
+                console.log('📸 Photo compressed, base64 length:', dashPhotoBase64.length);
 
                 // Show preview image
                 const previewSection = document.getElementById('dashPhotoPreview');
@@ -8541,12 +8541,46 @@
                 // Hide the upload buttons, show the details section
                 document.getElementById('dashPhotoUploadArea').style.display = 'none';
                 document.getElementById('dashPhotoDetailsSection').style.display = 'block';
-            };
-            reader.onerror = (e) => {
-                console.error('Error reading file:', e);
-                showToast('Error reading photo. Please try again.');
-            };
-            reader.readAsDataURL(file);
+            }).catch(err => {
+                console.error('Error compressing image:', err);
+                showToast('Error processing photo. Please try again.');
+            });
+        }
+
+        // Compress image to reduce payload size
+        function compressImage(file, maxWidth, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Scale down if needed
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Convert to JPEG with compression
+                        const compressed = canvas.toDataURL('image/jpeg', quality);
+                        console.log('📸 Original size:', e.target.result.length, '-> Compressed:', compressed.length);
+                        resolve(compressed);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         async function analyzeDashPhoto() {
