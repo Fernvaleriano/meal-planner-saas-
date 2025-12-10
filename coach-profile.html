@@ -1016,19 +1016,6 @@
                         </div>
                         <span class="settings-arrow">›</span>
                     </div>
-                    <div class="settings-item" style="cursor: default;">
-                        <div class="settings-item-left">
-                            <div class="settings-icon"><i data-lucide="smile"></i></div>
-                            <div>
-                                <div class="settings-label">Show Avatar in Client Greeting</div>
-                                <div class="settings-sublabel">Display your photo next to the welcome message</div>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="showAvatarToggle" onchange="toggleShowAvatar()" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
                 </div>
 
                 <!-- Branding Settings (Professional tier only) -->
@@ -1314,12 +1301,6 @@
                     document.getElementById('photoStatus').textContent = 'Add a profile photo';
                 }
 
-                // Set avatar in greeting toggle
-                const showAvatarToggle = document.getElementById('showAvatarToggle');
-                if (showAvatarToggle) {
-                    showAvatarToggle.checked = coachData.show_avatar_in_greeting !== false;
-                }
-
                 // Store coach ID for photo upload
                 window.currentCoachId = user.id;
 
@@ -1368,33 +1349,6 @@
 
             // Update checkbox to match new theme
             toggle.checked = (newTheme === 'dark');
-        }
-
-        // Toggle show avatar in greeting
-        async function toggleShowAvatar() {
-            const toggle = document.getElementById('showAvatarToggle');
-            const showAvatar = toggle.checked;
-
-            try {
-                const { error } = await supabaseClient
-                    .from('coaches')
-                    .update({ show_avatar_in_greeting: showAvatar })
-                    .eq('id', window.currentCoachId);
-
-                if (error) throw error;
-
-                // Show brief confirmation
-                const label = toggle.closest('.settings-item').querySelector('.settings-sublabel');
-                const originalText = label.textContent;
-                label.textContent = showAvatar ? 'Enabled!' : 'Disabled!';
-                setTimeout(() => {
-                    label.textContent = originalText;
-                }, 1500);
-            } catch (err) {
-                console.error('Error updating setting:', err);
-                // Revert toggle on error
-                toggle.checked = !showAvatar;
-            }
         }
 
         // Logout handler
