@@ -405,6 +405,26 @@
             50% { opacity: 0.5; }
         }
 
+        /* AI Brainstorm typing animation */
+        .ai-typing::after {
+            content: '...';
+            animation: typing-dots 1.5s infinite;
+        }
+        @keyframes typing-dots {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+        }
+
+        .ai-quick-btn:hover {
+            opacity: 0.85;
+            transform: scale(1.02);
+        }
+
+        .ai-brainstorm-toggle:hover {
+            opacity: 0.9;
+        }
+
         .meal-card .text-blue-700 {
             word-wrap: break-word;
             overflow-wrap: break-word;
@@ -4205,6 +4225,44 @@ function displayDietPlan(multiDayData) {
                             </div>
                             <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical;" placeholder="Add a note about this meal...">${existingNote}</textarea>
                         </div>
+
+                        <!-- AI Brainstorm Expandable Panel -->
+                        <div class="ai-brainstorm-section" style="margin-top: 12px;">
+                            <button data-action="toggle-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
+                                class="ai-brainstorm-toggle"
+                                style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                <span>🤖 AI Brainstorm</span>
+                                <span class="ai-toggle-icon" id="ai-toggle-icon-${dayIndex}-${mealIndex}">▼</span>
+                            </button>
+                            <div id="ai-brainstorm-panel-${dayIndex}-${mealIndex}" class="ai-brainstorm-panel" style="display: none; margin-top: 8px; background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #c4b5fd; border-radius: 6px; overflow: hidden;">
+                                <!-- Quick Actions -->
+                                <div style="padding: 10px; border-bottom: 1px solid #ddd6fe;">
+                                    <p style="font-size: 10px; color: #6d28d9; margin-bottom: 6px; font-weight: 600;">Quick Actions:</p>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                        <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Alternatives</button>
+                                        <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">💪 More Protein</button>
+                                        <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">🥗 Lower Carb</button>
+                                        <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">✨ Simpler</button>
+                                        <button data-action="ai-quick-action" data-quick-action="prep-tips" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #ec4899; color: white; border: none; border-radius: 4px; cursor: pointer;">📋 Prep Tips</button>
+                                    </div>
+                                </div>
+                                <!-- Chat Area -->
+                                <div id="ai-chat-messages-${dayIndex}-${mealIndex}" class="ai-chat-messages" style="max-height: 200px; overflow-y: auto; padding: 10px; min-height: 60px;">
+                                    <p style="font-size: 11px; color: #7c3aed; font-style: italic;">Ask AI for meal ideas, modifications, or tips...</p>
+                                </div>
+                                <!-- Input Area -->
+                                <div style="padding: 10px; border-top: 1px solid #ddd6fe; display: flex; gap: 6px;">
+                                    <input type="text" id="ai-chat-input-${dayIndex}-${mealIndex}"
+                                        placeholder="Ask about this meal..."
+                                        style="flex: 1; padding: 8px 10px; border: 1px solid #c4b5fd; border-radius: 4px; font-size: 12px;"
+                                        onkeypress="if(event.key==='Enter')sendAiBrainstorm(${dayIndex},${mealIndex})">
+                                    <button data-action="send-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
+                                        style="padding: 8px 12px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                        ➤
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>`;
             }
@@ -4615,6 +4673,156 @@ async function saveMealNote(dayIndex, mealIndex) {
         saveBtn.textContent = originalText;
         saveBtn.disabled = false;
     }
+}
+
+// AI BRAINSTORM FUNCTIONALITY
+// Store chat history per meal
+const mealChatHistory = {};
+
+function toggleAiBrainstorm(dayIndex, mealIndex) {
+    const panel = document.getElementById(`ai-brainstorm-panel-${dayIndex}-${mealIndex}`);
+    const icon = document.getElementById(`ai-toggle-icon-${dayIndex}-${mealIndex}`);
+
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        icon.textContent = '▲';
+    } else {
+        panel.style.display = 'none';
+        icon.textContent = '▼';
+    }
+}
+
+async function sendAiBrainstorm(dayIndex, mealIndex, quickAction = null) {
+    const inputEl = document.getElementById(`ai-chat-input-${dayIndex}-${mealIndex}`);
+    const messagesEl = document.getElementById(`ai-chat-messages-${dayIndex}-${mealIndex}`);
+    const message = quickAction ? null : inputEl.value.trim();
+
+    if (!quickAction && !message) return;
+
+    // Get meal data
+    const meal = lastPlanQuery.currentPlan[dayIndex]?.plan[mealIndex];
+    if (!meal) {
+        console.error('Meal not found');
+        return;
+    }
+
+    // Get day targets
+    const dayTargets = lastPlanQuery.currentPlan[dayIndex]?.targets || {
+        calories: 2000, protein: 150, carbs: 200, fat: 65
+    };
+
+    // Initialize chat history for this meal if needed
+    const chatKey = `${dayIndex}-${mealIndex}`;
+    if (!mealChatHistory[chatKey]) {
+        mealChatHistory[chatKey] = [];
+    }
+
+    // Clear input
+    if (inputEl) inputEl.value = '';
+
+    // Show user message (if custom message)
+    if (message) {
+        mealChatHistory[chatKey].push({ role: 'user', content: message });
+        messagesEl.innerHTML += `
+            <div style="margin-bottom: 8px; text-align: right;">
+                <span style="display: inline-block; background: #7c3aed; color: white; padding: 6px 10px; border-radius: 12px 12px 2px 12px; font-size: 11px; max-width: 85%;">${escapeHtml(message)}</span>
+            </div>`;
+    } else if (quickAction) {
+        // Show quick action label
+        const actionLabels = {
+            'alternatives': '🔄 Find alternatives',
+            'higher-protein': '💪 More protein options',
+            'lower-carb': '🥗 Lower carb version',
+            'simpler': '✨ Simplify this meal',
+            'prep-tips': '📋 Prep tips'
+        };
+        messagesEl.innerHTML += `
+            <div style="margin-bottom: 8px; text-align: right;">
+                <span style="display: inline-block; background: #7c3aed; color: white; padding: 6px 10px; border-radius: 12px 12px 2px 12px; font-size: 11px;">${actionLabels[quickAction] || quickAction}</span>
+            </div>`;
+    }
+
+    // Show loading
+    const loadingId = `loading-${Date.now()}`;
+    messagesEl.innerHTML += `
+        <div id="${loadingId}" style="margin-bottom: 8px;">
+            <span style="display: inline-block; background: #e9d5ff; color: #6d28d9; padding: 6px 10px; border-radius: 12px 12px 12px 2px; font-size: 11px;">
+                <span class="ai-typing">Thinking</span>
+            </span>
+        </div>`;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    try {
+        // Get client preferences if available
+        const clientPreferences = {};
+        const allergiesEl = document.getElementById('dp_allergies');
+        const dislikesEl = document.getElementById('dp_disliked_foods');
+        const dietTypeEl = document.getElementById('dp_preference');
+
+        if (allergiesEl?.value) clientPreferences.allergies = allergiesEl.value;
+        if (dislikesEl?.value) clientPreferences.dislikes = dislikesEl.value;
+        if (dietTypeEl?.value) clientPreferences.dietType = dietTypeEl.value;
+
+        const response = await fetch('/.netlify/functions/meal-brainstorm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                meal: {
+                    type: meal.type,
+                    name: meal.name,
+                    calories: meal.calories,
+                    protein: meal.protein,
+                    carbs: meal.carbs,
+                    fat: meal.fat,
+                    ingredients: meal.ingredients
+                },
+                message: message,
+                quickAction: quickAction,
+                dayTargets: dayTargets,
+                clientPreferences: Object.keys(clientPreferences).length > 0 ? clientPreferences : null,
+                chatHistory: mealChatHistory[chatKey].slice(-4)
+            })
+        });
+
+        // Remove loading
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+
+        if (!response.ok) {
+            throw new Error('AI request failed');
+        }
+
+        const data = await response.json();
+
+        // Store AI response in history
+        mealChatHistory[chatKey].push({ role: 'assistant', content: data.response });
+
+        // Show AI response
+        messagesEl.innerHTML += `
+            <div style="margin-bottom: 8px;">
+                <span style="display: inline-block; background: #e9d5ff; color: #4c1d95; padding: 8px 12px; border-radius: 12px 12px 12px 2px; font-size: 11px; max-width: 90%; white-space: pre-wrap; line-height: 1.4;">${escapeHtml(data.response)}</span>
+            </div>`;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    } catch (error) {
+        console.error('AI Brainstorm error:', error);
+
+        // Remove loading
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+
+        messagesEl.innerHTML += `
+            <div style="margin-bottom: 8px;">
+                <span style="display: inline-block; background: #fee2e2; color: #dc2626; padding: 6px 10px; border-radius: 12px; font-size: 11px;">Sorry, something went wrong. Please try again.</span>
+            </div>`;
+    }
+}
+
+// Helper to escape HTML in chat messages
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // RECIPE GENERATOR
@@ -7145,7 +7353,26 @@ document.addEventListener('click', function(event) {
         },
         'submit-to-client': publishPlanToClient,
         'save-as-template': saveAsTemplate,
-        'save-plan': savePlanChanges
+        'save-plan': savePlanChanges,
+        'toggle-ai-brainstorm': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            toggleAiBrainstorm(dayIndex, mealIndex);
+        },
+        'send-ai-brainstorm': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            sendAiBrainstorm(dayIndex, mealIndex);
+        },
+        'ai-quick-action': () => {
+            const target = event.target.closest('[data-quick-action]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            const quickAction = target.dataset.quickAction;
+            sendAiBrainstorm(dayIndex, mealIndex, quickAction);
+        }
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
