@@ -51,7 +51,8 @@ exports.handler = async (event, context) => {
             dislikedFoods,
             preferredFoods,
             cookingEquipment,
-            password
+            password,
+            unitPreference
         } = body;
 
         // Validate required fields
@@ -224,7 +225,8 @@ exports.handler = async (event, context) => {
                 invited_at: client.invited_at || new Date().toISOString(),
                 registered_at: new Date().toISOString(),
                 intake_token: null,  // Clear the token after use
-                intake_token_expires_at: null
+                intake_token_expires_at: null,
+                unit_preference: unitPreference || 'imperial'  // Store client's unit preference
             })
             .eq('id', client.id);
 
