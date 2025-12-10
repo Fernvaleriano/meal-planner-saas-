@@ -4660,6 +4660,35 @@
             background: #1e293b;
         }
 
+        [data-theme="dark"] .search-result-item:hover {
+            background: #334155;
+        }
+
+        .search-food-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .search-food-brand {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .search-food-macros {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            margin-top: 4px;
+        }
+
+        [data-theme="dark"] .search-food-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .search-food-brand,
+        [data-theme="dark"] .search-food-macros {
+            color: #94a3b8;
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -8733,9 +8762,9 @@
                 container.innerHTML = foods.map((food, idx) => `
                     <div class="search-result-item" onclick="selectDashSearchFood(${idx})">
                         <div style="flex: 1;">
-                            <div style="font-weight: 600; color: var(--gray-900);">${food.name}</div>
-                            <div style="font-size: 0.8rem; color: var(--gray-500);">${food.brand || ''}</div>
-                            <div style="font-size: 0.8rem; color: var(--gray-600); margin-top: 4px;">
+                            <div class="search-food-name">${food.name}</div>
+                            <div class="search-food-brand">${food.brand || ''}</div>
+                            <div class="search-food-macros">
                                 ${food.calories} cal • ${food.protein}g P • ${food.carbs}g C • ${food.fat}g F
                             </div>
                         </div>

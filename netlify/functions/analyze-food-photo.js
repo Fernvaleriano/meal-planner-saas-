@@ -1,8 +1,8 @@
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Use stable Gemini model
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// Use Gemini 2.0 Flash Exp (confirmed working)
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -170,12 +170,25 @@ Return ONLY the JSON array, nothing else.`
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Gemini API error:', response.status, errorText);
+
+            // Try to parse error for more details
+            let errorDetails = `Gemini API returned ${response.status}`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.error && errorJson.error.message) {
+                    errorDetails = errorJson.error.message;
+                }
+            } catch (e) {
+                // If not JSON, use raw text (truncated)
+                errorDetails = errorText.substring(0, 200);
+            }
+
             return {
                 statusCode: 500,
                 headers,
                 body: JSON.stringify({
                     error: 'AI analysis failed',
-                    details: `Gemini API returned ${response.status}`
+                    details: errorDetails
                 })
             };
         }
