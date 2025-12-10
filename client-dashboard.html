@@ -8915,11 +8915,34 @@
             document.getElementById('dash-barcode-status').innerHTML = '<p>Starting camera...</p>';
 
             if (typeof Html5Qrcode === 'undefined') {
-                // Load the library dynamically
+                // Load the library dynamically with fallback CDNs
                 const script = document.createElement('script');
-                script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-                script.onload = startDashBarcodeScanner;
-                document.head.appendChild(script);
+                const cdnUrls = [
+                    'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
+                    'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+                ];
+                let cdnIndex = 0;
+
+                function tryLoadScript() {
+                    if (cdnIndex >= cdnUrls.length) {
+                        document.getElementById('dash-barcode-status').innerHTML = `
+                            <p style="color: #ef4444;">Failed to load scanner</p>
+                            <p style="font-size: 0.875rem; margin-top: 8px; color: var(--gray-500);">Please check your connection and try again</p>
+                            <button onclick="closeDashBarcodeScanner(); setTimeout(openDashBarcodeScanner, 300);" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+                        `;
+                        return;
+                    }
+                    script.src = cdnUrls[cdnIndex];
+                    script.onload = startDashBarcodeScanner;
+                    script.onerror = () => {
+                        cdnIndex++;
+                        tryLoadScript();
+                    };
+                    if (cdnIndex === 0) {
+                        document.head.appendChild(script);
+                    }
+                }
+                tryLoadScript();
             } else {
                 startDashBarcodeScanner();
             }
