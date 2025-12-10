@@ -1,6 +1,5 @@
 // Smart food photo analysis using Claude 3.5 Sonnet (more accurate, slower)
-const AnthropicModule = require('@anthropic-ai/sdk');
-const Anthropic = AnthropicModule.default || AnthropicModule;
+const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -61,7 +60,7 @@ exports.handler = async (event, context) => {
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'Smart AI analysis is not configured.' })
+                body: JSON.stringify({ error: 'Smart AI analysis is not configured. Please add ANTHROPIC_API_KEY to environment variables.' })
             };
         }
 
@@ -104,9 +103,19 @@ exports.handler = async (event, context) => {
         const userContext = details ? details.trim() : null;
 
         // Initialize Anthropic client
-        const anthropic = new Anthropic({
-            apiKey: ANTHROPIC_API_KEY,
-        });
+        let anthropic;
+        try {
+            anthropic = new Anthropic({
+                apiKey: ANTHROPIC_API_KEY,
+            });
+        } catch (initError) {
+            console.error('Failed to initialize Anthropic client:', initError);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to initialize AI client', details: initError.message })
+            };
+        }
 
         console.log('🧠 Calling Claude 3.5 Sonnet for smart food analysis...');
 
@@ -141,30 +150,42 @@ Guidelines for ACCURATE estimation:
 
 Take your time to be accurate. Return ONLY the JSON array.`;
 
-        const message = await anthropic.messages.create({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 1024,
-            temperature: 0.2, // Low temperature for precise analysis
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "image",
-                            source: {
-                                type: "base64",
-                                media_type: mediaType,
-                                data: base64Data
+        let message;
+        try {
+            message = await anthropic.messages.create({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 1024,
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "image",
+                                source: {
+                                    type: "base64",
+                                    media_type: mediaType,
+                                    data: base64Data
+                                }
+                            },
+                            {
+                                type: "text",
+                                text: analysisPrompt
                             }
-                        },
-                        {
-                            type: "text",
-                            text: analysisPrompt
-                        }
-                    ]
-                }
-            ]
-        });
+                        ]
+                    }
+                ]
+            });
+        } catch (apiError) {
+            console.error('Anthropic API error:', apiError);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    error: 'AI analysis request failed',
+                    details: apiError.message || 'Unknown API error'
+                })
+            };
+        }
 
         console.log('✅ Claude response received');
 
@@ -187,7 +208,11 @@ Take your time to be accurate. Return ONLY the JSON array.`;
 
             const jsonMatch = cleanContent.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
-                foods = JSON.parse(jsonMatch[0]);
+                try {
+                    foods = JSON.parse(jsonMatch[0]);
+                } catch (e) {
+                    console.error('Could not parse extracted JSON:', e);
+                }
             } else {
                 console.error('Could not parse Claude response:', trimmedContent);
             }
@@ -208,19 +233,20 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             headers,
             body: JSON.stringify({
                 foods,
-                model: 'claude-3-5-sonnet',
+                model: 'claude-sonnet-4',
                 smart: true
             })
         };
 
     } catch (error) {
         console.error('Error in smart food analysis:', error);
+        console.error('Error stack:', error.stack);
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
                 error: 'Smart analysis failed',
-                details: error.message
+                details: error.message || 'Unknown error'
             })
         };
     }

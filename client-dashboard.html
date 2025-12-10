@@ -8721,8 +8721,8 @@
             container.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><p>Searching...</p></div>`;
 
             try {
-                const response = await fetch(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${currentClientId}`);
-                const data = await response.json();
+                // Use authenticated API call
+                const data = await apiGet(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${currentClientId}`);
                 const foods = data.foods || [];
 
                 if (foods.length === 0) {
