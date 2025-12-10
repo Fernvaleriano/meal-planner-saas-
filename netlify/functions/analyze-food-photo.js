@@ -1,8 +1,8 @@
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Use Gemini 2.0 Flash Exp (confirmed working)
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+// Use Gemini 1.5 Flash - stable production model for vision
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
