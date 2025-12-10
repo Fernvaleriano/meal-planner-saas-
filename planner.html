@@ -2274,10 +2274,90 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 console.log('✅ All fields auto-populated from client profile');
+
+                // Fetch and populate calorie goals from calorie_goals table
+                loadClientCalorieGoals(parseInt(selectedValue));
             }
         }
     });
 });
+
+// Fetch calorie goals for a client and populate custom targets
+async function loadClientCalorieGoals(clientId) {
+    try {
+        const response = await fetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
+        if (!response.ok) {
+            console.warn('Could not fetch calorie goals for client');
+            return;
+        }
+
+        const data = await response.json();
+
+        if (data.goals) {
+            const calories = data.goals.calorie_goal || 2000;
+            const protein = data.goals.protein_goal || 150;
+            const carbs = data.goals.carbs_goal || 200;
+            const fat = data.goals.fat_goal || 65;
+
+            console.log(`📊 Loaded calorie goals: ${calories} cal, ${protein}g P, ${carbs}g C, ${fat}g F`);
+
+            // Calculate percentages from grams
+            const proteinCals = protein * 4;
+            const carbsCals = carbs * 4;
+            const fatCals = fat * 9;
+            const totalMacroCals = proteinCals + carbsCals + fatCals;
+
+            // Use stored calories or calculated total
+            const targetCalories = calories || totalMacroCals;
+
+            // Calculate percentages
+            let proteinPct = targetCalories > 0 ? Math.round((proteinCals / targetCalories) * 100) : 30;
+            let carbsPct = targetCalories > 0 ? Math.round((carbsCals / targetCalories) * 100) : 40;
+            let fatPct = targetCalories > 0 ? Math.round((fatCals / targetCalories) * 100) : 30;
+
+            // Adjust to ensure total is 100%
+            const totalPct = proteinPct + carbsPct + fatPct;
+            if (totalPct !== 100 && totalPct > 0) {
+                // Adjust the largest one to make it 100%
+                const diff = 100 - totalPct;
+                if (carbsPct >= proteinPct && carbsPct >= fatPct) {
+                    carbsPct += diff;
+                } else if (proteinPct >= fatPct) {
+                    proteinPct += diff;
+                } else {
+                    fatPct += diff;
+                }
+            }
+
+            // Populate the custom targets fields
+            document.getElementById('dp_custom_calories').value = targetCalories;
+            document.getElementById('dp_protein_pct').value = proteinPct;
+            document.getElementById('dp_carbs_pct').value = carbsPct;
+            document.getElementById('dp_fat_pct').value = fatPct;
+
+            // Set hidden gram fields
+            document.getElementById('dp_custom_protein').value = protein;
+            document.getElementById('dp_custom_carbs').value = carbs;
+            document.getElementById('dp_custom_fat').value = fat;
+
+            // Enable custom targets checkbox and show the fields
+            const customTargetsCheckbox = document.getElementById('dp_custom_targets');
+            const customTargetsFields = document.getElementById('custom-targets-fields');
+
+            if (customTargetsCheckbox && customTargetsFields) {
+                customTargetsCheckbox.checked = true;
+                customTargetsFields.classList.remove('hidden');
+            }
+
+            // Update the macro displays
+            updateMacroFromPercentages();
+
+            console.log('✅ Custom calorie goals auto-populated from client profile');
+        }
+    } catch (err) {
+        console.error('Error loading client calorie goals:', err);
+    }
+}
 
 // Listen for auth state changes to handle session expiration
 supabaseClient.auth.onAuthStateChange((event, session) => {
