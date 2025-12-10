@@ -8441,32 +8441,81 @@
         }
 
         function resetDashPhoto() {
+            // Show upload section, hide everything else
             document.getElementById('dashPhotoUpload').style.display = 'block';
             document.getElementById('dashPhotoAnalyzing').style.display = 'none';
             document.getElementById('dashPhotoResults').style.display = 'none';
             document.getElementById('dashPhotoDetailsSection').style.display = 'none';
+            document.getElementById('dashPhotoPreview').style.display = 'none';
             document.getElementById('dashPhotoFoodDetails').value = '';
-            document.getElementById('dashPhotoUploadArea').innerHTML = `
+
+            // Show the upload area with buttons
+            const uploadArea = document.getElementById('dashPhotoUploadArea');
+            uploadArea.style.display = 'flex';
+            uploadArea.innerHTML = `
                 <div class="photo-upload-icon">📷</div>
-                <div class="photo-upload-text">Tap to take a photo or upload</div>
-                <div class="photo-upload-hint">AI will analyze your food and estimate calories</div>
+                <div class="photo-upload-text" style="margin-bottom: 16px;">Take a photo or upload from gallery</div>
+                <div style="display: flex; gap: 12px; width: 100%; max-width: 300px;">
+                    <button type="button" onclick="document.getElementById('dashCameraInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Camera
+                    </button>
+                    <button type="button" onclick="document.getElementById('dashUploadInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Upload
+                    </button>
+                </div>
+                <div class="photo-upload-hint" style="margin-top: 12px;">AI will analyze your food and estimate calories</div>
             `;
-            document.getElementById('dashPhotoUploadArea').classList.remove('has-image');
-            document.getElementById('dashPhotoInput').value = '';
+
+            // Reset file inputs
+            const cameraInput = document.getElementById('dashCameraInput');
+            const uploadInput = document.getElementById('dashUploadInput');
+            if (cameraInput) cameraInput.value = '';
+            if (uploadInput) uploadInput.value = '';
+
+            // Reset data
             dashDetectedFoods = [];
             dashPhotoBase64 = null;
+
+            // Reset reanalyze button visibility
+            const reanalyzeBtn = document.getElementById('dashSmartReanalyzeBtn');
+            if (reanalyzeBtn) {
+                reanalyzeBtn.style.display = 'flex';
+                reanalyzeBtn.disabled = false;
+                reanalyzeBtn.style.opacity = '1';
+                reanalyzeBtn.innerHTML = '<span>🔍</span> Not accurate? <strong style="color: var(--brand-primary);">Reanalyze with Smarter AI</strong>';
+            }
         }
 
         function handleDashPhotoSelect(event) {
             const file = event.target.files[0];
-            if (!file) return;
+            if (!file) {
+                console.log('No file selected');
+                return;
+            }
+            console.log('📸 Photo selected:', file.name, file.type, file.size);
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 dashPhotoBase64 = e.target.result;
-                const uploadArea = document.getElementById('dashPhotoUploadArea');
-                uploadArea.classList.add('has-image');
-                uploadArea.innerHTML = `<img src="${dashPhotoBase64}" alt="Food photo" style="cursor: pointer;" onclick="document.getElementById('dashPhotoInput').click()">`;
+                console.log('📸 Photo loaded, base64 length:', dashPhotoBase64.length);
+
+                // Show preview image
+                const previewSection = document.getElementById('dashPhotoPreview');
+                const previewImg = document.getElementById('dashPhotoPreviewImg');
+                if (previewSection && previewImg) {
+                    previewImg.src = dashPhotoBase64;
+                    previewSection.style.display = 'block';
+                }
+
+                // Hide the upload buttons, show the details section
+                document.getElementById('dashPhotoUploadArea').style.display = 'none';
                 document.getElementById('dashPhotoDetailsSection').style.display = 'block';
+            };
+            reader.onerror = (e) => {
+                console.error('Error reading file:', e);
+                showToast('Error reading photo. Please try again.');
             };
             reader.readAsDataURL(file);
         }
@@ -8474,8 +8523,18 @@
         async function analyzeDashPhoto() {
             console.log('📸 Dashboard photo analysis started');
             console.log('dashPhotoBase64 exists:', !!dashPhotoBase64);
+            console.log('dashPhotoBase64 length:', dashPhotoBase64 ? dashPhotoBase64.length : 0);
 
+            // Check if we have a photo
+            if (!dashPhotoBase64) {
+                console.error('No photo data available');
+                showToast('Please take or upload a photo first');
+                return;
+            }
+
+            // Hide upload and details sections, show analyzing
             document.getElementById('dashPhotoUpload').style.display = 'none';
+            document.getElementById('dashPhotoPreview').style.display = 'none';
             document.getElementById('dashPhotoDetailsSection').style.display = 'none';
             document.getElementById('dashPhotoAnalyzing').style.display = 'block';
 
@@ -8484,6 +8543,8 @@
 
             try {
                 console.log('Calling photo analysis API...');
+                console.log('Request payload - image length:', dashPhotoBase64.length, 'details:', foodDetails || 'none');
+
                 const data = await apiPost('/.netlify/functions/analyze-food-photo', {
                     image: dashPhotoBase64,
                     details: foodDetails || null
@@ -8492,13 +8553,14 @@
                 dashDetectedFoods = data.foods || [];
 
                 if (dashDetectedFoods.length === 0) {
-                    showToast('Could not detect any food items');
+                    showToast('Could not detect any food items. Try a clearer photo.');
                     resetDashPhoto();
                     return;
                 }
                 renderDashPhotoResults();
             } catch (err) {
                 console.error('Error analyzing photo:', err);
+                console.error('Error details:', err.message, err.stack);
                 showToast(err.message || 'Failed to analyze photo. Try again.');
                 resetDashPhoto();
             }
@@ -8524,12 +8586,13 @@
 
         // Reanalyze photo with smarter AI (Claude 3.5 Sonnet) - Dashboard version
         async function dashReanalyzeWithSmartAI() {
-            console.log('🔍 Dashboard reanalyze button clicked');
+            console.log('🔍 Dashboard reanalyze with Smart AI button clicked');
             console.log('dashPhotoBase64 exists:', !!dashPhotoBase64);
+            console.log('dashPhotoBase64 length:', dashPhotoBase64 ? dashPhotoBase64.length : 0);
 
             if (!dashPhotoBase64) {
-                showToast('No photo to reanalyze');
-                console.error('No photo data available');
+                showToast('No photo to reanalyze. Please take a new photo first.');
+                console.error('No photo data available for reanalysis');
                 return;
             }
 
@@ -8539,7 +8602,8 @@
                 return;
             }
 
-            const originalContent = btn.innerHTML;
+            // Store original content for potential restoration
+            const originalContent = '<span>🔍</span> Not accurate? <strong style="color: var(--brand-primary);">Reanalyze with Smarter AI</strong>';
             btn.innerHTML = '<span style="width: 16px; height: 16px; border: 2px solid var(--gray-300); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span> Analyzing with smarter AI...';
             btn.disabled = true;
             btn.style.opacity = '0.7';
@@ -8550,6 +8614,8 @@
 
             try {
                 console.log('Calling smart analysis API...');
+                console.log('Request payload - image length:', dashPhotoBase64.length, 'details:', foodDetails || 'none');
+
                 const data = await apiPost('/.netlify/functions/analyze-food-photo-smart', {
                     image: dashPhotoBase64,
                     details: foodDetails || null
@@ -8562,13 +8628,14 @@
                     showToast('Reanalyzed with smarter AI!');
                     btn.style.display = 'none';
                 } else {
-                    showToast('Smart AI could not detect food items');
+                    showToast('Smart AI could not detect food items. Try a clearer photo.');
                     btn.innerHTML = originalContent;
                     btn.disabled = false;
                     btn.style.opacity = '1';
                 }
             } catch (err) {
                 console.error('Error with smart analysis:', err);
+                console.error('Error details:', err.message, err.stack);
                 showToast(err.message || 'Smart analysis failed. Try again.');
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
@@ -9000,14 +9067,30 @@
                 <button class="modal-close" onclick="closeDashPhotoModal()">&times;</button>
                 <span style="font-weight: 600; color: var(--gray-900);">📸 AI Photo Log</span>
             </div>
-            <div class="modal-body" style="padding: 20px;">
+            <div class="modal-body" style="padding: 20px; max-height: 70vh; overflow-y: auto;">
                 <div id="dashPhotoUpload">
-                    <div class="photo-upload-area" id="dashPhotoUploadArea" onclick="document.getElementById('dashPhotoInput').click()">
+                    <div class="photo-upload-area" id="dashPhotoUploadArea" style="min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <div class="photo-upload-icon">📷</div>
-                        <div class="photo-upload-text">Tap to take a photo or upload</div>
-                        <div class="photo-upload-hint">AI will analyze your food and estimate calories</div>
+                        <div class="photo-upload-text" style="margin-bottom: 16px;">Take a photo or upload from gallery</div>
+                        <div style="display: flex; gap: 12px; width: 100%; max-width: 300px;">
+                            <button type="button" onclick="document.getElementById('dashCameraInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                Camera
+                            </button>
+                            <button type="button" onclick="document.getElementById('dashUploadInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                Upload
+                            </button>
+                        </div>
+                        <div class="photo-upload-hint" style="margin-top: 12px;">AI will analyze your food and estimate calories</div>
                     </div>
-                    <input type="file" id="dashPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleDashPhotoSelect(event)">
+                    <!-- Camera input (opens camera) -->
+                    <input type="file" id="dashCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleDashPhotoSelect(event)">
+                    <!-- Upload input (opens gallery) -->
+                    <input type="file" id="dashUploadInput" accept="image/*" style="display: none;" onchange="handleDashPhotoSelect(event)">
+                </div>
+                <div id="dashPhotoPreview" style="display: none; margin-top: 16px; text-align: center;">
+                    <img id="dashPhotoPreviewImg" src="" alt="Food photo" style="max-width: 100%; max-height: 200px; border-radius: 12px; object-fit: contain;">
                 </div>
                 <div id="dashPhotoDetailsSection" style="display: none; margin-top: 16px;">
                     <label style="font-weight: 500; color: var(--gray-700); font-size: 0.9rem; display: block; margin-bottom: 8px;">
@@ -9025,9 +9108,9 @@
                     </div>
                 </div>
                 <div id="dashPhotoResults" style="display: none;">
-                    <div class="ai-results">
+                    <div class="ai-results" style="max-height: 300px; overflow-y: auto;">
                         <div class="ai-results-header"><span>✨</span> AI Detection Results</div>
-                        <div id="dashPhotoDetectedItems"></div>
+                        <div id="dashPhotoDetectedItems" style="max-height: 250px; overflow-y: auto; padding-right: 8px;"></div>
                     </div>
                     <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 12px; text-align: center;">⚠️ AI estimates may vary. Feel free to adjust values before adding.</p>
                     <button type="button" id="dashSmartReanalyzeBtn" onclick="dashReanalyzeWithSmartAI()" style="width: 100%; margin-bottom: 16px; background: none; border: 1px dashed var(--gray-300); color: var(--gray-500); padding: 10px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
