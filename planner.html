@@ -4215,7 +4215,7 @@ function displayDietPlan(multiDayData) {
                             <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
                             ${editOrReviseButton}
                             <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
-                            <button data-action="get-recipe" data-meal-name="${meal.name}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
+                            <button data-action="get-recipe" data-meal-name="${meal.name}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
                             ${undoButton}
                         </div>
                         <div class="flex gap-2 mt-2">
@@ -4869,7 +4869,7 @@ async function applyMealSuggestion(dayIndex, mealIndex, element) {
         previousMealStates[stateKey] = JSON.parse(JSON.stringify(currentMeal));
         saveUndoStates();
 
-        // Update the meal with AI suggestion
+        // Update the meal with AI suggestion including recipe
         lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = {
             ...currentMeal,
             name: suggestionData.name,
@@ -4877,6 +4877,8 @@ async function applyMealSuggestion(dayIndex, mealIndex, element) {
             protein: suggestionData.protein,
             carbs: suggestionData.carbs,
             fat: suggestionData.fat,
+            ingredients: suggestionData.ingredients || [],
+            instructions: suggestionData.instructions || '',
             isCustom: false,
             coach_note: currentMeal.coach_note || ''
         };
@@ -4912,8 +4914,8 @@ function escapeHtml(text) {
 }
 
 // RECIPE GENERATOR
-async function getAIRecipe(mealName) {
-    console.log('📖 Getting recipe for:', mealName);
+async function getAIRecipe(mealName, dayIndex = null, mealIndex = null) {
+    console.log('📖 Getting recipe for:', mealName, 'Day:', dayIndex, 'Meal:', mealIndex);
     const modal = document.getElementById('recipe-modal');
     const content = document.getElementById('recipe-content');
 
@@ -4925,6 +4927,74 @@ async function getAIRecipe(mealName) {
 
     document.getElementById('recipe-title').innerText = mealName;
     modal.classList.remove('hidden');
+
+    // Check if meal has stored recipe (ingredients + instructions)
+    let storedMeal = null;
+    if (dayIndex !== null && mealIndex !== null && lastPlanQuery?.currentPlan?.[dayIndex]?.plan?.[mealIndex]) {
+        storedMeal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    }
+
+    const hasStoredRecipe = storedMeal &&
+        storedMeal.ingredients &&
+        Array.isArray(storedMeal.ingredients) &&
+        storedMeal.ingredients.length > 0 &&
+        storedMeal.instructions;
+
+    if (hasStoredRecipe) {
+        // Use stored recipe
+        console.log('✅ Using stored recipe for:', mealName);
+
+        let html = '<div class="stored-recipe">';
+        html += '<p style="color: #059669; font-size: 12px; margin-bottom: 12px; padding: 8px; background: #d1fae5; border-radius: 6px;">✅ Recipe saved with this meal</p>';
+
+        // Ingredients
+        html += '<h3 style="color: #1f2937; font-size: 16px; font-weight: 600; margin-bottom: 8px;">🥗 Ingredients</h3>';
+        html += '<ul style="list-style-type: disc; padding-left: 20px; margin-bottom: 16px;">';
+        storedMeal.ingredients.forEach(ing => {
+            html += `<li style="margin-bottom: 4px; color: #374151;">${ing}</li>`;
+        });
+        html += '</ul>';
+
+        // Instructions
+        html += '<h3 style="color: #1f2937; font-size: 16px; font-weight: 600; margin-bottom: 8px;">👨‍🍳 Instructions</h3>';
+        html += '<div style="color: #374151; line-height: 1.6;">';
+
+        // Format instructions - split by numbered steps if present
+        const instructions = storedMeal.instructions;
+        if (instructions.match(/\d+\./)) {
+            // Has numbered steps
+            const steps = instructions.split(/(?=\d+\.)/).filter(s => s.trim());
+            html += '<ol style="padding-left: 20px;">';
+            steps.forEach(step => {
+                const cleanStep = step.replace(/^\d+\.\s*/, '').trim();
+                if (cleanStep) {
+                    html += `<li style="margin-bottom: 8px;">${cleanStep}</li>`;
+                }
+            });
+            html += '</ol>';
+        } else {
+            html += `<p>${instructions}</p>`;
+        }
+
+        html += '</div>';
+
+        // Macros summary
+        html += '<div style="margin-top: 16px; padding: 12px; background: #f3f4f6; border-radius: 8px;">';
+        html += '<p style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">📊 Nutrition</p>';
+        html += `<div style="display: flex; gap: 16px; flex-wrap: wrap;">`;
+        html += `<span style="color: #dc2626;"><strong>${storedMeal.calories}</strong> cal</span>`;
+        html += `<span style="color: #2563eb;"><strong>${storedMeal.protein}g</strong> protein</span>`;
+        html += `<span style="color: #16a34a;"><strong>${storedMeal.carbs}g</strong> carbs</span>`;
+        html += `<span style="color: #ca8a04;"><strong>${storedMeal.fat}g</strong> fat</span>`;
+        html += '</div></div>';
+
+        html += '</div>';
+
+        content.innerHTML = html;
+        return;
+    }
+
+    // No stored recipe - generate with AI
     content.innerHTML = '<div class="loader"><div class="loader-spinner"></div></div>';
 
     try {
@@ -4937,7 +5007,7 @@ async function getAIRecipe(mealName) {
             console.error('❌ Recipe response is not a string:', typeof recipe, recipe);
             content.innerHTML = '<p class="text-red-500">Error: Invalid recipe format received. Please try again.</p>';
         } else {
-            console.log('✅ Recipe generated successfully');
+            console.log('✅ Recipe generated by AI');
             let html = recipe
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
@@ -7378,9 +7448,11 @@ document.addEventListener('click', function(event) {
                 return;
             }
             const mealName = target.dataset.mealName;
+            const dayIndex = target.dataset.dayIndex !== undefined ? parseInt(target.dataset.dayIndex) : null;
+            const mealIndex = target.dataset.mealIndex !== undefined ? parseInt(target.dataset.mealIndex) : null;
             if (mealName) {
-                console.log('Opening recipe for:', mealName);
-                getAIRecipe(mealName);
+                console.log('Opening recipe for:', mealName, 'Day:', dayIndex, 'Meal:', mealIndex);
+                getAIRecipe(mealName, dayIndex, mealIndex);
             } else {
                 console.error('Recipe button has data-meal-name attribute but no value');
             }
