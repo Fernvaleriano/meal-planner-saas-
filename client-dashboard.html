@@ -8791,7 +8791,6 @@
             } else {
                 showToast(`Added ${addedCount} food(s) to diary!`);
             }
-            loadDashboardData();
         }
 
         // ========== SEARCH MODAL ==========
@@ -8888,24 +8887,22 @@
             showToast('Adding food...');
 
             try {
-                await fetch('/.netlify/functions/diary-entry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: currentClientId,
-                        entryDate: today,
-                        mealType: mealType,
-                        foodName: dashSelectedFood.name,
-                        calories: Math.round(dashSelectedFood.calories * servings),
-                        protein: Math.round(dashSelectedFood.protein * servings),
-                        carbs: Math.round(dashSelectedFood.carbs * servings),
-                        fat: Math.round(dashSelectedFood.fat * servings),
-                        servings: servings,
-                        foodSource: 'search'
-                    })
-                });
+                const payload = {
+                    clientId: currentClientId,
+                    entryDate: today,
+                    mealType: mealType,
+                    foodName: dashSelectedFood.name,
+                    numberOfServings: servings,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    calories: Math.round(dashSelectedFood.calories * servings),
+                    protein: Math.round(dashSelectedFood.protein * servings),
+                    carbs: Math.round(dashSelectedFood.carbs * servings),
+                    fat: Math.round(dashSelectedFood.fat * servings),
+                    foodSource: 'search'
+                };
+                await apiPost('/.netlify/functions/food-diary', payload);
                 showToast('Food added to diary!');
-                loadDashboardData();
             } catch (err) {
                 console.error('Error adding food:', err);
                 showToast('Failed to add food');
@@ -9028,25 +9025,23 @@
             showToast('Adding food...');
 
             try {
-                await fetch('/.netlify/functions/diary-entry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: currentClientId,
-                        entryDate: today,
-                        mealType: mealType,
-                        foodName: dashScannedProduct.name,
-                        calories: Math.round(dashScannedProduct.calories * servings),
-                        protein: Math.round(dashScannedProduct.protein * servings),
-                        carbs: Math.round(dashScannedProduct.carbs * servings),
-                        fat: Math.round(dashScannedProduct.fat * servings),
-                        servings: servings,
-                        foodSource: 'barcode',
-                        externalId: dashScannedProduct.barcode
-                    })
-                });
+                const payload = {
+                    clientId: currentClientId,
+                    entryDate: today,
+                    mealType: mealType,
+                    foodName: dashScannedProduct.name,
+                    numberOfServings: servings,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    calories: Math.round(dashScannedProduct.calories * servings),
+                    protein: Math.round(dashScannedProduct.protein * servings),
+                    carbs: Math.round(dashScannedProduct.carbs * servings),
+                    fat: Math.round(dashScannedProduct.fat * servings),
+                    foodSource: 'barcode',
+                    externalId: dashScannedProduct.barcode
+                };
+                await apiPost('/.netlify/functions/food-diary', payload);
                 showToast('Food added to diary!');
-                loadDashboardData();
             } catch (err) {
                 console.error('Error adding food:', err);
                 showToast('Failed to add food');
@@ -9125,24 +9120,22 @@
             showToast('Adding favorite...');
 
             try {
-                await fetch('/.netlify/functions/diary-entry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: currentClientId,
-                        entryDate: today,
-                        mealType: mealType,
-                        foodName: fav.meal_name || 'Favorite Meal',
-                        calories: fav.calories || 0,
-                        protein: fav.protein || 0,
-                        carbs: fav.carbs || 0,
-                        fat: fav.fat || 0,
-                        servings: 1,
-                        foodSource: 'favorite'
-                    })
-                });
+                const payload = {
+                    clientId: currentClientId,
+                    entryDate: today,
+                    mealType: mealType,
+                    foodName: fav.meal_name || 'Favorite Meal',
+                    numberOfServings: 1,
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    calories: fav.calories || 0,
+                    protein: fav.protein || 0,
+                    carbs: fav.carbs || 0,
+                    fat: fav.fat || 0,
+                    foodSource: 'favorite'
+                };
+                await apiPost('/.netlify/functions/food-diary', payload);
                 showToast('Favorite added to diary!');
-                loadDashboardData();
             } catch (err) {
                 console.error('Error adding favorite:', err);
                 showToast('Failed to add favorite');
