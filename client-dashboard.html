@@ -3144,6 +3144,22 @@
             flex-wrap: wrap;
         }
 
+        .greeting-with-avatar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .coach-greeting-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--brand-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+        }
+
         .greeting-text h1 {
             font-size: 1.75rem;
             font-weight: 800;
@@ -5021,9 +5037,12 @@
                         <!-- Greeting Section -->
                         <div class="greeting-section">
                             <div class="greeting-row">
-                                <div class="greeting-text">
-                                    <h1>Welcome back, <span id="clientName">Client</span>!</h1>
-                                    <p id="greetingSubtext">Let's make today count</p>
+                                <div class="greeting-with-avatar">
+                                    <img id="coachGreetingAvatar" class="coach-greeting-avatar" style="display: none;" alt="Coach">
+                                    <div class="greeting-text">
+                                        <h1>Welcome back, <span id="clientName">Client</span>!</h1>
+                                        <p id="greetingSubtext">Let's make today count</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -7793,6 +7812,15 @@
 
                 const data = await response.json();
                 coachStories = data.stories || [];
+
+                // Display coach avatar in greeting if available
+                if (data.coachAvatar && data.showAvatarInGreeting !== false) {
+                    const greetingAvatar = document.getElementById('coachGreetingAvatar');
+                    if (greetingAvatar) {
+                        greetingAvatar.src = data.coachAvatar;
+                        greetingAvatar.style.display = 'block';
+                    }
+                }
 
                 if (coachStories.length > 0) {
                     displayStoryBubble(data.coachName, data.coachAvatar, data.hasUnseenStories);
