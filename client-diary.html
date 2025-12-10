@@ -3394,20 +3394,13 @@
                             <div class="quick-add-text-sub">Speak or type what you ate</div>
                         </div>
                     </button>
-                    <button class="quick-add-btn" onclick="openBarcodeScanner()" style="margin-bottom: 10px;">
+                    <button class="quick-add-btn" onclick="openScanLabelModal()" style="margin-bottom: 10px;">
                         <div class="quick-add-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);">
-                            <i data-lucide="scan-barcode" width="24" height="24"></i>
+                            <i data-lucide="file-text" width="24" height="24"></i>
                         </div>
                         <div class="quick-add-text">
-                            <div class="quick-add-text-main">Scan Barcode</div>
-                            <div class="quick-add-text-sub">Use camera to scan product</div>
-                        </div>
-                    </button>
-                    <button class="quick-add-btn" onclick="openQuickAdd()">
-                        <div class="quick-add-icon"><i data-lucide="plus" width="24" height="24"></i></div>
-                        <div class="quick-add-text">
-                            <div class="quick-add-text-main">Quick Add</div>
-                            <div class="quick-add-text-sub">Enter calories & macros manually</div>
+                            <div class="quick-add-text-main">Scan Label</div>
+                            <div class="quick-add-text-sub">Photo nutrition label for exact macros</div>
                         </div>
                     </button>
                     <button class="quick-add-btn" onclick="openMealPlanPicker()" style="margin-top: 10px;">
@@ -3433,59 +3426,59 @@
         </div>
     </div>
 
-    <!-- Barcode Scanner Modal -->
-    <div class="modal-overlay" id="barcodeModal">
-        <div class="modal-content" style="background: #000;">
-            <div class="modal-header" style="background: #000; border-bottom: 1px solid #333;">
-                <button class="modal-close" onclick="closeBarcodeScanner()" style="color: white;">&times;</button>
-                <span style="color: white; font-weight: 600;">Scan Barcode</span>
+    <!-- Scan Label Modal -->
+    <div class="modal-overlay" id="scanLabelModal">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeScanLabelModal()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">📋 Scan Nutrition Label</span>
             </div>
-            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
-                <div id="barcode-scanner" style="width: 100%; max-width: 500px;"></div>
-                <div id="barcode-status" style="color: white; text-align: center; padding: 20px;">
-                    <p>Point camera at barcode</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barcode Result Modal -->
-    <div class="modal-overlay" id="barcodeResultModal">
-        <div class="quick-add-modal">
-            <h2 style="margin-bottom: 16px; color: var(--gray-900);">Product Found</h2>
-            <div id="barcodeProductInfo">
-                <div class="product-image" id="productImage" style="text-align: center; margin-bottom: 16px;"></div>
-                <div class="product-name" id="productName" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;"></div>
-                <div class="product-brand" id="productBrand" style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 16px;"></div>
-                <div class="product-nutrition" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
-                        <div>
-                            <div style="font-size: 1.25rem; font-weight: 700;" id="prodCalories">--</div>
-                            <div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="scanLabelUpload">
+                    <div class="photo-upload-area" id="scanLabelUploadArea" style="min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--gray-300); border-radius: 12px; padding: 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 12px;">📋</div>
+                        <div style="font-weight: 500; color: var(--gray-700); margin-bottom: 16px;">Take a photo of the nutrition label</div>
+                        <div style="display: flex; gap: 12px; width: 100%; max-width: 300px;">
+                            <button type="button" onclick="document.getElementById('scanLabelCameraInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📷 Camera
+                            </button>
+                            <button type="button" onclick="document.getElementById('scanLabelUploadInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📤 Upload
+                            </button>
                         </div>
-                        <div>
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="prodProtein">--</div>
-                            <div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="prodCarbs">--</div>
-                            <div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="prodFat">--</div>
-                            <div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div>
-                        </div>
+                        <div style="font-size: 0.85rem; color: var(--gray-500); margin-top: 12px;">AI will extract exact nutrition facts from the label</div>
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="prodServing">per 100g</div>
+                    <input type="file" id="scanLabelCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleScanLabelSelect(event)">
+                    <input type="file" id="scanLabelUploadInput" accept="image/*" style="display: none;" onchange="handleScanLabelSelect(event)">
                 </div>
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Servings</label>
-                    <input type="number" id="barcodeServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+                <div id="scanLabelPreview" style="display: none; margin-top: 16px; text-align: center;">
+                    <img id="scanLabelPreviewImg" src="" alt="Nutrition label" style="max-width: 100%; max-height: 200px; border-radius: 12px; object-fit: contain;">
                 </div>
-            </div>
-            <div class="form-row">
-                <button type="button" class="btn btn-secondary" onclick="closeBarcodeResult()" style="flex:1">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addBarcodeFood()" style="flex:1">Add Food</button>
+                <div id="scanLabelAnalyzing" style="display: none; text-align: center; padding: 40px 20px;">
+                    <div style="width: 40px; height: 40px; border: 3px solid var(--gray-200); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                    <div style="font-weight: 500; color: var(--gray-700);">Reading nutrition label...</div>
+                    <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 8px;">Extracting nutrition facts</p>
+                </div>
+                <div id="scanLabelResults" style="display: none;">
+                    <div style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; color: var(--gray-900);" id="scanLabelProductName">Product</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: var(--gray-900);" id="scanLabelCalories">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="scanLabelProtein">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="scanLabelCarbs">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="scanLabelFat">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div></div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="scanLabelServingInfo">per serving</div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Number of Servings</label>
+                        <input type="number" id="scanLabelServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;" oninput="recalculateScanLabelMacros()">
+                    </div>
+                    <div class="form-row">
+                        <button type="button" class="btn btn-secondary" onclick="resetScanLabel()" style="flex:1">Try Another</button>
+                        <button type="button" class="btn btn-primary" onclick="addScanLabelFood()" style="flex:1">Add to Diary</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -3544,47 +3537,6 @@
                 <button type="button" class="btn btn-secondary" onclick="closeFoodSelect()" style="flex:1">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="addSelectedFood()" style="flex:1">Add Food</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Quick Add Modal -->
-    <div class="modal-overlay" id="quickAddModal">
-        <div class="quick-add-modal">
-            <h2 style="margin-bottom: 20px; color: var(--gray-900);">Quick Add</h2>
-            <form class="quick-add-form" onsubmit="submitQuickAdd(event)">
-                <div class="form-group">
-                    <label>Food Name</label>
-                    <input type="text" id="quickFoodName" placeholder="e.g., Homemade salad" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Calories</label>
-                        <input type="number" id="quickCalories" placeholder="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Servings</label>
-                        <input type="number" id="quickServings" value="1" step="0.5" min="0.5">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Protein (g)</label>
-                        <input type="number" id="quickProtein" placeholder="0" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label>Carbs (g)</label>
-                        <input type="number" id="quickCarbs" placeholder="0" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label>Fat (g)</label>
-                        <input type="number" id="quickFat" placeholder="0" step="0.1">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <button type="button" class="btn btn-secondary" onclick="closeQuickAdd()" style="flex:1">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex:1">Add Food</button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -4551,7 +4503,7 @@
                     container.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-icon">😕</div>
-                            <p>No foods found. Try a different search or use Quick Add.</p>
+                            <p>No foods found. Try a different search or scan a nutrition label.</p>
                         </div>
                     `;
                     return;
@@ -4903,76 +4855,6 @@
             loadDiaryEntries();
         }
 
-        // Quick Add
-        function openQuickAdd() {
-            closeFoodSearch();
-            document.getElementById('quickAddModal').classList.add('active');
-            document.getElementById('quickFoodName').value = '';
-            document.getElementById('quickCalories').value = '';
-            document.getElementById('quickServings').value = '1';
-            document.getElementById('quickProtein').value = '';
-            document.getElementById('quickCarbs').value = '';
-            document.getElementById('quickFat').value = '';
-            document.getElementById('quickFoodName').focus();
-        }
-
-        function closeQuickAdd() {
-            document.getElementById('quickAddModal').classList.remove('active');
-        }
-
-        async function submitQuickAdd(e) {
-            e.preventDefault();
-
-            const servings = parseFloat(document.getElementById('quickServings').value) || 1;
-            const foodName = document.getElementById('quickFoodName').value;
-            const calories = parseInt(document.getElementById('quickCalories').value) || 0;
-
-            // Create optimistic entry
-            const tempId = 'temp-' + Date.now();
-            const optimisticEntry = {
-                id: tempId,
-                food_name: foodName,
-                number_of_servings: servings,
-                serving_unit: 'serving',
-                calories: calories
-            };
-
-            // Immediately add to UI (optimistic)
-            addOptimisticEntry(currentMealType, optimisticEntry);
-            closeQuickAdd();
-            showToast('Adding...');
-
-            try {
-                // Use authenticated API call
-                const data = await apiPost('/.netlify/functions/food-diary', {
-                    clientId,
-                    coachId,
-                    entryDate: formatDate(currentDate),
-                    mealType: currentMealType,
-                    foodName: foodName,
-                    numberOfServings: servings,
-                    calories: calories,
-                    protein: parseFloat(document.getElementById('quickProtein').value) || 0,
-                    carbs: parseFloat(document.getElementById('quickCarbs').value) || 0,
-                    fat: parseFloat(document.getElementById('quickFat').value) || 0,
-                    isQuickAdd: true,
-                    foodSource: 'custom'
-                });
-
-                // Update optimistic entry with real ID from server
-                if (data.entry) {
-                    updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
-                    entries.push(data.entry);
-                }
-
-                showToast('Food added!');
-            } catch (err) {
-                console.error('Error adding food:', err);
-                removeOptimisticEntry(tempId);
-                showToast('Failed to add food');
-            }
-        }
-
         // Goals Modal
         function openGoalsModal() {
             document.getElementById('goalsModal').classList.add('active');
@@ -5230,179 +5112,136 @@
         }
 
         // ==========================================
-        // Barcode Scanner Functions
+        // Scan Label Functions (AI Nutrition Label Reader)
         // ==========================================
-        let html5QrCode = null;
-        let scannedProduct = null;
+        let scanLabelBase64 = null;
+        let scanLabelBaseValues = null;
 
-        function openBarcodeScanner() {
+        function openScanLabelModal() {
             closeFoodSearch();
-            document.getElementById('barcodeModal').classList.add('active');
-            document.getElementById('barcode-status').innerHTML = '<p>Starting camera...</p>';
+            document.getElementById('scanLabelModal').classList.add('active');
+            resetScanLabel();
+        }
 
-            // Initialize scanner
-            html5QrCode = new Html5Qrcode("barcode-scanner");
+        function closeScanLabelModal() {
+            document.getElementById('scanLabelModal').classList.remove('active');
+            resetScanLabel();
+        }
 
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 150 },
-                aspectRatio: 1.777,
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39
-                ]
-            };
+        function resetScanLabel() {
+            document.getElementById('scanLabelUpload').style.display = 'block';
+            document.getElementById('scanLabelUploadArea').style.display = 'flex';
+            document.getElementById('scanLabelPreview').style.display = 'none';
+            document.getElementById('scanLabelAnalyzing').style.display = 'none';
+            document.getElementById('scanLabelResults').style.display = 'none';
+            scanLabelBase64 = null;
+            scanLabelBaseValues = null;
+            const cameraInput = document.getElementById('scanLabelCameraInput');
+            const uploadInput = document.getElementById('scanLabelUploadInput');
+            if (cameraInput) cameraInput.value = '';
+            if (uploadInput) uploadInput.value = '';
+        }
 
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                onBarcodeScanned,
-                (errorMessage) => {
-                    // Ignore scan errors (no barcode found in frame)
-                }
-            ).then(() => {
-                document.getElementById('barcode-status').innerHTML = '<p>Point camera at barcode</p>';
-            }).catch((err) => {
-                console.error('Camera error:', err);
-                document.getElementById('barcode-status').innerHTML = `
-                    <p style="color: #ef4444;">Camera access denied</p>
-                    <p style="font-size: 0.875rem; margin-top: 8px;">Please allow camera access to scan barcodes</p>
-                `;
+        function handleScanLabelSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            compressImage(file, 1200, 0.8).then(compressedBase64 => {
+                scanLabelBase64 = compressedBase64;
+                document.getElementById('scanLabelPreviewImg').src = scanLabelBase64;
+                document.getElementById('scanLabelPreview').style.display = 'block';
+                document.getElementById('scanLabelUploadArea').style.display = 'none';
+                analyzeScanLabel();
+            }).catch(err => {
+                console.error('Error compressing image:', err);
+                showToast('Error processing photo');
             });
         }
 
-        function closeBarcodeScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                }).catch(err => console.log('Scanner stop error:', err));
-            }
-            document.getElementById('barcodeModal').classList.remove('active');
-        }
-
-        async function onBarcodeScanned(decodedText, decodedResult) {
-            // Stop scanning
-            if (html5QrCode) {
-                await html5QrCode.stop();
+        async function analyzeScanLabel() {
+            if (!scanLabelBase64) {
+                showToast('Please take a photo first');
+                return;
             }
 
-            document.getElementById('barcode-status').innerHTML = '<p>Looking up product...</p>';
+            document.getElementById('scanLabelUpload').style.display = 'none';
+            document.getElementById('scanLabelAnalyzing').style.display = 'block';
 
-            // Lookup product in Open Food Facts
             try {
-                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
-                const data = await response.json();
+                const data = await apiPost('/.netlify/functions/analyze-nutrition-label', {
+                    image: scanLabelBase64
+                });
 
-                if (data.status === 1 && data.product) {
-                    const product = data.product;
-                    scannedProduct = {
-                        barcode: decodedText,
-                        name: product.product_name || product.product_name_en || 'Unknown Product',
-                        brand: product.brands || '',
-                        image: product.image_small_url || product.image_url || null,
-                        calories: Math.round(product.nutriments?.['energy-kcal_100g'] || product.nutriments?.['energy-kcal'] || 0),
-                        protein: Math.round((product.nutriments?.proteins_100g || 0) * 10) / 10,
-                        carbs: Math.round((product.nutriments?.carbohydrates_100g || 0) * 10) / 10,
-                        fat: Math.round((product.nutriments?.fat_100g || 0) * 10) / 10,
-                        servingSize: product.serving_size || '100g'
-                    };
-
-                    showBarcodeResult();
-                } else {
-                    showToast('Product not found in database');
-                    document.getElementById('barcode-status').innerHTML = `
-                        <p style="color: #f59e0b;">Product not found</p>
-                        <p style="font-size: 0.875rem; margin-top: 8px;">Barcode: ${decodedText}</p>
-                        <button onclick="restartScanner()" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                            Scan Another
-                        </button>
-                    `;
+                if (data.error) {
+                    throw new Error(data.error);
                 }
+
+                scanLabelBaseValues = {
+                    name: data.name || 'Food Item',
+                    calories: data.calories || 0,
+                    protein: data.protein || 0,
+                    carbs: data.carbs || 0,
+                    fat: data.fat || 0,
+                    servingSize: data.servingSize || '1 serving'
+                };
+
+                document.getElementById('scanLabelProductName').textContent = scanLabelBaseValues.name;
+                document.getElementById('scanLabelServingInfo').textContent = `per ${scanLabelBaseValues.servingSize}`;
+                document.getElementById('scanLabelServings').value = 1;
+                recalculateScanLabelMacros();
+
+                document.getElementById('scanLabelAnalyzing').style.display = 'none';
+                document.getElementById('scanLabelResults').style.display = 'block';
+
             } catch (err) {
-                console.error('Lookup error:', err);
-                showToast('Error looking up product');
-                document.getElementById('barcode-status').innerHTML = `
-                    <p style="color: #ef4444;">Lookup failed</p>
-                    <button onclick="restartScanner()" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        Try Again
-                    </button>
-                `;
+                console.error('Error analyzing label:', err);
+                showToast(err.message || 'Failed to read nutrition label. Try a clearer photo.');
+                resetScanLabel();
             }
         }
 
-        function restartScanner() {
-            closeBarcodeScanner();
-            setTimeout(() => openBarcodeScanner(), 300);
+        function recalculateScanLabelMacros() {
+            if (!scanLabelBaseValues) return;
+            const servings = parseFloat(document.getElementById('scanLabelServings').value) || 1;
+
+            document.getElementById('scanLabelCalories').textContent = Math.round(scanLabelBaseValues.calories * servings);
+            document.getElementById('scanLabelProtein').textContent = Math.round(scanLabelBaseValues.protein * servings) + 'g';
+            document.getElementById('scanLabelCarbs').textContent = Math.round(scanLabelBaseValues.carbs * servings) + 'g';
+            document.getElementById('scanLabelFat').textContent = Math.round(scanLabelBaseValues.fat * servings) + 'g';
         }
 
-        function showBarcodeResult() {
-            closeBarcodeScanner();
+        async function addScanLabelFood() {
+            if (!scanLabelBaseValues) return;
+            const servings = parseFloat(document.getElementById('scanLabelServings').value) || 1;
 
-            // Populate result modal
-            document.getElementById('productName').textContent = scannedProduct.name;
-            document.getElementById('productBrand').textContent = scannedProduct.brand;
-            document.getElementById('prodCalories').textContent = scannedProduct.calories;
-            document.getElementById('prodProtein').textContent = scannedProduct.protein + 'g';
-            document.getElementById('prodCarbs').textContent = scannedProduct.carbs + 'g';
-            document.getElementById('prodFat').textContent = scannedProduct.fat + 'g';
-            document.getElementById('prodServing').textContent = `per ${scannedProduct.servingSize}`;
-            document.getElementById('barcodeServings').value = 1;
-
-            // Show product image if available
-            const imageContainer = document.getElementById('productImage');
-            if (scannedProduct.image) {
-                imageContainer.innerHTML = `<img src="${scannedProduct.image}" alt="${scannedProduct.name}" loading="lazy" style="max-width: 120px; max-height: 120px; border-radius: 8px;">`;
-            } else {
-                imageContainer.innerHTML = '<div style="font-size: 3rem;">📦</div>';
-            }
-
-            document.getElementById('barcodeResultModal').classList.add('active');
-        }
-
-        function closeBarcodeResult() {
-            document.getElementById('barcodeResultModal').classList.remove('active');
-            scannedProduct = null;
-        }
-
-        async function addBarcodeFood() {
-            if (!scannedProduct) return;
-
-            const servings = parseFloat(document.getElementById('barcodeServings').value) || 1;
+            closeScanLabelModal();
+            showToast('Adding food...');
 
             try {
-                // Use authenticated API call
                 const data = await apiPost('/.netlify/functions/food-diary', {
                     clientId,
                     coachId,
                     entryDate: formatDate(currentDate),
                     mealType: currentMealType,
-                    foodName: scannedProduct.name,
-                    brand: scannedProduct.brand,
-                    servingSize: 100,
-                    servingUnit: 'g',
+                    foodName: scanLabelBaseValues.name,
                     numberOfServings: servings,
-                    calories: Math.round(scannedProduct.calories * servings),
-                    protein: Math.round(scannedProduct.protein * servings * 10) / 10,
-                    carbs: Math.round(scannedProduct.carbs * servings * 10) / 10,
-                    fat: Math.round(scannedProduct.fat * servings * 10) / 10,
-                    externalId: scannedProduct.barcode,
-                    foodSource: 'barcode'
+                    servingSize: 1,
+                    servingUnit: 'serving',
+                    calories: Math.round(scanLabelBaseValues.calories * servings),
+                    protein: Math.round(scanLabelBaseValues.protein * servings),
+                    carbs: Math.round(scanLabelBaseValues.carbs * servings),
+                    fat: Math.round(scanLabelBaseValues.fat * servings),
+                    foodSource: 'nutrition_label'
                 });
 
-                closeBarcodeResult();
                 showToast('Food added!');
 
-                // Add entry directly to UI using returned data
                 if (data.entry) {
                     addOptimisticEntry(currentMealType, data.entry);
                     entries.push(data.entry);
                 }
             } catch (err) {
-                console.error('Error adding barcode food:', err);
+                console.error('Error adding food:', err);
                 showToast('Failed to add food');
             }
         }
