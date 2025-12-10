@@ -3038,7 +3038,8 @@
 
         /* Footer */
         .story-footer {
-            padding: 16px;
+            padding: 20px 16px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
             position: absolute;
             bottom: 0;
             left: 0;
@@ -3048,20 +3049,29 @@
 
         .story-reactions {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             justify-content: center;
-            margin-bottom: 12px;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
         .reaction-btn {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
+            min-width: 56px;
+            min-height: 56px;
             background: rgba(255, 255, 255, 0.15);
             border: none;
             border-radius: 50%;
             font-size: 1.5rem;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .reaction-btn:hover {
