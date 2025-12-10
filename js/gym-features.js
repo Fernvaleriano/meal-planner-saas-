@@ -4,7 +4,8 @@
  */
 
 // Beta users with gym features enabled (by email)
-const GYM_BETA_EMAILS = ['contact@ziquefitness.com'];
+// DISABLED: Gym features hidden from all users
+const GYM_BETA_EMAILS = [];
 
 /**
  * Check if gym features are enabled for the given email (local check)

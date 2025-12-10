@@ -3,8 +3,8 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-// Fernando's email - the only user with gym features enabled initially
-const BETA_USERS = ['contact@ziquefitness.com'];
+// DISABLED: Gym features hidden from all users
+const BETA_USERS = [];
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
