@@ -1,8 +1,8 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v6';
-const STATIC_CACHE = 'zique-static-v6';
-const DATA_CACHE = 'zique-data-v4';
-const CDN_CACHE = 'zique-cdn-v2';
+const CACHE_NAME = 'zique-fitness-v7';
+const STATIC_CACHE = 'zique-static-v7';
+const DATA_CACHE = 'zique-data-v5';
+const CDN_CACHE = 'zique-cdn-v3';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -147,8 +147,8 @@ self.addEventListener('fetch', (event) => {
       caches.open(CDN_CACHE).then(async (cache) => {
         const cachedResponse = await cache.match(request);
 
-        // Fetch fresh in background
-        const fetchPromise = fetch(request, { mode: 'cors' })
+        // Fetch fresh in background - use credentials: 'omit' to avoid CORS issues
+        const fetchPromise = fetch(request.url, { mode: 'cors', credentials: 'omit' })
           .then((networkResponse) => {
             if (networkResponse.ok) {
               cache.put(request, networkResponse.clone());
