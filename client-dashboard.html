@@ -8716,7 +8716,11 @@
         }
 
         async function addDashPhotoFoods() {
-            if (!currentClientId || dashDetectedFoods.length === 0) return;
+            if (!currentClientId || dashDetectedFoods.length === 0) {
+                showToast('No foods to add');
+                return;
+            }
+
             const foodsToAdd = [...dashDetectedFoods];
             closeDashPhotoModal();
             showToast('Adding foods...');
@@ -8724,29 +8728,41 @@
             const mealType = getDashMealType();
             const today = new Date().toISOString().split('T')[0];
 
+            let addedCount = 0;
+            let errors = [];
+
             for (const food of foodsToAdd) {
                 try {
-                    await fetch('/.netlify/functions/diary-entry', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            clientId: currentClientId,
-                            entryDate: today,
-                            mealType: mealType,
-                            foodName: food.name,
-                            calories: food.calories,
-                            protein: food.protein,
-                            carbs: food.carbs,
-                            fat: food.fat,
-                            servings: 1,
-                            foodSource: 'ai_photo'
-                        })
-                    });
+                    const payload = {
+                        clientId: currentClientId,
+                        entryDate: today,
+                        mealType: mealType,
+                        foodName: food.name,
+                        numberOfServings: 1,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        foodSource: 'ai_photo'
+                    };
+                    console.log('Adding food to diary:', payload);
+
+                    // Use authenticated API call
+                    await apiPost('/.netlify/functions/food-diary', payload);
+                    addedCount++;
                 } catch (err) {
                     console.error('Error adding food:', err);
+                    errors.push(err.message);
                 }
             }
-            showToast(`Added ${foodsToAdd.length} food(s) to diary!`);
+
+            if (errors.length > 0) {
+                showToast(`Added ${addedCount}/${foodsToAdd.length} items. Some errors occurred.`);
+            } else {
+                showToast(`Added ${addedCount} food(s) to diary!`);
+            }
             loadDashboardData();
         }
 
