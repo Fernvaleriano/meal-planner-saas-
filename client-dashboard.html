@@ -5191,15 +5191,15 @@
                                 </svg>
                                 Favorites
                             </button>
-                            <button class="ai-hero-alt-btn" onclick="openDashBarcodeScanner()">
+                            <button class="ai-hero-alt-btn" onclick="openScanLabelModal()">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-                                    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-                                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-                                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-                                    <rect x="7" y="7" width="10" height="10" rx="1"/>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <polyline points="10 9 9 9 8 9"/>
                                 </svg>
-                                Barcode
+                                Scan Label
                             </button>
                         </div>
                     </div>
@@ -8266,10 +8266,23 @@
             }
         }
 
+        // Store base values for text AI food (per 1 serving)
+        let heroFoodBaseValues = null;
+
         // Show parsed result in hero section
         function showHeroParseResult(foodData) {
             const container = document.getElementById('aiHeroParseResult');
             const mealLabel = foodData.meal_type ? foodData.meal_type.charAt(0).toUpperCase() + foodData.meal_type.slice(1) : 'Diary';
+
+            // Store base values for serving recalculation
+            heroFoodBaseValues = {
+                food_name: foodData.food_name,
+                calories: foodData.calories,
+                protein: foodData.protein,
+                carbs: foodData.carbs,
+                fat: foodData.fat,
+                meal_type: foodData.meal_type
+            };
 
             container.innerHTML = `
                 <div class="ai-parse-result">
@@ -8285,24 +8298,30 @@
                             <div>
                                 <div class="ai-parse-item-name">${foodData.food_name}</div>
                             </div>
-                            <div class="ai-parse-item-cals">${foodData.calories} cal</div>
+                            <div class="ai-parse-item-cals" id="heroParseCaloriesLabel">${foodData.calories} cal</div>
                         </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0; justify-content: center;">
+                        <label style="font-size: 0.85rem; color: var(--gray-500);">Servings:</label>
+                        <input type="number" value="1" min="0.5" step="0.5" id="heroServingsInput"
+                            style="width: 70px; padding: 6px 8px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.9rem; text-align: center;"
+                            oninput="recalculateHeroFoodMacros()">
                     </div>
                     <div class="ai-parse-totals">
                         <div class="ai-parse-total-item">
-                            <div class="ai-parse-total-value">${foodData.calories}</div>
+                            <div class="ai-parse-total-value" id="heroParseCalories">${foodData.calories}</div>
                             <div class="ai-parse-total-label">Calories</div>
                         </div>
                         <div class="ai-parse-total-item">
-                            <div class="ai-parse-total-value" style="color: #3b82f6;">${foodData.protein}g</div>
+                            <div class="ai-parse-total-value" style="color: #3b82f6;" id="heroParseProtein">${foodData.protein}g</div>
                             <div class="ai-parse-total-label">Protein</div>
                         </div>
                         <div class="ai-parse-total-item">
-                            <div class="ai-parse-total-value" style="color: #f59e0b;">${foodData.carbs}g</div>
+                            <div class="ai-parse-total-value" style="color: #f59e0b;" id="heroParseCarbs">${foodData.carbs}g</div>
                             <div class="ai-parse-total-label">Carbs</div>
                         </div>
                         <div class="ai-parse-total-item">
-                            <div class="ai-parse-total-value" style="color: #ef4444;">${foodData.fat}g</div>
+                            <div class="ai-parse-total-value" style="color: #ef4444;" id="heroParseFat">${foodData.fat}g</div>
                             <div class="ai-parse-total-label">Fat</div>
                         </div>
                     </div>
@@ -8319,12 +8338,39 @@
             `;
         }
 
+        function recalculateHeroFoodMacros() {
+            if (!heroFoodBaseValues) return;
+            const servings = parseFloat(document.getElementById('heroServingsInput').value) || 1;
+
+            const calories = Math.round(heroFoodBaseValues.calories * servings);
+            const protein = Math.round(heroFoodBaseValues.protein * servings);
+            const carbs = Math.round(heroFoodBaseValues.carbs * servings);
+            const fat = Math.round(heroFoodBaseValues.fat * servings);
+
+            document.getElementById('heroParseCaloriesLabel').textContent = `${calories} cal`;
+            document.getElementById('heroParseCalories').textContent = calories;
+            document.getElementById('heroParseProtein').textContent = `${protein}g`;
+            document.getElementById('heroParseCarbs').textContent = `${carbs}g`;
+            document.getElementById('heroParseFat').textContent = `${fat}g`;
+
+            // Update pending food log with recalculated values
+            if (pendingHeroFoodLog) {
+                pendingHeroFoodLog.calories = calories;
+                pendingHeroFoodLog.protein = protein;
+                pendingHeroFoodLog.carbs = carbs;
+                pendingHeroFoodLog.fat = fat;
+                pendingHeroFoodLog.servings = servings;
+            }
+        }
+
         // Confirm and add food from hero input
         async function confirmHeroFoodLog() {
             if (!pendingHeroFoodLog) return;
 
             const food = pendingHeroFoodLog;
             const mealType = food.meal_type || selectedMealType || 'snack';
+            const servingsInput = document.getElementById('heroServingsInput');
+            const servings = servingsInput ? (parseFloat(servingsInput.value) || 1) : 1;
 
             // Get today's date in local timezone
             const today = formatLocalDate(new Date());
@@ -8346,7 +8392,7 @@
                         entryDate: today,
                         servingSize: 1,
                         servingUnit: 'serving',
-                        numberOfServings: 1
+                        numberOfServings: servings
                     })
                 });
 
@@ -8356,6 +8402,7 @@
                 document.getElementById('aiHeroInput').value = '';
                 document.getElementById('aiHeroParseResult').innerHTML = '';
                 pendingHeroFoodLog = null;
+                heroFoodBaseValues = null;
 
                 // Show success toast with View Diary option
                 showToast(`Added "${food.food_name}"!`, 'View Diary', () => {
@@ -8374,6 +8421,7 @@
         // Cancel hero food log
         function cancelHeroFoodLog() {
             pendingHeroFoodLog = null;
+            heroFoodBaseValues = null;
             document.getElementById('aiHeroParseResult').innerHTML = '';
         }
 
@@ -8475,9 +8523,7 @@
         // ==========================================
         let dashPhotoBase64 = null;
         let dashDetectedFoods = [];
-        let dashScannedProduct = null;
         let dashSelectedFood = null;
-        let dashHtml5QrCode = null;
         let dashSearchTimeout = null;
 
         // Get current meal type from selection or default to lunch
@@ -8657,22 +8703,70 @@
             }
         }
 
+        // Store base values for photo foods (per 1 serving)
+        let dashPhotoBaseValues = [];
+
         function renderDashPhotoResults() {
             document.getElementById('dashPhotoAnalyzing').style.display = 'none';
             document.getElementById('dashPhotoResults').style.display = 'block';
             const container = document.getElementById('dashPhotoDetectedItems');
+
+            // Store base values for serving recalculation
+            dashPhotoBaseValues = dashDetectedFoods.map(food => ({
+                name: food.name,
+                calories: food.calories,
+                protein: food.protein,
+                carbs: food.carbs,
+                fat: food.fat,
+                servings: 1
+            }));
+
             container.innerHTML = dashDetectedFoods.map((food, idx) => `
-                <div class="ai-food-item" style="position: relative; padding-right: 40px;">
-                    <button onclick="removeDashPhotoFood(${idx})" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer;">×</button>
+                <div class="ai-food-item" style="position: relative; padding-right: 40px;" id="dashPhotoFood-${idx}">
+                    <button onclick="removeDashPhotoFood(${idx})" style="position: absolute; right: 8px; top: 8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px;">×</button>
                     <div class="ai-food-name">${food.name}</div>
-                    <div class="ai-food-macros" style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.85rem;">
-                        <span>${food.calories} cal</span>
-                        <span style="color: #3b82f6;">${food.protein}g P</span>
-                        <span style="color: #f59e0b;">${food.carbs}g C</span>
-                        <span style="color: #ef4444;">${food.fat}g F</span>
+                    <div class="ai-food-macros" style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; margin-bottom: 8px;">
+                        <span id="dashPhotoCalories-${idx}">${food.calories} cal</span>
+                        <span style="color: #3b82f6;" id="dashPhotoProtein-${idx}">${food.protein}g P</span>
+                        <span style="color: #f59e0b;" id="dashPhotoCarbs-${idx}">${food.carbs}g C</span>
+                        <span style="color: #ef4444;" id="dashPhotoFat-${idx}">${food.fat}g F</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 0.8rem; color: var(--gray-500);">Servings:</label>
+                        <input type="number" value="1" min="0.5" step="0.5"
+                            style="width: 70px; padding: 6px 8px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.85rem;"
+                            oninput="recalculateDashPhotoMacros(${idx}, this.value)"
+                            id="dashPhotoServings-${idx}">
                     </div>
                 </div>
             `).join('');
+        }
+
+        function recalculateDashPhotoMacros(idx, servingsValue) {
+            const servings = parseFloat(servingsValue) || 1;
+            const base = dashPhotoBaseValues[idx];
+            if (!base) return;
+
+            // Update displayed values
+            const calories = Math.round(base.calories * servings);
+            const protein = Math.round(base.protein * servings);
+            const carbs = Math.round(base.carbs * servings);
+            const fat = Math.round(base.fat * servings);
+
+            document.getElementById(`dashPhotoCalories-${idx}`).textContent = `${calories} cal`;
+            document.getElementById(`dashPhotoProtein-${idx}`).textContent = `${protein}g P`;
+            document.getElementById(`dashPhotoCarbs-${idx}`).textContent = `${carbs}g C`;
+            document.getElementById(`dashPhotoFat-${idx}`).textContent = `${fat}g F`;
+
+            // Update the dashDetectedFoods array with current values
+            dashDetectedFoods[idx] = {
+                ...dashDetectedFoods[idx],
+                calories,
+                protein,
+                carbs,
+                fat,
+                servings
+            };
         }
 
         // Reanalyze photo with smarter AI (Claude 3.5 Sonnet) - Dashboard version
@@ -8749,7 +8843,21 @@
                 return;
             }
 
-            const foodsToAdd = [...dashDetectedFoods];
+            // Gather current values including adjusted servings
+            const foodsToAdd = dashDetectedFoods.map((food, idx) => {
+                const servingsInput = document.getElementById(`dashPhotoServings-${idx}`);
+                const servings = servingsInput ? (parseFloat(servingsInput.value) || 1) : 1;
+                const base = dashPhotoBaseValues[idx] || food;
+                return {
+                    name: food.name,
+                    calories: Math.round(base.calories * servings),
+                    protein: Math.round(base.protein * servings),
+                    carbs: Math.round(base.carbs * servings),
+                    fat: Math.round(base.fat * servings),
+                    servings
+                };
+            });
+
             closeDashPhotoModal();
             showToast('Adding foods...');
 
@@ -8766,7 +8874,7 @@
                         entryDate: today,
                         mealType: mealType,
                         foodName: food.name,
-                        numberOfServings: 1,
+                        numberOfServings: food.servings,
                         servingSize: 1,
                         servingUnit: 'serving',
                         calories: food.calories,
@@ -8909,142 +9017,116 @@
             }
         }
 
-        // ========== BARCODE SCANNER ==========
-        function openDashBarcodeScanner() {
-            document.getElementById('dashBarcodeModal').classList.add('active');
-            document.getElementById('dash-barcode-status').innerHTML = '<p>Starting camera...</p>';
+        // ========== SCAN LABEL (AI Nutrition Label Reader) ==========
+        let scanLabelBase64 = null;
+        let scanLabelBaseValues = null; // Store base values per serving for recalculation
 
-            if (typeof Html5Qrcode === 'undefined') {
-                // Load the library dynamically with fallback CDNs
-                const script = document.createElement('script');
-                const cdnUrls = [
-                    'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
-                    'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
-                ];
-                let cdnIndex = 0;
-
-                function tryLoadScript() {
-                    if (cdnIndex >= cdnUrls.length) {
-                        document.getElementById('dash-barcode-status').innerHTML = `
-                            <p style="color: #ef4444;">Failed to load scanner</p>
-                            <p style="font-size: 0.875rem; margin-top: 8px; color: var(--gray-500);">Please check your connection and try again</p>
-                            <button onclick="closeDashBarcodeScanner(); setTimeout(openDashBarcodeScanner, 300);" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
-                        `;
-                        return;
-                    }
-                    script.src = cdnUrls[cdnIndex];
-                    script.onload = startDashBarcodeScanner;
-                    script.onerror = () => {
-                        cdnIndex++;
-                        tryLoadScript();
-                    };
-                    if (cdnIndex === 0) {
-                        document.head.appendChild(script);
-                    }
-                }
-                tryLoadScript();
-            } else {
-                startDashBarcodeScanner();
-            }
+        function openScanLabelModal() {
+            document.getElementById('dashScanLabelModal').classList.add('active');
+            resetScanLabel();
         }
 
-        function startDashBarcodeScanner() {
-            dashHtml5QrCode = new Html5Qrcode("dash-barcode-scanner");
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 150 },
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E
-                ]
-            };
+        function closeScanLabelModal() {
+            document.getElementById('dashScanLabelModal').classList.remove('active');
+            resetScanLabel();
+        }
 
-            dashHtml5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                onDashBarcodeScanned,
-                () => {}
-            ).then(() => {
-                document.getElementById('dash-barcode-status').innerHTML = '<p>Point camera at barcode</p>';
-            }).catch((err) => {
-                document.getElementById('dash-barcode-status').innerHTML = `
-                    <p style="color: #ef4444;">Camera access denied</p>
-                    <p style="font-size: 0.875rem; margin-top: 8px;">Please allow camera access</p>
-                `;
+        function resetScanLabel() {
+            document.getElementById('scanLabelUpload').style.display = 'block';
+            document.getElementById('scanLabelUploadArea').style.display = 'flex';
+            document.getElementById('scanLabelPreview').style.display = 'none';
+            document.getElementById('scanLabelAnalyzing').style.display = 'none';
+            document.getElementById('scanLabelResults').style.display = 'none';
+            scanLabelBase64 = null;
+            scanLabelBaseValues = null;
+            // Reset file inputs
+            const cameraInput = document.getElementById('scanLabelCameraInput');
+            const uploadInput = document.getElementById('scanLabelUploadInput');
+            if (cameraInput) cameraInput.value = '';
+            if (uploadInput) uploadInput.value = '';
+        }
+
+        function handleScanLabelSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            compressImage(file, 1200, 0.8).then(compressedBase64 => {
+                scanLabelBase64 = compressedBase64;
+
+                // Show preview
+                document.getElementById('scanLabelPreviewImg').src = scanLabelBase64;
+                document.getElementById('scanLabelPreview').style.display = 'block';
+                document.getElementById('scanLabelUploadArea').style.display = 'none';
+
+                // Auto-analyze after selecting photo
+                analyzeScanLabel();
+            }).catch(err => {
+                console.error('Error compressing image:', err);
+                showToast('Error processing photo');
             });
         }
 
-        function closeDashBarcodeScanner() {
-            if (dashHtml5QrCode) {
-                dashHtml5QrCode.stop().catch(() => {});
+        async function analyzeScanLabel() {
+            if (!scanLabelBase64) {
+                showToast('Please take a photo first');
+                return;
             }
-            document.getElementById('dashBarcodeModal').classList.remove('active');
-        }
 
-        async function onDashBarcodeScanned(decodedText) {
-            if (dashHtml5QrCode) await dashHtml5QrCode.stop();
-            document.getElementById('dash-barcode-status').innerHTML = '<p>Looking up product...</p>';
+            document.getElementById('scanLabelUpload').style.display = 'none';
+            document.getElementById('scanLabelAnalyzing').style.display = 'block';
 
             try {
-                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
-                const data = await response.json();
+                const data = await apiPost('/.netlify/functions/analyze-nutrition-label', {
+                    image: scanLabelBase64
+                });
 
-                if (data.status === 1 && data.product) {
-                    const product = data.product;
-                    dashScannedProduct = {
-                        barcode: decodedText,
-                        name: product.product_name || 'Unknown Product',
-                        brand: product.brands || '',
-                        image: product.image_small_url || null,
-                        calories: Math.round(product.nutriments?.['energy-kcal_100g'] || 0),
-                        protein: Math.round((product.nutriments?.proteins_100g || 0) * 10) / 10,
-                        carbs: Math.round((product.nutriments?.carbohydrates_100g || 0) * 10) / 10,
-                        fat: Math.round((product.nutriments?.fat_100g || 0) * 10) / 10,
-                        servingSize: product.serving_size || '100g'
-                    };
-                    showDashBarcodeResult();
-                } else {
-                    showToast('Product not found');
-                    document.getElementById('dash-barcode-status').innerHTML = `
-                        <p style="color: #f59e0b;">Product not found</p>
-                        <button onclick="closeDashBarcodeScanner(); setTimeout(openDashBarcodeScanner, 300);" style="margin-top: 16px; padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Scan Another</button>
-                    `;
+                if (data.error) {
+                    throw new Error(data.error);
                 }
+
+                // Store base values for serving recalculation
+                scanLabelBaseValues = {
+                    name: data.name || 'Food Item',
+                    calories: data.calories || 0,
+                    protein: data.protein || 0,
+                    carbs: data.carbs || 0,
+                    fat: data.fat || 0,
+                    servingSize: data.servingSize || '1 serving'
+                };
+
+                // Display results
+                document.getElementById('scanLabelProductName').textContent = scanLabelBaseValues.name;
+                document.getElementById('scanLabelServingInfo').textContent = `per ${scanLabelBaseValues.servingSize}`;
+                document.getElementById('scanLabelServings').value = 1;
+                recalculateScanLabelMacros();
+
+                document.getElementById('scanLabelAnalyzing').style.display = 'none';
+                document.getElementById('scanLabelResults').style.display = 'block';
+
             } catch (err) {
-                showToast('Lookup failed');
+                console.error('Error analyzing label:', err);
+                showToast(err.message || 'Failed to read nutrition label. Try a clearer photo.');
+                resetScanLabel();
             }
         }
 
-        function showDashBarcodeResult() {
-            closeDashBarcodeScanner();
-            document.getElementById('dashProductName').textContent = dashScannedProduct.name;
-            document.getElementById('dashProductBrand').textContent = dashScannedProduct.brand;
-            document.getElementById('dashProdCalories').textContent = dashScannedProduct.calories;
-            document.getElementById('dashProdProtein').textContent = dashScannedProduct.protein + 'g';
-            document.getElementById('dashProdCarbs').textContent = dashScannedProduct.carbs + 'g';
-            document.getElementById('dashProdFat').textContent = dashScannedProduct.fat + 'g';
-            document.getElementById('dashProdServing').textContent = `per ${dashScannedProduct.servingSize}`;
-            document.getElementById('dashBarcodeServings').value = 1;
-            const imageContainer = document.getElementById('dashProductImage');
-            imageContainer.innerHTML = dashScannedProduct.image
-                ? `<img src="${dashScannedProduct.image}" style="max-width: 120px; border-radius: 8px;">`
-                : '<div style="font-size: 3rem;">📦</div>';
-            document.getElementById('dashBarcodeResultModal').classList.add('active');
+        function recalculateScanLabelMacros() {
+            if (!scanLabelBaseValues) return;
+            const servings = parseFloat(document.getElementById('scanLabelServings').value) || 1;
+
+            document.getElementById('scanLabelCalories').textContent = Math.round(scanLabelBaseValues.calories * servings);
+            document.getElementById('scanLabelProtein').textContent = Math.round(scanLabelBaseValues.protein * servings) + 'g';
+            document.getElementById('scanLabelCarbs').textContent = Math.round(scanLabelBaseValues.carbs * servings) + 'g';
+            document.getElementById('scanLabelFat').textContent = Math.round(scanLabelBaseValues.fat * servings) + 'g';
         }
 
-        function closeDashBarcodeResult() {
-            document.getElementById('dashBarcodeResultModal').classList.remove('active');
-        }
-
-        async function addDashBarcodeFood() {
-            if (!currentClientId || !dashScannedProduct) return;
-            const servings = parseFloat(document.getElementById('dashBarcodeServings').value) || 1;
+        async function addScanLabelFood() {
+            if (!currentClientId || !scanLabelBaseValues) return;
+            const servings = parseFloat(document.getElementById('scanLabelServings').value) || 1;
             const mealType = getDashMealType();
             const today = new Date().toISOString().split('T')[0];
 
-            closeDashBarcodeResult();
+            closeScanLabelModal();
             showToast('Adding food...');
 
             try {
@@ -9052,16 +9134,15 @@
                     clientId: currentClientId,
                     entryDate: today,
                     mealType: mealType,
-                    foodName: dashScannedProduct.name,
+                    foodName: scanLabelBaseValues.name,
                     numberOfServings: servings,
                     servingSize: 1,
                     servingUnit: 'serving',
-                    calories: Math.round(dashScannedProduct.calories * servings),
-                    protein: Math.round(dashScannedProduct.protein * servings),
-                    carbs: Math.round(dashScannedProduct.carbs * servings),
-                    fat: Math.round(dashScannedProduct.fat * servings),
-                    foodSource: 'barcode',
-                    externalId: dashScannedProduct.barcode
+                    calories: Math.round(scanLabelBaseValues.calories * servings),
+                    protein: Math.round(scanLabelBaseValues.protein * servings),
+                    carbs: Math.round(scanLabelBaseValues.carbs * servings),
+                    fat: Math.round(scanLabelBaseValues.fat * servings),
+                    foodSource: 'nutrition_label'
                 };
                 await apiPost('/.netlify/functions/food-diary', payload);
                 showToast('Food added to diary!');
@@ -9268,47 +9349,63 @@
         </div>
     </div>
 
-    <!-- Barcode Scanner Modal -->
-    <div class="modal-overlay" id="dashBarcodeModal">
-        <div class="modal-content" style="background: #000;">
-            <div class="modal-header" style="background: #000; border-bottom: 1px solid #333;">
-                <button class="modal-close" onclick="closeDashBarcodeScanner()" style="color: white;">&times;</button>
-                <span style="color: white; font-weight: 600;">Scan Barcode</span>
+    <!-- Scan Label Modal -->
+    <div class="modal-overlay" id="dashScanLabelModal">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeScanLabelModal()">&times;</button>
+                <span style="font-weight: 600; color: var(--gray-900);">📋 Scan Nutrition Label</span>
             </div>
-            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
-                <div id="dash-barcode-scanner" style="width: 100%; max-width: 500px;"></div>
-                <div id="dash-barcode-status" style="color: white; text-align: center; padding: 20px;">
-                    <p>Point camera at barcode</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barcode Result Modal -->
-    <div class="modal-overlay" id="dashBarcodeResultModal">
-        <div class="quick-add-modal">
-            <h2 style="margin-bottom: 16px; color: var(--gray-900);">Product Found</h2>
-            <div id="dashBarcodeProductInfo">
-                <div class="product-image" id="dashProductImage" style="text-align: center; margin-bottom: 16px;"></div>
-                <div class="product-name" id="dashProductName" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;"></div>
-                <div class="product-brand" id="dashProductBrand" style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 16px;"></div>
-                <div class="product-nutrition" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
-                        <div><div style="font-size: 1.25rem; font-weight: 700;" id="dashProdCalories">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div></div>
-                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="dashProdProtein">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div></div>
-                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="dashProdCarbs">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div></div>
-                        <div><div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="dashProdFat">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div></div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="scanLabelUpload">
+                    <div class="photo-upload-area" id="scanLabelUploadArea" style="min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div class="photo-upload-icon">📋</div>
+                        <div class="photo-upload-text" style="margin-bottom: 16px;">Take a photo of the nutrition label</div>
+                        <div style="display: flex; gap: 12px; width: 100%; max-width: 300px;">
+                            <button type="button" onclick="document.getElementById('scanLabelCameraInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                Camera
+                            </button>
+                            <button type="button" onclick="document.getElementById('scanLabelUploadInput').click()" style="flex: 1; padding: 12px 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                Upload
+                            </button>
+                        </div>
+                        <div class="photo-upload-hint" style="margin-top: 12px;">AI will extract exact nutrition facts from the label</div>
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="dashProdServing">per 100g</div>
+                    <input type="file" id="scanLabelCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleScanLabelSelect(event)">
+                    <input type="file" id="scanLabelUploadInput" accept="image/*" style="display: none;" onchange="handleScanLabelSelect(event)">
                 </div>
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Servings</label>
-                    <input type="number" id="dashBarcodeServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;">
+                <div id="scanLabelPreview" style="display: none; margin-top: 16px; text-align: center;">
+                    <img id="scanLabelPreviewImg" src="" alt="Nutrition label" style="max-width: 100%; max-height: 200px; border-radius: 12px; object-fit: contain;">
                 </div>
-            </div>
-            <div class="form-row">
-                <button type="button" class="btn btn-secondary" onclick="closeDashBarcodeResult()" style="flex:1">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="addDashBarcodeFood()" style="flex:1">Add Food</button>
+                <div id="scanLabelAnalyzing" style="display: none;">
+                    <div class="ai-analyzing">
+                        <div class="ai-analyzing-spinner"></div>
+                        <div class="ai-analyzing-text">Reading nutrition label...</div>
+                        <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 8px;">Extracting nutrition facts</p>
+                    </div>
+                </div>
+                <div id="scanLabelResults" style="display: none;">
+                    <div style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; color: var(--gray-900);" id="scanLabelProductName">Product</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                            <div><div style="font-size: 1.25rem; font-weight: 700;" id="scanLabelCalories">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;" id="scanLabelProtein">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Protein</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #f59e0b;" id="scanLabelCarbs">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Carbs</div></div>
+                            <div><div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;" id="scanLabelFat">--</div><div style="font-size: 0.75rem; color: var(--gray-500);">Fat</div></div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500); text-align: center; margin-top: 8px;" id="scanLabelServingInfo">per serving</div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Number of Servings</label>
+                        <input type="number" id="scanLabelServings" value="1" step="0.5" min="0.5" style="width: 100%; padding: 12px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem;" oninput="recalculateScanLabelMacros()">
+                    </div>
+                    <div class="form-row">
+                        <button type="button" class="btn btn-secondary" onclick="resetScanLabel()" style="flex:1">Try Another</button>
+                        <button type="button" class="btn btn-primary" onclick="addScanLabelFood()" style="flex:1">Add to Diary</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

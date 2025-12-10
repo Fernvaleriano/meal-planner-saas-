@@ -1,0 +1,245 @@
+// Nutrition label analysis using Claude AI
+const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
+const headers = {
+    ...corsHeaders,
+    'Content-Type': 'application/json'
+};
+
+exports.handler = async (event, context) => {
+    try {
+        // Handle CORS preflight
+        const corsResponse = handleCors(event);
+        if (corsResponse) return corsResponse;
+
+        if (event.httpMethod !== 'POST') {
+            return {
+                statusCode: 405,
+                headers,
+                body: JSON.stringify({ error: 'Method not allowed' })
+            };
+        }
+
+        // Verify authenticated user
+        const { user, error: authError } = await authenticateRequest(event);
+        if (authError) return authError;
+
+        // Rate limit - 20 label scans per minute per user
+        const rateLimit = checkRateLimit(user.id, 'analyze-nutrition-label', 20, 60000);
+        if (!rateLimit.allowed) {
+            console.warn(`🚫 Rate limit exceeded for user ${user.id} on analyze-nutrition-label`);
+            return rateLimitResponse(rateLimit.resetIn);
+        }
+
+        console.log(`📋 Nutrition label scan for user ${user.id} (${rateLimit.remaining} requests remaining)`);
+
+        if (!ANTHROPIC_API_KEY) {
+            console.error('ANTHROPIC_API_KEY is not configured');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'AI analysis is not configured.' })
+            };
+        }
+
+        // Parse body
+        let body;
+        try {
+            body = JSON.parse(event.body || '{}');
+        } catch (parseErr) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Invalid JSON body' })
+            };
+        }
+
+        const { image } = body;
+
+        if (!image) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'No image provided' })
+            };
+        }
+
+        // Extract base64 data and media type
+        const matches = image.match(/^data:(.+);base64,(.+)$/);
+        if (!matches) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Invalid image format' })
+            };
+        }
+
+        const mediaType = matches[1];
+        const base64Data = matches[2];
+
+        // Initialize Anthropic client
+        let anthropic;
+        try {
+            anthropic = new Anthropic({
+                apiKey: ANTHROPIC_API_KEY,
+            });
+        } catch (initError) {
+            console.error('Failed to initialize Anthropic client:', initError);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Failed to initialize AI client' })
+            };
+        }
+
+        console.log('📋 Calling Claude to read nutrition label...');
+
+        // Build the prompt for nutrition label reading
+        const analysisPrompt = `You are reading a nutrition facts label from a food product. Extract the nutritional information accurately.
+
+Look for and extract:
+1. Product name (from the label or packaging if visible)
+2. Serving size (e.g., "1 cup", "2 cookies", "100g")
+3. Calories per serving
+4. Protein (in grams)
+5. Total Carbohydrates (in grams)
+6. Total Fat (in grams)
+
+Return ONLY a valid JSON object with this exact format (no markdown, no explanation, no code blocks):
+{
+  "name": "Product name or generic description",
+  "servingSize": "serving size as shown on label",
+  "calories": 000,
+  "protein": 00,
+  "carbs": 00,
+  "fat": 00
+}
+
+Important:
+- Use the exact values from the label, don't estimate
+- If the product name is not visible, use a generic description based on what you can see
+- Round to whole numbers
+- If a value is not visible or unclear, use 0
+- If this is NOT a nutrition label, return: {"error": "No nutrition label detected"}
+
+Return ONLY the JSON object, nothing else.`;
+
+        let message;
+        try {
+            message = await anthropic.messages.create({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 512,
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "image",
+                                source: {
+                                    type: "base64",
+                                    media_type: mediaType,
+                                    data: base64Data
+                                }
+                            },
+                            {
+                                type: "text",
+                                text: analysisPrompt
+                            }
+                        ]
+                    }
+                ]
+            });
+        } catch (apiError) {
+            console.error('Anthropic API error:', apiError);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    error: 'AI analysis request failed',
+                    details: apiError.message || 'Unknown API error'
+                })
+            };
+        }
+
+        console.log('✅ Claude response received');
+
+        // Extract text from response
+        const content = message.content[0].text;
+        console.log('Claude response:', content.substring(0, 300));
+
+        // Parse the response
+        let result;
+        const trimmedContent = content.trim();
+
+        try {
+            result = JSON.parse(trimmedContent);
+        } catch (parseError) {
+            // Try to extract JSON from markdown code blocks
+            let cleanContent = trimmedContent
+                .replace(/```json\s*/g, '')
+                .replace(/```\s*/g, '')
+                .trim();
+
+            const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    result = JSON.parse(jsonMatch[0]);
+                } catch (e) {
+                    console.error('Could not parse extracted JSON:', e);
+                    return {
+                        statusCode: 400,
+                        headers,
+                        body: JSON.stringify({ error: 'Could not read nutrition label. Please try a clearer photo.' })
+                    };
+                }
+            } else {
+                console.error('Could not parse Claude response:', trimmedContent);
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ error: 'Could not read nutrition label. Please try a clearer photo.' })
+                };
+            }
+        }
+
+        // Check for error response
+        if (result.error) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: result.error })
+            };
+        }
+
+        // Validate and clean the data
+        const nutritionData = {
+            name: (result.name || 'Food Item').substring(0, 100),
+            servingSize: (result.servingSize || '1 serving').substring(0, 50),
+            calories: Math.max(0, Math.round(result.calories || 0)),
+            protein: Math.max(0, Math.round(result.protein || 0)),
+            carbs: Math.max(0, Math.round(result.carbs || 0)),
+            fat: Math.max(0, Math.round(result.fat || 0))
+        };
+
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify(nutritionData)
+        };
+
+    } catch (error) {
+        console.error('Error in nutrition label analysis:', error);
+        console.error('Error stack:', error.stack);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+                error: 'Label analysis failed',
+                details: error.message || 'Unknown error'
+            })
+        };
+    }
+};
