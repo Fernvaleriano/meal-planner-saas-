@@ -5038,7 +5038,7 @@
                         <div class="greeting-section">
                             <div class="greeting-row">
                                 <div class="greeting-with-avatar">
-                                    <img id="coachGreetingAvatar" class="coach-greeting-avatar" style="display: none;" alt="Coach">
+                                    <img id="clientGreetingAvatar" class="coach-greeting-avatar" style="display: none;" alt="You">
                                     <div class="greeting-text">
                                         <h1>Welcome back, <span id="clientName">Client</span>!</h1>
                                         <p id="greetingSubtext">Let's make today count</p>
@@ -5596,6 +5596,15 @@
 
             // Update UI with client info
             document.getElementById('clientName').textContent = clientData.client_name || 'Client';
+
+            // Display client avatar in greeting if they have a profile photo
+            if (clientData.profile_photo_url) {
+                const greetingAvatar = document.getElementById('clientGreetingAvatar');
+                if (greetingAvatar) {
+                    greetingAvatar.src = clientData.profile_photo_url;
+                    greetingAvatar.style.display = 'block';
+                }
+            }
 
             // Update profile section if it exists
             const profileName = document.getElementById('profileName');
@@ -7812,15 +7821,6 @@
 
                 const data = await response.json();
                 coachStories = data.stories || [];
-
-                // Display coach avatar in greeting if available
-                if (data.coachAvatar && data.showAvatarInGreeting !== false) {
-                    const greetingAvatar = document.getElementById('coachGreetingAvatar');
-                    if (greetingAvatar) {
-                        greetingAvatar.src = data.coachAvatar;
-                        greetingAvatar.style.display = 'block';
-                    }
-                }
 
                 if (coachStories.length > 0) {
                     displayStoryBubble(data.coachName, data.coachAvatar, data.hasUnseenStories);
