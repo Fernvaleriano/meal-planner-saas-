@@ -58,24 +58,35 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body);
 
+      // Build check-in data object
+      const checkinRecord = {
+        client_id: body.clientId,
+        coach_id: body.coachId,
+        checkin_date: new Date().toISOString().split('T')[0],
+        energy_level: body.energyLevel,
+        sleep_quality: body.sleepQuality,
+        hunger_level: body.hungerLevel,
+        stress_level: body.stressLevel,
+        meal_plan_adherence: body.mealPlanAdherence,
+        wins: body.wins,
+        challenges: body.challenges,
+        questions: body.questions,
+        request_new_diet: body.requestNewDiet || false,
+        diet_request_reason: body.dietRequestReason || null
+      };
+
+      // Include workout data if provided
+      if (body.workoutsCompleted !== undefined) {
+        checkinRecord.workouts_completed = body.workoutsCompleted;
+      }
+      if (body.workoutsPlanned !== undefined) {
+        checkinRecord.workouts_planned = body.workoutsPlanned;
+      }
+
       // Insert the check-in
       const { data: checkinData, error } = await supabase
         .from('client_checkins')
-        .insert([{
-          client_id: body.clientId,
-          coach_id: body.coachId,
-          checkin_date: new Date().toISOString().split('T')[0],
-          energy_level: body.energyLevel,
-          sleep_quality: body.sleepQuality,
-          hunger_level: body.hungerLevel,
-          stress_level: body.stressLevel,
-          meal_plan_adherence: body.mealPlanAdherence,
-          wins: body.wins,
-          challenges: body.challenges,
-          questions: body.questions,
-          request_new_diet: body.requestNewDiet || false,
-          diet_request_reason: body.dietRequestReason || null
-        }])
+        .insert([checkinRecord])
         .select()
         .single();
 

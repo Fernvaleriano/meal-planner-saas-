@@ -5,6 +5,7 @@
     <link rel="icon" href="/icons/logo.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
+    <script src="/js/gym-features.js"></script>
     <meta name="theme-color" content="#0d9488">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2521,6 +2522,10 @@
                         <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
                     </a>
+                    <a href="coach-workouts.html" class="sidebar-nav-item" data-gym-feature style="display:none;">
+                        <span class="sidebar-nav-icon">🏋️</span>
+                        Workouts
+                    </a>
                 </div>
             </div>
             <div class="sidebar-nav-section" data-section="settings">
@@ -2918,6 +2923,13 @@
                     <h3>Supplement Protocol</h3>
                     <p>Manage supplement protocols for your clients quickly and easily with scheduling.</p>
                     <button class="action-btn" onclick="window.location.href='supplement-protocols.html'">Manage Supplements</button>
+                </div>
+
+                <div class="action-card" data-gym-feature style="display:none;">
+                    <div class="action-card-icon">🏋️</div>
+                    <h3>Workout Builder</h3>
+                    <p>Create and assign workout programs to your clients with exercise animations.</p>
+                    <button class="action-btn" onclick="window.location.href='coach-workouts.html'">Build Workouts</button>
                 </div>
 
                 <div class="action-card">
@@ -3384,6 +3396,11 @@
 
                 // Check subscription status
                 checkSubscriptionStatus(coachData);
+
+                // Initialize gym features (show/hide based on beta access)
+                if (typeof initGymFeatures === 'function') {
+                    initGymFeatures({ email: user.email });
+                }
 
                 // Show success message if just reactivated or subscribed
                 if (justReactivated) {
