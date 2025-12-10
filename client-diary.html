@@ -6601,21 +6601,32 @@
 
         // Reanalyze photo with smarter AI (Claude 3.5 Sonnet)
         async function reanalyzeWithSmartAI() {
+            console.log('🔍 Reanalyze button clicked');
+            console.log('currentPhotoBase64 exists:', !!currentPhotoBase64);
+
             if (!currentPhotoBase64) {
                 showToast('No photo to reanalyze');
+                console.error('No photo data available');
                 return;
             }
 
             const btn = document.getElementById('smartReanalyzeBtn');
+            if (!btn) {
+                console.error('Reanalyze button not found');
+                return;
+            }
+
             const originalContent = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--gray-300); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span> Analyzing with smarter AI...';
+            btn.innerHTML = '<span style="width: 16px; height: 16px; border: 2px solid var(--gray-300); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span> Analyzing with smarter AI...';
             btn.disabled = true;
             btn.style.opacity = '0.7';
 
-            // Get optional food details from user
-            const foodDetails = document.getElementById('photoFoodDetails').value.trim();
+            // Get optional food details (may not exist if section is hidden)
+            const detailsInput = document.getElementById('photoFoodDetails');
+            const foodDetails = detailsInput ? detailsInput.value.trim() : '';
 
             try {
+                console.log('Calling smart analysis API...');
                 const data = await apiPost('/.netlify/functions/analyze-food-photo-smart', {
                     image: currentPhotoBase64,
                     details: foodDetails || null
@@ -6625,7 +6636,7 @@
                 if (data.foods && data.foods.length > 0) {
                     aiDetectedFoods = data.foods;
                     renderAIResults();
-                    showToast('✨ Reanalyzed with smarter AI!');
+                    showToast('Reanalyzed with smarter AI!');
                     // Hide the reanalyze button after successful use
                     btn.style.display = 'none';
                 } else {
@@ -6636,7 +6647,7 @@
                 }
             } catch (err) {
                 console.error('Error with smart analysis:', err);
-                showToast('Smart analysis failed. Try again.');
+                showToast(err.message || 'Smart analysis failed. Try again.');
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
                 btn.style.opacity = '1';
