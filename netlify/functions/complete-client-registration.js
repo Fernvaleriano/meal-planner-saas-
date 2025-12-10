@@ -239,6 +239,63 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // Calculate personalized nutrition goals using Mifflin-St Jeor formula
+        try {
+            // Convert to metric for BMR calculation
+            const weightKg = weight * 0.453592;
+            const totalInches = (heightFt * 12) + (heightIn || 0);
+            const heightCm = totalInches * 2.54;
+
+            // Mifflin-St Jeor BMR formula
+            let bmr;
+            if (gender === 'male') {
+                bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+            } else {
+                bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+            }
+
+            // Apply activity multiplier (activityLevel is already the multiplier value like 1.2, 1.375, etc.)
+            let tdee = bmr * activityLevel;
+
+            // Apply goal adjustment
+            if (goal === 'lose') {
+                tdee -= 500;  // Caloric deficit for weight loss
+            } else if (goal === 'gain') {
+                tdee += 300;  // Caloric surplus for muscle gain
+            }
+            // 'maintain' keeps tdee as is
+
+            const calories = Math.round(tdee);
+
+            // Calculate macros using 30/40/30 split (Protein/Carbs/Fat)
+            const protein = Math.round((calories * 0.30) / 4);  // 4 cal per gram
+            const carbs = Math.round((calories * 0.40) / 4);    // 4 cal per gram
+            const fat = Math.round((calories * 0.30) / 9);      // 9 cal per gram
+
+            // Insert calculated goals into calorie_goals table
+            const { error: goalsError } = await supabase
+                .from('calorie_goals')
+                .insert([{
+                    client_id: client.id,
+                    coach_id: client.coach_id,
+                    calorie_goal: calories,
+                    protein_goal: protein,
+                    carbs_goal: carbs,
+                    fat_goal: fat,
+                    fiber_goal: 25  // Default fiber goal
+                }]);
+
+            if (goalsError) {
+                console.error('Error saving nutrition goals:', goalsError);
+                // Don't fail registration if goals insertion fails - coach can set manually
+            } else {
+                console.log('Nutrition goals calculated and saved:', { calories, protein, carbs, fat });
+            }
+        } catch (calcError) {
+            console.error('Error calculating nutrition goals:', calcError);
+            // Don't fail registration if calculation fails
+        }
+
         console.log('Client registration completed:', client.id, 'User:', authUser.id);
 
         return {
