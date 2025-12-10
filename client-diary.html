@@ -5214,6 +5214,15 @@
             if (!scanLabelBaseValues) return;
             const servings = parseFloat(document.getElementById('scanLabelServings').value) || 1;
 
+            // Store values before closing modal (which resets scanLabelBaseValues)
+            const foodData = {
+                name: scanLabelBaseValues.name,
+                calories: Math.round(scanLabelBaseValues.calories * servings),
+                protein: Math.round(scanLabelBaseValues.protein * servings),
+                carbs: Math.round(scanLabelBaseValues.carbs * servings),
+                fat: Math.round(scanLabelBaseValues.fat * servings)
+            };
+
             closeScanLabelModal();
             showToast('Adding food...');
 
@@ -5223,14 +5232,14 @@
                     coachId,
                     entryDate: formatDate(currentDate),
                     mealType: currentMealType,
-                    foodName: scanLabelBaseValues.name,
+                    foodName: foodData.name,
                     numberOfServings: servings,
                     servingSize: 1,
                     servingUnit: 'serving',
-                    calories: Math.round(scanLabelBaseValues.calories * servings),
-                    protein: Math.round(scanLabelBaseValues.protein * servings),
-                    carbs: Math.round(scanLabelBaseValues.carbs * servings),
-                    fat: Math.round(scanLabelBaseValues.fat * servings),
+                    calories: foodData.calories,
+                    protein: foodData.protein,
+                    carbs: foodData.carbs,
+                    fat: foodData.fat,
                     foodSource: 'nutrition_label'
                 });
 
