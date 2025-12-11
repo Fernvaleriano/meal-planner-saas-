@@ -2365,6 +2365,127 @@
             40% { transform: scale(1); opacity: 1; }
         }
 
+        /* Food Suggestion Buttons */
+        .ai-food-suggestions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .ai-food-suggestion-btn {
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.2) 0%, rgba(6, 95, 70, 0.2) 100%);
+            border: 1px solid rgba(13, 148, 136, 0.4);
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .ai-food-suggestion-btn:hover {
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.35) 0%, rgba(6, 95, 70, 0.35) 100%);
+            border-color: var(--brand-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+        }
+
+        .ai-food-suggestion-btn:active {
+            transform: translateY(0);
+        }
+
+        .suggestion-name {
+            font-weight: 600;
+            color: white;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .suggestion-macros {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        /* Food Suggestion Action Menu */
+        .food-suggestion-actions {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 8px;
+            animation: slideIn 0.2s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .food-suggestion-actions .action-header {
+            font-weight: 600;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .food-suggestion-actions .action-macros {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 12px;
+        }
+
+        .food-suggestion-actions .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .food-suggestion-actions .action-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .food-suggestion-actions .log-btn {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        .food-suggestion-actions .log-btn:hover {
+            background: #0f766e;
+            transform: translateY(-1px);
+        }
+
+        .food-suggestion-actions .revise-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .food-suggestion-actions .revise-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .ai-message-text {
+            white-space: pre-wrap;
+        }
+
         .ai-quick-actions {
             display: flex;
             flex-wrap: wrap;
@@ -7551,6 +7672,28 @@
             }
         }
 
+        // Parse food suggestions from AI response
+        function parseFoodSuggestions(text) {
+            const suggestions = [];
+            const regex = /\[\[FOOD:\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\]\]/g;
+            let match;
+
+            while ((match = regex.exec(text)) !== null) {
+                suggestions.push({
+                    name: match[1].trim(),
+                    calories: parseInt(match[2]),
+                    protein: parseInt(match[3]),
+                    carbs: parseInt(match[4]),
+                    fat: parseInt(match[5])
+                });
+            }
+
+            // Remove the suggestion markers from text
+            const cleanText = text.replace(regex, '').replace(/\n\s*\n/g, '\n').trim();
+
+            return { cleanText, suggestions };
+        }
+
         // Add message to chat
         function addChatMessage(text, type) {
             const container = document.getElementById('aiChatMessages');
@@ -7558,12 +7701,119 @@
 
             const messageDiv = document.createElement('div');
             messageDiv.className = `ai-message ${type}`;
-            messageDiv.textContent = text;
+
+            // For assistant messages, check for food suggestions
+            if (type === 'assistant') {
+                const { cleanText, suggestions } = parseFoodSuggestions(text);
+
+                if (suggestions.length > 0) {
+                    // Build HTML with text and clickable food buttons
+                    let html = `<div class="ai-message-text">${cleanText}</div>`;
+                    html += '<div class="ai-food-suggestions">';
+
+                    suggestions.forEach((food, idx) => {
+                        html += `
+                            <button class="ai-food-suggestion-btn" onclick="handleFoodSuggestionClick(${idx})" data-food='${JSON.stringify(food).replace(/'/g, "&#39;")}'>
+                                <div class="suggestion-name">${food.name}</div>
+                                <div class="suggestion-macros">${food.calories} cal • ${food.protein}g P • ${food.carbs}g C • ${food.fat}g F</div>
+                            </button>
+                        `;
+                    });
+
+                    html += '</div>';
+                    messageDiv.innerHTML = html;
+                } else {
+                    messageDiv.textContent = text;
+                }
+            } else {
+                messageDiv.textContent = text;
+            }
 
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
 
             aiChatHistory.push({ text, type });
+        }
+
+        // Handle food suggestion button click
+        function handleFoodSuggestionClick(idx) {
+            // Get the button that was clicked
+            const buttons = document.querySelectorAll('.ai-food-suggestion-btn');
+            const button = buttons[idx];
+            if (!button) return;
+
+            const food = JSON.parse(button.dataset.food);
+
+            // Show action options for this food
+            showFoodSuggestionActions(food, button);
+        }
+
+        // Show actions for a food suggestion (log or revise)
+        function showFoodSuggestionActions(food, buttonElement) {
+            // Remove any existing action menus
+            document.querySelectorAll('.food-suggestion-actions').forEach(el => el.remove());
+
+            // Create action menu
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'food-suggestion-actions';
+            actionsDiv.innerHTML = `
+                <div class="action-header">${food.name}</div>
+                <div class="action-macros">${food.calories} cal • ${food.protein}g P • ${food.carbs}g C • ${food.fat}g F</div>
+                <div class="action-buttons">
+                    <button class="action-btn log-btn" onclick="logFoodSuggestion(this)">
+                        <span>✓</span> Log This
+                    </button>
+                    <button class="action-btn revise-btn" onclick="reviseFoodSuggestion(this)">
+                        <span>✎</span> Revise
+                    </button>
+                </div>
+            `;
+
+            // Store food data on the actions div
+            actionsDiv.dataset.food = JSON.stringify(food);
+
+            // Insert after the button's parent container
+            const container = document.getElementById('aiChatMessages');
+            container.appendChild(actionsDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Log the food suggestion directly
+        function logFoodSuggestion(btn) {
+            const actionsDiv = btn.closest('.food-suggestion-actions');
+            const food = JSON.parse(actionsDiv.dataset.food);
+
+            // Remove the actions menu
+            actionsDiv.remove();
+
+            // Set as pending food log and show preview
+            pendingFoodLog = {
+                action: 'log_food',
+                food_name: food.name,
+                calories: food.calories,
+                protein: food.protein,
+                carbs: food.carbs,
+                fat: food.fat,
+                meal_type: currentMealType || 'snack',
+                confirmation: `Ready to log ${food.name}:`
+            };
+
+            showFoodLogPreview(pendingFoodLog);
+        }
+
+        // Ask AI to revise the food suggestion
+        function reviseFoodSuggestion(btn) {
+            const actionsDiv = btn.closest('.food-suggestion-actions');
+            const food = JSON.parse(actionsDiv.dataset.food);
+
+            // Remove the actions menu
+            actionsDiv.remove();
+
+            // Ask AI to revise with user input
+            const input = document.getElementById('aiInput');
+            input.value = `I want to adjust the ${food.name}. Can you help me revise the portion size or ingredients?`;
+            input.focus();
+            input.select();
         }
 
         // Show food log preview from AI
