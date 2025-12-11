@@ -4189,7 +4189,14 @@
         let coachId = null;
         let clientFirstName = null;
         let currentDate = new Date();
-        let currentMealType = 'breakfast';
+        // Set default meal type based on time of day
+        let currentMealType = (() => {
+            const hour = new Date().getHours();
+            if (hour >= 5 && hour < 11) return 'breakfast';
+            if (hour >= 11 && hour < 15) return 'lunch';
+            if (hour >= 15 && hour < 21) return 'dinner';
+            return 'snack';
+        })();
         let goals = { calorie_goal: 2000, protein_goal: 150, carbs_goal: 200, fat_goal: 65 };
         let entries = [];
         let searchTimeout = null;
@@ -7505,6 +7512,7 @@
         let aiChatHistory = [];
         let pendingFoodLog = null;
         let aiExpanded = false;
+        let lastSuggestionContext = null; // Track the type of suggestion for "More Ideas"
 
         // Toggle AI assistant expand/collapse
         function toggleAIExpand() {
@@ -7703,6 +7711,28 @@
 
         // Quick ask AI function
         function askAI(question) {
+            // Detect the context type for "More Ideas" functionality
+            const lowerQ = question.toLowerCase();
+            if (lowerQ.includes('protein')) {
+                lastSuggestionContext = { type: 'protein', query: question };
+            } else if (lowerQ.includes('carb')) {
+                lastSuggestionContext = { type: 'carbs', query: question };
+            } else if (lowerQ.includes('fat') && !lowerQ.includes('breakfast')) {
+                lastSuggestionContext = { type: 'fat', query: question };
+            } else if (lowerQ.includes('snack')) {
+                lastSuggestionContext = { type: 'snack', query: question };
+            } else if (lowerQ.includes('dinner')) {
+                lastSuggestionContext = { type: 'dinner', query: question };
+            } else if (lowerQ.includes('lunch')) {
+                lastSuggestionContext = { type: 'lunch', query: question };
+            } else if (lowerQ.includes('breakfast')) {
+                lastSuggestionContext = { type: 'breakfast', query: question };
+            } else if (lowerQ.includes('calorie') || lowerQ.includes('low cal')) {
+                lastSuggestionContext = { type: 'low-calorie', query: question };
+            } else {
+                lastSuggestionContext = { type: 'general', query: question };
+            }
+
             document.getElementById('aiInput').value = question;
             sendAIMessage();
         }
@@ -7893,8 +7923,41 @@
                 moreBtn.textContent = '⏳ Loading...';
             }
 
-            // Send a follow-up message asking for different options
-            document.getElementById('aiInput').value = 'Give me different options';
+            // Send a context-aware follow-up message based on what was originally asked
+            let moreIdeasQuery = 'Give me different options';
+
+            if (lastSuggestionContext) {
+                switch (lastSuggestionContext.type) {
+                    case 'protein':
+                        moreIdeasQuery = 'Give me more high-protein food options';
+                        break;
+                    case 'carbs':
+                        moreIdeasQuery = 'Give me more healthy carb options';
+                        break;
+                    case 'fat':
+                        moreIdeasQuery = 'Give me more healthy fat options';
+                        break;
+                    case 'snack':
+                        moreIdeasQuery = 'Give me more snack ideas';
+                        break;
+                    case 'dinner':
+                        moreIdeasQuery = 'Give me more dinner ideas';
+                        break;
+                    case 'lunch':
+                        moreIdeasQuery = 'Give me more lunch ideas';
+                        break;
+                    case 'breakfast':
+                        moreIdeasQuery = 'Give me more breakfast ideas';
+                        break;
+                    case 'low-calorie':
+                        moreIdeasQuery = 'Give me more low-calorie options';
+                        break;
+                    default:
+                        moreIdeasQuery = 'Give me different food options';
+                }
+            }
+
+            document.getElementById('aiInput').value = moreIdeasQuery;
             sendAIMessage();
         }
 
