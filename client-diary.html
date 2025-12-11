@@ -2407,6 +2407,31 @@
             color: #94a3b8;
         }
 
+        .more-ideas-btn {
+            background: transparent;
+            border: 1px dashed rgba(148, 163, 184, 0.5);
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            width: 100%;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .more-ideas-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .more-ideas-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* Food Suggestion Action Menu */
         .food-suggestion-actions {
             background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
@@ -7738,6 +7763,8 @@
                         `;
                     });
 
+                    // Add "More ideas" button
+                    html += `<button class="more-ideas-btn" onclick="requestMoreIdeas()">🔄 More ideas</button>`;
                     html += '</div>';
                     messageDiv.innerHTML = html;
                 } else {
@@ -7848,6 +7875,20 @@
             input.value = `I want to adjust the ${food.name}. Can you help me revise the portion size or ingredients?`;
             input.focus();
             input.select();
+        }
+
+        // Request more food ideas from AI
+        function requestMoreIdeas() {
+            // Disable the button to prevent double-clicks
+            const moreBtn = document.querySelector('.more-ideas-btn');
+            if (moreBtn) {
+                moreBtn.disabled = true;
+                moreBtn.textContent = '⏳ Loading...';
+            }
+
+            // Send a follow-up message asking for different options
+            document.getElementById('aiInput').value = 'Give me different options';
+            sendAIMessage();
         }
 
         // Show food log preview from AI
