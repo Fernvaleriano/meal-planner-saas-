@@ -6874,7 +6874,6 @@
         let aiTextDetectedFoods = [];
         let speechRecognition = null;
         let isListening = false;
-        let voiceTimeout = null;
 
         function openAITextModal() {
             closeFoodSearch();
@@ -6951,19 +6950,8 @@
                 voiceBtn.innerHTML = '<i data-lucide="square" width="20" height="20" style="color: white;"></i>';
                 lucide.createIcons();
                 voiceStatus.style.display = 'block';
-                voiceStatusText.innerHTML = '<i data-lucide="mic" width="14" height="14" style="display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Listening... (15s)';
+                voiceStatusText.innerHTML = '<i data-lucide="mic" width="14" height="14" style="display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Listening... Speak now';
                 lucide.createIcons();
-
-                // Auto-stop after 15 seconds to prevent mic staying on
-                if (voiceTimeout) clearTimeout(voiceTimeout);
-                voiceTimeout = setTimeout(() => {
-                    if (isListening) {
-                        console.log('⏱️ Voice timeout - auto-stopping after 15s');
-                        const statusText = document.getElementById('voiceStatusText');
-                        if (statusText) statusText.textContent = '⏱️ Time limit reached';
-                        stopVoiceInput();
-                    }
-                }, 15000);
             };
 
             speechRecognition.onresult = (event) => {
@@ -7053,12 +7041,6 @@
 
             const voiceBtn = document.getElementById('voiceInputBtn');
             const voiceStatus = document.getElementById('voiceStatus');
-
-            // Clear the auto-timeout
-            if (voiceTimeout) {
-                clearTimeout(voiceTimeout);
-                voiceTimeout = null;
-            }
 
             // Set flag first to prevent re-entry
             isListening = false;
