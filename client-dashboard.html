@@ -5564,6 +5564,50 @@
             mealPlanAdherence: 80
         };
 
+        // ========== LOCAL CACHE HELPERS ==========
+        const DASHBOARD_CACHE_KEY = 'zique_dashboard_';
+        const CACHE_EXPIRY_MS = 60 * 60 * 1000; // 1 hour for dashboard data
+
+        function getDashboardCache() {
+            try {
+                const cached = localStorage.getItem(DASHBOARD_CACHE_KEY + 'data');
+                if (!cached) return null;
+
+                const { data, timestamp, clientId } = JSON.parse(cached);
+                // Check if cache is expired or for different client
+                if (Date.now() - timestamp > CACHE_EXPIRY_MS) {
+                    localStorage.removeItem(DASHBOARD_CACHE_KEY + 'data');
+                    return null;
+                }
+                return { data, clientId };
+            } catch (e) {
+                console.warn('Dashboard cache read error:', e);
+                return null;
+            }
+        }
+
+        function setDashboardCache(data, clientId) {
+            try {
+                localStorage.setItem(DASHBOARD_CACHE_KEY + 'data', JSON.stringify({
+                    data,
+                    clientId,
+                    timestamp: Date.now()
+                }));
+            } catch (e) {
+                console.warn('Dashboard cache write error:', e);
+            }
+        }
+
+        function invalidateDashboardCache() {
+            try {
+                localStorage.removeItem(DASHBOARD_CACHE_KEY + 'data');
+                console.log('Dashboard cache invalidated');
+            } catch (e) {
+                console.warn('Dashboard cache invalidation error:', e);
+            }
+        }
+        // ========== END CACHE HELPERS ==========
+
         // Check authentication and load data
         async function init() {
             // Try to refresh the session to get a fresh token
@@ -5668,9 +5712,53 @@
             const plansContainer = document.getElementById('plansContainer');
             if (!plansContainer) return; // Element doesn't exist on this page
 
+            // Try to render from cache INSTANTLY
+            const cachedPlans = localStorage.getItem('zique_cached_meal_plans');
+            if (cachedPlans) {
+                try {
+                    const { plans, timestamp, clientId } = JSON.parse(cachedPlans);
+                    // Check if cache is for current client and not too old (1 hour)
+                    if (clientId === currentClientId && Date.now() - timestamp < 3600000) {
+                        console.log('Rendering meal plans from cache');
+                        renderMealPlans(plans);
+                        // Fetch fresh data in background (don't await)
+                        fetchAndCacheMealPlans();
+                        return;
+                    }
+                } catch (e) { /* ignore parse errors */ }
+            }
+
+            // No valid cache - fetch and render
+            await fetchAndCacheMealPlans();
+        }
+
+        function renderMealPlans(plans) {
+            const plansContainer = document.getElementById('plansContainer');
+            if (!plansContainer) return;
+
+            if (!plans || plans.length === 0) {
+                plansContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🍽️</div>
+                        <h3>No Meal Plans Yet</h3>
+                        <p>Your coach hasn't created any meal plans for you yet. Check back soon!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Store the most recent plan ID for bottom nav on other pages
+            localStorage.setItem('zique-current-plan-id', plans[0].id);
+
+            // Render plans
+            const plansHTML = plans.map(plan => createPlanCard(plan)).join('');
+            plansContainer.innerHTML = `<div class="plans-grid">${plansHTML}</div>`;
+        }
+
+        async function fetchAndCacheMealPlans() {
+            const plansContainer = document.getElementById('plansContainer');
             try {
                 // Fetch ONLY PUBLISHED plans for this client
-                // (Draft plans should not be visible to clients until coach submits them)
                 const { data: plans, error } = await supabaseClient
                     .from('coach_meal_plans')
                     .select('*')
@@ -5680,25 +5768,15 @@
 
                 if (error) throw error;
 
-                if (!plans || plans.length === 0) {
-                    plansContainer.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">🍽️</div>
-                            <h3>No Meal Plans Yet</h3>
-                            <p>Your coach hasn't created any meal plans for you yet. Check back soon!</p>
-                        </div>
-                    `;
-                    return;
-                }
+                // Cache the plans
+                localStorage.setItem('zique_cached_meal_plans', JSON.stringify({
+                    plans: plans || [],
+                    clientId: currentClientId,
+                    timestamp: Date.now()
+                }));
 
-                // Store the most recent plan ID for bottom nav on other pages
-                if (plans.length > 0) {
-                    localStorage.setItem('zique-current-plan-id', plans[0].id);
-                }
-
-                // Render plans
-                const plansHTML = plans.map(plan => createPlanCard(plan)).join('');
-                plansContainer.innerHTML = `<div class="plans-grid">${plansHTML}</div>`;
+                // Render
+                renderMealPlans(plans);
 
             } catch (error) {
                 console.error('Error loading plans:', error);
@@ -5719,8 +5797,95 @@
             const protocolsContainer = document.getElementById('protocolsContainer');
             const protocolsSection = document.getElementById('protocolsSection');
 
+            // Try to render from cache INSTANTLY
+            const cachedProtocols = localStorage.getItem('zique_cached_protocols');
+            if (cachedProtocols) {
+                try {
+                    const { protocols, timestamp, clientId } = JSON.parse(cachedProtocols);
+                    // Check if cache is for current client and not too old (1 hour)
+                    if (clientId === currentClientId && Date.now() - timestamp < 3600000) {
+                        console.log('Rendering protocols from cache');
+                        renderProtocols(protocols);
+                        // Fetch fresh data in background (don't await)
+                        fetchAndCacheProtocols();
+                        return;
+                    }
+                } catch (e) { /* ignore parse errors */ }
+            }
+
+            // No valid cache - fetch and render
+            await fetchAndCacheProtocols();
+        }
+
+        function renderProtocols(protocols) {
+            const protocolsContainer = document.getElementById('protocolsContainer');
+            const protocolsSection = document.getElementById('protocolsSection');
+
+            if (!protocols || protocols.length === 0) {
+                protocolsSection.style.display = 'none';
+                return;
+            }
+
+            protocolsSection.style.display = 'block';
+
+            const timingLabels = {
+                'morning': 'Morning',
+                'pre_workout': 'Pre-Workout',
+                'post_workout': 'Post-Workout',
+                'bedtime': 'Bedtime',
+                'with_meals': 'With Meals',
+                'custom': 'Custom'
+            };
+
+            const timingIcons = {
+                'morning': '🌅',
+                'pre_workout': '💪',
+                'post_workout': '🏋️',
+                'bedtime': '🌙',
+                'with_meals': '🍽️',
+                'custom': '⏰'
+            };
+
+            let html = '';
+
+            protocols.forEach(protocol => {
+                const icon = timingIcons[protocol.timing] || '💊';
+                const timingText = protocol.timing === 'custom' && protocol.timing_custom
+                    ? protocol.timing_custom
+                    : timingLabels[protocol.timing] || protocol.timing;
+
+                html += `<div class="protocol-card">`;
+                html += `<div class="protocol-name">${icon} ${protocol.name}</div>`;
+                html += `<div class="protocol-timing"><strong>Timing:</strong> ${timingText}</div>`;
+
+                if (protocol.has_schedule && protocol.schedule && protocol.schedule.length > 0) {
+                    html += `<div class="protocol-timing"><strong>📅 Scheduled:</strong></div>`;
+                    html += `<ul class="protocol-schedule">`;
+                    protocol.schedule.forEach(phase => {
+                        html += `<li>Week ${phase.weekStart}-${phase.weekEnd}: ${phase.dose}</li>`;
+                    });
+                    html += `</ul>`;
+                    if (protocol.start_date) {
+                        const startDate = new Date(protocol.start_date).toLocaleDateString();
+                        html += `<div class="protocol-timing"><strong>Start Date:</strong> ${startDate}</div>`;
+                    }
+                } else if (protocol.dose) {
+                    html += `<div class="protocol-timing"><strong>Dose:</strong> ${protocol.dose}</div>`;
+                }
+
+                if (protocol.notes) {
+                    html += `<div class="protocol-notes">📝 ${protocol.notes}</div>`;
+                }
+
+                html += `</div>`;
+            });
+
+            protocolsContainer.innerHTML = html;
+        }
+
+        async function fetchAndCacheProtocols() {
+            const protocolsSection = document.getElementById('protocolsSection');
             try {
-                // Fetch protocols from the API
                 const response = await fetch(`/.netlify/functions/client-protocols?clientId=${currentClientId}&coachId=${currentCoachId}`);
 
                 if (!response.ok) {
@@ -5730,74 +5895,18 @@
                 const data = await response.json();
                 const protocols = data.protocols || [];
 
-                if (protocols.length === 0) {
-                    // Hide the section if no protocols
-                    protocolsSection.style.display = 'none';
-                    return;
-                }
+                // Cache the protocols
+                localStorage.setItem('zique_cached_protocols', JSON.stringify({
+                    protocols,
+                    clientId: currentClientId,
+                    timestamp: Date.now()
+                }));
 
-                // Show the section and render protocols
-                protocolsSection.style.display = 'block';
-
-                const timingLabels = {
-                    'morning': 'Morning',
-                    'pre_workout': 'Pre-Workout',
-                    'post_workout': 'Post-Workout',
-                    'bedtime': 'Bedtime',
-                    'with_meals': 'With Meals',
-                    'custom': 'Custom'
-                };
-
-                const timingIcons = {
-                    'morning': '🌅',
-                    'pre_workout': '💪',
-                    'post_workout': '🏋️',
-                    'bedtime': '🌙',
-                    'with_meals': '🍽️',
-                    'custom': '⏰'
-                };
-
-                let html = '';
-
-                protocols.forEach(protocol => {
-                    const icon = timingIcons[protocol.timing] || '💊';
-                    const timingText = protocol.timing === 'custom' && protocol.timing_custom
-                        ? protocol.timing_custom
-                        : timingLabels[protocol.timing] || protocol.timing;
-
-                    html += `<div class="protocol-card">`;
-                    html += `<div class="protocol-name">${icon} ${protocol.name}</div>`;
-                    html += `<div class="protocol-timing"><strong>Timing:</strong> ${timingText}</div>`;
-
-                    // Show dose or schedule
-                    if (protocol.has_schedule && protocol.schedule && protocol.schedule.length > 0) {
-                        html += `<div class="protocol-timing"><strong>📅 Scheduled:</strong></div>`;
-                        html += `<ul class="protocol-schedule">`;
-                        protocol.schedule.forEach(phase => {
-                            html += `<li>Week ${phase.weekStart}-${phase.weekEnd}: ${phase.dose}</li>`;
-                        });
-                        html += `</ul>`;
-                        if (protocol.start_date) {
-                            const startDate = new Date(protocol.start_date).toLocaleDateString();
-                            html += `<div class="protocol-timing"><strong>Start Date:</strong> ${startDate}</div>`;
-                        }
-                    } else if (protocol.dose) {
-                        html += `<div class="protocol-timing"><strong>Dose:</strong> ${protocol.dose}</div>`;
-                    }
-
-                    // Show public notes only (not private_notes - those are coach-only)
-                    if (protocol.notes) {
-                        html += `<div class="protocol-notes">📝 ${protocol.notes}</div>`;
-                    }
-
-                    html += `</div>`;
-                });
-
-                protocolsContainer.innerHTML = html;
+                // Render
+                renderProtocols(protocols);
 
             } catch (error) {
                 console.error('Error loading protocols:', error);
-                // Hide the section on error
                 protocolsSection.style.display = 'none';
             }
         }
