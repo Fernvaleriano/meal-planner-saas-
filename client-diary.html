@@ -6992,12 +6992,6 @@
                 } else if (event.error === 'aborted') {
                     // This is expected when we call abort(), not an error
                     console.log('Speech recognition was aborted');
-                } else if (event.error === 'network') {
-                    voiceStatusText.textContent = '📡 Network error - check connection';
-                } else if (event.error === 'audio-capture') {
-                    voiceStatusText.textContent = '🎤 Mic error - try again';
-                } else if (event.error === 'service-not-allowed') {
-                    voiceStatusText.textContent = '🚫 Voice not available in this browser';
                 } else {
                     voiceStatusText.textContent = '❌ Error: ' + event.error;
                 }
