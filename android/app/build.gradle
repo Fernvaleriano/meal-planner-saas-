@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +16,34 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    buildTypes {
+
+    signingConfigs {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // To sign release builds, create a keystore and set these environment variables:
+            // ZIQUE_KEYSTORE_FILE - path to your .keystore file
+            // ZIQUE_KEYSTORE_PASSWORD - keystore password
+            // ZIQUE_KEY_ALIAS - key alias (e.g., 'ziquefitness')
+            // ZIQUE_KEY_PASSWORD - key password
+            if (System.getenv("ZIQUE_KEYSTORE_FILE")) {
+                storeFile file(System.getenv("ZIQUE_KEYSTORE_FILE"))
+                storePassword System.getenv("ZIQUE_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ZIQUE_KEY_ALIAS")
+                keyPassword System.getenv("ZIQUE_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv("ZIQUE_KEYSTORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

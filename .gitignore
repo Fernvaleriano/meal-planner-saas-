@@ -23,3 +23,7 @@ android/app/build/
 android/build/
 *.iml
 local.properties
+
+# Keystores and secrets - NEVER commit
+*.keystore
+*.jks
