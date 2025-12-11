@@ -2471,6 +2471,17 @@
             transform: translateY(-1px);
         }
 
+        .food-suggestion-actions .details-btn {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .food-suggestion-actions .details-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+        }
+
         .food-suggestion-actions .revise-btn {
             background: rgba(255, 255, 255, 0.1);
             color: #94a3b8;
@@ -3620,7 +3631,7 @@
                 <div class="product-nutrition" style="background: var(--gray-100); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
                         <div>
-                            <div style="font-size: 1.25rem; font-weight: 700;" id="selectCalories">--</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;" id="selectCalories">--</div>
                             <div style="font-size: 0.75rem; color: var(--gray-500);">Calories</div>
                         </div>
                         <div>
@@ -7768,7 +7779,10 @@
                 <div class="action-macros">${food.calories} cal • ${food.protein}g P • ${food.carbs}g C • ${food.fat}g F</div>
                 <div class="action-buttons">
                     <button class="action-btn log-btn" onclick="logFoodSuggestion(this)">
-                        <span>✓</span> Log This
+                        <span>✓</span> Log
+                    </button>
+                    <button class="action-btn details-btn" onclick="getFoodDetails(this)">
+                        <span>📋</span> Details
                     </button>
                     <button class="action-btn revise-btn" onclick="reviseFoodSuggestion(this)">
                         <span>✎</span> Revise
@@ -7783,6 +7797,19 @@
             const container = document.getElementById('aiChatMessages');
             container.appendChild(actionsDiv);
             container.scrollTop = container.scrollHeight;
+        }
+
+        // Get recipe/serving details for a food suggestion
+        function getFoodDetails(btn) {
+            const actionsDiv = btn.closest('.food-suggestion-actions');
+            const food = JSON.parse(actionsDiv.dataset.food);
+
+            // Remove the actions menu
+            actionsDiv.remove();
+
+            // Ask AI for details about this food
+            document.getElementById('aiInput').value = `What's in the ${food.name}? Give me the recipe or ingredients.`;
+            sendAIMessage();
         }
 
         // Log the food suggestion directly
