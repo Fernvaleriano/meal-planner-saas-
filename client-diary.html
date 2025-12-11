@@ -4238,6 +4238,70 @@
         let entries = [];
         let searchTimeout = null;
 
+        // ========== LOCAL CACHE HELPERS ==========
+        const DIARY_CACHE_PREFIX = 'zique_diary_';
+        const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+        function getDiaryCacheKey(date) {
+            return `${DIARY_CACHE_PREFIX}${clientId}_${date}`;
+        }
+
+        function getCachedDiary(date) {
+            try {
+                const key = getDiaryCacheKey(date);
+                const cached = localStorage.getItem(key);
+                if (!cached) return null;
+
+                const { data, timestamp } = JSON.parse(cached);
+                // Check if cache is expired
+                if (Date.now() - timestamp > CACHE_EXPIRY_MS) {
+                    localStorage.removeItem(key);
+                    return null;
+                }
+                return data;
+            } catch (e) {
+                console.warn('Cache read error:', e);
+                return null;
+            }
+        }
+
+        function setCachedDiary(date, data) {
+            try {
+                const key = getDiaryCacheKey(date);
+                localStorage.setItem(key, JSON.stringify({
+                    data,
+                    timestamp: Date.now()
+                }));
+                // Cleanup old caches (keep only last 7 days)
+                cleanupOldCaches();
+            } catch (e) {
+                console.warn('Cache write error:', e);
+            }
+        }
+
+        function invalidateDiaryCache(date) {
+            try {
+                const key = getDiaryCacheKey(date);
+                localStorage.removeItem(key);
+                console.log('Cache invalidated for:', date);
+            } catch (e) {
+                console.warn('Cache invalidation error:', e);
+            }
+        }
+
+        function cleanupOldCaches() {
+            try {
+                const keys = Object.keys(localStorage).filter(k => k.startsWith(DIARY_CACHE_PREFIX));
+                if (keys.length > 7) {
+                    // Sort by date and remove oldest
+                    keys.sort().slice(0, keys.length - 7).forEach(k => localStorage.removeItem(k));
+                }
+            } catch (e) {
+                console.warn('Cache cleanup error:', e);
+            }
+        }
+        // ========== END CACHE HELPERS ==========
+
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('=== Food Diary v2.4 Initializing ===');
@@ -4468,42 +4532,69 @@
                 return;
             }
 
-            // Show loading skeletons
+            const date = formatDate(currentDate);
+
+            // 1. Try to render from cache INSTANTLY (no loading skeleton)
+            const cachedData = getCachedDiary(date);
+            if (cachedData) {
+                console.log('loadDiaryEntries: Rendering from cache instantly');
+                renderDiaryData(cachedData);
+                // Fetch fresh data in background (don't await)
+                fetchAndUpdateDiary(date, false);
+                return;
+            }
+
+            // 2. No cache - show loading and fetch
             showLoadingState();
 
             try {
-                const date = formatDate(currentDate);
-                const timestamp = Date.now(); // Cache buster
-                console.log('loadDiaryEntries: Fetching for clientId:', clientId, 'date:', date);
-                // Use authenticated API call
-                const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientId}&date=${date}&_t=${timestamp}`);
-                console.log('loadDiaryEntries: Response data:', data);
-
-                entries = data.entries || [];
-                console.log('loadDiaryEntries: Loaded', entries.length, 'entries');
-
-                // Properly merge goals with defaults to avoid undefined values
-                if (data.goals && Object.keys(data.goals).length > 0) {
-                    goals = {
-                        calorie_goal: data.goals.calorie_goal || 2000,
-                        protein_goal: data.goals.protein_goal || 150,
-                        carbs_goal: data.goals.carbs_goal || 200,
-                        fat_goal: data.goals.fat_goal || 65
-                    };
-                }
-                console.log('loadDiaryEntries: Goals set to:', goals);
-
-                // Update UI
-                updateSummary(data.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
-                renderMealEntries(data.mealGroups || {});
-
-                // Hide skeletons, show real content
-                hideLoadingState();
+                await fetchAndUpdateDiary(date, true);
             } catch (err) {
                 console.error('Error loading diary:', err);
                 showToast('Failed to load diary entries');
-                // Still hide skeletons on error
                 hideLoadingState();
+            }
+        }
+
+        // Helper to render diary data (used by both cache and fresh fetch)
+        function renderDiaryData(data) {
+            entries = data.entries || [];
+
+            // Properly merge goals with defaults
+            if (data.goals && Object.keys(data.goals).length > 0) {
+                goals = {
+                    calorie_goal: data.goals.calorie_goal || 2000,
+                    protein_goal: data.goals.protein_goal || 150,
+                    carbs_goal: data.goals.carbs_goal || 200,
+                    fat_goal: data.goals.fat_goal || 65
+                };
+            }
+
+            // Update UI
+            updateSummary(data.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
+            renderMealEntries(data.mealGroups || {});
+            hideLoadingState();
+        }
+
+        // Fetch fresh data and update cache
+        async function fetchAndUpdateDiary(date, showLoading) {
+            try {
+                const timestamp = Date.now();
+                console.log('loadDiaryEntries: Fetching fresh for date:', date);
+                const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientId}&date=${date}&_t=${timestamp}`);
+                console.log('loadDiaryEntries: Fresh data received');
+
+                // Cache the fresh data
+                setCachedDiary(date, data);
+
+                // Update UI with fresh data
+                renderDiaryData(data);
+            } catch (err) {
+                console.error('Error fetching fresh diary:', err);
+                if (showLoading) {
+                    throw err; // Re-throw if this was the primary load
+                }
+                // Silent fail for background refresh - cached data is still shown
             }
         }
 
@@ -4959,6 +5050,9 @@
                 const data = await apiPost('/.netlify/functions/food-diary', payload);
                 console.log('POST response data:', data);
 
+                // Invalidate cache so next visit shows fresh data
+                invalidateDiaryCache(formatDate(currentDate));
+
                 // Update optimistic entry with real ID from server
                 if (data.entry) {
                     updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
@@ -5178,6 +5272,9 @@
                     fat: newData.fat
                 });
 
+                // Invalidate cache so next visit shows fresh data
+                invalidateDiaryCache(formatDate(currentDate));
+
                 closeEditModal();
 
                 // Update DOM element
@@ -5250,6 +5347,9 @@
                 await authenticatedFetch(`/.netlify/functions/food-diary?entryId=${entryId}`, {
                     method: 'DELETE'
                 });
+
+                // Invalidate cache so next visit shows fresh data
+                invalidateDiaryCache(formatDate(currentDate));
 
                 closeEditModal();
 
@@ -5456,6 +5556,9 @@
                     fat: foodData.fat,
                     foodSource: 'nutrition_label'
                 });
+
+                // Invalidate cache so next visit shows fresh data
+                invalidateDiaryCache(formatDate(currentDate));
 
                 showToast('Food added!');
 
@@ -5750,6 +5853,9 @@
                     notes: `From meal plan (${mealType})`
                 });
 
+                // Invalidate cache so next visit shows fresh data
+                invalidateDiaryCache(formatDate(currentDate));
+
                 // Update optimistic entry with real ID
                 if (data.entry) {
                     updateOptimisticEntryWithRealId(tempId, data.entry, currentMealType);
@@ -5900,6 +6006,9 @@
                     foodSource: 'favorite',
                     notes: `From favorites (${fav.meal_type || 'meal'})`
                 });
+
+                // Invalidate cache so next visit shows fresh data
+                invalidateDiaryCache(formatDate(currentDate));
 
                 // Update optimistic entry with real ID
                 if (data.entry) {
@@ -6105,6 +6214,9 @@
                 console.log('DELETE - Response:', response.status, data);
 
                 if (!response.ok) throw new Error(data.error || 'Failed to delete entry');
+
+                // Invalidate cache so next visit shows fresh data
+                invalidateDiaryCache(formatDate(currentDate));
 
                 // Remove from DOM
                 const entryEl = document.getElementById(`entry-${entryId}`);
