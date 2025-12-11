@@ -2285,6 +2285,43 @@
             background: rgba(255,255,255,0.1);
         }
 
+        .ai-meal-type-selector {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ai-meal-type-selector label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+
+        .ai-meal-type-btn {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.1);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .ai-meal-type-btn:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+
+        .ai-meal-type-btn.selected {
+            background: #34d399;
+            color: #065f46;
+            border-color: #34d399;
+        }
+
         .ai-input-container {
             display: flex;
             gap: 8px;
@@ -7961,10 +7998,30 @@
             sendAIMessage();
         }
 
+        // Track selected meal type for AI food log
+        let selectedAIMealType = null;
+
         // Show food log preview from AI
         function showFoodLogPreview(foodData) {
             const container = document.getElementById('aiChatMessages');
             container.classList.add('has-messages');
+
+            // Determine default meal type based on time
+            const hour = new Date().getHours();
+            let defaultMealType = foodData.meal_type || 'snack';
+            if (!foodData.meal_type) {
+                if (hour >= 5 && hour < 11) defaultMealType = 'breakfast';
+                else if (hour >= 11 && hour < 15) defaultMealType = 'lunch';
+                else if (hour >= 15 && hour < 21) defaultMealType = 'dinner';
+                else defaultMealType = 'snack';
+            }
+            selectedAIMealType = defaultMealType;
+
+            const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+            const mealTypeButtons = mealTypes.map(type =>
+                `<button class="ai-meal-type-btn ${type === defaultMealType ? 'selected' : ''}"
+                         onclick="selectAIMealType('${type}')">${type.charAt(0).toUpperCase() + type.slice(1)}</button>`
+            ).join('');
 
             const messageDiv = document.createElement('div');
             messageDiv.className = 'ai-message assistant food-log';
@@ -7976,8 +8033,12 @@
                         ${foodData.calories} cal • ${foodData.protein}g P • ${foodData.carbs}g C • ${foodData.fat}g F
                     </div>
                 </div>
+                <div class="ai-meal-type-selector">
+                    <label>Add to:</label>
+                    ${mealTypeButtons}
+                </div>
                 <div class="ai-food-log-actions">
-                    <button class="confirm-btn" onclick="confirmAIFoodLog()">✓ Add to ${foodData.meal_type || 'diary'}</button>
+                    <button class="confirm-btn" onclick="confirmAIFoodLog()">✓ Add</button>
                     <button class="cancel-btn" onclick="cancelAIFoodLog()">Cancel</button>
                 </div>
             `;
@@ -7986,21 +8047,26 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        // Select meal type for AI food log
+        function selectAIMealType(mealType) {
+            selectedAIMealType = mealType;
+            // Update button states
+            document.querySelectorAll('.ai-meal-type-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.textContent.toLowerCase() === mealType) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+
         // Confirm and add food from AI
         async function confirmAIFoodLog() {
             if (!pendingFoodLog) return;
 
             const food = pendingFoodLog;
 
-            // Determine meal type or use current time to guess
-            let mealType = food.meal_type || 'snack';
-            const hour = new Date().getHours();
-            if (!food.meal_type) {
-                if (hour >= 5 && hour < 11) mealType = 'breakfast';
-                else if (hour >= 11 && hour < 15) mealType = 'lunch';
-                else if (hour >= 15 && hour < 21) mealType = 'dinner';
-                else mealType = 'snack';
-            }
+            // Use the user-selected meal type, or fall back to time-based default
+            let mealType = selectedAIMealType || 'snack';
 
             try {
                 // Use authenticated API call
@@ -8016,8 +8082,9 @@
                     servingSize: '1 serving'
                 });
 
-                // Clear pending and show success FIRST
+                // Clear pending and selected meal type, show success FIRST
                 pendingFoodLog = null;
+                selectedAIMealType = null;
                 addChatMessage(`Added "${food.food_name}" to your ${mealType}!`, 'assistant');
 
                 // Refresh diary (errors here won't affect the success message)
@@ -8038,6 +8105,7 @@
         // Cancel food log from AI
         function cancelAIFoodLog() {
             pendingFoodLog = null;
+            selectedAIMealType = null;
             addChatMessage('No problem! Let me know if you want to log something else.', 'assistant');
         }
 
