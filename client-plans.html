@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/icons/logo.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zique Fitness">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/logo.png">
     <title>My Plans - Zique Fitness Nutrition</title>
     <script src="/js/theme.js"></script>
     <script src="/js/branding.js" defer></script>
@@ -846,5 +853,7 @@
     </script>
     <!-- Fallback for Safari PWA cached script -->
     <script>if(typeof lucide !== 'undefined') lucide.createIcons();</script>
+    <!-- PWA Install Prompt -->
+    <script src="/js/pwa-install-prompt.js"></script>
 </body>
 </html>
