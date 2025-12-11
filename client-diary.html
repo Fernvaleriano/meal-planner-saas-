@@ -6959,7 +6959,8 @@
                 voiceTimeout = setTimeout(() => {
                     if (isListening) {
                         console.log('⏱️ Voice timeout - auto-stopping after 15s');
-                        voiceStatusText.textContent = '⏱️ Time limit reached';
+                        const statusText = document.getElementById('voiceStatusText');
+                        if (statusText) statusText.textContent = '⏱️ Time limit reached';
                         stopVoiceInput();
                     }
                 }, 15000);
@@ -7003,6 +7004,12 @@
                 } else if (event.error === 'aborted') {
                     // This is expected when we call abort(), not an error
                     console.log('Speech recognition was aborted');
+                } else if (event.error === 'network') {
+                    voiceStatusText.textContent = '📡 Network error - check connection';
+                } else if (event.error === 'audio-capture') {
+                    voiceStatusText.textContent = '🎤 Mic error - try again';
+                } else if (event.error === 'service-not-allowed') {
+                    voiceStatusText.textContent = '🚫 Voice not available in this browser';
                 } else {
                     voiceStatusText.textContent = '❌ Error: ' + event.error;
                 }
