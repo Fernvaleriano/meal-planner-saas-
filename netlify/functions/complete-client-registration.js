@@ -141,6 +141,21 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // Check if email is already registered as a coach
+        const { data: existingCoach, error: coachCheckError } = await supabase
+            .from('coaches')
+            .select('id')
+            .ilike('email', email)
+            .single();
+
+        if (existingCoach) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'This email is already registered as a coach account. Please use a different email.' })
+            };
+        }
+
         // Create the auth user
         let authUser = null;
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
