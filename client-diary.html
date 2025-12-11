@@ -7675,21 +7675,28 @@
         // Parse food suggestions from AI response
         function parseFoodSuggestions(text) {
             const suggestions = [];
-            const regex = /\[\[FOOD:\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\]\]/g;
+            // More robust regex that handles various whitespace and line breaks
+            const regex = /\[\[FOOD:\s*([^|\]]+?)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\]\]/gi;
             let match;
 
-            while ((match = regex.exec(text)) !== null) {
+            // Normalize text - remove extra whitespace and normalize line endings
+            const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+            while ((match = regex.exec(normalizedText)) !== null) {
                 suggestions.push({
                     name: match[1].trim(),
-                    calories: parseInt(match[2]),
-                    protein: parseInt(match[3]),
-                    carbs: parseInt(match[4]),
-                    fat: parseInt(match[5])
+                    calories: parseInt(match[2]) || 0,
+                    protein: parseInt(match[3]) || 0,
+                    carbs: parseInt(match[4]) || 0,
+                    fat: parseInt(match[5]) || 0
                 });
             }
 
             // Remove the suggestion markers from text
-            const cleanText = text.replace(regex, '').replace(/\n\s*\n/g, '\n').trim();
+            const cleanText = normalizedText
+                .replace(/\[\[FOOD:[^\]]+\]\]/gi, '')
+                .replace(/\n\s*\n+/g, '\n')
+                .trim();
 
             return { cleanText, suggestions };
         }

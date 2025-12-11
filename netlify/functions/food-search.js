@@ -105,11 +105,11 @@ exports.handler = async (event) => {
       if (favorites && favorites.length > 0) {
         favorites.forEach(fav => {
           // For favorites, assume the stored values are per serving
-          // Create default measures
+          // Create default measures - put serving and 100g first as sensible defaults
           const measures = [
             { label: 'serving', weight: 100 }, // Assume 100g per serving as default
-            { label: 'Gram', weight: 1 },
             { label: '100g', weight: 100 },
+            { label: 'Gram', weight: 1 },
             { label: 'Ounce', weight: 28 }
           ];
 
@@ -156,11 +156,11 @@ exports.handler = async (event) => {
             const servingWeight = entry.serving_size || 100;
             const multiplier = 100 / servingWeight;
 
-            // Create measures based on the stored serving info
+            // Create measures based on the stored serving info - put sensible default first
             const measures = [
               { label: entry.serving_unit || 'serving', weight: servingWeight },
-              { label: 'Gram', weight: 1 },
               { label: '100g', weight: 100 },
+              { label: 'Gram', weight: 1 },
               { label: 'Ounce', weight: 28 }
             ];
 
@@ -197,14 +197,15 @@ exports.handler = async (event) => {
         // Generate default measures based on serving unit
         const measures = [];
         if (food.servingUnit === 'g') {
-          measures.push({ label: 'Gram', weight: 1 });
+          // For gram-based foods, put 100g first as the sensible default
           measures.push({ label: '100g', weight: 100 });
+          measures.push({ label: 'Gram', weight: 1 });
           measures.push({ label: 'Ounce', weight: 28 });
         } else {
           // For non-gram units (serving, large, slice, cup, etc.)
           measures.push({ label: food.servingUnit, weight: food.servingSize || 100 });
-          measures.push({ label: 'Gram', weight: 1 });
           measures.push({ label: '100g', weight: 100 });
+          measures.push({ label: 'Gram', weight: 1 });
           measures.push({ label: 'Ounce', weight: 28 });
         }
 
