@@ -2,7 +2,7 @@
   "name": "Zique Fitness Meal Planner",
   "short_name": "Zique Fitness",
   "description": "AI-powered meal planning for fitness coaches and their clients",
-  "start_url": "/dashboard.html",
+  "start_url": "/portal.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0d9488",
