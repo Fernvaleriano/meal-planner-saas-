@@ -1,10 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
+const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Helper function to strip markdown formatting and special characters from text
 function stripMarkdown(text) {
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
         return rateLimitResponse(rateLimit.resetIn);
     }
 
-    if (!GEMINI_API_KEY) {
+    if (!ANTHROPIC_API_KEY) {
         return {
             statusCode: 500,
             headers,
@@ -112,8 +112,7 @@ exports.handler = async (event) => {
             ? `\nFOODS EATEN IN THE PAST 7 DAYS (avoid suggesting these repeatedly):\n${recentFoods.join(', ')}\n`
             : '';
 
-        const context = `
-You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''} You can:
+        const systemPrompt = `You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''} You can:
 1. Answer questions about nutrition and their progress
 2. Help them log food by parsing natural language (respond with JSON when they want to log)
 3. Suggest foods to help them hit their macro goals
@@ -146,37 +145,53 @@ Trigger phrases include: "I have", "in my fridge", "ingredients", "what can I ma
 4. If they pick one, respond with the log_food JSON format above
 
 **VARIETY IN FOOD SUGGESTIONS - CRITICAL:**
-When suggesting foods, you MUST vary your recommendations. Draw from these diverse categories:
+When suggesting foods, you MUST vary your recommendations. Be creative and suggest real branded products people actually buy. Draw from these diverse categories:
 
-HIGH-PROTEIN OPTIONS (rotate through these, don't just suggest chicken/salmon):
-- Poultry: chicken breast, turkey, ground turkey, chicken thighs
-- Fish/Seafood: salmon, tuna, shrimp, tilapia, cod, sardines, mahi-mahi
-- Meat: lean beef, ground beef, pork tenderloin, bison, lamb
-- Eggs & Dairy: eggs, egg whites, Greek yogurt, cottage cheese, cheese
+PROTEIN BARS & SNACKS (suggest specific brands!):
+- Bars: Quest bars, Barebells, RXBar, ONE bars, Built bars, Think! bars, KIND protein bars, Clif Builder's bars, Pure Protein bars, Grenade Carb Killa
+- Jerky & meat snacks: beef jerky, turkey sticks, Chomps sticks, Epic bars, Biltong
+- Other: protein chips (Quest, Legendary Foods), protein cookies, meat & cheese snack packs
+
+PROTEIN SHAKES & DRINKS:
+- Ready-to-drink: Premier Protein shakes, Fairlife protein shakes, Core Power, Muscle Milk, Orgain
+- Powders: whey protein shake, casein shake, plant protein shake
+- Other: protein coffee, protein smoothie
+
+HIGH-PROTEIN WHOLE FOODS:
+- Poultry: chicken breast, turkey, ground turkey, chicken thighs, rotisserie chicken
+- Fish/Seafood: salmon, tuna, shrimp, tilapia, cod, sardines, canned tuna
+- Meat: lean beef, ground beef, pork tenderloin, steak
+- Eggs & Dairy: eggs, egg whites, cottage cheese, string cheese, cheese cubes
 - Plant-based: tofu, tempeh, edamame, lentils, black beans, chickpeas
-- Quick options: deli turkey, rotisserie chicken, canned tuna, protein shake
+
+QUICK HIGH-PROTEIN SNACK COMBOS (suggest these creative pairings!):
+- Cottage cheese + fruit (berries, peaches, pineapple)
+- Apple slices + peanut butter or almond butter
+- Rice cakes + almond butter + banana
+- Hard boiled eggs + everything bagel seasoning
+- Deli turkey roll-ups with cheese
+- Tuna salad on crackers
+- Overnight oats with protein powder
+- Protein pancakes or waffles
+- Smoothie bowl with protein powder
 
 CARB OPTIONS:
-- Grains: rice, quinoa, oatmeal, bread, pasta, couscous, barley
-- Starchy: potatoes, sweet potatoes, corn, peas
+- Grains: rice, quinoa, oatmeal, bread, pasta, couscous
+- Starchy: potatoes, sweet potatoes, corn
 - Fruits: banana, apple, berries, orange, mango, grapes
 
 HEALTHY FATS:
-- Nuts: almonds, walnuts, peanuts, cashews
-- Seeds: chia seeds, flax, pumpkin seeds
-- Other: avocado, olive oil, nut butter, dark chocolate
-
-VEGETABLES (always encourage):
-- Leafy: spinach, kale, lettuce, arugula
-- Cruciferous: broccoli, cauliflower, brussels sprouts
-- Other: bell peppers, tomatoes, cucumber, carrots, zucchini
+- Nuts: almonds, walnuts, peanuts, cashews, mixed nuts
+- Seeds: chia seeds, pumpkin seeds
+- Other: avocado, nut butter, dark chocolate, trail mix
 
 **SUGGESTION RULES:**
 1. Check what they've eaten recently (past 7 days list above) - suggest something DIFFERENT
-2. Don't suggest the same protein source twice in one conversation
-3. Mix it up - if you suggested chicken last time, try fish, eggs, or plant-based next
-4. Consider meal timing - suggest breakfast foods in morning, heartier meals for lunch/dinner
-5. Offer 2-3 options when possible so they have choices
+2. NEVER suggest the same food twice in one conversation
+3. When asked for snack ideas, prioritize branded protein bars/shakes and creative combos over plain yogurt
+4. Mix it up - rotate through bars, shakes, whole foods, and combo ideas
+5. Consider convenience - suggest grab-and-go options for busy people
+6. Offer 2-3 specific options with actual brand names when possible
 
 **GENERAL ADVICE/QUESTIONS:**
 - Be encouraging and practical
@@ -192,43 +207,27 @@ VEGETABLES (always encourage):
 **When they still have calories remaining:**
 - When suggesting foods, consider what they still need (remaining macros)
 - If they need more protein, suggest high-protein options that fit within remaining calories
-- If they're low on calories, suggest nutrient-dense foods
-`;
+- If they're low on calories, suggest nutrient-dense foods`;
 
-        // Call Gemini AI
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `${context}\n\nUSER MESSAGE: "${message}"`
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1024
-                }
-            })
+        // Call Claude API
+        const anthropic = new Anthropic({
+            apiKey: ANTHROPIC_API_KEY
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Gemini API error:', response.status, errorText);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ error: 'AI assistant temporarily unavailable' })
-            };
-        }
-
-        const data = await response.json();
+        const response = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            system: systemPrompt,
+            messages: [
+                { role: 'user', content: message }
+            ]
+        });
 
         let aiResponse = '';
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            aiResponse = data.candidates[0].content.parts
-                .filter(p => p.text)
-                .map(p => p.text)
+        if (response.content && response.content.length > 0) {
+            aiResponse = response.content
+                .filter(block => block.type === 'text')
+                .map(block => block.text)
                 .join('');
         }
 
