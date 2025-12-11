@@ -3045,9 +3045,9 @@
                 case 'no_session':
                     modalIcon.textContent = '🔐';
                     modalTitle.textContent = 'Please Log In';
-                    modalMessage.textContent = 'You need to log in to access your coaching dashboard.';
+                    modalMessage.textContent = 'You need to log in to access your dashboard.';
                     modalBtn.textContent = 'Go to Login';
-                    modalBtn.href = 'login.html';
+                    modalBtn.href = 'portal.html';
                     break;
                 case 'trial_expired':
                     modalIcon.textContent = '⏰';
@@ -3092,7 +3092,7 @@
             }
             localStorage.removeItem('supabase.auth.token');
             sessionStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = 'portal.html';
         });
 
         // Toast notification function
@@ -3214,6 +3214,19 @@
 
                 const user = session.user;
                 console.log('User authenticated:', user.id);
+
+                // IMPORTANT: Check if user is a client first - redirect them to client dashboard
+                const { data: clientData } = await supabaseClient
+                    .from('clients')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                if (clientData) {
+                    console.log('User is a client, redirecting to client dashboard...');
+                    window.location.href = 'client-dashboard.html';
+                    return;
+                }
 
                 // Get coach data from database with retry logic for transient failures
                 let coachData = null;
