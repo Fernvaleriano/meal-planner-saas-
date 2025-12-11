@@ -1,6 +1,6 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v7';
-const STATIC_CACHE = 'zique-static-v7';
+const CACHE_NAME = 'zique-fitness-v8';
+const STATIC_CACHE = 'zique-static-v8';
 const DATA_CACHE = 'zique-data-v5';
 const CDN_CACHE = 'zique-cdn-v3';
 
@@ -8,6 +8,7 @@ const CDN_CACHE = 'zique-cdn-v3';
 const STATIC_FILES = [
   '/',
   '/index.html',
+  '/portal.html',
   '/dashboard.html',
   '/planner.html',
   '/view-plan.html',
@@ -191,7 +192,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Offline - try cache
           return caches.match(request).then((response) => {
-            return response || caches.match('/dashboard.html');
+            return response || caches.match('/portal.html');
           });
         })
     );
@@ -235,7 +236,7 @@ self.addEventListener('push', (event) => {
       badge: '/icons/icon-72x72.png',
       vibrate: [100, 50, 100],
       data: {
-        url: data.url || '/dashboard.html'
+        url: data.url || '/portal.html'
       }
     };
     event.waitUntil(
@@ -247,7 +248,7 @@ self.addEventListener('push', (event) => {
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/dashboard.html';
+  const url = event.notification.data?.url || '/portal.html';
   event.waitUntil(
     clients.openWindow(url)
   );
