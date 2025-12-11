@@ -2328,6 +2328,12 @@
             transform: none;
         }
 
+        .ai-input-container input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: rgba(0,0,0,0.4);
+        }
+
         .ai-loading {
             display: flex;
             align-items: center;
@@ -7459,22 +7465,38 @@
         // Send message to AI
         async function sendAIMessage() {
             const input = document.getElementById('aiInput');
+            const sendBtn = document.getElementById('aiSendBtn');
+            const loadingEl = document.getElementById('aiLoading');
             const message = input.value.trim();
 
             if (!message) return;
 
-            // Clear input
+            // Prevent double-submit
+            if (sendBtn.disabled) return;
+
+            // Clear input and disable immediately
             input.value = '';
+            sendBtn.disabled = true;
+            input.disabled = true;
 
             // Add user message to chat
             addChatMessage(message, 'user');
 
             // Show loading
-            document.getElementById('aiLoading').style.display = 'flex';
-            document.getElementById('aiSendBtn').disabled = true;
+            loadingEl.style.display = 'flex';
 
             try {
-                // Use authenticated API call
+                // IMPORTANT: Refresh diary data first to ensure chatbot has accurate calories/goals
+                // This ensures any changes made by client or coach are reflected immediately
+                try {
+                    await loadDiaryEntries();
+                    updateSummary();
+                } catch (refreshErr) {
+                    console.warn('Could not refresh diary data, using cached values:', refreshErr);
+                    // Continue with cached data if refresh fails
+                }
+
+                // Use authenticated API call with fresh data
                 const data = await apiPost('/.netlify/functions/client-diary-ai', {
                     clientId: clientId,
                     clientFirstName: clientFirstName,
@@ -7484,9 +7506,11 @@
                     totals: currentTotals || { calories: 0, protein: 0, carbs: 0, fat: 0 }
                 });
 
-                // Hide loading
-                document.getElementById('aiLoading').style.display = 'none';
-                document.getElementById('aiSendBtn').disabled = false;
+                // Hide loading and re-enable inputs
+                loadingEl.style.display = 'none';
+                sendBtn.disabled = false;
+                input.disabled = false;
+                input.focus();
 
                 if (data.error) {
                     addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant');
@@ -7504,8 +7528,11 @@
 
             } catch (err) {
                 console.error('AI error:', err);
-                document.getElementById('aiLoading').style.display = 'none';
-                document.getElementById('aiSendBtn').disabled = false;
+                // Always re-enable inputs on error
+                loadingEl.style.display = 'none';
+                sendBtn.disabled = false;
+                input.disabled = false;
+                input.focus();
                 addChatMessage('Sorry, I couldn\'t connect to the AI. Please try again.', 'assistant');
             }
         }
