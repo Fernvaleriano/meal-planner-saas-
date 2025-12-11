@@ -17,7 +17,9 @@
 
         // Priority: saved preference > default to dark
         const theme = savedTheme || DARK;
-        setTheme(theme, false);
+
+        // Always save the theme to ensure it persists (prevents system theme override)
+        setTheme(theme, true);
     }
 
     // Set the theme
@@ -69,10 +71,24 @@
     }
 
     // Listen for system theme changes
+    // Note: We ignore system theme changes since we always save user preference on init
+    // This prevents unexpected theme switches in PWA context where localStorage can be unreliable
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        // Only auto-switch if user hasn't set a preference
-        if (!localStorage.getItem(THEME_KEY)) {
-            setTheme(e.matches ? DARK : LIGHT, false);
+        // Only auto-switch if user explicitly hasn't set a preference AND localStorage is working
+        try {
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            // If there's any saved preference, don't auto-switch
+            if (savedTheme) {
+                return;
+            }
+            // No preference saved - but we default to dark anyway, so only switch if system is dark
+            if (e.matches) {
+                setTheme(DARK, true);
+            }
+            // If system goes to light, we still stay dark (user hasn't opted for light)
+        } catch (err) {
+            // localStorage not available, stay with current theme
+            console.warn('Theme: localStorage not available');
         }
     });
 
