@@ -28,7 +28,8 @@ exports.handler = async (event, context) => {
       allergies, dislikedFoods, preferredFoods, cookingEquipment,
       useProteinPowder, proteinPowderBrand, proteinPowderCalories,
       proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
-      useBrandedFoods
+      useBrandedFoods,
+      password // Optional: if provided, create auth user immediately
     } = body;
 
     // Validate required fields
@@ -130,6 +131,71 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // Validate password requirements if creating account now
+    if (password) {
+      if (!email) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: 'Email is required when creating an account with a password',
+            code: 'EMAIL_REQUIRED_FOR_ACCOUNT'
+          })
+        };
+      }
+
+      if (password.length < 6) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: 'Password must be at least 6 characters',
+            code: 'PASSWORD_TOO_SHORT'
+          })
+        };
+      }
+    }
+
+    // If password is provided, create the auth user first
+    let authUserId = null;
+    if (password && email) {
+      console.log(`🔐 Creating auth user for client email: ${email}`);
+
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: email,
+        password: password,
+        email_confirm: true
+      });
+
+      if (authError) {
+        // Check if user already exists
+        if (authError.message.includes('already') || authError.message.includes('exists') || authError.message.includes('registered')) {
+          console.log(`⚠️ Email ${email} is already registered as a user`);
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({
+              error: 'This email is already registered. Please use a different email or invite the existing user.',
+              code: 'EMAIL_EXISTS'
+            })
+          };
+        }
+
+        console.error('❌ Auth error:', authError);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: 'Failed to create account: ' + authError.message,
+            code: 'AUTH_ERROR'
+          })
+        };
+      }
+
+      authUserId = authData.user.id;
+      console.log(`✅ Auth user created with ID: ${authUserId}`);
+    }
+
     // Insert new client with all fields
     const { data, error } = await supabase
       .from('clients')
@@ -170,7 +236,10 @@ exports.handler = async (event, context) => {
           protein_powder_carbs: proteinPowderCarbs || null,
           protein_powder_fat: proteinPowderFat || null,
           // Branded fitness foods
-          use_branded_foods: useBrandedFoods || false
+          use_branded_foods: useBrandedFoods || false,
+          // Account fields (if password was provided and auth user created)
+          user_id: authUserId || null,
+          registered_at: authUserId ? new Date().toISOString() : null
         }
       ])
       .select()
@@ -188,7 +257,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`✅ Created client: ${clientName} (ID: ${data.id})`);
+    const accountCreated = !!authUserId;
+    console.log(`✅ Created client: ${clientName} (ID: ${data.id})${accountCreated ? ' with account' : ''}`);
 
     return {
       statusCode: 200,
@@ -198,7 +268,8 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Headers': 'Content-Type'
       },
       body: JSON.stringify({
-        client: data
+        client: data,
+        accountCreated: accountCreated
       })
     };
 
