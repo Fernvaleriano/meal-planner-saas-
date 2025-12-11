@@ -2006,6 +2006,36 @@
                     <textarea id="clientNotes" placeholder="Any important information about this client..."></textarea>
                 </div>
 
+                <!-- Account Setup (only for new clients) -->
+                <div id="accountSetupSection">
+                    <h3 style="margin: 25px 0 15px 0; color: #9333ea;">🔐 Account Setup</h3>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="createAccountNow"> Create account with password now (skip email invitation)
+                        </label>
+                        <p style="margin-top: 8px; font-size: 13px; color: #666;">Enable this to set a password for the client right now. Useful for clients who may not receive emails. The client can log in immediately after you save.</p>
+                    </div>
+
+                    <div id="passwordFields" style="display: none; padding-left: 20px; border-left: 3px solid #9333ea;">
+                        <div class="form-group">
+                            <label for="clientPassword">Password *</label>
+                            <input type="password" id="clientPassword" placeholder="Minimum 6 characters" minlength="6">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="clientPasswordConfirm">Confirm Password *</label>
+                            <input type="password" id="clientPasswordConfirm" placeholder="Re-enter password">
+                        </div>
+
+                        <p id="passwordError" style="color: #e53e3e; font-size: 13px; display: none;"></p>
+
+                        <div style="background: #fff9e6; border: 1px solid #ffd700; padding: 12px; border-radius: 6px; font-size: 13px; color: #2d3748; margin-top: 10px;">
+                            ⚠️ <strong>Email is required</strong> when creating an account. The email will be the client's username for logging in.
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeClientModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="saveClientBtn">Save Client</button>
@@ -2643,6 +2673,15 @@
             modalTitle.textContent = 'Add New Client';
             clientForm.reset();
             document.getElementById('clientId').value = '';
+
+            // Show account setup section for new clients
+            document.getElementById('accountSetupSection').style.display = 'block';
+            document.getElementById('passwordFields').style.display = 'none';
+            document.getElementById('createAccountNow').checked = false;
+            document.getElementById('clientPassword').value = '';
+            document.getElementById('clientPasswordConfirm').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+
             clientModal.style.display = 'block';
         }
 
@@ -2703,6 +2742,9 @@
             // Notes
             document.getElementById('clientNotes').value = client.notes || '';
 
+            // Hide account setup section when editing (can't create account for existing client)
+            document.getElementById('accountSetupSection').style.display = 'none';
+
             clientModal.style.display = 'block';
         }
 
@@ -2722,6 +2764,39 @@
             if (!clientName) {
                 alert('Client name is required');
                 return;
+            }
+
+            // Check if creating account with password (only for new clients)
+            const createAccountNow = !clientId && document.getElementById('createAccountNow').checked;
+            const email = document.getElementById('clientEmail').value.trim();
+            const passwordError = document.getElementById('passwordError');
+
+            if (createAccountNow) {
+                const password = document.getElementById('clientPassword').value;
+                const passwordConfirm = document.getElementById('clientPasswordConfirm').value;
+
+                // Validate email is provided
+                if (!email) {
+                    passwordError.textContent = 'Email is required to create an account';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+
+                // Validate password length
+                if (password.length < 6) {
+                    passwordError.textContent = 'Password must be at least 6 characters';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+
+                // Validate passwords match
+                if (password !== passwordConfirm) {
+                    passwordError.textContent = 'Passwords do not match';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+
+                passwordError.style.display = 'none';
             }
 
             const saveBtn = document.getElementById('saveClientBtn');
@@ -2782,6 +2857,11 @@
                     defaultDietaryRestrictions: []
                 };
 
+                // Add password if creating account now
+                if (createAccountNow) {
+                    payload.password = document.getElementById('clientPassword').value;
+                }
+
                 let data;
                 if (clientId) {
                     // Update existing client
@@ -2792,7 +2872,10 @@
                     data = await apiPost('/.netlify/functions/create-client', payload);
                 }
 
-                alert(clientId ? 'Client updated successfully!' : 'Client added successfully!');
+                const successMsg = createAccountNow
+                    ? 'Client added successfully! They can now log in with their email and password.'
+                    : (clientId ? 'Client updated successfully!' : 'Client added successfully!');
+                alert(successMsg);
                 closeClientModal();
                 await loadClients();
 
@@ -2953,6 +3036,20 @@
         document.getElementById('useProteinPowder').addEventListener('change', (e) => {
             document.getElementById('proteinPowderFields').style.display =
                 e.target.checked ? 'block' : 'none';
+        });
+
+        // Create account now toggle
+        document.getElementById('createAccountNow').addEventListener('change', (e) => {
+            const passwordFields = document.getElementById('passwordFields');
+            const passwordError = document.getElementById('passwordError');
+            passwordFields.style.display = e.target.checked ? 'block' : 'none';
+            passwordError.style.display = 'none';
+
+            // Clear password fields when unchecking
+            if (!e.target.checked) {
+                document.getElementById('clientPassword').value = '';
+                document.getElementById('clientPasswordConfirm').value = '';
+            }
         });
 
         logoutBtn.addEventListener('click', async () => {
