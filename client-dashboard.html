@@ -8504,46 +8504,133 @@
 
         function startVoiceInput() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            // Clean up any existing recognition first to prevent conflicts
+            if (recognition) {
+                try {
+                    recognition.abort();
+                } catch(e) {
+                    console.log('Previous recognition cleanup:', e);
+                }
+                recognition = null;
+            }
+
             recognition = new SpeechRecognition();
             recognition.continuous = false;
-            recognition.interimResults = false;
+            recognition.interimResults = true;  // Show live transcript
             recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
 
             recognition.onstart = () => {
                 isRecording = true;
-                document.getElementById('aiHeroVoiceBtn').classList.add('recording');
+                const voiceBtn = document.getElementById('aiHeroVoiceBtn');
+                if (voiceBtn) {
+                    voiceBtn.classList.add('recording');
+                }
                 showToast('Listening... speak now');
             };
 
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
                 const input = document.getElementById('aiHeroInput');
-                input.value = transcript;
-                input.focus();
+                if (input) {
+                    // Show interim results while speaking
+                    if (interimTranscript && !finalTranscript) {
+                        input.value = interimTranscript;
+                    }
+                    // Set final result
+                    if (finalTranscript) {
+                        input.value = finalTranscript;
+                        input.focus();
+                        showToast('Got it!');
+                    }
+                }
             };
 
             recognition.onerror = (event) => {
                 console.error('Voice recognition error:', event.error);
-                stopVoiceInput();
-                if (event.error === 'not-allowed') {
-                    showToast('Microphone access denied');
+
+                // Handle specific error types
+                if (event.error === 'no-speech') {
+                    showToast('No speech detected. Try again.');
+                } else if (event.error === 'not-allowed') {
+                    showToast('Microphone access denied. Check browser settings.');
+                } else if (event.error === 'aborted') {
+                    // This is expected when we manually stop - don't show error
+                    console.log('Speech recognition was aborted (normal)');
+                    return;  // Don't call stopVoiceInput, onend will handle it
+                } else if (event.error === 'network') {
+                    showToast('Network error. Check your connection.');
+                } else if (event.error === 'audio-capture') {
+                    showToast('No microphone found. Check your device.');
+                } else if (event.error === 'service-not-allowed') {
+                    showToast('Speech service not available. Try again later.');
                 } else {
-                    showToast('Voice input error. Try again.');
+                    showToast('Voice error: ' + event.error);
                 }
+
+                // Reset UI state (onend may not fire for some errors)
+                resetVoiceUI();
             };
 
             recognition.onend = () => {
-                stopVoiceInput();
+                console.log('Speech recognition ended');
+                // Always clean up when recognition ends naturally
+                resetVoiceUI();
             };
 
-            recognition.start();
+            // Try to start - can fail if another recognition is active
+            try {
+                recognition.start();
+                console.log('Speech recognition started');
+            } catch (err) {
+                console.error('Failed to start speech recognition:', err);
+                showToast('Could not start microphone. Try again.');
+                resetVoiceUI();
+            }
         }
 
         function stopVoiceInput() {
-            isRecording = false;
-            document.getElementById('aiHeroVoiceBtn').classList.remove('recording');
+            console.log('Stopping voice input...');
+
             if (recognition) {
-                recognition.stop();
+                // Store reference and null it first to prevent re-entry
+                const rec = recognition;
+                recognition = null;
+
+                // Clear handlers to prevent callbacks after abort
+                rec.onstart = null;
+                rec.onresult = null;
+                rec.onerror = null;
+                rec.onend = null;
+
+                try {
+                    rec.abort();
+                } catch(e) {
+                    console.log('Recognition abort:', e);
+                }
+            }
+
+            resetVoiceUI();
+        }
+
+        function resetVoiceUI() {
+            isRecording = false;
+            recognition = null;
+            const voiceBtn = document.getElementById('aiHeroVoiceBtn');
+            if (voiceBtn) {
+                voiceBtn.classList.remove('recording');
             }
         }
 
