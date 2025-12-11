@@ -74,6 +74,31 @@ exports.handler = async (event) => {
             };
         }
 
+        // Fetch client's recent food history (past 7 days) for personalized suggestions
+        let recentFoods = [];
+        try {
+            const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const { data: recentEntries } = await supabase
+                .from('food_diary_entries')
+                .select('food_name, meal_type')
+                .eq('client_id', clientId)
+                .gte('entry_date', sevenDaysAgo.toISOString().split('T')[0])
+                .order('entry_date', { ascending: false })
+                .limit(50);
+
+            if (recentEntries && recentEntries.length > 0) {
+                // Get unique food names from the past week
+                const uniqueFoods = [...new Set(recentEntries.map(e => e.food_name.toLowerCase()))];
+                recentFoods = uniqueFoods.slice(0, 20); // Limit to 20 recent foods
+            }
+        } catch (historyErr) {
+            console.warn('Could not fetch food history:', historyErr);
+            // Continue without history - not critical
+        }
+
         // Calculate remaining macros
         const remaining = {
             calories: (goals?.calorie_goal || 2000) - (totals?.calories || 0),
@@ -83,6 +108,10 @@ exports.handler = async (event) => {
         };
 
         // Build context for AI
+        const recentFoodsList = recentFoods.length > 0
+            ? `\nFOODS EATEN IN THE PAST 7 DAYS (avoid suggesting these repeatedly):\n${recentFoods.join(', ')}\n`
+            : '';
+
         const context = `
 You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''} You can:
 1. Answer questions about nutrition and their progress
@@ -101,7 +130,7 @@ TODAY'S LOGGED FOODS:
 ${todayEntries && todayEntries.length > 0
     ? todayEntries.map(e => `- ${e.meal_type}: ${e.food_name} (${e.calories} cal, ${e.protein}g P)`).join('\n')
     : 'No foods logged yet today.'}
-
+${recentFoodsList}
 INSTRUCTIONS:
 
 **FOOD LOGGING - When user wants to log food:**
@@ -115,6 +144,39 @@ Trigger phrases include: "I have", "in my fridge", "ingredients", "what can I ma
 2. Keep suggestions simple and practical (5-15 min prep time)
 3. After suggesting, ask: "Would you like me to log one of these for you?"
 4. If they pick one, respond with the log_food JSON format above
+
+**VARIETY IN FOOD SUGGESTIONS - CRITICAL:**
+When suggesting foods, you MUST vary your recommendations. Draw from these diverse categories:
+
+HIGH-PROTEIN OPTIONS (rotate through these, don't just suggest chicken/salmon):
+- Poultry: chicken breast, turkey, ground turkey, chicken thighs
+- Fish/Seafood: salmon, tuna, shrimp, tilapia, cod, sardines, mahi-mahi
+- Meat: lean beef, ground beef, pork tenderloin, bison, lamb
+- Eggs & Dairy: eggs, egg whites, Greek yogurt, cottage cheese, cheese
+- Plant-based: tofu, tempeh, edamame, lentils, black beans, chickpeas
+- Quick options: deli turkey, rotisserie chicken, canned tuna, protein shake
+
+CARB OPTIONS:
+- Grains: rice, quinoa, oatmeal, bread, pasta, couscous, barley
+- Starchy: potatoes, sweet potatoes, corn, peas
+- Fruits: banana, apple, berries, orange, mango, grapes
+
+HEALTHY FATS:
+- Nuts: almonds, walnuts, peanuts, cashews
+- Seeds: chia seeds, flax, pumpkin seeds
+- Other: avocado, olive oil, nut butter, dark chocolate
+
+VEGETABLES (always encourage):
+- Leafy: spinach, kale, lettuce, arugula
+- Cruciferous: broccoli, cauliflower, brussels sprouts
+- Other: bell peppers, tomatoes, cucumber, carrots, zucchini
+
+**SUGGESTION RULES:**
+1. Check what they've eaten recently (past 7 days list above) - suggest something DIFFERENT
+2. Don't suggest the same protein source twice in one conversation
+3. Mix it up - if you suggested chicken last time, try fish, eggs, or plant-based next
+4. Consider meal timing - suggest breakfast foods in morning, heartier meals for lunch/dinner
+5. Offer 2-3 options when possible so they have choices
 
 **GENERAL ADVICE/QUESTIONS:**
 - Be encouraging and practical
