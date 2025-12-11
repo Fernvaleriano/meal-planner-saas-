@@ -305,7 +305,7 @@
             <div class="pwa-ios-steps">
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">1</span>
-                    <span>Tap <strong>•••</strong> at the bottom right</span>
+                    <span><strong>Long-press</strong> the URL bar at the bottom</span>
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">2</span>
