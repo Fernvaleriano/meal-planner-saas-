@@ -309,10 +309,14 @@
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">2</span>
-                    <span>Tap <strong>"Add to Home Screen"</strong></span>
+                    <span>Tap <strong>"Share"</strong></span>
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">3</span>
+                    <span>Tap <strong>"Add to Home Screen"</strong></span>
+                </div>
+                <div class="pwa-ios-step">
+                    <span class="pwa-ios-step-num">4</span>
                     <span>Tap <strong>"Add"</strong></span>
                 </div>
             </div>
