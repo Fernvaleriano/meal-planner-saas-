@@ -109,6 +109,27 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Check if email is already registered as a coach (prevent dual registration issues)
+    if (email) {
+      const { data: existingCoach } = await supabase
+        .from('coaches')
+        .select('id')
+        .ilike('email', email)
+        .single();
+
+      if (existingCoach) {
+        console.log(`⚠️ Email ${email} is already registered as a coach`);
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: 'This email is already registered as a coach account. Please use a different email for this client.',
+            code: 'EMAIL_IS_COACH'
+          })
+        };
+      }
+    }
+
     // Insert new client with all fields
     const { data, error } = await supabase
       .from('clients')
