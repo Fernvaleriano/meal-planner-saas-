@@ -5610,45 +5610,84 @@
 
         // Check authentication and load data
         async function init() {
-            // Try to refresh the session to get a fresh token
-            const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+            // FAST PATH: Check existing session first (instant, no network)
+            const { data: { session: existingSession } } = await supabaseClient.auth.getSession();
 
-            let session = null;
-
-            // Check if refresh was successful
-            if (refreshError) {
-                console.error('Session refresh failed:', refreshError);
-                // If refresh fails, try to get existing session as fallback
-                const { data: { session: existingSession } } = await supabaseClient.auth.getSession();
-                if (!existingSession) {
-                    // No valid session, redirect to login
-                    window.location.href = 'client-login.html';
-                    return;
-                }
-                session = existingSession;
-            } else {
-                // Use the refreshed session
-                session = refreshData?.session;
-            }
-
-            // Double-check we have a valid session
-            if (!session || !session.access_token) {
-                console.error('No valid session after refresh');
+            if (!existingSession) {
+                // No session at all, redirect to login
                 window.location.href = 'client-login.html';
                 return;
             }
 
-            // Get client data
-            const { data: clientData, error: clientError } = await supabaseClient
-                .from('clients')
-                .select('*')
-                .eq('user_id', session.user.id)
-                .single();
+            let session = existingSession;
 
-            if (clientError || !clientData) {
-                alert('Client data not found. Please contact your coach.');
-                await logout();
+            // Only refresh if token expires in less than 5 minutes
+            const expiresAt = session.expires_at || 0;
+            const fiveMinutesFromNow = Math.floor(Date.now() / 1000) + 300;
+
+            if (expiresAt < fiveMinutesFromNow) {
+                // Token expiring soon, refresh it
+                console.log('Token expiring soon, refreshing...');
+                const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+                if (!refreshError && refreshData?.session) {
+                    session = refreshData.session;
+                }
+            } else {
+                // Token still fresh, refresh in background (don't wait)
+                supabaseClient.auth.refreshSession().catch(() => {});
+            }
+
+            // Double-check we have a valid session
+            if (!session || !session.access_token) {
+                console.error('No valid session');
+                window.location.href = 'client-login.html';
                 return;
+            }
+
+            // Get client data - try cache first for instant load
+            let clientData = null;
+            const cachedClient = localStorage.getItem('zique_cached_client');
+
+            if (cachedClient) {
+                try {
+                    const { data, timestamp, userId } = JSON.parse(cachedClient);
+                    // Use cache if same user and less than 1 hour old
+                    if (userId === session.user.id && Date.now() - timestamp < 3600000) {
+                        clientData = data;
+                        console.log('Using cached client data');
+                        // Refresh in background
+                        supabaseClient.from('clients').select('*').eq('user_id', session.user.id).single()
+                            .then(({ data }) => {
+                                if (data) {
+                                    localStorage.setItem('zique_cached_client', JSON.stringify({
+                                        data, userId: session.user.id, timestamp: Date.now()
+                                    }));
+                                }
+                            }).catch(() => {});
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            // No valid cache, fetch from Supabase
+            if (!clientData) {
+                const { data, error: clientError } = await supabaseClient
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (clientError || !data) {
+                    alert('Client data not found. Please contact your coach.');
+                    await logout();
+                    return;
+                }
+
+                clientData = data;
+
+                // Cache for next time
+                localStorage.setItem('zique_cached_client', JSON.stringify({
+                    data: clientData, userId: session.user.id, timestamp: Date.now()
+                }));
             }
 
             currentClientId = clientData.id;
