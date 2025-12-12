@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, ScanLine, Heart, Flame } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet } from '../utils/api';
+import { apiGet, apiPost } from '../utils/api';
 
 function Dashboard() {
   const { clientData } = useAuth();
@@ -14,12 +14,23 @@ function Dashboard() {
     fat: 0
   });
   const [targets, setTargets] = useState({
-    calories: 2000,
-    protein: 150,
-    carbs: 200,
-    fat: 65
+    calories: 2600,
+    protein: 221,
+    carbs: 260,
+    fat: 75
   });
-  const [streak, setStreak] = useState(0);
+  const [selectedMealType, setSelectedMealType] = useState(null);
+  const [foodInput, setFoodInput] = useState('');
+  const [isLogging, setIsLogging] = useState(false);
+
+  // Auto-select meal type based on time
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) setSelectedMealType('breakfast');
+    else if (hour >= 11 && hour < 15) setSelectedMealType('lunch');
+    else if (hour >= 15 && hour < 21) setSelectedMealType('dinner');
+    else setSelectedMealType('snack');
+  }, []);
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -29,13 +40,11 @@ function Dashboard() {
     return 'Good evening';
   };
 
-  // Get first name from client name
-  const firstName = clientData?.client_name?.split(' ')[0] || 'there';
-
-  // Get initials for avatar
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const getGreetingSubtext = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Ready to start your day?';
+    if (hour < 17) return 'How is your day going?';
+    return 'How was your day?';
   };
 
   // Load today's progress
@@ -60,10 +69,10 @@ function Dashboard() {
 
         if (data.goals) {
           setTargets({
-            calories: data.goals.calorie_goal || 2000,
-            protein: data.goals.protein_goal || 150,
-            carbs: data.goals.carbs_goal || 200,
-            fat: data.goals.fat_goal || 65
+            calories: data.goals.calorie_goal || 2600,
+            protein: data.goals.protein_goal || 221,
+            carbs: data.goals.carbs_goal || 260,
+            fat: data.goals.fat_goal || 75
           });
         }
       } catch (err) {
@@ -76,188 +85,275 @@ function Dashboard() {
     loadProgress();
   }, [clientData?.id]);
 
-  // Calculate progress percentages
-  const getProgress = (current, target) => {
-    if (!target) return 0;
-    return Math.min(100, Math.round((current / target) * 100));
+  // Calculate overall progress percentage
+  const getOverallProgress = () => {
+    if (!targets.calories) return 0;
+    return Math.min(100, Math.round((todayProgress.calories / targets.calories) * 100));
   };
 
-  // Calculate stroke dashoffset for SVG ring
-  const getStrokeDashoffset = (current, target) => {
-    const circumference = 188.5; // 2 * PI * 30
-    const progress = getProgress(current, target);
-    return circumference - (progress / 100) * circumference;
+  // Format today's date
+  const formatTodayDate = () => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
-  // Render macro ring
-  const MacroRing = ({ type, current, target, color }) => (
-    <div className={`macro-ring ${type}`}>
-      <svg viewBox="0 0 70 70">
-        <circle className="bg" cx="35" cy="35" r="30" />
-        <circle
-          className="progress"
-          cx="35"
-          cy="35"
-          r="30"
-          style={{
-            stroke: color,
-            strokeDashoffset: getStrokeDashoffset(current, target)
-          }}
-        />
-      </svg>
-      <div className="macro-value">{Math.round(current)}</div>
-      <div className="macro-label">
-        {type === 'calories' ? 'cal' : `${Math.round(target)}g`}
+  // Handle food logging
+  const handleLogFood = async () => {
+    if (!foodInput.trim() || !selectedMealType) return;
+
+    setIsLogging(true);
+    try {
+      // Call AI to parse the food
+      const data = await apiPost('/.netlify/functions/client-diary-ai', {
+        clientId: clientData.id,
+        message: foodInput,
+        mealType: selectedMealType
+      });
+
+      // TODO: Show confirmation modal with parsed food
+      console.log('AI response:', data);
+      setFoodInput('');
+    } catch (err) {
+      console.error('Error logging food:', err);
+    } finally {
+      setIsLogging(false);
+    }
+  };
+
+  // Render progress ring with value inside
+  const ProgressRing = ({ current, target, color, label }) => {
+    const radius = 27;
+    const circumference = 2 * Math.PI * radius;
+    const progress = Math.min(100, (current / target) * 100);
+    const offset = circumference - (progress / 100) * circumference;
+
+    return (
+      <div className="progress-ring-container">
+        <svg viewBox="0 0 70 70" className="ring-svg">
+          <circle
+            cx="35"
+            cy="35"
+            r={radius}
+            className="ring-bg"
+          />
+          <circle
+            cx="35"
+            cy="35"
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+          />
+        </svg>
+        <div className="progress-ring-value">
+          <span className="current">{Math.round(current)}</span>
+          <span className="target">/{target}{label !== 'Calories' ? 'g' : ''}</span>
+        </div>
+        <div className="progress-ring-label">{label}</div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
-      <div>
-        {/* Skeleton loading */}
-        <div className="greeting-section">
-          <div className="skeleton skeleton-circle" style={{ width: '56px', height: '56px' }}></div>
-          <div style={{ flex: 1 }}>
-            <div className="skeleton skeleton-title"></div>
-            <div className="skeleton skeleton-text" style={{ width: '40%' }}></div>
+      <div className="dashboard-loading">
+        <div className="skeleton-greeting">
+          <div className="skeleton skeleton-circle" style={{ width: '64px', height: '64px' }}></div>
+          <div className="skeleton-text-group">
+            <div className="skeleton" style={{ width: '200px', height: '28px' }}></div>
+            <div className="skeleton" style={{ width: '150px', height: '16px', marginTop: '8px' }}></div>
           </div>
         </div>
-
-        <div className="card">
-          <div className="skeleton" style={{ height: '200px' }}></div>
-        </div>
-
-        <div className="quick-actions">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="skeleton" style={{ height: '100px' }}></div>
-          ))}
-        </div>
+        <div className="skeleton" style={{ height: '280px', borderRadius: '20px', marginTop: '20px' }}></div>
+        <div className="skeleton" style={{ height: '200px', borderRadius: '20px', marginTop: '16px' }}></div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="dashboard">
       {/* Greeting Section */}
       <div className="greeting-section">
-        <div className="greeting-avatar">
-          {getInitials(clientData?.client_name)}
+        <div className="greeting-with-avatar">
+          {clientData?.avatar_url ? (
+            <img
+              src={clientData.avatar_url}
+              alt={clientData.client_name}
+              className="greeting-avatar-img"
+            />
+          ) : (
+            <div className="greeting-avatar">
+              {clientData?.client_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
+            </div>
+          )}
+          <div className="greeting-text">
+            <h1>Welcome back, {clientData?.client_name?.split(' ')[0] || 'there'}!</h1>
+            <p className="greeting-subtext">{getGreetingSubtext()}</p>
+          </div>
         </div>
-        <div className="greeting-text">
-          <h1>
-            {getGreeting()}, {firstName}!
-            {streak > 0 && (
-              <span className="streak-badge">
-                <Flame size={14} /> {streak} day streak
-              </span>
-            )}
-          </h1>
-          <p className="greeting-subtext">
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </p>
+      </div>
+
+      {/* AI Hero Input Section */}
+      <div className="ai-hero-card">
+        <div className="ai-hero-header">
+          <div className="ai-hero-icon">
+            <span>⭐</span>
+          </div>
+          <div className="ai-hero-title">
+            <h3>What did you eat?</h3>
+            <span className="ai-powered-label">AI-powered logging</span>
+          </div>
+        </div>
+
+        {/* Meal Type Selector */}
+        <div className="meal-type-selector">
+          {[
+            { id: 'breakfast', icon: '🌅', label: 'Breakfast' },
+            { id: 'lunch', icon: '🌤️', label: 'Lunch' },
+            { id: 'dinner', icon: '🌙', label: 'Dinner' },
+            { id: 'snack', icon: '🍎', label: 'Snack' }
+          ].map(meal => (
+            <button
+              key={meal.id}
+              className={`meal-type-btn ${selectedMealType === meal.id ? 'active' : ''}`}
+              onClick={() => setSelectedMealType(meal.id)}
+            >
+              <span className="meal-icon">{meal.icon}</span>
+              <span className="meal-label">{meal.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Food Input */}
+        <textarea
+          className="food-input"
+          placeholder="Describe what you ate... e.g., 'Grilled chicken with rice and vegetables' or 'A large coffee with oat milk'"
+          value={foodInput}
+          onChange={(e) => setFoodInput(e.target.value)}
+          rows={2}
+        />
+
+        {/* Action Buttons */}
+        <div className="ai-hero-actions">
+          <button className="voice-btn">
+            <Mic size={20} />
+          </button>
+          <button
+            className="log-food-btn"
+            onClick={handleLogFood}
+            disabled={isLogging || !foodInput.trim()}
+          >
+            {isLogging ? 'Logging...' : 'Log Food'} <ChevronRight size={18} />
+          </button>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="ai-hero-quick-actions">
+          <button className="quick-action-pill">
+            <Camera size={16} /> Snap Photo
+          </button>
+          <button className="quick-action-pill">
+            <Search size={16} /> Search Foods
+          </button>
+          <button className="quick-action-pill">
+            <Heart size={16} /> Favorites
+          </button>
+          <button className="quick-action-pill">
+            <ScanLine size={16} /> Scan Label
+          </button>
         </div>
       </div>
 
       {/* Today's Progress Card */}
       <div className="progress-card">
-        <h2 className="section-title">Today's Progress</h2>
+        <div className="progress-card-header">
+          <div className="progress-card-title">
+            <BarChart3 size={20} className="progress-icon" />
+            <h3>Today's Progress</h3>
+          </div>
+          <span className="progress-date">{formatTodayDate()}</span>
+        </div>
 
-        <div className="macro-rings">
-          <MacroRing
-            type="calories"
+        <div className="progress-rings">
+          <ProgressRing
             current={todayProgress.calories}
             target={targets.calories}
-            color="var(--brand-primary)"
+            color="#3b82f6"
+            label="Calories"
           />
-          <MacroRing
-            type="protein"
+          <ProgressRing
             current={todayProgress.protein}
             target={targets.protein}
-            color="#3b82f6"
+            color="#ef4444"
+            label="Protein"
           />
-          <MacroRing
-            type="carbs"
+          <ProgressRing
             current={todayProgress.carbs}
             target={targets.carbs}
             color="#f59e0b"
+            label="Carbs"
           />
-          <MacroRing
-            type="fat"
+          <ProgressRing
             current={todayProgress.fat}
             target={targets.fat}
-            color="#ef4444"
+            color="#a855f7"
+            label="Fat"
           />
         </div>
 
-        <div className="overall-progress">
-          <div className="overall-progress-bar">
-            <div
-              className="overall-progress-fill"
-              style={{ width: `${getProgress(todayProgress.calories, targets.calories)}%` }}
-            ></div>
+        <div className="daily-progress-bar">
+          <div className="daily-progress-header">
+            <span>Daily Goal Progress</span>
+            <span className="daily-progress-percent">{getOverallProgress()}%</span>
           </div>
-          <div className="overall-progress-text">
-            <span>{todayProgress.calories} consumed</span>
-            <span>{Math.max(0, targets.calories - todayProgress.calories)} remaining</span>
+          <div className="daily-progress-track">
+            <div
+              className="daily-progress-fill"
+              style={{ width: `${getOverallProgress()}%` }}
+            />
           </div>
         </div>
 
-        <Link
-          to="/diary"
-          className="btn btn-primary"
-          style={{ width: '100%', marginTop: '16px' }}
-        >
-          View Full Diary
+        <Link to="/diary" className="view-diary-btn">
+          <BookOpen size={18} />
+          View Diary
         </Link>
       </div>
 
-      {/* Quick Actions */}
-      <h2 className="section-title" style={{ marginBottom: '12px' }}>Quick Log</h2>
-      <div className="quick-actions">
-        <Link to="/diary?action=photo" className="quick-action-btn">
-          <div className="quick-action-icon">
-            <Camera size={24} />
+      {/* Quick Actions Grid */}
+      <h3 className="section-heading">Quick Actions</h3>
+      <div className="quick-actions-grid">
+        <Link to="/settings" className="quick-action-card">
+          <div className="quick-action-card-icon teal">
+            <ClipboardCheck size={24} />
           </div>
-          <span className="quick-action-label">Photo Log</span>
+          <span>Check-In</span>
         </Link>
-
-        <Link to="/diary?action=search" className="quick-action-btn">
-          <div className="quick-action-icon">
-            <Search size={24} />
+        <Link to="/settings" className="quick-action-card">
+          <div className="quick-action-card-icon pink">
+            <TrendingUp size={24} />
           </div>
-          <span className="quick-action-label">Search</span>
+          <span>Progress</span>
         </Link>
-
-        <Link to="/diary?action=scan" className="quick-action-btn">
-          <div className="quick-action-icon">
-            <ScanLine size={24} />
+        <Link to="/plans" className="quick-action-card">
+          <div className="quick-action-card-icon yellow">
+            <BookOpen size={24} />
           </div>
-          <span className="quick-action-label">Scan Label</span>
+          <span>Recipes</span>
         </Link>
-
-        <Link to="/diary?action=favorites" className="quick-action-btn">
-          <div className="quick-action-icon">
+        <Link to="/diary" className="quick-action-card">
+          <div className="quick-action-card-icon red">
             <Heart size={24} />
           </div>
-          <span className="quick-action-label">Favorites</span>
+          <span>Favorites</span>
         </Link>
-      </div>
-
-      {/* Meal Plans Preview */}
-      <div className="card" style={{ marginTop: '20px' }}>
-        <h2 className="section-title">Your Meal Plans</h2>
-        <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
-          <p className="empty-state-text">View your meal plans</p>
-          <Link to="/plans" className="btn btn-outline" style={{ marginTop: '12px' }}>
-            Go to Meal Plans
-          </Link>
-        </div>
       </div>
     </div>
   );
