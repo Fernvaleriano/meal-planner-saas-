@@ -626,6 +626,114 @@
             color: var(--gray-400);
         }
 
+        /* ===== CLIENTS GRID AND CARDS ===== */
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .client-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--gray-100);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .client-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .client-card.archived {
+            opacity: 0.7;
+            background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .client-card {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .client-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .client-card.archived {
+            background: var(--gray-900);
+        }
+
+        /* Last Active Badge */
+        .client-last-active {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-top: 6px;
+        }
+
+        .client-last-active.active {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .client-last-active.recent {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .client-last-active.inactive {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        [data-theme="dark"] .client-last-active.active {
+            background: rgba(5, 150, 105, 0.2);
+            color: #34d399;
+        }
+
+        [data-theme="dark"] .client-last-active.recent {
+            background: rgba(37, 99, 235, 0.2);
+            color: #60a5fa;
+        }
+
+        [data-theme="dark"] .client-last-active.inactive {
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+        }
+
+        /* Invite Badge */
+        .invite-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: #fef3c7;
+            color: #d97706;
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .invite-badge {
+            background: rgba(217, 119, 6, 0.2);
+            color: #fbbf24;
+        }
+
+        /* Card Meta Row */
+        .client-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
         /* ===== COMPREHENSIVE MOBILE STYLES ===== */
         @media (max-width: 768px) {
             .top-nav {
@@ -769,6 +877,14 @@
                 word-break: break-word;
             }
 
+            .client-meta-row {
+                justify-content: center;
+            }
+
+            .client-last-active {
+                justify-content: center;
+            }
+
             .client-actions {
                 flex-direction: row;
                 flex-wrap: wrap;
@@ -779,9 +895,18 @@
             }
 
             .client-actions .btn {
-                flex: 1;
+                flex: 1 1 auto;
                 min-width: calc(50% - 4px);
+                max-width: calc(50% - 4px);
                 justify-content: center;
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+
+            /* When there are 3 buttons, make them equal width */
+            .client-actions .btn:only-child {
+                min-width: 100%;
+                max-width: 100%;
             }
 
             .client-info {
@@ -790,6 +915,7 @@
 
             .client-stats {
                 padding: 12px;
+                text-align: center;
             }
 
             .dietary-tags {
@@ -2509,6 +2635,12 @@
                     ? `<img src="${client.profile_photo_url}" alt="${escapeHtml(client.client_name)}">`
                     : initials;
 
+                // Format last active
+                const lastActive = formatLastActive(client.last_activity_at);
+
+                // Check if client needs invite (no user_id means they haven't signed up yet)
+                const needsInvite = !client.user_id && !client.is_archived;
+
                 // Build action buttons
                 let actionButtons = '';
                 if (client.is_archived) {
@@ -2518,6 +2650,7 @@
                     `;
                 } else {
                     actionButtons = `
+                        ${needsInvite ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite</button>` : ''}
                         <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); window.location.href='client-profile.html?clientId=${client.id}'">View</button>
                         <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
                         <button class="btn btn-warning btn-small" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">Archive</button>
@@ -2530,8 +2663,18 @@
                             <div class="client-avatar">${avatarHtml}</div>
                             <div>
                                 <div class="client-name">${escapeHtml(client.client_name)}</div>
-                                ${client.is_archived ? '<span class="archived-badge">Archived</span>' : ''}
-                                <span class="goal-badge ${goalClass}">${goalDisplay}</span>
+                                <div class="client-meta-row">
+                                    ${client.is_archived ? '<span class="archived-badge">Archived</span>' : ''}
+                                    <span class="goal-badge ${goalClass}">${goalDisplay}</span>
+                                    ${needsInvite ? '<span class="invite-badge">Not Invited</span>' : ''}
+                                </div>
+                                <div class="client-last-active ${lastActive.class}">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    ${lastActive.text}
+                                </div>
                             </div>
                         </div>
                         <div class="client-actions">
