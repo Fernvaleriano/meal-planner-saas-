@@ -1186,6 +1186,66 @@ body {
 }
 
 /* ========================================
+   DASHBOARD - COACH BUBBLE SECTION
+   ======================================== */
+.coach-bubble-section {
+    margin-bottom: 20px;
+}
+
+.coach-story-bubble {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.story-ring {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    padding: 3px;
+    background: var(--gray-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.story-ring.unseen {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 50%, #8b5cf6 100%);
+}
+
+[data-theme="dark"] .story-ring {
+    background: #475569;
+}
+
+[data-theme="dark"] .story-ring.unseen {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 50%, #8b5cf6 100%);
+}
+
+.coach-story-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--gray-100);
+}
+
+[data-theme="dark"] .coach-story-avatar {
+    border-color: #1e293b;
+}
+
+.coach-story-label {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+[data-theme="dark"] .coach-story-label {
+    color: #94a3b8;
+}
+
+/* ========================================
    DASHBOARD - AI HERO SECTION
    ======================================== */
 .ai-hero-card {
