@@ -5499,23 +5499,26 @@ body {
 
 .food-confirmation-macros {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
     background: rgba(0, 0, 0, 0.25);
     border-radius: 12px;
-    padding: 16px 12px;
+    padding: 16px 8px;
     margin-bottom: 16px;
 }
 
 .food-confirmation-macros .macro-item {
     text-align: center;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .food-confirmation-macros .macro-value {
     display: block;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: white;
+    white-space: nowrap;
 }
 
 .food-confirmation-macros .macro-item.protein .macro-value {

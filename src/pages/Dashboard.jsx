@@ -65,6 +65,7 @@ function Dashboard() {
   // Voice input state
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
+  const preVoiceInputRef = useRef(''); // Store input text before voice started
 
   // Food confirmation state
   const [parsedFoods, setParsedFoods] = useState(null);
@@ -235,6 +236,11 @@ function Dashboard() {
   const handleLogFood = async () => {
     if (!foodInput.trim() || !selectedMealType) return;
 
+    // Stop voice recording if active
+    if (isRecording) {
+      stopVoiceInput();
+    }
+
     setIsLogging(true);
     setLogSuccess(false);
 
@@ -355,6 +361,9 @@ function Dashboard() {
       recognitionRef.current = null;
     }
 
+    // Store current input before voice starts
+    preVoiceInputRef.current = foodInput;
+
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -378,12 +387,15 @@ function Dashboard() {
         }
       }
 
-      // Update input with transcript (show interim while speaking, final when done)
+      const baseText = preVoiceInputRef.current;
+
+      // Update input with transcript
       if (finalTranscript) {
-        setFoodInput(prev => prev ? `${prev} ${finalTranscript}` : finalTranscript);
+        // Final result - append to original text (before voice started)
+        setFoodInput(baseText ? `${baseText} ${finalTranscript}` : finalTranscript);
       } else if (interimTranscript) {
-        // Show interim transcript as preview
-        setFoodInput(interimTranscript);
+        // Show interim as preview (will be replaced by final)
+        setFoodInput(baseText ? `${baseText} ${interimTranscript}` : interimTranscript);
       }
     };
 
