@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet } from '../utils/api';
+import { apiGet, apiPost } from '../utils/api';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -38,6 +38,12 @@ function Plans() {
   });
   const [selectedDay, setSelectedDay] = useState(0);
 
+  // Meal action states
+  const [selectedMeal, setSelectedMeal] = useState(null);
+  const [showMealModal, setShowMealModal] = useState(false);
+  const [favorites, setFavorites] = useState(new Set());
+  const [actionLoading, setActionLoading] = useState(null);
+
   // Load plans with caching
   useEffect(() => {
     if (!clientData?.id) return;
@@ -66,13 +72,28 @@ function Plans() {
   const getPlanDetails = (plan) => {
     const planData = plan.plan_data || {};
     let numDays = 1;
+    let days = [];
+
     if (planData.currentPlan && Array.isArray(planData.currentPlan)) {
       numDays = planData.currentPlan.length;
+      days = planData.currentPlan;
     } else if (planData.days && Array.isArray(planData.days)) {
       numDays = planData.days.length;
+      days = planData.days;
     }
 
-    const calories = planData.calories || (planData.nutrition && planData.nutrition.calories) || '-';
+    // Get calories from first day's targets, or from plan-level data
+    let calories = '-';
+    if (days.length > 0 && days[0]?.targets?.calories) {
+      calories = days[0].targets.calories;
+    } else if (planData.dailyCalories) {
+      calories = planData.dailyCalories;
+    } else if (planData.calories) {
+      calories = planData.calories;
+    } else if (planData.nutrition?.calories) {
+      calories = planData.nutrition.calories;
+    }
+
     const goalLabels = {
       'lose weight': 'Lose Weight',
       'maintain': 'Maintain',
@@ -122,6 +143,119 @@ function Plans() {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  // Open meal detail modal
+  const openMealModal = (meal, dayIdx, mealIdx) => {
+    setSelectedMeal({ ...meal, dayIdx, mealIdx });
+    setShowMealModal(true);
+  };
+
+  // Close meal modal
+  const closeMealModal = () => {
+    setShowMealModal(false);
+    setSelectedMeal(null);
+  };
+
+  // Toggle favorite
+  const handleToggleFavorite = async (meal) => {
+    if (!clientData?.id) return;
+
+    const mealKey = `${meal.name}-${meal.type || meal.meal_type}`;
+    const isFavorited = favorites.has(mealKey);
+
+    try {
+      setActionLoading('favorite');
+
+      if (isFavorited) {
+        // Remove from favorites - would need favoriteId
+        // For now just update local state
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(mealKey);
+          return newSet;
+        });
+      } else {
+        // Add to favorites
+        await apiPost('/.netlify/functions/toggle-favorite', {
+          clientId: clientData.id,
+          coachId: clientData.coach_id,
+          mealName: meal.name,
+          mealType: meal.type || meal.meal_type || 'meal',
+          calories: meal.calories || 0,
+          protein: meal.protein || 0,
+          carbs: meal.carbs || 0,
+          fat: meal.fat || 0,
+          notes: meal.instructions || ''
+        });
+
+        setFavorites(prev => new Set([...prev, mealKey]));
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      alert('Failed to update favorite');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Log meal to diary
+  const handleLogMeal = async (meal) => {
+    if (!clientData?.id) return;
+
+    try {
+      setActionLoading('log');
+
+      const today = new Date().toISOString().split('T')[0];
+      await apiPost('/.netlify/functions/food-diary', {
+        clientId: clientData.id,
+        coachId: clientData.coach_id,
+        entryDate: today,
+        mealType: (meal.type || meal.meal_type || 'meal').toLowerCase(),
+        foodName: meal.name,
+        servingSize: 1,
+        servingUnit: 'serving',
+        numberOfServings: 1,
+        calories: meal.calories || 0,
+        protein: meal.protein || 0,
+        carbs: meal.carbs || 0,
+        fat: meal.fat || 0,
+        foodSource: 'meal_plan'
+      });
+
+      alert('Meal logged to diary!');
+      closeMealModal();
+    } catch (err) {
+      console.error('Error logging meal:', err);
+      alert('Failed to log meal');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Placeholder handlers for actions that need more complex implementation
+  const handleChangeMeal = (meal) => {
+    alert('Change meal feature coming soon! This will let you swap this meal for an alternative.');
+  };
+
+  const handleReviseMeal = (meal) => {
+    alert('Revise meal feature coming soon! This will let you modify this meal with AI.');
+  };
+
+  const handleCustomMeal = (meal) => {
+    alert('Custom meal feature coming soon! This will let you create a custom entry.');
+  };
+
+  const handleViewRecipe = (meal) => {
+    // For now show ingredients and instructions in an alert
+    // Later this could be a proper modal
+    const recipe = `📖 ${meal.name}\n\n`;
+    const ingredients = meal.ingredients?.length
+      ? `Ingredients:\n${meal.ingredients.map(i => `• ${typeof i === 'string' ? i : `${i.amount || ''} ${i.name || i}`}`).join('\n')}\n\n`
+      : '';
+    const instructions = meal.instructions ? `Instructions:\n${meal.instructions}` : 'No recipe available for this meal.';
+
+    alert(recipe + ingredients + instructions);
   };
 
   // View plan detail
@@ -250,7 +384,11 @@ function Plans() {
           {currentDay.plan && Array.isArray(currentDay.plan) && currentDay.plan.length > 0 ? (
             <div className="meals-list">
               {currentDay.plan.map((meal, idx) => (
-                <div key={idx} className="meal-card">
+                <div
+                  key={idx}
+                  className="meal-card meal-card-clickable"
+                  onClick={() => openMealModal(meal, selectedDay, idx)}
+                >
                   {meal.image_url && (
                     <div className="meal-card-image">
                       <img src={meal.image_url} alt={meal.name} />
@@ -271,22 +409,7 @@ function Plans() {
                       {meal.fat && <span className="macro-item">F: {meal.fat}g</span>}
                     </div>
 
-                    {meal.ingredients && meal.ingredients.length > 0 && (
-                      <div className="meal-ingredients">
-                        <h4>Ingredients</h4>
-                        <ul>
-                          {meal.ingredients.map((ing, ingIdx) => (
-                            <li key={ingIdx}>{typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {meal.instructions && (
-                      <div className="meal-instructions">
-                        <h4>Instructions</h4>
-                        <p>{meal.instructions}</p>
-                      </div>
-                    )}
+                    <p className="meal-card-tap-hint">Tap to see options</p>
                   </div>
                 </div>
               ))}
@@ -395,6 +518,92 @@ function Plans() {
             </div>
           )}
         </div>
+
+        {/* Meal Action Modal */}
+        {showMealModal && selectedMeal && (
+          <div className="meal-modal-overlay" onClick={closeMealModal}>
+            <div className="meal-modal" onClick={e => e.stopPropagation()}>
+              {/* Meal Image */}
+              {selectedMeal.image_url && (
+                <div className="meal-modal-image">
+                  <img src={selectedMeal.image_url} alt={selectedMeal.name} />
+                </div>
+              )}
+
+              {/* Meal Name */}
+              <h2 className="meal-modal-name">{selectedMeal.name}</h2>
+
+              {/* Action Buttons Grid */}
+              <div className="meal-action-buttons">
+                <button
+                  className={`meal-action-btn favorite ${favorites.has(`${selectedMeal.name}-${selectedMeal.type || selectedMeal.meal_type}`) ? 'active' : ''}`}
+                  onClick={() => handleToggleFavorite(selectedMeal)}
+                  disabled={actionLoading === 'favorite'}
+                >
+                  <Heart size={20} fill={favorites.has(`${selectedMeal.name}-${selectedMeal.type || selectedMeal.meal_type}`) ? 'currentColor' : 'none'} />
+                </button>
+
+                <button
+                  className="meal-action-btn log"
+                  onClick={() => handleLogMeal(selectedMeal)}
+                  disabled={actionLoading === 'log'}
+                >
+                  <ClipboardList size={18} />
+                  <span>Log</span>
+                </button>
+
+                <button
+                  className="meal-action-btn change"
+                  onClick={() => handleChangeMeal(selectedMeal)}
+                >
+                  <RefreshCw size={18} />
+                  <span>Change</span>
+                </button>
+
+                <button
+                  className="meal-action-btn revise"
+                  onClick={() => handleReviseMeal(selectedMeal)}
+                >
+                  <Pencil size={18} />
+                  <span>Revise</span>
+                </button>
+
+                <button
+                  className="meal-action-btn custom"
+                  onClick={() => handleCustomMeal(selectedMeal)}
+                >
+                  <Crosshair size={18} />
+                  <span>Custom</span>
+                </button>
+
+                <button
+                  className="meal-action-btn recipe"
+                  onClick={() => handleViewRecipe(selectedMeal)}
+                >
+                  <BookOpen size={18} />
+                  <span>Recipe</span>
+                </button>
+              </div>
+
+              {/* Macro Stats */}
+              <div className="meal-modal-macros">
+                <div className="meal-modal-macro">
+                  <span className="macro-label">Calories</span>
+                  <span className="macro-value">{selectedMeal.calories || 0}</span>
+                </div>
+                <div className="meal-modal-macro">
+                  <span className="macro-label">Protein</span>
+                  <span className="macro-value">{selectedMeal.protein || 0}g</span>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button className="meal-modal-close" onClick={closeMealModal}>
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
