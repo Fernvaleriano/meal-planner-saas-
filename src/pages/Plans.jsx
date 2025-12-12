@@ -200,45 +200,116 @@ function Plans() {
         <div className="day-content">
           <h2 className="day-title">Day {selectedDay + 1}</h2>
 
-          {/* Meals */}
-          {currentDay.meals ? (
+          {/* Daily Targets */}
+          {currentDay.targets && (
+            <div className="daily-targets-card">
+              <h3 className="daily-targets-title">Your Daily Targets</h3>
+              <div className="daily-targets-grid">
+                <div className="target-box calories">
+                  <span className="target-value">{currentDay.targets.calories || '-'}</span>
+                  <span className="target-label">Calories</span>
+                </div>
+                <div className="target-box protein">
+                  <span className="target-value">{currentDay.targets.protein || '-'}g</span>
+                  <span className="target-label">Protein</span>
+                </div>
+                <div className="target-box carbs">
+                  <span className="target-value">{currentDay.targets.carbs || '-'}g</span>
+                  <span className="target-label">Carbs</span>
+                </div>
+                <div className="target-box fat">
+                  <span className="target-value">{currentDay.targets.fat || '-'}g</span>
+                  <span className="target-label">Fat</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Meals - check for currentDay.plan array (PWA format) */}
+          {currentDay.plan && Array.isArray(currentDay.plan) && currentDay.plan.length > 0 ? (
+            <div className="meals-list">
+              {currentDay.plan.map((meal, idx) => (
+                <div key={idx} className="meal-card">
+                  {meal.image_url && (
+                    <div className="meal-card-image">
+                      <img src={meal.image_url} alt={meal.name} />
+                    </div>
+                  )}
+                  <div className="meal-card-content">
+                    <div className="meal-card-header">
+                      {getMealIcon(meal.meal_type || meal.type)}
+                      <span className="meal-card-type">{meal.meal_type || meal.type || `Meal ${idx + 1}`}</span>
+                    </div>
+                    <h3 className="meal-card-name">{meal.name || meal.title || 'Meal'}</h3>
+
+                    {/* Macros inline */}
+                    <div className="meal-macros-inline">
+                      {meal.calories && <span className="macro-item">{meal.calories} cal</span>}
+                      {meal.protein && <span className="macro-item">P: {meal.protein}g</span>}
+                      {meal.carbs && <span className="macro-item">C: {meal.carbs}g</span>}
+                      {meal.fat && <span className="macro-item">F: {meal.fat}g</span>}
+                    </div>
+
+                    {meal.ingredients && meal.ingredients.length > 0 && (
+                      <div className="meal-ingredients">
+                        <h4>Ingredients</h4>
+                        <ul>
+                          {meal.ingredients.map((ing, ingIdx) => (
+                            <li key={ingIdx}>{typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {meal.instructions && (
+                      <div className="meal-instructions">
+                        <h4>Instructions</h4>
+                        <p>{meal.instructions}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : currentDay.meals ? (
             <div className="meals-list">
               {Object.entries(currentDay.meals).map(([mealType, meal]) => (
                 <div key={mealType} className="meal-card">
-                  <div className="meal-card-header">
-                    {getMealIcon(mealType)}
-                    <span className="meal-card-type">{mealType}</span>
-                    {meal.calories && (
-                      <span className="meal-card-calories">{meal.calories} cal</span>
+                  <div className="meal-card-content">
+                    <div className="meal-card-header">
+                      {getMealIcon(mealType)}
+                      <span className="meal-card-type">{mealType}</span>
+                      {meal.calories && (
+                        <span className="meal-card-calories">{meal.calories} cal</span>
+                      )}
+                    </div>
+                    <h3 className="meal-card-name">{meal.name || meal.title || 'Meal'}</h3>
+                    {meal.description && (
+                      <p className="meal-card-description">{meal.description}</p>
+                    )}
+                    {meal.ingredients && meal.ingredients.length > 0 && (
+                      <div className="meal-ingredients">
+                        <h4>Ingredients</h4>
+                        <ul>
+                          {meal.ingredients.map((ing, idx) => (
+                            <li key={idx}>{typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {meal.instructions && (
+                      <div className="meal-instructions">
+                        <h4>Instructions</h4>
+                        <p>{meal.instructions}</p>
+                      </div>
+                    )}
+                    {meal.macros && (
+                      <div className="meal-macros">
+                        {meal.macros.protein && <span className="macro protein">P: {meal.macros.protein}g</span>}
+                        {meal.macros.carbs && <span className="macro carbs">C: {meal.macros.carbs}g</span>}
+                        {meal.macros.fat && <span className="macro fat">F: {meal.macros.fat}g</span>}
+                      </div>
                     )}
                   </div>
-                  <h3 className="meal-card-name">{meal.name || meal.title || 'Meal'}</h3>
-                  {meal.description && (
-                    <p className="meal-card-description">{meal.description}</p>
-                  )}
-                  {meal.ingredients && meal.ingredients.length > 0 && (
-                    <div className="meal-ingredients">
-                      <h4>Ingredients</h4>
-                      <ul>
-                        {meal.ingredients.map((ing, idx) => (
-                          <li key={idx}>{typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {meal.instructions && (
-                    <div className="meal-instructions">
-                      <h4>Instructions</h4>
-                      <p>{meal.instructions}</p>
-                    </div>
-                  )}
-                  {meal.macros && (
-                    <div className="meal-macros">
-                      {meal.macros.protein && <span className="macro protein">P: {meal.macros.protein}g</span>}
-                      {meal.macros.carbs && <span className="macro carbs">C: {meal.macros.carbs}g</span>}
-                      {meal.macros.fat && <span className="macro fat">F: {meal.macros.fat}g</span>}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -246,46 +317,54 @@ function Plans() {
             <div className="meals-list">
               {currentDay.breakfast && (
                 <div className="meal-card">
-                  <div className="meal-card-header">
-                    <Coffee size={18} className="meal-type-icon breakfast" />
-                    <span className="meal-card-type">Breakfast</span>
+                  <div className="meal-card-content">
+                    <div className="meal-card-header">
+                      <Coffee size={18} className="meal-type-icon breakfast" />
+                      <span className="meal-card-type">Breakfast</span>
+                    </div>
+                    <h3 className="meal-card-name">{currentDay.breakfast.name || currentDay.breakfast}</h3>
+                    {currentDay.breakfast.description && <p className="meal-card-description">{currentDay.breakfast.description}</p>}
                   </div>
-                  <h3 className="meal-card-name">{currentDay.breakfast.name || currentDay.breakfast}</h3>
-                  {currentDay.breakfast.description && <p className="meal-card-description">{currentDay.breakfast.description}</p>}
                 </div>
               )}
               {currentDay.lunch && (
                 <div className="meal-card">
-                  <div className="meal-card-header">
-                    <Sun size={18} className="meal-type-icon lunch" />
-                    <span className="meal-card-type">Lunch</span>
+                  <div className="meal-card-content">
+                    <div className="meal-card-header">
+                      <Sun size={18} className="meal-type-icon lunch" />
+                      <span className="meal-card-type">Lunch</span>
+                    </div>
+                    <h3 className="meal-card-name">{currentDay.lunch.name || currentDay.lunch}</h3>
+                    {currentDay.lunch.description && <p className="meal-card-description">{currentDay.lunch.description}</p>}
                   </div>
-                  <h3 className="meal-card-name">{currentDay.lunch.name || currentDay.lunch}</h3>
-                  {currentDay.lunch.description && <p className="meal-card-description">{currentDay.lunch.description}</p>}
                 </div>
               )}
               {currentDay.dinner && (
                 <div className="meal-card">
-                  <div className="meal-card-header">
-                    <Moon size={18} className="meal-type-icon dinner" />
-                    <span className="meal-card-type">Dinner</span>
+                  <div className="meal-card-content">
+                    <div className="meal-card-header">
+                      <Moon size={18} className="meal-type-icon dinner" />
+                      <span className="meal-card-type">Dinner</span>
+                    </div>
+                    <h3 className="meal-card-name">{currentDay.dinner.name || currentDay.dinner}</h3>
+                    {currentDay.dinner.description && <p className="meal-card-description">{currentDay.dinner.description}</p>}
                   </div>
-                  <h3 className="meal-card-name">{currentDay.dinner.name || currentDay.dinner}</h3>
-                  {currentDay.dinner.description && <p className="meal-card-description">{currentDay.dinner.description}</p>}
                 </div>
               )}
               {currentDay.snacks && (
                 <div className="meal-card">
-                  <div className="meal-card-header">
-                    <Apple size={18} className="meal-type-icon snack" />
-                    <span className="meal-card-type">Snacks</span>
+                  <div className="meal-card-content">
+                    <div className="meal-card-header">
+                      <Apple size={18} className="meal-type-icon snack" />
+                      <span className="meal-card-type">Snacks</span>
+                    </div>
+                    <h3 className="meal-card-name">
+                      {Array.isArray(currentDay.snacks)
+                        ? currentDay.snacks.map(s => s.name || s).join(', ')
+                        : currentDay.snacks.name || currentDay.snacks
+                      }
+                    </h3>
                   </div>
-                  <h3 className="meal-card-name">
-                    {Array.isArray(currentDay.snacks)
-                      ? currentDay.snacks.map(s => s.name || s).join(', ')
-                      : currentDay.snacks.name || currentDay.snacks
-                    }
-                  </h3>
                 </div>
               )}
             </div>

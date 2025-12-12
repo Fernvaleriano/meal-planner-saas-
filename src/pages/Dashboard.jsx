@@ -6,7 +6,7 @@ import { apiGet, apiPost, apiDelete } from '../utils/api';
 
 function Dashboard() {
   const { clientData } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start false for instant UI render
   const [todayProgress, setTodayProgress] = useState({
     calories: 0,
     protein: 0,
@@ -14,10 +14,10 @@ function Dashboard() {
     fat: 0
   });
   const [targets, setTargets] = useState({
-    calories: 2600,
-    protein: 221,
-    carbs: 260,
-    fat: 75
+    calories: clientData?.calorie_goal || 2600,
+    protein: clientData?.protein_goal || 221,
+    carbs: clientData?.carbs_goal || 260,
+    fat: clientData?.fat_goal || 75
   });
   const [selectedMealType, setSelectedMealType] = useState(null);
   const [foodInput, setFoodInput] = useState('');
@@ -53,24 +53,15 @@ function Dashboard() {
     return 'Good evening! How was your day?';
   };
 
-  // Load today's progress, meal plans, and supplements
+  // Load today's progress, meal plans, and supplements - progressive loading
   useEffect(() => {
-    const loadDashboardData = async () => {
-      if (!clientData?.id) return;
+    if (!clientData?.id) return;
 
-      const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
 
-      try {
-        // Load all data in parallel
-        const [diaryData, plansData, supplementsData, storiesData, intakeData] = await Promise.all([
-          apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${today}`).catch(() => null),
-          apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
-          clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
-          clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
-          apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${today}`).catch(() => null)
-        ]);
-
-        // Process diary data
+    // Load diary data (progress rings) - high priority
+    apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${today}`)
+      .then(diaryData => {
         if (diaryData?.entries) {
           const totals = diaryData.entries.reduce((acc, entry) => ({
             calories: acc.calories + (entry.calories || 0),
@@ -80,7 +71,6 @@ function Dashboard() {
           }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
           setTodayProgress(totals);
         }
-
         if (diaryData?.goals) {
           setTargets({
             calories: diaryData.goals.calorie_goal || 2600,
@@ -89,18 +79,46 @@ function Dashboard() {
             fat: diaryData.goals.fat_goal || 75
           });
         }
+      })
+      .catch(err => console.error('Error loading diary:', err));
 
-        // Process meal plans
+    // Load meal plans - medium priority
+    apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`)
+      .then(plansData => {
         if (plansData?.plans) {
-          setMealPlans(plansData.plans.slice(0, 3)); // Show up to 3 plans
+          setMealPlans(plansData.plans.slice(0, 3));
         }
+      })
+      .catch(err => console.error('Error loading meal plans:', err));
 
-        // Process supplements
-        if (supplementsData?.protocols) {
-          setSupplements(supplementsData.protocols);
-        }
+    // Load supplements - medium priority
+    if (clientData.coach_id) {
+      apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`)
+        .then(supplementsData => {
+          if (supplementsData?.protocols) {
+            setSupplements(supplementsData.protocols);
+          }
+        })
+        .catch(err => console.error('Error loading supplements:', err));
 
-        // Process supplement intake - build a map of protocol_id -> taken
+      // Load coach stories - low priority
+      apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`)
+        .then(storiesData => {
+          if (storiesData) {
+            setCoachData({
+              name: storiesData.coachName,
+              avatar: storiesData.coachAvatar,
+              showAvatar: storiesData.showAvatarInGreeting
+            });
+            setHasStories(storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0));
+          }
+        })
+        .catch(err => console.error('Error loading coach stories:', err));
+    }
+
+    // Load supplement intake - medium priority
+    apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${today}`)
+      .then(intakeData => {
         if (intakeData?.intake) {
           const intakeMap = {};
           intakeData.intake.forEach(record => {
@@ -108,25 +126,10 @@ function Dashboard() {
           });
           setSupplementIntake(intakeMap);
         }
+      })
+      .catch(err => console.error('Error loading supplement intake:', err));
 
-        // Process coach stories
-        if (storiesData) {
-          setCoachData({
-            name: storiesData.coachName,
-            avatar: storiesData.coachAvatar,
-            showAvatar: storiesData.showAvatarInGreeting
-          });
-          setHasStories(storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0));
-        }
-      } catch (err) {
-        console.error('Error loading dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboardData();
-  }, [clientData?.id]);
+  }, [clientData?.id, clientData?.coach_id]);
 
   // Calculate overall progress percentage
   const getOverallProgress = () => {
@@ -278,22 +281,6 @@ function Dashboard() {
       </div>
     );
   };
-
-  if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="skeleton-greeting">
-          <div className="skeleton skeleton-circle" style={{ width: '64px', height: '64px' }}></div>
-          <div className="skeleton-text-group">
-            <div className="skeleton" style={{ width: '200px', height: '28px' }}></div>
-            <div className="skeleton" style={{ width: '150px', height: '16px', marginTop: '8px' }}></div>
-          </div>
-        </div>
-        <div className="skeleton" style={{ height: '280px', borderRadius: '20px', marginTop: '20px' }}></div>
-        <div className="skeleton" style={{ height: '200px', borderRadius: '20px', marginTop: '16px' }}></div>
-      </div>
-    );
-  }
 
   return (
     <div className="dashboard">
