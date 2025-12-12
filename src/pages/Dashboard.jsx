@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 
@@ -22,6 +22,8 @@ function Dashboard() {
   const [selectedMealType, setSelectedMealType] = useState(null);
   const [foodInput, setFoodInput] = useState('');
   const [isLogging, setIsLogging] = useState(false);
+  const [mealPlans, setMealPlans] = useState([]);
+  const [supplements, setSupplements] = useState([]);
 
   // Auto-select meal type based on time
   useEffect(() => {
@@ -47,42 +49,56 @@ function Dashboard() {
     return 'How was your day?';
   };
 
-  // Load today's progress
+  // Load today's progress, meal plans, and supplements
   useEffect(() => {
-    const loadProgress = async () => {
+    const loadDashboardData = async () => {
       if (!clientData?.id) return;
 
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${today}`);
+        // Load all data in parallel
+        const [diaryData, plansData, supplementsData] = await Promise.all([
+          apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${new Date().toISOString().split('T')[0]}`).catch(() => null),
+          apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
+          apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}`).catch(() => null)
+        ]);
 
-        if (data.entries) {
-          const totals = data.entries.reduce((acc, entry) => ({
+        // Process diary data
+        if (diaryData?.entries) {
+          const totals = diaryData.entries.reduce((acc, entry) => ({
             calories: acc.calories + (entry.calories || 0),
             protein: acc.protein + (entry.protein || 0),
             carbs: acc.carbs + (entry.carbs || 0),
             fat: acc.fat + (entry.fat || 0)
           }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-
           setTodayProgress(totals);
         }
 
-        if (data.goals) {
+        if (diaryData?.goals) {
           setTargets({
-            calories: data.goals.calorie_goal || 2600,
-            protein: data.goals.protein_goal || 221,
-            carbs: data.goals.carbs_goal || 260,
-            fat: data.goals.fat_goal || 75
+            calories: diaryData.goals.calorie_goal || 2600,
+            protein: diaryData.goals.protein_goal || 221,
+            carbs: diaryData.goals.carbs_goal || 260,
+            fat: diaryData.goals.fat_goal || 75
           });
         }
+
+        // Process meal plans
+        if (plansData?.plans) {
+          setMealPlans(plansData.plans.slice(0, 3)); // Show up to 3 plans
+        }
+
+        // Process supplements
+        if (supplementsData?.protocols) {
+          setSupplements(supplementsData.protocols);
+        }
       } catch (err) {
-        console.error('Error loading progress:', err);
+        console.error('Error loading dashboard data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadProgress();
+    loadDashboardData();
   }, [clientData?.id]);
 
   // Calculate overall progress percentage
@@ -344,17 +360,93 @@ function Dashboard() {
         </Link>
         <Link to="/plans" className="quick-action-card">
           <div className="quick-action-card-icon yellow">
-            <BookOpen size={24} />
+            <ChefHat size={24} />
           </div>
           <span>Recipes</span>
         </Link>
-        <Link to="/diary" className="quick-action-card">
+        <Link to="/plans" className="quick-action-card">
           <div className="quick-action-card-icon red">
             <Heart size={24} />
           </div>
           <span>Favorites</span>
         </Link>
       </div>
+
+      {/* My Meal Plans Section */}
+      <div className="meal-plans-section">
+        <h2 className="section-heading-icon">
+          <Utensils size={22} className="section-icon-svg" />
+          My Meal Plans
+        </h2>
+        <div className="meal-plans-container">
+          {mealPlans.length > 0 ? (
+            mealPlans.map((plan) => {
+              const numDays = plan.plan_data?.days?.length || 1;
+              const createdDate = new Date(plan.created_at);
+              const formattedDate = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              const formattedTime = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              const summary = plan.plan_data?.summary || plan.plan_data?.description || '';
+              const calories = plan.plan_data?.dailyCalories || plan.plan_data?.calories || '-';
+
+              return (
+                <Link to={`/plans/${plan.id}`} key={plan.id} className="meal-plan-card">
+                  <div className="plan-header">
+                    <div className="plan-title">{numDays}-Day Meal Plan</div>
+                    <div className="plan-date">{formattedDate} at {formattedTime}</div>
+                  </div>
+                  {summary && <div className="plan-summary">{summary}</div>}
+                  <div className="plan-details">
+                    <div className="plan-detail-item">
+                      <span className="plan-detail-label">Duration</span>
+                      <span className="plan-detail-value">{numDays} {numDays === 1 ? 'Day' : 'Days'}</span>
+                    </div>
+                    <div className="plan-detail-item">
+                      <span className="plan-detail-label">Calories</span>
+                      <span className="plan-detail-value">{calories} cal</span>
+                    </div>
+                    <div className="plan-detail-item">
+                      <span className="plan-detail-label">Goal</span>
+                      <span className="plan-detail-value">{plan.plan_data?.goal || '-'}</span>
+                    </div>
+                  </div>
+                  <button className="view-plan-btn">View Plan</button>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="empty-state">
+              <div className="empty-state-icon">🍽️</div>
+              <h3 className="empty-state-title">No Meal Plans Yet</h3>
+              <p className="empty-state-text">Your coach hasn't created any meal plans for you yet.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Supplements Section */}
+      {supplements.length > 0 && (
+        <div className="supplements-section">
+          <h2 className="section-heading-icon">
+            <Pill size={22} className="section-icon-svg supplement" />
+            Today's Supplements
+          </h2>
+          <div className="supplements-container">
+            {supplements.map((protocol) => (
+              <div key={protocol.id} className="supplement-protocol">
+                {protocol.supplements?.map((supp, idx) => (
+                  <div key={idx} className="supplement-item">
+                    <div className="supplement-info">
+                      <span className="supplement-name">{supp.name}</span>
+                      <span className="supplement-dosage">{supp.dosage}</span>
+                    </div>
+                    <div className="supplement-timing">{supp.timing || 'Any time'}</div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

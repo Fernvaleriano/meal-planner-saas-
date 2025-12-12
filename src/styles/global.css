@@ -1720,6 +1720,216 @@ body {
     flex-direction: column;
 }
 
+/* ========================================
+   DASHBOARD - MEAL PLANS SECTION
+   ======================================== */
+.meal-plans-section {
+    margin-bottom: 24px;
+}
+
+.section-heading-icon {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .section-heading-icon {
+    color: #f1f5f9;
+}
+
+.section-icon-svg {
+    color: var(--brand-primary);
+}
+
+.section-icon-svg.supplement {
+    color: #10b981;
+}
+
+.meal-plans-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.meal-plan-card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--gray-100);
+    text-decoration: none;
+    display: block;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .meal-plan-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.meal-plan-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    border-color: var(--brand-primary);
+}
+
+.plan-header {
+    margin-bottom: 12px;
+}
+
+.plan-title {
+    font-weight: 700;
+    color: var(--brand-primary);
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+}
+
+.plan-date {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.plan-summary {
+    background: rgba(13, 148, 136, 0.1);
+    border-left: 3px solid var(--brand-primary);
+    padding: 12px 16px;
+    border-radius: 0 12px 12px 0;
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+[data-theme="dark"] .plan-summary {
+    background: rgba(20, 184, 166, 0.15);
+    color: #94a3b8;
+}
+
+.plan-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--gray-50);
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .plan-details {
+    background: #0f172a;
+}
+
+.plan-detail-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 70px;
+}
+
+.plan-detail-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-bottom: 2px;
+}
+
+.plan-detail-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .plan-detail-value {
+    color: #f1f5f9;
+}
+
+.view-plan-btn {
+    width: 100%;
+    padding: 12px 24px;
+    background: var(--brand-gradient);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-plan-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+}
+
+/* ========================================
+   DASHBOARD - SUPPLEMENTS SECTION
+   ======================================== */
+.supplements-section {
+    margin-bottom: 24px;
+}
+
+.supplements-container {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .supplements-container {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.supplement-protocol {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.supplement-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-radius: 12px;
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .supplement-item {
+    background: #334155;
+    border-color: #475569;
+}
+
+.supplement-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.supplement-name {
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 2px;
+}
+
+[data-theme="dark"] .supplement-name {
+    color: #f1f5f9;
+}
+
+.supplement-dosage {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.supplement-timing {
+    font-size: 0.85rem;
+    color: #10b981;
+    font-weight: 500;
+}
+
 /* Responsive adjustments */
 @media (min-width: 640px) {
     .quick-actions-grid {
