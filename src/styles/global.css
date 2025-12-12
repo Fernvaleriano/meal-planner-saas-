@@ -3165,3 +3165,510 @@ body {
 .logout-item:active {
     opacity: 0.7;
 }
+
+/* ========================================
+   PLANS PAGE STYLES
+   ======================================== */
+.plans-page {
+    padding-bottom: 20px;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 20px;
+}
+
+[data-theme="dark"] .page-title {
+    color: #f1f5f9;
+}
+
+.plans-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-skeleton {
+    height: 180px;
+    border-radius: 16px;
+}
+
+/* Plans Grid */
+.plans-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--gray-100);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .plan-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.plan-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    border-color: var(--brand-primary);
+}
+
+.plan-card-header {
+    margin-bottom: 12px;
+}
+
+.plan-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    margin-bottom: 4px;
+}
+
+.plan-card-date {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.plan-card-summary {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: rgba(13, 148, 136, 0.1);
+    border-left: 3px solid var(--brand-primary);
+    border-radius: 0 12px 12px 0;
+}
+
+[data-theme="dark"] .plan-card-summary {
+    background: rgba(20, 184, 166, 0.15);
+    color: #94a3b8;
+}
+
+.plan-card-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--gray-50);
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .plan-card-details {
+    background: #0f172a;
+}
+
+/* Empty State Card */
+.empty-state-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 20px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .empty-state-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.empty-state-card .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+}
+
+.empty-state-card .empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .empty-state-card .empty-state-title {
+    color: #f1f5f9;
+}
+
+.empty-state-card .empty-state-text {
+    font-size: 0.95rem;
+    color: var(--gray-500);
+}
+
+/* Plan Detail View */
+.plan-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.back-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    border: none;
+    color: var(--gray-600);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .back-btn {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.back-btn:hover {
+    background: var(--gray-200);
+}
+
+.plan-detail-title h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+}
+
+[data-theme="dark"] .plan-detail-title h1 {
+    color: #f1f5f9;
+}
+
+.plan-detail-date {
+    font-size: 0.9rem;
+    color: var(--gray-500);
+}
+
+/* Plan Stats */
+.plan-stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.plan-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .plan-stat {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.plan-stat svg {
+    color: var(--brand-primary);
+}
+
+/* Day Navigator */
+.day-navigator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .day-navigator {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.day-nav-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    border: none;
+    color: var(--gray-600);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .day-nav-btn {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.day-nav-btn:hover:not(:disabled) {
+    background: var(--gray-200);
+}
+
+.day-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.day-tabs {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.day-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.day-tab {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    border: none;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .day-tab {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.day-tab:hover {
+    background: var(--gray-200);
+}
+
+.day-tab.active {
+    background: var(--brand-primary);
+    color: white;
+}
+
+/* Day Content */
+.day-content {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .day-content {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.day-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .day-title {
+    color: #f1f5f9;
+}
+
+/* Meals List */
+.meals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.meal-card {
+    background: var(--gray-50);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .meal-card {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+.meal-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.meal-type-icon {
+    flex-shrink: 0;
+}
+
+.meal-type-icon.breakfast { color: #f59e0b; }
+.meal-type-icon.lunch { color: #eab308; }
+.meal-type-icon.dinner { color: #8b5cf6; }
+.meal-type-icon.snack { color: #ef4444; }
+
+.meal-card-type {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: capitalize;
+}
+
+[data-theme="dark"] .meal-card-type {
+    color: #94a3b8;
+}
+
+.meal-card-calories {
+    margin-left: auto;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--brand-primary);
+}
+
+.meal-card-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .meal-card-name {
+    color: #f1f5f9;
+}
+
+.meal-card-description {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+[data-theme="dark"] .meal-card-description {
+    color: #94a3b8;
+}
+
+/* Meal Ingredients */
+.meal-ingredients {
+    margin-bottom: 12px;
+}
+
+.meal-ingredients h4,
+.meal-instructions h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .meal-ingredients h4,
+[data-theme="dark"] .meal-instructions h4 {
+    color: #e2e8f0;
+}
+
+.meal-ingredients ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.meal-ingredients li {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    padding: 4px 0;
+    padding-left: 16px;
+    position: relative;
+}
+
+[data-theme="dark"] .meal-ingredients li {
+    color: #94a3b8;
+}
+
+.meal-ingredients li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--brand-primary);
+}
+
+/* Meal Instructions */
+.meal-instructions {
+    margin-bottom: 12px;
+}
+
+.meal-instructions p {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    line-height: 1.6;
+}
+
+[data-theme="dark"] .meal-instructions p {
+    color: #94a3b8;
+}
+
+/* Meal Macros */
+.meal-macros {
+    display: flex;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .meal-macros {
+    border-color: #334155;
+}
+
+.meal-macros .macro {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.meal-macros .macro.protein {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.meal-macros .macro.carbs {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.meal-macros .macro.fat {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* Empty Day */
+.empty-day {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+}
+
+.empty-day p {
+    font-size: 0.95rem;
+}
