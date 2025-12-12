@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
 
       const fetchPromise = supabase
         .from('clients')
-        .select('id, coach_id, client_name, email, avatar_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
+        .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
         .eq('user_id', userId)
         .single()
         .then(({ data, error }) => {
