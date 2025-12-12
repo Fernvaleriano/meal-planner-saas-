@@ -1,151 +1,152 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Sun, LogOut, User, Mail, Target } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight } from 'lucide-react';
+import { apiGet } from '../utils/api';
 
 function Settings() {
   const { clientData, theme, toggleTheme, logout } = useAuth();
+  const [coachData, setCoachData] = useState(null);
+
+  // Load coach data
+  useEffect(() => {
+    const loadCoachData = async () => {
+      if (!clientData?.coach_id) return;
+      try {
+        const data = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${clientData.coach_id}`);
+        setCoachData(data);
+      } catch (err) {
+        console.error('Error loading coach data:', err);
+      }
+    };
+    loadCoachData();
+  }, [clientData?.coach_id]);
 
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  return (
-    <div>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '20px' }}>
-        Profile & Settings
-      </h1>
+  const getCoachInitial = (name) => {
+    if (!name) return '🏋️';
+    return name.charAt(0).toUpperCase();
+  };
 
-      {/* Profile Card */}
-      <div className="card" style={{ textAlign: 'center', padding: '32px 20px' }}>
-        <div
-          style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: 'var(--brand-gradient)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '2rem',
-            fontWeight: '600',
-            margin: '0 auto 16px'
-          }}
-        >
-          {getInitials(clientData?.client_name)}
-        </div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '4px' }}>
-          {clientData?.client_name || 'User'}
-        </h2>
-        <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem' }}>
-          {clientData?.email || ''}
-        </p>
+  return (
+    <div className="settings-page">
+      {/* Profile Header */}
+      <div className="profile-header">
+        {clientData?.profile_photo_url ? (
+          <img
+            src={clientData.profile_photo_url}
+            alt={clientData.client_name}
+            className="profile-header-avatar-img"
+          />
+        ) : (
+          <div className="profile-header-avatar">
+            {getInitials(clientData?.client_name)}
+          </div>
+        )}
+        <h1 className="profile-header-name">{clientData?.client_name || 'User'}</h1>
+        <p className="profile-header-email">{clientData?.email || ''}</p>
       </div>
 
-      {/* Settings Options */}
-      <div className="card" style={{ marginTop: '16px' }}>
-        <h3 style={{ fontWeight: '600', marginBottom: '16px' }}>Settings</h3>
+      {/* My Coach Section */}
+      <div className="settings-card">
+        <div className="settings-card-title">MY COACH</div>
+        <div className="settings-item coach-item">
+          <div className="coach-info">
+            {coachData?.brand_logo_url ? (
+              <img
+                src={coachData.brand_logo_url}
+                alt={coachData.coach_name}
+                className="coach-avatar-img"
+              />
+            ) : (
+              <div className="coach-avatar">
+                {getCoachInitial(coachData?.coach_name)}
+              </div>
+            )}
+            <div className="coach-details">
+              <div className="coach-name">{coachData?.coach_name || 'Loading...'}</div>
+              <div className="coach-label">Nutrition Coach</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {/* Theme Toggle */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 0',
-            borderBottom: '1px solid var(--gray-200)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-            <span>Dark Mode</span>
+      {/* Profile Section */}
+      <div className="settings-card">
+        <div className="settings-card-title">PROFILE</div>
+        <div className="settings-item clickable">
+          <div className="settings-item-left">
+            <div className="settings-icon-box teal">
+              <Camera size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Profile Photo</div>
+              <div className="settings-item-subtitle">Change your profile photo</div>
+            </div>
+          </div>
+          <ChevronRight size={20} className="settings-chevron" />
+        </div>
+      </div>
+
+      {/* Preferences Section */}
+      <div className="settings-card">
+        <div className="settings-card-title">PREFERENCES</div>
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box purple">
+              <Moon size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Dark Mode</div>
+              <div className="settings-item-subtitle">Easier on the eyes at night</div>
+            </div>
           </div>
           <button
             onClick={toggleTheme}
-            style={{
-              width: '48px',
-              height: '28px',
-              borderRadius: '14px',
-              background: theme === 'dark' ? 'var(--brand-primary)' : 'var(--gray-300)',
-              border: 'none',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'background 0.2s'
-            }}
+            className={`toggle-switch ${theme === 'dark' ? 'active' : ''}`}
+            aria-label="Toggle dark mode"
           >
-            <span
-              style={{
-                position: 'absolute',
-                width: '22px',
-                height: '22px',
-                background: 'white',
-                borderRadius: '50%',
-                top: '3px',
-                left: theme === 'dark' ? '23px' : '3px',
-                transition: 'left 0.2s'
-              }}
-            ></span>
+            <span className="toggle-knob"></span>
           </button>
         </div>
+      </div>
 
-        {/* Goals Info */}
-        {clientData && (
-          <div style={{ padding: '12px 0', borderBottom: '1px solid var(--gray-200)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <Target size={20} />
-              <span style={{ fontWeight: '600' }}>Daily Goals</span>
+      {/* Account Section */}
+      <div className="settings-card">
+        <div className="settings-card-title">ACCOUNT</div>
+        <div className="settings-item clickable">
+          <div className="settings-item-left">
+            <div className="settings-icon-box orange">
+              <Lock size={20} />
             </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '8px',
-              fontSize: '0.85rem',
-              color: 'var(--gray-600)'
-            }}>
-              <div>Calories: {clientData.calorie_goal || 2000}</div>
-              <div>Protein: {clientData.protein_goal || 150}g</div>
-              <div>Carbs: {clientData.carbs_goal || 200}g</div>
-              <div>Fat: {clientData.fat_goal || 65}g</div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Change Password</div>
+              <div className="settings-item-subtitle">Update your account password</div>
             </div>
           </div>
-        )}
+          <ChevronRight size={20} className="settings-chevron" />
+        </div>
 
-        {/* Logout */}
-        <button
-          onClick={logout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 0',
-            width: '100%',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--error)',
-            fontSize: '1rem',
-            textAlign: 'left'
-          }}
-        >
-          <LogOut size={20} />
-          <span>Sign Out</span>
+        <div className="settings-divider"></div>
+
+        <button className="settings-item logout-item" onClick={logout}>
+          <div className="settings-item-left">
+            <div className="settings-icon-box logout">
+              <LogOut size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title logout-text">Log Out</div>
+            </div>
+          </div>
         </button>
       </div>
 
-      {/* Link to classic version */}
-      <div style={{
-        marginTop: '24px',
-        textAlign: 'center',
-        fontSize: '0.85rem',
-        color: 'var(--gray-500)'
-      }}>
-        <a
-          href="/client-settings.html"
-          style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}
-        >
-          Use classic settings page
-        </a>
+      {/* Version Footer */}
+      <div className="settings-version">
+        Zique Fitness Nutrition v1.0
       </div>
     </div>
   );
