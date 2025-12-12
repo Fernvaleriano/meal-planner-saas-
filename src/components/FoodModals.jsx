@@ -234,7 +234,8 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     setSearching(true);
     try {
       const data = await apiGet(`/.netlify/functions/food-search?query=${encodeURIComponent(searchQuery)}&clientId=${clientData?.id}`);
-      setResults(Array.isArray(data) ? data : []);
+      // API returns { results: [...], query: "..." }
+      setResults(Array.isArray(data?.results) ? data.results : []);
     } catch (err) {
       console.error('Search error:', err);
       setResults([]);
