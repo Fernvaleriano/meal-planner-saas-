@@ -109,23 +109,40 @@ function Progress() {
 
   const handleSaveMeasurement = async (e) => {
     e.preventDefault();
+
+    // Validate required data
+    if (!clientData?.id || !clientData?.coach_id) {
+      alert('Session data missing. Please refresh the page and try again.');
+      return;
+    }
+
     setSavingMeasurement(true);
     try {
-      await apiPost('/.netlify/functions/save-measurement', {
-        clientId: clientData.id,
-        coachId: clientData.coach_id,
-        measuredDate: measurementForm.date,
-        weight: parseFloat(measurementForm.weight) || null,
-        bodyFatPercentage: parseFloat(measurementForm.bodyFat) || null,
-        chest: parseFloat(measurementForm.chest) || null,
-        waist: parseFloat(measurementForm.waist) || null,
-        hips: parseFloat(measurementForm.hips) || null,
-        leftArm: parseFloat(measurementForm.leftArm) || null,
-        rightArm: parseFloat(measurementForm.rightArm) || null,
-        leftThigh: parseFloat(measurementForm.leftThigh) || null,
-        rightThigh: parseFloat(measurementForm.rightThigh) || null,
-        notes: measurementForm.notes || null
+      const response = await fetch('/.netlify/functions/save-measurement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: clientData.id,
+          coachId: clientData.coach_id,
+          measuredDate: measurementForm.date,
+          weight: parseFloat(measurementForm.weight) || null,
+          bodyFatPercentage: parseFloat(measurementForm.bodyFat) || null,
+          chest: parseFloat(measurementForm.chest) || null,
+          waist: parseFloat(measurementForm.waist) || null,
+          hips: parseFloat(measurementForm.hips) || null,
+          leftArm: parseFloat(measurementForm.leftArm) || null,
+          rightArm: parseFloat(measurementForm.rightArm) || null,
+          leftThigh: parseFloat(measurementForm.leftThigh) || null,
+          rightThigh: parseFloat(measurementForm.rightThigh) || null,
+          notes: measurementForm.notes || null
+        })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save measurement');
+      }
 
       alert('Measurement saved!');
       setShowMeasurementModal(false);
@@ -137,7 +154,7 @@ function Progress() {
       loadMeasurements();
     } catch (err) {
       console.error('Error saving measurement:', err);
-      alert('Error saving measurement. Please try again.');
+      alert(err.message || 'Error saving measurement. Please try again.');
     } finally {
       setSavingMeasurement(false);
     }
@@ -148,23 +165,47 @@ function Progress() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setPhotoFile(file);
-    const compressed = await compressImage(file);
-    setPhotoPreview(compressed);
+    try {
+      setPhotoFile(file);
+      const compressed = await compressImage(file);
+      setPhotoPreview(compressed);
+    } catch (err) {
+      console.error('Error processing photo:', err);
+      alert('Error processing photo. Please try a different image.');
+    }
   };
 
   const handleUploadPhoto = async () => {
-    if (!photoPreview) return;
+    if (!photoPreview) {
+      alert('Please select a photo first.');
+      return;
+    }
+
+    // Validate required data
+    if (!clientData?.id || !clientData?.coach_id) {
+      alert('Session data missing. Please refresh the page and try again.');
+      return;
+    }
 
     setUploadingPhoto(true);
     try {
-      await apiPost('/.netlify/functions/upload-progress-photo', {
-        clientId: clientData.id,
-        coachId: clientData.coach_id,
-        photoData: photoPreview,
-        photoType: photoType,
-        takenDate: photoDate
+      const response = await fetch('/.netlify/functions/upload-progress-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: clientData.id,
+          coachId: clientData.coach_id,
+          photoData: photoPreview,
+          photoType: photoType,
+          takenDate: photoDate
+        })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload photo');
+      }
 
       alert('Photo uploaded!');
       setShowPhotoModal(false);
@@ -175,7 +216,7 @@ function Progress() {
       loadPhotos();
     } catch (err) {
       console.error('Error uploading photo:', err);
-      alert('Error uploading photo. Please try again.');
+      alert(err.message || 'Error uploading photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
     }

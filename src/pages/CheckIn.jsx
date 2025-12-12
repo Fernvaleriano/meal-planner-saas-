@@ -32,7 +32,8 @@ function CheckIn() {
   const loadHistory = async () => {
     setLoadingHistory(true);
     try {
-      const data = await apiGet(`/.netlify/functions/respond-checkin?clientId=${clientData.id}&limit=10`);
+      // Use save-checkin with GET method to retrieve history
+      const data = await apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=10`);
       if (data?.checkins) {
         setHistory(data.checkins);
         setStreak(data.checkins.length);
@@ -210,13 +211,13 @@ function CheckIn() {
                 <div key={idx} className="checkin-entry">
                   <div className="checkin-entry-header">
                     <span className="checkin-date">
-                      {new Date(entry.created_at).toLocaleDateString('en-US', {
+                      {new Date(entry.checkin_date || entry.created_at).toLocaleDateString('en-US', {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric'
                       })}
                     </span>
-                    <span className="checkin-adherence-badge">{entry.adherence_percent || 0}%</span>
+                    <span className="checkin-adherence-badge">{entry.meal_plan_adherence || entry.adherence_percent || 0}%</span>
                   </div>
                   <div className="checkin-ratings">
                     {entry.energy_level && <span>⚡ Energy: {entry.energy_level}/5</span>}
