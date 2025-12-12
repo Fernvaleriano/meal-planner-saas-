@@ -34,19 +34,35 @@ export function AuthProvider({ children }) {
 
   // Initialize auth state
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
+    let mounted = true;
 
-        if (session?.user) {
+    const initAuth = async () => {
+      console.log('SPA: Starting auth initialization...');
+      try {
+        // Add timeout to prevent hanging forever
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Auth timeout')), 10000)
+        );
+
+        const sessionPromise = supabase.auth.getSession();
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+
+        console.log('SPA: Got session:', !!session);
+
+        if (session?.user && mounted) {
           setUser(session.user);
           const client = await fetchClientData(session.user.id);
-          setClientData(client);
+          if (mounted) {
+            setClientData(client);
+          }
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
+        console.error('SPA: Auth initialization error:', err);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          console.log('SPA: Setting loading to false');
+          setLoading(false);
+        }
       }
     };
 
@@ -54,6 +70,7 @@ export function AuthProvider({ children }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('SPA: Auth state change:', event);
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         const client = await fetchClientData(session.user.id);
@@ -64,7 +81,10 @@ export function AuthProvider({ children }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchClientData]);
 
   // Apply theme to document
