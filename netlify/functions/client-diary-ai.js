@@ -99,6 +99,24 @@ exports.handler = async (event) => {
             // Continue without history - not critical
         }
 
+        // Fetch client's dietary preferences (diet type, allergies, etc.)
+        let dietaryPreferences = {};
+        try {
+            const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+            const { data: clientData } = await supabase
+                .from('clients')
+                .select('diet_type, allergies, disliked_foods, preferred_foods')
+                .eq('id', clientId)
+                .single();
+
+            if (clientData) {
+                dietaryPreferences = clientData;
+            }
+        } catch (prefErr) {
+            console.warn('Could not fetch dietary preferences:', prefErr);
+            // Continue without preferences - not critical
+        }
+
         // Calculate remaining macros
         const remaining = {
             calories: (goals?.calorie_goal || 2000) - (totals?.calories || 0),
@@ -111,6 +129,25 @@ exports.handler = async (event) => {
         const recentFoodsList = recentFoods.length > 0
             ? `\nFOODS EATEN IN THE PAST 7 DAYS (avoid suggesting these repeatedly):\n${recentFoods.join(', ')}\n`
             : '';
+
+        // Build dietary preferences context
+        let dietaryContext = '';
+        if (dietaryPreferences.diet_type || dietaryPreferences.allergies || dietaryPreferences.disliked_foods || dietaryPreferences.preferred_foods) {
+            dietaryContext = '\n**DIETARY RESTRICTIONS & PREFERENCES (MUST FOLLOW):**\n';
+            if (dietaryPreferences.diet_type && dietaryPreferences.diet_type !== 'no_preference' && dietaryPreferences.diet_type !== 'standard') {
+                dietaryContext += `- Diet Type: ${dietaryPreferences.diet_type.toUpperCase()} - ONLY suggest foods appropriate for this diet!\n`;
+            }
+            if (dietaryPreferences.allergies) {
+                dietaryContext += `- ALLERGIES/INTOLERANCES (NEVER suggest these): ${dietaryPreferences.allergies}\n`;
+            }
+            if (dietaryPreferences.disliked_foods) {
+                dietaryContext += `- DISLIKED FOODS (avoid suggesting): ${dietaryPreferences.disliked_foods}\n`;
+            }
+            if (dietaryPreferences.preferred_foods) {
+                dietaryContext += `- PREFERRED FOODS (prioritize these): ${dietaryPreferences.preferred_foods}\n`;
+            }
+            dietaryContext += '\n';
+        }
 
         const systemPrompt = `You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''} You can:
 1. Answer questions about nutrition and their progress
@@ -129,7 +166,7 @@ TODAY'S LOGGED FOODS:
 ${todayEntries && todayEntries.length > 0
     ? todayEntries.map(e => `- ${e.meal_type}: ${e.food_name} (${e.calories} cal, ${e.protein}g P)`).join('\n')
     : 'No foods logged yet today.'}
-${recentFoodsList}
+${recentFoodsList}${dietaryContext}
 INSTRUCTIONS:
 
 **FOOD LOGGING - When user wants to log food:**
@@ -149,12 +186,16 @@ When suggesting foods, you MUST vary your recommendations. Be creative and sugge
 
 PROTEIN BARS & SNACKS (suggest specific brands!):
 - Bars: Quest bars, Barebells, RXBar, ONE bars, Built bars, Think! bars, KIND protein bars, Clif Builder's bars, Pure Protein bars, Grenade Carb Killa
+- Vegan bars: GoMacro bars, No Cow bars, Vega protein bars, Garden of Life bars, Larabar Protein, Orgain bars
 - Jerky & meat snacks: beef jerky, turkey sticks, Chomps sticks, Epic bars, Biltong
+- Vegan jerky: Louisville Vegan Jerky, Primal Spirit Plant-Based Strips, Noble Jerky
 - Other: protein chips (Quest, Legendary Foods), protein cookies, meat & cheese snack packs
 
 PROTEIN SHAKES & DRINKS:
 - Ready-to-drink: Premier Protein shakes, Fairlife protein shakes, Core Power, Muscle Milk, Orgain
+- Vegan RTD: Orgain Plant Protein shakes, Ripple protein shakes, Evolve Plant Protein, Koia protein drinks
 - Powders: whey protein shake, casein shake, plant protein shake
+- Vegan powders: pea protein, hemp protein, brown rice protein, Vega Sport, Garden of Life Raw Organic
 - Other: protein coffee, protein smoothie
 
 HIGH-PROTEIN WHOLE FOODS:
@@ -162,7 +203,8 @@ HIGH-PROTEIN WHOLE FOODS:
 - Fish/Seafood: salmon, tuna, shrimp, tilapia, cod, sardines, canned tuna
 - Meat: lean beef, ground beef, pork tenderloin, steak
 - Eggs & Dairy: eggs, egg whites, cottage cheese, string cheese, cheese cubes
-- Plant-based: tofu, tempeh, edamame, lentils, black beans, chickpeas
+- Plant-based proteins: tofu, tempeh, edamame, lentils, black beans, chickpeas, seitan, TVP (textured vegetable protein)
+- Vegan meat alternatives: Beyond Meat, Impossible Burger, Field Roast, Tofurky, Gardein, MorningStar Farms
 
 QUICK HIGH-PROTEIN SNACK COMBOS (suggest these creative pairings!):
 - Cottage cheese + fruit (berries, peaches, pineapple)
@@ -175,6 +217,18 @@ QUICK HIGH-PROTEIN SNACK COMBOS (suggest these creative pairings!):
 - Protein pancakes or waffles
 - Smoothie bowl with protein powder
 
+VEGAN HIGH-PROTEIN SNACK COMBOS:
+- Edamame with sea salt
+- Hummus with veggies or pita
+- Roasted chickpeas (spiced)
+- Trail mix with nuts and seeds
+- Chia pudding with plant milk
+- Overnight oats with pea protein powder
+- Tofu scramble
+- Black bean dip with tortilla chips
+- Nut butter on whole grain toast
+- Smoothie with plant protein and banana
+
 CARB OPTIONS:
 - Grains: rice, quinoa, oatmeal, bread, pasta, couscous
 - Starchy: potatoes, sweet potatoes, corn
@@ -186,6 +240,11 @@ HEALTHY FATS:
 - Other: avocado, nut butter, dark chocolate, trail mix
 
 **SUGGESTION RULES:**
+0. **CRITICAL - RESPECT DIETARY RESTRICTIONS:** If the client has dietary preferences listed above (vegan, vegetarian, allergies, etc.), you MUST ONLY suggest foods that comply with their diet. For example:
+   - VEGAN: NO meat, fish, eggs, dairy, honey. Only suggest plant-based options.
+   - VEGETARIAN: NO meat or fish. Eggs and dairy are OK.
+   - ALLERGIES: NEVER suggest foods containing their allergens - this is a safety issue!
+   - DISLIKED FOODS: Avoid suggesting foods they've marked as disliked.
 1. Check what they've eaten recently (past 7 days list above) - suggest something DIFFERENT
 2. NEVER suggest the same food twice in one conversation
 3. When asked for snack ideas, prioritize branded protein bars/shakes and creative combos over plain yogurt
@@ -193,6 +252,7 @@ HEALTHY FATS:
 5. Consider convenience - suggest grab-and-go options for busy people
 6. Offer 2-3 specific options with actual brand names when possible
 7. When user says "give me different options" or "more ideas" - suggest COMPLETELY DIFFERENT foods from different categories (e.g., if you suggested bars, now suggest shakes or whole foods)
+8. For vegan/vegetarian clients: Focus on plant-based proteins like tofu, tempeh, legumes, seitan, and vegan protein products
 
 **CLICKABLE FOOD SUGGESTIONS FORMAT - IMPORTANT:**
 When suggesting specific foods, format each suggestion using this EXACT pattern so they become clickable buttons:
