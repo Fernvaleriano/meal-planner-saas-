@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
@@ -65,6 +65,11 @@ function Dashboard() {
   // Voice input state
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
+
+  // Food confirmation state
+  const [parsedFoods, setParsedFoods] = useState(null);
+  const [servings, setServings] = useState(1);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Handle food logged from modals
   const handleFoodLogged = (nutrition) => {
@@ -226,7 +231,7 @@ function Dashboard() {
     });
   };
 
-  // Handle food logging
+  // Handle food logging - Step 1: Analyze and show confirmation
   const handleLogFood = async () => {
     if (!foodInput.trim() || !selectedMealType) return;
 
@@ -234,44 +239,67 @@ function Dashboard() {
     setLogSuccess(false);
 
     try {
-      // Step 1: Call AI to parse the food description
+      // Call AI to parse the food description
       const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
         text: foodInput
       });
 
       if (!aiData?.foods || aiData.foods.length === 0) {
-        console.error('No foods recognized');
+        alert('Could not recognize the food. Please try describing it differently.');
         return;
       }
 
-      // Step 2: Log each recognized food item to the diary
+      // Show confirmation with parsed foods
+      setParsedFoods(aiData.foods);
+      setServings(1);
+      setShowConfirmation(true);
+    } catch (err) {
+      console.error('Error analyzing food:', err);
+      alert('Error analyzing food. Please try again.');
+    } finally {
+      setIsLogging(false);
+    }
+  };
+
+  // Handle food logging - Step 2: Confirm and actually log
+  const confirmLogFood = async () => {
+    if (!parsedFoods || parsedFoods.length === 0) return;
+
+    setIsLogging(true);
+
+    try {
       const today = new Date().toISOString().split('T')[0];
       let totalAdded = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-      for (const food of aiData.foods) {
+      for (const food of parsedFoods) {
+        const adjustedCalories = Math.round((food.calories || 0) * servings);
+        const adjustedProtein = Math.round((food.protein || 0) * servings);
+        const adjustedCarbs = Math.round((food.carbs || 0) * servings);
+        const adjustedFat = Math.round((food.fat || 0) * servings);
+
         await apiPost('/.netlify/functions/food-diary', {
           clientId: clientData.id,
           coachId: clientData.coach_id,
           entryDate: today,
           mealType: selectedMealType,
           foodName: food.name,
-          calories: food.calories,
-          protein: food.protein,
-          carbs: food.carbs,
-          fat: food.fat,
-          servingSize: 1,
+          calories: adjustedCalories,
+          protein: adjustedProtein,
+          carbs: adjustedCarbs,
+          fat: adjustedFat,
+          servingSize: servings,
           servingUnit: 'serving',
-          numberOfServings: 1,
+          numberOfServings: servings,
           foodSource: 'ai'
         });
 
-        totalAdded.calories += food.calories || 0;
-        totalAdded.protein += food.protein || 0;
-        totalAdded.carbs += food.carbs || 0;
-        totalAdded.fat += food.fat || 0;
+        totalAdded.calories += adjustedCalories;
+        totalAdded.protein += adjustedProtein;
+        totalAdded.carbs += adjustedCarbs;
+        totalAdded.fat += adjustedFat;
       }
 
-      // Step 3: Update local state with new totals
+      // Update local state with new totals
       setTodayProgress(prev => ({
         calories: prev.calories + totalAdded.calories,
         protein: prev.protein + totalAdded.protein,
@@ -279,15 +307,25 @@ function Dashboard() {
         fat: prev.fat + totalAdded.fat
       }));
 
-      // Clear input and show success
+      // Clear and show success
       setFoodInput('');
+      setParsedFoods(null);
+      setShowConfirmation(false);
       setLogSuccess(true);
       setTimeout(() => setLogSuccess(false), 3000);
     } catch (err) {
       console.error('Error logging food:', err);
+      alert('Error logging food. Please try again.');
     } finally {
       setIsLogging(false);
     }
+  };
+
+  // Cancel food confirmation
+  const cancelLogFood = () => {
+    setParsedFoods(null);
+    setShowConfirmation(false);
+    setServings(1);
   };
 
   // Voice input functions
@@ -566,13 +604,84 @@ function Dashboard() {
           <button
             className="log-food-btn"
             onClick={handleLogFood}
-            disabled={isLogging || !foodInput.trim()}
+            disabled={isLogging || !foodInput.trim() || showConfirmation}
             style={logSuccess ? { background: '#22c55e' } : {}}
           >
             {isLogging ? 'Analyzing...' : logSuccess ? 'Logged!' : 'Log Food'}
             {logSuccess ? <Check size={18} /> : <ChevronRight size={18} />}
           </button>
         </div>
+
+        {/* Food Confirmation Box */}
+        {showConfirmation && parsedFoods && (
+          <div className="food-confirmation-box">
+            <div className="food-confirmation-header">
+              <CheckCircle size={18} className="confirm-icon" />
+              <span>Ready to log</span>
+            </div>
+
+            {parsedFoods.map((food, idx) => (
+              <div key={idx} className="food-confirmation-item">
+                <div className="food-confirmation-name">
+                  <span>{food.name}</span>
+                  <span className="food-calories">{Math.round((food.calories || 0) * servings)} cal</span>
+                </div>
+              </div>
+            ))}
+
+            <div className="food-confirmation-servings">
+              <span>Servings:</span>
+              <div className="servings-adjuster">
+                <button
+                  className="servings-btn"
+                  onClick={() => setServings(prev => Math.max(0.5, prev - 0.5))}
+                >
+                  <Minus size={16} />
+                </button>
+                <span className="servings-value">{servings}</span>
+                <button
+                  className="servings-btn"
+                  onClick={() => setServings(prev => prev + 0.5)}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="food-confirmation-macros">
+              <div className="macro-item">
+                <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.calories || 0), 0) * servings)}</span>
+                <span className="macro-label">CALORIES</span>
+              </div>
+              <div className="macro-item protein">
+                <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.protein || 0), 0) * servings)}g</span>
+                <span className="macro-label">PROTEIN</span>
+              </div>
+              <div className="macro-item carbs">
+                <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.carbs || 0), 0) * servings)}g</span>
+                <span className="macro-label">CARBS</span>
+              </div>
+              <div className="macro-item fat">
+                <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.fat || 0), 0) * servings)}g</span>
+                <span className="macro-label">FAT</span>
+              </div>
+            </div>
+
+            <div className="food-confirmation-actions">
+              <button className="confirm-cancel-btn" onClick={cancelLogFood}>
+                Cancel
+              </button>
+              <button
+                className="confirm-add-btn"
+                onClick={confirmLogFood}
+                disabled={isLogging}
+              >
+                <Check size={18} />
+                {isLogging ? 'Adding...' : `Add to ${selectedMealType?.charAt(0).toUpperCase() + selectedMealType?.slice(1)}`}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Quick Action Buttons */}
         <div className="ai-hero-quick-actions">
