@@ -1895,9 +1895,12 @@ body {
 .supplements-container {
     background: white;
     border-radius: 16px;
-    padding: 16px;
+    padding: 20px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
     border: 1px solid var(--gray-100);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 [data-theme="dark"] .supplements-container {
@@ -1905,51 +1908,86 @@ body {
     border-color: #334155;
 }
 
-.supplement-protocol {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.supplement-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
+.supplement-card {
+    padding: 14px 16px;
     background: var(--gray-50);
     border-radius: 12px;
     border: 1px solid var(--gray-100);
 }
 
-[data-theme="dark"] .supplement-item {
+[data-theme="dark"] .supplement-card {
     background: #334155;
     border-color: #475569;
 }
 
-.supplement-info {
-    display: flex;
-    flex-direction: column;
-}
-
 .supplement-name {
     font-weight: 600;
+    font-size: 1rem;
     color: var(--gray-800);
-    margin-bottom: 2px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.supplement-icon {
+    font-size: 1.1rem;
 }
 
 [data-theme="dark"] .supplement-name {
     color: #f1f5f9;
 }
 
-.supplement-dosage {
-    font-size: 0.85rem;
-    color: var(--gray-500);
-}
-
 .supplement-timing {
     font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 4px;
+}
+
+.supplement-timing strong {
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .supplement-timing {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .supplement-timing strong {
+    color: #cbd5e1;
+}
+
+.supplement-dose {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 4px;
+}
+
+.supplement-dose strong {
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .supplement-dose {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .supplement-dose strong {
+    color: #cbd5e1;
+}
+
+.supplement-notes {
+    font-size: 0.85rem;
     color: #10b981;
-    font-weight: 500;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .supplement-notes {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
 }
 
 /* ========================================
