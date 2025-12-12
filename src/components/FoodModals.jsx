@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Camera, Upload, Search, Heart, Loader, Plus, Minus, Check, Trash2 } from 'lucide-react';
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
@@ -489,11 +489,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
     if (!confirm('Delete this favorite?')) return;
 
     try {
-      await apiPost('/.netlify/functions/toggle-favorite', {
-        clientId: clientData.id,
-        favoriteId: favoriteId,
-        action: 'delete'
-      });
+      await apiDelete(`/.netlify/functions/toggle-favorite?favoriteId=${favoriteId}`);
       setFavorites(prev => prev.filter(f => f.id !== favoriteId));
     } catch (err) {
       console.error('Failed to delete favorite:', err);

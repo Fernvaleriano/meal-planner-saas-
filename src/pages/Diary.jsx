@@ -76,6 +76,76 @@ function Diary() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  // Weekly summary states
+  const [weeklyData, setWeeklyData] = useState(null);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
+
+  // Fetch weekly data when modal opens
+  const fetchWeeklyData = async () => {
+    if (!clientData?.id) return;
+    setWeeklyLoading(true);
+
+    try {
+      const days = [];
+      const today = new Date();
+
+      // Fetch past 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = formatDate(date);
+
+        try {
+          const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`);
+          const dayEntries = data.entries || [];
+          const dayTotals = dayEntries.reduce((acc, e) => ({
+            calories: acc.calories + (e.calories || 0),
+            protein: acc.protein + (e.protein || 0),
+            carbs: acc.carbs + (e.carbs || 0),
+            fat: acc.fat + (e.fat || 0)
+          }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+          days.push({
+            date: dateStr,
+            dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            ...dayTotals,
+            logged: dayEntries.length > 0
+          });
+        } catch {
+          days.push({
+            date: dateStr,
+            dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            calories: 0, protein: 0, carbs: 0, fat: 0,
+            logged: false
+          });
+        }
+      }
+
+      // Calculate weekly totals and averages
+      const daysLogged = days.filter(d => d.logged).length;
+      const weekTotals = days.reduce((acc, d) => ({
+        calories: acc.calories + d.calories,
+        protein: acc.protein + d.protein,
+        carbs: acc.carbs + d.carbs,
+        fat: acc.fat + d.fat
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+      const avgCalories = daysLogged > 0 ? Math.round(weekTotals.calories / daysLogged) : 0;
+      const avgProtein = daysLogged > 0 ? Math.round(weekTotals.protein / daysLogged) : 0;
+
+      setWeeklyData({
+        days,
+        totals: weekTotals,
+        averages: { calories: avgCalories, protein: avgProtein },
+        daysLogged
+      });
+    } catch (err) {
+      console.error('Error fetching weekly data:', err);
+    } finally {
+      setWeeklyLoading(false);
+    }
+  };
+
   // Format date for display
   const formatDateDisplay = () => {
     const today = new Date();
@@ -968,15 +1038,11 @@ function Diary() {
           <Copy size={16} />
           Copy Day
         </button>
-        <button className="diary-action-btn" onClick={copyFromYesterday}>
-          <ArrowLeft size={16} />
-          Copy Yesterday
-        </button>
         <button className="diary-action-btn" onClick={() => setShowDailyReportModal(true)}>
           <FileText size={16} />
           Daily
         </button>
-        <button className="diary-action-btn" onClick={() => setShowWeeklySummaryModal(true)}>
+        <button className="diary-action-btn" onClick={() => { fetchWeeklyData(); setShowWeeklySummaryModal(true); }}>
           <BarChart3 size={16} />
           Weekly
         </button>
@@ -1430,15 +1496,71 @@ function Diary() {
               <span style={{ fontWeight: 600 }}>Weekly Summary</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
-              <p style={{ textAlign: 'center', color: '#64748b' }}>
-                Weekly summary shows your progress over the past 7 days.
-              </p>
-              <div style={{ marginTop: '16px', padding: '16px', background: '#f1f5f9', borderRadius: '12px' }}>
-                <p><strong>Today's Stats:</strong></p>
-                <p>Calories: {totals.calories} / {goals.calorie_goal}</p>
-                <p>Protein: {Math.round(totals.protein)}g / {goals.protein_goal}g</p>
-                <p>Water: {waterIntake} / {waterGoal} glasses</p>
-              </div>
+              {weeklyLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <div className="ai-loading-dots">
+                    <span></span><span></span><span></span>
+                  </div>
+                  <p style={{ marginTop: '12px', color: '#64748b' }}>Loading weekly data...</p>
+                </div>
+              ) : weeklyData ? (
+                <>
+                  {/* Weekly Averages */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                    <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '12px', padding: '16px', color: 'white', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{weeklyData.averages.calories}</div>
+                      <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Avg Calories/Day</div>
+                    </div>
+                    <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', borderRadius: '12px', padding: '16px', color: 'white', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{weeklyData.averages.protein}g</div>
+                      <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Avg Protein/Day</div>
+                    </div>
+                  </div>
+
+                  {/* Daily Breakdown */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h4 style={{ marginBottom: '12px', color: 'var(--gray-700)' }}>Daily Breakdown</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {weeklyData.days.map((day, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: day.logged ? 'var(--gray-50)' : 'transparent', borderRadius: '8px', border: day.logged ? 'none' : '1px dashed var(--gray-300)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 500, color: 'var(--gray-700)', minWidth: '36px' }}>{day.dayName}</span>
+                            {day.logged ? (
+                              <Check size={14} style={{ color: '#10b981' }} />
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No data</span>
+                            )}
+                          </div>
+                          {day.logged && (
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '0.85rem' }}>
+                              <span style={{ color: 'var(--gray-600)' }}>{day.calories} cal</span>
+                              <span style={{ color: '#3b82f6' }}>{Math.round(day.protein)}g P</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Week Totals */}
+                  <div style={{ background: 'var(--gray-100)', borderRadius: '12px', padding: '16px' }}>
+                    <h4 style={{ marginBottom: '8px', color: 'var(--gray-700)' }}>Week Totals</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.9rem' }}>
+                      <div><strong>Total Calories:</strong> {weeklyData.totals.calories.toLocaleString()}</div>
+                      <div><strong>Total Protein:</strong> {Math.round(weeklyData.totals.protein)}g</div>
+                      <div><strong>Total Carbs:</strong> {Math.round(weeklyData.totals.carbs)}g</div>
+                      <div><strong>Total Fat:</strong> {Math.round(weeklyData.totals.fat)}g</div>
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#64748b' }}>
+                      Days logged: {weeklyData.daysLogged}/7
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#64748b' }}>
+                  Unable to load weekly data.
+                </p>
+              )}
             </div>
           </div>
         </div>
