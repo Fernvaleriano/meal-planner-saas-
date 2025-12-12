@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 
 function Diary() {
   const { clientData } = useAuth();
@@ -14,6 +14,10 @@ function Diary() {
   const [goals, setGoals] = useState({ calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 });
   const [waterIntake, setWaterIntake] = useState(0);
   const [waterGoal] = useState(8);
+  const [waterLoading, setWaterLoading] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiLogging, setAiLogging] = useState(false);
+  const [selectedMealType, setSelectedMealType] = useState('snack');
 
   // Format date for display
   const formatDateDisplay = () => {
@@ -52,7 +56,7 @@ function Diary() {
     setCurrentDate(newDate);
   };
 
-  // Load diary entries
+  // Load diary entries and water intake
   useEffect(() => {
     const loadEntries = async () => {
       if (!clientData?.id) return;
@@ -60,20 +64,26 @@ function Diary() {
 
       try {
         const dateStr = formatDate(currentDate);
-        const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`);
 
-        setEntries(data.entries || []);
+        // Load food entries and water intake in parallel
+        const [diaryData, waterData] = await Promise.all([
+          apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
+          apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+        ]);
 
-        if (data.goals) {
-          setGoals(data.goals);
+        setEntries(diaryData.entries || []);
+
+        if (diaryData.goals) {
+          setGoals(diaryData.goals);
         }
 
-        if (data.waterIntake !== undefined) {
-          setWaterIntake(data.waterIntake);
+        // Set water intake from dedicated endpoint
+        if (waterData) {
+          setWaterIntake(waterData.glasses || 0);
         }
 
         // Calculate totals
-        const calculatedTotals = (data.entries || []).reduce((acc, entry) => ({
+        const calculatedTotals = (diaryData.entries || []).reduce((acc, entry) => ({
           calories: acc.calories + (entry.calories || 0),
           protein: acc.protein + (entry.protein || 0),
           carbs: acc.carbs + (entry.carbs || 0),
@@ -90,6 +100,116 @@ function Diary() {
 
     loadEntries();
   }, [clientData?.id, currentDate]);
+
+  // Handle water intake actions
+  const handleWaterAction = async (action, amount = 1) => {
+    if (!clientData?.id) return;
+    setWaterLoading(true);
+
+    try {
+      const dateStr = formatDate(currentDate);
+      const result = await apiPost('/.netlify/functions/water-intake', {
+        clientId: clientData.id,
+        date: dateStr,
+        action: action,
+        glasses: amount
+      });
+
+      if (result.success) {
+        setWaterIntake(result.glasses);
+      }
+    } catch (err) {
+      console.error('Error updating water intake:', err);
+    } finally {
+      setWaterLoading(false);
+    }
+  };
+
+  // Handle AI food logging
+  const handleAiLog = async () => {
+    if (!aiInput.trim() || !clientData?.id) return;
+    setAiLogging(true);
+
+    try {
+      // Step 1: Analyze food with AI
+      const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
+        text: aiInput
+      });
+
+      if (!aiData?.foods || aiData.foods.length === 0) {
+        console.error('No foods recognized');
+        return;
+      }
+
+      // Step 2: Log each food item
+      const dateStr = formatDate(currentDate);
+      let newEntries = [];
+      let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+      for (const food of aiData.foods) {
+        const result = await apiPost('/.netlify/functions/food-diary', {
+          clientId: clientData.id,
+          coachId: clientData.coach_id,
+          entryDate: dateStr,
+          mealType: selectedMealType,
+          foodName: food.name,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat,
+          servingSize: 1,
+          servingUnit: 'serving',
+          numberOfServings: 1,
+          foodSource: 'ai'
+        });
+
+        if (result.entry) {
+          newEntries.push(result.entry);
+        }
+
+        addedTotals.calories += food.calories || 0;
+        addedTotals.protein += food.protein || 0;
+        addedTotals.carbs += food.carbs || 0;
+        addedTotals.fat += food.fat || 0;
+      }
+
+      // Update local state
+      setEntries(prev => [...prev, ...newEntries]);
+      setTotals(prev => ({
+        calories: prev.calories + addedTotals.calories,
+        protein: prev.protein + addedTotals.protein,
+        carbs: prev.carbs + addedTotals.carbs,
+        fat: prev.fat + addedTotals.fat
+      }));
+      setAiInput('');
+    } catch (err) {
+      console.error('Error logging food:', err);
+    } finally {
+      setAiLogging(false);
+    }
+  };
+
+  // Handle deleting a food entry
+  const handleDeleteEntry = async (entryId) => {
+    try {
+      await apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`);
+
+      // Find the entry to subtract from totals
+      const deletedEntry = entries.find(e => e.id === entryId);
+      if (deletedEntry) {
+        setTotals(prev => ({
+          calories: prev.calories - (deletedEntry.calories || 0),
+          protein: prev.protein - (deletedEntry.protein || 0),
+          carbs: prev.carbs - (deletedEntry.carbs || 0),
+          fat: prev.fat - (deletedEntry.fat || 0)
+        }));
+      }
+
+      setEntries(prev => prev.filter(e => e.id !== entryId));
+    } catch (err) {
+      console.error('Error deleting entry:', err);
+    }
+  };
 
   // Group entries by meal type
   const groupedEntries = {
@@ -162,7 +282,10 @@ function Diary() {
           </div>
           <div className="meal-section-actions">
             <span className="meal-section-cals">{mealCals} cal</span>
-            <button className="meal-add-btn">
+            <button
+              className="meal-add-btn"
+              onClick={() => setSelectedMealType(mealType)}
+            >
               <Plus size={18} />
             </button>
           </div>
@@ -176,14 +299,33 @@ function Diary() {
                   <span className="meal-entry-name">{entry.food_name}</span>
                   <span className="meal-entry-serving">{entry.number_of_servings || 1} serving</span>
                 </div>
-                <span className="meal-entry-cals">{entry.calories || 0}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="meal-entry-cals">{entry.calories || 0}</span>
+                  <button
+                    onClick={() => handleDeleteEntry(entry.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
 
         <div className="meal-section-footer">
-          <button className="meal-footer-btn add">
+          <button
+            className="meal-footer-btn add"
+            onClick={() => setSelectedMealType(mealType)}
+          >
             <Plus size={16} />
             Add Food
           </button>
@@ -353,10 +495,34 @@ function Diary() {
           </div>
         </div>
         <div className="water-intake-actions">
-          <button className="water-btn add">+1 Glass</button>
-          <button className="water-btn add">+2 Glasses</button>
-          <button className="water-btn remove">-1</button>
-          <button className="water-btn complete">Complete Goal</button>
+          <button
+            className="water-btn add"
+            onClick={() => handleWaterAction('add', 1)}
+            disabled={waterLoading || waterIntake >= waterGoal}
+          >
+            +1 Glass
+          </button>
+          <button
+            className="water-btn add"
+            onClick={() => handleWaterAction('add', 2)}
+            disabled={waterLoading || waterIntake >= waterGoal}
+          >
+            +2 Glasses
+          </button>
+          <button
+            className="water-btn remove"
+            onClick={() => handleWaterAction('remove', 1)}
+            disabled={waterLoading || waterIntake <= 0}
+          >
+            -1
+          </button>
+          <button
+            className="water-btn complete"
+            onClick={() => handleWaterAction('complete')}
+            disabled={waterLoading || waterIntake >= waterGoal}
+          >
+            {waterIntake >= waterGoal ? 'Complete!' : 'Complete Goal'}
+          </button>
         </div>
       </div>
 
@@ -365,30 +531,42 @@ function Diary() {
         <div className="ai-assistant-header">
           <div className="ai-assistant-title">
             <Bot size={18} className="ai-icon" />
-            <span>AI Nutrition Assistant</span>
+            <span>AI Food Logger</span>
           </div>
-          <button className="ai-expand-btn">
-            <Maximize2 size={16} />
-            Expand
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+              Logging to: <strong style={{ color: '#0d9488', textTransform: 'capitalize' }}>{selectedMealType}</strong>
+            </span>
+          </div>
         </div>
         <div className="ai-assistant-suggestions">
           <button className="ai-suggestion protein">Need {Math.max(0, goals.protein_goal - Math.round(totals.protein))}g more protein</button>
           <button className="ai-suggestion recipe">What can I make?</button>
         </div>
         <div className="ai-assistant-chips">
-          <button className="ai-chip">Need protein</button>
-          <button className="ai-chip">Snack ideas</button>
-          <button className="ai-chip">My progress</button>
-          <button className="ai-chip">Dinner ideas</button>
+          <button className="ai-chip" onClick={() => setSelectedMealType('breakfast')}>Breakfast</button>
+          <button className="ai-chip" onClick={() => setSelectedMealType('lunch')}>Lunch</button>
+          <button className="ai-chip" onClick={() => setSelectedMealType('dinner')}>Dinner</button>
+          <button className="ai-chip" onClick={() => setSelectedMealType('snack')}>Snack</button>
         </div>
         <div className="ai-input-row">
           <input
             type="text"
             className="ai-input"
-            placeholder="Ask me anything or log food..."
+            placeholder="Describe what you ate... e.g., 'chicken salad with ranch'"
+            value={aiInput}
+            onChange={(e) => setAiInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleAiLog()}
+            disabled={aiLogging}
           />
-          <button className="ai-send-btn">Send</button>
+          <button
+            className="ai-send-btn"
+            onClick={handleAiLog}
+            disabled={aiLogging || !aiInput.trim()}
+            style={aiLogging ? { opacity: 0.7 } : {}}
+          >
+            {aiLogging ? 'Logging...' : 'Log'}
+          </button>
         </div>
       </div>
     </div>
