@@ -1,5 +1,8 @@
 node_modules/
 
+# Vite/React SPA build output
+app-test-dist/
+
 # Capacitor build output
 www/
 
