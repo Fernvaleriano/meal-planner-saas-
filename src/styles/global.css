@@ -3786,7 +3786,7 @@ body {
 
 /* ==================== FOOD MODALS ==================== */
 
-/* Modal Overlay */
+/* Modal Overlay - override base modal styles */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -3797,9 +3797,11 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 2000;
     padding: 20px;
     backdrop-filter: blur(4px);
+    opacity: 1;
+    visibility: visible;
 }
 
 .modal-content {
