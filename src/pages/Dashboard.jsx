@@ -236,6 +236,11 @@ function Dashboard() {
   const handleLogFood = async () => {
     if (!foodInput.trim() || !selectedMealType) return;
 
+    // Stop voice recording if active
+    if (isRecording) {
+      stopVoiceInput();
+    }
+
     setIsLogging(true);
     setLogSuccess(false);
 
