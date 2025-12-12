@@ -4,6 +4,22 @@ import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, Clipboar
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 
+// Get cached coach data from localStorage
+const getCachedCoachData = (clientId) => {
+  try {
+    const cached = localStorage.getItem(`coach_data_${clientId}`);
+    if (cached) return JSON.parse(cached);
+  } catch (e) { /* ignore */ }
+  return null;
+};
+
+// Save coach data to localStorage
+const setCachedCoachData = (clientId, data) => {
+  try {
+    localStorage.setItem(`coach_data_${clientId}`, JSON.stringify(data));
+  } catch (e) { /* ignore */ }
+};
+
 function Dashboard() {
   const { clientData } = useAuth();
   const [loading, setLoading] = useState(false); // Start false for instant UI render
@@ -26,8 +42,11 @@ function Dashboard() {
   const [mealPlans, setMealPlans] = useState([]);
   const [supplements, setSupplements] = useState([]);
   const [supplementIntake, setSupplementIntake] = useState({}); // Track which supplements are taken
-  const [coachData, setCoachData] = useState(null);
-  const [hasStories, setHasStories] = useState(false);
+
+  // Initialize coach data from cache for instant display
+  const cachedCoach = clientData?.id ? getCachedCoachData(clientData.id) : null;
+  const [coachData, setCoachData] = useState(cachedCoach?.coachData || null);
+  const [hasStories, setHasStories] = useState(cachedCoach?.hasStories || false);
 
   // Auto-select meal type based on time
   useEffect(() => {
@@ -101,16 +120,20 @@ function Dashboard() {
         })
         .catch(err => console.error('Error loading supplements:', err));
 
-      // Load coach stories - low priority
+      // Load coach stories - low priority (but cached for instant display next time)
       apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`)
         .then(storiesData => {
           if (storiesData) {
-            setCoachData({
+            const newCoachData = {
               name: storiesData.coachName,
               avatar: storiesData.coachAvatar,
               showAvatar: storiesData.showAvatarInGreeting
-            });
-            setHasStories(storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0));
+            };
+            const newHasStories = storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0);
+            setCoachData(newCoachData);
+            setHasStories(newHasStories);
+            // Cache for instant display on next visit
+            setCachedCoachData(clientData.id, { coachData: newCoachData, hasStories: newHasStories });
           }
         })
         .catch(err => console.error('Error loading coach stories:', err));
