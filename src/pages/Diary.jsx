@@ -80,6 +80,82 @@ function Diary() {
   const [weeklyData, setWeeklyData] = useState(null);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
 
+  // Multi-select states
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedEntries, setSelectedEntries] = useState(new Set());
+
+  // Toggle entry selection
+  const toggleEntrySelection = (entryId) => {
+    setSelectedEntries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all entries
+  const selectAllEntries = () => {
+    setSelectedEntries(new Set(entries.map(e => e.id)));
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedEntries(new Set());
+    setSelectionMode(false);
+  };
+
+  // Delete selected entries
+  const deleteSelectedEntries = async () => {
+    if (selectedEntries.size === 0) return;
+
+    const count = selectedEntries.size;
+    if (!window.confirm(`Delete ${count} selected item${count > 1 ? 's' : ''}?`)) return;
+
+    try {
+      // Delete each selected entry
+      for (const entryId of selectedEntries) {
+        await apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`);
+      }
+
+      // Calculate totals to subtract
+      const deletedEntries = entries.filter(e => selectedEntries.has(e.id));
+      const subtractTotals = deletedEntries.reduce((acc, e) => ({
+        calories: acc.calories + (e.calories || 0),
+        protein: acc.protein + (e.protein || 0),
+        carbs: acc.carbs + (e.carbs || 0),
+        fat: acc.fat + (e.fat || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+      // Update state
+      const updatedEntries = entries.filter(e => !selectedEntries.has(e.id));
+      const updatedTotals = {
+        calories: totals.calories - subtractTotals.calories,
+        protein: totals.protein - subtractTotals.protein,
+        carbs: totals.carbs - subtractTotals.carbs,
+        fat: totals.fat - subtractTotals.fat
+      };
+
+      setEntries(updatedEntries);
+      setTotals(updatedTotals);
+
+      // Update cache
+      const dateStr = formatDate(currentDate);
+      const cacheKey = `diary_${clientData.id}_${dateStr}`;
+      const cached = getCache(cacheKey) || {};
+      setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
+
+      // Exit selection mode
+      clearSelection();
+    } catch (err) {
+      console.error('Error deleting entries:', err);
+      alert('Failed to delete some entries. Please try again.');
+    }
+  };
+
   // Fetch weekly data when modal opens
   const fetchWeeklyData = async () => {
     if (!clientData?.id) return;
@@ -875,22 +951,25 @@ function Diary() {
   };
 
   // Swipeable entry component for delete
-  const SwipeableEntry = ({ entry, onDelete }) => {
+  const SwipeableEntry = ({ entry, onDelete, isSelected, onToggleSelect, inSelectionMode }) => {
     const [touchStart, setTouchStart] = useState(null);
     const [touchEnd, setTouchEnd] = useState(null);
     const [swiped, setSwiped] = useState(false);
     const minSwipeDistance = 50;
 
     const onTouchStart = (e) => {
+      if (inSelectionMode) return; // Disable swipe in selection mode
       setTouchEnd(null);
       setTouchStart(e.targetTouches[0].clientX);
     };
 
     const onTouchMove = (e) => {
+      if (inSelectionMode) return;
       setTouchEnd(e.targetTouches[0].clientX);
     };
 
     const onTouchEnd = () => {
+      if (inSelectionMode) return;
       if (!touchStart || !touchEnd) return;
       const distance = touchStart - touchEnd;
       const isLeftSwipe = distance > minSwipeDistance;
@@ -909,24 +988,38 @@ function Diary() {
       }
     };
 
+    const handleClick = () => {
+      if (inSelectionMode) {
+        onToggleSelect();
+      }
+    };
+
     return (
       <div
-        className={`meal-entry-swipeable ${swiped ? 'swiped' : ''}`}
+        className={`meal-entry-swipeable ${swiped ? 'swiped' : ''} ${isSelected ? 'selected' : ''}`}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onClick={handleClick}
       >
         <div className="meal-entry-content">
+          {inSelectionMode && (
+            <div className={`meal-entry-checkbox ${isSelected ? 'checked' : ''}`}>
+              {isSelected && <Check size={14} />}
+            </div>
+          )}
           <div className="meal-entry-info">
             <span className="meal-entry-name">{entry.food_name}</span>
             <span className="meal-entry-serving">{entry.number_of_servings || 1} serving</span>
           </div>
           <span className="meal-entry-cals">{entry.calories || 0}</span>
         </div>
-        <button className="meal-entry-delete-btn" onClick={handleDelete}>
-          <Trash2 size={20} />
-          <span>Delete</span>
-        </button>
+        {!inSelectionMode && (
+          <button className="meal-entry-delete-btn" onClick={handleDelete}>
+            <Trash2 size={20} />
+            <span>Delete</span>
+          </button>
+        )}
       </div>
     );
   };
@@ -977,6 +1070,9 @@ function Diary() {
                 key={entry.id}
                 entry={entry}
                 onDelete={() => handleDeleteEntry(entry.id, entry.food_name)}
+                isSelected={selectedEntries.has(entry.id)}
+                onToggleSelect={() => toggleEntrySelection(entry.id)}
+                inSelectionMode={selectionMode}
               />
             ))}
           </div>
@@ -1120,6 +1216,39 @@ function Diary() {
           </div>
         </div>
       </div>
+
+      {/* Selection Mode Bar */}
+      {entries.length > 0 && (
+        <div className="selection-mode-bar">
+          {selectionMode ? (
+            <>
+              <button className="selection-btn cancel" onClick={clearSelection}>
+                <X size={16} />
+                Cancel
+              </button>
+              <span className="selection-count">{selectedEntries.size} selected</span>
+              <button className="selection-btn select-all" onClick={selectAllEntries}>
+                Select All
+              </button>
+            </>
+          ) : (
+            <button className="selection-btn" onClick={() => setSelectionMode(true)}>
+              <Check size={16} />
+              Select Items
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Bulk Delete Button */}
+      {selectionMode && selectedEntries.size > 0 && (
+        <div className="bulk-delete-bar">
+          <button className="bulk-delete-btn" onClick={deleteSelectedEntries}>
+            <Trash2 size={18} />
+            Delete {selectedEntries.size} item{selectedEntries.size > 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
 
       {/* Meal Sections */}
       {loading ? (
