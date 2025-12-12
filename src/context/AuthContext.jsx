@@ -15,23 +15,31 @@ export function AuthProvider({ children }) {
   const fetchClientData = useCallback(async (userId) => {
     console.log('SPA: Fetching client data for user:', userId);
     try {
-      const { data: client, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => {
+          console.log('SPA: Client data fetch timeout');
+          resolve({ id: null, client_name: 'User', error: true, timeout: true });
+        }, 8000)
+      );
+
+      const fetchPromise = supabase
         .from('clients')
         .select('id, coach_id, client_name, email, avatar_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
         .eq('user_id', userId)
-        .single();
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('SPA: Error fetching client data:', error);
+            return { id: null, client_name: 'User', error: true };
+          }
+          console.log('SPA: Got client data:', data?.client_name);
+          return data;
+        });
 
-      if (error) {
-        console.error('SPA: Error fetching client data:', error);
-        // Return empty object so app can still load
-        return { id: null, client_name: 'User', error: true };
-      }
-
-      console.log('SPA: Got client data:', client?.client_name);
-      return client;
+      return await Promise.race([fetchPromise, timeoutPromise]);
     } catch (err) {
       console.error('SPA: Error in fetchClientData:', err);
-      // Return empty object so app can still load
       return { id: null, client_name: 'User', error: true };
     }
   }, []);
