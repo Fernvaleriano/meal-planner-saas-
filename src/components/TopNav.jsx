@@ -1,16 +1,44 @@
-import { useState } from 'react';
-import { Heart, Bell, LogOut, Moon, Sun } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Heart, Bell, LogOut, Moon, Sun, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { apiGet } from '../utils/api';
 
 function TopNav() {
-  const { logout, theme, toggleTheme } = useAuth();
+  const { logout, theme, toggleTheme, clientData } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [streak, setStreak] = useState(0);
+
+  // Load streak on mount
+  useEffect(() => {
+    const loadStreak = async () => {
+      if (!clientData?.id) return;
+      try {
+        const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${new Date().toISOString().split('T')[0]}`);
+        if (data.streak) {
+          setStreak(data.streak);
+        }
+      } catch (err) {
+        console.error('Error loading streak:', err);
+      }
+    };
+    loadStreak();
+  }, [clientData?.id]);
 
   return (
     <nav className="top-nav">
-      <a href="/app-test" className="nav-brand">
+      <Link to="/" className="nav-brand">
         <img src="/icons/logo.png" alt="Zique Fitness" className="nav-logo-img" />
-      </a>
+        <span className="nav-brand-text">Zique<br/>Fitness</span>
+      </Link>
+
+      {/* Streak Badge */}
+      {streak > 0 && (
+        <div className="streak-badge-nav">
+          <RefreshCw size={14} />
+          <span>{streak} days</span>
+        </div>
+      )}
 
       <div className="nav-actions">
         <button
@@ -21,9 +49,9 @@ function TopNav() {
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        <a href="/app-test/plans?tab=favorites" className="nav-btn">
+        <Link to="/plans?tab=favorites" className="nav-btn">
           <Heart size={20} />
-        </a>
+        </Link>
 
         <div className="notification-wrapper">
           <button
