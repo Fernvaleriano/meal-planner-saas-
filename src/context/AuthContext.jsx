@@ -13,6 +13,7 @@ export function AuthProvider({ children }) {
 
   // Fetch client data from database
   const fetchClientData = useCallback(async (userId) => {
+    console.log('SPA: Fetching client data for user:', userId);
     try {
       const { data: client, error } = await supabase
         .from('clients')
@@ -21,14 +22,17 @@ export function AuthProvider({ children }) {
         .single();
 
       if (error) {
-        console.error('Error fetching client data:', error);
-        return null;
+        console.error('SPA: Error fetching client data:', error);
+        // Return empty object so app can still load
+        return { id: null, client_name: 'User', error: true };
       }
 
+      console.log('SPA: Got client data:', client?.client_name);
       return client;
     } catch (err) {
-      console.error('Error in fetchClientData:', err);
-      return null;
+      console.error('SPA: Error in fetchClientData:', err);
+      // Return empty object so app can still load
+      return { id: null, client_name: 'User', error: true };
     }
   }, []);
 
