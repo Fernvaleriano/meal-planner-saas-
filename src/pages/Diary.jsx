@@ -4,15 +4,42 @@ import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, Arr
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 
+// localStorage cache helpers
+const getCache = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (e) { /* ignore */ }
+  return null;
+};
+
+const setCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) { /* ignore */ }
+};
+
+const formatDateKey = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 function Diary() {
   const { clientData } = useAuth();
   const [searchParams] = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
-  const [goals, setGoals] = useState({ calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 });
-  const [waterIntake, setWaterIntake] = useState(0);
+
+  // Load initial data from cache for instant display
+  const dateKey = formatDateKey(currentDate);
+  const cachedDiary = clientData?.id ? getCache(`diary_${clientData.id}_${dateKey}`) : null;
+
+  const [entries, setEntries] = useState(cachedDiary?.entries || []);
+  const [loading, setLoading] = useState(false); // Start false for instant UI
+  const [totals, setTotals] = useState(cachedDiary?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const [goals, setGoals] = useState(cachedDiary?.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 });
+  const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
   const [waterGoal] = useState(8);
   const [waterLoading, setWaterLoading] = useState(false);
   const [aiInput, setAiInput] = useState('');
@@ -56,52 +83,59 @@ function Diary() {
     setCurrentDate(newDate);
   };
 
-  // Load diary entries and water intake
+  // Load diary entries and water intake - with caching
   useEffect(() => {
-    const loadEntries = async () => {
-      if (!clientData?.id) return;
-      setLoading(true);
+    if (!clientData?.id) return;
 
-      try {
-        const dateStr = formatDate(currentDate);
+    const dateStr = formatDate(currentDate);
+    const cacheKey = `diary_${clientData.id}_${dateStr}`;
 
-        // Load food entries and water intake in parallel
-        const [diaryData, waterData] = await Promise.all([
-          apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
-          apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
-        ]);
+    // Load from cache first for instant display
+    const cached = getCache(cacheKey);
+    if (cached) {
+      setEntries(cached.entries || []);
+      setTotals(cached.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      setGoals(cached.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 });
+      setWaterIntake(cached.water || 0);
+    }
 
-        setEntries(diaryData.entries || []);
+    // Fetch fresh data in background
+    Promise.all([
+      apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
+      apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+    ]).then(([diaryData, waterData]) => {
+      const newEntries = diaryData.entries || [];
+      const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
+      const newWater = waterData?.glasses || 0;
 
-        if (diaryData.goals) {
-          setGoals(diaryData.goals);
-        }
+      // Calculate totals
+      const calculatedTotals = newEntries.reduce((acc, entry) => ({
+        calories: acc.calories + (entry.calories || 0),
+        protein: acc.protein + (entry.protein || 0),
+        carbs: acc.carbs + (entry.carbs || 0),
+        fat: acc.fat + (entry.fat || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        // Set water intake from dedicated endpoint
-        if (waterData) {
-          setWaterIntake(waterData.glasses || 0);
-        }
+      // Update state
+      setEntries(newEntries);
+      setGoals(newGoals);
+      setWaterIntake(newWater);
+      setTotals(calculatedTotals);
 
-        // Calculate totals
-        const calculatedTotals = (diaryData.entries || []).reduce((acc, entry) => ({
-          calories: acc.calories + (entry.calories || 0),
-          protein: acc.protein + (entry.protein || 0),
-          carbs: acc.carbs + (entry.carbs || 0),
-          fat: acc.fat + (entry.fat || 0)
-        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      // Cache for next time
+      setCache(cacheKey, {
+        entries: newEntries,
+        totals: calculatedTotals,
+        goals: newGoals,
+        water: newWater
+      });
+    }).catch(err => {
+      console.error('Error loading diary:', err);
+    });
 
-        setTotals(calculatedTotals);
-      } catch (err) {
-        console.error('Error loading diary:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadEntries();
   }, [clientData?.id, currentDate]);
 
-  // Handle water intake actions - optimistic updates
+  // Handle water intake actions - optimistic updates with cache
   const handleWaterAction = async (action, amount = 1) => {
     if (!clientData?.id) return;
 
@@ -118,9 +152,14 @@ function Diary() {
     // Update UI immediately (optimistic update)
     setWaterIntake(newGlasses);
 
+    // Update cache
+    const dateStr = formatDate(currentDate);
+    const cacheKey = `diary_${clientData.id}_${dateStr}`;
+    const cached = getCache(cacheKey) || {};
+    setCache(cacheKey, { ...cached, water: newGlasses });
+
     // Save to server in background
     try {
-      const dateStr = formatDate(currentDate);
       await apiPost('/.netlify/functions/water-intake', {
         clientId: clientData.id,
         date: dateStr,
@@ -128,7 +167,6 @@ function Diary() {
         glasses: amount
       });
     } catch (err) {
-      // Don't revert - local state is fine for now
       console.error('Error saving water intake:', err);
     }
   };
@@ -182,14 +220,22 @@ function Diary() {
       }
 
       // Update local state
-      setEntries(prev => [...prev, ...newEntries]);
-      setTotals(prev => ({
-        calories: prev.calories + addedTotals.calories,
-        protein: prev.protein + addedTotals.protein,
-        carbs: prev.carbs + addedTotals.carbs,
-        fat: prev.fat + addedTotals.fat
-      }));
+      const updatedEntries = [...entries, ...newEntries];
+      const updatedTotals = {
+        calories: totals.calories + addedTotals.calories,
+        protein: totals.protein + addedTotals.protein,
+        carbs: totals.carbs + addedTotals.carbs,
+        fat: totals.fat + addedTotals.fat
+      };
+
+      setEntries(updatedEntries);
+      setTotals(updatedTotals);
       setAiInput('');
+
+      // Update cache
+      const cacheKey = `diary_${clientData.id}_${dateStr}`;
+      const cached = getCache(cacheKey) || {};
+      setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
     } catch (err) {
       console.error('Error logging food:', err);
     } finally {
@@ -209,16 +255,26 @@ function Diary() {
 
       // Find the entry to subtract from totals
       const deletedEntry = entries.find(e => e.id === entryId);
+      const updatedEntries = entries.filter(e => e.id !== entryId);
+      let updatedTotals = totals;
+
       if (deletedEntry) {
-        setTotals(prev => ({
-          calories: prev.calories - (deletedEntry.calories || 0),
-          protein: prev.protein - (deletedEntry.protein || 0),
-          carbs: prev.carbs - (deletedEntry.carbs || 0),
-          fat: prev.fat - (deletedEntry.fat || 0)
-        }));
+        updatedTotals = {
+          calories: totals.calories - (deletedEntry.calories || 0),
+          protein: totals.protein - (deletedEntry.protein || 0),
+          carbs: totals.carbs - (deletedEntry.carbs || 0),
+          fat: totals.fat - (deletedEntry.fat || 0)
+        };
+        setTotals(updatedTotals);
       }
 
-      setEntries(prev => prev.filter(e => e.id !== entryId));
+      setEntries(updatedEntries);
+
+      // Update cache
+      const dateStr = formatDate(currentDate);
+      const cacheKey = `diary_${clientData.id}_${dateStr}`;
+      const cached = getCache(cacheKey) || {};
+      setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
     } catch (err) {
       console.error('Error deleting entry:', err);
     }

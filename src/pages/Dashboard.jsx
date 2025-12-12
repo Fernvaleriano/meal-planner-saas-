@@ -4,32 +4,42 @@ import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, Clipboar
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 
-// Get cached coach data from localStorage
-const getCachedCoachData = (clientId) => {
+// localStorage cache helpers
+const getCache = (key) => {
   try {
-    const cached = localStorage.getItem(`coach_data_${clientId}`);
+    const cached = localStorage.getItem(key);
     if (cached) return JSON.parse(cached);
   } catch (e) { /* ignore */ }
   return null;
 };
 
-// Save coach data to localStorage
-const setCachedCoachData = (clientId, data) => {
+const setCache = (key, data) => {
   try {
-    localStorage.setItem(`coach_data_${clientId}`, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (e) { /* ignore */ }
 };
 
+// Get today's date key for cache
+const getTodayKey = () => new Date().toISOString().split('T')[0];
+
 function Dashboard() {
   const { clientData } = useAuth();
-  const [loading, setLoading] = useState(false); // Start false for instant UI render
-  const [todayProgress, setTodayProgress] = useState({
+  const today = getTodayKey();
+
+  // Load all cached data for instant display
+  const cachedDashboard = clientData?.id ? getCache(`dashboard_${clientData.id}_${today}`) : null;
+  const cachedCoach = clientData?.id ? getCache(`coach_${clientData.id}`) : null;
+  const cachedPlans = clientData?.id ? getCache(`plans_${clientData.id}`) : null;
+  const cachedSupplements = clientData?.id ? getCache(`supplements_${clientData.id}`) : null;
+
+  const [loading, setLoading] = useState(false);
+  const [todayProgress, setTodayProgress] = useState(cachedDashboard?.progress || {
     calories: 0,
     protein: 0,
     carbs: 0,
     fat: 0
   });
-  const [targets, setTargets] = useState({
+  const [targets, setTargets] = useState(cachedDashboard?.targets || {
     calories: clientData?.calorie_goal || 2600,
     protein: clientData?.protein_goal || 221,
     carbs: clientData?.carbs_goal || 260,
@@ -39,12 +49,9 @@ function Dashboard() {
   const [foodInput, setFoodInput] = useState('');
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
-  const [mealPlans, setMealPlans] = useState([]);
-  const [supplements, setSupplements] = useState([]);
-  const [supplementIntake, setSupplementIntake] = useState({}); // Track which supplements are taken
-
-  // Initialize coach data from cache for instant display
-  const cachedCoach = clientData?.id ? getCachedCoachData(clientData.id) : null;
+  const [mealPlans, setMealPlans] = useState(cachedPlans || []);
+  const [supplements, setSupplements] = useState(cachedSupplements?.protocols || []);
+  const [supplementIntake, setSupplementIntake] = useState(cachedDashboard?.intake || {});
   const [coachData, setCoachData] = useState(cachedCoach?.coachData || null);
   const [hasStories, setHasStories] = useState(cachedCoach?.hasStories || false);
 
@@ -72,14 +79,14 @@ function Dashboard() {
     return 'Good evening! How was your day?';
   };
 
-  // Load today's progress, meal plans, and supplements - progressive loading
+  // Load today's progress, meal plans, and supplements - progressive loading with caching
   useEffect(() => {
     if (!clientData?.id) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const dateKey = getTodayKey();
 
     // Load diary data (progress rings) - high priority
-    apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${today}`)
+    apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`)
       .then(diaryData => {
         if (diaryData?.entries) {
           const totals = diaryData.entries.reduce((acc, entry) => ({
@@ -89,14 +96,22 @@ function Dashboard() {
             fat: acc.fat + (entry.fat || 0)
           }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
           setTodayProgress(totals);
-        }
-        if (diaryData?.goals) {
-          setTargets({
+
+          // Cache progress and targets together
+          const newTargets = diaryData?.goals ? {
             calories: diaryData.goals.calorie_goal || 2600,
             protein: diaryData.goals.protein_goal || 221,
             carbs: diaryData.goals.carbs_goal || 260,
             fat: diaryData.goals.fat_goal || 75
-          });
+          } : targets;
+
+          if (diaryData?.goals) {
+            setTargets(newTargets);
+          }
+
+          // Update cache with current state
+          const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
+          setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, progress: totals, targets: newTargets });
         }
       })
       .catch(err => console.error('Error loading diary:', err));
@@ -105,7 +120,9 @@ function Dashboard() {
     apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`)
       .then(plansData => {
         if (plansData?.plans) {
-          setMealPlans(plansData.plans.slice(0, 3));
+          const plans = plansData.plans.slice(0, 3);
+          setMealPlans(plans);
+          setCache(`plans_${clientData.id}`, plans);
         }
       })
       .catch(err => console.error('Error loading meal plans:', err));
@@ -116,11 +133,12 @@ function Dashboard() {
         .then(supplementsData => {
           if (supplementsData?.protocols) {
             setSupplements(supplementsData.protocols);
+            setCache(`supplements_${clientData.id}`, { protocols: supplementsData.protocols });
           }
         })
         .catch(err => console.error('Error loading supplements:', err));
 
-      // Load coach stories - low priority (but cached for instant display next time)
+      // Load coach stories - low priority (cached for instant display)
       apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`)
         .then(storiesData => {
           if (storiesData) {
@@ -132,15 +150,14 @@ function Dashboard() {
             const newHasStories = storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0);
             setCoachData(newCoachData);
             setHasStories(newHasStories);
-            // Cache for instant display on next visit
-            setCachedCoachData(clientData.id, { coachData: newCoachData, hasStories: newHasStories });
+            setCache(`coach_${clientData.id}`, { coachData: newCoachData, hasStories: newHasStories });
           }
         })
         .catch(err => console.error('Error loading coach stories:', err));
     }
 
     // Load supplement intake - medium priority
-    apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${today}`)
+    apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`)
       .then(intakeData => {
         if (intakeData?.intake) {
           const intakeMap = {};
@@ -148,6 +165,10 @@ function Dashboard() {
             intakeMap[record.protocol_id] = true;
           });
           setSupplementIntake(intakeMap);
+
+          // Update cache with intake
+          const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
+          setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, intake: intakeMap });
         }
       })
       .catch(err => console.error('Error loading supplement intake:', err));
