@@ -3,22 +3,38 @@ import { useAuth } from '../context/AuthContext';
 import { Moon, Camera, Lock, LogOut, ChevronRight } from 'lucide-react';
 import { apiGet } from '../utils/api';
 
+// localStorage cache helpers
+const getCache = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (e) { /* ignore */ }
+  return null;
+};
+
+const setCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) { /* ignore */ }
+};
+
 function Settings() {
   const { clientData, theme, toggleTheme, logout } = useAuth();
-  const [coachData, setCoachData] = useState(null);
 
-  // Load coach data
+  // Load from cache for instant display
+  const cachedCoach = clientData?.coach_id ? getCache(`coach_branding_${clientData.coach_id}`) : null;
+  const [coachData, setCoachData] = useState(cachedCoach);
+
+  // Load coach data with caching
   useEffect(() => {
-    const loadCoachData = async () => {
-      if (!clientData?.coach_id) return;
-      try {
-        const data = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${clientData.coach_id}`);
+    if (!clientData?.coach_id) return;
+
+    apiGet(`/.netlify/functions/get-coach-branding?coachId=${clientData.coach_id}`)
+      .then(data => {
         setCoachData(data);
-      } catch (err) {
-        console.error('Error loading coach data:', err);
-      }
-    };
-    loadCoachData();
+        setCache(`coach_branding_${clientData.coach_id}`, data);
+      })
+      .catch(err => console.error('Error loading coach data:', err));
   }, [clientData?.coach_id]);
 
   const getInitials = (name) => {

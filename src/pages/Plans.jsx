@@ -4,24 +4,50 @@ import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Co
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 
+// localStorage cache helpers
+const getCache = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch (e) { /* ignore */ }
+  return null;
+};
+
+const setCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) { /* ignore */ }
+};
+
 function Plans() {
   const { clientData } = useAuth();
   const { planId } = useParams();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState(null);
+
+  // Load from cache for instant display
+  const cachedPlans = clientData?.id ? getCache(`plans_full_${clientData.id}`) : null;
+
+  const [plans, setPlans] = useState(cachedPlans || []);
+  const [loading, setLoading] = useState(!cachedPlans); // Only show loading if no cache
+  const [selectedPlan, setSelectedPlan] = useState(() => {
+    // If planId in URL and we have cached plans, select immediately
+    if (planId && cachedPlans) {
+      return cachedPlans.find(p => String(p.id) === String(planId)) || null;
+    }
+    return null;
+  });
   const [selectedDay, setSelectedDay] = useState(0);
 
-  // Load plans
+  // Load plans with caching
   useEffect(() => {
-    const loadPlans = async () => {
-      if (!clientData?.id) return;
+    if (!clientData?.id) return;
 
-      try {
-        const data = await apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`);
+    // Fetch fresh data
+    apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`)
+      .then(data => {
         if (data?.plans) {
           setPlans(data.plans);
+          setCache(`plans_full_${clientData.id}`, data.plans);
 
           // If planId in URL, select that plan
           if (planId) {
@@ -31,14 +57,9 @@ function Plans() {
             }
           }
         }
-      } catch (err) {
-        console.error('Error loading plans:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPlans();
+      })
+      .catch(err => console.error('Error loading plans:', err))
+      .finally(() => setLoading(false));
   }, [clientData?.id, planId]);
 
   // Get plan details
