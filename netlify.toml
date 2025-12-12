@@ -1,6 +1,17 @@
 [build]
   publish = "."
-  command = "npm install"
+  command = "npm install && npm run build"
+
+# SPA routing for /app-test
+[[redirects]]
+  from = "/app-test/*"
+  to = "/app-test-dist/app-test.html"
+  status = 200
+
+[[redirects]]
+  from = "/app-test"
+  to = "/app-test-dist/app-test.html"
+  status = 200
 
 [build.environment]
   NODE_VERSION = "18"
