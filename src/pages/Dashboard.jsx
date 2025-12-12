@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -61,6 +61,10 @@ function Dashboard() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [favoritesModalOpen, setFavoritesModalOpen] = useState(false);
   const [scanLabelModalOpen, setScanLabelModalOpen] = useState(false);
+
+  // Voice input state
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
 
   // Handle food logged from modals
   const handleFoodLogged = (nutrition) => {
@@ -286,6 +290,115 @@ function Dashboard() {
     }
   };
 
+  // Voice input functions
+  const toggleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice input is not supported in this browser. Please try Chrome or Safari.');
+      return;
+    }
+
+    if (isRecording) {
+      stopVoiceInput();
+    } else {
+      startVoiceInput();
+    }
+  };
+
+  const startVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // Clean up any existing recognition
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {
+        console.log('Previous recognition cleanup:', e);
+      }
+      recognitionRef.current = null;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      // Update input with transcript (show interim while speaking, final when done)
+      if (finalTranscript) {
+        setFoodInput(prev => prev ? `${prev} ${finalTranscript}` : finalTranscript);
+      } else if (interimTranscript) {
+        // Show interim transcript as preview
+        setFoodInput(interimTranscript);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Voice recognition error:', event.error);
+      if (event.error === 'no-speech') {
+        alert('No speech detected. Please try again.');
+      } else if (event.error === 'not-allowed') {
+        alert('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else if (event.error !== 'aborted') {
+        alert('Voice error: ' + event.error);
+      }
+      resetVoiceUI();
+    };
+
+    recognition.onend = () => {
+      resetVoiceUI();
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+      alert('Could not start microphone. Please try again.');
+      resetVoiceUI();
+    }
+  };
+
+  const stopVoiceInput = () => {
+    if (recognitionRef.current) {
+      const rec = recognitionRef.current;
+      recognitionRef.current = null;
+
+      rec.onstart = null;
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+
+      try {
+        rec.abort();
+      } catch (e) {
+        console.log('Error stopping recognition:', e);
+      }
+    }
+    resetVoiceUI();
+  };
+
+  const resetVoiceUI = () => {
+    setIsRecording(false);
+    recognitionRef.current = null;
+  };
+
   // Handle supplement checkbox toggle
   const handleSupplementToggle = async (protocolId) => {
     const isCurrentlyTaken = supplementIntake[protocolId];
@@ -444,7 +557,10 @@ function Dashboard() {
 
         {/* Action Buttons */}
         <div className="ai-hero-actions">
-          <button className="voice-btn">
+          <button
+            className={`voice-btn ${isRecording ? 'recording' : ''}`}
+            onClick={toggleVoiceInput}
+          >
             <Mic size={20} />
           </button>
           <button
