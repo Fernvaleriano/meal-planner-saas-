@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 
 function Dashboard() {
   const { clientData } = useAuth();
@@ -22,8 +22,10 @@ function Dashboard() {
   const [selectedMealType, setSelectedMealType] = useState(null);
   const [foodInput, setFoodInput] = useState('');
   const [isLogging, setIsLogging] = useState(false);
+  const [logSuccess, setLogSuccess] = useState(false);
   const [mealPlans, setMealPlans] = useState([]);
   const [supplements, setSupplements] = useState([]);
+  const [supplementIntake, setSupplementIntake] = useState({}); // Track which supplements are taken
   const [coachData, setCoachData] = useState(null);
   const [hasStories, setHasStories] = useState(false);
 
@@ -56,13 +58,16 @@ function Dashboard() {
     const loadDashboardData = async () => {
       if (!clientData?.id) return;
 
+      const today = new Date().toISOString().split('T')[0];
+
       try {
         // Load all data in parallel
-        const [diaryData, plansData, supplementsData, storiesData] = await Promise.all([
-          apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${new Date().toISOString().split('T')[0]}`).catch(() => null),
+        const [diaryData, plansData, supplementsData, storiesData, intakeData] = await Promise.all([
+          apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${today}`).catch(() => null),
           apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
           clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
-          clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null
+          clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
+          apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${today}`).catch(() => null)
         ]);
 
         // Process diary data
@@ -93,6 +98,15 @@ function Dashboard() {
         // Process supplements
         if (supplementsData?.protocols) {
           setSupplements(supplementsData.protocols);
+        }
+
+        // Process supplement intake - build a map of protocol_id -> taken
+        if (intakeData?.intake) {
+          const intakeMap = {};
+          intakeData.intake.forEach(record => {
+            intakeMap[record.protocol_id] = true;
+          });
+          setSupplementIntake(intakeMap);
         }
 
         // Process coach stories
@@ -134,23 +148,98 @@ function Dashboard() {
     if (!foodInput.trim() || !selectedMealType) return;
 
     setIsLogging(true);
+    setLogSuccess(false);
+
     try {
-      // Call AI to parse the food
-      const data = await apiPost('/.netlify/functions/client-diary-ai', {
-        clientId: clientData.id,
-        message: foodInput,
-        mealType: selectedMealType
+      // Step 1: Call AI to parse the food description
+      const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
+        text: foodInput
       });
 
-      // TODO: Show confirmation modal with parsed food
-      console.log('AI response:', data);
+      if (!aiData?.foods || aiData.foods.length === 0) {
+        console.error('No foods recognized');
+        return;
+      }
+
+      // Step 2: Log each recognized food item to the diary
+      const today = new Date().toISOString().split('T')[0];
+      let totalAdded = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+      for (const food of aiData.foods) {
+        await apiPost('/.netlify/functions/food-diary', {
+          clientId: clientData.id,
+          coachId: clientData.coach_id,
+          entryDate: today,
+          mealType: selectedMealType,
+          foodName: food.name,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat,
+          servingSize: 1,
+          servingUnit: 'serving',
+          numberOfServings: 1,
+          foodSource: 'ai'
+        });
+
+        totalAdded.calories += food.calories || 0;
+        totalAdded.protein += food.protein || 0;
+        totalAdded.carbs += food.carbs || 0;
+        totalAdded.fat += food.fat || 0;
+      }
+
+      // Step 3: Update local state with new totals
+      setTodayProgress(prev => ({
+        calories: prev.calories + totalAdded.calories,
+        protein: prev.protein + totalAdded.protein,
+        carbs: prev.carbs + totalAdded.carbs,
+        fat: prev.fat + totalAdded.fat
+      }));
+
+      // Clear input and show success
       setFoodInput('');
+      setLogSuccess(true);
+      setTimeout(() => setLogSuccess(false), 3000);
     } catch (err) {
       console.error('Error logging food:', err);
     } finally {
       setIsLogging(false);
     }
   };
+
+  // Handle supplement checkbox toggle
+  const handleSupplementToggle = async (protocolId) => {
+    const isCurrentlyTaken = supplementIntake[protocolId];
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      if (isCurrentlyTaken) {
+        // Unmark supplement
+        await apiDelete(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&protocolId=${protocolId}&date=${today}`);
+        setSupplementIntake(prev => {
+          const updated = { ...prev };
+          delete updated[protocolId];
+          return updated;
+        });
+      } else {
+        // Mark supplement as taken
+        await apiPost('/.netlify/functions/supplement-intake', {
+          clientId: clientData.id,
+          protocolId: protocolId,
+          date: today
+        });
+        setSupplementIntake(prev => ({
+          ...prev,
+          [protocolId]: true
+        }));
+      }
+    } catch (err) {
+      console.error('Error toggling supplement:', err);
+    }
+  };
+
+  // Count taken supplements
+  const takenSupplementsCount = Object.keys(supplementIntake).length;
 
   // Render progress ring with value inside
   const ProgressRing = ({ current, target, color, label }) => {
@@ -290,8 +379,10 @@ function Dashboard() {
             className="log-food-btn"
             onClick={handleLogFood}
             disabled={isLogging || !foodInput.trim()}
+            style={logSuccess ? { background: '#22c55e' } : {}}
           >
-            {isLogging ? 'Logging...' : 'Log Food'} <ChevronRight size={18} />
+            {isLogging ? 'Analyzing...' : logSuccess ? 'Logged!' : 'Log Food'}
+            {logSuccess ? <Check size={18} /> : <ChevronRight size={18} />}
           </button>
         </div>
 
@@ -376,7 +467,7 @@ function Dashboard() {
               <Pill size={20} className="supplements-icon" />
               <span>Today's Supplements</span>
             </div>
-            <span className="supplements-counter">0/{supplements.length}</span>
+            <span className="supplements-counter">{takenSupplementsCount}/{supplements.length}</span>
           </div>
           <div className="supplements-list">
             {(() => {
@@ -419,10 +510,17 @@ function Dashboard() {
                     <span>{timingLabels[timing] || timing.toUpperCase()}</span>
                   </div>
                   {supps.map((supp) => (
-                    <div key={supp.id} className="supplement-checkbox-item">
-                      <div className="supplement-checkbox"></div>
+                    <div
+                      key={supp.id}
+                      className="supplement-checkbox-item"
+                      onClick={() => handleSupplementToggle(supp.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className={`supplement-checkbox ${supplementIntake[supp.id] ? 'checked' : ''}`}>
+                        {supplementIntake[supp.id] && <Check size={14} color="white" />}
+                      </div>
                       <div className="supplement-item-info">
-                        <span className="supplement-item-name">{supp.name}</span>
+                        <span className="supplement-item-name" style={supplementIntake[supp.id] ? { textDecoration: 'line-through', opacity: 0.6 } : {}}>{supp.name}</span>
                         <span className="supplement-item-dose">{supp.dose || ''}</span>
                       </div>
                     </div>

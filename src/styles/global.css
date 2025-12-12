@@ -2055,6 +2055,9 @@ body {
 .supplement-checkbox.checked {
     background: var(--brand-primary);
     border-color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .supplement-item-info {
