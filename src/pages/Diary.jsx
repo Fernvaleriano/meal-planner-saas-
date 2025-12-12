@@ -101,27 +101,35 @@ function Diary() {
     loadEntries();
   }, [clientData?.id, currentDate]);
 
-  // Handle water intake actions
+  // Handle water intake actions - optimistic updates
   const handleWaterAction = async (action, amount = 1) => {
     if (!clientData?.id) return;
-    setWaterLoading(true);
 
+    // Calculate new value optimistically
+    let newGlasses = waterIntake;
+    if (action === 'add') {
+      newGlasses = Math.min(waterGoal, waterIntake + amount);
+    } else if (action === 'remove') {
+      newGlasses = Math.max(0, waterIntake - amount);
+    } else if (action === 'complete') {
+      newGlasses = waterGoal;
+    }
+
+    // Update UI immediately (optimistic update)
+    setWaterIntake(newGlasses);
+
+    // Save to server in background
     try {
       const dateStr = formatDate(currentDate);
-      const result = await apiPost('/.netlify/functions/water-intake', {
+      await apiPost('/.netlify/functions/water-intake', {
         clientId: clientData.id,
         date: dateStr,
         action: action,
         glasses: amount
       });
-
-      if (result.success) {
-        setWaterIntake(result.glasses);
-      }
     } catch (err) {
-      console.error('Error updating water intake:', err);
-    } finally {
-      setWaterLoading(false);
+      // Don't revert - local state is fine for now
+      console.error('Error saving water intake:', err);
     }
   };
 
@@ -190,7 +198,12 @@ function Diary() {
   };
 
   // Handle deleting a food entry
-  const handleDeleteEntry = async (entryId) => {
+  const handleDeleteEntry = async (entryId, foodName) => {
+    // Confirm before deleting
+    if (!window.confirm(`Delete "${foodName}"?`)) {
+      return;
+    }
+
     try {
       await apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`);
 
@@ -302,7 +315,7 @@ function Diary() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="meal-entry-cals">{entry.calories || 0}</span>
                   <button
-                    onClick={() => handleDeleteEntry(entry.id)}
+                    onClick={() => handleDeleteEntry(entry.id, entry.food_name)}
                     style={{
                       background: 'none',
                       border: 'none',

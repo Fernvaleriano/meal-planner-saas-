@@ -25,7 +25,7 @@ function Plans() {
 
           // If planId in URL, select that plan
           if (planId) {
-            const plan = data.plans.find(p => p.id === parseInt(planId));
+            const plan = data.plans.find(p => String(p.id) === String(planId));
             if (plan) {
               setSelectedPlan(plan);
             }
