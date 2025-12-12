@@ -84,9 +84,31 @@ body {
 }
 
 .nav-logo-img {
-    height: 50px;
+    height: 40px;
     width: auto;
     object-fit: contain;
+}
+
+.nav-brand-text {
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: white;
+    margin-left: 8px;
+}
+
+.streak-badge-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: auto;
+    margin-right: 12px;
 }
 
 .nav-title {
@@ -1928,6 +1950,776 @@ body {
     font-size: 0.85rem;
     color: #10b981;
     font-weight: 500;
+}
+
+/* ========================================
+   DIARY PAGE STYLES
+   ======================================== */
+.diary-page {
+    padding-bottom: 20px;
+}
+
+/* Date Navigator */
+.date-navigator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.date-nav-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    border: none;
+    color: var(--gray-600);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .date-nav-btn {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.date-nav-btn:hover {
+    background: var(--gray-200);
+}
+
+.date-display {
+    text-align: center;
+}
+
+.date-label {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .date-label {
+    color: #f1f5f9;
+}
+
+.date-full {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    margin-top: 2px;
+}
+
+/* Quick Actions Row */
+.diary-quick-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.diary-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    color: var(--gray-700);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .diary-action-btn {
+    background: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+.diary-action-btn:hover {
+    background: var(--gray-200);
+}
+
+/* Add Food Section */
+.add-food-section {
+    background: var(--gray-100);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .add-food-section {
+    background: #1e293b;
+}
+
+.add-food-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .add-food-header {
+    color: #f1f5f9;
+}
+
+.add-food-icon {
+    color: #10b981;
+}
+
+.add-food-options {
+    display: flex;
+    gap: 10px;
+}
+
+.add-food-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 10px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    color: var(--gray-600);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .add-food-option {
+    background: #334155;
+    border-color: #475569;
+    color: #94a3b8;
+}
+
+.add-food-option:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
+/* Calorie Summary */
+.calorie-summary {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .calorie-summary {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.calorie-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .calorie-title {
+    color: #f1f5f9;
+}
+
+/* Calorie Ring */
+.calorie-ring-container {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 20px;
+}
+
+.calorie-ring-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.calorie-ring-bg {
+    fill: none;
+    stroke: var(--gray-200);
+    stroke-width: 12;
+}
+
+[data-theme="dark"] .calorie-ring-bg {
+    stroke: #334155;
+}
+
+.calorie-ring-progress {
+    fill: none;
+    stroke: var(--brand-primary);
+    stroke-width: 12;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.calorie-ring-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.calorie-remaining {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    line-height: 1;
+}
+
+[data-theme="dark"] .calorie-remaining {
+    color: #f1f5f9;
+}
+
+.calorie-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+/* Calorie Breakdown */
+.calorie-breakdown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.calorie-stat {
+    text-align: center;
+}
+
+.calorie-stat-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.calorie-stat-value.remaining {
+    color: var(--brand-primary);
+}
+
+[data-theme="dark"] .calorie-stat-value {
+    color: #f1f5f9;
+}
+
+.calorie-stat-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.calorie-operator {
+    font-size: 1rem;
+    color: var(--gray-400);
+}
+
+/* Macro Progress Bars */
+.macro-progress-bars {
+    display: flex;
+    gap: 16px;
+}
+
+.macro-bar-item {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.macro-bar-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.macro-bar-label.protein { color: #3b82f6; }
+.macro-bar-label.carbs { color: #f59e0b; }
+.macro-bar-label.fat { color: #ef4444; }
+
+.macro-bar-value {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+
+[data-theme="dark"] .macro-bar-value {
+    color: #94a3b8;
+}
+
+.macro-bar-track {
+    width: 100%;
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .macro-bar-track {
+    background: #334155;
+}
+
+.macro-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.macro-bar-fill.protein { background: #3b82f6; }
+.macro-bar-fill.carbs { background: #f59e0b; }
+.macro-bar-fill.fat { background: #ef4444; }
+
+/* Meal Sections */
+.meal-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.meal-section {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .meal-section {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.meal-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.meal-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .meal-section-title {
+    color: #f1f5f9;
+}
+
+.meal-section-icon.breakfast { color: #f59e0b; }
+.meal-section-icon.lunch { color: #eab308; }
+.meal-section-icon.dinner { color: #8b5cf6; }
+.meal-section-icon.snack { color: #ef4444; }
+
+.meal-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.meal-section-cals {
+    font-size: 0.9rem;
+    color: var(--gray-500);
+}
+
+.meal-add-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--brand-primary);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.meal-add-btn:hover {
+    background: #0f766e;
+    transform: scale(1.05);
+}
+
+/* Meal Entries */
+.meal-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.meal-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: 10px;
+}
+
+[data-theme="dark"] .meal-entry {
+    background: #334155;
+}
+
+.meal-entry-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.meal-entry-name {
+    font-weight: 500;
+    color: var(--gray-900);
+    margin-bottom: 2px;
+}
+
+[data-theme="dark"] .meal-entry-name {
+    color: #f1f5f9;
+}
+
+.meal-entry-serving {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+}
+
+.meal-entry-cals {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .meal-entry-cals {
+    color: #e2e8f0;
+}
+
+/* Meal Section Footer */
+.meal-section-footer {
+    display: flex;
+    gap: 8px;
+}
+
+.meal-footer-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.meal-footer-btn.add {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .meal-footer-btn.add {
+    background: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+.meal-footer-btn.save {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.meal-footer-btn:hover {
+    transform: translateY(-1px);
+}
+
+.meal-section-skeleton {
+    height: 120px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+}
+
+/* Water Intake Card */
+.water-intake-card {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    color: white;
+}
+
+.water-intake-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.water-intake-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.water-icon {
+    opacity: 0.9;
+}
+
+.water-goal-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+
+.water-intake-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.water-glasses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 180px;
+}
+
+.water-glass {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.water-glass.filled {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.water-intake-count {
+    text-align: right;
+}
+
+.water-count {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.water-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.water-intake-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.water-btn {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.water-btn.add {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.water-btn.remove {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.water-btn.complete {
+    background: white;
+    border: none;
+    color: #0284c7;
+}
+
+.water-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* AI Nutrition Assistant */
+.ai-assistant-card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .ai-assistant-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.ai-assistant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.ai-assistant-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .ai-assistant-title {
+    color: #f1f5f9;
+}
+
+.ai-icon {
+    color: #10b981;
+}
+
+.ai-expand-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    color: var(--gray-600);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+[data-theme="dark"] .ai-expand-btn {
+    background: #334155;
+    border-color: #475569;
+    color: #94a3b8;
+}
+
+.ai-assistant-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ai-suggestion {
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.ai-suggestion.protein {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.ai-suggestion.recipe {
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    color: #eab308;
+}
+
+.ai-assistant-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.ai-chip {
+    padding: 8px 14px;
+    background: var(--gray-100);
+    border: none;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .ai-chip {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.ai-chip:hover {
+    background: var(--gray-200);
+}
+
+.ai-input-row {
+    display: flex;
+    gap: 10px;
+}
+
+.ai-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .ai-input {
+    background: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+.ai-input::placeholder {
+    color: var(--gray-500);
+}
+
+.ai-send-btn {
+    padding: 12px 24px;
+    background: var(--brand-primary);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-send-btn:hover {
+    background: #0f766e;
 }
 
 /* Responsive adjustments */
