@@ -115,14 +115,29 @@ function Diary() {
     const count = selectedEntries.size;
     if (!window.confirm(`Delete ${count} selected item${count > 1 ? 's' : ''}?`)) return;
 
-    try {
-      // Delete each selected entry
-      for (const entryId of selectedEntries) {
-        await apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`);
-      }
+    // Delete all selected entries in parallel
+    const entriesToDelete = Array.from(selectedEntries);
+    console.log('Deleting entries:', entriesToDelete);
 
-      // Calculate totals to subtract
-      const deletedEntries = entries.filter(e => selectedEntries.has(e.id));
+    const deletePromises = entriesToDelete.map(entryId =>
+      apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`)
+        .then(() => ({ entryId, success: true }))
+        .catch(err => {
+          console.error(`Failed to delete entry ${entryId}:`, err);
+          return { entryId, success: false, error: err };
+        })
+    );
+
+    const results = await Promise.all(deletePromises);
+    console.log('Delete results:', results);
+
+    // Separate successful and failed deletions
+    const successfulIds = new Set(results.filter(r => r.success).map(r => r.entryId));
+    const failedCount = results.filter(r => !r.success).length;
+
+    if (successfulIds.size > 0) {
+      // Calculate totals to subtract for successfully deleted entries
+      const deletedEntries = entries.filter(e => successfulIds.has(e.id));
       const subtractTotals = deletedEntries.reduce((acc, e) => ({
         calories: acc.calories + (e.calories || 0),
         protein: acc.protein + (e.protein || 0),
@@ -130,8 +145,8 @@ function Diary() {
         fat: acc.fat + (e.fat || 0)
       }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-      // Update state
-      const updatedEntries = entries.filter(e => !selectedEntries.has(e.id));
+      // Update state - only remove successfully deleted entries
+      const updatedEntries = entries.filter(e => !successfulIds.has(e.id));
       const updatedTotals = {
         calories: totals.calories - subtractTotals.calories,
         protein: totals.protein - subtractTotals.protein,
@@ -147,12 +162,14 @@ function Diary() {
       const cacheKey = `diary_${clientData.id}_${dateStr}`;
       const cached = getCache(cacheKey) || {};
       setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
+    }
 
-      // Exit selection mode
-      clearSelection();
-    } catch (err) {
-      console.error('Error deleting entries:', err);
-      alert('Failed to delete some entries. Please try again.');
+    // Exit selection mode
+    clearSelection();
+
+    // Show error if some failed
+    if (failedCount > 0) {
+      alert(`Failed to delete ${failedCount} item${failedCount > 1 ? 's' : ''}. ${successfulIds.size > 0 ? `${successfulIds.size} item${successfulIds.size > 1 ? 's were' : ' was'} deleted successfully.` : ''}`);
     }
   };
 
