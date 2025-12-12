@@ -11,12 +11,19 @@ import LoadingScreen from './components/LoadingScreen';
 function ProtectedRoute({ children }) {
   const { user, loading, clientData } = useAuth();
 
+  // Still loading auth state
   if (loading) {
     return <LoadingScreen />;
   }
 
-  if (!user || !clientData) {
+  // Not logged in
+  if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Logged in but still fetching client data - show loading
+  if (!clientData) {
+    return <LoadingScreen />;
   }
 
   return children;
