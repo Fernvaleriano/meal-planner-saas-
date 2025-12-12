@@ -327,7 +327,7 @@ function Progress() {
                 </div>
               ) : photos.length === 0 ? (
                 <div className="empty-state-inline">
-                  <span>📷</span>
+                  <Camera size={40} strokeWidth={1.5} className="empty-state-icon" />
                   <p>No photos yet. Tap "+ Add Progress Photo" to upload!</p>
                 </div>
               ) : (
@@ -522,7 +522,6 @@ function Progress() {
                 ref={photoInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={handlePhotoSelect}
                 style={{ display: 'none' }}
               />
