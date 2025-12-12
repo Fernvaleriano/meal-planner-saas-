@@ -24,6 +24,8 @@ function Dashboard() {
   const [isLogging, setIsLogging] = useState(false);
   const [mealPlans, setMealPlans] = useState([]);
   const [supplements, setSupplements] = useState([]);
+  const [coachData, setCoachData] = useState(null);
+  const [hasStories, setHasStories] = useState(false);
 
   // Auto-select meal type based on time
   useEffect(() => {
@@ -44,9 +46,9 @@ function Dashboard() {
 
   const getGreetingSubtext = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Ready to start your day?';
-    if (hour < 17) return 'How is your day going?';
-    return 'How was your day?';
+    if (hour < 12) return 'Good morning! Ready to start your day?';
+    if (hour < 17) return 'Good afternoon! How is your day going?';
+    return 'Good evening! How was your day?';
   };
 
   // Load today's progress, meal plans, and supplements
@@ -56,10 +58,11 @@ function Dashboard() {
 
       try {
         // Load all data in parallel
-        const [diaryData, plansData, supplementsData] = await Promise.all([
+        const [diaryData, plansData, supplementsData, storiesData] = await Promise.all([
           apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${new Date().toISOString().split('T')[0]}`).catch(() => null),
           apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
-          clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null
+          clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
+          clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null
         ]);
 
         // Process diary data
@@ -90,6 +93,16 @@ function Dashboard() {
         // Process supplements
         if (supplementsData?.protocols) {
           setSupplements(supplementsData.protocols);
+        }
+
+        // Process coach stories
+        if (storiesData) {
+          setCoachData({
+            name: storiesData.coachName,
+            avatar: storiesData.coachAvatar,
+            showAvatar: storiesData.showAvatarInGreeting
+          });
+          setHasStories(storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0));
         }
       } catch (err) {
         console.error('Error loading dashboard data:', err);
@@ -198,9 +211,9 @@ function Dashboard() {
       {/* Greeting Section */}
       <div className="greeting-section">
         <div className="greeting-with-avatar">
-          {clientData?.avatar_url ? (
+          {clientData?.profile_photo_url ? (
             <img
-              src={clientData.avatar_url}
+              src={clientData.profile_photo_url}
               alt={clientData.client_name}
               className="greeting-avatar-img"
             />
@@ -210,11 +223,23 @@ function Dashboard() {
             </div>
           )}
           <div className="greeting-text">
-            <h1>Welcome back, {clientData?.client_name?.split(' ')[0] || 'there'}!</h1>
+            <h1>Welcome back, {clientData?.client_name || 'there'}!</h1>
             <p className="greeting-subtext">{getGreetingSubtext()}</p>
           </div>
         </div>
       </div>
+
+      {/* Your Coach Section */}
+      {coachData?.showAvatar && coachData?.avatar && (
+        <div className="coach-bubble-section">
+          <div className={`coach-story-bubble ${hasStories ? 'has-stories' : ''}`}>
+            <div className={`story-ring ${hasStories ? 'unseen' : ''}`}>
+              <img src={coachData.avatar} alt={coachData.name} className="coach-story-avatar" />
+            </div>
+            <span className="coach-story-label">Your Coach</span>
+          </div>
+        </div>
+      )}
 
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
