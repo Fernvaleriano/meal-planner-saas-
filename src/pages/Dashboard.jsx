@@ -607,30 +607,30 @@ function Dashboard() {
       {/* Quick Actions Grid */}
       <h3 className="section-heading">Quick Actions</h3>
       <div className="quick-actions-grid">
-        <Link to="/settings" className="quick-action-card">
+        <Link to="/check-in" className="quick-action-card">
           <div className="quick-action-card-icon teal">
             <ClipboardCheck size={24} />
           </div>
           <span>Check-In</span>
         </Link>
-        <Link to="/settings" className="quick-action-card">
+        <Link to="/progress" className="quick-action-card">
           <div className="quick-action-card-icon pink">
             <TrendingUp size={24} />
           </div>
           <span>Progress</span>
         </Link>
-        <Link to="/plans" className="quick-action-card">
+        <Link to="/recipes" className="quick-action-card">
           <div className="quick-action-card-icon yellow">
             <ChefHat size={24} />
           </div>
           <span>Recipes</span>
         </Link>
-        <Link to="/plans" className="quick-action-card">
+        <div className="quick-action-card" onClick={() => setFavoritesModalOpen(true)} style={{ cursor: 'pointer' }}>
           <div className="quick-action-card-icon red">
             <Heart size={24} />
           </div>
           <span>Favorites</span>
-        </Link>
+        </div>
       </div>
 
       {/* My Meal Plans Section */}

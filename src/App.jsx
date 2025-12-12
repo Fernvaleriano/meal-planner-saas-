@@ -5,6 +5,9 @@ import Dashboard from './pages/Dashboard';
 import Diary from './pages/Diary';
 import Plans from './pages/Plans';
 import Settings from './pages/Settings';
+import Recipes from './pages/Recipes';
+import CheckIn from './pages/CheckIn';
+import Progress from './pages/Progress';
 import Login from './pages/Login';
 import LoadingScreen from './components/LoadingScreen';
 
@@ -46,6 +49,9 @@ function App() {
         <Route path="plans" element={<Plans />} />
         <Route path="plans/:planId" element={<Plans />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="recipes" element={<Recipes />} />
+        <Route path="check-in" element={<CheckIn />} />
+        <Route path="progress" element={<Progress />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
