@@ -27,39 +27,7 @@
 [functions."send-checkin-reminders"]
   schedule = "@hourly"
 
-# SPA Routing - serve app.html for SPA routes
-# These MUST come before the fallback rule
-[[redirects]]
-  from = "/diary"
-  to = "/app.html"
-  status = 200
-
-[[redirects]]
-  from = "/diary/*"
-  to = "/app.html"
-  status = 200
-
-[[redirects]]
-  from = "/plans"
-  to = "/app.html"
-  status = 200
-
-[[redirects]]
-  from = "/plans/*"
-  to = "/app.html"
-  status = 200
-
-[[redirects]]
-  from = "/settings"
-  to = "/app.html"
-  status = 200
-
-[[redirects]]
-  from = "/settings/*"
-  to = "/app.html"
-  status = 200
-
-# Redirect /app to app.html (SPA entry point)
+# SPA Routing - serve app.html for all /app/* routes
 [[redirects]]
   from = "/app"
   to = "/app.html"
