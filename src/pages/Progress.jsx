@@ -505,21 +505,24 @@ function Progress() {
               </button>
             </div>
             <div className="modal-body">
-              {photoPreview && (
+              {photoPreview ? (
                 <img src={photoPreview} alt="Preview" className="photo-preview-large" />
+              ) : (
+                <div
+                  className="upload-area"
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  <div className="upload-icon">
+                    <Camera size={48} strokeWidth={1.5} />
+                  </div>
+                  <div className="upload-text">Tap to select photo</div>
+                </div>
               )}
-
-              <div
-                className="upload-area"
-                onClick={() => photoInputRef.current?.click()}
-              >
-                <div className="upload-icon">📷</div>
-                <div className="upload-text">Tap to select photo</div>
-              </div>
               <input
                 ref={photoInputRef}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handlePhotoSelect}
                 style={{ display: 'none' }}
               />
@@ -545,11 +548,28 @@ function Progress() {
 
               <button
                 className="btn-primary full-width"
-                onClick={handleUploadPhoto}
-                disabled={!photoPreview || uploadingPhoto}
+                onClick={() => {
+                  if (photoPreview) {
+                    handleUploadPhoto();
+                  } else {
+                    photoInputRef.current?.click();
+                  }
+                }}
+                disabled={uploadingPhoto}
               >
-                {uploadingPhoto ? 'Uploading...' : 'Upload Photo'}
+                {uploadingPhoto ? 'Uploading...' : photoPreview ? 'Upload Photo' : 'Select Photo'}
               </button>
+              {photoPreview && (
+                <button
+                  className="btn-secondary full-width"
+                  onClick={() => {
+                    setPhotoPreview(null);
+                    setPhotoFile(null);
+                  }}
+                >
+                  Choose Different Photo
+                </button>
+              )}
               <button className="btn-secondary full-width" onClick={() => setShowPhotoModal(false)}>
                 Cancel
               </button>
