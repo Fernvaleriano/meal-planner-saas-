@@ -343,6 +343,72 @@ function Dashboard() {
         </Link>
       </div>
 
+      {/* Today's Supplements Section */}
+      {supplements.length > 0 && (
+        <div className="todays-supplements-card">
+          <div className="supplements-header">
+            <div className="supplements-title">
+              <Pill size={20} className="supplements-icon" />
+              <span>Today's Supplements</span>
+            </div>
+            <span className="supplements-counter">0/{supplements.length}</span>
+          </div>
+          <div className="supplements-list">
+            {(() => {
+              // Group supplements by timing
+              const timingIcons = {
+                morning: '🌅',
+                'with-breakfast': '🍳',
+                'before-workout': '💪',
+                'after-workout': '🏋️',
+                'with-lunch': '🥗',
+                'with-dinner': '🍽️',
+                evening: '🌙',
+                'before-bed': '😴',
+                custom: '⏰'
+              };
+              const timingLabels = {
+                morning: 'MORNING',
+                'with-breakfast': 'WITH BREAKFAST',
+                'before-workout': 'BEFORE WORKOUT',
+                'after-workout': 'AFTER WORKOUT',
+                'with-lunch': 'WITH LUNCH',
+                'with-dinner': 'WITH DINNER',
+                evening: 'EVENING',
+                'before-bed': 'BEFORE BED',
+                custom: 'CUSTOM'
+              };
+
+              // Group by timing
+              const grouped = supplements.reduce((acc, supp) => {
+                const timing = supp.timing || 'custom';
+                if (!acc[timing]) acc[timing] = [];
+                acc[timing].push(supp);
+                return acc;
+              }, {});
+
+              return Object.entries(grouped).map(([timing, supps]) => (
+                <div key={timing} className="supplement-group">
+                  <div className="supplement-group-label">
+                    <span>{timingIcons[timing] || '⏰'}</span>
+                    <span>{timingLabels[timing] || timing.toUpperCase()}</span>
+                  </div>
+                  {supps.map((supp) => (
+                    <div key={supp.id} className="supplement-checkbox-item">
+                      <div className="supplement-checkbox"></div>
+                      <div className="supplement-item-info">
+                        <span className="supplement-item-name">{supp.name}</span>
+                        <span className="supplement-item-dose">{supp.dose || ''}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions Grid */}
       <h3 className="section-heading">Quick Actions</h3>
       <div className="quick-actions-grid">
@@ -423,65 +489,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Supplements Section */}
-      {supplements.length > 0 && (
-        <div className="supplements-section">
-          <h2 className="section-heading-icon">
-            <Pill size={22} className="section-icon-svg supplement" />
-            Supplement Protocols
-          </h2>
-          <div className="supplements-container">
-            {supplements.map((protocol) => {
-              const timingIcons = {
-                morning: '🌅',
-                'with-breakfast': '🍳',
-                'before-workout': '💪',
-                'after-workout': '🏋️',
-                'with-lunch': '🥗',
-                'with-dinner': '🍽️',
-                evening: '🌙',
-                'before-bed': '😴',
-                custom: '⏰'
-              };
-              const timingLabels = {
-                morning: 'Morning',
-                'with-breakfast': 'With Breakfast',
-                'before-workout': 'Before Workout',
-                'after-workout': 'After Workout',
-                'with-lunch': 'With Lunch',
-                'with-dinner': 'With Dinner',
-                evening: 'Evening',
-                'before-bed': 'Before Bed',
-                custom: 'Custom'
-              };
-              const icon = timingIcons[protocol.timing] || '💊';
-              const timingText = protocol.timing === 'custom' && protocol.timing_custom
-                ? protocol.timing_custom
-                : timingLabels[protocol.timing] || protocol.timing;
-
-              return (
-                <div key={protocol.id} className="supplement-card">
-                  <div className="supplement-name">
-                    <span className="supplement-icon">{icon}</span>
-                    {protocol.name}
-                  </div>
-                  <div className="supplement-timing">
-                    <strong>Timing:</strong> {timingText}
-                  </div>
-                  {protocol.dose && (
-                    <div className="supplement-dose">
-                      <strong>Dose:</strong> {protocol.dose}
-                    </div>
-                  )}
-                  {protocol.notes && (
-                    <div className="supplement-notes">📝 {protocol.notes}</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
