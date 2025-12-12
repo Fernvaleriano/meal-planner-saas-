@@ -59,7 +59,7 @@ function Dashboard() {
         const [diaryData, plansData, supplementsData] = await Promise.all([
           apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${new Date().toISOString().split('T')[0]}`).catch(() => null),
           apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
-          apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}`).catch(() => null)
+          clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null
         ]);
 
         // Process diary data
@@ -428,22 +428,57 @@ function Dashboard() {
         <div className="supplements-section">
           <h2 className="section-heading-icon">
             <Pill size={22} className="section-icon-svg supplement" />
-            Today's Supplements
+            Supplement Protocols
           </h2>
           <div className="supplements-container">
-            {supplements.map((protocol) => (
-              <div key={protocol.id} className="supplement-protocol">
-                {protocol.supplements?.map((supp, idx) => (
-                  <div key={idx} className="supplement-item">
-                    <div className="supplement-info">
-                      <span className="supplement-name">{supp.name}</span>
-                      <span className="supplement-dosage">{supp.dosage}</span>
-                    </div>
-                    <div className="supplement-timing">{supp.timing || 'Any time'}</div>
+            {supplements.map((protocol) => {
+              const timingIcons = {
+                morning: '🌅',
+                'with-breakfast': '🍳',
+                'before-workout': '💪',
+                'after-workout': '🏋️',
+                'with-lunch': '🥗',
+                'with-dinner': '🍽️',
+                evening: '🌙',
+                'before-bed': '😴',
+                custom: '⏰'
+              };
+              const timingLabels = {
+                morning: 'Morning',
+                'with-breakfast': 'With Breakfast',
+                'before-workout': 'Before Workout',
+                'after-workout': 'After Workout',
+                'with-lunch': 'With Lunch',
+                'with-dinner': 'With Dinner',
+                evening: 'Evening',
+                'before-bed': 'Before Bed',
+                custom: 'Custom'
+              };
+              const icon = timingIcons[protocol.timing] || '💊';
+              const timingText = protocol.timing === 'custom' && protocol.timing_custom
+                ? protocol.timing_custom
+                : timingLabels[protocol.timing] || protocol.timing;
+
+              return (
+                <div key={protocol.id} className="supplement-card">
+                  <div className="supplement-name">
+                    <span className="supplement-icon">{icon}</span>
+                    {protocol.name}
                   </div>
-                ))}
-              </div>
-            ))}
+                  <div className="supplement-timing">
+                    <strong>Timing:</strong> {timingText}
+                  </div>
+                  {protocol.dose && (
+                    <div className="supplement-dose">
+                      <strong>Dose:</strong> {protocol.dose}
+                    </div>
+                  )}
+                  {protocol.notes && (
+                    <div className="supplement-notes">📝 {protocol.notes}</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

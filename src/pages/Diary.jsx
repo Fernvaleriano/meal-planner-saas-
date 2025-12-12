@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 
@@ -240,6 +240,10 @@ function Diary() {
         <button className="diary-action-btn">
           <FileText size={16} />
           Daily
+        </button>
+        <button className="diary-action-btn">
+          <BarChart3 size={16} />
+          Weekly
         </button>
       </div>
 
