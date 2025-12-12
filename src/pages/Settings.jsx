@@ -55,10 +55,10 @@ export default function Settings() {
             fontSize: '1.5rem',
             fontWeight: 700
           }}>
-            {clientData?.name?.charAt(0) || 'U'}
+            {clientData?.client_name?.charAt(0) || 'U'}
           </div>
           <div>
-            <h2 style={{ fontWeight: 700, marginBottom: 4 }}>{clientData?.name || 'User'}</h2>
+            <h2 style={{ fontWeight: 700, marginBottom: 4 }}>{clientData?.client_name || 'User'}</h2>
             <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)' }}>{clientData?.email || ''}</p>
           </div>
         </div>

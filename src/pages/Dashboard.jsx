@@ -173,7 +173,7 @@ export default function Dashboard() {
     return 'Good evening'
   }
 
-  const firstName = clientData?.name?.split(' ')[0] || 'there'
+  const firstName = clientData?.client_name?.split(' ')[0] || 'there'
 
   return (
     <div className="dashboard">
