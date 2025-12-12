@@ -2,13 +2,10 @@
   "name": "zique-fitness-nutrition",
   "version": "1.0.0",
   "description": "Zique Fitness Nutrition - AI-powered meal planning platform",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:legacy": "netlify dev",
-    "build": "vite build",
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'",
     "build:mobile": "rm -rf www && mkdir -p www/css www/icons www/js && cp *.html www/ && cp manifest.json www/ && cp sw.js www/ && cp -r css/* www/css/ && cp -r icons/* www/icons/ && cp -r js/* www/js/",
-    "preview": "vite preview",
     "cap:sync": "npm run build:mobile && npx cap sync",
     "cap:ios": "npm run build:mobile && npx cap sync ios && npx cap open ios",
     "cap:android": "npm run build:mobile && npx cap sync android && npx cap open android",
@@ -23,16 +20,9 @@
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
     "@supabase/supabase-js": "^2.86.0",
-    "lucide-react": "^0.312.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.21.0",
     "stripe": "^14.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.0.10"
+    "netlify-cli": "^17.0.0"
   }
 }

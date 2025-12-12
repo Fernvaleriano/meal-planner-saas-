@@ -571,9 +571,9 @@
 
                 showMessage('Login successful! Loading your meal plans...', 'success');
 
-                // Redirect to client dashboard (SPA)
+                // Redirect to client dashboard
                 setTimeout(() => {
-                    window.location.href = '/app';
+                    window.location.href = 'client-dashboard.html';
                 }, 1000);
 
             } catch (error) {
@@ -594,7 +594,7 @@
                     .single();
 
                 if (clientData) {
-                    window.location.href = '/app';
+                    window.location.href = 'client-dashboard.html';
                 }
             }
         });
