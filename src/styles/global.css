@@ -4312,6 +4312,8 @@ body {
     border-radius: 16px;
     padding: 16px;
     border: 1px solid var(--gray-100);
+    overflow: hidden;
+    position: relative;
 }
 
 [data-theme="dark"] .meal-card {
@@ -4568,17 +4570,19 @@ body {
 .meal-macros-inline {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 12px;
+    max-width: 100%;
 }
 
 .macro-item {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--gray-600);
     background: var(--gray-100);
-    padding: 4px 10px;
+    padding: 3px 8px;
     border-radius: 6px;
+    white-space: nowrap;
 }
 
 [data-theme="dark"] .macro-item {
@@ -6452,11 +6456,12 @@ body {
     border-radius: 24px 24px 0 0;
     width: 100%;
     max-width: 500px;
-    max-height: 85vh;
+    max-height: 80vh;
     overflow-y: auto;
     position: relative;
     animation: slideUp 0.3s ease;
-    padding-bottom: env(safe-area-inset-bottom, 20px);
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+    -webkit-overflow-scrolling: touch;
 }
 
 @keyframes slideUp {
@@ -6680,4 +6685,172 @@ body {
 [data-theme="dark"] .meal-macros-inline .macro-item {
     background: #334155;
     color: #94a3b8;
+}
+
+/* =============================================
+   MEAL PROCESSING OVERLAY
+   ============================================= */
+
+.meal-card.processing {
+    pointer-events: none;
+    position: relative;
+}
+
+.meal-processing-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.9);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+}
+
+.meal-processing-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #0d9488;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.meal-processing-overlay span {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* =============================================
+   CUSTOM MEAL MODAL
+   ============================================= */
+
+.custom-meal-modal {
+    background: #1e293b;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+    padding: 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 20px));
+}
+
+.custom-meal-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.custom-meal-header h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 4px;
+}
+
+.custom-meal-header p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.custom-meal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.custom-meal-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.custom-meal-form .form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.custom-meal-form .form-group input,
+.custom-meal-form .form-group textarea {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 1rem;
+    color: #f1f5f9;
+    transition: border-color 0.2s;
+}
+
+.custom-meal-form .form-group input:focus,
+.custom-meal-form .form-group textarea:focus {
+    outline: none;
+    border-color: #0d9488;
+}
+
+.custom-meal-form .form-group input::placeholder,
+.custom-meal-form .form-group textarea::placeholder {
+    color: #64748b;
+}
+
+.custom-meal-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.custom-meal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.custom-meal-actions .cancel-btn {
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #94a3b8;
+    transition: all 0.2s;
+}
+
+.custom-meal-actions .cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.custom-meal-actions .save-btn {
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: #0d9488;
+    color: white;
+    transition: all 0.2s;
+}
+
+.custom-meal-actions .save-btn:hover {
+    background: #0f766e;
+}
+
+.custom-meal-actions .save-btn:active {
+    transform: scale(0.98);
 }
