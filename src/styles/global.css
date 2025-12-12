@@ -5097,6 +5097,9 @@ body {
     text-align: center;
     padding: 30px 20px;
     color: var(--gray-500);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .empty-state-inline span {
@@ -5105,8 +5108,17 @@ body {
     margin-bottom: 12px;
 }
 
+.empty-state-inline .empty-state-icon {
+    color: rgba(148, 163, 184, 0.5);
+    margin-bottom: 12px;
+}
+
 [data-theme="dark"] .empty-state-inline {
     color: #94a3b8;
+}
+
+[data-theme="dark"] .empty-state-inline .empty-state-icon {
+    color: rgba(148, 163, 184, 0.4);
 }
 
 /* ==================== PROGRESS PAGE ==================== */
