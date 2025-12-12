@@ -2543,6 +2543,59 @@ body {
     color: #e2e8f0;
 }
 
+/* Swipeable Entry Styles */
+.meal-entry-swipeable {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    margin-bottom: 4px;
+}
+
+.meal-entry-swipeable .meal-entry-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: 10px;
+    transition: transform 0.25s ease-out;
+    position: relative;
+    z-index: 2;
+}
+
+[data-theme="dark"] .meal-entry-swipeable .meal-entry-content {
+    background: #334155;
+}
+
+.meal-entry-swipeable.swiped .meal-entry-content {
+    transform: translateX(-80px);
+}
+
+.meal-entry-delete-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    z-index: 1;
+    border-radius: 0 10px 10px 0;
+}
+
+.meal-entry-delete-btn:active {
+    background: #dc2626;
+}
+
 /* Meal Section Footer */
 .meal-section-footer {
     display: flex;

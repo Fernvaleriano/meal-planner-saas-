@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
-import { FavoritesModal, SnapPhotoModal } from '../components/FoodModals';
+import { FavoritesModal, SnapPhotoModal, ScanLabelModal } from '../components/FoodModals';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -57,6 +57,7 @@ function Diary() {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [showSaveMealModal, setShowSaveMealModal] = useState(false);
+  const [showScanLabelModal, setShowScanLabelModal] = useState(false);
   const [saveMealType, setSaveMealType] = useState('');
   const [copyDateInput, setCopyDateInput] = useState('');
   const [copyMode, setCopyMode] = useState('from');
@@ -274,11 +275,7 @@ function Diary() {
 
   // Handle deleting a food entry
   const handleDeleteEntry = async (entryId, foodName) => {
-    // Confirm before deleting
-    if (!window.confirm(`Delete "${foodName}"?`)) {
-      return;
-    }
-
+    // Confirmation is handled by SwipeableEntry component
     try {
       await apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`);
 
@@ -675,20 +672,25 @@ function Diary() {
       return;
     }
 
+    // Calculate total macros for the meal
+    const mealTotals = mealEntries.reduce((acc, e) => ({
+      calories: acc.calories + (e.calories || 0),
+      protein: acc.protein + (e.protein || 0),
+      carbs: acc.carbs + (e.carbs || 0),
+      fat: acc.fat + (e.fat || 0)
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
     try {
-      await apiPost('/.netlify/functions/favorite-meals', {
+      await apiPost('/.netlify/functions/toggle-favorite', {
         clientId: clientData.id,
-        name: mealName,
-        foods: mealEntries.map(e => ({
-          food_name: e.food_name,
-          calories: e.calories,
-          protein: e.protein,
-          carbs: e.carbs,
-          fat: e.fat,
-          serving_size: e.serving_size,
-          serving_unit: e.serving_unit,
-          number_of_servings: e.number_of_servings
-        }))
+        coachId: clientData.coach_id,
+        mealName: mealName,
+        mealType: saveMealType,
+        calories: Math.round(mealTotals.calories),
+        protein: Math.round(mealTotals.protein),
+        carbs: Math.round(mealTotals.carbs),
+        fat: Math.round(mealTotals.fat),
+        notes: mealEntries.map(e => e.food_name).join(', ')
       });
       alert('Meal saved to favorites!');
       setShowSaveMealModal(false);
@@ -802,6 +804,63 @@ function Diary() {
     );
   };
 
+  // Swipeable entry component for delete
+  const SwipeableEntry = ({ entry, onDelete }) => {
+    const [touchStart, setTouchStart] = useState(null);
+    const [touchEnd, setTouchEnd] = useState(null);
+    const [swiped, setSwiped] = useState(false);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e) => {
+      setTouchEnd(null);
+      setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e) => {
+      setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+      if (!touchStart || !touchEnd) return;
+      const distance = touchStart - touchEnd;
+      const isLeftSwipe = distance > minSwipeDistance;
+      const isRightSwipe = distance < -minSwipeDistance;
+
+      if (isLeftSwipe) {
+        setSwiped(true);
+      } else if (isRightSwipe) {
+        setSwiped(false);
+      }
+    };
+
+    const handleDelete = () => {
+      if (window.confirm(`Delete "${entry.food_name}"?`)) {
+        onDelete();
+      }
+    };
+
+    return (
+      <div
+        className={`meal-entry-swipeable ${swiped ? 'swiped' : ''}`}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="meal-entry-content">
+          <div className="meal-entry-info">
+            <span className="meal-entry-name">{entry.food_name}</span>
+            <span className="meal-entry-serving">{entry.number_of_servings || 1} serving</span>
+          </div>
+          <span className="meal-entry-cals">{entry.calories || 0}</span>
+        </div>
+        <button className="meal-entry-delete-btn" onClick={handleDelete}>
+          <Trash2 size={20} />
+          <span>Delete</span>
+        </button>
+      </div>
+    );
+  };
+
   // Meal section icons
   const getMealIcon = (mealType) => {
     switch (mealType) {
@@ -844,29 +903,11 @@ function Diary() {
         {entries.length > 0 && (
           <div className="meal-entries">
             {entries.map(entry => (
-              <div key={entry.id} className="meal-entry">
-                <div className="meal-entry-info">
-                  <span className="meal-entry-name">{entry.food_name}</span>
-                  <span className="meal-entry-serving">{entry.number_of_servings || 1} serving</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="meal-entry-cals">{entry.calories || 0}</span>
-                  <button
-                    onClick={() => handleDeleteEntry(entry.id, entry.food_name)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
+              <SwipeableEntry
+                key={entry.id}
+                entry={entry}
+                onDelete={() => handleDeleteEntry(entry.id, entry.food_name)}
+              />
             ))}
           </div>
         )}
@@ -1449,7 +1490,16 @@ function Diary() {
               {/* Quick Add Options */}
               <div className="quick-add-section" style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '12px', color: '#64748b' }}>Or try these options</div>
-                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setAiExpanded(true); }}>
+                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowPhotoModal(true); }}>
+                  <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Camera size={20} color="white" />
+                  </div>
+                  <div className="quick-add-text">
+                    <div style={{ fontWeight: 600 }}>Snap Photo</div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Take a photo of your food</div>
+                  </div>
+                </button>
+                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowAILogModal(true); }} style={{ marginTop: '10px' }}>
                   <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Mic size={20} color="white" />
                   </div>
@@ -1465,6 +1515,15 @@ function Diary() {
                   <div className="quick-add-text">
                     <div style={{ fontWeight: 600 }}>From Favorites</div>
                     <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Add your saved favorite meals</div>
+                  </div>
+                </button>
+                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowScanLabelModal(true); }} style={{ marginTop: '10px' }}>
+                  <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={20} color="white" />
+                  </div>
+                  <div className="quick-add-text">
+                    <div style={{ fontWeight: 600 }}>Scan Label</div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Scan nutrition facts label</div>
                   </div>
                 </button>
               </div>
@@ -1665,6 +1724,30 @@ function Diary() {
         clientData={clientData}
         onFoodLogged={(nutrition) => {
           // Update totals after logging from photo
+          const updatedTotals = {
+            calories: totals.calories + (nutrition.calories || 0),
+            protein: totals.protein + (nutrition.protein || 0),
+            carbs: totals.carbs + (nutrition.carbs || 0),
+            fat: totals.fat + (nutrition.fat || 0)
+          };
+          setTotals(updatedTotals);
+
+          // Update cache
+          const dateStr = formatDate(currentDate);
+          const cacheKey = `diary_${clientData?.id}_${dateStr}`;
+          const cached = getCache(cacheKey) || {};
+          setCache(cacheKey, { ...cached, totals: updatedTotals });
+        }}
+      />
+
+      {/* Scan Label Modal */}
+      <ScanLabelModal
+        isOpen={showScanLabelModal}
+        onClose={() => setShowScanLabelModal(false)}
+        mealType={selectedMealType}
+        clientData={clientData}
+        onFoodLogged={(nutrition) => {
+          // Update totals after logging from scan
           const updatedTotals = {
             calories: totals.calories + (nutrition.calories || 0),
             protein: totals.protein + (nutrition.protein || 0),
