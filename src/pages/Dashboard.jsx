@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
+import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -54,6 +55,37 @@ function Dashboard() {
   const [supplementIntake, setSupplementIntake] = useState(cachedDashboard?.intake || {});
   const [coachData, setCoachData] = useState(cachedCoach?.coachData || null);
   const [hasStories, setHasStories] = useState(cachedCoach?.hasStories || false);
+
+  // Modal states
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [favoritesModalOpen, setFavoritesModalOpen] = useState(false);
+  const [scanLabelModalOpen, setScanLabelModalOpen] = useState(false);
+
+  // Handle food logged from modals
+  const handleFoodLogged = (nutrition) => {
+    setTodayProgress(prev => ({
+      calories: prev.calories + nutrition.calories,
+      protein: prev.protein + nutrition.protein,
+      carbs: prev.carbs + nutrition.carbs,
+      fat: prev.fat + nutrition.fat
+    }));
+
+    // Update cache
+    const dateKey = getTodayKey();
+    const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
+    const newProgress = {
+      calories: todayProgress.calories + nutrition.calories,
+      protein: todayProgress.protein + nutrition.protein,
+      carbs: todayProgress.carbs + nutrition.carbs,
+      fat: todayProgress.fat + nutrition.fat
+    };
+    setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, progress: newProgress });
+
+    // Show success feedback
+    setLogSuccess(true);
+    setTimeout(() => setLogSuccess(false), 3000);
+  };
 
   // Auto-select meal type based on time
   useEffect(() => {
@@ -428,16 +460,16 @@ function Dashboard() {
 
         {/* Quick Action Buttons */}
         <div className="ai-hero-quick-actions">
-          <button className="quick-action-pill">
+          <button className="quick-action-pill" onClick={() => setPhotoModalOpen(true)}>
             <Camera size={16} /> Snap Photo
           </button>
-          <button className="quick-action-pill">
+          <button className="quick-action-pill" onClick={() => setSearchModalOpen(true)}>
             <Search size={16} /> Search Foods
           </button>
-          <button className="quick-action-pill">
+          <button className="quick-action-pill" onClick={() => setFavoritesModalOpen(true)}>
             <Heart size={16} /> Favorites
           </button>
-          <button className="quick-action-pill">
+          <button className="quick-action-pill" onClick={() => setScanLabelModalOpen(true)}>
             <ScanLine size={16} /> Scan Label
           </button>
         </div>
@@ -652,6 +684,35 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Food Logging Modals */}
+      <SnapPhotoModal
+        isOpen={photoModalOpen}
+        onClose={() => setPhotoModalOpen(false)}
+        mealType={selectedMealType}
+        clientData={clientData}
+        onFoodLogged={handleFoodLogged}
+      />
+      <SearchFoodsModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        mealType={selectedMealType}
+        clientData={clientData}
+        onFoodLogged={handleFoodLogged}
+      />
+      <FavoritesModal
+        isOpen={favoritesModalOpen}
+        onClose={() => setFavoritesModalOpen(false)}
+        mealType={selectedMealType}
+        clientData={clientData}
+        onFoodLogged={handleFoodLogged}
+      />
+      <ScanLabelModal
+        isOpen={scanLabelModalOpen}
+        onClose={() => setScanLabelModalOpen(false)}
+        mealType={selectedMealType}
+        clientData={clientData}
+        onFoodLogged={handleFoodLogged}
+      />
     </div>
   );
 }
