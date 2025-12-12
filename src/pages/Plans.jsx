@@ -44,6 +44,20 @@ function Plans() {
   const [favorites, setFavorites] = useState(new Set());
   const [actionLoading, setActionLoading] = useState(null);
 
+  // Custom meal modal states
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customMealData, setCustomMealData] = useState({
+    name: '',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fat: '',
+    instructions: ''
+  });
+
+  // Processing state for AI operations
+  const [processingMeal, setProcessingMeal] = useState(null);
+
   // Load plans with caching
   useEffect(() => {
     if (!clientData?.id) return;
@@ -233,17 +247,263 @@ function Plans() {
     }
   };
 
-  // Placeholder handlers for actions that need more complex implementation
-  const handleChangeMeal = (meal) => {
-    alert('Change meal feature coming soon! This will let you swap this meal for an alternative.');
+  // Helper to save updated plan to database
+  const savePlanToDatabase = async (updatedPlan) => {
+    try {
+      await apiPost('/.netlify/functions/update-meal-plan', {
+        planId: updatedPlan.id,
+        planData: updatedPlan.plan_data
+      });
+      // Update cache
+      setCache(`plans_full_${clientData.id}`, plans.map(p =>
+        p.id === updatedPlan.id ? updatedPlan : p
+      ));
+    } catch (err) {
+      console.error('Failed to save plan:', err);
+    }
   };
 
-  const handleReviseMeal = (meal) => {
-    alert('Revise meal feature coming soon! This will let you modify this meal with AI.');
+  // Change meal - generate a different meal with similar macros
+  const handleChangeMeal = async (meal) => {
+    if (!selectedPlan) return;
+
+    closeMealModal();
+    setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'change' });
+
+    try {
+      const days = getPlanDays(selectedPlan);
+      const currentDay = days[meal.dayIdx];
+      const targets = currentDay?.targets || {};
+
+      // Calculate meal-specific targets based on meal type
+      const mealType = (meal.type || meal.meal_type || 'meal').toLowerCase();
+      let calPercent = 0.25;
+      if (mealType === 'breakfast') calPercent = 0.27;
+      else if (mealType === 'lunch') calPercent = 0.32;
+      else if (mealType === 'dinner') calPercent = 0.28;
+      else if (mealType.includes('snack')) calPercent = 0.13;
+
+      const targetCalories = Math.round((targets.calories || 2000) * calPercent);
+      const targetProtein = Math.round((targets.protein || 150) * calPercent);
+      const targetCarbs = Math.round((targets.carbs || 200) * calPercent);
+      const targetFat = Math.round((targets.fat || 70) * calPercent);
+
+      // Collect all meal names to avoid repetition
+      const allMealNames = [];
+      days.forEach(day => {
+        (day.plan || []).forEach(m => {
+          if (m.name) allMealNames.push(m.name);
+        });
+      });
+
+      const avoidMealsList = allMealNames.length > 0
+        ? `\n\nNEVER generate any of these meals (they're already in the plan):\n${allMealNames.map(n => `- ${n}`).join('\n')}\n`
+        : '';
+
+      const prompt = `Generate a DIFFERENT ${meal.type || meal.meal_type || 'meal'} (not "${meal.name}").
+${avoidMealsList}
+STRICT Target Nutrition:
+- Calories: ${targetCalories} (stay within ±50 calories)
+- Protein: ${targetProtein}g (stay within ±5g)
+- Carbs: ${targetCarbs}g (stay within ±10g)
+- Fat: ${targetFat}g (stay within ±5g)
+
+Use ONLY foods from USDA database.
+
+Return ONLY valid JSON:
+{
+  "type": "${meal.type || meal.meal_type || 'meal'}",
+  "name": "Meal Name (with key portions)",
+  "ingredients": ["Ingredient 1 (amount)", "Ingredient 2 (amount)"],
+  "instructions": "Cooking instructions"
+}`;
+
+      const response = await fetch('/.netlify/functions/generate-meal-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          isJson: true,
+          targets: { calories: targetCalories, protein: targetProtein, carbs: targetCarbs, fat: targetFat },
+          mealsPerDay: 1
+        })
+      });
+
+      if (!response.ok) throw new Error('API request failed');
+
+      const data = await response.json();
+      let newMeal = data.success && data.data ? data.data : null;
+
+      if (!newMeal) throw new Error('Invalid response');
+
+      // Ensure meal has required fields
+      newMeal.type = newMeal.type || meal.type || meal.meal_type || 'meal';
+      newMeal.meal_type = newMeal.type;
+      newMeal.name = newMeal.name || 'New Meal';
+      newMeal.image_url = meal.image_url; // Keep original image
+
+      // Update the plan
+      const updatedPlan = { ...selectedPlan };
+      const updatedDays = [...getPlanDays(updatedPlan)];
+      updatedDays[meal.dayIdx].plan[meal.mealIdx] = newMeal;
+
+      if (updatedPlan.plan_data.currentPlan) {
+        updatedPlan.plan_data.currentPlan = updatedDays;
+      } else {
+        updatedPlan.plan_data.days = updatedDays;
+      }
+
+      setSelectedPlan(updatedPlan);
+      setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+      await savePlanToDatabase(updatedPlan);
+
+    } catch (err) {
+      console.error('Change meal error:', err);
+      alert('Failed to change meal. Please try again.');
+    } finally {
+      setProcessingMeal(null);
+    }
   };
 
+  // Revise meal - modify with AI based on user request
+  const handleReviseMeal = async (meal) => {
+    const revisionText = window.prompt(
+      `Revise "${meal.name}"?\n\nExamples:\n` +
+      `• "increase chicken to 250g"\n` +
+      `• "swap rice for sweet potato"\n` +
+      `• "make it vegetarian"\n` +
+      `• "add more protein"\n` +
+      `• "make it 800 calories"\n\n` +
+      `Enter your request:`
+    );
+
+    if (!revisionText || !revisionText.trim()) return;
+
+    closeMealModal();
+    setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'revise' });
+
+    try {
+      const prompt = `Revise this meal based on user request: "${meal.name}"
+
+USER REQUEST: ${revisionText}
+
+CURRENT MEAL:
+- Calories: ${meal.calories}
+- Protein: ${meal.protein}g
+- Carbs: ${meal.carbs}g
+- Fat: ${meal.fat}g
+- Ingredients: ${meal.ingredients ? (Array.isArray(meal.ingredients) ? meal.ingredients.join(', ') : meal.ingredients) : 'N/A'}
+
+Follow the user's request. If they specify exact amounts, use those amounts.
+If they want to swap ingredients, calculate similar calories.
+
+Return ONLY valid JSON:
+{"type":"${meal.type || meal.meal_type || 'meal'}","name":"Revised Meal Name","ingredients":["Ingredient (amount)"],"instructions":"Instructions"}`;
+
+      const response = await fetch('/.netlify/functions/generate-meal-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          isJson: true,
+          skipAutoScale: true,
+          targets: {
+            calories: meal.calories || 500,
+            protein: meal.protein || 30,
+            carbs: meal.carbs || 50,
+            fat: meal.fat || 15
+          },
+          mealsPerDay: 1
+        })
+      });
+
+      if (!response.ok) throw new Error('API request failed');
+
+      const data = await response.json();
+      let revisedMeal = data.success && data.data ? data.data : null;
+
+      if (!revisedMeal) throw new Error('Invalid response');
+
+      revisedMeal.type = revisedMeal.type || meal.type || meal.meal_type || 'meal';
+      revisedMeal.meal_type = revisedMeal.type;
+      revisedMeal.image_url = meal.image_url;
+
+      // Update the plan
+      const updatedPlan = { ...selectedPlan };
+      const updatedDays = [...getPlanDays(updatedPlan)];
+      updatedDays[meal.dayIdx].plan[meal.mealIdx] = revisedMeal;
+
+      if (updatedPlan.plan_data.currentPlan) {
+        updatedPlan.plan_data.currentPlan = updatedDays;
+      } else {
+        updatedPlan.plan_data.days = updatedDays;
+      }
+
+      setSelectedPlan(updatedPlan);
+      setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+      await savePlanToDatabase(updatedPlan);
+
+    } catch (err) {
+      console.error('Revise meal error:', err);
+      alert('Failed to revise meal. Please try again.');
+    } finally {
+      setProcessingMeal(null);
+    }
+  };
+
+  // Custom meal - open modal to create custom entry
   const handleCustomMeal = (meal) => {
-    alert('Custom meal feature coming soon! This will let you create a custom entry.');
+    closeMealModal();
+    setCustomMealData({
+      name: '',
+      calories: '',
+      protein: '',
+      carbs: '',
+      fat: '',
+      instructions: '',
+      dayIdx: meal.dayIdx,
+      mealIdx: meal.mealIdx,
+      mealType: meal.type || meal.meal_type || 'meal'
+    });
+    setShowCustomModal(true);
+  };
+
+  // Save custom meal
+  const handleSaveCustomMeal = async () => {
+    if (!customMealData.name || !customMealData.calories) {
+      alert('Please enter at least a name and calories');
+      return;
+    }
+
+    const customMeal = {
+      type: customMealData.mealType,
+      meal_type: customMealData.mealType,
+      name: customMealData.name,
+      calories: parseInt(customMealData.calories) || 0,
+      protein: parseInt(customMealData.protein) || 0,
+      carbs: parseInt(customMealData.carbs) || 0,
+      fat: parseInt(customMealData.fat) || 0,
+      instructions: customMealData.instructions || '',
+      ingredients: [],
+      isCustom: true
+    };
+
+    // Update the plan
+    const updatedPlan = { ...selectedPlan };
+    const updatedDays = [...getPlanDays(updatedPlan)];
+    updatedDays[customMealData.dayIdx].plan[customMealData.mealIdx] = customMeal;
+
+    if (updatedPlan.plan_data.currentPlan) {
+      updatedPlan.plan_data.currentPlan = updatedDays;
+    } else {
+      updatedPlan.plan_data.days = updatedDays;
+    }
+
+    setSelectedPlan(updatedPlan);
+    setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+    await savePlanToDatabase(updatedPlan);
+
+    setShowCustomModal(false);
   };
 
   const handleViewRecipe = (meal) => {
@@ -383,36 +643,48 @@ function Plans() {
           {/* Meals - check for currentDay.plan array (PWA format) */}
           {currentDay.plan && Array.isArray(currentDay.plan) && currentDay.plan.length > 0 ? (
             <div className="meals-list">
-              {currentDay.plan.map((meal, idx) => (
-                <div
-                  key={idx}
-                  className="meal-card meal-card-clickable"
-                  onClick={() => openMealModal(meal, selectedDay, idx)}
-                >
-                  {meal.image_url && (
-                    <div className="meal-card-image">
-                      <img src={meal.image_url} alt={meal.name} />
-                    </div>
-                  )}
-                  <div className="meal-card-content">
-                    <div className="meal-card-header">
-                      {getMealIcon(meal.meal_type || meal.type)}
-                      <span className="meal-card-type">{meal.meal_type || meal.type || `Meal ${idx + 1}`}</span>
-                    </div>
-                    <h3 className="meal-card-name">{meal.name || meal.title || 'Meal'}</h3>
+              {currentDay.plan.map((meal, idx) => {
+                const isProcessing = processingMeal?.dayIdx === selectedDay && processingMeal?.mealIdx === idx;
 
-                    {/* Macros inline */}
-                    <div className="meal-macros-inline">
-                      {meal.calories && <span className="macro-item">{meal.calories} cal</span>}
-                      {meal.protein && <span className="macro-item">P: {meal.protein}g</span>}
-                      {meal.carbs && <span className="macro-item">C: {meal.carbs}g</span>}
-                      {meal.fat && <span className="macro-item">F: {meal.fat}g</span>}
-                    </div>
+                return (
+                  <div
+                    key={idx}
+                    className={`meal-card meal-card-clickable ${isProcessing ? 'processing' : ''}`}
+                    onClick={() => !isProcessing && openMealModal(meal, selectedDay, idx)}
+                  >
+                    {/* Processing Overlay */}
+                    {isProcessing && (
+                      <div className="meal-processing-overlay">
+                        <div className="meal-processing-spinner" />
+                        <span>{processingMeal.action === 'change' ? 'Generating new meal...' : 'Revising meal...'}</span>
+                      </div>
+                    )}
 
-                    <p className="meal-card-tap-hint">Tap to see options</p>
+                    {meal.image_url && (
+                      <div className="meal-card-image">
+                        <img src={meal.image_url} alt={meal.name} />
+                      </div>
+                    )}
+                    <div className="meal-card-content">
+                      <div className="meal-card-header">
+                        {getMealIcon(meal.meal_type || meal.type)}
+                        <span className="meal-card-type">{meal.meal_type || meal.type || `Meal ${idx + 1}`}</span>
+                      </div>
+                      <h3 className="meal-card-name">{meal.name || meal.title || 'Meal'}</h3>
+
+                      {/* Macros inline */}
+                      <div className="meal-macros-inline">
+                        {meal.calories && <span className="macro-item">{meal.calories} cal</span>}
+                        {meal.protein && <span className="macro-item">P: {meal.protein}g</span>}
+                        {meal.carbs && <span className="macro-item">C: {meal.carbs}g</span>}
+                        {meal.fat && <span className="macro-item">F: {meal.fat}g</span>}
+                      </div>
+
+                      <p className="meal-card-tap-hint">Tap to see options</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : currentDay.meals ? (
             <div className="meals-list">
@@ -599,6 +871,95 @@ function Plans() {
 
               {/* Close Button */}
               <button className="meal-modal-close" onClick={closeMealModal}>
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Meal Modal */}
+        {showCustomModal && (
+          <div className="meal-modal-overlay" onClick={() => setShowCustomModal(false)}>
+            <div className="custom-meal-modal" onClick={e => e.stopPropagation()}>
+              <div className="custom-meal-header">
+                <h2>🎯 Custom Meal</h2>
+                <p>Create your own meal entry</p>
+              </div>
+
+              <div className="custom-meal-form">
+                <div className="form-group">
+                  <label>Meal Name *</label>
+                  <input
+                    type="text"
+                    value={customMealData.name}
+                    onChange={e => setCustomMealData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Grilled Chicken Salad"
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Calories *</label>
+                    <input
+                      type="number"
+                      value={customMealData.calories}
+                      onChange={e => setCustomMealData(prev => ({ ...prev, calories: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Protein (g)</label>
+                    <input
+                      type="number"
+                      value={customMealData.protein}
+                      onChange={e => setCustomMealData(prev => ({ ...prev, protein: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Carbs (g)</label>
+                    <input
+                      type="number"
+                      value={customMealData.carbs}
+                      onChange={e => setCustomMealData(prev => ({ ...prev, carbs: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Fat (g)</label>
+                    <input
+                      type="number"
+                      value={customMealData.fat}
+                      onChange={e => setCustomMealData(prev => ({ ...prev, fat: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Instructions (optional)</label>
+                  <textarea
+                    value={customMealData.instructions}
+                    onChange={e => setCustomMealData(prev => ({ ...prev, instructions: e.target.value }))}
+                    placeholder="How to prepare this meal..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="custom-meal-actions">
+                <button className="cancel-btn" onClick={() => setShowCustomModal(false)}>
+                  Cancel
+                </button>
+                <button className="save-btn" onClick={handleSaveCustomMeal}>
+                  Save Meal
+                </button>
+              </div>
+
+              <button className="meal-modal-close" onClick={() => setShowCustomModal(false)}>
                 <X size={24} />
               </button>
             </div>
