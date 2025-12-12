@@ -5374,3 +5374,199 @@ body {
 [data-theme="dark"] .loading-state {
     color: #94a3b8;
 }
+
+/* ==================== FOOD CONFIRMATION BOX ==================== */
+
+.food-confirmation-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%);
+    border: 2px solid rgba(16, 185, 129, 0.4);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+[data-theme="dark"] .food-confirmation-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.15) 100%);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.food-confirmation-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #10b981;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.food-confirmation-header .confirm-icon {
+    color: #10b981;
+}
+
+.food-confirmation-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+[data-theme="dark"] .food-confirmation-item {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.food-confirmation-name {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    font-size: 15px;
+}
+
+.food-calories {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.food-confirmation-servings {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+
+.servings-adjuster {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.servings-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.servings-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.servings-btn:active {
+    transform: scale(0.95);
+}
+
+.servings-value {
+    min-width: 40px;
+    text-align: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.food-confirmation-macros {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 16px 12px;
+    margin-bottom: 16px;
+}
+
+.food-confirmation-macros .macro-item {
+    text-align: center;
+}
+
+.food-confirmation-macros .macro-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+}
+
+.food-confirmation-macros .macro-item.protein .macro-value {
+    color: #10b981;
+}
+
+.food-confirmation-macros .macro-item.carbs .macro-value {
+    color: #f59e0b;
+}
+
+.food-confirmation-macros .macro-item.fat .macro-value {
+    color: #f472b6;
+}
+
+.food-confirmation-macros .macro-label {
+    display: block;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+.food-confirmation-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 10px;
+}
+
+.confirm-cancel-btn {
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    transition: all 0.2s;
+}
+
+.confirm-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.confirm-add-btn {
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: #10b981;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.confirm-add-btn:hover {
+    background: #059669;
+}
+
+.confirm-add-btn:active {
+    transform: scale(0.98);
+}
+
+.confirm-add-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
