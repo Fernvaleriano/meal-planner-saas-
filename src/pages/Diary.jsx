@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
-import { FavoritesModal } from '../components/FoodModals';
+import { FavoritesModal, SnapPhotoModal } from '../components/FoodModals';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -65,6 +65,10 @@ function Diary() {
   const [aiMessages, setAiMessages] = useState([]);
   const [aiExpanded, setAiExpanded] = useState(false);
   const aiInputRef = useRef(null);
+  const [pendingFoodLog, setPendingFoodLog] = useState(null);
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null);
+  const [suggestionContext, setSuggestionContext] = useState(null);
+  const [selectedAIMealType, setSelectedAIMealType] = useState(null);
 
   // Food search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -441,10 +445,49 @@ function Diary() {
     }
   };
 
+  // Parse food suggestions from AI response [[FOOD: name | cal | prot | carbs | fat]]
+  const parseFoodSuggestions = (text) => {
+    const suggestions = [];
+    const regex = /\[\[FOOD:\s*([^|\]]+?)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\]\]/gi;
+    let match;
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    while ((match = regex.exec(normalizedText)) !== null) {
+      suggestions.push({
+        name: match[1].trim(),
+        calories: parseInt(match[2]) || 0,
+        protein: parseInt(match[3]) || 0,
+        carbs: parseInt(match[4]) || 0,
+        fat: parseInt(match[5]) || 0
+      });
+    }
+
+    const cleanText = normalizedText
+      .replace(/\[\[FOOD:[^\]]+\]\]/gi, '')
+      .replace(/\n\s*\n+/g, '\n')
+      .trim();
+
+    return { cleanText, suggestions };
+  };
+
   // Open AI chat and ask a question
-  const askAI = async (question) => {
+  const askAI = async (question, context = null) => {
+    // Track context for "More ideas" button
+    if (context) {
+      setSuggestionContext(context);
+    } else if (question.toLowerCase().includes('protein')) {
+      setSuggestionContext('protein');
+    } else if (question.toLowerCase().includes('dinner')) {
+      setSuggestionContext('dinner');
+    } else if (question.toLowerCase().includes('snack')) {
+      setSuggestionContext('snack');
+    } else if (question.toLowerCase().includes('lunch')) {
+      setSuggestionContext('lunch');
+    } else if (question.toLowerCase().includes('breakfast')) {
+      setSuggestionContext('breakfast');
+    }
+
     setAiInput(question);
-    // Auto-send after a short delay
     setTimeout(() => {
       handleAiChat(question);
     }, 100);
@@ -454,6 +497,7 @@ function Diary() {
   const handleAiChat = async (message = aiInput) => {
     if (!message.trim() || !clientData?.id) return;
     setAiLogging(true);
+    setSelectedSuggestion(null);
 
     // Add user message
     setAiMessages(prev => [...prev, { role: 'user', content: message }]);
@@ -474,10 +518,25 @@ function Diary() {
         return;
       }
 
-      // Check if AI wants to log food
-      if (data.parsed && data.parsed.action === 'log_food') {
-        // Handle food logging from AI
-        setAiMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      // Parse food suggestions from response
+      const { cleanText, suggestions } = parseFoodSuggestions(data.response);
+
+      if (suggestions.length > 0) {
+        // Add message with parsed suggestions
+        setAiMessages(prev => [...prev, {
+          role: 'assistant',
+          content: cleanText,
+          suggestions: suggestions
+        }]);
+      } else if (data.parsed && data.parsed.action === 'log_food') {
+        // Direct food log request
+        setPendingFoodLog(data.parsed);
+        setSelectedAIMealType(getDefaultMealType());
+        setAiMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.parsed.confirmation || `Ready to log ${data.parsed.food_name}:`,
+          pendingFood: data.parsed
+        }]);
       } else {
         setAiMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
       }
@@ -487,6 +546,123 @@ function Diary() {
     } finally {
       setAiLogging(false);
     }
+  };
+
+  // Get default meal type based on time
+  const getDefaultMealType = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) return 'breakfast';
+    if (hour >= 11 && hour < 15) return 'lunch';
+    if (hour >= 15 && hour < 21) return 'dinner';
+    return 'snack';
+  };
+
+  // Handle food suggestion click - show action menu
+  const handleFoodSuggestionClick = (food) => {
+    setSelectedSuggestion(food);
+  };
+
+  // Log food suggestion
+  const logFoodSuggestion = (food) => {
+    setSelectedSuggestion(null);
+    setPendingFoodLog({
+      food_name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      confirmation: `Ready to log ${food.name}:`
+    });
+    setSelectedAIMealType(getDefaultMealType());
+  };
+
+  // Get recipe details
+  const getFoodDetails = (food) => {
+    setSelectedSuggestion(null);
+    setAiInput(`What's in the ${food.name}? Give me the recipe or ingredients.`);
+    setTimeout(() => handleAiChat(`What's in the ${food.name}? Give me the recipe or ingredients.`), 100);
+  };
+
+  // Revise food suggestion
+  const reviseFoodSuggestion = (food) => {
+    setSelectedSuggestion(null);
+    setAiInput(`I want to adjust the ${food.name}. Can you help me revise the portion size or ingredients?`);
+    if (aiInputRef.current) aiInputRef.current.focus();
+  };
+
+  // Request more ideas
+  const requestMoreIdeas = () => {
+    let query = 'Give me different food options';
+    switch (suggestionContext) {
+      case 'protein': query = 'Give me more high-protein food options'; break;
+      case 'dinner': query = 'Give me more dinner ideas'; break;
+      case 'snack': query = 'Give me more snack ideas'; break;
+      case 'lunch': query = 'Give me more lunch ideas'; break;
+      case 'breakfast': query = 'Give me more breakfast ideas'; break;
+      default: query = 'Give me different food options';
+    }
+    setAiInput(query);
+    setTimeout(() => handleAiChat(query), 100);
+  };
+
+  // Confirm food log from AI
+  const confirmAIFoodLog = async () => {
+    if (!pendingFoodLog || !clientData?.id) return;
+
+    const food = pendingFoodLog;
+    const mealType = selectedAIMealType || getDefaultMealType();
+    const dateStr = formatDate(currentDate);
+
+    try {
+      const result = await apiPost('/.netlify/functions/food-diary', {
+        clientId: clientData.id,
+        coachId: clientData.coach_id,
+        entryDate: dateStr,
+        mealType: mealType,
+        foodName: food.food_name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        servingSize: 1,
+        servingUnit: 'serving',
+        numberOfServings: 1,
+        foodSource: 'ai'
+      });
+
+      // Update local state
+      if (result.entry) {
+        const updatedEntries = [...entries, result.entry];
+        const updatedTotals = {
+          calories: totals.calories + (food.calories || 0),
+          protein: totals.protein + (food.protein || 0),
+          carbs: totals.carbs + (food.carbs || 0),
+          fat: totals.fat + (food.fat || 0)
+        };
+        setEntries(updatedEntries);
+        setTotals(updatedTotals);
+
+        // Update cache
+        const cacheKey = `diary_${clientData.id}_${dateStr}`;
+        const cached = getCache(cacheKey) || {};
+        setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
+      }
+
+      // Clear pending and show success
+      setPendingFoodLog(null);
+      setSelectedAIMealType(null);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: `Added "${food.food_name}" to your ${mealType}!` }]);
+    } catch (err) {
+      console.error('Error adding food:', err);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t add that food. Please try manually.' }]);
+    }
+  };
+
+  // Cancel food log
+  const cancelAIFoodLog = () => {
+    setPendingFoodLog(null);
+    setSelectedAIMealType(null);
+    setAiMessages(prev => [...prev, { role: 'assistant', content: 'No problem! Let me know if you want to log something else.' }]);
   };
 
   // Save meal as favorite
@@ -772,11 +948,11 @@ function Diary() {
           <span>Add Food</span>
         </div>
         <div className="add-food-options">
-          <button className="add-food-option" onClick={() => setAiExpanded(true)}>
+          <button className="add-food-option" onClick={() => setShowAILogModal(true)}>
             <Star size={20} />
             <span>AI Log</span>
           </button>
-          <button className="add-food-option" onClick={() => navigate('/app-test/dashboard')}>
+          <button className="add-food-option" onClick={() => setShowPhotoModal(true)}>
             <Camera size={20} />
             <span>Photo</span>
           </button>
@@ -965,9 +1141,85 @@ function Diary() {
           <div className="ai-chat-messages">
             {aiMessages.map((msg, idx) => (
               <div key={idx} className={`ai-message ${msg.role}`}>
-                {msg.content}
+                {/* Message text */}
+                <div className="ai-message-text">{msg.content}</div>
+
+                {/* Food suggestion cards */}
+                {msg.suggestions && msg.suggestions.length > 0 && (
+                  <div className="ai-food-suggestions">
+                    {msg.suggestions.map((food, foodIdx) => (
+                      <button
+                        key={foodIdx}
+                        className="ai-food-suggestion-btn"
+                        onClick={() => handleFoodSuggestionClick(food)}
+                      >
+                        <div className="suggestion-name">{food.name}</div>
+                        <div className="suggestion-macros">
+                          {food.calories} cal &bull; {food.protein}g P &bull; {food.carbs}g C &bull; {food.fat}g F
+                        </div>
+                      </button>
+                    ))}
+                    <button className="more-ideas-btn" onClick={requestMoreIdeas} disabled={aiLogging}>
+                      {aiLogging ? 'Loading...' : 'More ideas'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
+
+            {/* Selected suggestion action menu */}
+            {selectedSuggestion && (
+              <div className="food-suggestion-actions">
+                <div className="action-header">{selectedSuggestion.name}</div>
+                <div className="action-macros">
+                  {selectedSuggestion.calories} cal &bull; {selectedSuggestion.protein}g P &bull; {selectedSuggestion.carbs}g C &bull; {selectedSuggestion.fat}g F
+                </div>
+                <div className="action-buttons">
+                  <button className="action-btn log-btn" onClick={() => logFoodSuggestion(selectedSuggestion)}>
+                    <Check size={14} /> Log
+                  </button>
+                  <button className="action-btn details-btn" onClick={() => getFoodDetails(selectedSuggestion)}>
+                    <FileText size={14} /> Details
+                  </button>
+                  <button className="action-btn revise-btn" onClick={() => reviseFoodSuggestion(selectedSuggestion)}>
+                    <span>&#9998;</span> Revise
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Pending food log confirmation */}
+            {pendingFoodLog && (
+              <div className="ai-message assistant food-log">
+                {pendingFoodLog.confirmation || 'Ready to log this food:'}
+                <div className="ai-food-log-preview">
+                  <div className="food-name">{pendingFoodLog.food_name}</div>
+                  <div className="food-macros">
+                    {pendingFoodLog.calories} cal &bull; {pendingFoodLog.protein}g P &bull; {pendingFoodLog.carbs}g C &bull; {pendingFoodLog.fat}g F
+                  </div>
+                </div>
+                <div className="ai-meal-type-selector">
+                  <label>Add to:</label>
+                  {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
+                    <button
+                      key={type}
+                      className={`ai-meal-type-btn ${selectedAIMealType === type ? 'selected' : ''}`}
+                      onClick={() => setSelectedAIMealType(type)}
+                    >
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                <div className="ai-food-log-actions">
+                  <button className="confirm-btn" onClick={confirmAIFoodLog}>
+                    <Check size={14} /> Add
+                  </button>
+                  <button className="cancel-btn" onClick={cancelAIFoodLog}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1257,6 +1509,162 @@ function Diary() {
         clientData={clientData}
         onFoodLogged={(nutrition) => {
           // Update totals after logging from favorites
+          const updatedTotals = {
+            calories: totals.calories + (nutrition.calories || 0),
+            protein: totals.protein + (nutrition.protein || 0),
+            carbs: totals.carbs + (nutrition.carbs || 0),
+            fat: totals.fat + (nutrition.fat || 0)
+          };
+          setTotals(updatedTotals);
+
+          // Update cache
+          const dateStr = formatDate(currentDate);
+          const cacheKey = `diary_${clientData?.id}_${dateStr}`;
+          const cached = getCache(cacheKey) || {};
+          setCache(cacheKey, { ...cached, totals: updatedTotals });
+        }}
+      />
+
+      {/* AI Log Modal - Text input for food logging */}
+      {showAILogModal && (
+        <div className="modal-overlay active" onClick={() => setShowAILogModal(false)}>
+          <div className="modal-content ai-log-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <button className="modal-close" onClick={() => setShowAILogModal(false)}>&times;</button>
+              <span style={{ fontWeight: 600 }}>AI Food Log</span>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <p style={{ marginBottom: '16px', color: '#64748b' }}>
+                Describe what you ate and I'll log it for you
+              </p>
+
+              {/* Meal Type Selector */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, fontSize: '0.9rem' }}>Add to:</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['breakfast', 'lunch', 'dinner', 'snack'].map(meal => (
+                    <button
+                      key={meal}
+                      className={`ai-chip ${selectedMealType === meal ? 'active' : ''}`}
+                      onClick={() => setSelectedMealType(meal)}
+                    >
+                      {meal.charAt(0).toUpperCase() + meal.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Food Input */}
+              <textarea
+                id="aiLogInput"
+                placeholder="e.g., 2 eggs with toast and butter, black coffee"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  marginBottom: '16px',
+                  minHeight: '100px',
+                  fontSize: '1rem',
+                  resize: 'vertical'
+                }}
+                autoFocus
+              />
+
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  const input = document.getElementById('aiLogInput');
+                  if (!input.value.trim()) return;
+
+                  setAiInput(input.value);
+                  setShowAILogModal(false);
+
+                  // Use handleAiLog for food logging
+                  setAiLogging(true);
+                  try {
+                    const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
+                      text: input.value
+                    });
+
+                    if (!aiData?.foods || aiData.foods.length === 0) {
+                      alert('Could not recognize any foods. Please try again with more details.');
+                      return;
+                    }
+
+                    const dateStr = formatDate(currentDate);
+                    let newEntries = [];
+                    let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+                    for (const food of aiData.foods) {
+                      const result = await apiPost('/.netlify/functions/food-diary', {
+                        clientId: clientData.id,
+                        coachId: clientData.coach_id,
+                        entryDate: dateStr,
+                        mealType: selectedMealType,
+                        foodName: food.name,
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                        servingSize: 1,
+                        servingUnit: 'serving',
+                        numberOfServings: 1,
+                        foodSource: 'ai'
+                      });
+
+                      if (result.entry) {
+                        newEntries.push(result.entry);
+                      }
+
+                      addedTotals.calories += food.calories || 0;
+                      addedTotals.protein += food.protein || 0;
+                      addedTotals.carbs += food.carbs || 0;
+                      addedTotals.fat += food.fat || 0;
+                    }
+
+                    const updatedEntries = [...entries, ...newEntries];
+                    const updatedTotals = {
+                      calories: totals.calories + addedTotals.calories,
+                      protein: totals.protein + addedTotals.protein,
+                      carbs: totals.carbs + addedTotals.carbs,
+                      fat: totals.fat + addedTotals.fat
+                    };
+
+                    setEntries(updatedEntries);
+                    setTotals(updatedTotals);
+                    setAiInput('');
+
+                    const cacheKey = `diary_${clientData.id}_${dateStr}`;
+                    const cached = getCache(cacheKey) || {};
+                    setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
+
+                    alert(`Added ${aiData.foods.length} food(s) to ${selectedMealType}!`);
+                  } catch (err) {
+                    console.error('Error logging food:', err);
+                    alert('Failed to log food. Please try again.');
+                  } finally {
+                    setAiLogging(false);
+                  }
+                }}
+                style={{ width: '100%', padding: '14px', borderRadius: '8px', background: '#0d9488', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
+                disabled={aiLogging}
+              >
+                {aiLogging ? 'Logging...' : 'Log Food'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Modal */}
+      <SnapPhotoModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        mealType={selectedMealType}
+        clientData={clientData}
+        onFoodLogged={(nutrition) => {
+          // Update totals after logging from photo
           const updatedTotals = {
             calories: totals.calories + (nutrition.calories || 0),
             protein: totals.protein + (nutrition.protein || 0),

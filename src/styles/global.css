@@ -2865,6 +2865,273 @@ body {
     color: white;
 }
 
+/* AI Food Suggestions */
+.ai-food-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.ai-food-suggestion-btn {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.2) 0%, rgba(6, 95, 70, 0.2) 100%);
+    border: 1px solid rgba(13, 148, 136, 0.4);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.ai-food-suggestion-btn:hover {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.35) 0%, rgba(6, 95, 70, 0.35) 100%);
+    border-color: var(--brand-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+}
+
+.ai-food-suggestion-btn:active {
+    transform: translateY(0);
+}
+
+.suggestion-name {
+    font-weight: 600;
+    color: white;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+[data-theme="light"] .suggestion-name {
+    color: var(--gray-800);
+}
+
+.suggestion-macros {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.more-ideas-btn {
+    background: transparent;
+    border: 1px dashed rgba(148, 163, 184, 0.5);
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    width: 100%;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.more-ideas-btn:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    background: rgba(13, 148, 136, 0.1);
+}
+
+.more-ideas-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Food Suggestion Action Menu */
+.food-suggestion-actions {
+    background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 8px;
+    animation: slideInSuggestion 0.2s ease;
+}
+
+[data-theme="light"] .food-suggestion-actions {
+    background: linear-gradient(135deg, #e0f2fe 0%, #f1f5f9 100%);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+@keyframes slideInSuggestion {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.food-suggestion-actions .action-header {
+    font-weight: 600;
+    color: white;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+[data-theme="light"] .food-suggestion-actions .action-header {
+    color: var(--gray-800);
+}
+
+.food-suggestion-actions .action-macros {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+}
+
+.food-suggestion-actions .action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.food-suggestion-actions .action-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.food-suggestion-actions .log-btn {
+    background: #34d399;
+    color: #065f46;
+}
+
+.food-suggestion-actions .log-btn:hover {
+    background: #6ee7b7;
+}
+
+.food-suggestion-actions .details-btn {
+    background: rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.food-suggestion-actions .details-btn:hover {
+    background: rgba(148, 163, 184, 0.3);
+    color: white;
+}
+
+.food-suggestion-actions .revise-btn {
+    background: rgba(234, 179, 8, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.food-suggestion-actions .revise-btn:hover {
+    background: rgba(234, 179, 8, 0.3);
+}
+
+/* AI Food Log Preview */
+.ai-message.food-log {
+    background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+    border: 1px solid #34d399;
+}
+
+.ai-food-log-preview {
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 8px;
+}
+
+.ai-food-log-preview .food-name {
+    font-weight: 600;
+    color: #34d399;
+    margin-bottom: 4px;
+}
+
+.ai-food-log-preview .food-macros {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+/* AI Meal Type Selector */
+.ai-meal-type-selector {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ai-meal-type-selector label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-right: 4px;
+}
+
+.ai-meal-type-btn {
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255,255,255,0.1);
+    color: #94a3b8;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.ai-meal-type-btn:hover {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+}
+
+.ai-meal-type-btn.selected {
+    background: #34d399;
+    color: #065f46;
+    border-color: #34d399;
+}
+
+/* AI Food Log Actions */
+.ai-food-log-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.ai-food-log-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.ai-food-log-actions .confirm-btn {
+    background: #34d399;
+    color: #065f46;
+    border: none;
+}
+
+.ai-food-log-actions .confirm-btn:hover {
+    background: #6ee7b7;
+}
+
+.ai-food-log-actions .cancel-btn {
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid #475569;
+}
+
+.ai-food-log-actions .cancel-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
 /* AI Suggestions Bar */
 .ai-suggestions-bar {
     display: flex;
