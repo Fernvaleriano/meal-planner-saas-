@@ -2,16 +2,18 @@
   publish = "."
   command = "npm install && npm run build"
 
-# SPA routing for /app-test
-[[redirects]]
-  from = "/app-test/*"
-  to = "/app-test-dist/app-test.html"
-  status = 200
-
+# SPA routing for /app-test (force=true overrides static files)
 [[redirects]]
   from = "/app-test"
   to = "/app-test-dist/app-test.html"
   status = 200
+  force = true
+
+[[redirects]]
+  from = "/app-test/*"
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [build.environment]
   NODE_VERSION = "18"
