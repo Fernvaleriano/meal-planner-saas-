@@ -120,21 +120,6 @@ function Dashboard() {
     };
   }, []);
 
-  // Get greeting based on time of day
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  const getGreetingSubtext = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning! Ready to start your day?';
-    if (hour < 17) return 'Good afternoon! How is your day going?';
-    return 'Good evening! How was your day?';
-  };
-
   // Load today's progress, meal plans, and supplements - progressive loading with caching
   useEffect(() => {
     if (!clientData?.id) return;
@@ -564,27 +549,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      {/* Greeting Section */}
-      <div className="greeting-section">
-        <div className="greeting-with-avatar">
-          {clientData?.profile_photo_url ? (
-            <img
-              src={clientData.profile_photo_url}
-              alt={clientData.client_name}
-              className="greeting-avatar-img"
-            />
-          ) : (
-            <div className="greeting-avatar">
-              {clientData?.client_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
-            </div>
-          )}
-          <div className="greeting-text">
-            <h1>Welcome back, {clientData?.client_name || 'there'}!</h1>
-            <p className="greeting-subtext">{getGreetingSubtext()}</p>
-          </div>
-        </div>
-      </div>
-
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
         <div className="ai-hero-header">
@@ -592,7 +556,7 @@ function Dashboard() {
             <span>⭐</span>
           </div>
           <div className="ai-hero-title">
-            <h3>What did you eat?</h3>
+            <h2>What did you eat?</h2>
             <span className="ai-powered-label">AI-powered logging</span>
           </div>
         </div>
