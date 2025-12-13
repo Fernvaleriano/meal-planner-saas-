@@ -501,21 +501,14 @@ function Plans() {
   const handleChangeMeal = async (meal) => {
     if (!selectedPlan) return;
 
-    // Save undo data before making changes
+    // Save original meal for undo (will only set undoData on success)
     const days = getPlanDays(selectedPlan);
     const originalMeal = JSON.parse(JSON.stringify(days[meal.dayIdx].plan[meal.mealIdx]));
-    setUndoData({
-      dayIdx: meal.dayIdx,
-      mealIdx: meal.mealIdx,
-      meal: originalMeal,
-      action: 'change'
-    });
 
     closeMealModal();
     setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'change' });
 
     try {
-      const days = getPlanDays(selectedPlan);
       const currentDay = days[meal.dayIdx];
       const targets = currentDay?.targets || {};
 
@@ -579,20 +572,32 @@ Return ONLY valid JSON:
       newMeal.name = newMeal.name || 'New Meal';
       newMeal.image_url = meal.image_url; // Keep original image
 
-      // Update the plan
+      // Update the plan with proper immutable updates
       const updatedPlan = { ...selectedPlan };
       const updatedDays = [...getPlanDays(updatedPlan)];
+
+      // Deep clone the specific day and its plan array to avoid mutation
+      updatedDays[meal.dayIdx] = { ...updatedDays[meal.dayIdx] };
+      updatedDays[meal.dayIdx].plan = [...updatedDays[meal.dayIdx].plan];
       updatedDays[meal.dayIdx].plan[meal.mealIdx] = newMeal;
 
       if (updatedPlan.plan_data.currentPlan) {
-        updatedPlan.plan_data.currentPlan = updatedDays;
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, currentPlan: updatedDays };
       } else {
-        updatedPlan.plan_data.days = updatedDays;
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, days: updatedDays };
       }
 
       setSelectedPlan(updatedPlan);
       setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
       await savePlanToDatabase(updatedPlan);
+
+      // Only set undo data after successful change
+      setUndoData({
+        dayIdx: meal.dayIdx,
+        mealIdx: meal.mealIdx,
+        meal: originalMeal,
+        action: 'change'
+      });
 
     } catch (err) {
       console.error('Change meal error:', err);
@@ -604,7 +609,7 @@ Return ONLY valid JSON:
 
   // Revise meal - modify with AI based on user request
   const handleReviseMeal = async (meal) => {
-    // Save undo data before making changes
+    // Save original meal for undo (will only set undoData on success)
     const days = getPlanDays(selectedPlan);
     const originalMeal = JSON.parse(JSON.stringify(days[meal.dayIdx].plan[meal.mealIdx]));
 
@@ -620,14 +625,6 @@ Return ONLY valid JSON:
     );
 
     if (!revisionText || !revisionText.trim()) return;
-
-    // Save undo data now that user confirmed the revision
-    setUndoData({
-      dayIdx: meal.dayIdx,
-      mealIdx: meal.mealIdx,
-      meal: originalMeal,
-      action: 'revise'
-    });
 
     closeMealModal();
     setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'revise' });
@@ -731,6 +728,14 @@ Return ONLY valid JSON:
       setCache(`plans_full_${clientData.id}`, null);
 
       await savePlanToDatabase(updatedPlan);
+
+      // Only set undo data after successful revision
+      setUndoData({
+        dayIdx: meal.dayIdx,
+        mealIdx: meal.mealIdx,
+        meal: originalMeal,
+        action: 'revise'
+      });
 
       console.log('Meal revised successfully');
 
