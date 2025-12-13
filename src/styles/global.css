@@ -3354,6 +3354,32 @@ body {
     color: white;
 }
 
+/* Food Option Buttons in Add Food Modal */
+.food-option-btn:hover {
+    background: var(--gray-200) !important;
+    transform: translateY(-1px);
+}
+
+.food-option-btn:active {
+    transform: translateY(0);
+}
+
+[data-theme="dark"] .food-option-btn {
+    background: #334155 !important;
+}
+
+[data-theme="dark"] .food-option-btn span {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .food-option-btn svg {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .food-option-btn:hover {
+    background: #475569 !important;
+}
+
 /* AI Food Suggestions */
 .ai-food-suggestions {
     display: flex;
