@@ -172,24 +172,28 @@ function Plans() {
         });
       });
 
-      // First, apply any cached images immediately
+      // First, apply any cached images immediately (with proper immutable update)
       if (needsUpdate) {
-        const updatedPlan = { ...selectedPlan };
-        const updatedDays = [...getPlanDays(updatedPlan)];
-        updatedDays.forEach(day => {
-          (day.plan || []).forEach(meal => {
-            if (cachedImageUrls[meal.name]) {
-              meal.image_url = cachedImageUrls[meal.name];
-            }
-          });
-        });
+        setSelectedPlan(prevPlan => {
+          const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
+          const prevDays = getPlanDays(prevPlan);
 
-        if (updatedPlan.plan_data.currentPlan) {
-          updatedPlan.plan_data.currentPlan = updatedDays;
-        } else if (updatedPlan.plan_data.days) {
-          updatedPlan.plan_data.days = updatedDays;
-        }
-        setSelectedPlan(updatedPlan);
+          // Deep clone and update each day/meal
+          const updatedDays = prevDays.map(day => ({
+            ...day,
+            plan: (day.plan || []).map(meal => ({
+              ...meal,
+              image_url: cachedImageUrls[meal.name] || meal.image_url
+            }))
+          }));
+
+          if (updatedPlan.plan_data.currentPlan) {
+            updatedPlan.plan_data.currentPlan = updatedDays;
+          } else if (updatedPlan.plan_data.days) {
+            updatedPlan.plan_data.days = updatedDays;
+          }
+          return updatedPlan;
+        });
       }
 
       // Then fetch any missing images
@@ -202,23 +206,29 @@ function Plans() {
           setMealImages(newImages);
           localStorage.setItem('mealImageCache', JSON.stringify(newImages));
 
-          // Update the meals with their new image URLs
-          const updatedPlan = { ...selectedPlan };
-          const updatedDays = [...getPlanDays(updatedPlan)];
-          updatedDays.forEach(day => {
-            (day.plan || []).forEach(meal => {
-              if (response.images[meal.name]) {
-                meal.image_url = response.images[meal.name];
-              }
-            });
-          });
+          // Update the meals with their new image URLs (with proper immutable update)
+          setSelectedPlan(prevPlan => {
+            if (!prevPlan) return prevPlan;
 
-          if (updatedPlan.plan_data.currentPlan) {
-            updatedPlan.plan_data.currentPlan = updatedDays;
-          } else if (updatedPlan.plan_data.days) {
-            updatedPlan.plan_data.days = updatedDays;
-          }
-          setSelectedPlan(updatedPlan);
+            const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
+            const prevDays = getPlanDays(prevPlan);
+
+            // Deep clone and update each day/meal
+            const updatedDays = prevDays.map(day => ({
+              ...day,
+              plan: (day.plan || []).map(meal => ({
+                ...meal,
+                image_url: response.images[meal.name] || meal.image_url
+              }))
+            }));
+
+            if (updatedPlan.plan_data.currentPlan) {
+              updatedPlan.plan_data.currentPlan = updatedDays;
+            } else if (updatedPlan.plan_data.days) {
+              updatedPlan.plan_data.days = updatedDays;
+            }
+            return updatedPlan;
+          });
         }
       } catch (err) {
         console.error('Error loading meal images:', err);
