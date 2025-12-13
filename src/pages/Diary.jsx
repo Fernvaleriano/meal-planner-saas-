@@ -366,7 +366,15 @@ function Diary() {
 
   // Handle AI food logging
   const handleAiLog = async () => {
-    if (!aiInput.trim() || !clientData?.id) return;
+    if (!aiInput.trim()) return;
+
+    // Check if user is properly authenticated
+    if (!clientData?.id) {
+      console.error('AI Log: clientData.id is missing', { clientData });
+      alert('Please log out and log back in to use the AI assistant.');
+      return;
+    }
+
     setAiLogging(true);
 
     try {
@@ -655,7 +663,15 @@ function Diary() {
 
   // Handle AI chat message
   const handleAiChat = async (message = aiInput) => {
-    if (!message.trim() || !clientData?.id) return;
+    if (!message.trim()) return;
+
+    // Check if user is properly authenticated
+    if (!clientData?.id) {
+      console.error('AI Chat: clientData.id is missing', { clientData });
+      alert('Please log out and log back in to use the AI assistant.');
+      return;
+    }
+
     setAiLogging(true);
     setSelectedSuggestion(null);
 

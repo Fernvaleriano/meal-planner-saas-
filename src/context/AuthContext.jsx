@@ -15,32 +15,40 @@ export function AuthProvider({ children }) {
   const fetchClientData = useCallback(async (userId) => {
     console.log('SPA: Fetching client data for user:', userId);
     try {
-      // Add timeout to prevent hanging
+      // Add timeout to prevent hanging - increased to 15 seconds
       const timeoutPromise = new Promise((resolve) =>
         setTimeout(() => {
-          console.log('SPA: Client data fetch timeout');
+          console.error('SPA: Client data fetch timeout after 15s for user:', userId);
           resolve({ id: null, client_name: 'User', error: true, timeout: true });
-        }, 8000)
+        }, 15000)
       );
 
       const fetchPromise = supabase
         .from('clients')
-        .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
+        .select('id, coach_id, client_name, first_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
         .eq('user_id', userId)
         .single()
         .then(({ data, error }) => {
           if (error) {
-            console.error('SPA: Error fetching client data:', error);
-            return { id: null, client_name: 'User', error: true };
+            console.error('SPA: Error fetching client data:', error.message, error.code);
+            // Return more info for debugging
+            return { id: null, client_name: 'User', error: true, errorMessage: error.message };
           }
-          console.log('SPA: Got client data:', data?.client_name);
+          console.log('SPA: Got client data successfully:', { id: data?.id, name: data?.client_name });
           return data;
         });
 
-      return await Promise.race([fetchPromise, timeoutPromise]);
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+
+      // Log if we got an error result
+      if (result.error) {
+        console.error('SPA: fetchClientData returned error result:', result);
+      }
+
+      return result;
     } catch (err) {
-      console.error('SPA: Error in fetchClientData:', err);
-      return { id: null, client_name: 'User', error: true };
+      console.error('SPA: Error in fetchClientData:', err.message);
+      return { id: null, client_name: 'User', error: true, errorMessage: err.message };
     }
   }, []);
 
