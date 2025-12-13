@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Diary from './pages/Diary';
 import Plans from './pages/Plans';
+import Workouts from './pages/Workouts';
 import Settings from './pages/Settings';
 import Recipes from './pages/Recipes';
 import CheckIn from './pages/CheckIn';
@@ -48,6 +49,7 @@ function App() {
         <Route path="diary" element={<Diary />} />
         <Route path="plans" element={<Plans />} />
         <Route path="plans/:planId" element={<Plans />} />
+        <Route path="workouts" element={<Workouts />} />
         <Route path="settings" element={<Settings />} />
         <Route path="recipes" element={<Recipes />} />
         <Route path="check-in" element={<CheckIn />} />
