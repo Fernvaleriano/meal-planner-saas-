@@ -161,38 +161,73 @@ function Plans() {
       .finally(() => setLoading(false));
   }, [clientData?.id, planId]);
 
-  // Load meal images when plan is selected
-  useEffect(() => {
-    if (!selectedPlan) return;
+  // Reusable function to load meal images for a plan
+  const loadMealImagesForPlan = async (planToLoad) => {
+    if (!planToLoad) return;
 
-    const loadMealImages = async () => {
-      const days = getPlanDays(selectedPlan);
-      const mealNames = [];
-      const cachedImageUrls = {};
-      let needsUpdate = false;
+    const days = getPlanDays(planToLoad);
+    const mealNames = [];
+    const cachedImageUrls = {};
+    let needsUpdate = false;
 
-      // Collect meal names that need fetching AND apply cached images
-      days.forEach(day => {
-        (day.plan || []).forEach(meal => {
-          if (meal.name) {
-            // Check if we have a cached image for this meal
-            if (mealImages[meal.name]) {
-              // Apply cached image if meal doesn't have one
-              if (!meal.image_url) {
-                cachedImageUrls[meal.name] = mealImages[meal.name];
-                needsUpdate = true;
-              }
-            } else {
-              // Need to fetch this image
-              mealNames.push(meal.name);
+    // Collect meal names that need fetching AND apply cached images
+    days.forEach(day => {
+      (day.plan || []).forEach(meal => {
+        if (meal.name) {
+          // Check if we have a cached image for this meal
+          if (mealImages[meal.name]) {
+            // Apply cached image if meal doesn't have one
+            if (!meal.image_url) {
+              cachedImageUrls[meal.name] = mealImages[meal.name];
+              needsUpdate = true;
             }
+          } else {
+            // Need to fetch this image
+            mealNames.push(meal.name);
           }
-        });
+        }
       });
+    });
 
-      // First, apply any cached images immediately (with proper immutable update)
-      if (needsUpdate) {
+    // First, apply any cached images immediately (with proper immutable update)
+    if (needsUpdate) {
+      setSelectedPlan(prevPlan => {
+        if (!prevPlan) return prevPlan;
+        const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
+        const prevDays = getPlanDays(prevPlan);
+
+        // Deep clone and update each day/meal
+        const updatedDays = prevDays.map(day => ({
+          ...day,
+          plan: (day.plan || []).map(meal => ({
+            ...meal,
+            image_url: cachedImageUrls[meal.name] || meal.image_url
+          }))
+        }));
+
+        if (updatedPlan.plan_data.currentPlan) {
+          updatedPlan.plan_data.currentPlan = updatedDays;
+        } else if (updatedPlan.plan_data.days) {
+          updatedPlan.plan_data.days = updatedDays;
+        }
+        return updatedPlan;
+      });
+    }
+
+    // Then fetch any missing images
+    if (mealNames.length === 0) return;
+
+    try {
+      const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames });
+      if (response.images) {
+        const newImages = { ...mealImages, ...response.images };
+        setMealImages(newImages);
+        localStorage.setItem('mealImageCache', JSON.stringify(newImages));
+
+        // Update the meals with their new image URLs (with proper immutable update)
         setSelectedPlan(prevPlan => {
+          if (!prevPlan) return prevPlan;
+
           const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
           const prevDays = getPlanDays(prevPlan);
 
@@ -201,7 +236,7 @@ function Plans() {
             ...day,
             plan: (day.plan || []).map(meal => ({
               ...meal,
-              image_url: cachedImageUrls[meal.name] || meal.image_url
+              image_url: response.images[meal.name] || meal.image_url
             }))
           }));
 
@@ -213,47 +248,15 @@ function Plans() {
           return updatedPlan;
         });
       }
+    } catch (err) {
+      console.error('Error loading meal images:', err);
+    }
+  };
 
-      // Then fetch any missing images
-      if (mealNames.length === 0) return;
-
-      try {
-        const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames });
-        if (response.images) {
-          const newImages = { ...mealImages, ...response.images };
-          setMealImages(newImages);
-          localStorage.setItem('mealImageCache', JSON.stringify(newImages));
-
-          // Update the meals with their new image URLs (with proper immutable update)
-          setSelectedPlan(prevPlan => {
-            if (!prevPlan) return prevPlan;
-
-            const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
-            const prevDays = getPlanDays(prevPlan);
-
-            // Deep clone and update each day/meal
-            const updatedDays = prevDays.map(day => ({
-              ...day,
-              plan: (day.plan || []).map(meal => ({
-                ...meal,
-                image_url: response.images[meal.name] || meal.image_url
-              }))
-            }));
-
-            if (updatedPlan.plan_data.currentPlan) {
-              updatedPlan.plan_data.currentPlan = updatedDays;
-            } else if (updatedPlan.plan_data.days) {
-              updatedPlan.plan_data.days = updatedDays;
-            }
-            return updatedPlan;
-          });
-        }
-      } catch (err) {
-        console.error('Error loading meal images:', err);
-      }
-    };
-
-    loadMealImages();
+  // Load meal images when plan is selected
+  useEffect(() => {
+    if (!selectedPlan) return;
+    loadMealImagesForPlan(selectedPlan);
   }, [selectedPlan?.id]);
 
   // Save undo states to localStorage
@@ -570,7 +573,8 @@ Return ONLY valid JSON:
       newMeal.type = newMeal.type || meal.type || meal.meal_type || 'meal';
       newMeal.meal_type = newMeal.type;
       newMeal.name = newMeal.name || 'New Meal';
-      newMeal.image_url = meal.image_url; // Keep original image
+      // Don't copy old image - it's a different meal now. Will fetch new image below.
+      newMeal.image_url = null;
 
       // Update the plan with proper immutable updates
       const updatedPlan = { ...selectedPlan };
@@ -590,6 +594,9 @@ Return ONLY valid JSON:
       setSelectedPlan(updatedPlan);
       setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
       await savePlanToDatabase(updatedPlan);
+
+      // Fetch new image for the changed meal
+      loadMealImagesForPlan(updatedPlan);
 
       // Only set undo data after successful change
       setUndoData({
@@ -692,7 +699,8 @@ Return ONLY valid JSON:
       revisedMeal.meal_type = revisedMeal.type;
       revisedMeal.name = revisedMeal.name || 'Revised Meal';
       revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
-      revisedMeal.image_url = meal.image_url;
+      // Don't copy old image - meal name may have changed. Will fetch new image below.
+      revisedMeal.image_url = null;
 
       // Use calculated macros from backend, fallback to original if not provided
       revisedMeal.calories = (revisedMeal.calories !== undefined && revisedMeal.calories !== null && revisedMeal.calories > 0)
@@ -728,6 +736,9 @@ Return ONLY valid JSON:
       setCache(`plans_full_${clientData.id}`, null);
 
       await savePlanToDatabase(updatedPlan);
+
+      // Fetch new image for the revised meal
+      loadMealImagesForPlan(updatedPlan);
 
       // Only set undo data after successful revision
       setUndoData({
@@ -1168,6 +1179,10 @@ Return ONLY valid JSON:
       setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
       await savePlanToDatabase(updatedPlan);
       setUndoData(null);
+
+      // Reload images for the reverted plan
+      loadMealImagesForPlan(updatedPlan);
+
       alert('✅ Plan reverted to original!');
     } catch (err) {
       console.error('Revert error:', err);
