@@ -1,6 +1,11 @@
 // Netlify Function for AI workout program generation using Claude
-const AnthropicModule = require('@anthropic-ai/sdk');
-const Anthropic = AnthropicModule.default || AnthropicModule;
+let Anthropic;
+try {
+  const AnthropicModule = require('@anthropic-ai/sdk');
+  Anthropic = AnthropicModule.default || AnthropicModule;
+} catch (e) {
+  console.error('Failed to load Anthropic SDK:', e);
+}
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -60,6 +65,15 @@ exports.handler = async (event) => {
       statusCode: 405,
       headers,
       body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  if (!Anthropic) {
+    console.error('Anthropic SDK not loaded');
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'AI SDK not available' })
     };
   }
 
