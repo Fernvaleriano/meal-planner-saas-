@@ -585,27 +585,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Your Coach Section */}
-      {coachData?.showAvatar && coachData?.avatar && (
-        <div className="coach-bubble-section">
-          <div
-            className={`coach-story-bubble ${hasStories ? 'has-stories' : ''}`}
-            onClick={() => {
-              if (hasStories) {
-                // TODO: Open stories viewer modal
-                alert('Stories feature coming soon!');
-              }
-            }}
-            style={{ cursor: hasStories ? 'pointer' : 'default' }}
-          >
-            <div className={`story-ring ${hasStories ? 'unseen' : ''}`}>
-              <img src={coachData.avatar} alt={coachData.name} className="coach-story-avatar" />
-            </div>
-            <span className="coach-story-label">Your Coach</span>
-          </div>
-        </div>
-      )}
-
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
         <div className="ai-hero-header">
