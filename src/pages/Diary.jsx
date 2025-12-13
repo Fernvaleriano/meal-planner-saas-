@@ -276,6 +276,11 @@ function Diary() {
     setCurrentDate(newDate);
   };
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load diary entries and water intake - with caching
   useEffect(() => {
     if (!clientData?.id) return;

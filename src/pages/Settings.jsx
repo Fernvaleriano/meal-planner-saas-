@@ -35,6 +35,11 @@ function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load coach data with caching
   useEffect(() => {
     if (!clientData?.coach_id) return;
