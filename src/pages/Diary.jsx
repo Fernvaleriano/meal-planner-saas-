@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
-import { FavoritesModal, SnapPhotoModal, ScanLabelModal } from '../components/FoodModals';
+import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -1976,18 +1976,129 @@ function Diary() {
         }}
       />
 
-      {/* AI Log Modal - Text input for food logging */}
+      {/* AI Log Modal - Text input for food logging with other options */}
       {showAILogModal && (
         <div className="modal-overlay active" onClick={() => setShowAILogModal(false)}>
           <div className="modal-content ai-log-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowAILogModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>AI Food Log</span>
+              <span style={{ fontWeight: 600 }}>Add Food</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
-              <p style={{ marginBottom: '16px', color: '#64748b' }}>
-                Describe what you ate and I'll log it for you
-              </p>
+              {/* Other Options Row */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '20px',
+                overflowX: 'auto',
+                paddingBottom: '4px'
+              }}>
+                <button
+                  onClick={() => {
+                    setShowAILogModal(false);
+                    setShowSearchModal(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '12px 16px',
+                    background: 'var(--gray-100)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    minWidth: '70px',
+                    transition: 'all 0.2s'
+                  }}
+                  className="food-option-btn"
+                >
+                  <Search size={20} style={{ color: 'var(--gray-600)' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Search</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAILogModal(false);
+                    setShowPhotoModal(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '12px 16px',
+                    background: 'var(--gray-100)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    minWidth: '70px',
+                    transition: 'all 0.2s'
+                  }}
+                  className="food-option-btn"
+                >
+                  <Camera size={20} style={{ color: 'var(--gray-600)' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Photo</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAILogModal(false);
+                    setShowFavoritesModal(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '12px 16px',
+                    background: 'var(--gray-100)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    minWidth: '70px',
+                    transition: 'all 0.2s'
+                  }}
+                  className="food-option-btn"
+                >
+                  <Heart size={20} style={{ color: 'var(--gray-600)' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Favorites</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAILogModal(false);
+                    setShowScanLabelModal(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '12px 16px',
+                    background: 'var(--gray-100)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    minWidth: '70px',
+                    transition: 'all 0.2s'
+                  }}
+                  className="food-option-btn"
+                >
+                  <FileText size={20} style={{ color: 'var(--gray-600)' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Scan Label</span>
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                color: 'var(--gray-400)'
+              }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>or describe what you ate</span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }} />
+              </div>
 
               {/* Meal Type Selector */}
               <div style={{ marginBottom: '16px' }}>
@@ -2019,7 +2130,6 @@ function Diary() {
                   fontSize: '1rem',
                   resize: 'vertical'
                 }}
-                autoFocus
               />
 
               <button
@@ -2140,6 +2250,30 @@ function Diary() {
         clientData={clientData}
         onFoodLogged={(nutrition) => {
           // Update totals after logging from scan
+          const updatedTotals = {
+            calories: totals.calories + (nutrition.calories || 0),
+            protein: totals.protein + (nutrition.protein || 0),
+            carbs: totals.carbs + (nutrition.carbs || 0),
+            fat: totals.fat + (nutrition.fat || 0)
+          };
+          setTotals(updatedTotals);
+
+          // Update cache
+          const dateStr = formatDate(currentDate);
+          const cacheKey = `diary_${clientData?.id}_${dateStr}`;
+          const cached = getCache(cacheKey) || {};
+          setCache(cacheKey, { ...cached, totals: updatedTotals });
+        }}
+      />
+
+      {/* Search Foods Modal */}
+      <SearchFoodsModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        mealType={selectedMealType}
+        clientData={clientData}
+        onFoodLogged={(nutrition) => {
+          // Update totals after logging from search
           const updatedTotals = {
             calories: totals.calories + (nutrition.calories || 0),
             protein: totals.protein + (nutrition.protein || 0),
