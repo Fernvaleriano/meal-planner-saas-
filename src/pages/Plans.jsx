@@ -347,20 +347,13 @@ Return ONLY valid JSON:
   "instructions": "Cooking instructions"
 }`;
 
-      const response = await fetch('/.netlify/functions/generate-meal-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          isJson: true,
-          targets: { calories: targetCalories, protein: targetProtein, carbs: targetCarbs, fat: targetFat },
-          mealsPerDay: 1
-        })
+      const data = await apiPost('/.netlify/functions/generate-meal-plan', {
+        prompt,
+        isJson: true,
+        targets: { calories: targetCalories, protein: targetProtein, carbs: targetCarbs, fat: targetFat },
+        mealsPerDay: 1
       });
 
-      if (!response.ok) throw new Error('API request failed');
-
-      const data = await response.json();
       let newMeal = data.success && data.data ? data.data : null;
 
       if (!newMeal) throw new Error('Invalid response');
@@ -429,26 +422,19 @@ If they want to swap ingredients, calculate similar calories.
 Return ONLY valid JSON:
 {"type":"${meal.type || meal.meal_type || 'meal'}","name":"Revised Meal Name","ingredients":["Ingredient (amount)"],"instructions":"Instructions"}`;
 
-      const response = await fetch('/.netlify/functions/generate-meal-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          isJson: true,
-          skipAutoScale: true,
-          targets: {
-            calories: meal.calories || 500,
-            protein: meal.protein || 30,
-            carbs: meal.carbs || 50,
-            fat: meal.fat || 15
-          },
-          mealsPerDay: 1
-        })
+      const data = await apiPost('/.netlify/functions/generate-meal-plan', {
+        prompt,
+        isJson: true,
+        skipAutoScale: true,
+        targets: {
+          calories: meal.calories || 500,
+          protein: meal.protein || 30,
+          carbs: meal.carbs || 50,
+          fat: meal.fat || 15
+        },
+        mealsPerDay: 1
       });
 
-      if (!response.ok) throw new Error('API request failed');
-
-      const data = await response.json();
       let revisedMeal = data.success && data.data ? data.data : null;
 
       if (!revisedMeal) throw new Error('Invalid response');
