@@ -8,15 +8,18 @@ function TopNav() {
   const { clientData } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [coachData, setCoachData] = useState(null);
+  const [hasStories, setHasStories] = useState(false);
 
-  // Load coach data
+  // Load coach data and stories
   useEffect(() => {
     if (!clientData?.id || !clientData?.coach_id) return;
 
     // Check cache first
     const cached = sessionStorage.getItem(`coach_nav_${clientData.id}`);
     if (cached) {
-      setCoachData(JSON.parse(cached));
+      const data = JSON.parse(cached);
+      setCoachData(data.coach);
+      setHasStories(data.hasStories);
       return;
     }
 
@@ -27,24 +30,37 @@ function TopNav() {
             name: data.coachName,
             avatar: data.coachAvatar
           };
+          const stories = data.hasUnseenStories || (data.stories && data.stories.length > 0);
           setCoachData(coach);
-          sessionStorage.setItem(`coach_nav_${clientData.id}`, JSON.stringify(coach));
+          setHasStories(stories);
+          sessionStorage.setItem(`coach_nav_${clientData.id}`, JSON.stringify({ coach, hasStories: stories }));
         }
       })
       .catch(err => console.error('Error loading coach:', err));
   }, [clientData?.id, clientData?.coach_id]);
 
+  const handleStoryClick = () => {
+    if (hasStories) {
+      // TODO: Open stories viewer modal
+      alert('Stories feature coming soon!');
+    }
+  };
+
   return (
     <nav className="top-nav">
-      {/* Left: Coach Avatar */}
+      {/* Left: Coach Story (only shows if there are stories) */}
       <div className="nav-left">
-        {coachData?.avatar ? (
-          <Link to="/settings" className="nav-coach-avatar">
-            <img src={coachData.avatar} alt={coachData.name || 'Coach'} />
-          </Link>
-        ) : (
-          <div className="nav-coach-avatar placeholder">
-            <span>{coachData?.name?.[0] || 'C'}</span>
+        {hasStories && coachData?.avatar && (
+          <div
+            className="nav-coach-story"
+            onClick={handleStoryClick}
+            role="button"
+            tabIndex={0}
+            aria-label="View coach stories"
+          >
+            <div className="story-ring unseen">
+              <img src={coachData.avatar} alt={coachData.name || 'Coach'} />
+            </div>
           </div>
         )}
       </div>
