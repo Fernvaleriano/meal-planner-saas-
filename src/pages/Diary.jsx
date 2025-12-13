@@ -1768,6 +1768,21 @@ function Diary() {
               />
             </div>
             <div className="modal-body">
+              {/* Meal Type Selector */}
+              <div className="modal-meal-selector">
+                <label>Add to:</label>
+                <div className="meal-type-chips">
+                  {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
+                    <button
+                      key={type}
+                      className={`meal-chip ${selectedMealType === type ? 'active' : ''}`}
+                      onClick={() => setSelectedMealType(type)}
+                    >
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="search-results">
                 {searchLoading ? (
                   <div style={{ textAlign: 'center', padding: '20px' }}>Searching...</div>

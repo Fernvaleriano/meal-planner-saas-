@@ -6652,6 +6652,79 @@ body {
 }
 
 /* =============================================
+   MODAL MEAL TYPE SELECTOR
+   ============================================= */
+
+.modal-meal-selector {
+    margin: 16px 0;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: 12px;
+}
+
+.modal-meal-selector label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+}
+
+.meal-type-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.meal-chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--gray-300);
+    background: white;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.meal-chip:hover {
+    border-color: var(--teal-400);
+    color: var(--teal-600);
+}
+
+.meal-chip.active {
+    background: var(--teal-500);
+    border-color: var(--teal-500);
+    color: white;
+}
+
+[data-theme="dark"] .modal-meal-selector {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .modal-meal-selector label {
+    color: var(--gray-400);
+}
+
+[data-theme="dark"] .meal-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--gray-300);
+}
+
+[data-theme="dark"] .meal-chip:hover {
+    border-color: var(--teal-400);
+    color: var(--teal-400);
+}
+
+[data-theme="dark"] .meal-chip.active {
+    background: var(--teal-500);
+    border-color: var(--teal-500);
+    color: white;
+}
+
+/* =============================================
    MEAL PLAN ACTION MODAL
    ============================================= */
 
