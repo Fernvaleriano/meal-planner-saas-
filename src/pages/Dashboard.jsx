@@ -110,12 +110,26 @@ function Dashboard() {
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {
-          console.log('Cleanup: Error stopping recognition:', e);
-        }
+        const rec = recognitionRef.current;
         recognitionRef.current = null;
+
+        // Clear all handlers
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+
+        try {
+          rec.stop();
+        } catch (e) {
+          console.log('Cleanup: Error calling stop:', e);
+        }
+
+        try {
+          rec.abort();
+        } catch (e) {
+          console.log('Cleanup: Error calling abort:', e);
+        }
       }
     };
   }, []);
@@ -430,35 +444,67 @@ function Dashboard() {
   };
 
   const stopVoiceInput = () => {
+    // Update UI immediately
+    setIsRecording(false);
+
     if (recognitionRef.current) {
       const rec = recognitionRef.current;
       recognitionRef.current = null;
 
+      // Clear event handlers first to prevent callbacks during cleanup
       rec.onstart = null;
       rec.onresult = null;
       rec.onerror = null;
       rec.onend = null;
 
       try {
-        rec.abort();
+        // Use stop() first - this gracefully finishes and properly releases the microphone
+        // abort() can sometimes leave the mic indicator on in iOS Safari
+        rec.stop();
       } catch (e) {
-        console.log('Error stopping recognition:', e);
+        console.log('Error calling stop():', e);
       }
+
+      // Also call abort() after a brief delay as a fallback to ensure cleanup
+      setTimeout(() => {
+        try {
+          rec.abort();
+        } catch (e) {
+          // Ignore - recognition may already be stopped
+        }
+      }, 100);
     }
-    resetVoiceUI();
   };
 
   const resetVoiceUI = () => {
-    // Also stop recognition if it's still running
+    setIsRecording(false);
+
+    // Stop recognition if it's still running
     if (recognitionRef.current) {
+      const rec = recognitionRef.current;
+      recognitionRef.current = null;
+
+      // Clear handlers
+      rec.onstart = null;
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+
       try {
-        recognitionRef.current.abort();
+        rec.stop();
       } catch (e) {
         console.log('ResetVoiceUI: Error stopping recognition:', e);
       }
+
+      // Fallback abort
+      setTimeout(() => {
+        try {
+          rec.abort();
+        } catch (e) {
+          // Ignore
+        }
+      }, 100);
     }
-    setIsRecording(false);
-    recognitionRef.current = null;
   };
 
   // Handle supplement checkbox toggle - optimistic update for instant response
