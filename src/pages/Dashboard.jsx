@@ -271,6 +271,11 @@ function Dashboard() {
   const confirmLogFood = async () => {
     if (!parsedFoods || parsedFoods.length === 0) return;
 
+    if (!clientData?.id) {
+      alert('Please wait for your profile to load, then try again.');
+      return;
+    }
+
     setIsLogging(true);
 
     try {
