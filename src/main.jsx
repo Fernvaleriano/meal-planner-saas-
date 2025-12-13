@@ -7,7 +7,7 @@ import './styles/global.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter basename="/app-test">
+    <BrowserRouter basename="/app">
       <AuthProvider>
         <App />
       </AuthProvider>
