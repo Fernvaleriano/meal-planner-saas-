@@ -9,7 +9,7 @@ function TopNav() {
     <nav className="top-nav">
       <Link to="/" className="nav-brand">
         <img
-          src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg"
+          src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg"
           alt="Zique Fitness"
           className="nav-logo-img"
         />
