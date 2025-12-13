@@ -58,6 +58,10 @@ function Plans() {
   // Processing state for AI operations
   const [processingMeal, setProcessingMeal] = useState(null);
 
+  // Meal image loading state
+  const [mealImageLoading, setMealImageLoading] = useState(false);
+  const [mealImageUrl, setMealImageUrl] = useState(null);
+
   // Load plans with caching
   useEffect(() => {
     if (!clientData?.id) return;
@@ -160,15 +164,40 @@ function Plans() {
   };
 
   // Open meal detail modal
-  const openMealModal = (meal, dayIdx, mealIdx) => {
+  const openMealModal = async (meal, dayIdx, mealIdx) => {
     setSelectedMeal({ ...meal, dayIdx, mealIdx });
     setShowMealModal(true);
+
+    // Reset image state and fetch new image
+    setMealImageUrl(meal.image_url || null);
+
+    // If no image_url, try to fetch/generate one
+    if (!meal.image_url) {
+      setMealImageLoading(true);
+      try {
+        const response = await apiPost('/.netlify/functions/meal-image', {
+          mealName: meal.name
+        });
+        if (response?.imageUrl) {
+          setMealImageUrl(response.imageUrl);
+          // Update the meal object in the plan data for caching
+          meal.image_url = response.imageUrl;
+        }
+      } catch (err) {
+        console.error('Error fetching meal image:', err);
+        // Fail silently - image is optional
+      } finally {
+        setMealImageLoading(false);
+      }
+    }
   };
 
   // Close meal modal
   const closeMealModal = () => {
     setShowMealModal(false);
     setSelectedMeal(null);
+    setMealImageUrl(null);
+    setMealImageLoading(false);
   };
 
   // Toggle favorite
@@ -795,15 +824,44 @@ Return ONLY valid JSON:
         {showMealModal && selectedMeal && (
           <div className="meal-modal-overlay" onClick={closeMealModal}>
             <div className="meal-modal" onClick={e => e.stopPropagation()}>
-              {/* Meal Image */}
-              {selectedMeal.image_url && (
-                <div className="meal-modal-image">
-                  <img src={selectedMeal.image_url} alt={selectedMeal.name} />
-                </div>
-              )}
+              {/* Meal Image - with loading state */}
+              <div className="meal-modal-image">
+                {mealImageLoading ? (
+                  <div className="meal-image-loading">
+                    <div className="meal-image-spinner"></div>
+                    <span>Loading image...</span>
+                  </div>
+                ) : mealImageUrl ? (
+                  <img src={mealImageUrl} alt={selectedMeal.name} />
+                ) : (
+                  <div className="meal-image-placeholder">
+                    <Utensils size={48} />
+                  </div>
+                )}
+              </div>
 
               {/* Meal Name */}
               <h2 className="meal-modal-name">{selectedMeal.name}</h2>
+
+              {/* Macro Stats - MOVED ABOVE action buttons */}
+              <div className="meal-modal-macros">
+                <div className="meal-modal-macro">
+                  <span className="macro-value">{selectedMeal.calories || 0}</span>
+                  <span className="macro-label">Cal</span>
+                </div>
+                <div className="meal-modal-macro protein">
+                  <span className="macro-value">{selectedMeal.protein || 0}g</span>
+                  <span className="macro-label">Protein</span>
+                </div>
+                <div className="meal-modal-macro carbs">
+                  <span className="macro-value">{selectedMeal.carbs || 0}g</span>
+                  <span className="macro-label">Carbs</span>
+                </div>
+                <div className="meal-modal-macro fat">
+                  <span className="macro-value">{selectedMeal.fat || 0}g</span>
+                  <span className="macro-label">Fat</span>
+                </div>
+              </div>
 
               {/* Action Buttons Grid */}
               <div className="meal-action-buttons">
@@ -855,18 +913,6 @@ Return ONLY valid JSON:
                   <BookOpen size={18} />
                   <span>Recipe</span>
                 </button>
-              </div>
-
-              {/* Macro Stats */}
-              <div className="meal-modal-macros">
-                <div className="meal-modal-macro">
-                  <span className="macro-label">Calories</span>
-                  <span className="macro-value">{selectedMeal.calories || 0}</span>
-                </div>
-                <div className="meal-modal-macro">
-                  <span className="macro-label">Protein</span>
-                  <span className="macro-value">{selectedMeal.protein || 0}g</span>
-                </div>
               </div>
 
               {/* Close Button */}
