@@ -39,8 +39,8 @@ function Diary() {
 
   const [entries, setEntries] = useState(cachedDiary?.entries || []);
   const [loading, setLoading] = useState(false); // Start false for instant UI
-  const [totals, setTotals] = useState(cachedDiary?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
-  const [goals, setGoals] = useState(cachedDiary?.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300 });
+  const [totals, setTotals] = useState(cachedDiary?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
+  const [goals, setGoals] = useState(cachedDiary?.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300, potassium_goal: 3500, calcium_goal: 1000, iron_goal: 18, vitaminC_goal: 90, cholesterol_goal: 300 });
   const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
   const [waterGoal] = useState(8);
   const [waterLoading, setWaterLoading] = useState(false);
@@ -308,8 +308,8 @@ function Diary() {
     const cached = getCache(cacheKey);
     if (cached) {
       setEntries(cached.entries || []);
-      setTotals(cached.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
-      setGoals(cached.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300 });
+      setTotals(cached.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
+      setGoals(cached.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300, potassium_goal: 3500, calcium_goal: 1000, iron_goal: 18, vitaminC_goal: 90, cholesterol_goal: 300 });
       setWaterIntake(cached.water || 0);
     }
 
@@ -330,8 +330,13 @@ function Diary() {
         fat: acc.fat + (entry.fat || 0),
         fiber: acc.fiber + (entry.fiber || 0),
         sugar: acc.sugar + (entry.sugar || 0),
-        sodium: acc.sodium + (entry.sodium || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
+        sodium: acc.sodium + (entry.sodium || 0),
+        potassium: acc.potassium + (entry.potassium || 0),
+        calcium: acc.calcium + (entry.calcium || 0),
+        iron: acc.iron + (entry.iron || 0),
+        vitaminC: acc.vitaminC + (entry.vitamin_c || entry.vitaminC || 0),
+        cholesterol: acc.cholesterol + (entry.cholesterol || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
 
       // Update state
       setEntries(newEntries);
@@ -994,6 +999,11 @@ function Diary() {
   const fiberProgress = Math.min(100, Math.round((totals.fiber / (goals.fiber_goal || 28)) * 100));
   const sugarProgress = Math.min(100, Math.round((totals.sugar / (goals.sugar_goal || 50)) * 100));
   const sodiumProgress = Math.min(100, Math.round((totals.sodium / (goals.sodium_goal || 2300)) * 100));
+  const potassiumProgress = Math.min(100, Math.round((totals.potassium / (goals.potassium_goal || 3500)) * 100));
+  const calciumProgress = Math.min(100, Math.round((totals.calcium / (goals.calcium_goal || 1000)) * 100));
+  const ironProgress = Math.min(100, Math.round((totals.iron / (goals.iron_goal || 18)) * 100));
+  const vitaminCProgress = Math.min(100, Math.round((totals.vitaminC / (goals.vitaminC_goal || 90)) * 100));
+  const cholesterolProgress = Math.min(100, Math.round((totals.cholesterol / (goals.cholesterol_goal || 300)) * 100));
 
   // Calorie ring component
   const CalorieRing = () => {
@@ -1326,6 +1336,41 @@ function Diary() {
               <span className="macro-bar-value">{Math.round(totals.sodium)}/{goals.sodium_goal || 2300}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill sodium" style={{ width: `${sodiumProgress}%` }} />
+              </div>
+            </div>
+            <div className="macro-bar-item">
+              <span className="macro-bar-label potassium">K:</span>
+              <span className="macro-bar-value">{Math.round(totals.potassium)}/{goals.potassium_goal || 3500}mg</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill potassium" style={{ width: `${potassiumProgress}%` }} />
+              </div>
+            </div>
+            <div className="macro-bar-item">
+              <span className="macro-bar-label calcium">Ca:</span>
+              <span className="macro-bar-value">{Math.round(totals.calcium)}/{goals.calcium_goal || 1000}mg</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill calcium" style={{ width: `${calciumProgress}%` }} />
+              </div>
+            </div>
+            <div className="macro-bar-item">
+              <span className="macro-bar-label iron">Fe:</span>
+              <span className="macro-bar-value">{totals.iron.toFixed(1)}/{goals.iron_goal || 18}mg</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill iron" style={{ width: `${ironProgress}%` }} />
+              </div>
+            </div>
+            <div className="macro-bar-item">
+              <span className="macro-bar-label vitaminC">Vit C:</span>
+              <span className="macro-bar-value">{Math.round(totals.vitaminC)}/{goals.vitaminC_goal || 90}mg</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill vitaminC" style={{ width: `${vitaminCProgress}%` }} />
+              </div>
+            </div>
+            <div className="macro-bar-item">
+              <span className="macro-bar-label cholesterol">Chol:</span>
+              <span className="macro-bar-value">{Math.round(totals.cholesterol)}/{goals.cholesterol_goal || 300}mg</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill cholesterol" style={{ width: `${cholesterolProgress}%` }} />
               </div>
             </div>
           </div>
