@@ -565,8 +565,8 @@ function Diary() {
     }
     setSearchLoading(true);
     try {
-      const data = await apiGet(`/.netlify/functions/food-search?q=${encodeURIComponent(query)}`);
-      setSearchResults(data.foods || []);
+      const data = await apiGet(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientData?.id}`);
+      setSearchResults(data.results || []);
     } catch (err) {
       console.error('Error searching foods:', err);
     } finally {

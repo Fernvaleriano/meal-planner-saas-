@@ -137,11 +137,17 @@ function Plans() {
           setPlans(data.plans);
           setCache(`plans_full_${clientData.id}`, data.plans);
 
-          // If planId in URL, select that plan
+          // If planId in URL, select that plan (but preserve images if already loaded)
           if (planId) {
             const plan = data.plans.find(p => String(p.id) === String(planId));
             if (plan) {
-              setSelectedPlan(plan);
+              setSelectedPlan(prevPlan => {
+                // If already viewing this plan, don't overwrite (would lose loaded images)
+                if (prevPlan && String(prevPlan.id) === String(plan.id)) {
+                  return prevPlan;
+                }
+                return plan;
+              });
             }
           }
         }
