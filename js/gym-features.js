@@ -5,7 +5,8 @@
 
 // Beta users with gym features enabled (by email)
 const GYM_BETA_EMAILS = [
-  'valeriano_fernando@yahoo.com'
+  'valeriano_fernando@yahoo.com',
+  'contact@ziquefitness.com'
 ];
 
 /**
