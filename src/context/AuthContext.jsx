@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'light';
+    return localStorage.getItem('theme') || 'dark';
   });
 
   // Fetch client data from database with retry logic
