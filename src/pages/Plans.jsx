@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 
@@ -46,14 +46,31 @@ function Plans() {
 
   // Custom meal modal states
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customMealTab, setCustomMealTab] = useState('calculate'); // 'calculate', 'manual', 'saved'
   const [customMealData, setCustomMealData] = useState({
     name: '',
     calories: '',
     protein: '',
     carbs: '',
     fat: '',
-    instructions: ''
+    instructions: '',
+    dayIdx: null,
+    mealIdx: null,
+    mealType: 'meal'
   });
+
+  // Calculate tab states
+  const [foodSearchQuery, setFoodSearchQuery] = useState('');
+  const [foodSearchResults, setFoodSearchResults] = useState([]);
+  const [foodSearchLoading, setFoodSearchLoading] = useState(false);
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
+  const [calculatedMealName, setCalculatedMealName] = useState('');
+  const [calculatedInstructions, setCalculatedInstructions] = useState('');
+  const [saveForLater, setSaveForLater] = useState(false);
+
+  // Saved meals states
+  const [savedMeals, setSavedMeals] = useState([]);
+  const [savedMealsLoading, setSavedMealsLoading] = useState(false);
 
   // Processing state for AI operations
   const [processingMeal, setProcessingMeal] = useState(null);
@@ -395,7 +412,8 @@ Return ONLY valid JSON:
       `• "swap rice for sweet potato"\n` +
       `• "make it vegetarian"\n` +
       `• "add more protein"\n` +
-      `• "make it 800 calories"\n\n` +
+      `• "make it 800 calories"\n` +
+      `• "300g cottage cheese instead of 250g"\n\n` +
       `Enter your request:`
     );
 
@@ -405,7 +423,7 @@ Return ONLY valid JSON:
     setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'revise' });
 
     try {
-      const prompt = `Revise this meal based on user request: "${meal.name}"
+      const prompt = `Revise this meal based on user request: "${meal.name}" (${meal.type || meal.meal_type || 'meal'})
 
 USER REQUEST: ${revisionText}
 
@@ -416,11 +434,29 @@ CURRENT MEAL:
 - Fat: ${meal.fat}g
 - Ingredients: ${meal.ingredients ? (Array.isArray(meal.ingredients) ? meal.ingredients.join(', ') : meal.ingredients) : 'N/A'}
 
-Follow the user's request. If they specify exact amounts, use those amounts.
-If they want to swap ingredients, calculate similar calories.
+REVISION RULES - Follow these carefully:
+
+1. EXPLICIT AMOUNTS: If user specifies exact amount (e.g., "make salmon 200g", "use 300g cottage cheese"),
+   use EXACTLY that amount even if it changes the meal's total calories.
+
+2. VAGUE INCREASE: If user says "increase salmon" or "more protein" (no specific amount),
+   increase by a reasonable amount (~30-50%) AND reduce other ingredients to keep total calories similar.
+
+3. SWAP INGREDIENT: If user says "swap salmon for chicken" or "replace rice with quinoa",
+   calculate the NEW ingredient amount to match the CALORIES of the original ingredient.
+
+4. ADD NEW INGREDIENT: If user says "add chicken" to a meal that has none,
+   ADD it on top - the meal will be bigger.
+
+Use ONLY foods from USDA database.
+
+CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses.
+MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses.
 
 Return ONLY valid JSON:
-{"type":"${meal.type || meal.meal_type || 'meal'}","name":"Revised Meal Name","ingredients":["Ingredient (amount)"],"instructions":"Instructions"}`;
+{"type":"${meal.type || meal.meal_type || 'meal'}","name":"Revised Meal Name (with portions)","ingredients":["Ingredient (amount)"],"instructions":"Instructions"}`;
+
+      console.log('Sending revise request:', revisionText);
 
       const data = await apiPost('/.netlify/functions/generate-meal-plan', {
         prompt,
@@ -435,28 +471,58 @@ Return ONLY valid JSON:
         mealsPerDay: 1
       });
 
+      console.log('Revise response:', data);
+
       let revisedMeal = data.success && data.data ? data.data : null;
 
-      if (!revisedMeal) throw new Error('Invalid response');
+      if (!revisedMeal) {
+        console.error('No meal data in response:', data);
+        throw new Error('Invalid response from API');
+      }
 
+      // Ensure required fields
       revisedMeal.type = revisedMeal.type || meal.type || meal.meal_type || 'meal';
       revisedMeal.meal_type = revisedMeal.type;
+      revisedMeal.name = revisedMeal.name || 'Revised Meal';
+      revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
       revisedMeal.image_url = meal.image_url;
+
+      // Use calculated macros from backend, fallback to original if not provided
+      revisedMeal.calories = (revisedMeal.calories !== undefined && revisedMeal.calories !== null && revisedMeal.calories > 0)
+        ? revisedMeal.calories : meal.calories;
+      revisedMeal.protein = (revisedMeal.protein !== undefined && revisedMeal.protein !== null)
+        ? revisedMeal.protein : meal.protein;
+      revisedMeal.carbs = (revisedMeal.carbs !== undefined && revisedMeal.carbs !== null)
+        ? revisedMeal.carbs : meal.carbs;
+      revisedMeal.fat = (revisedMeal.fat !== undefined && revisedMeal.fat !== null)
+        ? revisedMeal.fat : meal.fat;
+
+      console.log('Final revised meal:', revisedMeal);
 
       // Update the plan
       const updatedPlan = { ...selectedPlan };
       const updatedDays = [...getPlanDays(updatedPlan)];
+
+      // Deep clone to ensure we're not mutating state
+      updatedDays[meal.dayIdx] = { ...updatedDays[meal.dayIdx] };
+      updatedDays[meal.dayIdx].plan = [...updatedDays[meal.dayIdx].plan];
       updatedDays[meal.dayIdx].plan[meal.mealIdx] = revisedMeal;
 
       if (updatedPlan.plan_data.currentPlan) {
-        updatedPlan.plan_data.currentPlan = updatedDays;
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, currentPlan: updatedDays };
       } else {
-        updatedPlan.plan_data.days = updatedDays;
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, days: updatedDays };
       }
 
       setSelectedPlan(updatedPlan);
       setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+
+      // Clear cache to force refresh
+      setCache(`plans_full_${clientData.id}`, null);
+
       await savePlanToDatabase(updatedPlan);
+
+      console.log('Meal revised successfully');
 
     } catch (err) {
       console.error('Revise meal error:', err);
@@ -469,6 +535,8 @@ Return ONLY valid JSON:
   // Custom meal - open modal to create custom entry
   const handleCustomMeal = (meal) => {
     closeMealModal();
+    // Reset all custom meal states
+    setCustomMealTab('calculate');
     setCustomMealData({
       name: '',
       calories: '',
@@ -480,27 +548,223 @@ Return ONLY valid JSON:
       mealIdx: meal.mealIdx,
       mealType: meal.type || meal.meal_type || 'meal'
     });
+    setFoodSearchQuery('');
+    setFoodSearchResults([]);
+    setSelectedIngredients([]);
+    setCalculatedMealName('');
+    setCalculatedInstructions('');
+    setSaveForLater(false);
     setShowCustomModal(true);
+    // Load saved meals when modal opens
+    loadSavedMeals();
   };
 
-  // Save custom meal
-  const handleSaveCustomMeal = async () => {
-    if (!customMealData.name || !customMealData.calories) {
-      alert('Please enter at least a name and calories');
+  // Close custom meal modal
+  const closeCustomModal = () => {
+    setShowCustomModal(false);
+    setFoodSearchQuery('');
+    setFoodSearchResults([]);
+    setSelectedIngredients([]);
+  };
+
+  // Food search with debounce
+  const searchTimeoutRef = useRef(null);
+  const handleFoodSearch = (query) => {
+    setFoodSearchQuery(query);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!query || query.trim().length < 2) {
+      setFoodSearchResults([]);
       return;
     }
+
+    setFoodSearchLoading(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await apiGet(`/.netlify/functions/usda-search?query=${encodeURIComponent(query)}`);
+        if (response.foods) {
+          setFoodSearchResults(response.foods);
+        } else {
+          setFoodSearchResults([]);
+        }
+      } catch (err) {
+        console.error('Food search error:', err);
+        setFoodSearchResults([]);
+      } finally {
+        setFoodSearchLoading(false);
+      }
+    }, 300);
+  };
+
+  // Add food item to ingredients
+  const addIngredient = (food) => {
+    // Build measures array
+    let measures = [{ label: 'g', weight: 1, isGrams: true }];
+    if (food.measures && food.measures.length > 0) {
+      food.measures.forEach(m => {
+        if (m.label && m.weight && m.label.toLowerCase() !== 'gram') {
+          measures.push({ label: m.label, weight: m.weight, isGrams: false });
+        }
+      });
+    }
+
+    const defaultMeasure = measures.length > 1 ? measures[1] : measures[0];
+    const defaultQty = defaultMeasure.isGrams ? 100 : 1;
+    const defaultGrams = defaultMeasure.isGrams ? 100 : defaultMeasure.weight;
+
+    setSelectedIngredients(prev => [...prev, {
+      fdcId: food.fdcId,
+      name: food.name,
+      quantity: defaultQty,
+      quantityGrams: defaultGrams,
+      selectedUnit: defaultMeasure.label,
+      measures: measures,
+      caloriesPer100g: food.caloriesPer100g || 0,
+      proteinPer100g: food.proteinPer100g || 0,
+      carbsPer100g: food.carbsPer100g || 0,
+      fatPer100g: food.fatPer100g || 0
+    }]);
+
+    setFoodSearchQuery('');
+    setFoodSearchResults([]);
+  };
+
+  // Update ingredient quantity
+  const updateIngredientQty = (index, newQty) => {
+    setSelectedIngredients(prev => {
+      const updated = [...prev];
+      const ing = updated[index];
+      const qty = parseFloat(newQty) || 0;
+      ing.quantity = qty;
+
+      // Recalculate grams based on unit
+      const measure = ing.measures.find(m => m.label === ing.selectedUnit);
+      if (measure) {
+        ing.quantityGrams = measure.isGrams ? qty : qty * measure.weight;
+      }
+      return updated;
+    });
+  };
+
+  // Update ingredient unit
+  const updateIngredientUnit = (index, newUnit) => {
+    setSelectedIngredients(prev => {
+      const updated = [...prev];
+      const ing = updated[index];
+      const measure = ing.measures.find(m => m.label === newUnit);
+      if (measure) {
+        ing.selectedUnit = newUnit;
+        // Convert quantity appropriately
+        if (measure.isGrams) {
+          ing.quantity = ing.quantityGrams;
+        } else {
+          ing.quantity = Math.round((ing.quantityGrams / measure.weight) * 10) / 10;
+        }
+      }
+      return updated;
+    });
+  };
+
+  // Remove ingredient
+  const removeIngredient = (index) => {
+    setSelectedIngredients(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Calculate totals from ingredients
+  const getCalculatedTotals = () => {
+    let calories = 0, protein = 0, carbs = 0, fat = 0;
+    selectedIngredients.forEach(ing => {
+      const grams = ing.quantityGrams || ing.quantity;
+      const factor = grams / 100;
+      calories += ing.caloriesPer100g * factor;
+      protein += ing.proteinPer100g * factor;
+      carbs += ing.carbsPer100g * factor;
+      fat += ing.fatPer100g * factor;
+    });
+    return {
+      calories: Math.round(calories),
+      protein: Math.round(protein),
+      carbs: Math.round(carbs),
+      fat: Math.round(fat)
+    };
+  };
+
+  // Generate auto meal name from ingredients
+  const getAutoMealName = () => {
+    if (selectedIngredients.length === 0) return '';
+    return selectedIngredients.map(ing => {
+      const grams = Math.round(ing.quantityGrams || ing.quantity);
+      const shortName = ing.name.split(',')[0].trim();
+      return ing.selectedUnit === 'g' ? `${grams}g ${shortName}` : `${ing.quantity} ${ing.selectedUnit} ${shortName}`;
+    }).join(', ');
+  };
+
+  // Load saved meals from database
+  const loadSavedMeals = async () => {
+    if (!clientData?.id) return;
+    setSavedMealsLoading(true);
+    try {
+      const response = await apiGet(`/.netlify/functions/saved-meals?clientId=${clientData.id}`);
+      if (response.meals) {
+        setSavedMeals(response.meals.map(m => ({
+          id: m.id.toString(),
+          savedAt: m.created_at,
+          ...m.meal_data
+        })));
+      }
+    } catch (err) {
+      console.error('Error loading saved meals:', err);
+    } finally {
+      setSavedMealsLoading(false);
+    }
+  };
+
+  // Save meal to library
+  const saveMealToLibrary = async (mealData) => {
+    if (!clientData?.id) return;
+    try {
+      await apiPost('/.netlify/functions/saved-meals', {
+        clientId: clientData.id,
+        mealData: mealData
+      });
+      loadSavedMeals(); // Refresh list
+    } catch (err) {
+      console.error('Error saving meal to library:', err);
+    }
+  };
+
+  // Delete saved meal
+  const deleteSavedMeal = async (mealId) => {
+    if (!clientData?.id) return;
+    try {
+      await apiGet(`/.netlify/functions/saved-meals?mealId=${mealId}&clientId=${clientData.id}&_method=DELETE`);
+      setSavedMeals(prev => prev.filter(m => m.id !== mealId));
+    } catch (err) {
+      console.error('Error deleting saved meal:', err);
+    }
+  };
+
+  // Use saved meal
+  const useSavedMeal = async (mealId) => {
+    const meal = savedMeals.find(m => m.id === mealId);
+    if (!meal) return;
 
     const customMeal = {
       type: customMealData.mealType,
       meal_type: customMealData.mealType,
-      name: customMealData.name,
-      calories: parseInt(customMealData.calories) || 0,
-      protein: parseInt(customMealData.protein) || 0,
-      carbs: parseInt(customMealData.carbs) || 0,
-      fat: parseInt(customMealData.fat) || 0,
-      instructions: customMealData.instructions || '',
-      ingredients: [],
-      isCustom: true
+      name: meal.name,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+      instructions: meal.instructions || '',
+      ingredients: meal.ingredients || [],
+      ingredientData: meal.ingredientData,
+      isCustom: true,
+      source: 'Saved Meal'
     };
 
     // Update the plan
@@ -517,8 +781,102 @@ Return ONLY valid JSON:
     setSelectedPlan(updatedPlan);
     setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
     await savePlanToDatabase(updatedPlan);
+    closeCustomModal();
+  };
 
-    setShowCustomModal(false);
+  // Submit calculated meal (from Calculate tab)
+  const handleSubmitCalculatedMeal = async () => {
+    if (selectedIngredients.length === 0) {
+      alert('Please add some ingredients first');
+      return;
+    }
+
+    const totals = getCalculatedTotals();
+    const ingredients = selectedIngredients.map(ing => {
+      const unitDisplay = ing.selectedUnit === 'g' ? `${Math.round(ing.quantityGrams)}g` : `${ing.quantity} ${ing.selectedUnit}`;
+      return `${ing.name} (${unitDisplay})`;
+    });
+
+    const mealName = calculatedMealName.trim() || getAutoMealName();
+
+    const customMeal = {
+      type: customMealData.mealType,
+      meal_type: customMealData.mealType,
+      name: mealName,
+      calories: totals.calories,
+      protein: totals.protein,
+      carbs: totals.carbs,
+      fat: totals.fat,
+      instructions: calculatedInstructions || 'Prepare as desired.',
+      ingredients: ingredients,
+      ingredientData: JSON.parse(JSON.stringify(selectedIngredients)),
+      isCustom: true,
+      source: 'Food Database'
+    };
+
+    // Save to library if checked
+    if (saveForLater) {
+      await saveMealToLibrary(customMeal);
+    }
+
+    // Update the plan
+    const updatedPlan = { ...selectedPlan };
+    const updatedDays = [...getPlanDays(updatedPlan)];
+    updatedDays[customMealData.dayIdx].plan[customMealData.mealIdx] = customMeal;
+
+    if (updatedPlan.plan_data.currentPlan) {
+      updatedPlan.plan_data.currentPlan = updatedDays;
+    } else {
+      updatedPlan.plan_data.days = updatedDays;
+    }
+
+    setSelectedPlan(updatedPlan);
+    setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+    await savePlanToDatabase(updatedPlan);
+    closeCustomModal();
+  };
+
+  // Submit manual meal (from Manual tab)
+  const handleSubmitManualMeal = async () => {
+    if (!customMealData.name || !customMealData.calories) {
+      alert('Please enter at least a name and calories');
+      return;
+    }
+
+    const customMeal = {
+      type: customMealData.mealType,
+      meal_type: customMealData.mealType,
+      name: customMealData.name,
+      calories: parseInt(customMealData.calories) || 0,
+      protein: parseInt(customMealData.protein) || 0,
+      carbs: parseInt(customMealData.carbs) || 0,
+      fat: parseInt(customMealData.fat) || 0,
+      instructions: customMealData.instructions || 'Prepare as desired.',
+      ingredients: [`${customMealData.name} (manual entry)`],
+      isCustom: true,
+      source: 'Manual Entry'
+    };
+
+    // Save to library if checked
+    if (saveForLater) {
+      await saveMealToLibrary(customMeal);
+    }
+
+    // Update the plan
+    const updatedPlan = { ...selectedPlan };
+    const updatedDays = [...getPlanDays(updatedPlan)];
+    updatedDays[customMealData.dayIdx].plan[customMealData.mealIdx] = customMeal;
+
+    if (updatedPlan.plan_data.currentPlan) {
+      updatedPlan.plan_data.currentPlan = updatedDays;
+    } else {
+      updatedPlan.plan_data.days = updatedDays;
+    }
+
+    setSelectedPlan(updatedPlan);
+    setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+    await savePlanToDatabase(updatedPlan);
+    closeCustomModal();
   };
 
   const handleViewRecipe = (meal) => {
@@ -909,89 +1267,311 @@ Return ONLY valid JSON:
           </div>
         )}
 
-        {/* Custom Meal Modal */}
+        {/* Custom Meal Modal - Full Tabbed Version */}
         {showCustomModal && (
-          <div className="meal-modal-overlay" onClick={() => setShowCustomModal(false)}>
-            <div className="custom-meal-modal" onClick={e => e.stopPropagation()}>
+          <div className="meal-modal-overlay" onClick={closeCustomModal}>
+            <div className="custom-meal-modal-full" onClick={e => e.stopPropagation()}>
               <div className="custom-meal-header">
                 <h2>🎯 Custom Meal</h2>
-                <p>Create your own meal entry</p>
+                <p>Create your own meal</p>
               </div>
 
-              <div className="custom-meal-form">
-                <div className="form-group">
-                  <label>Meal Name *</label>
-                  <input
-                    type="text"
-                    value={customMealData.name}
-                    onChange={e => setCustomMealData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="e.g., Grilled Chicken Salad"
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Calories *</label>
-                    <input
-                      type="number"
-                      value={customMealData.calories}
-                      onChange={e => setCustomMealData(prev => ({ ...prev, calories: e.target.value }))}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Protein (g)</label>
-                    <input
-                      type="number"
-                      value={customMealData.protein}
-                      onChange={e => setCustomMealData(prev => ({ ...prev, protein: e.target.value }))}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Carbs (g)</label>
-                    <input
-                      type="number"
-                      value={customMealData.carbs}
-                      onChange={e => setCustomMealData(prev => ({ ...prev, carbs: e.target.value }))}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Fat (g)</label>
-                    <input
-                      type="number"
-                      value={customMealData.fat}
-                      onChange={e => setCustomMealData(prev => ({ ...prev, fat: e.target.value }))}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Instructions (optional)</label>
-                  <textarea
-                    value={customMealData.instructions}
-                    onChange={e => setCustomMealData(prev => ({ ...prev, instructions: e.target.value }))}
-                    placeholder="How to prepare this meal..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              <div className="custom-meal-actions">
-                <button className="cancel-btn" onClick={() => setShowCustomModal(false)}>
-                  Cancel
+              {/* Tabs */}
+              <div className="custom-meal-tabs">
+                <button
+                  className={`custom-meal-tab ${customMealTab === 'calculate' ? 'active' : ''}`}
+                  onClick={() => setCustomMealTab('calculate')}
+                >
+                  <span className="tab-icon">🧮</span>
+                  <span className="tab-label">Calculate</span>
                 </button>
-                <button className="save-btn" onClick={handleSaveCustomMeal}>
-                  Save Meal
+                <button
+                  className={`custom-meal-tab ${customMealTab === 'manual' ? 'active' : ''}`}
+                  onClick={() => setCustomMealTab('manual')}
+                >
+                  <span className="tab-icon">✏️</span>
+                  <span className="tab-label">Manual</span>
+                </button>
+                <button
+                  className={`custom-meal-tab ${customMealTab === 'saved' ? 'active' : ''}`}
+                  onClick={() => { setCustomMealTab('saved'); loadSavedMeals(); }}
+                >
+                  <span className="tab-icon">📚</span>
+                  <span className="tab-label">My Saved</span>
                 </button>
               </div>
 
-              <button className="meal-modal-close" onClick={() => setShowCustomModal(false)}>
+              {/* Calculate Tab */}
+              {customMealTab === 'calculate' && (
+                <div className="custom-meal-panel">
+                  <p className="panel-hint">💡 Search our food database for ingredients. Add them with quantities to calculate macros.</p>
+
+                  {/* Food Search */}
+                  <div className="food-search-container">
+                    <div className="food-search-input-wrapper">
+                      <Search size={18} className="search-icon" />
+                      <input
+                        type="text"
+                        className="food-search-input"
+                        placeholder="Search foods (e.g., chicken breast, rice...)"
+                        value={foodSearchQuery}
+                        onChange={e => handleFoodSearch(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Search Results */}
+                    {(foodSearchResults.length > 0 || foodSearchLoading) && (
+                      <div className="food-search-results">
+                        {foodSearchLoading ? (
+                          <div className="search-loading">Searching foods...</div>
+                        ) : (
+                          foodSearchResults.map((food, idx) => (
+                            <div key={idx} className="food-search-item" onClick={() => addIngredient(food)}>
+                              <div className="food-name">{food.name}</div>
+                              <div className="food-macros">
+                                Per 100g: {food.caloriesPer100g} cal | {food.proteinPer100g}g P | {food.carbsPer100g}g C | {food.fatPer100g}g F
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selected Ingredients */}
+                  <div className="ingredients-section">
+                    <h4>Selected Ingredients ({selectedIngredients.length})</h4>
+                    {selectedIngredients.length === 0 ? (
+                      <p className="no-ingredients">No ingredients added yet</p>
+                    ) : (
+                      <div className="ingredients-list">
+                        {selectedIngredients.map((ing, idx) => (
+                          <div key={idx} className="ingredient-item">
+                            <span className="ingredient-name">{ing.name.split(',')[0]}</span>
+                            <div className="ingredient-controls">
+                              <button className="qty-btn" onClick={() => updateIngredientQty(idx, ing.quantity - (ing.selectedUnit === 'g' ? 10 : 0.5))}>
+                                <Minus size={14} />
+                              </button>
+                              <input
+                                type="number"
+                                className="qty-input"
+                                value={ing.quantity}
+                                onChange={e => updateIngredientQty(idx, e.target.value)}
+                                min="0"
+                                step={ing.selectedUnit === 'g' ? 10 : 0.5}
+                              />
+                              <button className="qty-btn" onClick={() => updateIngredientQty(idx, ing.quantity + (ing.selectedUnit === 'g' ? 10 : 0.5))}>
+                                <Plus size={14} />
+                              </button>
+                              <select
+                                className="unit-select"
+                                value={ing.selectedUnit}
+                                onChange={e => updateIngredientUnit(idx, e.target.value)}
+                              >
+                                {ing.measures.map(m => (
+                                  <option key={m.label} value={m.label}>
+                                    {m.label}{!m.isGrams ? ` (${m.weight}g)` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              <button className="remove-btn" onClick={() => removeIngredient(idx)}>
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Calculated Totals */}
+                  <div className="calculated-totals">
+                    <h4>📊 Calculated Totals</h4>
+                    <div className="totals-grid">
+                      <div className="total-item">
+                        <span className="total-value">{getCalculatedTotals().calories}</span>
+                        <span className="total-label">Calories</span>
+                      </div>
+                      <div className="total-item">
+                        <span className="total-value">{getCalculatedTotals().protein}g</span>
+                        <span className="total-label">Protein</span>
+                      </div>
+                      <div className="total-item">
+                        <span className="total-value">{getCalculatedTotals().carbs}g</span>
+                        <span className="total-label">Carbs</span>
+                      </div>
+                      <div className="total-item">
+                        <span className="total-value">{getCalculatedTotals().fat}g</span>
+                        <span className="total-label">Fat</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meal Name & Instructions */}
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="custom-meal-input"
+                      placeholder={getAutoMealName() || 'Meal name (optional - auto-generated if blank)'}
+                      value={calculatedMealName}
+                      onChange={e => setCalculatedMealName(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <textarea
+                      className="custom-meal-input"
+                      placeholder="Cooking instructions (optional)"
+                      value={calculatedInstructions}
+                      onChange={e => setCalculatedInstructions(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Save for Later */}
+                  <label className="save-for-later">
+                    <input
+                      type="checkbox"
+                      checked={saveForLater}
+                      onChange={e => setSaveForLater(e.target.checked)}
+                    />
+                    <span>💾 Save this meal for future use</span>
+                  </label>
+
+                  {/* Submit Button */}
+                  <button
+                    className={`create-meal-btn ${selectedIngredients.length === 0 ? 'disabled' : ''}`}
+                    onClick={handleSubmitCalculatedMeal}
+                    disabled={selectedIngredients.length === 0}
+                  >
+                    ✅ Create Meal
+                  </button>
+                </div>
+              )}
+
+              {/* Manual Tab */}
+              {customMealTab === 'manual' && (
+                <div className="custom-meal-panel">
+                  <p className="panel-hint">💡 Enter the meal name and macros directly. Use nutrition labels or apps like MyFitnessPal.</p>
+
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="custom-meal-input"
+                      placeholder="Meal name (e.g., Protein Shake, Chicken Salad...)"
+                      value={customMealData.name}
+                      onChange={e => setCustomMealData(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="macros-grid">
+                    <div className="macro-input-group">
+                      <label>Calories</label>
+                      <input
+                        type="number"
+                        value={customMealData.calories}
+                        onChange={e => setCustomMealData(prev => ({ ...prev, calories: e.target.value }))}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="macro-input-group">
+                      <label>Protein (g)</label>
+                      <input
+                        type="number"
+                        value={customMealData.protein}
+                        onChange={e => setCustomMealData(prev => ({ ...prev, protein: e.target.value }))}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="macro-input-group">
+                      <label>Carbs (g)</label>
+                      <input
+                        type="number"
+                        value={customMealData.carbs}
+                        onChange={e => setCustomMealData(prev => ({ ...prev, carbs: e.target.value }))}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="macro-input-group">
+                      <label>Fat (g)</label>
+                      <input
+                        type="number"
+                        value={customMealData.fat}
+                        onChange={e => setCustomMealData(prev => ({ ...prev, fat: e.target.value }))}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <textarea
+                      className="custom-meal-input"
+                      placeholder="Cooking instructions (optional)"
+                      value={customMealData.instructions}
+                      onChange={e => setCustomMealData(prev => ({ ...prev, instructions: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Save for Later */}
+                  <label className="save-for-later">
+                    <input
+                      type="checkbox"
+                      checked={saveForLater}
+                      onChange={e => setSaveForLater(e.target.checked)}
+                    />
+                    <span>💾 Save this meal for future use</span>
+                  </label>
+
+                  {/* Submit Button */}
+                  <button
+                    className={`create-meal-btn ${!customMealData.name ? 'disabled' : ''}`}
+                    onClick={handleSubmitManualMeal}
+                    disabled={!customMealData.name}
+                  >
+                    ✅ Create Meal
+                  </button>
+                </div>
+              )}
+
+              {/* Saved Tab */}
+              {customMealTab === 'saved' && (
+                <div className="custom-meal-panel">
+                  <p className="panel-hint">📚 Your saved custom meals. Click "Use" to add to your plan.</p>
+
+                  {savedMealsLoading ? (
+                    <div className="loading-state">Loading saved meals...</div>
+                  ) : savedMeals.length === 0 ? (
+                    <div className="empty-saved">
+                      No saved meals yet. Create a meal and check "Save for future use" to add it here.
+                    </div>
+                  ) : (
+                    <div className="saved-meals-list">
+                      {savedMeals.map(meal => (
+                        <div key={meal.id} className="saved-meal-item">
+                          <div className="saved-meal-info">
+                            <div className="saved-meal-name">{meal.name}</div>
+                            <div className="saved-meal-macros">
+                              {meal.calories} cal | {meal.protein}g P | {meal.carbs}g C | {meal.fat}g F
+                            </div>
+                          </div>
+                          <div className="saved-meal-actions">
+                            <button className="use-btn" onClick={() => useSavedMeal(meal.id)}>Use</button>
+                            <button className="delete-btn" onClick={() => deleteSavedMeal(meal.id)}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button className="cancel-btn-full" onClick={closeCustomModal}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              <button className="meal-modal-close" onClick={closeCustomModal}>
                 <X size={24} />
               </button>
             </div>

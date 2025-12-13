@@ -6903,3 +6903,655 @@ body {
 .custom-meal-actions .save-btn:active {
     transform: scale(0.98);
 }
+
+/* =============================================
+   CUSTOM MEAL MODAL - FULL TABBED VERSION
+   ============================================= */
+
+.custom-meal-modal-full {
+    background: white;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+    padding: 20px;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom, 20px));
+}
+
+[data-theme="dark"] .custom-meal-modal-full {
+    background: #1e293b;
+}
+
+.custom-meal-modal-full .custom-meal-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.custom-meal-modal-full .custom-meal-header h2 {
+    font-size: 1.5rem;
+    color: #0d9488;
+    margin: 0;
+}
+
+.custom-meal-modal-full .custom-meal-header p {
+    color: #64748b;
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+}
+
+/* Custom Meal Tabs */
+.custom-meal-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.custom-meal-tab {
+    flex: 1;
+    padding: 12px 8px;
+    border: 2px solid #e0e7ff;
+    border-radius: 12px;
+    background: #f8f9ff;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-theme="dark"] .custom-meal-tab {
+    background: #334155;
+    border-color: #475569;
+}
+
+.custom-meal-tab:hover {
+    border-color: #0d9488;
+}
+
+.custom-meal-tab.active {
+    background: #0d9488;
+    color: white;
+    border-color: #0d9488;
+}
+
+.custom-meal-tab .tab-icon {
+    font-size: 1.3em;
+}
+
+.custom-meal-tab .tab-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Custom Meal Panel */
+.custom-meal-panel {
+    animation: fadeIn 0.2s ease;
+}
+
+.panel-hint {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.85rem;
+    color: #166534;
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .panel-hint {
+    background: #14532d;
+    border-color: #22c55e;
+    color: #86efac;
+}
+
+/* Food Search */
+.food-search-container {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.food-search-input-wrapper {
+    position: relative;
+}
+
+.food-search-input-wrapper .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+.food-search-input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+[data-theme="dark"] .food-search-input {
+    background: #334155;
+    border-color: #475569;
+    color: white;
+}
+
+.food-search-input:focus {
+    outline: none;
+    border-color: #0d9488;
+}
+
+.food-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+[data-theme="dark"] .food-search-results {
+    background: #334155;
+    border-color: #475569;
+}
+
+.food-search-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
+}
+
+[data-theme="dark"] .food-search-item {
+    border-bottom-color: #475569;
+}
+
+.food-search-item:hover {
+    background: #f0fdf4;
+}
+
+[data-theme="dark"] .food-search-item:hover {
+    background: #0f766e;
+}
+
+.food-search-item:last-child {
+    border-bottom: none;
+}
+
+.food-search-item .food-name {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+[data-theme="dark"] .food-search-item .food-name {
+    color: #f1f5f9;
+}
+
+.food-search-item .food-macros {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+[data-theme="dark"] .food-search-item .food-macros {
+    color: #94a3b8;
+}
+
+.search-loading {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+/* Ingredients Section */
+.ingredients-section {
+    margin-bottom: 16px;
+}
+
+.ingredients-section h4 {
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .ingredients-section h4 {
+    color: #e2e8f0;
+}
+
+.no-ingredients {
+    text-align: center;
+    color: #9ca3af;
+    font-style: italic;
+    padding: 20px;
+}
+
+.ingredients-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ingredient-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    gap: 8px;
+}
+
+[data-theme="dark"] .ingredient-item {
+    background: #334155;
+    border-color: #475569;
+}
+
+.ingredient-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+[data-theme="dark"] .ingredient-name {
+    color: #e2e8f0;
+}
+
+.ingredient-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: #e2e8f0;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .qty-btn {
+    background: #475569;
+    color: #e2e8f0;
+}
+
+.qty-btn:hover {
+    background: #0d9488;
+    color: white;
+}
+
+.qty-input {
+    width: 50px;
+    padding: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .qty-input {
+    background: #1e293b;
+    border-color: #475569;
+    color: white;
+}
+
+.unit-select {
+    padding: 6px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    background: white;
+    max-width: 80px;
+}
+
+[data-theme="dark"] .unit-select {
+    background: #1e293b;
+    border-color: #475569;
+    color: white;
+}
+
+.remove-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: #fee2e2;
+    color: #dc2626;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.remove-btn:hover {
+    background: #dc2626;
+    color: white;
+}
+
+/* Calculated Totals */
+.calculated-totals {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 2px solid #10b981;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+[data-theme="dark"] .calculated-totals {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+    border-color: #10b981;
+}
+
+.calculated-totals h4 {
+    font-size: 0.9rem;
+    color: #065f46;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .calculated-totals h4 {
+    color: #6ee7b7;
+}
+
+.totals-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    text-align: center;
+}
+
+.total-item {
+    background: white;
+    padding: 10px 6px;
+    border-radius: 8px;
+}
+
+[data-theme="dark"] .total-item {
+    background: #1e293b;
+}
+
+.total-value {
+    font-weight: 700;
+    color: #0d9488;
+    font-size: 1.1rem;
+    display: block;
+}
+
+.total-label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+[data-theme="dark"] .total-label {
+    color: #94a3b8;
+}
+
+/* Form Elements */
+.custom-meal-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    background: white;
+    transition: border-color 0.2s;
+    resize: none;
+}
+
+[data-theme="dark"] .custom-meal-input {
+    background: #334155;
+    border-color: #475569;
+    color: white;
+}
+
+.custom-meal-input:focus {
+    outline: none;
+    border-color: #0d9488;
+}
+
+.form-group {
+    margin-bottom: 12px;
+}
+
+/* Macros Grid for Manual Tab */
+.macros-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.macro-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.macro-input-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+[data-theme="dark"] .macro-input-group label {
+    color: #94a3b8;
+}
+
+.macro-input-group input {
+    padding: 10px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    text-align: center;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .macro-input-group input {
+    background: #334155;
+    border-color: #475569;
+    color: white;
+}
+
+.macro-input-group input:focus {
+    outline: none;
+    border-color: #0d9488;
+}
+
+/* Save for Later Checkbox */
+.save-for-later {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #92400e;
+}
+
+[data-theme="dark"] .save-for-later {
+    background: #78350f;
+    border-color: #f59e0b;
+    color: #fcd34d;
+}
+
+.save-for-later input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0d9488;
+}
+
+/* Create Meal Button */
+.create-meal-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+    color: white;
+    transition: all 0.2s;
+}
+
+.create-meal-btn:hover:not(.disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+}
+
+.create-meal-btn.disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Saved Meals List */
+.saved-meals-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.saved-meal-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: #fafafa;
+}
+
+[data-theme="dark"] .saved-meal-item {
+    background: #334155;
+    border-color: #475569;
+}
+
+.saved-meal-item:hover {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+[data-theme="dark"] .saved-meal-item:hover {
+    background: #0f766e;
+}
+
+.saved-meal-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.saved-meal-name {
+    font-weight: 600;
+    color: #1f2937;
+    word-wrap: break-word;
+}
+
+[data-theme="dark"] .saved-meal-name {
+    color: #f1f5f9;
+}
+
+.saved-meal-macros {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+[data-theme="dark"] .saved-meal-macros {
+    color: #94a3b8;
+}
+
+.saved-meal-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: 10px;
+}
+
+.use-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.use-btn:hover {
+    transform: scale(1.05);
+}
+
+.delete-btn {
+    padding: 8px 10px;
+    background: #fee2e2;
+    border: none;
+    border-radius: 8px;
+    color: #dc2626;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: #dc2626;
+    color: white;
+}
+
+.empty-saved, .loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+}
+
+.cancel-btn-full {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: #6b7280;
+    color: white;
+    transition: all 0.2s;
+}
+
+.cancel-btn-full:hover {
+    background: #4b5563;
+}
