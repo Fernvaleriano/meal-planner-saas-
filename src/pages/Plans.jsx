@@ -150,16 +150,49 @@ function Plans() {
     const loadMealImages = async () => {
       const days = getPlanDays(selectedPlan);
       const mealNames = [];
+      const cachedImageUrls = {};
+      let needsUpdate = false;
 
-      // Collect all meal names
+      // Collect meal names that need fetching AND apply cached images
       days.forEach(day => {
         (day.plan || []).forEach(meal => {
-          if (meal.name && !mealImages[meal.name]) {
-            mealNames.push(meal.name);
+          if (meal.name) {
+            // Check if we have a cached image for this meal
+            if (mealImages[meal.name]) {
+              // Apply cached image if meal doesn't have one
+              if (!meal.image_url) {
+                cachedImageUrls[meal.name] = mealImages[meal.name];
+                needsUpdate = true;
+              }
+            } else {
+              // Need to fetch this image
+              mealNames.push(meal.name);
+            }
           }
         });
       });
 
+      // First, apply any cached images immediately
+      if (needsUpdate) {
+        const updatedPlan = { ...selectedPlan };
+        const updatedDays = [...getPlanDays(updatedPlan)];
+        updatedDays.forEach(day => {
+          (day.plan || []).forEach(meal => {
+            if (cachedImageUrls[meal.name]) {
+              meal.image_url = cachedImageUrls[meal.name];
+            }
+          });
+        });
+
+        if (updatedPlan.plan_data.currentPlan) {
+          updatedPlan.plan_data.currentPlan = updatedDays;
+        } else if (updatedPlan.plan_data.days) {
+          updatedPlan.plan_data.days = updatedDays;
+        }
+        setSelectedPlan(updatedPlan);
+      }
+
+      // Then fetch any missing images
       if (mealNames.length === 0) return;
 
       try {
@@ -169,7 +202,7 @@ function Plans() {
           setMealImages(newImages);
           localStorage.setItem('mealImageCache', JSON.stringify(newImages));
 
-          // Also update the meals with their image URLs
+          // Update the meals with their new image URLs
           const updatedPlan = { ...selectedPlan };
           const updatedDays = [...getPlanDays(updatedPlan)];
           updatedDays.forEach(day => {
