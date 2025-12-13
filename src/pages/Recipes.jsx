@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen } from 'lucide-react';
+import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
@@ -239,24 +239,135 @@ function Recipes() {
     ? recipes
     : recipes.filter(r => r.time_category === activeCategory);
 
-  const handleRequestRecipe = async () => {
-    if (!selectedRecipe || !clientData?.id || !clientData?.coach_id) {
-      alert('Unable to send request. Please try again.');
+  // Save recipe to favorites
+  const handleFavorite = async () => {
+    if (!selectedRecipe || !clientData?.id) {
+      alert('Unable to save. Please try again.');
       return;
     }
 
     try {
-      await apiPost('/.netlify/functions/request-recipe', {
-        recipeId: selectedRecipe.id,
+      await apiPost('/.netlify/functions/favorites', {
         clientId: clientData.id,
-        coachId: clientData.coach_id
+        action: 'add',
+        food: {
+          food_name: selectedRecipe.name,
+          calories: selectedRecipe.calories || 0,
+          protein: selectedRecipe.protein || 0,
+          carbs: selectedRecipe.carbs || 0,
+          fat: selectedRecipe.fat || 0,
+          serving_size: selectedRecipe.servings ? `${selectedRecipe.servings} serving(s)` : '1 serving',
+          source: selectedRecipe.source || 'recipe'
+        }
       });
-      alert('Request sent! Your coach will review it.');
-      setSelectedRecipe(null);
+      alert('Recipe saved to favorites!');
     } catch (err) {
-      console.error('Error requesting recipe:', err);
-      alert('Could not send request. Please try again.');
+      console.error('Error saving favorite:', err);
+      alert('Could not save to favorites. Please try again.');
     }
+  };
+
+  // Log recipe to food diary
+  const handleLogToDiary = () => {
+    if (!selectedRecipe) return;
+
+    // Navigate to diary with recipe data to log
+    const recipeData = {
+      food_name: selectedRecipe.name,
+      calories: selectedRecipe.calories || 0,
+      protein: selectedRecipe.protein || 0,
+      carbs: selectedRecipe.carbs || 0,
+      fat: selectedRecipe.fat || 0
+    };
+
+    // Store in sessionStorage so Diary can pick it up
+    sessionStorage.setItem('pendingFoodLog', JSON.stringify(recipeData));
+    navigate('/diary?action=log');
+  };
+
+  // Download recipe as PDF
+  const handleDownloadPDF = () => {
+    if (!selectedRecipe) return;
+
+    // Create a printable HTML document
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${selectedRecipe.name} - Recipe</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          h1 { color: #0d9488; margin-bottom: 8px; }
+          .subtitle { color: #64748b; margin-bottom: 24px; }
+          .nutrition { display: flex; gap: 24px; background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+          .nutrition-item { text-align: center; }
+          .nutrition-value { font-size: 24px; font-weight: bold; color: #0f172a; }
+          .nutrition-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
+          h2 { color: #334155; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 24px; }
+          ul { padding-left: 20px; }
+          li { margin-bottom: 8px; line-height: 1.5; }
+          .instructions { line-height: 1.8; }
+          .instructions p { margin-bottom: 12px; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <h1>${selectedRecipe.name}</h1>
+        ${selectedRecipe.prep_time_minutes ? `<p class="subtitle">Prep time: ${selectedRecipe.prep_time_minutes} minutes</p>` : ''}
+
+        <div class="nutrition">
+          <div class="nutrition-item">
+            <div class="nutrition-value">${selectedRecipe.calories || '-'}</div>
+            <div class="nutrition-label">Calories</div>
+          </div>
+          <div class="nutrition-item">
+            <div class="nutrition-value">${selectedRecipe.protein || '-'}g</div>
+            <div class="nutrition-label">Protein</div>
+          </div>
+          <div class="nutrition-item">
+            <div class="nutrition-value">${selectedRecipe.carbs || '-'}g</div>
+            <div class="nutrition-label">Carbs</div>
+          </div>
+          <div class="nutrition-item">
+            <div class="nutrition-value">${selectedRecipe.fat || '-'}g</div>
+            <div class="nutrition-label">Fat</div>
+          </div>
+        </div>
+
+        ${selectedRecipe.ingredients ? `
+          <h2>Ingredients</h2>
+          <ul>
+            ${(selectedRecipe.ingredients.includes('\n')
+              ? selectedRecipe.ingredients.split('\n')
+              : selectedRecipe.ingredients.split(',')
+            ).filter(i => i.trim()).map(item => `<li>${item.trim()}</li>`).join('')}
+          </ul>
+        ` : ''}
+
+        ${selectedRecipe.instructions ? `
+          <h2>Instructions</h2>
+          <div class="instructions">
+            ${(selectedRecipe.instructions.includes('\n')
+              ? selectedRecipe.instructions.split('\n').filter(i => i.trim()).map(step => `<p>${step}</p>`).join('')
+              : `<p>${selectedRecipe.instructions}</p>`
+            )}
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          ${selectedRecipe.source_url ? `Source: ${selectedRecipe.source_url}<br>` : ''}
+          Downloaded from Zique Fitness
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Open in new window for printing/saving as PDF
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   return (
@@ -518,9 +629,21 @@ function Recipes() {
                 </a>
               )}
 
-              <button className="btn-primary full-width" onClick={handleRequestRecipe}>
-                Add to My Meal Plan Request
-              </button>
+              {/* Action buttons */}
+              <div className="recipe-action-buttons">
+                <button className="recipe-action-btn favorite" onClick={handleFavorite}>
+                  <Heart size={18} />
+                  <span>Favorite</span>
+                </button>
+                <button className="recipe-action-btn log" onClick={handleLogToDiary}>
+                  <Plus size={18} />
+                  <span>Log to Diary</span>
+                </button>
+                <button className="recipe-action-btn download" onClick={handleDownloadPDF}>
+                  <Download size={18} />
+                  <span>Download</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

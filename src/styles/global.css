@@ -6790,6 +6790,92 @@ body {
     color: #60a5fa;
 }
 
+/* Recipe Action Buttons */
+.recipe-action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.recipe-action-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recipe-action-btn:hover {
+    background: var(--gray-100);
+}
+
+.recipe-action-btn:active {
+    transform: scale(0.98);
+}
+
+[data-theme="dark"] .recipe-action-btn {
+    background: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .recipe-action-btn:hover {
+    background: #3f4f63;
+}
+
+.recipe-action-btn.favorite svg {
+    color: #ef4444;
+}
+
+.recipe-action-btn.favorite:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+[data-theme="dark"] .recipe-action-btn.favorite:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.recipe-action-btn.log svg {
+    color: var(--brand-primary);
+}
+
+.recipe-action-btn.log:hover {
+    background: rgba(13, 148, 136, 0.1);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
+[data-theme="dark"] .recipe-action-btn.log:hover {
+    background: rgba(20, 184, 166, 0.2);
+    border-color: #14b8a6;
+    color: #14b8a6;
+}
+
+.recipe-action-btn.download svg {
+    color: #3b82f6;
+}
+
+.recipe-action-btn.download:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+[data-theme="dark"] .recipe-action-btn.download:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+
 /* ==================== CHECK-IN PAGE ==================== */
 
 .checkin-page {
