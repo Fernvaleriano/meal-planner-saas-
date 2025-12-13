@@ -529,7 +529,7 @@ function Dashboard() {
           {clientData?.profile_photo_url ? (
             <img
               src={clientData.profile_photo_url}
-              alt={clientData.client_name}
+              alt={`${clientData.client_name}'s profile photo`}
               className="greeting-avatar-img"
             />
           ) : (
@@ -558,7 +558,7 @@ function Dashboard() {
             style={{ cursor: hasStories ? 'pointer' : 'default' }}
           >
             <div className={`story-ring ${hasStories ? 'unseen' : ''}`}>
-              <img src={coachData.avatar} alt={coachData.name} className="coach-story-avatar" />
+              <img src={coachData.avatar} alt={`Coach ${coachData.name}'s profile photo`} className="coach-story-avatar" />
             </div>
             <span className="coach-story-label">Your Coach</span>
           </div>
@@ -572,13 +572,13 @@ function Dashboard() {
             <span>⭐</span>
           </div>
           <div className="ai-hero-title">
-            <h3>What did you eat?</h3>
+            <h3 id="ai-hero-title">What did you eat?</h3>
             <span className="ai-powered-label">AI-powered logging</span>
           </div>
         </div>
 
         {/* Meal Type Selector */}
-        <div className="meal-type-selector">
+        <div className="meal-type-selector" role="group" aria-label="Select meal type">
           {[
             { id: 'breakfast', icon: '🌅', label: 'Breakfast' },
             { id: 'lunch', icon: '🌤️', label: 'Lunch' },
@@ -589,20 +589,25 @@ function Dashboard() {
               key={meal.id}
               className={`meal-type-btn ${selectedMealType === meal.id ? 'active' : ''}`}
               onClick={() => setSelectedMealType(meal.id)}
+              aria-label={`Select ${meal.label}`}
+              aria-pressed={selectedMealType === meal.id}
             >
-              <span className="meal-icon">{meal.icon}</span>
+              <span className="meal-icon" aria-hidden="true">{meal.icon}</span>
               <span className="meal-label">{meal.label}</span>
             </button>
           ))}
         </div>
 
         {/* Food Input */}
+        <label htmlFor="food-description" className="visually-hidden">Describe what you ate</label>
         <textarea
+          id="food-description"
           className="food-input"
           placeholder="Describe what you ate... e.g., 'Grilled chicken with rice and vegetables' or 'A large coffee with oat milk'"
           value={foodInput}
           onChange={(e) => setFoodInput(e.target.value)}
           rows={2}
+          aria-describedby="ai-hero-title"
         />
 
         {/* Action Buttons */}
@@ -610,8 +615,10 @@ function Dashboard() {
           <button
             className={`voice-btn ${isRecording ? 'recording' : ''}`}
             onClick={toggleVoiceInput}
+            aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+            aria-pressed={isRecording}
           >
-            <Mic size={20} />
+            <Mic size={20} aria-hidden="true" />
           </button>
           <button
             className="log-food-btn"
@@ -642,20 +649,22 @@ function Dashboard() {
             ))}
 
             <div className="food-confirmation-servings">
-              <span>Servings:</span>
-              <div className="servings-adjuster">
+              <span id="servings-label">Servings:</span>
+              <div className="servings-adjuster" role="group" aria-labelledby="servings-label">
                 <button
                   className="servings-btn"
                   onClick={() => setServings(prev => Math.max(0.5, prev - 0.5))}
+                  aria-label="Decrease servings"
                 >
-                  <Minus size={16} />
+                  <Minus size={16} aria-hidden="true" />
                 </button>
-                <span className="servings-value">{servings}</span>
+                <span className="servings-value" aria-live="polite">{servings}</span>
                 <button
                   className="servings-btn"
                   onClick={() => setServings(prev => prev + 0.5)}
+                  aria-label="Increase servings"
                 >
-                  <Plus size={16} />
+                  <Plus size={16} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -696,18 +705,18 @@ function Dashboard() {
         )}
 
         {/* Quick Action Buttons */}
-        <div className="ai-hero-quick-actions">
-          <button className="quick-action-pill" onClick={() => setPhotoModalOpen(true)}>
-            <Camera size={16} /> Snap Photo
+        <div className="ai-hero-quick-actions" role="group" aria-label="Quick food logging options">
+          <button className="quick-action-pill" onClick={() => setPhotoModalOpen(true)} aria-label="Take a photo of your food">
+            <Camera size={16} aria-hidden="true" /> Snap Photo
           </button>
-          <button className="quick-action-pill" onClick={() => setSearchModalOpen(true)}>
-            <Search size={16} /> Search Foods
+          <button className="quick-action-pill" onClick={() => setSearchModalOpen(true)} aria-label="Search food database">
+            <Search size={16} aria-hidden="true" /> Search Foods
           </button>
-          <button className="quick-action-pill" onClick={() => setFavoritesModalOpen(true)}>
-            <Heart size={16} /> Favorites
+          <button className="quick-action-pill" onClick={() => setFavoritesModalOpen(true)} aria-label="Log from your favorite foods">
+            <Heart size={16} aria-hidden="true" /> Favorites
           </button>
-          <button className="quick-action-pill" onClick={() => setScanLabelModalOpen(true)}>
-            <ScanLine size={16} /> Scan Label
+          <button className="quick-action-pill" onClick={() => setScanLabelModalOpen(true)} aria-label="Scan nutrition label">
+            <ScanLine size={16} aria-hidden="true" /> Scan Label
           </button>
         </div>
       </div>

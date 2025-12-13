@@ -47,21 +47,23 @@ function TopNav() {
         <button
           className="nav-btn"
           onClick={toggleTheme}
-          aria-label="Toggle theme"
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          {theme === 'dark' ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
         </button>
 
-        <Link to="/plans?tab=favorites" className="nav-btn">
-          <Heart size={20} />
+        <Link to="/plans?tab=favorites" className="nav-btn" aria-label="View favorite meals">
+          <Heart size={20} aria-hidden="true" />
         </Link>
 
         <div className="notification-wrapper">
           <button
             className="nav-btn"
             onClick={() => setShowNotifications(!showNotifications)}
+            aria-label="View notifications"
+            aria-expanded={showNotifications}
           >
-            <Bell size={20} />
+            <Bell size={20} aria-hidden="true" />
           </button>
           {showNotifications && (
             <div className="notification-dropdown show">
@@ -72,8 +74,8 @@ function TopNav() {
           )}
         </div>
 
-        <button className="nav-btn" onClick={logout}>
-          <LogOut size={20} />
+        <button className="nav-btn" onClick={logout} aria-label="Log out">
+          <LogOut size={20} aria-hidden="true" />
         </button>
       </div>
     </nav>

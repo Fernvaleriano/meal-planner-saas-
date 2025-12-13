@@ -49,6 +49,27 @@
     box-sizing: border-box;
 }
 
+/* Accessibility - Visually hidden but accessible to screen readers */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Accessibility - Focus visible styles for keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+}
+
 /* Base Body */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -120,10 +141,13 @@ body {
     border: none;
     color: white;
     padding: 8px 12px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 10px;
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     font-size: 0.875rem;
     font-weight: 500;
@@ -1298,7 +1322,7 @@ body {
 
 .ai-powered-label {
     font-size: 0.75rem;
-    color: #64748b;
+    color: #475569; /* Improved contrast for accessibility (WCAG AA) */
 }
 
 /* Meal Type Selector */
@@ -1384,7 +1408,7 @@ body {
 }
 
 .food-input::placeholder {
-    color: #64748b;
+    color: #475569; /* Improved contrast for accessibility (WCAG AA) */
 }
 
 .food-input:focus {
@@ -1471,7 +1495,8 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 14px;
+    padding: 10px 14px;
+    min-height: 44px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
@@ -6274,9 +6299,9 @@ body {
 }
 
 .servings-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     border: none;
     background: rgba(255, 255, 255, 0.1);
     color: white;
