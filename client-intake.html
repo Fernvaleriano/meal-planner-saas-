@@ -1124,13 +1124,13 @@
 
                 if (signInError) {
                     console.error('Auto sign-in failed:', signInError);
-                    // Still redirect to login page
+                    // Still redirect to login page (SPA)
                     setTimeout(() => {
-                        window.location.href = 'client-login.html';
+                        window.location.href = '/app';
                     }, 2000);
                 } else {
                     setTimeout(() => {
-                        window.location.href = 'client-dashboard.html';
+                        window.location.href = '/app';
                     }, 1500);
                 }
 
