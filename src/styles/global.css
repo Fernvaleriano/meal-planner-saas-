@@ -6689,13 +6689,13 @@ body {
 }
 
 .meal-chip:hover {
-    border-color: var(--teal-400);
-    color: var(--teal-600);
+    border-color: var(--brand-primary-light);
+    color: var(--brand-primary);
 }
 
 .meal-chip.active {
-    background: var(--teal-500);
-    border-color: var(--teal-500);
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
     color: white;
 }
 
@@ -6714,13 +6714,13 @@ body {
 }
 
 [data-theme="dark"] .meal-chip:hover {
-    border-color: var(--teal-400);
-    color: var(--teal-400);
+    border-color: var(--brand-primary-light);
+    color: var(--brand-primary-light);
 }
 
 [data-theme="dark"] .meal-chip.active {
-    background: var(--teal-500);
-    border-color: var(--teal-500);
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
     color: white;
 }
 
