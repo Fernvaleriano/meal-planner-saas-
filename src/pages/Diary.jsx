@@ -1624,7 +1624,6 @@ function Diary() {
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAiChat()}
                   disabled={aiLogging}
-                  autoFocus
                 />
                 <button
                   className="ai-modal-send"
