@@ -125,6 +125,14 @@ exports.handler = async (event) => {
             fat: (goals?.fat_goal || 65) - (totals?.fat || 0)
         };
 
+        // Helper to format remaining values - show "X over" for negative, "X remaining" for positive
+        const formatRemaining = (value, unit = '') => {
+            if (value < 0) {
+                return `${Math.abs(Math.round(value))}${unit} OVER goal`;
+            }
+            return `${Math.round(value)}${unit} remaining`;
+        };
+
         // Build context for AI
         const recentFoodsList = recentFoods.length > 0
             ? `\nFOODS EATEN IN THE PAST 7 DAYS (avoid suggesting these repeatedly):\n${recentFoods.join(', ')}\n`
@@ -157,10 +165,10 @@ exports.handler = async (event) => {
 5. Provide encouragement and practical advice
 
 TODAY'S PROGRESS:
-- Calories: ${totals?.calories || 0} / ${goals?.calorie_goal || 2000} (${remaining.calories} remaining)
-- Protein: ${Math.round(totals?.protein || 0)}g / ${goals?.protein_goal || 150}g (${Math.round(remaining.protein)}g remaining)
-- Carbs: ${Math.round(totals?.carbs || 0)}g / ${goals?.carbs_goal || 200}g (${Math.round(remaining.carbs)}g remaining)
-- Fat: ${Math.round(totals?.fat || 0)}g / ${goals?.fat_goal || 65}g (${Math.round(remaining.fat)}g remaining)
+- Calories: ${totals?.calories || 0} / ${goals?.calorie_goal || 2000} (${formatRemaining(remaining.calories)})
+- Protein: ${Math.round(totals?.protein || 0)}g / ${goals?.protein_goal || 150}g (${formatRemaining(remaining.protein, 'g')})
+- Carbs: ${Math.round(totals?.carbs || 0)}g / ${goals?.carbs_goal || 200}g (${formatRemaining(remaining.carbs, 'g')})
+- Fat: ${Math.round(totals?.fat || 0)}g / ${goals?.fat_goal || 65}g (${formatRemaining(remaining.fat, 'g')})
 
 TODAY'S LOGGED FOODS:
 ${todayEntries && todayEntries.length > 0
@@ -289,12 +297,13 @@ Rules for clickable suggestions:
 - Don't over-explain packaged foods - they're grab-and-go items
 
 **IMPORTANT - CALORIE PRIORITY RULE:**
+- If the user is OVER their calorie goal (you'll see "X OVER goal" in their progress), DO NOT suggest more food
 - If remaining calories are 100 or less (they've hit their calorie target), DO NOT suggest eating more food to hit macros
-- Instead, congratulate them on hitting their calorie goal and let them know they're done for the day
-- Only mention that tomorrow they can aim for better macro distribution if their protein/carbs/fat were off
+- When they're over their calorie goal: Acknowledge they've exceeded their target, DO NOT suggest eating more. Let them know they're done for the day and can aim for better macro distribution tomorrow.
 - NEVER encourage overeating just to hit protein or other macro targets
+- NEVER say they have "calories remaining" if they are actually OVER their goal
 
-**When they still have calories remaining:**
+**When they still have calories remaining (positive remaining calories):**
 - When suggesting foods, consider what they still need (remaining macros)
 - If they need more protein, suggest high-protein options that fit within remaining calories
 - If they're low on calories, suggest nutrient-dense foods`;
