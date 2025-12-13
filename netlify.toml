@@ -2,18 +2,70 @@
   publish = "."
   command = "npm install && npm run build"
 
-# SPA routing for /app-test (force=true overrides static files)
+# SPA routing - /app is the primary client portal
 [[redirects]]
-  from = "/app-test"
+  from = "/app"
   to = "/app-test-dist/app-test.html"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/app-test/*"
+  from = "/app/*"
   to = "/app-test-dist/app-test.html"
   status = 200
   force = true
+
+# Legacy /app-test routes (keep for backwards compatibility)
+[[redirects]]
+  from = "/app-test"
+  to = "/app"
+  status = 301
+
+[[redirects]]
+  from = "/app-test/*"
+  to = "/app/:splat"
+  status = 301
+
+# Redirect old PWA client pages to new SPA
+[[redirects]]
+  from = "/client-login.html"
+  to = "/app"
+  status = 301
+
+[[redirects]]
+  from = "/client-dashboard.html"
+  to = "/app"
+  status = 301
+
+[[redirects]]
+  from = "/client-diary.html"
+  to = "/app/diary"
+  status = 301
+
+[[redirects]]
+  from = "/client-plans.html"
+  to = "/app/plans"
+  status = 301
+
+[[redirects]]
+  from = "/client-progress.html"
+  to = "/app/profile"
+  status = 301
+
+[[redirects]]
+  from = "/client-settings.html"
+  to = "/app/profile"
+  status = 301
+
+[[redirects]]
+  from = "/client-favorites.html"
+  to = "/app"
+  status = 301
+
+[[redirects]]
+  from = "/client-recipes.html"
+  to = "/app/recipes"
+  status = 301
 
 [build.environment]
   NODE_VERSION = "18"
