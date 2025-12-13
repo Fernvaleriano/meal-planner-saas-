@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Star, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal } from '../components/FoodModals';
@@ -1196,32 +1196,6 @@ function Diary() {
           <BarChart3 size={16} />
           Weekly
         </button>
-      </div>
-
-      {/* Add Food Section */}
-      <div className="add-food-section">
-        <div className="add-food-header">
-          <Plus size={18} className="add-food-icon" />
-          <span>Add Food</span>
-        </div>
-        <div className="add-food-options">
-          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowAILogModal(true); }}>
-            <Star size={20} />
-            <span>AI Log</span>
-          </button>
-          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowPhotoModal(true); }}>
-            <Camera size={20} />
-            <span>Photo</span>
-          </button>
-          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowSearchModal(true); }}>
-            <Search size={20} />
-            <span>Search</span>
-          </button>
-          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowFavoritesModal(true); }}>
-            <Heart size={20} />
-            <span>Favorites</span>
-          </button>
-        </div>
       </div>
 
       {/* Calorie Summary */}

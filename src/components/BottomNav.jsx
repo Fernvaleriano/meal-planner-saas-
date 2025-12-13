@@ -10,15 +10,17 @@ function BottomNav({ currentPath }) {
   ];
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" role="navigation" aria-label="Main navigation">
       {navItems.map(({ path, icon: Icon, label }) => (
         <Link
           key={path}
           to={path}
           className={`bottom-nav-item ${currentPath === path ? 'active' : ''}`}
+          aria-label={`Navigate to ${label}`}
+          aria-current={currentPath === path ? 'page' : undefined}
         >
           <div className="nav-icon">
-            <Icon size={24} />
+            <Icon size={24} aria-hidden="true" />
           </div>
           <span className="nav-label">{label}</span>
         </Link>

@@ -72,16 +72,17 @@ function TopNav() {
             role="button"
             tabIndex={0}
             aria-label="View coach stories"
+            onKeyDown={(e) => e.key === 'Enter' && handleStoryClick()}
           >
             <div className="story-ring unseen">
-              <img src={coachData.avatar} alt={coachData.name || 'Coach'} />
+              <img src={coachData.avatar} alt={`Coach ${coachData.name}'s profile photo`} />
             </div>
           </div>
         )}
       </div>
 
       {/* Center: Logo */}
-      <Link to="/" className="nav-center">
+      <Link to="/" className="nav-center" aria-label="Go to home">
         <img
           src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg"
           alt="Zique Fitness"
@@ -95,12 +96,13 @@ function TopNav() {
           <button
             className="nav-btn"
             onClick={() => setShowNotifications(!showNotifications)}
-            aria-label="Notifications"
+            aria-label="View notifications"
+            aria-expanded={showNotifications}
           >
-            <Bell size={20} />
+            <Bell size={20} aria-hidden="true" />
           </button>
           {showNotifications && (
-            <div className="notification-dropdown show">
+            <div className="notification-dropdown show" role="menu" aria-label="Notifications">
               <div style={{ padding: '16px', textAlign: 'center', color: 'var(--gray-500)' }}>
                 No new notifications
               </div>
