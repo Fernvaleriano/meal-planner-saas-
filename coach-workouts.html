@@ -1644,10 +1644,12 @@
                 const result = await apiCall(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
                 clients = result.clients || [];
                 renderClientList();
+                setupClientSelection();
             } catch (err) {
                 console.error('Error loading clients:', err);
                 clients = [];
                 renderClientList();
+                setupClientSelection();
             }
         }
 
@@ -1674,19 +1676,28 @@
             `).join('');
         }
 
-        // Event delegation for client selection
-        document.getElementById('clientList').addEventListener('click', function(e) {
-            const card = e.target.closest('.client-card');
-            if (card && card.dataset.clientId) {
-                const clientId = card.dataset.clientId;
-                if (selectedClients.has(clientId)) {
-                    selectedClients.delete(clientId);
-                } else {
-                    selectedClients.add(clientId);
+        // Set up client selection (called once after initial load)
+        let clientListenerAttached = false;
+        function setupClientSelection() {
+            if (clientListenerAttached) return;
+            const container = document.getElementById('clientList');
+            if (!container) return;
+
+            container.addEventListener('click', function(e) {
+                const card = e.target.closest('.client-card');
+                if (card && card.dataset.clientId) {
+                    const clientId = card.dataset.clientId;
+                    if (selectedClients.has(clientId)) {
+                        selectedClients.delete(clientId);
+                    } else {
+                        selectedClients.add(clientId);
+                    }
+                    renderClientList();
                 }
-                renderClientList();
-            }
-        });
+            });
+            clientListenerAttached = true;
+            console.log('Client selection listener attached');
+        }
 
         // Save program
         async function saveProgram() {
