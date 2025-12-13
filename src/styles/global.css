@@ -4783,6 +4783,13 @@ body {
     background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
 }
 
+/* Light mode modal overrides */
+[data-theme="light"] .modal-content {
+    background: white;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-200);
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -4831,6 +4838,28 @@ body {
 [data-theme="dark"] .modal-close:hover {
     background: rgba(239, 68, 68, 0.15);
     color: #f87171;
+}
+
+/* Light mode modal element overrides */
+[data-theme="light"] .modal-header {
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+[data-theme="light"] .modal-header h2 {
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .modal-close {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-600);
+}
+
+[data-theme="light"] .modal-close:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #dc2626;
 }
 
 .modal-body {
@@ -5971,6 +6000,37 @@ body {
 [data-theme="dark"] .rating-btn:hover {
     border-color: rgba(20, 184, 166, 0.6);
     background: rgba(20, 184, 166, 0.15);
+}
+
+/* Light mode check-in overrides */
+[data-theme="light"] .rating-group {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+}
+
+[data-theme="light"] .rating-label {
+    color: var(--gray-800);
+}
+
+[data-theme="light"] .rating-btn {
+    background: white;
+    border-color: var(--gray-300);
+    color: var(--gray-600);
+}
+
+[data-theme="light"] .rating-btn:hover {
+    border-color: var(--brand-primary);
+    background: rgba(20, 184, 166, 0.05);
+    color: var(--brand-primary);
+}
+
+[data-theme="light"] .adherence-container {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+}
+
+[data-theme="light"] .adherence-slider {
+    background: var(--gray-200);
 }
 
 .rating-btn.selected {
@@ -8534,6 +8594,41 @@ body {
     margin-bottom: 16px;
 }
 
+/* Light mode form overrides */
+[data-theme="light"] .checkin-page .form-group label,
+[data-theme="light"] .modal-body .form-group label {
+    color: var(--gray-700);
+}
+
+[data-theme="light"] .checkin-page .form-group input,
+[data-theme="light"] .checkin-page .form-group textarea,
+[data-theme="light"] .checkin-page .form-group select,
+[data-theme="light"] .modal-body .form-group input,
+[data-theme="light"] .modal-body .form-group textarea,
+[data-theme="light"] .modal-body .form-group select {
+    border: 1px solid var(--gray-300);
+    background: white;
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .checkin-page .form-group input::placeholder,
+[data-theme="light"] .checkin-page .form-group textarea::placeholder,
+[data-theme="light"] .modal-body .form-group input::placeholder,
+[data-theme="light"] .modal-body .form-group textarea::placeholder {
+    color: var(--gray-400);
+}
+
+[data-theme="light"] .checkin-page .form-group input:focus,
+[data-theme="light"] .checkin-page .form-group textarea:focus,
+[data-theme="light"] .checkin-page .form-group select:focus,
+[data-theme="light"] .modal-body .form-group input:focus,
+[data-theme="light"] .modal-body .form-group textarea:focus,
+[data-theme="light"] .modal-body .form-group select:focus {
+    border-color: var(--brand-primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+
 /* Upload area modernization */
 .upload-area {
     display: flex;
@@ -8569,6 +8664,29 @@ body {
 .upload-area .upload-text {
     color: #94a3b8;
     font-size: 0.95rem;
+}
+
+/* Light mode upload area */
+[data-theme="light"] .upload-area {
+    border: 2px dashed var(--gray-300);
+    background: var(--gray-50);
+}
+
+[data-theme="light"] .upload-area:hover {
+    border-color: var(--brand-primary);
+    background: rgba(13, 148, 136, 0.02);
+}
+
+[data-theme="light"] .upload-area .upload-icon {
+    color: var(--gray-400);
+}
+
+[data-theme="light"] .upload-area:hover .upload-icon {
+    color: var(--brand-primary);
+}
+
+[data-theme="light"] .upload-area .upload-text {
+    color: var(--gray-500);
 }
 
 /* Photo preview modernization */
@@ -8663,4 +8781,15 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+/* Light mode section card for check-in */
+[data-theme="light"] .checkin-page .section-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .checkin-page .section-title {
+    color: var(--gray-800);
 }
