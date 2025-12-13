@@ -119,6 +119,11 @@ function Plans() {
   const [mealPrepGuide, setMealPrepGuide] = useState(null);
   const [mealPrepLoading, setMealPrepLoading] = useState(false);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load plans with caching
   useEffect(() => {
     // If no clientData yet, just wait (don't return without clearing loading state)

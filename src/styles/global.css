@@ -6679,6 +6679,14 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+    user-select: none;
+}
+
+.meal-action-btn:active {
+    transform: scale(0.95);
+    opacity: 0.9;
 }
 
 .meal-action-btn span {
