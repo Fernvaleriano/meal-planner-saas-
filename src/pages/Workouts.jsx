@@ -157,7 +157,27 @@ function Workouts() {
   };
 
   // Calculate progress
-  const exercises = todayWorkout?.workout_data?.exercises || [];
+  // Handle both data structures: workout_data.exercises OR workout_data.days[0].exercises
+  const getExercisesFromWorkout = (workout) => {
+    if (!workout?.workout_data) return [];
+
+    // Direct exercises array
+    if (workout.workout_data.exercises) {
+      return workout.workout_data.exercises;
+    }
+
+    // Days structure - get exercises from the first day (or scheduled day)
+    if (workout.workout_data.days && workout.workout_data.days.length > 0) {
+      // For now, cycle through days based on which workout day it is
+      const dayIndex = workout.day_index || 0;
+      const day = workout.workout_data.days[dayIndex % workout.workout_data.days.length];
+      return day?.exercises || [];
+    }
+
+    return [];
+  };
+
+  const exercises = getExercisesFromWorkout(todayWorkout);
   const completedCount = completedExercises.size;
   const totalExercises = exercises.length;
   const progressPercent = totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
@@ -167,6 +187,23 @@ function Workouts() {
 
   // Get target muscles for the workout
   const targetMuscles = todayWorkout?.workout_data?.targetMuscles || [];
+
+  // Get workout day name (from days structure)
+  const getWorkoutDayName = (workout) => {
+    if (!workout?.workout_data) return null;
+
+    if (workout.workout_data.name) return workout.workout_data.name;
+
+    if (workout.workout_data.days && workout.workout_data.days.length > 0) {
+      const dayIndex = workout.day_index || 0;
+      const day = workout.workout_data.days[dayIndex % workout.workout_data.days.length];
+      return day?.name || workout.name;
+    }
+
+    return workout.name;
+  };
+
+  const workoutDayName = getWorkoutDayName(todayWorkout);
 
   return (
     <div className="workouts-page-v2">
@@ -179,7 +216,7 @@ function Workouts() {
             <span>{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
           </div>
           <h1 className="hero-title">
-            {todayWorkout ? todayWorkout.workout_data?.name || todayWorkout.name : 'Workouts'}
+            {todayWorkout ? workoutDayName || todayWorkout.name || 'Today\'s Workout' : 'Workouts'}
           </h1>
           {todayWorkout && (
             <div className="hero-meta">
