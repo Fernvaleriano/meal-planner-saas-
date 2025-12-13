@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
+import StoryViewer from './StoryViewer';
 
 function TopNav() {
   const { clientData } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [coachData, setCoachData] = useState(null);
   const [hasStories, setHasStories] = useState(false);
+  const [stories, setStories] = useState([]);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
 
   // Load coach data and stories
   useEffect(() => {
@@ -20,6 +23,7 @@ function TopNav() {
       const data = JSON.parse(cached);
       setCoachData(data.coach);
       setHasStories(data.hasStories);
+      if (data.stories) setStories(data.stories);
       return;
     }
 
@@ -30,20 +34,31 @@ function TopNav() {
             name: data.coachName,
             avatar: data.coachAvatar
           };
-          const stories = data.hasUnseenStories || (data.stories && data.stories.length > 0);
+          const storyList = data.stories || [];
+          const hasStoriesFlag = data.hasUnseenStories || storyList.length > 0;
           setCoachData(coach);
-          setHasStories(stories);
-          sessionStorage.setItem(`coach_nav_${clientData.id}`, JSON.stringify({ coach, hasStories: stories }));
+          setHasStories(hasStoriesFlag);
+          setStories(storyList);
+          sessionStorage.setItem(`coach_nav_${clientData.id}`, JSON.stringify({
+            coach,
+            hasStories: hasStoriesFlag,
+            stories: storyList
+          }));
         }
       })
       .catch(err => console.error('Error loading coach:', err));
   }, [clientData?.id, clientData?.coach_id]);
 
   const handleStoryClick = () => {
-    if (hasStories) {
-      // TODO: Open stories viewer modal
-      alert('Stories feature coming soon!');
+    if (hasStories && stories.length > 0) {
+      setShowStoryViewer(true);
     }
+  };
+
+  const handleCloseStoryViewer = () => {
+    setShowStoryViewer(false);
+    // Clear cache to refresh stories on next load
+    sessionStorage.removeItem(`coach_nav_${clientData?.id}`);
   };
 
   return (
@@ -93,6 +108,17 @@ function TopNav() {
           )}
         </div>
       </div>
+
+      {/* Story Viewer Modal */}
+      {showStoryViewer && stories.length > 0 && (
+        <StoryViewer
+          stories={stories}
+          coachName={coachData?.name}
+          coachAvatar={coachData?.avatar}
+          clientId={clientData?.id}
+          onClose={handleCloseStoryViewer}
+        />
+      )}
     </nav>
   );
 }
