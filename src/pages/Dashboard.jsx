@@ -106,6 +106,20 @@ function Dashboard() {
     else setSelectedMealType('snack');
   }, []);
 
+  // Cleanup microphone on component unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          console.log('Cleanup: Error stopping recognition:', e);
+        }
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -450,6 +464,14 @@ function Dashboard() {
   };
 
   const resetVoiceUI = () => {
+    // Also stop recognition if it's still running
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {
+        console.log('ResetVoiceUI: Error stopping recognition:', e);
+      }
+    }
     setIsRecording(false);
     recognitionRef.current = null;
   };
