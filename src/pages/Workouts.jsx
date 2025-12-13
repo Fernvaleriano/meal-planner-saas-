@@ -50,14 +50,14 @@ function Workouts() {
         const dateStr = formatDate(selectedDate);
 
         // Fetch assigned workout for this date
-        const assignmentRes = await apiGet(`/workout-assignments?clientId=${clientData.id}&date=${dateStr}`);
+        const assignmentRes = await apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`);
 
         if (assignmentRes.assignments && assignmentRes.assignments.length > 0) {
           const assignment = assignmentRes.assignments[0];
           setTodayWorkout(assignment);
 
           // Fetch workout log if exists
-          const logRes = await apiGet(`/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
+          const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
           if (logRes.logs && logRes.logs.length > 0) {
             setWorkoutLog(logRes.logs[0]);
             // Set completed exercises from log
@@ -113,7 +113,7 @@ function Workouts() {
     // Create or update workout log
     if (!workoutLog) {
       try {
-        const res = await apiPost('/workout-logs', {
+        const res = await apiPost('/.netlify/functions/workout-logs', {
           clientId: clientData.id,
           assignmentId: todayWorkout?.id,
           workoutDate: formatDate(selectedDate),

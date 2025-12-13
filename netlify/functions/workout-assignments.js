@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   try {
     // GET - Fetch workout assignments
     if (event.httpMethod === 'GET') {
-      const { clientId, coachId, assignmentId, activeOnly } = event.queryStringParameters || {};
+      const { clientId, coachId, assignmentId, activeOnly, date } = event.queryStringParameters || {};
 
       // Get single assignment by ID
       if (assignmentId) {
@@ -49,6 +49,97 @@ exports.handler = async (event) => {
 
       // Get assignments for a client
       if (clientId) {
+        // If date is provided, get the specific workout for that date
+        if (date) {
+          // First get the active assignment
+          const { data: activeAssignment, error: assignmentError } = await supabase
+            .from('client_workout_assignments')
+            .select('*')
+            .eq('client_id', clientId)
+            .eq('is_active', true)
+            .single();
+
+          if (assignmentError && assignmentError.code !== 'PGRST116') {
+            throw assignmentError;
+          }
+
+          if (!activeAssignment) {
+            return {
+              statusCode: 200,
+              headers,
+              body: JSON.stringify({ assignments: [] })
+            };
+          }
+
+          // Calculate which day of the program this date corresponds to
+          const workoutData = activeAssignment.workout_data || {};
+          const days = workoutData.days || [];
+          const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
+          const targetDate = new Date(date);
+
+          // Get day of week (0=Sunday, 6=Saturday)
+          const targetDayOfWeek = targetDate.getDay();
+
+          // Find the workout for this day of week
+          // Map day index to actual day based on program structure
+          // If program has 3 days/week, they might be Mon/Wed/Fri
+          let todayWorkout = null;
+
+          if (days.length > 0) {
+            // Simple approach: cycle through workout days based on date
+            const daysPerWeek = days.length;
+            const weekNumber = Math.floor((targetDate - startDate) / (7 * 24 * 60 * 60 * 1000));
+            const workoutDaysInWeek = [];
+
+            // Assign workout days to weekdays (skip weekends for typical programs)
+            const dayMapping = daysPerWeek <= 3
+              ? [1, 3, 5] // Mon, Wed, Fri for 3-day programs
+              : daysPerWeek === 4
+                ? [1, 2, 4, 5] // Mon, Tue, Thu, Fri
+                : daysPerWeek === 5
+                  ? [1, 2, 3, 4, 5] // Mon-Fri
+                  : [1, 2, 3, 4, 5, 6]; // Mon-Sat for 6-day
+
+            const dayIndex = dayMapping.indexOf(targetDayOfWeek);
+            if (dayIndex !== -1 && dayIndex < days.length) {
+              todayWorkout = {
+                id: activeAssignment.id,
+                name: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                workout_data: {
+                  ...days[dayIndex],
+                  exercises: days[dayIndex].exercises || [],
+                  estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
+                  estimatedCalories: days[dayIndex].estimatedCalories || 300
+                },
+                program_id: activeAssignment.program_id,
+                client_id: activeAssignment.client_id
+              };
+            }
+          } else if (workoutData.exercises) {
+            // Fallback: use flat exercises list
+            todayWorkout = {
+              id: activeAssignment.id,
+              name: activeAssignment.name || 'Today\'s Workout',
+              workout_data: {
+                exercises: workoutData.exercises,
+                estimatedMinutes: 45,
+                estimatedCalories: 300
+              },
+              program_id: activeAssignment.program_id,
+              client_id: activeAssignment.client_id
+            };
+          }
+
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              assignments: todayWorkout ? [todayWorkout] : []
+            })
+          };
+        }
+
+        // No date - return all assignments
         let query = supabase
           .from('client_workout_assignments')
           .select('*')

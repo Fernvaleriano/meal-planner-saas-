@@ -24,7 +24,7 @@ function ExerciseDetailModal({ exercise, onClose, isCompleted, onToggleComplete,
     const fetchHistory = async () => {
       if (!exercise.id) return;
       try {
-        const res = await apiGet(`/exercise-history?exerciseId=${exercise.id}&limit=10`);
+        const res = await apiGet(`/.netlify/functions/exercise-history?exerciseId=${exercise.id}&limit=10`);
         if (res.history) {
           setHistory(res.history);
           const max = Math.max(...res.history.map(h => h.max_weight || 0), 0);
