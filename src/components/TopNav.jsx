@@ -1,61 +1,82 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Bell, LogOut, Moon, Sun, RefreshCw } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 
 function TopNav() {
-  const { logout, theme, toggleTheme, clientData } = useAuth();
+  const { clientData } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [streak, setStreak] = useState(0);
+  const [coachData, setCoachData] = useState(null);
+  const [hasStories, setHasStories] = useState(false);
 
-  // Load streak on mount
+  // Load coach data and stories
   useEffect(() => {
-    const loadStreak = async () => {
-      if (!clientData?.id) return;
-      try {
-        const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${new Date().toISOString().split('T')[0]}`);
-        if (data.streak) {
-          setStreak(data.streak);
+    if (!clientData?.id || !clientData?.coach_id) return;
+
+    // Check cache first
+    const cached = sessionStorage.getItem(`coach_nav_${clientData.id}`);
+    if (cached) {
+      const data = JSON.parse(cached);
+      setCoachData(data.coach);
+      setHasStories(data.hasStories);
+      return;
+    }
+
+    apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`)
+      .then(data => {
+        if (data) {
+          const coach = {
+            name: data.coachName,
+            avatar: data.coachAvatar
+          };
+          const stories = data.hasUnseenStories || (data.stories && data.stories.length > 0);
+          setCoachData(coach);
+          setHasStories(stories);
+          sessionStorage.setItem(`coach_nav_${clientData.id}`, JSON.stringify({ coach, hasStories: stories }));
         }
-      } catch (err) {
-        console.error('Error loading streak:', err);
-      }
-    };
-    loadStreak();
-  }, [clientData?.id]);
+      })
+      .catch(err => console.error('Error loading coach:', err));
+  }, [clientData?.id, clientData?.coach_id]);
+
+  const handleStoryClick = () => {
+    if (hasStories) {
+      // TODO: Open stories viewer modal
+      alert('Stories feature coming soon!');
+    }
+  };
 
   return (
     <nav className="top-nav">
-      <Link to="/" className="nav-brand">
+      {/* Left: Coach Story (only shows if there are stories) */}
+      <div className="nav-left">
+        {hasStories && coachData?.avatar && (
+          <div
+            className="nav-coach-story"
+            onClick={handleStoryClick}
+            role="button"
+            tabIndex={0}
+            aria-label="View coach stories"
+            onKeyDown={(e) => e.key === 'Enter' && handleStoryClick()}
+          >
+            <div className="story-ring unseen">
+              <img src={coachData.avatar} alt={`Coach ${coachData.name}'s profile photo`} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Center: Logo */}
+      <Link to="/" className="nav-center" aria-label="Go to home">
         <img
           src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg"
           alt="Zique Fitness"
-          className="nav-logo-img"
+          className="nav-logo-centered"
         />
       </Link>
 
-      {/* Streak Badge */}
-      {streak > 0 && (
-        <div className="streak-badge-nav">
-          <RefreshCw size={14} />
-          <span>{streak} days</span>
-        </div>
-      )}
-
-      <div className="nav-actions">
-        <button
-          className="nav-btn"
-          onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark' ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
-        </button>
-
-        <Link to="/plans?tab=favorites" className="nav-btn" aria-label="View favorite meals">
-          <Heart size={20} aria-hidden="true" />
-        </Link>
-
+      {/* Right: Notifications */}
+      <div className="nav-right">
         <div className="notification-wrapper">
           <button
             className="nav-btn"
@@ -66,17 +87,13 @@ function TopNav() {
             <Bell size={20} aria-hidden="true" />
           </button>
           {showNotifications && (
-            <div className="notification-dropdown show">
+            <div className="notification-dropdown show" role="menu" aria-label="Notifications">
               <div style={{ padding: '16px', textAlign: 'center', color: 'var(--gray-500)' }}>
                 No new notifications
               </div>
             </div>
           )}
         </div>
-
-        <button className="nav-btn" onClick={logout} aria-label="Log out">
-          <LogOut size={20} aria-hidden="true" />
-        </button>
       </div>
     </nav>
   );

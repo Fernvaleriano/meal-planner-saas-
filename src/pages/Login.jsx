@@ -52,103 +52,241 @@ function Login() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--gray-50)',
-      padding: '20px'
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '20px',
-        padding: '40px',
-        maxWidth: '400px',
-        width: '100%',
-        boxShadow: 'var(--shadow-xl)'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+    <div className="login-page">
+      <div className="login-container">
+        {/* Logo */}
+        <div className="login-logo">
           <img
-            src="/icons/logo.png"
+            src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg"
             alt="Zique Fitness"
-            style={{ width: '80px', marginBottom: '16px' }}
           />
-          <h1 style={{
-            fontSize: '1.5rem',
-            fontWeight: '700',
-            color: 'var(--gray-900)',
-            marginBottom: '8px'
-          }}>
-            Welcome Back
-          </h1>
-          <p style={{ color: 'var(--gray-500)' }}>
-            Sign in to your client portal
-          </p>
         </div>
 
-        <form onSubmit={handleLogin}>
+        {/* Header */}
+        <div className="login-header">
+          <h1>Welcome Back</h1>
+          <p>Sign in to your client portal</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleLogin} className="login-form">
           {error && (
-            <div style={{
-              background: '#fef2f2',
-              color: '#dc2626',
-              padding: '12px',
-              borderRadius: '10px',
-              marginBottom: '16px',
-              fontSize: '0.9rem'
-            }}>
+            <div className="login-error">
               {error}
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Email</label>
+          <div className="login-field">
+            <label>Email</label>
             <input
               type="email"
-              className="form-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
+              autoComplete="email"
+              autoCapitalize="none"
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
+          <div className="login-field">
+            <label>Password</label>
             <input
               type="password"
-              className="form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Your password"
               required
+              autoComplete="current-password"
             />
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary"
+            className="login-button"
             disabled={loading}
-            style={{ width: '100%', marginTop: '8px' }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (
+              <>
+                <span className="login-spinner"></span>
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
 
-        <div style={{
-          marginTop: '24px',
-          textAlign: 'center',
-          fontSize: '0.85rem',
-          color: 'var(--gray-500)'
-        }}>
-          <a
-            href="/client-login.html"
-            style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}
-          >
-            Use classic login
-          </a>
+        {/* Footer */}
+        <div className="login-footer">
+          <p>Powered by Zique Fitness</p>
         </div>
       </div>
+
+      <style>{`
+        .login-page {
+          min-height: 100vh;
+          min-height: 100dvh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+          padding: 20px;
+        }
+
+        .login-container {
+          width: 100%;
+          max-width: 380px;
+          padding: 40px 32px;
+          background: rgba(30, 41, 59, 0.8);
+          backdrop-filter: blur(20px);
+          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-logo {
+          text-align: center;
+          margin-bottom: 32px;
+        }
+
+        .login-logo img {
+          height: 80px;
+          width: auto;
+        }
+
+        .login-header {
+          text-align: center;
+          margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: #f1f5f9;
+          margin-bottom: 8px;
+        }
+
+        .login-header p {
+          color: #94a3b8;
+          font-size: 0.95rem;
+        }
+
+        .login-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .login-error {
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #fca5a5;
+          padding: 14px 16px;
+          border-radius: 12px;
+          font-size: 0.9rem;
+          text-align: center;
+        }
+
+        .login-field {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .login-field label {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #94a3b8;
+        }
+
+        .login-field input {
+          width: 100%;
+          padding: 16px;
+          background: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(148, 163, 184, 0.2);
+          border-radius: 12px;
+          color: #f1f5f9;
+          font-size: 1rem;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .login-field input::placeholder {
+          color: #64748b;
+        }
+
+        .login-field input:focus {
+          outline: none;
+          border-color: #0d9488;
+          background: rgba(15, 23, 42, 0.8);
+          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+
+        .login-button {
+          width: 100%;
+          padding: 16px;
+          margin-top: 8px;
+          background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+          border: none;
+          border-radius: 12px;
+          color: white;
+          font-size: 1rem;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+        }
+
+        .login-button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+        }
+
+        .login-button:active:not(:disabled) {
+          transform: scale(0.98);
+        }
+
+        .login-button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .login-spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .login-footer {
+          margin-top: 32px;
+          text-align: center;
+        }
+
+        .login-footer p {
+          font-size: 0.8rem;
+          color: #64748b;
+        }
+
+        /* Safe area for notched devices */
+        @supports (padding: env(safe-area-inset-bottom)) {
+          .login-page {
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
@@ -106,20 +106,19 @@ function Dashboard() {
     else setSelectedMealType('snack');
   }, []);
 
-  // Get greeting based on time of day
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  const getGreetingSubtext = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning! Ready to start your day?';
-    if (hour < 17) return 'Good afternoon! How is your day going?';
-    return 'Good evening! How was your day?';
-  };
+  // Cleanup microphone on component unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          console.log('Cleanup: Error stopping recognition:', e);
+        }
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
 
   // Load today's progress, meal plans, and supplements - progressive loading with caching
   useEffect(() => {
@@ -270,6 +269,11 @@ function Dashboard() {
   // Handle food logging - Step 2: Confirm and actually log
   const confirmLogFood = async () => {
     if (!parsedFoods || parsedFoods.length === 0) return;
+
+    if (!clientData?.id) {
+      alert('Please wait for your profile to load, then try again.');
+      return;
+    }
 
     setIsLogging(true);
 
@@ -445,38 +449,60 @@ function Dashboard() {
   };
 
   const resetVoiceUI = () => {
+    // Also stop recognition if it's still running
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {
+        console.log('ResetVoiceUI: Error stopping recognition:', e);
+      }
+    }
     setIsRecording(false);
     recognitionRef.current = null;
   };
 
-  // Handle supplement checkbox toggle
+  // Handle supplement checkbox toggle - optimistic update for instant response
   const handleSupplementToggle = async (protocolId) => {
     const isCurrentlyTaken = supplementIntake[protocolId];
     const today = new Date().toISOString().split('T')[0];
 
+    // Optimistic update - update UI immediately
+    if (isCurrentlyTaken) {
+      setSupplementIntake(prev => {
+        const updated = { ...prev };
+        delete updated[protocolId];
+        return updated;
+      });
+    } else {
+      setSupplementIntake(prev => ({
+        ...prev,
+        [protocolId]: true
+      }));
+    }
+
+    // Then make API call in background
     try {
       if (isCurrentlyTaken) {
-        // Unmark supplement
         await apiDelete(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&protocolId=${protocolId}&date=${today}`);
-        setSupplementIntake(prev => {
-          const updated = { ...prev };
-          delete updated[protocolId];
-          return updated;
-        });
       } else {
-        // Mark supplement as taken
         await apiPost('/.netlify/functions/supplement-intake', {
           clientId: clientData.id,
           protocolId: protocolId,
           date: today
         });
-        setSupplementIntake(prev => ({
-          ...prev,
-          [protocolId]: true
-        }));
       }
     } catch (err) {
       console.error('Error toggling supplement:', err);
+      // Revert on error
+      if (isCurrentlyTaken) {
+        setSupplementIntake(prev => ({ ...prev, [protocolId]: true }));
+      } else {
+        setSupplementIntake(prev => {
+          const updated = { ...prev };
+          delete updated[protocolId];
+          return updated;
+        });
+      }
     }
   };
 
@@ -523,48 +549,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      {/* Greeting Section */}
-      <div className="greeting-section">
-        <div className="greeting-with-avatar">
-          {clientData?.profile_photo_url ? (
-            <img
-              src={clientData.profile_photo_url}
-              alt={`${clientData.client_name}'s profile photo`}
-              className="greeting-avatar-img"
-            />
-          ) : (
-            <div className="greeting-avatar">
-              {clientData?.client_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
-            </div>
-          )}
-          <div className="greeting-text">
-            <h1>Welcome back, {clientData?.client_name || 'there'}!</h1>
-            <p className="greeting-subtext">{getGreetingSubtext()}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Your Coach Section */}
-      {coachData?.showAvatar && coachData?.avatar && (
-        <div className="coach-bubble-section">
-          <div
-            className={`coach-story-bubble ${hasStories ? 'has-stories' : ''}`}
-            onClick={() => {
-              if (hasStories) {
-                // TODO: Open stories viewer modal
-                alert('Stories feature coming soon!');
-              }
-            }}
-            style={{ cursor: hasStories ? 'pointer' : 'default' }}
-          >
-            <div className={`story-ring ${hasStories ? 'unseen' : ''}`}>
-              <img src={coachData.avatar} alt={`Coach ${coachData.name}'s profile photo`} className="coach-story-avatar" />
-            </div>
-            <span className="coach-story-label">Your Coach</span>
-          </div>
-        </div>
-      )}
-
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
         <div className="ai-hero-header">
@@ -572,7 +556,7 @@ function Dashboard() {
             <span>⭐</span>
           </div>
           <div className="ai-hero-title">
-            <h3 id="ai-hero-title">What did you eat?</h3>
+            <h2 id="ai-hero-title">What did you eat?</h2>
             <span className="ai-powered-label">AI-powered logging</span>
           </div>
         </div>
@@ -580,10 +564,10 @@ function Dashboard() {
         {/* Meal Type Selector */}
         <div className="meal-type-selector" role="group" aria-label="Select meal type">
           {[
-            { id: 'breakfast', icon: '🌅', label: 'Breakfast' },
-            { id: 'lunch', icon: '🌤️', label: 'Lunch' },
-            { id: 'dinner', icon: '🌙', label: 'Dinner' },
-            { id: 'snack', icon: '🍎', label: 'Snack' }
+            { id: 'breakfast', Icon: Sunrise, label: 'Breakfast' },
+            { id: 'lunch', Icon: Sun, label: 'Lunch' },
+            { id: 'dinner', Icon: Moon, label: 'Dinner' },
+            { id: 'snack', Icon: Coffee, label: 'Snack' }
           ].map(meal => (
             <button
               key={meal.id}
@@ -592,7 +576,7 @@ function Dashboard() {
               aria-label={`Select ${meal.label}`}
               aria-pressed={selectedMealType === meal.id}
             >
-              <span className="meal-icon" aria-hidden="true">{meal.icon}</span>
+              <span className="meal-icon" aria-hidden="true"><meal.Icon size={24} /></span>
               <span className="meal-label">{meal.label}</span>
             </button>
           ))}
@@ -888,12 +872,27 @@ function Dashboard() {
         <div className="meal-plans-container">
           {mealPlans.length > 0 ? (
             mealPlans.map((plan) => {
-              const numDays = plan.plan_data?.days?.length || 1;
+              const planData = plan.plan_data || {};
+              const days = planData.currentPlan || planData.days || [];
+              const numDays = days.length || 1;
               const createdDate = new Date(plan.created_at);
               const formattedDate = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
               const formattedTime = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-              const summary = plan.plan_data?.summary || plan.plan_data?.description || '';
-              const calories = plan.plan_data?.dailyCalories || plan.plan_data?.calories || '-';
+              const summary = planData.summary || planData.description || '';
+
+              // Extract calories from first day's targets (same logic as Plans.jsx)
+              let calories = '-';
+              if (days.length > 0 && days[0]?.targets?.calories) {
+                calories = days[0].targets.calories;
+              } else if (planData.dailyCalories) {
+                calories = planData.dailyCalories;
+              } else if (planData.calories) {
+                calories = planData.calories;
+              }
+
+              // Extract goal
+              const goalLabels = { 'lose weight': 'Lose Weight', 'maintain': 'Maintain', 'gain muscle': 'Gain Muscle' };
+              const goal = planData.goal ? (goalLabels[planData.goal.toLowerCase()] || planData.goal) : '-';
 
               return (
                 <Link to={`/plans/${plan.id}`} key={plan.id} className="meal-plan-card">
@@ -913,7 +912,7 @@ function Dashboard() {
                     </div>
                     <div className="plan-detail-item">
                       <span className="plan-detail-label">Goal</span>
-                      <span className="plan-detail-value">{plan.plan_data?.goal || '-'}</span>
+                      <span className="plan-detail-value">{goal}</span>
                     </div>
                   </div>
                   <button className="view-plan-btn">View Plan</button>

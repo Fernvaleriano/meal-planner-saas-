@@ -30,6 +30,24 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   });
 };
 
+// Meal type selector component
+const MealTypeSelector = ({ selected, onChange }) => (
+  <div className="modal-meal-selector">
+    <label>Add to:</label>
+    <div className="meal-type-chips">
+      {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
+        <button
+          key={type}
+          className={`meal-chip ${selected === type ? 'active' : ''}`}
+          onClick={() => onChange(type)}
+        >
+          {type.charAt(0).toUpperCase() + type.slice(1)}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
 // ==================== SNAP PHOTO MODAL ====================
 export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
   const [preview, setPreview] = useState(null);
@@ -37,8 +55,14 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [analyzing, setAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [selectedMealType, setSelectedMealType] = useState(mealType);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
+
+  // Update selected meal type when prop changes
+  useEffect(() => {
+    setSelectedMealType(mealType);
+  }, [mealType]);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -87,7 +111,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
           clientId: clientData.id,
           coachId: clientData.coach_id,
           entryDate: today,
-          mealType: mealType,
+          mealType: selectedMealType,
           foodName: food.name,
           calories: food.calories,
           protein: food.protein,
@@ -204,8 +228,9 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
                 <strong>Total:</strong>
                 <span>{results.reduce((s, f) => s + (f.calories || 0), 0)} cal</span>
               </div>
+              <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
               <button className="btn-primary full-width" onClick={addAllTooDiary}>
-                <Check size={18} /> Add All to {mealType}
+                <Check size={18} /> Add All to {selectedMealType}
               </button>
             </div>
           )}
@@ -432,6 +457,11 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
 export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMealType, setSelectedMealType] = useState(mealType);
+
+  useEffect(() => {
+    setSelectedMealType(mealType);
+  }, [mealType]);
 
   useEffect(() => {
     if (isOpen && clientData?.id) {
@@ -460,7 +490,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
         clientId: clientData.id,
         coachId: clientData.coach_id,
         entryDate: today,
-        mealType: mealType,
+        mealType: selectedMealType,
         foodName: favorite.meal_name,
         calories: favorite.calories,
         protein: favorite.protein,
@@ -507,6 +537,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
         </div>
 
         <div className="modal-body">
+          <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
           {loading ? (
             <div className="favorites-loading">
               <Loader size={24} className="spin" />
@@ -555,8 +586,13 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [result, setResult] = useState(null);
   const [servings, setServings] = useState(1);
   const [error, setError] = useState(null);
+  const [selectedMealType, setSelectedMealType] = useState(mealType);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
+
+  useEffect(() => {
+    setSelectedMealType(mealType);
+  }, [mealType]);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -615,7 +651,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         clientId: clientData.id,
         coachId: clientData.coach_id,
         entryDate: today,
-        mealType: mealType,
+        mealType: selectedMealType,
         foodName: result.name || 'Scanned Food',
         calories: nutrition.calories,
         protein: nutrition.protein,
@@ -731,12 +767,14 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
               {error && <div className="modal-error">{error}</div>}
 
+              <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
+
               <div className="scan-actions">
                 <button className="btn-secondary" onClick={() => { setPreview(null); setResult(null); }}>
                   Scan Again
                 </button>
                 <button className="btn-primary" onClick={addTooDiary}>
-                  Add to {mealType}
+                  Add to {selectedMealType}
                 </button>
               </div>
             </div>

@@ -5,42 +5,92 @@ const AuthContext = createContext({});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [clientData, setClientData] = useState(null);
+  // Initialize clientData from localStorage cache if available
+  const [clientData, setClientData] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cachedClientData');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        // Only use cache if it's valid (has id and no error)
+        if (parsed && parsed.id && !parsed.error) {
+          console.log('SPA: Using cached client data:', parsed.client_name);
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('SPA: Error reading cached client data:', e);
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
 
-  // Fetch client data from database
-  const fetchClientData = useCallback(async (userId) => {
-    console.log('SPA: Fetching client data for user:', userId);
+  // Fetch client data from database with retry logic
+  const fetchClientData = useCallback(async (userId, retryCount = 0) => {
+    const maxRetries = 2;
+    console.log('SPA: Fetching client data for user:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
+
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((resolve) =>
+      // Add timeout to prevent hanging - 10 seconds
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => {
-          console.log('SPA: Client data fetch timeout');
-          resolve({ id: null, client_name: 'User', error: true, timeout: true });
-        }, 8000)
+          reject(new Error('timeout'));
+        }, 10000)
       );
 
       const fetchPromise = supabase
         .from('clients')
         .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
         .eq('user_id', userId)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('SPA: Error fetching client data:', error);
-            return { id: null, client_name: 'User', error: true };
-          }
-          console.log('SPA: Got client data:', data?.client_name);
-          return data;
-        });
+        .single();
 
-      return await Promise.race([fetchPromise, timeoutPromise]);
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
+      if (error) {
+        console.error('SPA: Error fetching client data:', error.message, error.code);
+        throw new Error(error.message);
+      }
+
+      console.log('SPA: Got client data successfully:', { id: data?.id, name: data?.client_name });
+
+      // Cache successful result to localStorage
+      try {
+        localStorage.setItem('cachedClientData', JSON.stringify(data));
+        console.log('SPA: Cached client data to localStorage');
+      } catch (e) {
+        console.error('SPA: Failed to cache client data:', e);
+      }
+
+      return data;
     } catch (err) {
-      console.error('SPA: Error in fetchClientData:', err);
-      return { id: null, client_name: 'User', error: true };
+      console.error('SPA: Error in fetchClientData:', err.message);
+
+      // Retry with exponential backoff
+      if (retryCount < maxRetries) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
+        console.log(`SPA: Retrying client data fetch in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchClientData(userId, retryCount + 1);
+      }
+
+      // All retries failed - try to use cached data
+      try {
+        const cached = localStorage.getItem('cachedClientData');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.id && !parsed.error) {
+            console.log('SPA: Using cached client data after fetch failure:', parsed.client_name);
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.error('SPA: Error reading cache after fetch failure:', e);
+      }
+
+      // No cache available, return fallback
+      return { id: null, client_name: 'User', error: true, errorMessage: err.message };
     }
   }, []);
 
@@ -50,6 +100,19 @@ export function AuthProvider({ children }) {
 
     const initAuth = async () => {
       console.log('SPA: Starting auth initialization...');
+
+      // Check if we already have cached client data in localStorage
+      let hasCachedData = false;
+      try {
+        const cached = localStorage.getItem('cachedClientData');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          hasCachedData = parsed && parsed.id && !parsed.error;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+
       try {
         // Add timeout to prevent hanging forever
         const timeoutPromise = new Promise((_, reject) =>
@@ -63,16 +126,33 @@ export function AuthProvider({ children }) {
 
         if (session?.user && mounted) {
           setUser(session.user);
-          const client = await fetchClientData(session.user.id);
-          if (mounted) {
-            setClientData(client);
+
+          // If we have cached data, set loading to false immediately
+          // and fetch fresh data in the background
+          if (hasCachedData) {
+            console.log('SPA: Have cached data, setting loading=false immediately');
+            setLoading(false);
+            // Fetch fresh data in background (don't await)
+            fetchClientData(session.user.id).then(client => {
+              if (mounted && client && !client.error) {
+                setClientData(client);
+              }
+            });
+          } else {
+            // No cached data, wait for fetch to complete
+            const client = await fetchClientData(session.user.id);
+            if (mounted) {
+              setClientData(client);
+              setLoading(false);
+            }
           }
+        } else if (mounted) {
+          // No session, clear loading
+          setLoading(false);
         }
       } catch (err) {
         console.error('SPA: Auth initialization error:', err);
-      } finally {
         if (mounted) {
-          console.log('SPA: Setting loading to false');
           setLoading(false);
         }
       }
@@ -114,6 +194,8 @@ export function AuthProvider({ children }) {
       await supabase.auth.signOut();
       setUser(null);
       setClientData(null);
+      // Clear cached client data on logout
+      localStorage.removeItem('cachedClientData');
     } catch (err) {
       console.error('Logout error:', err);
     }

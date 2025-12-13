@@ -28,7 +28,7 @@ const formatDateKey = (date) => {
 };
 
 function Diary() {
-  const { clientData } = useAuth();
+  const { clientData, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -276,6 +276,11 @@ function Diary() {
     setCurrentDate(newDate);
   };
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load diary entries and water intake - with caching
   useEffect(() => {
     if (!clientData?.id) return;
@@ -366,7 +371,22 @@ function Diary() {
 
   // Handle AI food logging
   const handleAiLog = async () => {
-    if (!aiInput.trim() || !clientData?.id) return;
+    if (!aiInput.trim()) return;
+
+    // Check if auth is still loading
+    if (authLoading || !clientData) {
+      console.log('AI Log: Auth still loading...');
+      alert('Loading your profile... Please try again in a moment.');
+      return;
+    }
+
+    // Check if there was an error fetching client data
+    if (!clientData.id) {
+      console.error('AI Log: clientData.id is null (fetch may have failed)', { clientData });
+      alert('Your profile is still loading. Please wait a moment and try again.');
+      return;
+    }
+
     setAiLogging(true);
 
     try {
@@ -550,8 +570,8 @@ function Diary() {
     }
     setSearchLoading(true);
     try {
-      const data = await apiGet(`/.netlify/functions/food-search?q=${encodeURIComponent(query)}`);
-      setSearchResults(data.foods || []);
+      const data = await apiGet(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientData?.id}`);
+      setSearchResults(data.results || []);
     } catch (err) {
       console.error('Error searching foods:', err);
     } finally {
@@ -655,7 +675,24 @@ function Diary() {
 
   // Handle AI chat message
   const handleAiChat = async (message = aiInput) => {
-    if (!message.trim() || !clientData?.id) return;
+    if (!message.trim()) return;
+
+    // Check if auth is still loading
+    if (authLoading || !clientData) {
+      console.log('AI Chat: Auth still loading, please wait...');
+      alert('Loading your profile... Please try again in a moment.');
+      return;
+    }
+
+    // Check if there was an error fetching client data
+    if (!clientData.id) {
+      console.error('AI Chat: clientData.id is null (fetch may have failed)', { clientData });
+      // Don't show error - just let it fail gracefully or retry
+      // This can happen on slow connections
+      alert('Your profile is still loading. Please wait a moment and try again.');
+      return;
+    }
+
     setAiLogging(true);
     setSelectedSuggestion(null);
 
@@ -1058,7 +1095,7 @@ function Diary() {
 
     const openAddFood = () => {
       setSelectedMealType(mealType);
-      setShowSearchModal(true);
+      setShowAILogModal(true);
     };
 
     const openSaveMeal = () => {
@@ -1363,8 +1400,8 @@ function Diary() {
           </button>
         </div>
 
-        {/* Chat Messages (shown when expanded) */}
-        {aiExpanded && aiMessages.length > 0 && (
+        {/* Chat Messages (always shown when there are messages) */}
+        {aiMessages.length > 0 && (
           <div className="ai-chat-messages">
             {aiMessages.map((msg, idx) => (
               <div key={idx} className={`ai-message ${msg.role}`}>
@@ -1705,6 +1742,21 @@ function Diary() {
               />
             </div>
             <div className="modal-body">
+              {/* Meal Type Selector */}
+              <div className="modal-meal-selector">
+                <label>Add to:</label>
+                <div className="meal-type-chips">
+                  {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
+                    <button
+                      key={type}
+                      className={`meal-chip ${selectedMealType === type ? 'active' : ''}`}
+                      onClick={() => setSelectedMealType(type)}
+                    >
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="search-results">
                 {searchLoading ? (
                   <div style={{ textAlign: 'center', padding: '20px' }}>Searching...</div>

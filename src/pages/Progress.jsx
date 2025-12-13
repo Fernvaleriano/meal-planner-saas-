@@ -66,6 +66,11 @@ function Progress() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef(null);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     if (clientData?.id) {
       loadMeasurements();
