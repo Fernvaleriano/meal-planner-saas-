@@ -1515,6 +1515,68 @@ body {
     height: 16px;
 }
 
+/* Light Mode - AI Hero Section */
+[data-theme="light"] .ai-hero-card {
+    background: white;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-200);
+}
+
+[data-theme="light"] .ai-hero-card::before {
+    background: radial-gradient(circle at 20% 80%, rgba(13, 148, 136, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.05) 0%, transparent 50%);
+}
+
+[data-theme="light"] .ai-hero-title h3 {
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .ai-powered-label {
+    color: var(--gray-500);
+}
+
+[data-theme="light"] .meal-type-selector {
+    background: var(--gray-100);
+}
+
+[data-theme="light"] .meal-type-btn {
+    color: var(--gray-500);
+}
+
+[data-theme="light"] .meal-type-btn:hover {
+    color: var(--gray-700);
+}
+
+[data-theme="light"] .meal-type-btn.active {
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .food-input {
+    background: var(--gray-100);
+    border-color: var(--gray-200);
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .food-input::placeholder {
+    color: var(--gray-400);
+}
+
+[data-theme="light"] .food-input:focus {
+    background: white;
+    border-color: var(--brand-primary);
+}
+
+[data-theme="light"] .quick-action-pill {
+    background: var(--gray-100);
+    border-color: var(--gray-200);
+    color: var(--gray-600);
+}
+
+[data-theme="light"] .quick-action-pill:hover {
+    background: var(--gray-200);
+    color: var(--gray-900);
+}
+
 /* ========================================
    DASHBOARD - TODAY'S PROGRESS CARD
    ======================================== */
