@@ -1,8 +1,74 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, ShoppingCart, FileText, Download, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
+
+// Category colors and labels for shopping list
+const CATEGORY_COLORS = {
+  proteins: '#ef4444',
+  carbs: '#eab308',
+  vegetables: '#22c55e',
+  fruits: '#a855f7',
+  fats: '#f97316',
+  dairy: '#3b82f6',
+  condiments: '#6b7280',
+  other: '#78716c'
+};
+
+const CATEGORY_LABELS = {
+  proteins: 'Proteins',
+  carbs: 'Carbs & Grains',
+  vegetables: 'Vegetables',
+  fruits: 'Fruits',
+  fats: 'Fats & Nuts',
+  dairy: 'Dairy',
+  condiments: 'Condiments',
+  other: 'Other'
+};
+
+// Food categorization
+const categorizeFood = (name) => {
+  const n = name.toLowerCase();
+  if (/chicken|beef|turkey|salmon|fish|shrimp|egg|tofu|protein|cod|tilapia|tuna|pork/.test(n)) return 'proteins';
+  if (/rice|oat|bread|pasta|quinoa|potato|sweet potato|beans|chickpea/.test(n)) return 'carbs';
+  if (/broccoli|spinach|pepper|asparagus|zucchini|mushroom|onion|tomato|carrot|lettuce|kale|celery/.test(n)) return 'vegetables';
+  if (/blueberr|strawberr|banana|apple|orange|berr|mango|grape/.test(n)) return 'fruits';
+  if (/oil|avocado|almond|peanut|walnut|cashew|butter|nut/.test(n)) return 'fats';
+  if (/yogurt|milk|cheese|cream/.test(n)) return 'dairy';
+  if (/salt|pepper|sauce|vinegar|honey|syrup|spice/.test(n)) return 'condiments';
+  return 'other';
+};
+
+// Parse ingredient string like "Chicken Breast (200g)"
+const parseIngredient = (ingredient) => {
+  if (typeof ingredient !== 'string') {
+    return { name: ingredient?.name || 'Unknown', quantity: 1, unit: 'item' };
+  }
+
+  // Match patterns like "200g", "2 cups", "1 tbsp"
+  const match = ingredient.match(/^(.+?)\s*\(?\s*(\d+(?:\.\d+)?)\s*(g|oz|cup|cups|tbsp|tsp|whole|slice|slices|medium|large|small|scoop|scoops|ml|lb)?\s*\)?$/i);
+
+  if (match) {
+    return {
+      name: match[1].trim(),
+      quantity: parseFloat(match[2]) || 1,
+      unit: match[3]?.toLowerCase() || 'g'
+    };
+  }
+
+  // Try matching "2 whole Eggs" format
+  const match2 = ingredient.match(/^(\d+(?:\.\d+)?)\s*(whole|medium|large|small)?\s+(.+)$/i);
+  if (match2) {
+    return {
+      name: match2[3].trim(),
+      quantity: parseFloat(match2[1]) || 1,
+      unit: match2[2]?.toLowerCase() || 'whole'
+    };
+  }
+
+  return { name: ingredient, quantity: 1, unit: 'item' };
+};
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -57,6 +123,103 @@ function Plans() {
 
   // Processing state for AI operations
   const [processingMeal, setProcessingMeal] = useState(null);
+
+  // Shopping list state
+  const [showShoppingList, setShowShoppingList] = useState(false);
+  const [checkedItems, setCheckedItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('grocery-checks');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
+  });
+
+  // Generate shopping list from plan
+  const generateShoppingList = () => {
+    if (!selectedPlan) return {};
+
+    const days = getPlanDays(selectedPlan);
+    const aggregated = {};
+
+    days.forEach(day => {
+      (day.plan || []).forEach(meal => {
+        if (!meal.ingredients || !Array.isArray(meal.ingredients)) return;
+
+        meal.ingredients.forEach(ingredient => {
+          const parsed = parseIngredient(ingredient);
+          const key = `${parsed.name.toLowerCase()}|${parsed.unit}`;
+
+          if (aggregated[key]) {
+            aggregated[key].quantity += parsed.quantity;
+          } else {
+            aggregated[key] = {
+              name: parsed.name,
+              quantity: parsed.quantity,
+              unit: parsed.unit,
+              category: categorizeFood(parsed.name)
+            };
+          }
+        });
+      });
+    });
+
+    // Group by category
+    const byCategory = {};
+    Object.values(aggregated).forEach(item => {
+      const cat = item.category;
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(item);
+    });
+
+    return byCategory;
+  };
+
+  // Toggle shopping item
+  const toggleShoppingItem = (key) => {
+    setCheckedItems(prev => {
+      const updated = { ...prev };
+      if (updated[key]) {
+        delete updated[key];
+      } else {
+        updated[key] = true;
+      }
+      localStorage.setItem('grocery-checks', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Clear all checked items
+  const clearCheckedItems = () => {
+    if (window.confirm('Clear all checked items?')) {
+      setCheckedItems({});
+      localStorage.removeItem('grocery-checks');
+    }
+  };
+
+  // Download PDF (basic implementation)
+  const handleDownloadPDF = () => {
+    alert('PDF download feature coming soon! For now, you can use your browser\'s print function (Ctrl+P / Cmd+P) to save as PDF.');
+  };
+
+  // Show Meal Prep Guide
+  const handleMealPrepGuide = () => {
+    if (!selectedPlan) return;
+
+    const days = getPlanDays(selectedPlan);
+    let guide = '📋 MEAL PREP GUIDE\n\n';
+
+    days.forEach((day, idx) => {
+      guide += `📅 Day ${idx + 1}\n`;
+      (day.plan || []).forEach(meal => {
+        guide += `\n${meal.meal_type || meal.type || 'Meal'}: ${meal.name}\n`;
+        if (meal.instructions) {
+          guide += `📝 ${meal.instructions}\n`;
+        }
+      });
+      guide += '\n---\n';
+    });
+
+    alert(guide);
+  };
 
   // Load plans with caching
   useEffect(() => {
@@ -790,6 +953,112 @@ Return ONLY valid JSON:
             </div>
           )}
         </div>
+
+        {/* Plan Action Buttons */}
+        <div className="plan-action-buttons">
+          <button className="plan-action-btn grocery" onClick={() => setShowShoppingList(true)}>
+            <ShoppingCart size={22} />
+            <span>Grocery List</span>
+          </button>
+          <button className="plan-action-btn prep" onClick={handleMealPrepGuide}>
+            <FileText size={22} />
+            <span>Meal Prep Guide</span>
+          </button>
+          <button className="plan-action-btn pdf" onClick={handleDownloadPDF}>
+            <Download size={22} />
+            <span>Download PDF</span>
+          </button>
+        </div>
+
+        {/* Shopping List Modal */}
+        {showShoppingList && (
+          <div className="meal-modal-overlay" onClick={() => setShowShoppingList(false)}>
+            <div className="shopping-list-modal" onClick={e => e.stopPropagation()}>
+              <div className="shopping-list-header">
+                <div className="shopping-list-title">
+                  <ShoppingCart size={24} />
+                  <h2>Shopping List</h2>
+                </div>
+                <div className="shopping-list-progress">
+                  {(() => {
+                    const groceries = generateShoppingList();
+                    let total = 0, checked = 0;
+                    Object.values(groceries).forEach(items => {
+                      items.forEach(item => {
+                        total++;
+                        const key = `${item.category}-${item.name}-${item.unit}`;
+                        if (checkedItems[key]) checked++;
+                      });
+                    });
+                    return `${checked}/${total} items`;
+                  })()}
+                </div>
+              </div>
+
+              <div className="shopping-list-content">
+                {(() => {
+                  const groceries = generateShoppingList();
+                  const categoryOrder = ['proteins', 'carbs', 'vegetables', 'fruits', 'fats', 'dairy', 'condiments', 'other'];
+
+                  if (Object.keys(groceries).length === 0) {
+                    return (
+                      <div className="shopping-list-empty">
+                        <ShoppingCart size={48} />
+                        <p>No items in your shopping list.</p>
+                        <p className="hint">Add meals with ingredients to your plan first.</p>
+                      </div>
+                    );
+                  }
+
+                  return categoryOrder.map(cat => {
+                    const items = groceries[cat];
+                    if (!items || items.length === 0) return null;
+
+                    return (
+                      <div key={cat} className="shopping-category">
+                        <div className="shopping-category-header">
+                          <span className="category-dot" style={{ background: CATEGORY_COLORS[cat] }} />
+                          <span>{CATEGORY_LABELS[cat]} ({items.length})</span>
+                        </div>
+                        <div className="shopping-items">
+                          {items.map((item, idx) => {
+                            const key = `${cat}-${item.name}-${item.unit}`;
+                            const isChecked = checkedItems[key];
+                            const qty = Number.isInteger(item.quantity) ? item.quantity : item.quantity.toFixed(1);
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`shopping-item ${isChecked ? 'checked' : ''}`}
+                                onClick={() => toggleShoppingItem(key)}
+                              >
+                                <div className={`shopping-checkbox ${isChecked ? 'checked' : ''}`}>
+                                  {isChecked && <Check size={14} />}
+                                </div>
+                                <span className="shopping-item-text">
+                                  <span className="qty">{qty} {item.unit}</span> {item.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              <div className="shopping-list-actions">
+                <button className="clear-btn" onClick={clearCheckedItems}>Clear All</button>
+                <button className="done-btn" onClick={() => setShowShoppingList(false)}>Done</button>
+              </div>
+
+              <button className="meal-modal-close" onClick={() => setShowShoppingList(false)}>
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Meal Action Modal */}
         {showMealModal && selectedMeal && (

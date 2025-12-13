@@ -6854,3 +6854,264 @@ body {
 .custom-meal-actions .save-btn:active {
     transform: scale(0.98);
 }
+
+/* =============================================
+   PLAN ACTION BUTTONS
+   ============================================= */
+
+.plan-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 16px;
+    margin-top: 10px;
+}
+
+.plan-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 18px 24px;
+    border-radius: 16px;
+    border: none;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+
+.plan-action-btn:active {
+    transform: scale(0.98);
+}
+
+.plan-action-btn.grocery {
+    background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+}
+
+.plan-action-btn.grocery:hover {
+    background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
+}
+
+.plan-action-btn.prep {
+    background: linear-gradient(135deg, #f472b6 0%, #fb7185 100%);
+}
+
+.plan-action-btn.prep:hover {
+    background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+}
+
+.plan-action-btn.pdf {
+    background: linear-gradient(135deg, #06b6d4 0%, #0d9488 100%);
+}
+
+.plan-action-btn.pdf:hover {
+    background: linear-gradient(135deg, #0891b2 0%, #0f766e 100%);
+}
+
+/* =============================================
+   SHOPPING LIST MODAL
+   ============================================= */
+
+.shopping-list-modal {
+    background: #1e293b;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+    -webkit-overflow-scrolling: touch;
+}
+
+.shopping-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background: #334155;
+    border-radius: 24px 24px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.shopping-list-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #f1f5f9;
+}
+
+.shopping-list-title h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.shopping-list-progress {
+    background: #10b981;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.shopping-list-content {
+    padding: 16px;
+    padding-bottom: 100px;
+}
+
+.shopping-list-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #64748b;
+    text-align: center;
+}
+
+.shopping-list-empty p {
+    margin-top: 16px;
+    font-size: 1rem;
+}
+
+.shopping-list-empty .hint {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.shopping-category {
+    margin-bottom: 16px;
+}
+
+.shopping-category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #334155;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #f1f5f9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.category-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.shopping-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.shopping-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #0f172a;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.shopping-item:hover {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.shopping-item.checked {
+    opacity: 0.6;
+}
+
+.shopping-item.checked .shopping-item-text {
+    text-decoration: line-through;
+    color: #64748b;
+}
+
+.shopping-checkbox {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 2px solid #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.shopping-checkbox.checked {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.shopping-item-text {
+    font-size: 0.95rem;
+    color: #e2e8f0;
+}
+
+.shopping-item-text .qty {
+    color: #22d3ee;
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+.shopping-list-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 12px;
+    padding: 16px 20px;
+    position: sticky;
+    bottom: 0;
+    background: #1e293b;
+    border-top: 1px solid #334155;
+}
+
+.shopping-list-actions .clear-btn {
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: #7f1d1d;
+    color: white;
+    transition: all 0.2s;
+}
+
+.shopping-list-actions .clear-btn:hover {
+    background: #991b1b;
+}
+
+.shopping-list-actions .done-btn {
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: #10b981;
+    color: white;
+    transition: all 0.2s;
+}
+
+.shopping-list-actions .done-btn:hover {
+    background: #059669;
+}
