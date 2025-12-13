@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal } from '../components/FoodModals';
@@ -83,6 +83,22 @@ function Diary() {
   // Multi-select states
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedEntries, setSelectedEntries] = useState(new Set());
+
+  // Collapsible meal sections
+  const [collapsedMeals, setCollapsedMeals] = useState(() => {
+    // Load from localStorage
+    const cached = localStorage.getItem('diary_collapsed_meals');
+    return cached ? JSON.parse(cached) : {};
+  });
+
+  // Toggle meal collapse
+  const toggleMealCollapse = (mealType) => {
+    setCollapsedMeals(prev => {
+      const updated = { ...prev, [mealType]: !prev[mealType] };
+      localStorage.setItem('diary_collapsed_meals', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   // Toggle entry selection
   const toggleEntrySelection = (entryId) => {
@@ -1004,25 +1020,44 @@ function Diary() {
     );
   };
 
-  // Swipeable entry component for delete
-  const SwipeableEntry = ({ entry, onDelete, isSelected, onToggleSelect, inSelectionMode }) => {
+  // Swipeable entry component with long-press for selection
+  const SwipeableEntry = ({ entry, onDelete, isSelected, onToggleSelect, inSelectionMode, onLongPress }) => {
     const [touchStart, setTouchStart] = useState(null);
     const [touchEnd, setTouchEnd] = useState(null);
     const [swiped, setSwiped] = useState(false);
+    const longPressTimer = useRef(null);
     const minSwipeDistance = 50;
+    const longPressDuration = 500; // ms
 
     const onTouchStart = (e) => {
-      if (inSelectionMode) return; // Disable swipe in selection mode
       setTouchEnd(null);
       setTouchStart(e.targetTouches[0].clientX);
+
+      // Start long-press timer
+      longPressTimer.current = setTimeout(() => {
+        onLongPress();
+        // Vibrate if supported
+        if (navigator.vibrate) navigator.vibrate(50);
+      }, longPressDuration);
     };
 
     const onTouchMove = (e) => {
+      // Cancel long-press if finger moves
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
       if (inSelectionMode) return;
       setTouchEnd(e.targetTouches[0].clientX);
     };
 
     const onTouchEnd = () => {
+      // Clear long-press timer
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+
       if (inSelectionMode) return;
       if (!touchStart || !touchEnd) return;
       const distance = touchStart - touchEnd;
@@ -1089,9 +1124,10 @@ function Diary() {
     }
   };
 
-  // Meal section component
+  // Meal section component - collapsible
   const MealSection = ({ title, entries, mealType }) => {
     const mealCals = entries.reduce((sum, e) => sum + (e.calories || 0), 0);
+    const isCollapsed = collapsedMeals[mealType];
 
     const openAddFood = () => {
       setSelectedMealType(mealType);
@@ -1107,46 +1143,66 @@ function Diary() {
       setShowSaveMealModal(true);
     };
 
+    const handleLongPress = () => {
+      setSelectionMode(true);
+    };
+
     return (
-      <div className="meal-section">
-        <div className="meal-section-header">
+      <div className={`meal-section ${isCollapsed ? 'collapsed' : ''}`}>
+        <div
+          className="meal-section-header"
+          onClick={() => toggleMealCollapse(mealType)}
+          role="button"
+          aria-expanded={!isCollapsed}
+        >
           <div className="meal-section-title">
             {getMealIcon(mealType)}
             <span>{title}</span>
+            {isCollapsed && entries.length > 0 && (
+              <span className="meal-item-count">• {entries.length} item{entries.length !== 1 ? 's' : ''}</span>
+            )}
           </div>
-          <span className="meal-section-cals">{mealCals} cal</span>
+          <div className="meal-section-right">
+            <span className="meal-section-cals">{mealCals} cal</span>
+            <ChevronDown size={18} className={`meal-collapse-icon ${isCollapsed ? 'collapsed' : ''}`} />
+          </div>
         </div>
 
-        {entries.length > 0 && (
-          <div className="meal-entries">
-            {entries.map(entry => (
-              <SwipeableEntry
-                key={entry.id}
-                entry={entry}
-                onDelete={() => handleDeleteEntry(entry.id, entry.food_name)}
-                isSelected={selectedEntries.has(entry.id)}
-                onToggleSelect={() => toggleEntrySelection(entry.id)}
-                inSelectionMode={selectionMode}
-              />
-            ))}
-          </div>
+        {!isCollapsed && (
+          <>
+            {entries.length > 0 && (
+              <div className="meal-entries">
+                {entries.map(entry => (
+                  <SwipeableEntry
+                    key={entry.id}
+                    entry={entry}
+                    onDelete={() => handleDeleteEntry(entry.id, entry.food_name)}
+                    isSelected={selectedEntries.has(entry.id)}
+                    onToggleSelect={() => toggleEntrySelection(entry.id)}
+                    inSelectionMode={selectionMode}
+                    onLongPress={handleLongPress}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="meal-section-footer">
+              <button
+                className="meal-footer-btn add"
+                onClick={openAddFood}
+              >
+                <Plus size={16} />
+                Add Food
+              </button>
+              {entries.length > 0 && (
+                <button className="meal-footer-btn save" onClick={openSaveMeal}>
+                  <Heart size={16} />
+                  Save Meal
+                </button>
+              )}
+            </div>
+          </>
         )}
-
-        <div className="meal-section-footer">
-          <button
-            className="meal-footer-btn add"
-            onClick={openAddFood}
-          >
-            <Plus size={16} />
-            Add Food
-          </button>
-          {entries.length > 0 && (
-            <button className="meal-footer-btn save" onClick={openSaveMeal}>
-              <Heart size={16} />
-              Save Meal
-            </button>
-          )}
-        </div>
       </div>
     );
   };
@@ -1245,36 +1301,25 @@ function Diary() {
         </div>
       </div>
 
-      {/* Selection Mode Bar */}
-      {entries.length > 0 && (
-        <div className="selection-mode-bar">
-          {selectionMode ? (
-            <>
-              <button className="selection-btn cancel" onClick={clearSelection}>
-                <X size={16} />
-                Cancel
-              </button>
-              <span className="selection-count">{selectedEntries.size} selected</span>
-              <button className="selection-btn select-all" onClick={selectAllEntries}>
-                Select All
-              </button>
-            </>
-          ) : (
-            <button className="selection-btn" onClick={() => setSelectionMode(true)}>
-              <Check size={16} />
-              Select Items
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Bulk Delete Button */}
-      {selectionMode && selectedEntries.size > 0 && (
-        <div className="bulk-delete-bar">
-          <button className="bulk-delete-btn" onClick={deleteSelectedEntries}>
-            <Trash2 size={18} />
-            Delete {selectedEntries.size} item{selectedEntries.size > 1 ? 's' : ''}
+      {/* Selection Mode Bar - only shows when in selection mode (activated by long-press) */}
+      {selectionMode && (
+        <div className="selection-mode-bar active">
+          <button className="selection-btn cancel" onClick={clearSelection}>
+            <X size={16} />
+            Cancel
           </button>
+          <span className="selection-count">{selectedEntries.size} selected</span>
+          <div className="selection-actions">
+            <button className="selection-btn select-all" onClick={selectAllEntries}>
+              Select All
+            </button>
+            {selectedEntries.size > 0 && (
+              <button className="selection-btn delete" onClick={deleteSelectedEntries}>
+                <Trash2 size={16} />
+                Delete
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1294,50 +1339,35 @@ function Diary() {
         </div>
       )}
 
-      {/* Water Intake */}
-      <div className="water-intake-card">
-        <div className="water-intake-header">
-          <div className="water-intake-title">
-            <Droplets size={18} className="water-icon" />
-            <span>Water Intake</span>
-          </div>
-          <span className="water-goal-badge">Goal: {waterGoal} glasses</span>
+      {/* Water Intake - Compact */}
+      <div className="water-intake-compact">
+        <div className="water-intake-left">
+          <Droplets size={18} className="water-icon" />
+          <span className="water-label">Water</span>
+          <span className="water-progress">{waterIntake}/{waterGoal}</span>
         </div>
-        <div className="water-intake-content">
-          <WaterGlasses />
-          <div className="water-intake-count">
-            <span className="water-count">{waterIntake}/{waterGoal}</span>
-            <span className="water-label">glasses today</span>
-          </div>
-        </div>
-        <div className="water-intake-actions">
+        <div className="water-intake-controls">
           <button
-            className="water-btn add"
-            onClick={() => handleWaterAction('add', 1)}
-            disabled={waterLoading || waterIntake >= waterGoal}
-          >
-            +1 Glass
-          </button>
-          <button
-            className="water-btn add"
-            onClick={() => handleWaterAction('add', 2)}
-            disabled={waterLoading || waterIntake >= waterGoal}
-          >
-            +2 Glasses
-          </button>
-          <button
-            className="water-btn remove"
+            className="water-btn-compact"
             onClick={() => handleWaterAction('remove', 1)}
             disabled={waterLoading || waterIntake <= 0}
+            aria-label="Remove one glass"
           >
-            -1
+            −
           </button>
+          <div className="water-progress-bar">
+            <div
+              className="water-progress-fill"
+              style={{ width: `${Math.min((waterIntake / waterGoal) * 100, 100)}%` }}
+            />
+          </div>
           <button
-            className="water-btn complete"
-            onClick={() => handleWaterAction('complete')}
+            className="water-btn-compact"
+            onClick={() => handleWaterAction('add', 1)}
             disabled={waterLoading || waterIntake >= waterGoal}
+            aria-label="Add one glass"
           >
-            {waterIntake >= waterGoal ? 'Complete!' : 'Complete Goal'}
+            +
           </button>
         </div>
       </div>
