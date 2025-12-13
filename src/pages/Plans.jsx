@@ -1726,7 +1726,7 @@ Keep it practical and brief. Format with clear sections.`;
 
         {/* Log Confirmation Modal */}
         {showLogConfirm && mealToLog && (
-          <div className="meal-modal-overlay" onClick={cancelLogMeal}>
+          <div className="log-confirm-overlay" onClick={cancelLogMeal}>
             <div className="confirm-modal" onClick={e => e.stopPropagation()}>
               <h3>Log to Diary?</h3>
               <p>Add <strong>{mealToLog.name}</strong> to your food diary for today?</p>
