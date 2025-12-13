@@ -24,7 +24,20 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'dark';
+    // Use 'zique-theme' key for consistency with standalone HTML pages
+    // Migrate from old 'theme' key if exists
+    const newKey = localStorage.getItem('zique-theme');
+    const oldKey = localStorage.getItem('theme');
+    if (newKey) {
+      return newKey;
+    }
+    if (oldKey) {
+      // Migrate old key to new key
+      localStorage.setItem('zique-theme', oldKey);
+      localStorage.removeItem('theme');
+      return oldKey;
+    }
+    return 'dark';
   });
 
   // Fetch client data from database with retry logic
@@ -182,7 +195,7 @@ export function AuthProvider({ children }) {
   // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('zique-theme', theme);
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
