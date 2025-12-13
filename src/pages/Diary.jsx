@@ -28,7 +28,7 @@ const formatDateKey = (date) => {
 };
 
 function Diary() {
-  const { clientData } = useAuth();
+  const { clientData, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -368,10 +368,17 @@ function Diary() {
   const handleAiLog = async () => {
     if (!aiInput.trim()) return;
 
-    // Check if user is properly authenticated
-    if (!clientData?.id) {
-      console.error('AI Log: clientData.id is missing', { clientData });
-      alert('Please log out and log back in to use the AI assistant.');
+    // Check if auth is still loading
+    if (authLoading || !clientData) {
+      console.log('AI Log: Auth still loading...');
+      alert('Loading your profile... Please try again in a moment.');
+      return;
+    }
+
+    // Check if there was an error fetching client data
+    if (!clientData.id) {
+      console.error('AI Log: clientData.id is null (fetch may have failed)', { clientData });
+      alert('Your profile is still loading. Please wait a moment and try again.');
       return;
     }
 
@@ -665,10 +672,19 @@ function Diary() {
   const handleAiChat = async (message = aiInput) => {
     if (!message.trim()) return;
 
-    // Check if user is properly authenticated
-    if (!clientData?.id) {
-      console.error('AI Chat: clientData.id is missing', { clientData });
-      alert('Please log out and log back in to use the AI assistant.');
+    // Check if auth is still loading
+    if (authLoading || !clientData) {
+      console.log('AI Chat: Auth still loading, please wait...');
+      alert('Loading your profile... Please try again in a moment.');
+      return;
+    }
+
+    // Check if there was an error fetching client data
+    if (!clientData.id) {
+      console.error('AI Chat: clientData.id is null (fetch may have failed)', { clientData });
+      // Don't show error - just let it fail gracefully or retry
+      // This can happen on slow connections
+      alert('Your profile is still loading. Please wait a moment and try again.');
       return;
     }
 
