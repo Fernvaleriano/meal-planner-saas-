@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Clock, X } from 'lucide-react';
+import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
@@ -127,6 +127,16 @@ const CATEGORY_LABELS = {
   'family': 'Family Dinner'
 };
 
+// Diet options for Spoonacular search
+const DIET_OPTIONS = [
+  { value: '', label: 'Any Diet' },
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'vegan', label: 'Vegan' },
+  { value: 'gluten free', label: 'Gluten Free' },
+  { value: 'ketogenic', label: 'Keto' },
+  { value: 'paleo', label: 'Paleo' }
+];
+
 function Recipes() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
@@ -135,9 +145,24 @@ function Recipes() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedRecipe, setSelectedRecipe] = useState(null);
 
+  // Discover tab state
+  const [activeTab, setActiveTab] = useState('my-recipes'); // 'my-recipes' or 'discover'
+  const [discoverRecipes, setDiscoverRecipes] = useState([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDiet, setSelectedDiet] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
+
   useEffect(() => {
     loadRecipes();
   }, [clientData?.id]);
+
+  // Load random recipes when discover tab is first opened
+  useEffect(() => {
+    if (activeTab === 'discover' && discoverRecipes.length === 0 && !hasSearched) {
+      loadRandomRecipes();
+    }
+  }, [activeTab]);
 
   const loadRecipes = async () => {
     setLoading(true);
@@ -156,6 +181,52 @@ function Recipes() {
       setRecipes(SAMPLE_RECIPES);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRandomRecipes = async () => {
+    setDiscoverLoading(true);
+    try {
+      const data = await apiGet('/.netlify/functions/spoonacular-recipes?action=random&number=12');
+      setDiscoverRecipes(data.recipes || []);
+    } catch (err) {
+      console.error('Error loading discover recipes:', err);
+    } finally {
+      setDiscoverLoading(false);
+    }
+  };
+
+  const searchSpoonacular = async (e) => {
+    e?.preventDefault();
+    setDiscoverLoading(true);
+    setHasSearched(true);
+    try {
+      let url = `/.netlify/functions/spoonacular-recipes?action=search&number=20`;
+      if (searchQuery) url += `&query=${encodeURIComponent(searchQuery)}`;
+      if (selectedDiet) url += `&diet=${encodeURIComponent(selectedDiet)}`;
+
+      const data = await apiGet(url);
+      setDiscoverRecipes(data.recipes || []);
+    } catch (err) {
+      console.error('Error searching recipes:', err);
+    } finally {
+      setDiscoverLoading(false);
+    }
+  };
+
+  const loadRecipeDetails = async (recipe) => {
+    if (!recipe.spoonacular_id) {
+      setSelectedRecipe(recipe);
+      return;
+    }
+
+    try {
+      const data = await apiGet(`/.netlify/functions/spoonacular-recipes?action=details&id=${recipe.spoonacular_id}`);
+      setSelectedRecipe(data);
+    } catch (err) {
+      console.error('Error loading recipe details:', err);
+      // Fall back to basic info
+      setSelectedRecipe(recipe);
     }
   };
 
@@ -196,63 +267,169 @@ function Recipes() {
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div className="category-tabs-scroll">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat.id}
-            className={`category-tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
-            onClick={() => setActiveCategory(cat.id)}
-          >
-            <span className="category-icon">{cat.icon}</span>
-            <span className="category-label">{cat.label}</span>
-          </button>
-        ))}
+      {/* Main Tabs: My Recipes vs Discover */}
+      <div className="recipes-main-tabs">
+        <button
+          className={`recipes-main-tab ${activeTab === 'my-recipes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('my-recipes')}
+        >
+          <BookOpen size={18} />
+          <span>My Recipes</span>
+        </button>
+        <button
+          className={`recipes-main-tab ${activeTab === 'discover' ? 'active' : ''}`}
+          onClick={() => setActiveTab('discover')}
+        >
+          <Globe size={18} />
+          <span>Discover</span>
+        </button>
       </div>
 
-      {/* Recipes Content */}
-      <div className="recipes-content">
-        {loading ? (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Loading recipes...</p>
-          </div>
-        ) : filteredRecipes.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📖</div>
-            <h3 className="empty-state-title">No recipes yet</h3>
-            <p className="empty-state-text">Your coach will add recipes here soon!</p>
-          </div>
-        ) : (
-          <div className="recipes-grid">
-            {filteredRecipes.map(recipe => (
-              <div
-                key={recipe.id}
-                className="recipe-card"
-                onClick={() => setSelectedRecipe(recipe)}
+      {activeTab === 'my-recipes' ? (
+        <>
+          {/* Category Tabs */}
+          <div className="category-tabs-scroll">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                className={`category-tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                onClick={() => setActiveCategory(cat.id)}
               >
-                {recipe.image_url ? (
-                  <img src={recipe.image_url} alt={recipe.name} className="recipe-image" />
-                ) : (
-                  <div className="recipe-image-placeholder">🍳</div>
-                )}
-                <div className="recipe-card-content">
-                  <div className="recipe-time-badge">
-                    <Clock size={12} />
-                    {recipe.prep_time_minutes ? `${recipe.prep_time_minutes} min` : CATEGORY_LABELS[recipe.time_category] || recipe.time_category}
-                  </div>
-                  <h3 className="recipe-name">{recipe.name}</h3>
-                  <div className="recipe-macros">
-                    <span><strong>{recipe.calories || '-'}</strong> cal</span>
-                    <span><strong>{recipe.protein || '-'}g</strong> protein</span>
-                    <span><strong>{recipe.carbs || '-'}g</strong> carbs</span>
-                  </div>
-                </div>
-              </div>
+                <span className="category-icon">{cat.icon}</span>
+                <span className="category-label">{cat.label}</span>
+              </button>
             ))}
           </div>
-        )}
-      </div>
+
+          {/* My Recipes Content */}
+          <div className="recipes-content">
+            {loading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading recipes...</p>
+              </div>
+            ) : filteredRecipes.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">📖</div>
+                <h3 className="empty-state-title">No recipes yet</h3>
+                <p className="empty-state-text">Your coach will add recipes here soon!</p>
+              </div>
+            ) : (
+              <div className="recipes-grid">
+                {filteredRecipes.map(recipe => (
+                  <div
+                    key={recipe.id}
+                    className="recipe-card"
+                    onClick={() => setSelectedRecipe(recipe)}
+                  >
+                    {recipe.image_url ? (
+                      <img src={recipe.image_url} alt={recipe.name} className="recipe-image" />
+                    ) : (
+                      <div className="recipe-image-placeholder">🍳</div>
+                    )}
+                    <div className="recipe-card-content">
+                      <div className="recipe-time-badge">
+                        <Clock size={12} />
+                        {recipe.prep_time_minutes ? `${recipe.prep_time_minutes} min` : CATEGORY_LABELS[recipe.time_category] || recipe.time_category}
+                      </div>
+                      <h3 className="recipe-name">{recipe.name}</h3>
+                      <div className="recipe-macros">
+                        <span><strong>{recipe.calories || '-'}</strong> cal</span>
+                        <span><strong>{recipe.protein || '-'}g</strong> protein</span>
+                        <span><strong>{recipe.carbs || '-'}g</strong> carbs</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Discover Search */}
+          <div className="discover-search-container">
+            <form onSubmit={searchSpoonacular} className="discover-search-form">
+              <div className="discover-search-input-wrapper">
+                <Search size={18} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search recipes... (e.g., chicken, pasta, salad)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="discover-search-input"
+                />
+              </div>
+              <select
+                value={selectedDiet}
+                onChange={(e) => setSelectedDiet(e.target.value)}
+                className="discover-diet-select"
+              >
+                {DIET_OPTIONS.map(diet => (
+                  <option key={diet.value} value={diet.value}>{diet.label}</option>
+                ))}
+              </select>
+              <button type="submit" className="discover-search-btn">
+                <Search size={18} />
+              </button>
+            </form>
+          </div>
+
+          {/* Discover Content */}
+          <div className="recipes-content">
+            {discoverLoading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Finding delicious recipes...</p>
+              </div>
+            ) : discoverRecipes.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon"><Sparkles size={48} /></div>
+                <h3 className="empty-state-title">Discover New Recipes</h3>
+                <p className="empty-state-text">Search thousands of recipes from around the world!</p>
+              </div>
+            ) : (
+              <>
+                <div className="discover-results-header">
+                  <span>{discoverRecipes.length} recipes found</span>
+                  {hasSearched && (
+                    <button className="discover-refresh-btn" onClick={loadRandomRecipes}>
+                      <Sparkles size={14} /> Surprise me
+                    </button>
+                  )}
+                </div>
+                <div className="recipes-grid">
+                  {discoverRecipes.map(recipe => (
+                    <div
+                      key={recipe.id}
+                      className="recipe-card"
+                      onClick={() => loadRecipeDetails(recipe)}
+                    >
+                      {recipe.image_url ? (
+                        <img src={recipe.image_url} alt={recipe.name} className="recipe-image" />
+                      ) : (
+                        <div className="recipe-image-placeholder">🍳</div>
+                      )}
+                      <div className="recipe-card-content">
+                        <div className="recipe-time-badge spoonacular">
+                          <Globe size={12} />
+                          {recipe.prep_time_minutes ? `${recipe.prep_time_minutes} min` : 'Recipe'}
+                        </div>
+                        <h3 className="recipe-name">{recipe.name}</h3>
+                        <div className="recipe-macros">
+                          <span><strong>{recipe.calories || '-'}</strong> cal</span>
+                          <span><strong>{recipe.protein || '-'}g</strong> P</span>
+                          <span><strong>{recipe.carbs || '-'}g</strong> C</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Recipe Detail Modal */}
       {selectedRecipe && (
@@ -297,9 +474,14 @@ function Recipes() {
                 <div className="recipe-section">
                   <h4 className="recipe-section-title">Ingredients</h4>
                   <ul className="recipe-ingredients-list">
-                    {selectedRecipe.ingredients.split(',').map((item, idx) => (
-                      <li key={idx}>{item.trim()}</li>
-                    ))}
+                    {selectedRecipe.ingredients.includes('\n')
+                      ? selectedRecipe.ingredients.split('\n').filter(i => i.trim()).map((item, idx) => (
+                          <li key={idx}>{item.trim()}</li>
+                        ))
+                      : selectedRecipe.ingredients.split(',').map((item, idx) => (
+                          <li key={idx}>{item.trim()}</li>
+                        ))
+                    }
                   </ul>
                 </div>
               )}
@@ -308,8 +490,27 @@ function Recipes() {
               {selectedRecipe.instructions && (
                 <div className="recipe-section">
                   <h4 className="recipe-section-title">Instructions</h4>
-                  <p className="recipe-instructions">{selectedRecipe.instructions}</p>
+                  <div className="recipe-instructions">
+                    {selectedRecipe.instructions.includes('\n')
+                      ? selectedRecipe.instructions.split('\n').filter(i => i.trim()).map((step, idx) => (
+                          <p key={idx} className="recipe-step">{step}</p>
+                        ))
+                      : <p>{selectedRecipe.instructions}</p>
+                    }
+                  </div>
                 </div>
+              )}
+
+              {/* Source link for Spoonacular recipes */}
+              {selectedRecipe.source_url && (
+                <a
+                  href={selectedRecipe.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="recipe-source-link"
+                >
+                  <Globe size={14} /> View Original Recipe
+                </a>
               )}
 
               <button className="btn-primary full-width" onClick={handleRequestRecipe}>

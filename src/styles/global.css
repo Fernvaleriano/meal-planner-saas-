@@ -6577,6 +6577,219 @@ body {
     color: #e2e8f0;
 }
 
+.recipe-step {
+    margin-bottom: 12px;
+}
+
+.recipe-source-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--brand-primary);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.recipe-source-link:hover {
+    text-decoration: underline;
+}
+
+/* Recipes Main Tabs (My Recipes / Discover) */
+.recipes-main-tabs {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .recipes-main-tabs {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.recipes-main-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--gray-500);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recipes-main-tab:hover {
+    color: var(--gray-700);
+}
+
+.recipes-main-tab.active {
+    color: var(--brand-primary);
+    border-bottom-color: var(--brand-primary);
+}
+
+[data-theme="dark"] .recipes-main-tab {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .recipes-main-tab:hover {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .recipes-main-tab.active {
+    color: #14b8a6;
+    border-bottom-color: #14b8a6;
+}
+
+/* Discover Search */
+.discover-search-container {
+    padding: 16px 20px;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .discover-search-container {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.discover-search-form {
+    display: flex;
+    gap: 10px;
+}
+
+.discover-search-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.discover-search-input-wrapper .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400);
+}
+
+.discover-search-input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 1px solid var(--gray-300);
+    border-radius: 10px;
+    font-size: 15px;
+    background: var(--gray-50);
+}
+
+.discover-search-input:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+    background: white;
+}
+
+[data-theme="dark"] .discover-search-input {
+    background: #0f172a;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .discover-search-input:focus {
+    background: #1e293b;
+    border-color: #14b8a6;
+}
+
+.discover-diet-select {
+    padding: 12px 14px;
+    border: 1px solid var(--gray-300);
+    border-radius: 10px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    min-width: 110px;
+}
+
+[data-theme="dark"] .discover-diet-select {
+    background: #0f172a;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+.discover-search-btn {
+    padding: 12px 16px;
+    background: var(--brand-primary);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.discover-search-btn:hover {
+    background: var(--brand-primary-dark);
+}
+
+/* Discover Results */
+.discover-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    font-size: 14px;
+    color: var(--gray-500);
+}
+
+[data-theme="dark"] .discover-results-header {
+    color: #94a3b8;
+}
+
+.discover-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(13, 148, 136, 0.1);
+    border: 1px solid var(--brand-primary);
+    border-radius: 8px;
+    color: var(--brand-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.discover-refresh-btn:hover {
+    background: var(--brand-primary);
+    color: white;
+}
+
+[data-theme="dark"] .discover-refresh-btn {
+    background: rgba(20, 184, 166, 0.15);
+    border-color: #14b8a6;
+    color: #14b8a6;
+}
+
+[data-theme="dark"] .discover-refresh-btn:hover {
+    background: #14b8a6;
+    color: #0f172a;
+}
+
+/* Spoonacular badge on recipe cards */
+.recipe-time-badge.spoonacular {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+[data-theme="dark"] .recipe-time-badge.spoonacular {
+    background: rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+}
+
 /* ==================== CHECK-IN PAGE ==================== */
 
 .checkin-page {
