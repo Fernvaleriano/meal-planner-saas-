@@ -1205,19 +1205,19 @@ function Diary() {
           <span>Add Food</span>
         </div>
         <div className="add-food-options">
-          <button className="add-food-option" onClick={() => setShowAILogModal(true)}>
+          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowAILogModal(true); }}>
             <Star size={20} />
             <span>AI Log</span>
           </button>
-          <button className="add-food-option" onClick={() => setShowPhotoModal(true)}>
+          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowPhotoModal(true); }}>
             <Camera size={20} />
             <span>Photo</span>
           </button>
-          <button className="add-food-option" onClick={() => setShowSearchModal(true)}>
+          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowSearchModal(true); }}>
             <Search size={20} />
             <span>Search</span>
           </button>
-          <button className="add-food-option" onClick={() => setShowFavoritesModal(true)}>
+          <button className="add-food-option" onClick={() => { setSelectedMealType(getDefaultMealType()); setShowFavoritesModal(true); }}>
             <Heart size={20} />
             <span>Favorites</span>
           </button>
