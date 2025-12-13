@@ -14,44 +14,68 @@
             --brand-primary: #0d9488;
             --brand-secondary: #0284c7;
             --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
-            --gray-50: #f8fafc;
-            --gray-100: #f1f5f9;
-            --gray-200: #e2e8f0;
-            --gray-300: #cbd5e1;
-            --gray-400: #94a3b8;
-            --gray-500: #64748b;
-            --gray-600: #475569;
-            --gray-700: #334155;
-            --gray-800: #1e293b;
-            --gray-900: #0f172a;
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --purple-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
         }
 
-        [data-theme="dark"] {
-            --gray-50: #0f172a;
-            --gray-100: #1e293b;
-            --gray-200: #334155;
-            --gray-300: #475569;
-            --gray-400: #64748b;
-            --gray-500: #94a3b8;
-            --gray-600: #cbd5e1;
-            --gray-700: #e2e8f0;
-            --gray-800: #f1f5f9;
-            --gray-900: #f8fafc;
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--gray-50);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(13, 148, 136, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(2, 132, 199, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         /* Navigation */
         .top-nav {
-            background: var(--brand-gradient);
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(2, 132, 199, 0.95) 100%);
+            backdrop-filter: blur(20px);
             padding: 16px 24px;
             display: flex;
             justify-content: space-between;
@@ -59,6 +83,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
         .nav-back {
@@ -68,222 +93,697 @@
             align-items: center;
             gap: 8px;
             font-weight: 500;
+            opacity: 0.9;
+            transition: opacity 0.2s;
         }
+
+        .nav-back:hover { opacity: 1; }
 
         .nav-title {
             color: white;
-            font-size: 1.1rem;
+            font-size: 1.25rem;
             font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
         .nav-actions {
             display: flex;
-            gap: 8px;
+            gap: 12px;
         }
 
         .btn {
             padding: 10px 20px;
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             border: none;
             font-weight: 600;
             cursor: pointer;
             font-family: inherit;
-            transition: all 0.2s;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-secondary {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-1px);
         }
 
         .btn-primary {
             background: white;
             color: var(--brand-primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
         }
 
         /* Main Layout */
         .main-content {
             display: flex;
             min-height: calc(100vh - 68px);
+            position: relative;
+            z-index: 1;
         }
 
         /* Sidebar */
         .sidebar {
-            width: 300px;
-            background: white;
-            border-right: 1px solid var(--gray-200);
-            overflow-y: auto;
-        }
-
-        [data-theme="dark"] .sidebar {
-            background: var(--gray-100);
-            border-color: var(--gray-200);
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 68px;
+            height: calc(100vh - 68px);
         }
 
         .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--gray-200);
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .sidebar-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--gray-500);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 12px;
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
         }
 
         .sidebar-search {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
             font-size: 0.875rem;
-            background: var(--gray-50);
-            color: var(--gray-900);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .sidebar-search:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+
+        .sidebar-search::placeholder {
+            color: var(--text-muted);
         }
 
         /* Program List */
         .program-list {
-            padding: 12px;
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
         }
 
         .program-item {
             padding: 16px;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             margin-bottom: 8px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             border: 2px solid transparent;
+            background: var(--bg-tertiary);
         }
 
         .program-item:hover {
-            background: var(--gray-100);
+            transform: translateX(4px);
+            border-color: var(--border-color);
         }
 
         .program-item.active {
-            background: rgba(13, 148, 136, 0.1);
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%);
             border-color: var(--brand-primary);
         }
 
         .program-name {
             font-weight: 600;
-            color: var(--gray-900);
+            color: var(--text-primary);
             margin-bottom: 4px;
         }
 
         .program-meta {
-            font-size: 0.875rem;
-            color: var(--gray-500);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .new-program-btn {
+        .program-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sidebar-actions {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-btn {
             width: 100%;
-            padding: 14px;
-            background: var(--gray-100);
-            border: 2px dashed var(--gray-300);
-            border-radius: 12px;
-            color: var(--gray-600);
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            border: 2px dashed var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .sidebar-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        .sidebar-btn.ai-btn {
+            background: var(--purple-gradient);
+            border: none;
+            color: white;
+        }
+
+        .sidebar-btn.ai-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Builder Area */
+        .builder-area {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            max-width: 900px;
+        }
+
+        .builder-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .builder-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .builder-title svg {
+            color: var(--brand-primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Workout Days */
+        .workout-day {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .workout-day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .day-name-input {
+            background: transparent;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .day-name-input:focus {
+            outline: none;
+            border-bottom-color: var(--brand-primary);
+        }
+
+        .workout-day-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Exercise Item */
+        .exercise-item {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+
+        .exercise-item:hover {
+            border-color: var(--brand-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .exercise-drag {
+            color: var(--text-muted);
+            cursor: grab;
+            font-size: 1.2rem;
+        }
+
+        .exercise-thumb {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-tertiary);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .exercise-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .exercise-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .exercise-config {
+            display: flex;
+            gap: 12px;
+        }
+
+        .config-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .config-input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            text-align: center;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        .config-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .add-exercise-btn {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-top: 12px;
+            transition: all 0.2s;
+            font-family: inherit;
         }
 
-        [data-theme="dark"] .new-program-btn {
-            background: var(--gray-200);
-            border-color: var(--gray-400);
+        .add-exercise-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.05);
         }
 
-        .ai-generate-btn {
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
-            border-color: #7c3aed !important;
-            color: white !important;
+        .add-day-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--brand-gradient);
+            border: none;
+            border-radius: var(--radius-md);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+            margin-top: 16px;
         }
 
-        .ai-generate-btn:hover {
-            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
+        .add-day-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3);
         }
 
-        [data-theme="dark"] .ai-generate-btn {
-            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%) !important;
-            border-color: #6d28d9 !important;
+        /* Client Assignment */
+        .client-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
         }
 
-        /* AI Generate Modal */
-        .ai-modal-overlay {
+        .client-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .client-card:hover {
+            border-color: var(--border-color);
+        }
+
+        .client-card.selected {
+            border-color: var(--brand-primary);
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
+        }
+
+        .client-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .client-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .client-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .client-email {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
             display: none;
             align-items: center;
             justify-content: center;
+            z-index: 1000;
             padding: 20px;
         }
 
-        .ai-modal-overlay.show {
+        .modal-overlay.active {
             display: flex;
         }
 
-        .ai-modal {
-            background: white;
-            border-radius: 16px;
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
             width: 100%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            animation: modalSlideIn 0.3s ease;
         }
 
-        [data-theme="dark"] .ai-modal {
-            background: var(--gray-700);
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
-        .ai-modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--gray-200);
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        [data-theme="dark"] .ai-modal-header {
-            border-color: var(--gray-600);
-        }
-
-        .ai-modal-header h2 {
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1.25rem;
-            margin: 0;
+            gap: 12px;
         }
 
-        .ai-modal-close {
-            background: none;
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             border: none;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
             cursor: pointer;
-            padding: 8px;
-            color: var(--gray-500);
-            border-radius: 8px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
 
-        .ai-modal-close:hover {
-            background: var(--gray-100);
+        .modal-close:hover {
+            background: var(--danger);
+            color: white;
         }
 
-        .ai-modal-body {
-            padding: 24px;
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
         }
 
+        .modal-footer {
+            padding: 20px 28px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Exercise Grid in Modal */
+        .exercise-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .filter-chip:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .filter-chip.active {
+            background: var(--brand-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .exercise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .exercise-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .exercise-card:hover {
+            border-color: var(--brand-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .exercise-card-thumb {
+            width: 100%;
+            height: 100px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            background: var(--bg-secondary);
+            margin-bottom: 12px;
+        }
+
+        .exercise-card-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+
+        .exercise-card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* AI Modal Specific */
         .ai-form-group {
             margin-bottom: 20px;
         }
@@ -292,30 +792,28 @@
             display: block;
             font-weight: 600;
             margin-bottom: 8px;
-            color: var(--gray-700);
-        }
-
-        [data-theme="dark"] .ai-form-group label {
-            color: var(--gray-200);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
         }
 
         .ai-form-group input,
         .ai-form-group select,
         .ai-form-group textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid var(--gray-300);
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: inherit;
         }
 
-        [data-theme="dark"] .ai-form-group input,
-        [data-theme="dark"] .ai-form-group select,
-        [data-theme="dark"] .ai-form-group textarea {
-            background: var(--gray-800);
-            border-color: var(--gray-600);
-            color: var(--gray-100);
+        .ai-form-group input:focus,
+        .ai-form-group select:focus,
+        .ai-form-group textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
         }
 
         .ai-form-row {
@@ -324,64 +822,64 @@
             gap: 16px;
         }
 
-        .equipment-checkboxes {
+        .equipment-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
         }
 
-        .equipment-checkbox {
+        .equipment-item {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 12px;
-            background: var(--gray-100);
-            border-radius: 8px;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            font-size: 13px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
         }
 
-        [data-theme="dark"] .equipment-checkbox {
-            background: var(--gray-600);
+        .equipment-item:has(input:checked) {
+            background: rgba(13, 148, 136, 0.15);
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
         }
 
-        .equipment-checkbox input {
-            width: auto;
-        }
-
-        .ai-modal-footer {
-            padding: 16px 24px;
-            border-top: 1px solid var(--gray-200);
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-
-        [data-theme="dark"] .ai-modal-footer {
-            border-color: var(--gray-600);
+        .equipment-item input {
+            accent-color: var(--brand-primary);
         }
 
         .ai-btn {
-            padding: 12px 24px;
-            border-radius: 8px;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
             font-weight: 600;
             cursor: pointer;
             border: none;
-            font-size: 14px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s;
         }
 
         .ai-btn-cancel {
-            background: var(--gray-100);
-            color: var(--gray-700);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .ai-btn-cancel:hover {
+            background: var(--border-color);
         }
 
         .ai-btn-generate {
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            background: var(--purple-gradient);
             color: white;
         }
 
         .ai-btn-generate:hover:not(:disabled) {
-            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
         }
 
         .ai-btn-generate:disabled {
@@ -389,15 +887,15 @@
             cursor: not-allowed;
         }
 
-        .ai-generating {
+        .generating-text {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .ai-spinner {
-            width: 20px;
-            height: 20px;
+        .spinner {
+            width: 18px;
+            height: 18px;
             border: 2px solid rgba(255,255,255,0.3);
             border-top-color: white;
             border-radius: 50%;
@@ -408,439 +906,138 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Builder Area */
-        .builder-area {
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-        }
-
-        .builder-card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow-md);
-        }
-
-        [data-theme="dark"] .builder-card {
-            background: var(--gray-100);
-        }
-
-        .builder-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--gray-900);
-            margin-bottom: 20px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--gray-700);
-            margin-bottom: 6px;
-        }
-
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            font-size: 1rem;
-            background: var(--gray-50);
-            color: var(--gray-900);
-            font-family: inherit;
-        }
-
-        .form-textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        /* Workout Day */
-        .workout-day {
-            background: var(--gray-50);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        [data-theme="dark"] .workout-day {
-            background: var(--gray-200);
-        }
-
-        .workout-day-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .workout-day-title {
-            font-weight: 600;
-            color: var(--gray-900);
-        }
-
-        .workout-day-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .icon-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: none;
-            background: var(--gray-200);
-            color: var(--gray-600);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Exercise Item */
-        .exercise-item {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            padding: 12px;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        [data-theme="dark"] .exercise-item {
-            background: var(--gray-100);
-        }
-
-        .exercise-drag {
-            color: var(--gray-400);
-            cursor: grab;
-        }
-
-        .exercise-thumb {
-            width: 50px;
-            height: 50px;
-            border-radius: 8px;
-            background: var(--gray-200);
-            object-fit: cover;
-        }
-
-        .exercise-info {
-            flex: 1;
-        }
-
-        .exercise-name {
-            font-weight: 600;
-            color: var(--gray-900);
-        }
-
-        .exercise-config {
-            display: flex;
-            gap: 8px;
-            margin-top: 4px;
-        }
-
-        .config-input {
-            width: 60px;
-            padding: 6px;
-            border: 1px solid var(--gray-200);
-            border-radius: 6px;
-            font-size: 0.875rem;
-            text-align: center;
-        }
-
-        .config-label {
-            font-size: 0.75rem;
-            color: var(--gray-500);
-        }
-
-        .add-exercise-btn {
-            width: 100%;
-            padding: 12px;
-            background: transparent;
-            border: 2px dashed var(--gray-300);
-            border-radius: 8px;
-            color: var(--gray-500);
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        /* Exercise Library Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: white;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 80vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        [data-theme="dark"] .modal {
-            background: var(--gray-100);
-        }
-
-        .modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--gray-200);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-
-        .modal-close {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: none;
-            background: var(--gray-100);
-            color: var(--gray-600);
-            cursor: pointer;
-            font-size: 1.25rem;
-        }
-
-        .modal-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 24px;
-        }
-
-        /* Exercise Library Filters */
-        .filter-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
-        .filter-chip {
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid var(--gray-200);
-            background: white;
-            color: var(--gray-600);
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        [data-theme="dark"] .filter-chip {
-            background: var(--gray-200);
-        }
-
-        .filter-chip.active {
-            background: var(--brand-primary);
-            border-color: var(--brand-primary);
-            color: white;
-        }
-
-        /* Exercise Grid */
-        .exercise-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-        }
-
-        .exercise-card {
-            background: var(--gray-50);
-            border-radius: 12px;
-            padding: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        [data-theme="dark"] .exercise-card {
-            background: var(--gray-200);
-        }
-
-        .exercise-card:hover {
-            border-color: var(--brand-primary);
-        }
-
-        .exercise-card-thumb {
-            width: 100%;
-            height: 120px;
-            border-radius: 8px;
-            object-fit: cover;
-            background: var(--gray-200);
-            margin-bottom: 12px;
-        }
-
-        .exercise-card-name {
-            font-weight: 600;
-            color: var(--gray-900);
-            margin-bottom: 4px;
-        }
-
-        .exercise-card-meta {
-            font-size: 0.875rem;
-            color: var(--gray-500);
-        }
-
-        /* Client Assignment */
-        .client-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 16px;
-        }
-
-        .client-card {
-            background: var(--gray-50);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            border: 2px solid transparent;
-        }
-
-        [data-theme="dark"] .client-card {
-            background: var(--gray-200);
-        }
-
-        .client-card.selected {
-            border-color: var(--brand-primary);
-            background: rgba(13, 148, 136, 0.1);
-        }
-
-        .client-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--brand-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-        }
-
-        .client-name {
-            font-weight: 600;
-            color: var(--gray-900);
-        }
-
-        .client-email {
-            font-size: 0.875rem;
-            color: var(--gray-500);
-        }
-
         /* Empty State */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
+            color: var(--text-muted);
         }
 
         .empty-icon {
             font-size: 4rem;
             margin-bottom: 16px;
+            opacity: 0.5;
         }
 
         .empty-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--gray-900);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
             margin-bottom: 8px;
         }
 
-        .empty-text {
-            color: var(--gray-500);
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1001;
+            animation: toastSlideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .main-content {
                 flex-direction: column;
             }
 
             .sidebar {
                 width: 100%;
-                max-height: 200px;
+                max-height: 250px;
+                position: relative;
+                top: 0;
+                height: auto;
+            }
+
+            .builder-area {
+                max-width: 100%;
+                padding: 20px;
             }
 
             .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .ai-form-row {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
+    <div class="bg-pattern"></div>
+
     <!-- Top Navigation -->
     <nav class="top-nav">
         <a href="dashboard.html" class="nav-back">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
             Dashboard
         </a>
         <span class="nav-title">Workout Builder</span>
         <div class="nav-actions">
-            <button class="btn btn-secondary" onclick="previewProgram()">Preview</button>
-            <button class="btn btn-primary" onclick="saveProgram()">Save Program</button>
+            <button class="btn btn-primary" onclick="saveProgram()">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Save Program
+            </button>
         </div>
     </nav>
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Sidebar - Program List -->
+        <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-title">Your Programs</div>
                 <input type="text" class="sidebar-search" placeholder="Search programs..." oninput="searchPrograms(this.value)">
             </div>
             <div class="program-list" id="programList">
-                <!-- Programs will be loaded here -->
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-title">No programs yet</div>
+                    <p>Create your first workout program</p>
+                </div>
             </div>
-            <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-                <button class="new-program-btn" onclick="createNewProgram()">
+            <div class="sidebar-actions">
+                <button class="sidebar-btn" onclick="createNewProgram()">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
                     New Program
                 </button>
-                <button class="new-program-btn ai-generate-btn" onclick="openAIGenerateModal()">
+                <button class="sidebar-btn ai-btn" onclick="openAIModal()">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                     AI Generate
                 </button>
@@ -851,17 +1048,22 @@
         <div class="builder-area">
             <!-- Program Details -->
             <div class="builder-card">
-                <h2 class="builder-title">Program Details</h2>
+                <h2 class="builder-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Program Details
+                </h2>
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Program Name</label>
-                        <input type="text" class="form-input" id="programName" placeholder="e.g., 4-Week Strength Program">
+                        <input type="text" class="form-input" id="programName" placeholder="e.g., 4-Week Hypertrophy Program">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Program Type</label>
                         <select class="form-select" id="programType">
                             <option value="strength">Strength</option>
-                            <option value="hypertrophy">Hypertrophy</option>
+                            <option value="hypertrophy" selected>Hypertrophy</option>
                             <option value="endurance">Endurance</option>
                             <option value="weight_loss">Weight Loss</option>
                             <option value="general">General Fitness</option>
@@ -873,7 +1075,7 @@
                         <label class="form-label">Difficulty</label>
                         <select class="form-select" id="programDifficulty">
                             <option value="beginner">Beginner</option>
-                            <option value="intermediate">Intermediate</option>
+                            <option value="intermediate" selected>Intermediate</option>
                             <option value="advanced">Advanced</option>
                         </select>
                     </div>
@@ -881,8 +1083,8 @@
                         <label class="form-label">Days Per Week</label>
                         <select class="form-select" id="daysPerWeek">
                             <option value="2">2 days</option>
-                            <option value="3" selected>3 days</option>
-                            <option value="4">4 days</option>
+                            <option value="3">3 days</option>
+                            <option value="4" selected>4 days</option>
                             <option value="5">5 days</option>
                             <option value="6">6 days</option>
                         </select>
@@ -896,11 +1098,16 @@
 
             <!-- Workout Days -->
             <div class="builder-card">
-                <h2 class="builder-title">Workout Days</h2>
+                <h2 class="builder-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Workout Days
+                </h2>
                 <div id="workoutDays">
-                    <!-- Workout days will be added here -->
+                    <!-- Days will be rendered here -->
                 </div>
-                <button class="new-program-btn" onclick="addWorkoutDay()" style="margin-top: 16px;">
+                <button class="add-day-btn" onclick="addWorkoutDay()">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -910,9 +1117,16 @@
 
             <!-- Assign to Clients -->
             <div class="builder-card">
-                <h2 class="builder-title">Assign to Clients</h2>
-                <div class="client-list" id="clientList">
-                    <!-- Clients will be loaded here -->
+                <h2 class="builder-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Assign to Clients
+                </h2>
+                <div class="client-grid" id="clientList">
+                    <div class="empty-state">
+                        <p>Loading clients...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -922,51 +1136,49 @@
     <div class="modal-overlay" id="exerciseModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 class="modal-title">Add Exercise</h3>
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    Add Exercise
+                </h3>
                 <button class="modal-close" onclick="closeExerciseModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <input type="text" class="form-input" placeholder="Search exercises..." oninput="searchExercises(this.value)" style="margin-bottom: 16px;">
-
-                <div class="filter-row">
-                    <button class="filter-chip active" onclick="filterByMuscle('all')">All</button>
-                    <button class="filter-chip" onclick="filterByMuscle('chest')">Chest</button>
-                    <button class="filter-chip" onclick="filterByMuscle('back')">Back</button>
-                    <button class="filter-chip" onclick="filterByMuscle('shoulders')">Shoulders</button>
-                    <button class="filter-chip" onclick="filterByMuscle('legs')">Legs</button>
-                    <button class="filter-chip" onclick="filterByMuscle('arms')">Arms</button>
-                    <button class="filter-chip" onclick="filterByMuscle('core')">Core</button>
+                <div class="exercise-filters">
+                    <button class="filter-chip active" onclick="filterExercises('all', this)">All</button>
+                    <button class="filter-chip" onclick="filterExercises('chest', this)">Chest</button>
+                    <button class="filter-chip" onclick="filterExercises('back', this)">Back</button>
+                    <button class="filter-chip" onclick="filterExercises('shoulders', this)">Shoulders</button>
+                    <button class="filter-chip" onclick="filterExercises('legs', this)">Legs</button>
+                    <button class="filter-chip" onclick="filterExercises('arms', this)">Arms</button>
+                    <button class="filter-chip" onclick="filterExercises('core', this)">Core</button>
                 </div>
-
                 <div class="exercise-grid" id="exerciseGrid">
-                    <!-- Exercises will be loaded here -->
+                    <!-- Exercises loaded here -->
                 </div>
             </div>
         </div>
     </div>
 
     <!-- AI Generate Modal -->
-    <div class="ai-modal-overlay" id="aiGenerateModal">
-        <div class="ai-modal">
-            <div class="ai-modal-header">
-                <h2>
+    <div class="modal-overlay" id="aiModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                     AI Workout Generator
-                </h2>
-                <button class="ai-modal-close" onclick="closeAIGenerateModal()">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                </h3>
+                <button class="modal-close" onclick="closeAIModal()">&times;</button>
             </div>
-            <div class="ai-modal-body">
+            <div class="modal-body">
                 <div class="ai-form-group">
                     <label>Client Name (optional)</label>
                     <input type="text" id="aiClientName" placeholder="e.g., John Smith">
                 </div>
-
                 <div class="ai-form-row">
                     <div class="ai-form-group">
                         <label>Training Goal</label>
@@ -975,7 +1187,6 @@
                             <option value="hypertrophy" selected>Hypertrophy (Muscle Building)</option>
                             <option value="fat_loss">Fat Loss</option>
                             <option value="general_fitness">General Fitness</option>
-                            <option value="endurance">Endurance</option>
                         </select>
                     </div>
                     <div class="ai-form-group">
@@ -987,12 +1198,10 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="ai-form-row">
                     <div class="ai-form-group">
                         <label>Days Per Week</label>
                         <select id="aiDaysPerWeek">
-                            <option value="2">2 days</option>
                             <option value="3">3 days</option>
                             <option value="4" selected>4 days</option>
                             <option value="5">5 days</option>
@@ -1002,53 +1211,46 @@
                     <div class="ai-form-group">
                         <label>Program Duration</label>
                         <select id="aiDuration">
-                            <option value="2">2 weeks</option>
                             <option value="4" selected>4 weeks</option>
                             <option value="6">6 weeks</option>
                             <option value="8">8 weeks</option>
                         </select>
                     </div>
                 </div>
-
                 <div class="ai-form-group">
                     <label>Available Equipment</label>
-                    <div class="equipment-checkboxes">
-                        <label class="equipment-checkbox">
-                            <input type="checkbox" name="aiEquipment" value="barbell" checked> Barbell
+                    <div class="equipment-grid">
+                        <label class="equipment-item">
+                            <input type="checkbox" name="equipment" value="barbell" checked> Barbell
                         </label>
-                        <label class="equipment-checkbox">
-                            <input type="checkbox" name="aiEquipment" value="dumbbell" checked> Dumbbells
+                        <label class="equipment-item">
+                            <input type="checkbox" name="equipment" value="dumbbell" checked> Dumbbells
                         </label>
-                        <label class="equipment-checkbox">
-                            <input type="checkbox" name="aiEquipment" value="cable" checked> Cables
+                        <label class="equipment-item">
+                            <input type="checkbox" name="equipment" value="cable" checked> Cables
                         </label>
-                        <label class="equipment-checkbox">
-                            <input type="checkbox" name="aiEquipment" value="machine" checked> Machines
+                        <label class="equipment-item">
+                            <input type="checkbox" name="equipment" value="machine" checked> Machines
                         </label>
-                        <label class="equipment-checkbox">
-                            <input type="checkbox" name="aiEquipment" value="bodyweight" checked> Bodyweight
+                        <label class="equipment-item">
+                            <input type="checkbox" name="equipment" value="bodyweight" checked> Bodyweight
                         </label>
-                        <label class="equipment-checkbox">
-                            <input type="checkbox" name="aiEquipment" value="kettlebell"> Kettlebells
-                        </label>
-                        <label class="equipment-checkbox">
-                            <input type="checkbox" name="aiEquipment" value="bands"> Resistance Bands
+                        <label class="equipment-item">
+                            <input type="checkbox" name="equipment" value="kettlebell"> Kettlebells
                         </label>
                     </div>
                 </div>
-
                 <div class="ai-form-group">
                     <label>Injuries or Limitations (optional)</label>
-                    <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid heavy overhead work">
+                    <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid overhead pressing">
                 </div>
-
                 <div class="ai-form-group">
                     <label>Additional Preferences (optional)</label>
-                    <textarea id="aiPreferences" rows="2" placeholder="e.g., Include more compound movements, prefer shorter workouts"></textarea>
+                    <textarea id="aiPreferences" rows="2" placeholder="e.g., Include stretching, prefer compound movements"></textarea>
                 </div>
             </div>
-            <div class="ai-modal-footer">
-                <button class="ai-btn ai-btn-cancel" onclick="closeAIGenerateModal()">Cancel</button>
+            <div class="modal-footer">
+                <button class="ai-btn ai-btn-cancel" onclick="closeAIModal()">Cancel</button>
                 <button class="ai-btn ai-btn-generate" id="aiGenerateBtn" onclick="generateAIWorkout()">
                     Generate Program
                 </button>
@@ -1058,11 +1260,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Initialize
+        // Initialize Supabase
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanpsb5FhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4NTA1ODcsImV4cCI6MjA2MDQyNjU4N30.api2M4E4Ah3V2WnxPRVDMq6yoGLPzjsB8qECLO7mK8U';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4NTA1ODcsImV4cCI6MjA2MDQyNjU4N30.api2M4E4Ah3V2WnxPRVDMq6yoGLPzjsB8qECLO7mK8U';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // State
         let currentCoachId = null;
         let currentProgramId = null;
         let programs = [];
@@ -1071,14 +1274,12 @@
         let workoutDays = [];
         let selectedClients = new Set();
         let currentDayIndex = null;
+        let currentExerciseFilter = 'all';
+        let currentSearchTerm = '';
 
-        // Initialize page
+        // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
-            await loadPrograms();
-            await loadExercises();
-            await loadClients();
-            addWorkoutDay(); // Start with one day
         });
 
         // Auth check
@@ -1090,20 +1291,57 @@
             }
             currentCoachId = session.user.id;
 
-            // Check if gym features are enabled
+            // Check gym features
             const enabled = await initGymFeatures({ email: session.user.email });
             if (!enabled) {
-                alert('Gym features are not enabled for your account yet.');
-                window.location.href = 'dashboard.html';
+                showToast('Gym features not enabled for your account', 'error');
+                setTimeout(() => window.location.href = 'dashboard.html', 2000);
+                return;
             }
+
+            // Load data
+            await Promise.all([
+                loadPrograms(),
+                loadExercises(),
+                loadClients()
+            ]);
+
+            // Add initial day
+            if (workoutDays.length === 0) {
+                addWorkoutDay();
+            }
+        }
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${type === 'success'
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'}
+                </svg>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
         }
 
         // Load programs
         async function loadPrograms() {
             try {
-                const response = await fetch(`/.netlify/functions/workout-programs?coachId=${currentCoachId}`);
-                const data = await response.json();
-                programs = data.programs || [];
+                const { data, error } = await supabase
+                    .from('workout_programs')
+                    .select('*')
+                    .eq('coach_id', currentCoachId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                programs = data || [];
                 renderProgramList();
             } catch (err) {
                 console.error('Error loading programs:', err);
@@ -1114,14 +1352,24 @@
         function renderProgramList() {
             const container = document.getElementById('programList');
             if (programs.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-text">No programs yet</div></div>';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <div class="empty-title">No programs yet</div>
+                        <p>Create your first workout program</p>
+                    </div>
+                `;
                 return;
             }
 
             container.innerHTML = programs.map(p => `
                 <div class="program-item ${p.id === currentProgramId ? 'active' : ''}" onclick="selectProgram(${p.id})">
                     <div class="program-name">${p.name}</div>
-                    <div class="program-meta">${p.difficulty || 'Intermediate'} • ${p.days_per_week || 3} days/week</div>
+                    <div class="program-meta">
+                        <span>${p.difficulty || 'Intermediate'}</span>
+                        <span>•</span>
+                        <span>${p.days_per_week || 3} days/week</span>
+                    </div>
                 </div>
             `).join('');
         }
@@ -1131,13 +1379,12 @@
             currentProgramId = programId;
             const program = programs.find(p => p.id === programId);
             if (program) {
-                document.getElementById('programName').value = program.name;
+                document.getElementById('programName').value = program.name || '';
                 document.getElementById('programType').value = program.program_type || 'strength';
                 document.getElementById('programDifficulty').value = program.difficulty || 'intermediate';
                 document.getElementById('daysPerWeek').value = program.days_per_week || 3;
                 document.getElementById('programDescription').value = program.description || '';
 
-                // Load workout days from program_data
                 workoutDays = program.program_data?.days || [];
                 renderWorkoutDays();
             }
@@ -1148,20 +1395,23 @@
         function createNewProgram() {
             currentProgramId = null;
             document.getElementById('programName').value = '';
-            document.getElementById('programType').value = 'strength';
+            document.getElementById('programType').value = 'hypertrophy';
             document.getElementById('programDifficulty').value = 'intermediate';
-            document.getElementById('daysPerWeek').value = '3';
+            document.getElementById('daysPerWeek').value = '4';
             document.getElementById('programDescription').value = '';
             workoutDays = [];
+            selectedClients.clear();
             addWorkoutDay();
             renderProgramList();
+            renderClientList();
         }
 
         // Add workout day
         function addWorkoutDay() {
             const dayNum = workoutDays.length + 1;
+            const dayNames = ['Push Day', 'Pull Day', 'Legs Day', 'Upper Body', 'Lower Body', 'Full Body'];
             workoutDays.push({
-                name: `Day ${dayNum}`,
+                name: dayNames[workoutDays.length % dayNames.length] || `Day ${dayNum}`,
                 exercises: []
             });
             renderWorkoutDays();
@@ -1170,56 +1420,61 @@
         // Render workout days
         function renderWorkoutDays() {
             const container = document.getElementById('workoutDays');
+            if (workoutDays.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>Add your first workout day</p></div>';
+                return;
+            }
+
             container.innerHTML = workoutDays.map((day, dayIndex) => `
                 <div class="workout-day">
                     <div class="workout-day-header">
-                        <input type="text" class="form-input" value="${day.name}" style="max-width: 200px;"
-                            onchange="updateDayName(${dayIndex}, this.value)">
+                        <input type="text" class="day-name-input" value="${day.name}" onchange="updateDayName(${dayIndex}, this.value)">
                         <div class="workout-day-actions">
-                            <button class="icon-btn" onclick="removeWorkoutDay(${dayIndex})">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button class="icon-btn" onclick="removeWorkoutDay(${dayIndex})" title="Remove day">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
                             </button>
                         </div>
                     </div>
-                    <div id="exercises-${dayIndex}">
+                    <div class="exercise-list">
                         ${day.exercises.map((ex, exIndex) => renderExerciseItem(ex, dayIndex, exIndex)).join('')}
                     </div>
                     <button class="add-exercise-btn" onclick="openExerciseModal(${dayIndex})">
-                        + Add Exercise
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Exercise
                     </button>
                 </div>
             `).join('');
         }
 
-        // Render exercise item
+        // Render single exercise item
         function renderExerciseItem(exercise, dayIndex, exIndex) {
+            const thumbUrl = exercise.thumbnailUrl || exercise.video_url || '/img/exercise-placeholder.svg';
             return `
                 <div class="exercise-item">
                     <div class="exercise-drag">⋮⋮</div>
-                    <img class="exercise-thumb" src="${exercise.thumbnailUrl || '/img/exercise-placeholder.png'}" alt="">
+                    <img class="exercise-thumb" src="${thumbUrl}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">
                     <div class="exercise-info">
                         <div class="exercise-name">${exercise.name}</div>
                         <div class="exercise-config">
-                            <div>
-                                <input type="number" class="config-input" value="${exercise.sets || 3}"
-                                    onchange="updateExercise(${dayIndex}, ${exIndex}, 'sets', this.value)">
-                                <div class="config-label">Sets</div>
+                            <div class="config-group">
+                                <input type="number" class="config-input" value="${exercise.sets || 3}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'sets', this.value)">
+                                <span class="config-label">Sets</span>
                             </div>
-                            <div>
-                                <input type="number" class="config-input" value="${exercise.reps || 10}"
-                                    onchange="updateExercise(${dayIndex}, ${exIndex}, 'reps', this.value)">
-                                <div class="config-label">Reps</div>
+                            <div class="config-group">
+                                <input type="text" class="config-input" value="${exercise.reps || '10'}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'reps', this.value)" style="width:70px">
+                                <span class="config-label">Reps</span>
                             </div>
-                            <div>
-                                <input type="number" class="config-input" value="${exercise.restSeconds || 90}"
-                                    onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
-                                <div class="config-label">Rest (s)</div>
+                            <div class="config-group">
+                                <input type="number" class="config-input" value="${exercise.restSeconds || 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
+                                <span class="config-label">Rest</span>
                             </div>
                         </div>
                     </div>
-                    <button class="icon-btn" onclick="removeExercise(${dayIndex}, ${exIndex})">
+                    <button class="icon-btn" onclick="removeExercise(${dayIndex}, ${exIndex})" title="Remove exercise">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -1228,12 +1483,19 @@
             `;
         }
 
-        // Update day name
+        // Update functions
         function updateDayName(dayIndex, name) {
             workoutDays[dayIndex].name = name;
         }
 
-        // Remove workout day
+        function updateExercise(dayIndex, exIndex, field, value) {
+            if (field === 'sets' || field === 'restSeconds') {
+                workoutDays[dayIndex].exercises[exIndex][field] = parseInt(value) || 0;
+            } else {
+                workoutDays[dayIndex].exercises[exIndex][field] = value;
+            }
+        }
+
         function removeWorkoutDay(dayIndex) {
             if (confirm('Remove this workout day?')) {
                 workoutDays.splice(dayIndex, 1);
@@ -1241,15 +1503,37 @@
             }
         }
 
-        // Update exercise
-        function updateExercise(dayIndex, exIndex, field, value) {
-            workoutDays[dayIndex].exercises[exIndex][field] = parseInt(value) || value;
-        }
-
-        // Remove exercise
         function removeExercise(dayIndex, exIndex) {
             workoutDays[dayIndex].exercises.splice(exIndex, 1);
             renderWorkoutDays();
+        }
+
+        // Load exercises
+        async function loadExercises() {
+            try {
+                const { data, error } = await supabase
+                    .from('exercises')
+                    .select('*')
+                    .or(`coach_id.is.null,coach_id.eq.${currentCoachId}`)
+                    .order('name')
+                    .limit(200);
+
+                if (error) throw error;
+                exercises = data || [];
+            } catch (err) {
+                console.error('Error loading exercises:', err);
+                // Fallback exercises
+                exercises = [
+                    { id: 1, name: 'Bench Press', muscle_group: 'chest', equipment: 'barbell' },
+                    { id: 2, name: 'Squat', muscle_group: 'legs', equipment: 'barbell' },
+                    { id: 3, name: 'Deadlift', muscle_group: 'back', equipment: 'barbell' },
+                    { id: 4, name: 'Overhead Press', muscle_group: 'shoulders', equipment: 'barbell' },
+                    { id: 5, name: 'Barbell Row', muscle_group: 'back', equipment: 'barbell' },
+                    { id: 6, name: 'Pull-ups', muscle_group: 'back', equipment: 'bodyweight' },
+                    { id: 7, name: 'Dips', muscle_group: 'chest', equipment: 'bodyweight' },
+                    { id: 8, name: 'Lunges', muscle_group: 'legs', equipment: 'bodyweight' },
+                ];
+            }
         }
 
         // Exercise modal
@@ -1263,117 +1547,100 @@
             document.getElementById('exerciseModal').classList.remove('active');
         }
 
-        // Load exercises
-        async function loadExercises() {
-            try {
-                const response = await fetch(`/.netlify/functions/exercises?coachId=${currentCoachId}&limit=100`);
-                const data = await response.json();
-                exercises = data.exercises || [];
-                renderExerciseGrid();
-            } catch (err) {
-                console.error('Error loading exercises:', err);
-                // Use placeholder exercises
-                exercises = [
-                    { id: 1, name: 'Bench Press', muscle_group: 'chest', equipment: 'barbell' },
-                    { id: 2, name: 'Squat', muscle_group: 'legs', equipment: 'barbell' },
-                    { id: 3, name: 'Deadlift', muscle_group: 'back', equipment: 'barbell' },
-                    { id: 4, name: 'Shoulder Press', muscle_group: 'shoulders', equipment: 'dumbbell' },
-                    { id: 5, name: 'Bicep Curl', muscle_group: 'arms', equipment: 'dumbbell' },
-                    { id: 6, name: 'Lat Pulldown', muscle_group: 'back', equipment: 'cable' },
-                    { id: 7, name: 'Leg Press', muscle_group: 'legs', equipment: 'machine' },
-                    { id: 8, name: 'Plank', muscle_group: 'core', equipment: 'bodyweight' },
-                ];
-                renderExerciseGrid();
-            }
+        function filterExercises(muscle, btn) {
+            currentExerciseFilter = muscle;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            renderExerciseGrid();
         }
 
-        // Render exercise grid
-        let currentMuscleFilter = 'all';
-        function renderExerciseGrid(searchTerm = '') {
+        function searchExercises(term) {
+            currentSearchTerm = term.toLowerCase();
+            renderExerciseGrid();
+        }
+
+        function renderExerciseGrid() {
             const container = document.getElementById('exerciseGrid');
             let filtered = exercises;
 
-            if (currentMuscleFilter !== 'all') {
-                filtered = filtered.filter(e => e.muscle_group === currentMuscleFilter);
-            }
-            if (searchTerm) {
-                filtered = filtered.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            if (currentExerciseFilter !== 'all') {
+                filtered = filtered.filter(e =>
+                    e.muscle_group?.toLowerCase() === currentExerciseFilter ||
+                    e.primary_muscles?.toLowerCase().includes(currentExerciseFilter)
+                );
             }
 
-            container.innerHTML = filtered.map(ex => `
-                <div class="exercise-card" onclick="addExerciseToDay(${JSON.stringify(ex).replace(/"/g, '&quot;')})">
-                    <img class="exercise-card-thumb" src="${ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.png'}" alt="">
+            if (currentSearchTerm) {
+                filtered = filtered.filter(e =>
+                    e.name.toLowerCase().includes(currentSearchTerm)
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No exercises found</p></div>';
+                return;
+            }
+
+            container.innerHTML = filtered.slice(0, 50).map(ex => `
+                <div class="exercise-card" onclick='addExerciseToDay(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
+                    <img class="exercise-card-thumb" src="${ex.video_url || ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">
                     <div class="exercise-card-name">${ex.name}</div>
-                    <div class="exercise-card-meta">${ex.muscle_group || 'General'} • ${ex.equipment || 'Any'}</div>
+                    <div class="exercise-card-meta">${ex.muscle_group || ex.primary_muscles || 'General'}</div>
                 </div>
             `).join('');
         }
 
-        // Filter by muscle
-        function filterByMuscle(muscle) {
-            currentMuscleFilter = muscle;
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            event.target.classList.add('active');
-            renderExerciseGrid();
-        }
-
-        // Search exercises
-        function searchExercises(term) {
-            renderExerciseGrid(term);
-        }
-
-        // Add exercise to day
         function addExerciseToDay(exercise) {
             workoutDays[currentDayIndex].exercises.push({
                 id: exercise.id,
                 name: exercise.name,
-                thumbnailUrl: exercise.thumbnail_url || exercise.animation_url,
+                thumbnailUrl: exercise.video_url || exercise.thumbnail_url,
+                muscleGroup: exercise.muscle_group,
                 sets: 3,
-                reps: 10,
+                reps: '8-12',
                 restSeconds: 90
             });
             renderWorkoutDays();
             closeExerciseModal();
+            showToast(`Added ${exercise.name}`);
         }
 
         // Load clients
         async function loadClients() {
             try {
-                const { data: clientsData } = await supabase
+                const { data, error } = await supabase
                     .from('clients')
                     .select('id, client_name, email')
                     .eq('coach_id', currentCoachId)
                     .eq('is_archived', false)
                     .order('client_name');
 
-                clients = clientsData || [];
+                if (error) throw error;
+                clients = data || [];
                 renderClientList();
             } catch (err) {
                 console.error('Error loading clients:', err);
             }
         }
 
-        // Render client list
         function renderClientList() {
             const container = document.getElementById('clientList');
             if (clients.length === 0) {
-                container.innerHTML = '<div class="empty-text">No clients yet</div>';
+                container.innerHTML = '<div class="empty-state"><p>No clients yet</p></div>';
                 return;
             }
 
             container.innerHTML = clients.map(client => `
-                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}"
-                    onclick="toggleClient(${client.id})">
+                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}" onclick="toggleClient(${client.id})">
                     <div class="client-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
-                    <div>
-                        <div class="client-name">${client.client_name}</div>
+                    <div class="client-info">
+                        <div class="client-name">${client.client_name || 'Unnamed'}</div>
                         <div class="client-email">${client.email || 'No email'}</div>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Toggle client selection
         function toggleClient(clientId) {
             if (selectedClients.has(clientId)) {
                 selectedClients.delete(clientId);
@@ -1387,101 +1654,108 @@
         async function saveProgram() {
             const name = document.getElementById('programName').value.trim();
             if (!name) {
-                alert('Please enter a program name');
+                showToast('Please enter a program name', 'error');
+                return;
+            }
+
+            if (workoutDays.length === 0) {
+                showToast('Please add at least one workout day', 'error');
                 return;
             }
 
             const programData = {
-                coachId: currentCoachId,
+                coach_id: currentCoachId,
                 name,
                 description: document.getElementById('programDescription').value,
-                programType: document.getElementById('programType').value,
+                program_type: document.getElementById('programType').value,
                 difficulty: document.getElementById('programDifficulty').value,
-                daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                programData: { days: workoutDays }
+                days_per_week: parseInt(document.getElementById('daysPerWeek').value),
+                program_data: { days: workoutDays }
             };
 
             try {
-                let response;
+                let result;
                 if (currentProgramId) {
-                    programData.programId = currentProgramId;
-                    response = await fetch('/.netlify/functions/workout-programs', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(programData)
-                    });
+                    const { data, error } = await supabase
+                        .from('workout_programs')
+                        .update(programData)
+                        .eq('id', currentProgramId)
+                        .select()
+                        .single();
+                    if (error) throw error;
+                    result = data;
                 } else {
-                    response = await fetch('/.netlify/functions/workout-programs', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(programData)
-                    });
+                    const { data, error } = await supabase
+                        .from('workout_programs')
+                        .insert([programData])
+                        .select()
+                        .single();
+                    if (error) throw error;
+                    result = data;
+                    currentProgramId = result.id;
                 }
 
-                const result = await response.json();
-                if (result.success) {
-                    currentProgramId = result.program.id;
-
-                    // Assign to selected clients
-                    for (const clientId of selectedClients) {
-                        await fetch('/.netlify/functions/workout-assignments', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                clientId,
-                                coachId: currentCoachId,
-                                programId: currentProgramId,
-                                name: programData.name,
-                                workoutData: { days: workoutDays, exercises: workoutDays.flatMap(d => d.exercises) }
-                            })
-                        });
-                    }
-
-                    alert('Program saved successfully!');
-                    await loadPrograms();
-                } else {
-                    alert('Error saving program: ' + (result.error || 'Unknown error'));
+                // Assign to clients
+                for (const clientId of selectedClients) {
+                    await supabase
+                        .from('client_workout_assignments')
+                        .upsert({
+                            client_id: clientId,
+                            coach_id: currentCoachId,
+                            program_id: currentProgramId,
+                            name: programData.name,
+                            workout_data: { days: workoutDays },
+                            is_active: true
+                        }, { onConflict: 'client_id,is_active' });
                 }
+
+                showToast('Program saved successfully!');
+                await loadPrograms();
             } catch (err) {
                 console.error('Error saving program:', err);
-                alert('Error saving program');
+                showToast('Error saving program: ' + err.message, 'error');
             }
-        }
-
-        // Preview program
-        function previewProgram() {
-            alert('Preview feature coming soon!');
         }
 
         // Search programs
         function searchPrograms(term) {
-            const filtered = programs.filter(p =>
-                p.name.toLowerCase().includes(term.toLowerCase())
-            );
+            const filtered = term
+                ? programs.filter(p => p.name.toLowerCase().includes(term.toLowerCase()))
+                : programs;
+
             const container = document.getElementById('programList');
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No programs found</p></div>';
+                return;
+            }
+
             container.innerHTML = filtered.map(p => `
                 <div class="program-item ${p.id === currentProgramId ? 'active' : ''}" onclick="selectProgram(${p.id})">
                     <div class="program-name">${p.name}</div>
-                    <div class="program-meta">${p.difficulty || 'Intermediate'} • ${p.days_per_week || 3} days/week</div>
+                    <div class="program-meta">
+                        <span>${p.difficulty || 'Intermediate'}</span>
+                        <span>•</span>
+                        <span>${p.days_per_week || 3} days/week</span>
+                    </div>
                 </div>
             `).join('');
         }
 
-        // AI Generate Modal Functions
-        function openAIGenerateModal() {
-            document.getElementById('aiGenerateModal').classList.add('show');
+        // AI Modal
+        function openAIModal() {
+            document.getElementById('aiModal').classList.add('active');
         }
 
-        function closeAIGenerateModal() {
-            document.getElementById('aiGenerateModal').classList.remove('show');
+        function closeAIModal() {
+            document.getElementById('aiModal').classList.remove('active');
         }
 
         async function generateAIWorkout() {
             const btn = document.getElementById('aiGenerateBtn');
             const originalText = btn.innerHTML;
 
-            // Gather form data
-            const clientName = document.getElementById('aiClientName').value;
+            // Get form values
+            const clientName = document.getElementById('aiClientName').value || 'Client';
             const goal = document.getElementById('aiGoal').value;
             const experience = document.getElementById('aiExperience').value;
             const daysPerWeek = parseInt(document.getElementById('aiDaysPerWeek').value);
@@ -1489,18 +1763,17 @@
             const injuries = document.getElementById('aiInjuries').value;
             const preferences = document.getElementById('aiPreferences').value;
 
-            // Get selected equipment
-            const equipment = Array.from(document.querySelectorAll('input[name="aiEquipment"]:checked'))
+            const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
                 .map(cb => cb.value);
 
             if (equipment.length === 0) {
-                alert('Please select at least one type of equipment.');
+                showToast('Please select at least one equipment type', 'error');
                 return;
             }
 
-            // Show loading state
+            // Show loading
             btn.disabled = true;
-            btn.innerHTML = '<span class="ai-generating"><span class="ai-spinner"></span>Generating...</span>';
+            btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Generating...</span>';
 
             try {
                 const response = await fetch('/.netlify/functions/generate-workout-claude', {
@@ -1513,184 +1786,62 @@
                         daysPerWeek,
                         duration,
                         equipment,
-                        injuries: injuries || null,
-                        preferences: preferences || null
+                        injuries,
+                        preferences
                     })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to generate workout');
-                }
-
                 const result = await response.json();
 
-                if (result.success && result.program) {
-                    // Close modal
-                    closeAIGenerateModal();
-
-                    // Populate the form with generated program
-                    populateGeneratedProgram(result.program);
-
-                    // Show success message
-                    alert('Workout program generated successfully! Review and customize as needed.');
-                } else {
-                    throw new Error('Invalid response from AI');
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Failed to generate workout');
                 }
 
-            } catch (error) {
-                console.error('AI generation error:', error);
-                alert('Failed to generate workout: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
+                // Populate program
+                const program = result.program;
+                document.getElementById('programName').value = program.programName || `${goal} Program`;
+                document.getElementById('programType').value = goal;
+                document.getElementById('programDifficulty').value = experience;
+                document.getElementById('daysPerWeek').value = daysPerWeek;
+                document.getElementById('programDescription').value = program.description || '';
 
-        function populateGeneratedProgram(program) {
-            // Reset current program
-            currentProgramId = null;
-
-            // Populate program details
-            document.getElementById('programName').value = program.programName || 'AI Generated Program';
-            document.getElementById('programType').value = program.goal || 'strength';
-            document.getElementById('programDifficulty').value = program.difficulty || 'intermediate';
-            document.getElementById('daysPerWeek').value = program.daysPerWeek || 3;
-            document.getElementById('programDescription').value = program.description || '';
-
-            // Clear existing workout days
-            workoutDays = [];
-            document.getElementById('workoutDays').innerHTML = '';
-
-            // Convert AI program structure to our format
-            if (program.weeks && program.weeks.length > 0) {
-                // Use the first week as the template
-                const firstWeek = program.weeks[0];
-
-                if (firstWeek.workouts && firstWeek.workouts.length > 0) {
-                    firstWeek.workouts.forEach((workout, index) => {
-                        const dayData = {
-                            name: workout.name || `Day ${index + 1}`,
-                            targetMuscles: workout.targetMuscles || [],
+                // Convert to workout days
+                workoutDays = [];
+                if (program.weeks && program.weeks[0]?.workouts) {
+                    program.weeks[0].workouts.forEach(workout => {
+                        workoutDays.push({
+                            name: workout.name,
                             exercises: (workout.exercises || []).map(ex => ({
                                 name: ex.name,
                                 muscleGroup: ex.muscleGroup,
                                 sets: ex.sets || 3,
                                 reps: ex.reps || '8-12',
-                                restSeconds: ex.restSeconds || 90,
-                                notes: ex.notes || '',
-                                alternatives: ex.alternatives || []
+                                restSeconds: ex.restSeconds || 90
                             }))
-                        };
-
-                        workoutDays.push(dayData);
+                        });
                     });
                 }
-            }
 
-            // Render workout days
-            renderWorkoutDays();
-
-            // Store progression notes in description if not already there
-            if (program.progressionNotes && !document.getElementById('programDescription').value.includes('Progression')) {
-                document.getElementById('programDescription').value +=
-                    '\n\nProgression: ' + program.progressionNotes;
-            }
-
-            // Scroll to top of builder
-            document.querySelector('.builder-area').scrollTo(0, 0);
-        }
-
-        function renderWorkoutDays() {
-            const container = document.getElementById('workoutDays');
-            container.innerHTML = workoutDays.map((day, dayIndex) => `
-                <div class="workout-day" data-day="${dayIndex}">
-                    <div class="workout-day-header">
-                        <input type="text" class="day-name-input" value="${day.name}" onchange="updateDayName(${dayIndex}, this.value)">
-                        <button class="delete-day-btn" onclick="removeWorkoutDay(${dayIndex})">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="exercise-list" id="exerciseList-${dayIndex}">
-                        ${day.exercises.map((ex, exIndex) => renderExerciseItem(ex, dayIndex, exIndex)).join('')}
-                    </div>
-                    <button class="add-exercise-btn" onclick="openExerciseLibrary(${dayIndex})">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add Exercise
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function renderExerciseItem(exercise, dayIndex, exIndex) {
-            return `
-                <div class="exercise-item" data-day="${dayIndex}" data-exercise="${exIndex}">
-                    <div class="exercise-info">
-                        <div class="exercise-name">${exercise.name}</div>
-                        <div class="exercise-details">${exercise.sets} sets × ${exercise.reps} • ${exercise.restSeconds}s rest</div>
-                        ${exercise.notes ? `<div class="exercise-notes">${exercise.notes}</div>` : ''}
-                    </div>
-                    <div class="exercise-actions">
-                        <button class="exercise-action-btn" onclick="editExercise(${dayIndex}, ${exIndex})" title="Edit">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                        </button>
-                        <button class="exercise-action-btn" onclick="removeExercise(${dayIndex}, ${exIndex})" title="Remove">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateDayName(dayIndex, name) {
-            if (workoutDays[dayIndex]) {
-                workoutDays[dayIndex].name = name;
-            }
-        }
-
-        function removeWorkoutDay(dayIndex) {
-            if (confirm('Are you sure you want to remove this workout day?')) {
-                workoutDays.splice(dayIndex, 1);
                 renderWorkoutDays();
+                closeAIModal();
+                showToast('Workout program generated!');
+
+            } catch (error) {
+                console.error('AI generation error:', error);
+                showToast(error.message || 'Failed to generate workout', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Program';
             }
         }
 
-        function removeExercise(dayIndex, exIndex) {
-            if (workoutDays[dayIndex] && workoutDays[dayIndex].exercises[exIndex]) {
-                workoutDays[dayIndex].exercises.splice(exIndex, 1);
-                renderWorkoutDays();
-            }
-        }
-
-        function editExercise(dayIndex, exIndex) {
-            const exercise = workoutDays[dayIndex]?.exercises[exIndex];
-            if (!exercise) return;
-
-            const newSets = prompt('Sets:', exercise.sets);
-            if (newSets !== null) exercise.sets = parseInt(newSets) || exercise.sets;
-
-            const newReps = prompt('Reps (e.g., "8-12" or "10"):', exercise.reps);
-            if (newReps !== null) exercise.reps = newReps || exercise.reps;
-
-            const newRest = prompt('Rest (seconds):', exercise.restSeconds);
-            if (newRest !== null) exercise.restSeconds = parseInt(newRest) || exercise.restSeconds;
-
-            renderWorkoutDays();
-        }
-
-        // Close modal on outside click
-        document.getElementById('aiGenerateModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeAIGenerateModal();
-            }
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>

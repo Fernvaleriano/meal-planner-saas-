@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
@@ -7,6 +7,12 @@ import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 
 // Helper to get date string
 const formatDate = (date) => date.toISOString().split('T')[0];
+
+// Helper to format date for display
+const formatDisplayDate = (date) => {
+  const options = { weekday: 'long', month: 'short', day: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
+};
 
 // Helper to get day name
 const getDayName = (date) => {
@@ -29,6 +35,13 @@ const getWeekDates = (baseDate) => {
   return dates;
 };
 
+// Get month name
+const getMonthName = (date) => {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+  return months[date.getMonth()];
+};
+
 function Workouts() {
   const { clientData } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -39,6 +52,7 @@ function Workouts() {
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [completedExercises, setCompletedExercises] = useState(new Set());
+  const [weeklyStats, setWeeklyStats] = useState({ completed: 0, total: 7 });
 
   // Fetch workout for selected date
   useEffect(() => {
@@ -60,6 +74,7 @@ function Workouts() {
           const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
           if (logRes.logs && logRes.logs.length > 0) {
             setWorkoutLog(logRes.logs[0]);
+            setWorkoutStarted(logRes.logs[0].status === 'in_progress' || logRes.logs[0].status === 'completed');
             // Set completed exercises from log
             const completed = new Set(
               logRes.logs[0].exercises?.map(e => e.exercise_id) || []
@@ -127,6 +142,20 @@ function Workouts() {
     }
   };
 
+  // Complete workout
+  const handleCompleteWorkout = async () => {
+    try {
+      await apiPut('/.netlify/functions/workout-logs', {
+        logId: workoutLog?.id,
+        status: 'completed',
+        completedAt: new Date().toISOString()
+      });
+      // Show success feedback
+    } catch (error) {
+      console.error('Error completing workout:', error);
+    }
+  };
+
   // Calculate progress
   const exercises = todayWorkout?.workout_data?.exercises || [];
   const completedCount = completedExercises.size;
@@ -136,32 +165,64 @@ function Workouts() {
   // Check if selected date is today
   const isToday = formatDate(selectedDate) === formatDate(new Date());
 
+  // Get target muscles for the workout
+  const targetMuscles = todayWorkout?.workout_data?.targetMuscles || [];
+
   return (
-    <div className="workouts-page">
-      {/* Header */}
-      <div className="workouts-header">
-        <h1>{isToday ? 'Today\'s Workout' : formatDate(selectedDate)}</h1>
-        {todayWorkout && (
-          <div className="workout-meta">
-            <span className="meta-item">
-              <Clock size={16} />
-              {todayWorkout.workout_data?.estimatedMinutes || 45} min
-            </span>
-            <span className="meta-item">
-              <Flame size={16} />
-              {todayWorkout.workout_data?.estimatedCalories || 300} kcal
-            </span>
+    <div className="workouts-page-v2">
+      {/* Hero Header */}
+      <div className="workout-hero">
+        <div className="hero-gradient"></div>
+        <div className="hero-content">
+          <div className="hero-date">
+            <Calendar size={16} />
+            <span>{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
           </div>
-        )}
+          <h1 className="hero-title">
+            {todayWorkout ? todayWorkout.workout_data?.name || todayWorkout.name : 'Workouts'}
+          </h1>
+          {todayWorkout && (
+            <div className="hero-meta">
+              <span className="meta-badge">
+                <Clock size={14} />
+                {todayWorkout.workout_data?.estimatedMinutes || 45} min
+              </span>
+              <span className="meta-badge">
+                <Flame size={14} />
+                {todayWorkout.workout_data?.estimatedCalories || 300} kcal
+              </span>
+              <span className="meta-badge">
+                <Dumbbell size={14} />
+                {totalExercises} exercises
+              </span>
+            </div>
+          )}
+          {targetMuscles.length > 0 && (
+            <div className="hero-targets">
+              <Target size={14} />
+              {targetMuscles.slice(0, 3).map((muscle, idx) => (
+                <span key={idx} className="target-badge">{muscle}</span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Week Calendar */}
-      <div className="week-calendar">
-        <button className="week-nav" onClick={goToPreviousWeek}>
-          <ChevronLeft size={20} />
-        </button>
+      {/* Week Calendar Strip */}
+      <div className="week-calendar-v2">
+        <div className="calendar-header">
+          <button className="week-nav-btn" onClick={goToPreviousWeek}>
+            <ChevronLeft size={20} />
+          </button>
+          <span className="month-label">
+            {getMonthName(weekDates[3])} {weekDates[3].getFullYear()}
+          </span>
+          <button className="week-nav-btn" onClick={goToNextWeek}>
+            <ChevronRight size={20} />
+          </button>
+        </div>
 
-        <div className="week-days">
+        <div className="week-days-strip">
           {weekDates.map((date) => {
             const dateStr = formatDate(date);
             const isSelected = formatDate(selectedDate) === dateStr;
@@ -170,80 +231,122 @@ function Workouts() {
             return (
               <button
                 key={dateStr}
-                className={`day-button ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
+                className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
                 onClick={() => setSelectedDate(date)}
               >
                 <span className="day-name">{getDayName(date)}</span>
                 <span className="day-number">{date.getDate()}</span>
-                {/* Dot indicator for workouts - would need actual data */}
+                {isTodayDate && !isSelected && <span className="today-dot"></span>}
               </button>
             );
           })}
         </div>
-
-        <button className="week-nav" onClick={goToNextWeek}>
-          <ChevronRight size={20} />
-        </button>
       </div>
 
-      {/* Progress Summary */}
+      {/* Progress Card */}
       {todayWorkout && (
-        <div className="workout-progress-card">
-          <div className="progress-info">
-            <span className="progress-text">
-              {completedCount}/{totalExercises} exercises done
-            </span>
-            <span className="progress-percent">{Math.round(progressPercent)}%</span>
+        <div className="progress-card-v2">
+          <div className="progress-header">
+            <div className="progress-icon">
+              <TrendingUp size={20} />
+            </div>
+            <div className="progress-info">
+              <span className="progress-label">Workout Progress</span>
+              <span className="progress-value">{completedCount} of {totalExercises} exercises</span>
+            </div>
+            <div className="progress-percentage">
+              <span>{Math.round(progressPercent)}%</span>
+            </div>
           </div>
-          <div className="progress-bar">
+          <div className="progress-bar-v2">
             <div
-              className="progress-fill"
+              className="progress-fill-v2"
               style={{ width: `${progressPercent}%` }}
-            />
+            >
+              {progressPercent > 20 && <Zap size={14} />}
+            </div>
           </div>
+          {progressPercent === 100 && (
+            <div className="progress-complete">
+              <Award size={16} />
+              <span>Workout Complete!</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Start Workout Button */}
-      {todayWorkout && !workoutStarted && (
-        <button className="start-workout-btn" onClick={handleStartWorkout}>
-          <Play size={24} />
-          <span>Start Workout</span>
-        </button>
-      )}
+      {/* Main Content */}
+      <div className="workout-content">
+        {/* Start/Complete Button */}
+        {todayWorkout && !workoutStarted && (
+          <button className="start-workout-btn-v2" onClick={handleStartWorkout}>
+            <div className="btn-icon">
+              <Play size={24} />
+            </div>
+            <div className="btn-text">
+              <span className="btn-title">Start Workout</span>
+              <span className="btn-subtitle">Let's crush it!</span>
+            </div>
+          </button>
+        )}
 
-      {/* Exercise List */}
-      <div className="exercises-list">
-        {loading ? (
-          <div className="loading-state">Loading workout...</div>
-        ) : todayWorkout ? (
-          exercises.map((exercise, index) => (
-            <ExerciseCard
-              key={exercise.id || index}
-              exercise={exercise}
-              index={index}
-              isCompleted={completedExercises.has(exercise.id)}
-              onToggleComplete={() => toggleExerciseComplete(exercise.id)}
-              onClick={() => setSelectedExercise(exercise)}
-              workoutStarted={workoutStarted}
-            />
-          ))
-        ) : (
-          <div className="empty-state">
-            <div className="empty-icon">💪</div>
-            <h3>No workout scheduled</h3>
-            <p>You don't have a workout assigned for this day.</p>
+        {/* Exercise List */}
+        <div className="exercises-section">
+          {todayWorkout && <h2 className="section-title">Exercises</h2>}
+
+          <div className="exercises-list-v2">
+            {loading ? (
+              <div className="loading-state-v2">
+                <div className="loading-spinner"></div>
+                <span>Loading workout...</span>
+              </div>
+            ) : todayWorkout ? (
+              exercises.map((exercise, index) => (
+                <ExerciseCard
+                  key={exercise.id || index}
+                  exercise={exercise}
+                  index={index}
+                  isCompleted={completedExercises.has(exercise.id)}
+                  onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                  onClick={() => setSelectedExercise(exercise)}
+                  workoutStarted={workoutStarted}
+                />
+              ))
+            ) : (
+              <div className="empty-state-v2">
+                <div className="empty-illustration">
+                  <Dumbbell size={64} />
+                </div>
+                <h3>Rest Day</h3>
+                <p>No workout scheduled for this day. Recovery is part of the process!</p>
+                <div className="empty-tips">
+                  <div className="tip">
+                    <span className="tip-icon">💧</span>
+                    <span>Stay hydrated</span>
+                  </div>
+                  <div className="tip">
+                    <span className="tip-icon">🧘</span>
+                    <span>Light stretching</span>
+                  </div>
+                  <div className="tip">
+                    <span className="tip-icon">😴</span>
+                    <span>Get good sleep</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Complete Workout Button */}
+        {workoutStarted && completedCount === totalExercises && totalExercises > 0 && (
+          <button className="complete-workout-btn-v2" onClick={handleCompleteWorkout}>
+            <CheckCircle size={24} />
+            <span>Complete Workout</span>
+            <div className="confetti-burst"></div>
+          </button>
         )}
       </div>
-
-      {/* Complete Workout Button */}
-      {workoutStarted && completedCount === totalExercises && totalExercises > 0 && (
-        <button className="complete-workout-btn">
-          <CheckCircle size={24} />
-          <span>Complete Workout</span>
-        </button>
-      )}
 
       {/* Exercise Detail Modal */}
       {selectedExercise && (

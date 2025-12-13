@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Check, Plus, Clock } from 'lucide-react';
+import { Check, Plus, Clock, ChevronRight, Minus, Play } from 'lucide-react';
 
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted }) {
   const [sets, setSets] = useState(exercise.sets || [
-    { reps: 12, weight: 0, completed: false },
-    { reps: 12, weight: 0, completed: false },
-    { reps: 12, weight: 0, completed: false },
+    { reps: exercise.reps || 12, weight: 0, completed: false },
+    { reps: exercise.reps || 12, weight: 0, completed: false },
+    { reps: exercise.reps || 12, weight: 0, completed: false },
   ]);
+  const [showSets, setShowSets] = useState(false);
+
+  // Calculate completed sets
+  const completedSets = sets.filter(s => s.completed).length;
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
@@ -23,6 +27,15 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
   };
 
+  // Update weight for a set
+  const updateWeight = (setIndex, delta, e) => {
+    e.stopPropagation();
+    const newSets = [...sets];
+    const newWeight = Math.max(0, (newSets[setIndex].weight || 0) + delta);
+    newSets[setIndex] = { ...newSets[setIndex], weight: newWeight };
+    setSets(newSets);
+  };
+
   // Add a set
   const addSet = (e) => {
     e.stopPropagation();
@@ -31,71 +44,164 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   };
 
   // Get thumbnail URL or placeholder
-  const thumbnailUrl = exercise.thumbnail_url || exercise.animation_url || null;
+  const thumbnailUrl = exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg';
+
+  // Get muscle group color
+  const getMuscleColor = (muscle) => {
+    const colors = {
+      chest: '#ef4444',
+      back: '#3b82f6',
+      shoulders: '#f59e0b',
+      biceps: '#8b5cf6',
+      triceps: '#ec4899',
+      legs: '#10b981',
+      quadriceps: '#10b981',
+      hamstrings: '#059669',
+      glutes: '#14b8a6',
+      core: '#6366f1',
+      abs: '#6366f1'
+    };
+    return colors[muscle?.toLowerCase()] || '#64748b';
+  };
+
+  const muscleColor = getMuscleColor(exercise.muscle_group || exercise.muscleGroup);
 
   return (
     <div
-      className={`exercise-card ${isCompleted ? 'completed' : ''}`}
+      className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''}`}
       onClick={onClick}
     >
-      {/* Exercise Header */}
-      <div className="exercise-header">
-        <div className="exercise-info">
-          <h3 className="exercise-name">{exercise.name}</h3>
-          <span className="exercise-equipment">{exercise.equipment || 'Bodyweight'}</span>
+      {/* Exercise Number Badge */}
+      <div className="exercise-number" style={{ background: muscleColor }}>
+        {isCompleted ? <Check size={14} /> : index + 1}
+      </div>
+
+      {/* Main Content */}
+      <div className="exercise-main">
+        {/* Thumbnail */}
+        <div className="exercise-thumb">
+          <img
+            src={thumbnailUrl}
+            alt={exercise.name}
+            onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+          />
+          {exercise.video_url && (
+            <div className="video-indicator">
+              <Play size={12} />
+            </div>
+          )}
         </div>
 
-        <div className="exercise-thumbnail">
-          {thumbnailUrl ? (
-            <img src={thumbnailUrl} alt={exercise.name} />
+        {/* Info */}
+        <div className="exercise-details">
+          <h3 className="exercise-title">{exercise.name}</h3>
+          <div className="exercise-meta-row">
+            <span className="muscle-tag" style={{ background: `${muscleColor}20`, color: muscleColor }}>
+              {exercise.muscle_group || exercise.muscleGroup || 'General'}
+            </span>
+            <span className="equipment-tag">
+              {exercise.equipment || 'Bodyweight'}
+            </span>
+          </div>
+          <div className="sets-summary">
+            <span className="sets-count">{sets.length} sets</span>
+            <span className="sets-divider">•</span>
+            <span className="reps-count">{exercise.reps || '8-12'} reps</span>
+            {exercise.restSeconds && (
+              <>
+                <span className="sets-divider">•</span>
+                <span className="rest-count">
+                  <Clock size={12} />
+                  {exercise.restSeconds}s rest
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Ring / Action */}
+        <div className="exercise-action">
+          {workoutStarted ? (
+            <div className="progress-ring-container">
+              <svg className="progress-ring" viewBox="0 0 36 36">
+                <path
+                  className="progress-ring-bg"
+                  d="M18 2.0845
+                    a 15.9155 15.9155 0 0 1 0 31.831
+                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="progress-ring-fill"
+                  style={{
+                    strokeDasharray: `${(completedSets / sets.length) * 100}, 100`,
+                    stroke: isCompleted ? '#22c55e' : muscleColor
+                  }}
+                  d="M18 2.0845
+                    a 15.9155 15.9155 0 0 1 0 31.831
+                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+              <span className="ring-text">{completedSets}/{sets.length}</span>
+            </div>
           ) : (
-            <div className="thumbnail-placeholder">
-              <span>💪</span>
-            </div>
-          )}
-          {isCompleted && (
-            <div className="completed-badge">
-              <Check size={16} />
-            </div>
+            <ChevronRight size={20} className="chevron-icon" />
           )}
         </div>
       </div>
 
-      {/* Sets Grid */}
-      <div className="sets-container">
-        <div className="sets-row sets-header">
-          {sets.map((set, idx) => (
-            <button
-              key={idx}
-              className={`set-cell ${set.completed ? 'completed' : ''}`}
-              onClick={(e) => toggleSet(idx, e)}
-              disabled={!workoutStarted}
-            >
-              <span className="set-reps">{set.reps}x</span>
-              <span className="set-weight">{set.weight > 0 ? `${set.weight} kg` : '- kg'}</span>
-            </button>
-          ))}
-          <button className="set-cell add-set" onClick={addSet}>
-            <Plus size={16} />
+      {/* Expandable Sets Section (when workout started) */}
+      {workoutStarted && (
+        <div className={`sets-panel ${showSets ? 'expanded' : ''}`}>
+          <button
+            className="sets-toggle"
+            onClick={(e) => { e.stopPropagation(); setShowSets(!showSets); }}
+          >
+            <span>{showSets ? 'Hide Sets' : 'Show Sets'}</span>
+            <ChevronRight size={16} className={showSets ? 'rotated' : ''} />
           </button>
-        </div>
 
-        {/* Rest times row */}
-        <div className="sets-row rest-row">
-          {sets.map((set, idx) => (
-            <div key={idx} className="rest-cell">
-              <Clock size={12} />
-              <span>{set.restSeconds || 60}s</span>
+          {showSets && (
+            <div className="sets-grid-v2">
+              {sets.map((set, idx) => (
+                <div key={idx} className={`set-item ${set.completed ? 'done' : ''}`}>
+                  <span className="set-label">Set {idx + 1}</span>
+                  <div className="set-controls">
+                    <button
+                      className="weight-btn"
+                      onClick={(e) => updateWeight(idx, -2.5, e)}
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="weight-value">{set.weight || 0} kg</span>
+                    <button
+                      className="weight-btn"
+                      onClick={(e) => updateWeight(idx, 2.5, e)}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  <button
+                    className={`set-check ${set.completed ? 'checked' : ''}`}
+                    onClick={(e) => toggleSet(idx, e)}
+                  >
+                    <Check size={16} />
+                  </button>
+                </div>
+              ))}
+              <button className="add-set-btn" onClick={addSet}>
+                <Plus size={16} />
+                <span>Add Set</span>
+              </button>
             </div>
-          ))}
-          <div className="rest-cell empty" />
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Personal Note */}
+      {/* Coach Notes */}
       {exercise.notes && (
-        <div className="exercise-note">
-          {exercise.notes}
+        <div className="coach-note">
+          <span className="note-label">Coach Note:</span>
+          <span className="note-text">{exercise.notes}</span>
         </div>
       )}
     </div>
