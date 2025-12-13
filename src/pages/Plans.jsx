@@ -1051,7 +1051,20 @@ Return ONLY valid JSON:
       // Deep clone to ensure we're not mutating state
       updatedDays[undoData.dayIdx] = { ...updatedDays[undoData.dayIdx] };
       updatedDays[undoData.dayIdx].plan = [...updatedDays[undoData.dayIdx].plan];
-      updatedDays[undoData.dayIdx].plan[undoData.mealIdx] = undoData.meal;
+
+      // Get the current meal's image_url before replacing (it may have been loaded after undo data was saved)
+      const currentMeal = updatedDays[undoData.dayIdx].plan[undoData.mealIdx];
+      const currentImageUrl = currentMeal?.image_url;
+
+      // Restore the original meal
+      const restoredMeal = { ...undoData.meal };
+
+      // Preserve image: use original meal's image, or current image, or look up from cache
+      if (!restoredMeal.image_url) {
+        restoredMeal.image_url = currentImageUrl || mealImages[restoredMeal.name] || null;
+      }
+
+      updatedDays[undoData.dayIdx].plan[undoData.mealIdx] = restoredMeal;
 
       if (updatedPlan.plan_data.currentPlan) {
         updatedPlan.plan_data = { ...updatedPlan.plan_data, currentPlan: updatedDays };
@@ -1155,6 +1168,21 @@ Return ONLY valid JSON:
     });
   };
 
+  // Clean special characters from text (removes markdown formatting)
+  const cleanMealPrepText = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/^#+\s*/gm, '')           // Remove markdown headers (###, ##, #)
+      .replace(/^\*+\s*/gm, '')          // Remove leading asterisks
+      .replace(/\*\*/g, '')              // Remove bold markers
+      .replace(/\*/g, '')                // Remove remaining asterisks
+      .replace(/^-\s*/gm, '• ')          // Convert dashes to bullet points
+      .replace(/^\d+\.\s*/gm, (match) => match.trim() + ' ')  // Clean numbered lists
+      .replace(/`/g, '')                 // Remove backticks
+      .replace(/\n{3,}/g, '\n\n')        // Reduce multiple newlines
+      .trim();
+  };
+
   // Generate meal prep guide
   const handleMealPrep = async () => {
     setShowMealPrepModal(true);
@@ -1213,6 +1241,7 @@ Keep it practical and brief. Format with clear sections.`;
 
     const days = getPlanDays(selectedPlan);
     const { numDays, calories, goal } = getPlanDetails(selectedPlan);
+    const groceryList = generateGroceryList();
 
     // Create printable content
     let content = `
@@ -1222,16 +1251,28 @@ Keep it practical and brief. Format with clear sections.`;
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
           h1 { color: #333; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
-          h2 { color: #4f46e5; margin-top: 30px; }
-          h3 { color: #666; }
+          h2 { color: #4f46e5; margin-top: 30px; page-break-before: auto; }
+          h3 { color: #666; margin-top: 15px; }
           .meal { margin: 15px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
           .meal-name { font-weight: bold; font-size: 16px; color: #333; }
           .meal-macros { color: #666; margin: 5px 0; }
           .ingredients { margin-top: 10px; }
           .ingredients li { margin: 3px 0; }
-          .summary { display: flex; gap: 20px; margin: 20px 0; }
+          .summary { display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap; }
           .summary-item { padding: 10px 15px; background: #e8e8ff; border-radius: 8px; }
-          @media print { body { padding: 0; } }
+          .grocery-section { margin-top: 40px; page-break-before: always; }
+          .grocery-category { margin: 20px 0; }
+          .grocery-category h3 { color: #4f46e5; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+          .grocery-category ul { list-style: none; padding: 0; }
+          .grocery-category li { padding: 8px 0; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
+          .grocery-category li::before { content: "☐"; font-size: 16px; }
+          .meal-prep-section { margin-top: 40px; page-break-before: always; }
+          .meal-prep-content { background: #f9f9f9; padding: 20px; border-radius: 8px; line-height: 1.6; }
+          .meal-prep-content p { margin: 10px 0; }
+          @media print {
+            body { padding: 0; }
+            .grocery-section, .meal-prep-section { page-break-before: always; }
+          }
         </style>
       </head>
       <body>
@@ -1243,6 +1284,7 @@ Keep it practical and brief. Format with clear sections.`;
         </div>
     `;
 
+    // Add meal days
     days.forEach((day, idx) => {
       content += `<h2>Day ${idx + 1}</h2>`;
 
@@ -1268,6 +1310,41 @@ Keep it practical and brief. Format with clear sections.`;
         `;
       });
     });
+
+    // Add grocery list section
+    if (Object.keys(groceryList).length > 0) {
+      content += `
+        <div class="grocery-section">
+          <h2>🛒 Grocery List</h2>
+          <p><em>Check off items as you shop</em></p>
+      `;
+
+      Object.entries(groceryList).forEach(([category, items]) => {
+        content += `
+          <div class="grocery-category">
+            <h3>${category}</h3>
+            <ul>
+              ${items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      });
+
+      content += `</div>`;
+    }
+
+    // Add meal prep guide section if available
+    if (mealPrepGuide) {
+      const cleanedGuide = cleanMealPrepText(mealPrepGuide);
+      content += `
+        <div class="meal-prep-section">
+          <h2>👨‍🍳 Meal Prep Guide</h2>
+          <div class="meal-prep-content">
+            ${cleanedGuide.split('\n').filter(line => line.trim()).map(line => `<p>${line}</p>`).join('')}
+          </div>
+        </div>
+      `;
+    }
 
     content += `
         <p style="margin-top: 40px; color: #999; text-align: center;">Generated by FernFit Meal Planner</p>
@@ -1673,8 +1750,8 @@ Keep it practical and brief. Format with clear sections.`;
                   </div>
                 ) : mealPrepGuide ? (
                   <div className="meal-prep-guide">
-                    {mealPrepGuide.split('\n').map((line, idx) => (
-                      <p key={idx}>{line}</p>
+                    {cleanMealPrepText(mealPrepGuide).split('\n').map((line, idx) => (
+                      line.trim() ? <p key={idx}>{line}</p> : null
                     ))}
                   </div>
                 ) : (
