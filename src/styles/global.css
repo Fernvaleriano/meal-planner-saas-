@@ -4092,6 +4092,29 @@ body {
     color: #3b82f6;
 }
 
+.ai-modal-pill.hungry svg {
+    color: #22c55e;
+}
+
+/* 2-column grid layout for quick actions */
+.ai-modal-quick-actions.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.ai-modal-quick-actions.grid .ai-modal-pill {
+    padding: 12px 14px;
+    font-size: 0.875rem;
+    gap: 8px;
+}
+
+.ai-modal-quick-actions.grid .ai-modal-pill span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Modal Messages */
 .ai-modal-messages {
     display: flex;

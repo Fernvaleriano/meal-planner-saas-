@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
@@ -1447,7 +1447,7 @@ function Diary() {
                   <p className="ai-modal-greeting">Hi {clientData?.name?.split(' ')[0] || 'there'},</p>
                   <h2 className="ai-modal-headline">How can I help with nutrition today?</h2>
 
-                  {/* Dynamic suggestions */}
+                  {/* Dynamic suggestions based on current macros */}
                   <div className="ai-modal-suggestions">
                     {goals.protein_goal - totals.protein > 30 && (
                       <button
@@ -1467,20 +1467,31 @@ function Diary() {
                         <span>{goals.calorie_goal - totals.calories} cal remaining</span>
                       </button>
                     )}
-                    <button
-                      className="ai-modal-pill"
-                      onClick={() => askAI('I have some ingredients - help me make a meal')}
-                    >
+                    {/* Show "hungry but low on calories" when they have less than 300 cal left but aren't over yet */}
+                    {goals.calorie_goal - totals.calories > 0 && goals.calorie_goal - totals.calories <= 300 && (
+                      <button
+                        className="ai-modal-pill hungry"
+                        onClick={() => askAI('I\'m hungry but almost at my calorie limit. What filling, low-calorie foods can I eat?')}
+                      >
+                        <Salad size={18} />
+                        <span>Hungry but only {Math.round(goals.calorie_goal - totals.calories)} cal left</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quick Actions - 2 column grid */}
+                  <div className="ai-modal-quick-actions grid">
+                    <button className="ai-modal-pill" onClick={() => askAI('I have some ingredients - help me make a meal')}>
                       <ChefHat size={18} />
                       <span>What can I make?</span>
                     </button>
-                  </div>
-
-                  {/* Quick Actions */}
-                  <div className="ai-modal-quick-actions">
-                    <button className="ai-modal-pill" onClick={() => askAI('What should I eat to hit my protein goal?')}>
-                      <Dumbbell size={18} />
-                      <span>Need protein</span>
+                    <button className="ai-modal-pill" onClick={() => askAI('Give me a quick meal I can make in under 5 minutes')}>
+                      <Zap size={18} />
+                      <span>Quick & easy</span>
+                    </button>
+                    <button className="ai-modal-pill" onClick={() => askAI('I\'m eating out - what should I order that fits my macros?')}>
+                      <MapPin size={18} />
+                      <span>Eating out</span>
                     </button>
                     <button className="ai-modal-pill" onClick={() => askAI('Give me a healthy snack idea')}>
                       <Apple size={18} />

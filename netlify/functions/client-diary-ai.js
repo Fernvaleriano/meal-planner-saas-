@@ -247,6 +247,36 @@ HEALTHY FATS:
 - Seeds: chia seeds, pumpkin seeds
 - Other: avocado, nut butter, dark chocolate, trail mix
 
+LOW-CALORIE FILLING FOODS (for when they're hungry but low on calories):
+- Vegetables: cucumber slices, celery sticks, baby carrots, cherry tomatoes, bell pepper strips, broccoli, cauliflower
+- Volume foods: air-popped popcorn (30 cal/cup), watermelon, strawberries, cantaloupe
+- Soups: broth-based soups, miso soup, vegetable soup
+- Protein-rich low-cal: egg whites, fat-free Greek yogurt, shrimp, white fish
+- Drinks: sparkling water, herbal tea, black coffee, sugar-free drinks
+- Other: pickles, sugar-free Jello, rice cakes (plain)
+
+QUICK 5-MINUTE MEALS (for busy people):
+- Protein shake with banana
+- Greek yogurt parfait with granola
+- Deli meat roll-ups with cheese
+- Scrambled eggs (2-3 eggs)
+- Cottage cheese with fruit
+- Tuna salad on crackers
+- Overnight oats (prepped the night before)
+- Pre-made rotisserie chicken pieces
+- Protein bar + piece of fruit
+- Peanut butter banana toast
+- Microwave egg mug (eggs + cheese + veggies)
+- Pre-cut veggies with hummus
+
+EATING OUT - RESTAURANT SMART CHOICES:
+- Fast food: grilled chicken sandwich (no mayo), salads with grilled protein, bunless burgers
+- Mexican: burrito bowl (no tortilla), grilled chicken tacos, fajitas (skip the tortillas)
+- Asian: steamed dishes, sashimi, pho, lettuce wraps, edamame
+- Italian: grilled chicken/fish, salads, minestrone soup (avoid heavy pasta/pizza)
+- General tips: ask for dressings/sauces on the side, swap fries for salad, choose grilled over fried
+- Chain restaurants with nutrition info: Chipotle, Chick-fil-A, Panera, Subway
+
 **SUGGESTION RULES:**
 0. **CRITICAL - RESPECT DIETARY RESTRICTIONS:** If the client has dietary preferences listed above (vegan, vegetarian, allergies, etc.), you MUST ONLY suggest foods that comply with their diet. For example:
    - VEGAN: NO meat, fish, eggs, dairy, honey. Only suggest plant-based options.
