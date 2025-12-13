@@ -5,7 +5,8 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Beta users with gym features enabled
 const BETA_USERS = [
-  'valeriano_fernando@yahoo.com'
+  'valeriano_fernando@yahoo.com',
+  'contact@ziquefitness.com'
 ];
 
 const headers = {
