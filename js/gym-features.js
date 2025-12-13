@@ -4,8 +4,9 @@
  */
 
 // Beta users with gym features enabled (by email)
-// DISABLED: Gym features hidden from all users
-const GYM_BETA_EMAILS = [];
+const GYM_BETA_EMAILS = [
+  'valeriano_fernando@yahoo.com'
+];
 
 /**
  * Check if gym features are enabled for the given email (local check)
