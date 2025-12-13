@@ -2582,6 +2582,11 @@ body {
 .macro-bar-label.fiber { color: #22c55e; }
 .macro-bar-label.sugar { color: #ec4899; }
 .macro-bar-label.sodium { color: #8b5cf6; }
+.macro-bar-label.potassium { color: #f97316; }
+.macro-bar-label.calcium { color: #06b6d4; }
+.macro-bar-label.iron { color: #dc2626; }
+.macro-bar-label.vitaminC { color: #facc15; }
+.macro-bar-label.cholesterol { color: #a855f7; }
 
 .macro-bar-value {
     font-size: 0.75rem;
@@ -2616,6 +2621,11 @@ body {
 .macro-bar-fill.fiber { background: #22c55e; }
 .macro-bar-fill.sugar { background: #ec4899; }
 .macro-bar-fill.sodium { background: #8b5cf6; }
+.macro-bar-fill.potassium { background: #f97316; }
+.macro-bar-fill.calcium { background: #06b6d4; }
+.macro-bar-fill.iron { background: #dc2626; }
+.macro-bar-fill.vitaminC { background: #facc15; }
+.macro-bar-fill.cholesterol { background: #a855f7; }
 
 /* Meal Sections */
 .meal-sections {
