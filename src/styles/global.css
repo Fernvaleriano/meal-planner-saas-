@@ -2542,14 +2542,29 @@ body {
     color: var(--gray-400);
 }
 
+/* Macro Progress Scroll Container */
+.macro-progress-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -16px;
+    padding: 0 16px;
+    scrollbar-width: none;
+}
+
+.macro-progress-scroll::-webkit-scrollbar {
+    display: none;
+}
+
 /* Macro Progress Bars */
 .macro-progress-bars {
     display: flex;
     gap: 16px;
+    min-width: max-content;
 }
 
 .macro-bar-item {
     flex: 1;
+    min-width: 90px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -2564,6 +2579,9 @@ body {
 .macro-bar-label.protein { color: #3b82f6; }
 .macro-bar-label.carbs { color: #f59e0b; }
 .macro-bar-label.fat { color: #ef4444; }
+.macro-bar-label.fiber { color: #22c55e; }
+.macro-bar-label.sugar { color: #ec4899; }
+.macro-bar-label.sodium { color: #8b5cf6; }
 
 .macro-bar-value {
     font-size: 0.75rem;
@@ -2595,6 +2613,9 @@ body {
 .macro-bar-fill.protein { background: #3b82f6; }
 .macro-bar-fill.carbs { background: #f59e0b; }
 .macro-bar-fill.fat { background: #ef4444; }
+.macro-bar-fill.fiber { background: #22c55e; }
+.macro-bar-fill.sugar { background: #ec4899; }
+.macro-bar-fill.sodium { background: #8b5cf6; }
 
 /* Meal Sections */
 .meal-sections {
