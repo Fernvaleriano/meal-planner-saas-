@@ -121,7 +121,14 @@ function Plans() {
 
   // Load plans with caching
   useEffect(() => {
-    if (!clientData?.id) return;
+    // If no clientData yet, just wait (don't return without clearing loading state)
+    if (!clientData?.id) {
+      // If we have cached plans, we're already showing them, so set loading false
+      if (cachedPlans && cachedPlans.length > 0) {
+        setLoading(false);
+      }
+      return;
+    }
 
     // Fetch fresh data
     apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`)

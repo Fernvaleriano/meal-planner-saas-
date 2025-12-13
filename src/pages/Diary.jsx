@@ -1421,8 +1421,8 @@ function Diary() {
           </button>
         </div>
 
-        {/* Chat Messages (shown when expanded) */}
-        {aiExpanded && aiMessages.length > 0 && (
+        {/* Chat Messages (always shown when there are messages) */}
+        {aiMessages.length > 0 && (
           <div className="ai-chat-messages">
             {aiMessages.map((msg, idx) => (
               <div key={idx} className={`ai-message ${msg.role}`}>
