@@ -7555,3 +7555,411 @@ body {
 .cancel-btn-full:hover {
     background: #4b5563;
 }
+
+/* ========================================
+   PLAN ACTION BAR
+   ======================================== */
+.plan-action-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 16px;
+    margin-top: 16px;
+    background: var(--gray-100);
+    border-radius: 16px;
+    margin-bottom: 80px; /* Space for bottom nav */
+}
+
+.plan-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 12px;
+    background: white;
+    color: var(--gray-700);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.plan-action-btn:hover {
+    background: var(--brand-primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.plan-action-btn.revert {
+    color: #f59e0b;
+}
+
+.plan-action-btn.revert:hover {
+    background: #f59e0b;
+    color: white;
+}
+
+[data-theme="dark"] .plan-action-bar {
+    background: var(--gray-800);
+}
+
+[data-theme="dark"] .plan-action-btn {
+    background: var(--gray-700);
+    color: var(--gray-300);
+}
+
+/* ========================================
+   FLOATING UNDO BUTTON
+   ======================================== */
+.floating-undo-btn {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    z-index: 50;
+    animation: slideUp 0.3s ease-out;
+}
+
+.floating-undo-btn:hover {
+    transform: translateX(-50%) scale(1.05);
+    box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* ========================================
+   LOG CONFIRMATION MODAL
+   ======================================== */
+.confirm-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    width: 90%;
+    max-width: 340px;
+    text-align: center;
+    animation: modalPop 0.3s ease-out;
+}
+
+.confirm-modal h3 {
+    font-size: 1.25rem;
+    color: var(--gray-800);
+    margin-bottom: 12px;
+}
+
+.confirm-modal p {
+    color: var(--gray-600);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.confirm-macros {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--gray-100);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.confirm-macros span {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.confirm-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-btn.cancel {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.confirm-btn.cancel:hover {
+    background: var(--gray-300);
+}
+
+.confirm-btn.confirm {
+    background: var(--brand-gradient);
+    color: white;
+}
+
+.confirm-btn.confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+[data-theme="dark"] .confirm-modal {
+    background: var(--gray-800);
+}
+
+[data-theme="dark"] .confirm-modal h3 {
+    color: var(--gray-100);
+}
+
+[data-theme="dark"] .confirm-modal p {
+    color: var(--gray-400);
+}
+
+[data-theme="dark"] .confirm-macros {
+    background: var(--gray-700);
+}
+
+/* ========================================
+   GROCERY LIST MODAL
+   ======================================== */
+.grocery-modal {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    animation: modalPop 0.3s ease-out;
+}
+
+.grocery-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.grocery-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    color: var(--gray-800);
+}
+
+.grocery-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.empty-grocery {
+    text-align: center;
+    color: var(--gray-500);
+    padding: 40px 20px;
+}
+
+.grocery-category {
+    margin-bottom: 24px;
+}
+
+.grocery-category h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--brand-primary);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--brand-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grocery-category ul {
+    list-style: none;
+}
+
+.grocery-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.grocery-item:hover {
+    background: var(--gray-100);
+}
+
+.grocery-item.checked {
+    opacity: 0.5;
+}
+
+.grocery-item.checked .grocery-text {
+    text-decoration: line-through;
+}
+
+.grocery-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--gray-300);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.grocery-item.checked .grocery-checkbox {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+
+.grocery-text {
+    font-size: 0.95rem;
+    color: var(--gray-700);
+    line-height: 1.4;
+}
+
+[data-theme="dark"] .grocery-modal {
+    background: var(--gray-800);
+}
+
+[data-theme="dark"] .grocery-header {
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .grocery-header h2 {
+    color: var(--gray-100);
+}
+
+[data-theme="dark"] .grocery-item:hover {
+    background: var(--gray-700);
+}
+
+[data-theme="dark"] .grocery-text {
+    color: var(--gray-300);
+}
+
+/* ========================================
+   MEAL PREP MODAL
+   ======================================== */
+.meal-prep-modal {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 550px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    animation: modalPop 0.3s ease-out;
+}
+
+.meal-prep-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.meal-prep-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    color: var(--gray-800);
+}
+
+.meal-prep-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.meal-prep-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 20px;
+}
+
+.meal-prep-loading p {
+    color: var(--gray-500);
+}
+
+.meal-prep-guide {
+    line-height: 1.7;
+}
+
+.meal-prep-guide p {
+    margin-bottom: 12px;
+    color: var(--gray-700);
+}
+
+.meal-prep-guide p:empty {
+    display: none;
+}
+
+[data-theme="dark"] .meal-prep-modal {
+    background: var(--gray-800);
+}
+
+[data-theme="dark"] .meal-prep-header {
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .meal-prep-header h2 {
+    color: var(--gray-100);
+}
+
+[data-theme="dark"] .meal-prep-guide p {
+    color: var(--gray-300);
+}
+
+/* Mobile responsive adjustments for plan action bar */
+@media (max-width: 400px) {
+    .plan-action-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .plan-action-btn span {
+        display: block;
+    }
+}

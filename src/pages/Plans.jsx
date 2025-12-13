@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 
@@ -79,6 +79,46 @@ function Plans() {
   const [mealImageLoading, setMealImageLoading] = useState(false);
   const [mealImageUrl, setMealImageUrl] = useState(null);
 
+  // Undo state management
+  const [previousMealStates, setPreviousMealStates] = useState(() => {
+    try {
+      const stored = localStorage.getItem('plannerUndoStates');
+      return stored ? JSON.parse(stored) : {};
+    } catch (e) { return {}; }
+  });
+
+  // Grocery list state
+  const [showGroceryModal, setShowGroceryModal] = useState(false);
+  const [groceryChecks, setGroceryChecks] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`grocery-checks-${planId || 'default'}`);
+      return stored ? JSON.parse(stored) : {};
+    } catch (e) { return {}; }
+  });
+
+  // Meal images cache for cards
+  const [mealImages, setMealImages] = useState(() => {
+    try {
+      const stored = localStorage.getItem('mealImageCache');
+      return stored ? JSON.parse(stored) : {};
+    } catch (e) { return {}; }
+  });
+
+  // Log confirmation modal state
+  const [showLogConfirm, setShowLogConfirm] = useState(false);
+  const [mealToLog, setMealToLog] = useState(null);
+
+  // Undo state - stores the last changed meal
+  const [undoData, setUndoData] = useState(null);
+
+  // Original plan for revert feature
+  const [originalPlanData, setOriginalPlanData] = useState(null);
+
+  // Meal prep modal state
+  const [showMealPrepModal, setShowMealPrepModal] = useState(false);
+  const [mealPrepGuide, setMealPrepGuide] = useState(null);
+  const [mealPrepLoading, setMealPrepLoading] = useState(false);
+
   // Load plans with caching
   useEffect(() => {
     if (!clientData?.id) return;
@@ -102,6 +142,79 @@ function Plans() {
       .catch(err => console.error('Error loading plans:', err))
       .finally(() => setLoading(false));
   }, [clientData?.id, planId]);
+
+  // Load meal images when plan is selected
+  useEffect(() => {
+    if (!selectedPlan) return;
+
+    const loadMealImages = async () => {
+      const days = getPlanDays(selectedPlan);
+      const mealNames = [];
+
+      // Collect all meal names
+      days.forEach(day => {
+        (day.plan || []).forEach(meal => {
+          if (meal.name && !mealImages[meal.name]) {
+            mealNames.push(meal.name);
+          }
+        });
+      });
+
+      if (mealNames.length === 0) return;
+
+      try {
+        const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames });
+        if (response.images) {
+          const newImages = { ...mealImages, ...response.images };
+          setMealImages(newImages);
+          localStorage.setItem('mealImageCache', JSON.stringify(newImages));
+
+          // Also update the meals with their image URLs
+          const updatedPlan = { ...selectedPlan };
+          const updatedDays = [...getPlanDays(updatedPlan)];
+          updatedDays.forEach(day => {
+            (day.plan || []).forEach(meal => {
+              if (response.images[meal.name]) {
+                meal.image_url = response.images[meal.name];
+              }
+            });
+          });
+
+          if (updatedPlan.plan_data.currentPlan) {
+            updatedPlan.plan_data.currentPlan = updatedDays;
+          } else if (updatedPlan.plan_data.days) {
+            updatedPlan.plan_data.days = updatedDays;
+          }
+          setSelectedPlan(updatedPlan);
+        }
+      } catch (err) {
+        console.error('Error loading meal images:', err);
+      }
+    };
+
+    loadMealImages();
+  }, [selectedPlan?.id]);
+
+  // Save undo states to localStorage
+  useEffect(() => {
+    localStorage.setItem('plannerUndoStates', JSON.stringify(previousMealStates));
+  }, [previousMealStates]);
+
+  // Store original plan data for revert feature
+  useEffect(() => {
+    if (selectedPlan && !originalPlanData) {
+      // Deep clone and store the original plan when first loaded
+      const originalKey = `originalPlan_${selectedPlan.id}`;
+      const stored = localStorage.getItem(originalKey);
+      if (stored) {
+        setOriginalPlanData(JSON.parse(stored));
+      } else {
+        const original = JSON.parse(JSON.stringify(selectedPlan.plan_data));
+        setOriginalPlanData(original);
+        localStorage.setItem(originalKey, JSON.stringify(original));
+      }
+    }
+  }, [selectedPlan?.id]);
 
   // Get plan details
   const getPlanDetails = (plan) => {
@@ -259,9 +372,15 @@ function Plans() {
     }
   };
 
-  // Log meal to diary
-  const handleLogMeal = async (meal) => {
-    if (!clientData?.id) return;
+  // Log meal to diary - show confirmation first
+  const handleLogMeal = (meal) => {
+    setMealToLog(meal);
+    setShowLogConfirm(true);
+  };
+
+  // Confirm and log meal to diary
+  const confirmLogMeal = async () => {
+    if (!clientData?.id || !mealToLog) return;
 
     try {
       setActionLoading('log');
@@ -271,26 +390,34 @@ function Plans() {
         clientId: clientData.id,
         coachId: clientData.coach_id,
         entryDate: today,
-        mealType: (meal.type || meal.meal_type || 'meal').toLowerCase(),
-        foodName: meal.name,
+        mealType: (mealToLog.type || mealToLog.meal_type || 'meal').toLowerCase(),
+        foodName: mealToLog.name,
         servingSize: 1,
         servingUnit: 'serving',
         numberOfServings: 1,
-        calories: meal.calories || 0,
-        protein: meal.protein || 0,
-        carbs: meal.carbs || 0,
-        fat: meal.fat || 0,
+        calories: mealToLog.calories || 0,
+        protein: mealToLog.protein || 0,
+        carbs: mealToLog.carbs || 0,
+        fat: mealToLog.fat || 0,
         foodSource: 'meal_plan'
       });
 
-      alert('Meal logged to diary!');
+      setShowLogConfirm(false);
+      setMealToLog(null);
       closeMealModal();
+      alert('✅ Meal logged to diary!');
     } catch (err) {
       console.error('Error logging meal:', err);
       alert('Failed to log meal');
     } finally {
       setActionLoading(null);
     }
+  };
+
+  // Cancel logging
+  const cancelLogMeal = () => {
+    setShowLogConfirm(false);
+    setMealToLog(null);
   };
 
   // Helper to save updated plan to database
@@ -312,6 +439,16 @@ function Plans() {
   // Change meal - generate a different meal with similar macros
   const handleChangeMeal = async (meal) => {
     if (!selectedPlan) return;
+
+    // Save undo data before making changes
+    const days = getPlanDays(selectedPlan);
+    const originalMeal = JSON.parse(JSON.stringify(days[meal.dayIdx].plan[meal.mealIdx]));
+    setUndoData({
+      dayIdx: meal.dayIdx,
+      mealIdx: meal.mealIdx,
+      meal: originalMeal,
+      action: 'change'
+    });
 
     closeMealModal();
     setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'change' });
@@ -406,6 +543,10 @@ Return ONLY valid JSON:
 
   // Revise meal - modify with AI based on user request
   const handleReviseMeal = async (meal) => {
+    // Save undo data before making changes
+    const days = getPlanDays(selectedPlan);
+    const originalMeal = JSON.parse(JSON.stringify(days[meal.dayIdx].plan[meal.mealIdx]));
+
     const revisionText = window.prompt(
       `Revise "${meal.name}"?\n\nExamples:\n` +
       `• "increase chicken to 250g"\n` +
@@ -418,6 +559,14 @@ Return ONLY valid JSON:
     );
 
     if (!revisionText || !revisionText.trim()) return;
+
+    // Save undo data now that user confirmed the revision
+    setUndoData({
+      dayIdx: meal.dayIdx,
+      mealIdx: meal.mealIdx,
+      meal: originalMeal,
+      action: 'revise'
+    });
 
     closeMealModal();
     setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'revise' });
@@ -891,6 +1040,251 @@ Return ONLY valid JSON:
     alert(recipe + ingredients + instructions);
   };
 
+  // Undo last meal change
+  const handleUndoMeal = async () => {
+    if (!undoData || !selectedPlan) return;
+
+    try {
+      const updatedPlan = { ...selectedPlan };
+      const updatedDays = [...getPlanDays(updatedPlan)];
+
+      // Deep clone to ensure we're not mutating state
+      updatedDays[undoData.dayIdx] = { ...updatedDays[undoData.dayIdx] };
+      updatedDays[undoData.dayIdx].plan = [...updatedDays[undoData.dayIdx].plan];
+      updatedDays[undoData.dayIdx].plan[undoData.mealIdx] = undoData.meal;
+
+      if (updatedPlan.plan_data.currentPlan) {
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, currentPlan: updatedDays };
+      } else {
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, days: updatedDays };
+      }
+
+      setSelectedPlan(updatedPlan);
+      setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+      await savePlanToDatabase(updatedPlan);
+      setUndoData(null);
+    } catch (err) {
+      console.error('Undo error:', err);
+      alert('Failed to undo. Please try again.');
+    }
+  };
+
+  // Revert to original plan
+  const handleRevertToOriginal = async () => {
+    if (!originalPlanData || !selectedPlan) return;
+
+    const confirmed = window.confirm(
+      '⚠️ Revert to Original Plan?\n\n' +
+      'This will undo ALL changes you\'ve made to this meal plan and restore it to its original state.\n\n' +
+      'This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const updatedPlan = { ...selectedPlan };
+      updatedPlan.plan_data = JSON.parse(JSON.stringify(originalPlanData));
+
+      setSelectedPlan(updatedPlan);
+      setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+      await savePlanToDatabase(updatedPlan);
+      setUndoData(null);
+      alert('✅ Plan reverted to original!');
+    } catch (err) {
+      console.error('Revert error:', err);
+      alert('Failed to revert. Please try again.');
+    }
+  };
+
+  // Generate grocery list from plan
+  const generateGroceryList = () => {
+    if (!selectedPlan) return {};
+
+    const days = getPlanDays(selectedPlan);
+    const groceryItems = {};
+
+    // Categories for common ingredients
+    const categorize = (ingredient) => {
+      const ing = ingredient.toLowerCase();
+      if (ing.includes('chicken') || ing.includes('beef') || ing.includes('pork') || ing.includes('fish') || ing.includes('salmon') || ing.includes('shrimp') || ing.includes('turkey') || ing.includes('lamb') || ing.includes('steak')) return 'Proteins';
+      if (ing.includes('milk') || ing.includes('cheese') || ing.includes('yogurt') || ing.includes('butter') || ing.includes('cream') || ing.includes('egg')) return 'Dairy & Eggs';
+      if (ing.includes('rice') || ing.includes('pasta') || ing.includes('bread') || ing.includes('oat') || ing.includes('flour') || ing.includes('quinoa') || ing.includes('cereal')) return 'Grains & Pasta';
+      if (ing.includes('apple') || ing.includes('banana') || ing.includes('orange') || ing.includes('berry') || ing.includes('fruit') || ing.includes('lemon') || ing.includes('lime') || ing.includes('avocado')) return 'Fruits';
+      if (ing.includes('vegetable') || ing.includes('broccoli') || ing.includes('spinach') || ing.includes('carrot') || ing.includes('onion') || ing.includes('garlic') || ing.includes('tomato') || ing.includes('pepper') || ing.includes('lettuce') || ing.includes('cucumber') || ing.includes('zucchini') || ing.includes('celery') || ing.includes('potato') || ing.includes('sweet potato')) return 'Vegetables';
+      if (ing.includes('oil') || ing.includes('vinegar') || ing.includes('sauce') || ing.includes('dressing') || ing.includes('ketchup') || ing.includes('mustard') || ing.includes('mayo')) return 'Condiments & Oils';
+      if (ing.includes('salt') || ing.includes('pepper') || ing.includes('spice') || ing.includes('herb') || ing.includes('basil') || ing.includes('oregano') || ing.includes('cinnamon') || ing.includes('paprika')) return 'Spices & Seasonings';
+      if (ing.includes('almond') || ing.includes('peanut') || ing.includes('walnut') || ing.includes('nut') || ing.includes('seed')) return 'Nuts & Seeds';
+      return 'Other';
+    };
+
+    days.forEach(day => {
+      (day.plan || []).forEach(meal => {
+        if (meal.ingredients && Array.isArray(meal.ingredients)) {
+          meal.ingredients.forEach(ing => {
+            const ingStr = typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`.trim();
+            const category = categorize(ingStr);
+
+            if (!groceryItems[category]) {
+              groceryItems[category] = [];
+            }
+
+            // Avoid duplicates (simple check)
+            const exists = groceryItems[category].some(item =>
+              item.toLowerCase().includes(ingStr.toLowerCase().split('(')[0].trim()) ||
+              ingStr.toLowerCase().includes(item.toLowerCase().split('(')[0].trim())
+            );
+
+            if (!exists && ingStr.trim()) {
+              groceryItems[category].push(ingStr);
+            }
+          });
+        }
+      });
+    });
+
+    return groceryItems;
+  };
+
+  // Toggle grocery item checked
+  const toggleGroceryCheck = (category, index) => {
+    const key = `${category}-${index}`;
+    setGroceryChecks(prev => {
+      const updated = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(`grocery-checks-${planId || 'default'}`, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Generate meal prep guide
+  const handleMealPrep = async () => {
+    setShowMealPrepModal(true);
+
+    if (mealPrepGuide) return; // Already generated
+
+    setMealPrepLoading(true);
+    try {
+      const days = getPlanDays(selectedPlan);
+      const allMeals = [];
+
+      days.forEach((day, dayIdx) => {
+        (day.plan || []).forEach(meal => {
+          allMeals.push({
+            day: dayIdx + 1,
+            name: meal.name,
+            type: meal.type || meal.meal_type,
+            ingredients: meal.ingredients || []
+          });
+        });
+      });
+
+      const prompt = `Create a concise meal prep guide for this ${days.length}-day meal plan:
+
+${allMeals.map(m => `Day ${m.day} ${m.type}: ${m.name}`).join('\n')}
+
+Provide:
+1. What to prep on Day 1 (proteins, grains, vegetables that can be prepped ahead)
+2. Storage tips for each prepped item
+3. Daily assembly instructions
+4. Time-saving tips
+
+Keep it practical and brief. Format with clear sections.`;
+
+      const response = await apiPost('/.netlify/functions/generate-meal-plan', {
+        prompt,
+        isJson: false
+      });
+
+      if (response.data) {
+        setMealPrepGuide(response.data);
+      } else {
+        setMealPrepGuide('Unable to generate meal prep guide. Please try again.');
+      }
+    } catch (err) {
+      console.error('Meal prep error:', err);
+      setMealPrepGuide('Failed to generate meal prep guide. Please try again.');
+    } finally {
+      setMealPrepLoading(false);
+    }
+  };
+
+  // Download plan as PDF
+  const handleDownloadPDF = () => {
+    if (!selectedPlan) return;
+
+    const days = getPlanDays(selectedPlan);
+    const { numDays, calories, goal } = getPlanDetails(selectedPlan);
+
+    // Create printable content
+    let content = `
+      <html>
+      <head>
+        <title>${numDays}-Day Meal Plan</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          h1 { color: #333; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
+          h2 { color: #4f46e5; margin-top: 30px; }
+          h3 { color: #666; }
+          .meal { margin: 15px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+          .meal-name { font-weight: bold; font-size: 16px; color: #333; }
+          .meal-macros { color: #666; margin: 5px 0; }
+          .ingredients { margin-top: 10px; }
+          .ingredients li { margin: 3px 0; }
+          .summary { display: flex; gap: 20px; margin: 20px 0; }
+          .summary-item { padding: 10px 15px; background: #e8e8ff; border-radius: 8px; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <h1>🍽️ ${numDays}-Day Meal Plan</h1>
+        <div class="summary">
+          <div class="summary-item"><strong>Duration:</strong> ${numDays} Days</div>
+          <div class="summary-item"><strong>Target:</strong> ${calories} cal/day</div>
+          <div class="summary-item"><strong>Goal:</strong> ${goal}</div>
+        </div>
+    `;
+
+    days.forEach((day, idx) => {
+      content += `<h2>Day ${idx + 1}</h2>`;
+
+      if (day.targets) {
+        content += `<p><em>Daily Targets: ${day.targets.calories} cal | ${day.targets.protein}g protein | ${day.targets.carbs}g carbs | ${day.targets.fat}g fat</em></p>`;
+      }
+
+      (day.plan || []).forEach(meal => {
+        content += `
+          <div class="meal">
+            <div class="meal-name">${meal.type || meal.meal_type || 'Meal'}: ${meal.name}</div>
+            <div class="meal-macros">${meal.calories || 0} cal | P: ${meal.protein || 0}g | C: ${meal.carbs || 0}g | F: ${meal.fat || 0}g</div>
+            ${meal.ingredients?.length ? `
+              <div class="ingredients">
+                <strong>Ingredients:</strong>
+                <ul>
+                  ${meal.ingredients.map(ing => `<li>${typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+            ${meal.instructions ? `<p><strong>Instructions:</strong> ${meal.instructions}</p>` : ''}
+          </div>
+        `;
+      });
+    });
+
+    content += `
+        <p style="margin-top: 40px; color: #999; text-align: center;">Generated by FernFit Meal Planner</p>
+      </body>
+      </html>
+    `;
+
+    // Open print dialog
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   // View plan detail
   const handleViewPlan = (plan) => {
     setSelectedPlan(plan);
@@ -1163,6 +1557,133 @@ Return ONLY valid JSON:
             </div>
           )}
         </div>
+
+        {/* Plan Action Buttons */}
+        <div className="plan-action-bar">
+          <button className="plan-action-btn" onClick={() => setShowGroceryModal(true)}>
+            <ShoppingCart size={20} />
+            <span>Grocery List</span>
+          </button>
+          <button className="plan-action-btn" onClick={handleMealPrep}>
+            <ChefHat size={20} />
+            <span>Meal Prep</span>
+          </button>
+          <button className="plan-action-btn" onClick={handleDownloadPDF}>
+            <FileDown size={20} />
+            <span>Download PDF</span>
+          </button>
+          <button className="plan-action-btn revert" onClick={handleRevertToOriginal}>
+            <RotateCcw size={20} />
+            <span>Revert</span>
+          </button>
+        </div>
+
+        {/* Floating Undo Button */}
+        {undoData && (
+          <button className="floating-undo-btn" onClick={handleUndoMeal}>
+            <Undo2 size={20} />
+            <span>Undo {undoData.action === 'change' ? 'Change' : 'Revision'}</span>
+          </button>
+        )}
+
+        {/* Log Confirmation Modal */}
+        {showLogConfirm && mealToLog && (
+          <div className="meal-modal-overlay" onClick={cancelLogMeal}>
+            <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+              <h3>Log to Diary?</h3>
+              <p>Add <strong>{mealToLog.name}</strong> to your food diary for today?</p>
+              <div className="confirm-macros">
+                <span>{mealToLog.calories || 0} cal</span>
+                <span>P: {mealToLog.protein || 0}g</span>
+                <span>C: {mealToLog.carbs || 0}g</span>
+                <span>F: {mealToLog.fat || 0}g</span>
+              </div>
+              <div className="confirm-buttons">
+                <button className="confirm-btn cancel" onClick={cancelLogMeal}>Cancel</button>
+                <button
+                  className="confirm-btn confirm"
+                  onClick={confirmLogMeal}
+                  disabled={actionLoading === 'log'}
+                >
+                  {actionLoading === 'log' ? 'Logging...' : 'Yes, Log It'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Grocery List Modal */}
+        {showGroceryModal && (
+          <div className="meal-modal-overlay" onClick={() => setShowGroceryModal(false)}>
+            <div className="grocery-modal" onClick={e => e.stopPropagation()}>
+              <div className="grocery-header">
+                <h2><ShoppingCart size={24} /> Grocery List</h2>
+                <button className="meal-modal-close" onClick={() => setShowGroceryModal(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="grocery-content">
+                {Object.entries(generateGroceryList()).length === 0 ? (
+                  <p className="empty-grocery">No ingredients found in this meal plan.</p>
+                ) : (
+                  Object.entries(generateGroceryList()).map(([category, items]) => (
+                    <div key={category} className="grocery-category">
+                      <h3>{category}</h3>
+                      <ul>
+                        {items.map((item, idx) => {
+                          const key = `${category}-${idx}`;
+                          const isChecked = groceryChecks[key];
+                          return (
+                            <li
+                              key={idx}
+                              className={`grocery-item ${isChecked ? 'checked' : ''}`}
+                              onClick={() => toggleGroceryCheck(category, idx)}
+                            >
+                              <span className="grocery-checkbox">
+                                {isChecked && <Check size={14} />}
+                              </span>
+                              <span className="grocery-text">{item}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Meal Prep Modal */}
+        {showMealPrepModal && (
+          <div className="meal-modal-overlay" onClick={() => setShowMealPrepModal(false)}>
+            <div className="meal-prep-modal" onClick={e => e.stopPropagation()}>
+              <div className="meal-prep-header">
+                <h2><ChefHat size={24} /> Meal Prep Guide</h2>
+                <button className="meal-modal-close" onClick={() => setShowMealPrepModal(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="meal-prep-content">
+                {mealPrepLoading ? (
+                  <div className="meal-prep-loading">
+                    <div className="meal-image-spinner"></div>
+                    <p>Generating meal prep guide...</p>
+                  </div>
+                ) : mealPrepGuide ? (
+                  <div className="meal-prep-guide">
+                    {mealPrepGuide.split('\n').map((line, idx) => (
+                      <p key={idx}>{line}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p>Click to generate a meal prep guide for this plan.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Meal Action Modal */}
         {showMealModal && selectedMeal && (
