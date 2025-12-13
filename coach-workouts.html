@@ -550,7 +550,251 @@
             box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3);
         }
 
-        /* Client Assignment */
+        /* Assign Section */
+        .assign-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .assign-btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .assign-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3);
+        }
+
+        .assign-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Assign Modal Styles */
+        .assign-modal {
+            max-width: 500px;
+            width: 95%;
+        }
+
+        .assign-modal .modal-body {
+            padding: 0;
+        }
+
+        .assign-modal .form-input {
+            margin: 16px;
+            width: calc(100% - 32px);
+        }
+
+        .client-select-list {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .client-select-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+
+        .client-select-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .client-select-item.selected {
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .client-select-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .client-select-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .client-select-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .client-select-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .client-select-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .client-select-check svg {
+            opacity: 0;
+            color: white;
+        }
+
+        .client-select-item.selected .client-select-check {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+        }
+
+        .client-select-item.selected .client-select-check svg {
+            opacity: 1;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .modal-footer .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .modal-footer .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-footer .btn-primary {
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+        }
+
+        .modal-footer .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Schedule Modal */
+        .schedule-row {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .schedule-row:last-child {
+            border-bottom: none;
+        }
+
+        .schedule-label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .schedule-row .form-input {
+            margin: 0;
+            width: 100%;
+        }
+
+        .selected-clients-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .selected-client-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+        }
+
+        .selected-client-chip img,
+        .selected-client-chip .chip-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .days-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .day-checkbox {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .day-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--brand-primary);
+        }
+
+        .day-checkbox span {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Legacy client card styles - keeping for backward compatibility */
         .client-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1148,13 +1392,97 @@
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
-                    Assign to Clients
+                    Assign Program
                 </h2>
-                <div class="client-grid" id="clientList">
-                    <div class="empty-state">
-                        <p>Loading clients...</p>
+                <p class="assign-description">Save your program first, then assign it to one or more clients with a schedule.</p>
+                <button class="assign-btn" onclick="openAssignModal()" id="assignBtn" disabled>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    Assign to Clients
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Selection Modal (Step 1) -->
+    <div class="modal-overlay" id="clientSelectModal">
+        <div class="modal assign-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Select Clients
+                </h3>
+                <button class="modal-close" onclick="closeClientSelectModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-input" id="clientSearchInput" placeholder="Search client name..." oninput="filterClients(this.value)">
+                <div class="client-select-list" id="clientSelectList">
+                    <!-- Clients rendered here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeClientSelectModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="proceedToSchedule()" id="continueBtn" disabled>
+                    Continue
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Assignment Modal (Step 2) -->
+    <div class="modal-overlay" id="scheduleModal">
+        <div class="modal assign-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Assign Workout
+                </h3>
+                <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="schedule-row">
+                    <label class="schedule-label">Clients</label>
+                    <div class="selected-clients-display" id="selectedClientsDisplay">
+                        <!-- Selected clients shown here -->
                     </div>
                 </div>
+                <div class="schedule-row">
+                    <label class="schedule-label">Start date</label>
+                    <input type="date" class="form-input" id="startDate">
+                </div>
+                <div class="schedule-row">
+                    <label class="schedule-label">Amount of weeks</label>
+                    <input type="number" class="form-input" id="weeksAmount" value="4" min="1" max="52">
+                </div>
+                <div class="schedule-row">
+                    <label class="schedule-label">Select days</label>
+                    <div class="days-selector">
+                        <label class="day-checkbox"><input type="checkbox" value="mon" checked><span>Mon</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="tue" checked><span>Tue</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="wed"><span>Wed</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="thu" checked><span>Thu</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="fri" checked><span>Fri</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="sat"><span>Sat</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="sun"><span>Sun</span></label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="backToClientSelect()">Cancel</button>
+                <button class="btn btn-primary" onclick="assignWorkout()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Assign
+                </button>
             </div>
         </div>
     </div>
@@ -1427,6 +1755,7 @@
 
                 workoutDays = program.program_data?.days || [];
                 renderWorkoutDays();
+                enableAssignButton(); // Enable assign button for existing program
             }
             renderProgramList();
         }
@@ -1443,7 +1772,9 @@
             selectedClients.clear();
             addWorkoutDay();
             renderProgramList();
-            renderClientList();
+            // Disable assign button until program is saved
+            const btn = document.getElementById('assignBtn');
+            if (btn) btn.disabled = true;
         }
 
         // Add workout day
@@ -1643,32 +1974,52 @@
             try {
                 const result = await apiCall(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
                 clients = result.clients || [];
-                renderClientList();
-                setupClientSelection();
+                console.log('Loaded clients:', clients.length);
             } catch (err) {
                 console.error('Error loading clients:', err);
                 clients = [];
-                renderClientList();
-                setupClientSelection();
             }
         }
 
-        function renderClientList() {
-            const container = document.getElementById('clientList');
-            if (clients.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>No clients yet</p></div>';
+        // ============ ASSIGNMENT MODAL FLOW ============
+
+        // Open client selection modal (Step 1)
+        function openAssignModal() {
+            if (!currentProgramId) {
+                showToast('Please save the program first', 'error');
+                return;
+            }
+            selectedClients.clear();
+            renderClientSelectList();
+            document.getElementById('clientSelectModal').style.display = 'flex';
+            setupClientSelectListener();
+        }
+
+        function closeClientSelectModal() {
+            document.getElementById('clientSelectModal').style.display = 'none';
+        }
+
+        // Render client list in modal
+        function renderClientSelectList(filter = '') {
+            const container = document.getElementById('clientSelectList');
+            const filtered = filter
+                ? clients.filter(c => (c.client_name || '').toLowerCase().includes(filter.toLowerCase()))
+                : clients;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: var(--text-secondary);">No clients found</div>';
                 return;
             }
 
-            container.innerHTML = clients.map(client => `
-                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}" data-client-id="${client.id}">
-                    <div class="client-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
-                    <div class="client-info">
-                        <div class="client-name">${client.client_name || 'Unnamed'}</div>
-                        <div class="client-email">${client.email || 'No email'}</div>
+            container.innerHTML = filtered.map(client => `
+                <div class="client-select-item ${selectedClients.has(client.id) ? 'selected' : ''}" data-client-id="${client.id}">
+                    <div class="client-select-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
+                    <div class="client-select-info">
+                        <div class="client-select-name">${client.client_name || 'Unnamed'}</div>
+                        <div class="client-select-email">${client.email || 'No email'}</div>
                     </div>
-                    <div class="client-check">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="client-select-check">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                         </svg>
                     </div>
@@ -1676,27 +2027,133 @@
             `).join('');
         }
 
-        // Set up client selection (called once after initial load)
-        let clientListenerAttached = false;
-        function setupClientSelection() {
-            if (clientListenerAttached) return;
-            const container = document.getElementById('clientList');
+        // Filter clients in modal
+        function filterClients(query) {
+            renderClientSelectList(query);
+        }
+
+        // Setup click listener for client selection in modal
+        let clientSelectListenerAttached = false;
+        function setupClientSelectListener() {
+            if (clientSelectListenerAttached) return;
+            const container = document.getElementById('clientSelectList');
             if (!container) return;
 
             container.addEventListener('click', function(e) {
-                const card = e.target.closest('.client-card');
-                if (card && card.dataset.clientId) {
-                    const clientId = card.dataset.clientId;
+                const item = e.target.closest('.client-select-item');
+                if (item && item.dataset.clientId) {
+                    const clientId = item.dataset.clientId;
                     if (selectedClients.has(clientId)) {
                         selectedClients.delete(clientId);
                     } else {
                         selectedClients.add(clientId);
                     }
-                    renderClientList();
+                    renderClientSelectList(document.getElementById('clientSearchInput').value);
+                    updateContinueButton();
                 }
             });
-            clientListenerAttached = true;
-            console.log('Client selection listener attached');
+            clientSelectListenerAttached = true;
+        }
+
+        function updateContinueButton() {
+            const btn = document.getElementById('continueBtn');
+            btn.disabled = selectedClients.size === 0;
+        }
+
+        // Proceed to schedule modal (Step 2)
+        function proceedToSchedule() {
+            if (selectedClients.size === 0) {
+                showToast('Please select at least one client', 'error');
+                return;
+            }
+            closeClientSelectModal();
+
+            // Show selected clients
+            const display = document.getElementById('selectedClientsDisplay');
+            display.innerHTML = Array.from(selectedClients).map(clientId => {
+                const client = clients.find(c => c.id === clientId);
+                return `
+                    <div class="selected-client-chip">
+                        <div class="chip-avatar">${(client?.client_name || 'C')[0].toUpperCase()}</div>
+                        <span>${client?.client_name || 'Client'}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Set default start date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+
+            document.getElementById('scheduleModal').style.display = 'flex';
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('scheduleModal').style.display = 'none';
+        }
+
+        function backToClientSelect() {
+            closeScheduleModal();
+            openAssignModal();
+        }
+
+        // Final assignment
+        async function assignWorkout() {
+            const startDate = document.getElementById('startDate').value;
+            const weeksAmount = parseInt(document.getElementById('weeksAmount').value) || 4;
+
+            // Get selected days
+            const selectedDays = [];
+            document.querySelectorAll('.days-selector input:checked').forEach(cb => {
+                selectedDays.push(cb.value);
+            });
+
+            if (!startDate) {
+                showToast('Please select a start date', 'error');
+                return;
+            }
+
+            if (selectedDays.length === 0) {
+                showToast('Please select at least one day', 'error');
+                return;
+            }
+
+            const programName = document.getElementById('programName').value.trim();
+
+            try {
+                showToast('Assigning workout...', 'success');
+
+                for (const clientId of selectedClients) {
+                    await apiCall('/.netlify/functions/workout-assignments', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            clientId,
+                            coachId: currentCoachId,
+                            programId: currentProgramId,
+                            name: programName,
+                            workoutData: { days: workoutDays },
+                            schedule: {
+                                startDate,
+                                weeksAmount,
+                                selectedDays
+                            }
+                        })
+                    });
+                }
+
+                closeScheduleModal();
+                showToast(`Workout assigned to ${selectedClients.size} client(s)!`, 'success');
+                selectedClients.clear();
+
+            } catch (err) {
+                console.error('Assignment error:', err);
+                showToast('Failed to assign workout: ' + err.message, 'error');
+            }
+        }
+
+        // Enable assign button after program is saved
+        function enableAssignButton() {
+            const btn = document.getElementById('assignBtn');
+            if (btn) btn.disabled = false;
         }
 
         // Save program
@@ -1745,21 +2202,8 @@
                     currentProgramId = result.program?.id;
                 }
 
-                // Assign to selected clients
-                for (const clientId of selectedClients) {
-                    await apiCall('/.netlify/functions/workout-assignments', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            clientId,
-                            coachId: currentCoachId,
-                            programId: currentProgramId,
-                            name,
-                            workoutData: { days: workoutDays }
-                        })
-                    });
-                }
-
-                showToast('Program saved successfully!');
+                showToast('Program saved! You can now assign it to clients.');
+                enableAssignButton();
                 await loadPrograms();
             } catch (err) {
                 console.error('Error saving program:', err);
