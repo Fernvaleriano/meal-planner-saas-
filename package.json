@@ -12,10 +12,15 @@
     "cap:android": "npm run build:mobile && npx cap sync android && npx cap open android",
     "android:build-debug": "npm run cap:sync && cd android && ./gradlew assembleDebug",
     "android:build-release": "npm run cap:sync && cd android && ./gradlew bundleRelease",
-    "android:build-apk": "npm run cap:sync && cd android && ./gradlew assembleRelease"
+    "android:build-apk": "npm run cap:sync && cd android && ./gradlew assembleRelease",
+    "import:exercises": "node scripts/import-exercises.js",
+    "import:exercises:dry": "node scripts/import-exercises.js --dry-run",
+    "upload:videos": "node scripts/upload-exercise-videos.js",
+    "upload:videos:list": "node scripts/upload-exercise-videos.js --list-unmatched"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",
+    "csv-parse": "^5.5.6",
     "@capacitor/android": "^7.4.4",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
