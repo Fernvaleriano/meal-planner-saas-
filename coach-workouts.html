@@ -578,6 +578,33 @@
             background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
         }
 
+        .client-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .client-check svg {
+            opacity: 0;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .client-card.selected .client-check {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+        }
+
+        .client-card.selected .client-check svg {
+            opacity: 1;
+        }
+
         .client-avatar {
             width: 44px;
             height: 44px;
@@ -1632,11 +1659,16 @@
             }
 
             container.innerHTML = clients.map(client => `
-                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}" onclick="toggleClient(${client.id})">
+                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}" onclick="toggleClient('${client.id}')">
                     <div class="client-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
                     <div class="client-info">
                         <div class="client-name">${client.client_name || 'Unnamed'}</div>
                         <div class="client-email">${client.email || 'No email'}</div>
+                    </div>
+                    <div class="client-check">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
                     </div>
                 </div>
             `).join('');
