@@ -6594,6 +6594,63 @@ body {
     cursor: not-allowed;
 }
 
+/* Light Mode - Food Confirmation Box */
+[data-theme="light"] .food-confirmation-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="light"] .food-confirmation-item {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .food-confirmation-name {
+    color: var(--gray-800);
+}
+
+[data-theme="light"] .food-confirmation-servings {
+    color: var(--gray-600);
+}
+
+[data-theme="light"] .servings-adjuster {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .servings-btn {
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--gray-700);
+}
+
+[data-theme="light"] .servings-btn:hover {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .servings-value {
+    color: var(--gray-800);
+}
+
+[data-theme="light"] .food-confirmation-macros {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="light"] .food-confirmation-macros .macro-value {
+    color: var(--gray-800);
+}
+
+[data-theme="light"] .food-confirmation-macros .macro-label {
+    color: var(--gray-500);
+}
+
+[data-theme="light"] .confirm-cancel-btn {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--gray-700);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .confirm-cancel-btn:hover {
+    background: rgba(0, 0, 0, 0.12);
+}
+
 /* =============================================
    MEAL PLAN ACTION MODAL
    ============================================= */
