@@ -1659,7 +1659,7 @@
             }
 
             container.innerHTML = clients.map(client => `
-                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}" onclick="toggleClient('${client.id}')">
+                <div class="client-card ${selectedClients.has(client.id) ? 'selected' : ''}" data-client-id="${client.id}">
                     <div class="client-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
                     <div class="client-info">
                         <div class="client-name">${client.client_name || 'Unnamed'}</div>
@@ -1674,14 +1674,19 @@
             `).join('');
         }
 
-        function toggleClient(clientId) {
-            if (selectedClients.has(clientId)) {
-                selectedClients.delete(clientId);
-            } else {
-                selectedClients.add(clientId);
+        // Event delegation for client selection
+        document.getElementById('clientList').addEventListener('click', function(e) {
+            const card = e.target.closest('.client-card');
+            if (card && card.dataset.clientId) {
+                const clientId = card.dataset.clientId;
+                if (selectedClients.has(clientId)) {
+                    selectedClients.delete(clientId);
+                } else {
+                    selectedClients.add(clientId);
+                }
+                renderClientList();
             }
-            renderClientList();
-        }
+        });
 
         // Save program
         async function saveProgram() {
