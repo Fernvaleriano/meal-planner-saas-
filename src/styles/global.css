@@ -7835,10 +7835,12 @@ body {
     border-radius: 20px;
     width: 90%;
     max-width: 500px;
+    height: 80vh;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
     animation: modalPop 0.3s ease-out;
+    overflow: hidden;
 }
 
 .grocery-header {
@@ -7847,6 +7849,7 @@ body {
     justify-content: space-between;
     padding: 20px;
     border-bottom: 1px solid var(--gray-200);
+    flex-shrink: 0;
 }
 
 .grocery-header h2 {
@@ -7861,6 +7864,8 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
+    padding-bottom: 40px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .empty-grocery {
@@ -7962,10 +7967,12 @@ body {
     border-radius: 20px;
     width: 90%;
     max-width: 550px;
+    height: 85vh;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
     animation: modalPop 0.3s ease-out;
+    overflow: hidden;
 }
 
 .meal-prep-header {
@@ -7974,6 +7981,7 @@ body {
     justify-content: space-between;
     padding: 20px;
     border-bottom: 1px solid var(--gray-200);
+    flex-shrink: 0;
 }
 
 .meal-prep-header h2 {
@@ -7988,6 +7996,8 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
+    padding-bottom: 40px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .meal-prep-loading {
