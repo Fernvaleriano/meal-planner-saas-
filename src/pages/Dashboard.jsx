@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
@@ -585,17 +585,17 @@ function Dashboard() {
         {/* Meal Type Selector */}
         <div className="meal-type-selector">
           {[
-            { id: 'breakfast', icon: '🌅', label: 'Breakfast' },
-            { id: 'lunch', icon: '🌤️', label: 'Lunch' },
-            { id: 'dinner', icon: '🌙', label: 'Dinner' },
-            { id: 'snack', icon: '🍎', label: 'Snack' }
+            { id: 'breakfast', Icon: Sunrise, label: 'Breakfast' },
+            { id: 'lunch', Icon: Sun, label: 'Lunch' },
+            { id: 'dinner', Icon: Moon, label: 'Dinner' },
+            { id: 'snack', Icon: Coffee, label: 'Snack' }
           ].map(meal => (
             <button
               key={meal.id}
               className={`meal-type-btn ${selectedMealType === meal.id ? 'active' : ''}`}
               onClick={() => setSelectedMealType(meal.id)}
             >
-              <span className="meal-icon">{meal.icon}</span>
+              <span className="meal-icon"><meal.Icon size={24} /></span>
               <span className="meal-label">{meal.label}</span>
             </button>
           ))}
