@@ -7639,55 +7639,110 @@ body {
    ======================================== */
 .plan-action-bar {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
     padding: 16px;
     margin-top: 16px;
-    background: var(--gray-100);
-    border-radius: 16px;
-    margin-bottom: 80px; /* Space for bottom nav */
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+    border-radius: 20px;
+    margin-bottom: 80px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .plan-action-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 12px 8px;
+    gap: 8px;
+    padding: 16px 12px;
     border: none;
-    border-radius: 12px;
-    background: white;
-    color: var(--gray-700);
-    font-size: 0.75rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(51, 65, 85, 0.8) 0%, rgba(30, 41, 59, 0.9) 100%);
+    color: #94a3b8;
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.plan-action-btn svg {
+    color: #64748b;
+    transition: all 0.3s ease;
 }
 
 .plan-action-btn:hover {
-    background: var(--brand-primary);
-    color: white;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.3) 0%, rgba(99, 102, 241, 0.2) 100%);
+    color: #e2e8f0;
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+}
+
+.plan-action-btn:hover svg {
+    color: #a5b4fc;
+}
+
+.plan-action-btn:active {
+    transform: translateY(0);
 }
 
 .plan-action-btn.revert {
+    color: #fbbf24;
+}
+
+.plan-action-btn.revert svg {
     color: #f59e0b;
 }
 
 .plan-action-btn.revert:hover {
-    background: #f59e0b;
-    color: white;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(251, 191, 36, 0.2) 100%);
+    color: #fef3c7;
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
 }
 
+.plan-action-btn.revert:hover svg {
+    color: #fcd34d;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .plan-action-bar {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .plan-action-btn {
+    background: white;
+    color: #475569;
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .plan-action-btn svg {
+    color: #64748b;
+}
+
+[data-theme="light"] .plan-action-btn:hover {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(99, 102, 241, 0.08) 100%);
+    color: #4f46e5;
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+[data-theme="light"] .plan-action-btn:hover svg {
+    color: #4f46e5;
+}
+
+/* Dark theme (default) */
 [data-theme="dark"] .plan-action-bar {
-    background: var(--gray-800);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
 }
 
 [data-theme="dark"] .plan-action-btn {
-    background: var(--gray-700);
-    color: var(--gray-300);
+    background: linear-gradient(135deg, rgba(51, 65, 85, 0.8) 0%, rgba(30, 41, 59, 0.9) 100%);
+    color: #94a3b8;
 }
 
 /* ========================================
@@ -7864,8 +7919,9 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 40px;
+    padding-bottom: 100px;
     -webkit-overflow-scrolling: touch;
+    /* Extra space at bottom to ensure all content is visible */
 }
 
 .empty-grocery {
@@ -7996,8 +8052,9 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 40px;
+    padding-bottom: 100px;
     -webkit-overflow-scrolling: touch;
+    /* Extra space at bottom to ensure all content is visible */
 }
 
 .meal-prep-loading {
@@ -8041,16 +8098,7 @@ body {
     color: var(--gray-300);
 }
 
-/* Mobile responsive adjustments for plan action bar */
-@media (max-width: 400px) {
-    .plan-action-bar {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .plan-action-btn span {
-        display: block;
-    }
-}
+/* Action bar is already 2x2 grid - no media query needed */
 
 /* ========================================
    MODERNIZED FORM INPUTS (Check-in, Modals)
