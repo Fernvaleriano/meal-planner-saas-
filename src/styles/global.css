@@ -1467,13 +1467,14 @@ body {
 /* Food Input */
 .food-input {
     width: 100%;
-    min-height: 60px;
-    padding: 14px;
+    min-height: 100px;
+    padding: 16px;
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.05);
     color: white;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    line-height: 1.5;
     font-family: inherit;
     resize: none;
     transition: all 0.2s;
@@ -2652,6 +2653,52 @@ body {
     color: var(--gray-500);
 }
 
+/* Collapsible Meal Sections */
+.meal-section-header {
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 0;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.meal-section-header:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .meal-section-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.meal-section-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.meal-collapse-icon {
+    color: var(--gray-400);
+    transition: transform 0.2s ease;
+}
+
+.meal-collapse-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.meal-item-count {
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    font-weight: 400;
+}
+
+.meal-section.collapsed {
+    padding-bottom: 12px;
+}
+
+.meal-section.collapsed .meal-section-header {
+    margin-bottom: 0;
+}
+
 .meal-add-btn {
     width: 36px;
     height: 36px;
@@ -2802,29 +2849,40 @@ body {
     background: rgba(16, 185, 129, 0.15);
 }
 
-/* Selection Mode Bar */
+/* Selection Mode Bar - Only visible when in selection mode (long-press activated) */
 .selection-mode-bar {
+    display: none;
+}
+
+.selection-mode-bar.active {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
-    margin: 0 16px 8px;
-    background: var(--gray-50);
-    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 0 0 12px;
+    background: var(--gray-100);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-[data-theme="dark"] .selection-mode-bar {
+[data-theme="dark"] .selection-mode-bar.active {
     background: #334155;
+}
+
+.selection-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .selection-btn {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 12px;
+    padding: 8px 14px;
     border: none;
     border-radius: 8px;
-    background: var(--gray-100);
+    background: var(--gray-200);
     color: var(--gray-700);
     font-size: 0.85rem;
     font-weight: 500;
@@ -2847,9 +2905,18 @@ body {
     color: white;
 }
 
+.selection-btn.delete {
+    background: #ef4444;
+    color: white;
+}
+
+.selection-btn.delete:hover {
+    background: #dc2626;
+}
+
 .selection-count {
     font-size: 0.9rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--gray-600);
 }
 
@@ -3047,6 +3114,82 @@ body {
 
 .water-btn:hover {
     transform: translateY(-1px);
+}
+
+/* Compact Water Intake */
+.water-intake-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    color: white;
+}
+
+.water-intake-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.water-intake-compact .water-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.water-intake-compact .water-progress {
+    font-weight: 700;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.water-intake-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.water-btn-compact {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.water-btn-compact:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.water-btn-compact:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.water-progress-bar {
+    width: 100px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.water-progress-fill {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    transition: width 0.3s ease;
 }
 
 /* AI Nutrition Assistant */
