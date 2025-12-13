@@ -26,46 +26,54 @@
   to = "/app/:splat"
   status = 301
 
-# Redirect old PWA client pages to new SPA
+# Serve SPA from old PWA URLs (so existing home screen apps keep working)
 [[redirects]]
   from = "/client-login.html"
-  to = "/app"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/client-dashboard.html"
-  to = "/app"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/client-diary.html"
-  to = "/app/diary"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/client-plans.html"
-  to = "/app/plans"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/client-progress.html"
-  to = "/app/profile"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/client-settings.html"
-  to = "/app/profile"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/client-favorites.html"
-  to = "/app"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/client-recipes.html"
-  to = "/app/recipes"
-  status = 301
+  to = "/app-test-dist/app-test.html"
+  status = 200
+  force = true
 
 [build.environment]
   NODE_VERSION = "18"
