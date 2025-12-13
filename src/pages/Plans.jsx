@@ -394,24 +394,33 @@ function Plans() {
     setMealImageLoading(false);
   };
 
-  // Toggle favorite
+  // Toggle favorite - optimistic update for instant response
   const handleToggleFavorite = async (meal) => {
     if (!clientData?.id) return;
 
     const mealKey = `${meal.name}-${meal.type || meal.meal_type}`;
     const isFavorited = favorites.has(mealKey);
 
-    try {
-      setActionLoading('favorite');
+    // Optimistic update - update UI immediately
+    if (isFavorited) {
+      setFavorites(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(mealKey);
+        return newSet;
+      });
+    } else {
+      setFavorites(prev => new Set([...prev, mealKey]));
+    }
 
+    // Clear favorites cache so it reloads fresh next time
+    if (clientData?.id) {
+      sessionStorage.removeItem(`favorites_${clientData.id}`);
+    }
+
+    try {
       if (isFavorited) {
-        // Remove from favorites - would need favoriteId
-        // For now just update local state
-        setFavorites(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(mealKey);
-          return newSet;
-        });
+        // Remove from favorites - call delete API
+        await apiDelete(`/.netlify/functions/toggle-favorite?clientId=${clientData.id}&mealName=${encodeURIComponent(meal.name)}`);
       } else {
         // Add to favorites
         await apiPost('/.netlify/functions/toggle-favorite', {
@@ -425,14 +434,20 @@ function Plans() {
           fat: meal.fat || 0,
           notes: meal.instructions || ''
         });
-
-        setFavorites(prev => new Set([...prev, mealKey]));
       }
     } catch (err) {
       console.error('Error toggling favorite:', err);
+      // Revert optimistic update on error
+      if (isFavorited) {
+        setFavorites(prev => new Set([...prev, mealKey]));
+      } else {
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(mealKey);
+          return newSet;
+        });
+      }
       alert('Failed to update favorite');
-    } finally {
-      setActionLoading(null);
     }
   };
 
