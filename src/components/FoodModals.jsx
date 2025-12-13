@@ -455,8 +455,19 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
 
 // ==================== FAVORITES MODAL ====================
 export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Load from cache for instant display
+  const getCachedFavorites = () => {
+    if (!clientData?.id) return [];
+    try {
+      const cached = sessionStorage.getItem(`favorites_${clientData.id}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [favorites, setFavorites] = useState(getCachedFavorites);
+  const [loading, setLoading] = useState(!getCachedFavorites().length);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
 
   useEffect(() => {
@@ -465,15 +476,25 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
   useEffect(() => {
     if (isOpen && clientData?.id) {
-      loadFavorites();
+      // Load from cache first for instant display
+      const cached = getCachedFavorites();
+      if (cached.length > 0) {
+        setFavorites(cached);
+        setLoading(false);
+      }
+      // Always fetch fresh data in background
+      loadFavorites(!cached.length);
     }
   }, [isOpen, clientData?.id]);
 
-  const loadFavorites = async () => {
-    setLoading(true);
+  const loadFavorites = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await apiGet(`/.netlify/functions/toggle-favorite?clientId=${clientData.id}`);
-      setFavorites(data?.favorites || []);
+      const newFavorites = data?.favorites || [];
+      setFavorites(newFavorites);
+      // Cache the results
+      sessionStorage.setItem(`favorites_${clientData.id}`, JSON.stringify(newFavorites));
     } catch (err) {
       console.error('Failed to load favorites:', err);
     } finally {
@@ -518,11 +539,25 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
     e.stopPropagation();
     if (!confirm('Delete this favorite?')) return;
 
+    // Optimistic update
+    const previousFavorites = favorites;
+    const newFavorites = favorites.filter(f => f.id !== favoriteId);
+    setFavorites(newFavorites);
+
+    // Update cache
+    if (clientData?.id) {
+      sessionStorage.setItem(`favorites_${clientData.id}`, JSON.stringify(newFavorites));
+    }
+
     try {
       await apiDelete(`/.netlify/functions/toggle-favorite?favoriteId=${favoriteId}`);
-      setFavorites(prev => prev.filter(f => f.id !== favoriteId));
     } catch (err) {
       console.error('Failed to delete favorite:', err);
+      // Revert on error
+      setFavorites(previousFavorites);
+      if (clientData?.id) {
+        sessionStorage.setItem(`favorites_${clientData.id}`, JSON.stringify(previousFavorites));
+      }
     }
   };
 
