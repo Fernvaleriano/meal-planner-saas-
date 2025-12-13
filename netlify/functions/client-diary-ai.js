@@ -125,6 +125,14 @@ exports.handler = async (event) => {
             fat: (goals?.fat_goal || 65) - (totals?.fat || 0)
         };
 
+        // Helper to format remaining values - show "X over" for negative, "X remaining" for positive
+        const formatRemaining = (value, unit = '') => {
+            if (value < 0) {
+                return `${Math.abs(Math.round(value))}${unit} OVER goal`;
+            }
+            return `${Math.round(value)}${unit} remaining`;
+        };
+
         // Build context for AI
         const recentFoodsList = recentFoods.length > 0
             ? `\nFOODS EATEN IN THE PAST 7 DAYS (avoid suggesting these repeatedly):\n${recentFoods.join(', ')}\n`
@@ -157,10 +165,10 @@ exports.handler = async (event) => {
 5. Provide encouragement and practical advice
 
 TODAY'S PROGRESS:
-- Calories: ${totals?.calories || 0} / ${goals?.calorie_goal || 2000} (${remaining.calories} remaining)
-- Protein: ${Math.round(totals?.protein || 0)}g / ${goals?.protein_goal || 150}g (${Math.round(remaining.protein)}g remaining)
-- Carbs: ${Math.round(totals?.carbs || 0)}g / ${goals?.carbs_goal || 200}g (${Math.round(remaining.carbs)}g remaining)
-- Fat: ${Math.round(totals?.fat || 0)}g / ${goals?.fat_goal || 65}g (${Math.round(remaining.fat)}g remaining)
+- Calories: ${totals?.calories || 0} / ${goals?.calorie_goal || 2000} (${formatRemaining(remaining.calories)})
+- Protein: ${Math.round(totals?.protein || 0)}g / ${goals?.protein_goal || 150}g (${formatRemaining(remaining.protein, 'g')})
+- Carbs: ${Math.round(totals?.carbs || 0)}g / ${goals?.carbs_goal || 200}g (${formatRemaining(remaining.carbs, 'g')})
+- Fat: ${Math.round(totals?.fat || 0)}g / ${goals?.fat_goal || 65}g (${formatRemaining(remaining.fat, 'g')})
 
 TODAY'S LOGGED FOODS:
 ${todayEntries && todayEntries.length > 0
@@ -239,6 +247,36 @@ HEALTHY FATS:
 - Seeds: chia seeds, pumpkin seeds
 - Other: avocado, nut butter, dark chocolate, trail mix
 
+LOW-CALORIE FILLING FOODS (for when they're hungry but low on calories):
+- Vegetables: cucumber slices, celery sticks, baby carrots, cherry tomatoes, bell pepper strips, broccoli, cauliflower
+- Volume foods: air-popped popcorn (30 cal/cup), watermelon, strawberries, cantaloupe
+- Soups: broth-based soups, miso soup, vegetable soup
+- Protein-rich low-cal: egg whites, fat-free Greek yogurt, shrimp, white fish
+- Drinks: sparkling water, herbal tea, black coffee, sugar-free drinks
+- Other: pickles, sugar-free Jello, rice cakes (plain)
+
+QUICK 5-MINUTE MEALS (for busy people):
+- Protein shake with banana
+- Greek yogurt parfait with granola
+- Deli meat roll-ups with cheese
+- Scrambled eggs (2-3 eggs)
+- Cottage cheese with fruit
+- Tuna salad on crackers
+- Overnight oats (prepped the night before)
+- Pre-made rotisserie chicken pieces
+- Protein bar + piece of fruit
+- Peanut butter banana toast
+- Microwave egg mug (eggs + cheese + veggies)
+- Pre-cut veggies with hummus
+
+EATING OUT - RESTAURANT SMART CHOICES:
+- Fast food: grilled chicken sandwich (no mayo), salads with grilled protein, bunless burgers
+- Mexican: burrito bowl (no tortilla), grilled chicken tacos, fajitas (skip the tortillas)
+- Asian: steamed dishes, sashimi, pho, lettuce wraps, edamame
+- Italian: grilled chicken/fish, salads, minestrone soup (avoid heavy pasta/pizza)
+- General tips: ask for dressings/sauces on the side, swap fries for salad, choose grilled over fried
+- Chain restaurants with nutrition info: Chipotle, Chick-fil-A, Panera, Subway
+
 **SUGGESTION RULES:**
 0. **CRITICAL - RESPECT DIETARY RESTRICTIONS:** If the client has dietary preferences listed above (vegan, vegetarian, allergies, etc.), you MUST ONLY suggest foods that comply with their diet. For example:
    - VEGAN: NO meat, fish, eggs, dairy, honey. Only suggest plant-based options.
@@ -289,12 +327,13 @@ Rules for clickable suggestions:
 - Don't over-explain packaged foods - they're grab-and-go items
 
 **IMPORTANT - CALORIE PRIORITY RULE:**
+- If the user is OVER their calorie goal (you'll see "X OVER goal" in their progress), DO NOT suggest more food
 - If remaining calories are 100 or less (they've hit their calorie target), DO NOT suggest eating more food to hit macros
-- Instead, congratulate them on hitting their calorie goal and let them know they're done for the day
-- Only mention that tomorrow they can aim for better macro distribution if their protein/carbs/fat were off
+- When they're over their calorie goal: Acknowledge they've exceeded their target, DO NOT suggest eating more. Let them know they're done for the day and can aim for better macro distribution tomorrow.
 - NEVER encourage overeating just to hit protein or other macro targets
+- NEVER say they have "calories remaining" if they are actually OVER their goal
 
-**When they still have calories remaining:**
+**When they still have calories remaining (positive remaining calories):**
 - When suggesting foods, consider what they still need (remaining macros)
 - If they need more protein, suggest high-protein options that fit within remaining calories
 - If they're low on calories, suggest nutrient-dense foods`;
