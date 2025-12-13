@@ -3793,39 +3793,135 @@ body {
     z-index: 999;
 }
 
-/* AI Nutrition Assistant - Gemini Style */
-.ai-assistant-gemini {
+/* AI Nutrition Assistant - Teaser Card (Collapsed State) */
+.ai-teaser-card {
     background: white;
-    border-radius: 20px;
+    border-radius: 16px;
+    padding: 16px;
     margin-bottom: 16px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     border: 1px solid var(--gray-100);
-    display: flex;
-    flex-direction: column;
-    min-height: 400px;
-    max-height: 500px;
-    overflow: hidden;
 }
 
-[data-theme="dark"] .ai-assistant-gemini {
+[data-theme="dark"] .ai-teaser-card {
     background: #1e293b;
     border-color: #334155;
 }
 
-.ai-assistant-gemini.expanded {
+.ai-teaser-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.ai-teaser-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .ai-teaser-title {
+    color: #f1f5f9;
+}
+
+.ai-teaser-open-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--brand-primary);
+    border: none;
+    border-radius: 20px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-teaser-open-btn:hover {
+    background: #0f766e;
+}
+
+.ai-teaser-subtitle {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    margin: 0 0 12px 0;
+}
+
+.ai-teaser-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ai-teaser-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 20px;
+    color: var(--gray-700);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .ai-teaser-pill {
+    background: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+.ai-teaser-pill:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+}
+
+.ai-teaser-pill svg {
+    color: var(--brand-primary);
+}
+
+.ai-teaser-pill.protein svg {
+    color: #ef4444;
+}
+
+/* AI Modal (Expanded State) */
+.ai-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.ai-modal {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 60px;
-    z-index: 1000;
-    margin: 0;
-    border-radius: 0;
-    max-height: none;
+    background: white;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Gemini Header */
-.ai-gemini-header {
+[data-theme="dark"] .ai-modal {
+    background: #1e293b;
+}
+
+/* Modal Header */
+.ai-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -3834,11 +3930,11 @@ body {
     flex-shrink: 0;
 }
 
-[data-theme="dark"] .ai-gemini-header {
+[data-theme="dark"] .ai-modal-header {
     border-color: #334155;
 }
 
-.ai-gemini-title {
+.ai-modal-title {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -3847,54 +3943,55 @@ body {
     color: var(--gray-800);
 }
 
-[data-theme="dark"] .ai-gemini-title {
+[data-theme="dark"] .ai-modal-title {
     color: #f1f5f9;
 }
 
-.ai-gemini-close {
+.ai-modal-close {
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+    justify-content: center;
     background: var(--gray-100);
     border: none;
-    border-radius: 20px;
+    border-radius: 50%;
     color: var(--gray-600);
-    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-[data-theme="dark"] .ai-gemini-close {
+[data-theme="dark"] .ai-modal-close {
     background: #334155;
     color: #94a3b8;
 }
 
-.ai-gemini-close:hover {
+.ai-modal-close:hover {
     background: var(--gray-200);
 }
 
-/* Gemini Content Area */
-.ai-gemini-content {
+/* Modal Content - Scrollable */
+.ai-modal-content {
     flex: 1;
     overflow-y: auto;
     padding: 24px 20px;
+    -webkit-overflow-scrolling: touch;
 }
 
-/* Gemini Welcome Screen */
-.ai-gemini-welcome {
+/* Modal Welcome Screen */
+.ai-modal-welcome {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
 }
 
-.ai-gemini-greeting {
+.ai-modal-greeting {
     font-size: 1rem;
     color: var(--gray-500);
     margin: 0 0 4px 0;
 }
 
-.ai-gemini-headline {
+.ai-modal-headline {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--gray-800);
@@ -3902,24 +3999,24 @@ body {
     line-height: 1.3;
 }
 
-[data-theme="dark"] .ai-gemini-headline {
+[data-theme="dark"] .ai-modal-headline {
     color: #f1f5f9;
 }
 
-/* Gemini Suggestion Pills */
-.ai-gemini-suggestions,
-.ai-gemini-quick-actions {
+/* Modal Suggestion Pills */
+.ai-modal-suggestions,
+.ai-modal-quick-actions {
     display: flex;
     flex-direction: column;
     gap: 12px;
     width: 100%;
 }
 
-.ai-gemini-suggestions {
+.ai-modal-suggestions {
     margin-bottom: 20px;
 }
 
-.ai-gemini-pill {
+.ai-modal-pill {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -3936,73 +4033,73 @@ body {
     width: 100%;
 }
 
-[data-theme="dark"] .ai-gemini-pill {
+[data-theme="dark"] .ai-modal-pill {
     background: #334155;
     border-color: #475569;
     color: #e2e8f0;
 }
 
-.ai-gemini-pill:hover {
+.ai-modal-pill:hover {
     background: var(--gray-100);
     border-color: var(--gray-300);
 }
 
-[data-theme="dark"] .ai-gemini-pill:hover {
+[data-theme="dark"] .ai-modal-pill:hover {
     background: #3f4f63;
     border-color: #64748b;
 }
 
-.ai-gemini-pill:active {
+.ai-modal-pill:active {
     transform: scale(0.98);
 }
 
-.ai-gemini-pill svg {
+.ai-modal-pill svg {
     flex-shrink: 0;
     color: var(--brand-primary);
 }
 
-.ai-gemini-pill.protein svg {
+.ai-modal-pill.protein svg {
     color: #ef4444;
 }
 
-.ai-gemini-pill.calories svg {
+.ai-modal-pill.calories svg {
     color: #3b82f6;
 }
 
-/* Gemini Messages */
-.ai-gemini-messages {
+/* Modal Messages */
+.ai-modal-messages {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 
-.ai-gemini-message {
+.ai-modal-message {
     padding: 14px 16px;
     border-radius: 16px;
     max-width: 90%;
 }
 
-.ai-gemini-message.user {
+.ai-modal-message.user {
     background: var(--brand-primary);
     color: white;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
 }
 
-.ai-gemini-message.assistant {
+.ai-modal-message.assistant {
     background: var(--gray-100);
     color: var(--gray-800);
     align-self: flex-start;
     border-bottom-left-radius: 4px;
 }
 
-[data-theme="dark"] .ai-gemini-message.assistant {
+[data-theme="dark"] .ai-modal-message.assistant {
     background: #334155;
     color: #f1f5f9;
 }
 
-/* Gemini Loading */
-.ai-gemini-loading {
+/* Modal Loading */
+.ai-modal-loading {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -4011,20 +4108,21 @@ body {
     font-size: 0.9rem;
 }
 
-/* Gemini Input Area - Fixed at bottom */
-.ai-gemini-input-area {
-    padding: 12px 16px 16px;
+/* Modal Input Area - Fixed at bottom */
+.ai-modal-input-area {
+    padding: 12px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--gray-100);
     background: white;
     flex-shrink: 0;
 }
 
-[data-theme="dark"] .ai-gemini-input-area {
+[data-theme="dark"] .ai-modal-input-area {
     background: #1e293b;
     border-color: #334155;
 }
 
-.ai-gemini-meal-selector {
+.ai-modal-meal-selector {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -4032,7 +4130,7 @@ body {
     flex-wrap: wrap;
 }
 
-.ai-gemini-meal-selector .meal-label {
+.ai-modal-meal-selector .meal-label {
     font-size: 0.8rem;
     color: var(--gray-500);
 }
@@ -4062,13 +4160,13 @@ body {
     color: white;
 }
 
-.ai-gemini-input-row {
+.ai-modal-input-row {
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
-.ai-gemini-input {
+.ai-modal-input {
     flex: 1;
     padding: 14px 18px;
     background: var(--gray-100);
@@ -4078,22 +4176,22 @@ body {
     color: var(--gray-800);
 }
 
-[data-theme="dark"] .ai-gemini-input {
+[data-theme="dark"] .ai-modal-input {
     background: #334155;
     border-color: #475569;
     color: #f1f5f9;
 }
 
-.ai-gemini-input::placeholder {
+.ai-modal-input::placeholder {
     color: var(--gray-400);
 }
 
-.ai-gemini-input:focus {
+.ai-modal-input:focus {
     outline: none;
     border-color: var(--brand-primary);
 }
 
-.ai-gemini-send {
+.ai-modal-send {
     width: 48px;
     height: 48px;
     display: flex;
@@ -4108,12 +4206,12 @@ body {
     flex-shrink: 0;
 }
 
-.ai-gemini-send:hover {
+.ai-modal-send:hover {
     background: #0f766e;
     transform: scale(1.05);
 }
 
-.ai-gemini-send:disabled {
+.ai-modal-send:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;

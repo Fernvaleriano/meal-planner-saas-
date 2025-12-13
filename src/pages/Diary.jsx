@@ -1372,223 +1372,271 @@ function Diary() {
         </div>
       </div>
 
-      {/* AI Nutrition Assistant - Gemini Style */}
-      <div className={`ai-assistant-gemini ${aiExpanded ? 'expanded' : ''}`}>
-        {/* Header */}
-        <div className="ai-gemini-header">
-          <div className="ai-gemini-title">
-            <Bot size={20} className="ai-icon" />
-            <span>AI Nutrition Assistant</span>
-          </div>
-          <button
-            className="ai-gemini-close"
-            onClick={() => setAiExpanded(!aiExpanded)}
-          >
-            <X size={18} />
-            <span>Close</span>
-          </button>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="ai-gemini-content">
-          {/* Show greeting & suggestions when no messages */}
-          {aiMessages.length === 0 && !aiLogging && (
-            <div className="ai-gemini-welcome">
-              <p className="ai-gemini-greeting">Hi {clientData?.name?.split(' ')[0] || 'there'},</p>
-              <h2 className="ai-gemini-headline">How can I help with nutrition today?</h2>
-
-              {/* Dynamic suggestions based on macro gaps */}
-              <div className="ai-gemini-suggestions">
-                {goals.protein_goal - totals.protein > 30 && (
-                  <button
-                    className="ai-gemini-pill protein"
-                    onClick={() => askAI('What high protein foods should I eat?')}
-                  >
-                    <Dumbbell size={18} />
-                    <span>Need {Math.round(goals.protein_goal - totals.protein)}g more protein</span>
-                  </button>
-                )}
-                {goals.calorie_goal - totals.calories > 500 && (
-                  <button
-                    className="ai-gemini-pill calories"
-                    onClick={() => askAI(`What should I eat with ${goals.calorie_goal - totals.calories} calories left?`)}
-                  >
-                    <BarChart3 size={18} />
-                    <span>{goals.calorie_goal - totals.calories} cal remaining</span>
-                  </button>
-                )}
-                <button
-                  className="ai-gemini-pill"
-                  onClick={() => askAI('I have some ingredients - help me make a meal')}
-                >
-                  <ChefHat size={18} />
-                  <span>What can I make?</span>
-                </button>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="ai-gemini-quick-actions">
-                <button className="ai-gemini-pill" onClick={() => askAI('What should I eat to hit my protein goal?')}>
-                  <Dumbbell size={18} />
-                  <span>Need protein</span>
-                </button>
-                <button className="ai-gemini-pill" onClick={() => askAI('Give me a healthy snack idea')}>
-                  <Apple size={18} />
-                  <span>Snack ideas</span>
-                </button>
-                <button className="ai-gemini-pill" onClick={() => askAI('How am I doing today?')}>
-                  <BarChart3 size={18} />
-                  <span>My progress</span>
-                </button>
-                <button className="ai-gemini-pill" onClick={() => askAI('What can I eat for dinner?')}>
-                  <UtensilsCrossed size={18} />
-                  <span>Dinner ideas</span>
-                </button>
-              </div>
+      {/* AI Nutrition Assistant - Teaser Card (Collapsed) */}
+      {!aiExpanded && (
+        <div className="ai-teaser-card">
+          <div className="ai-teaser-header">
+            <div className="ai-teaser-title">
+              <Bot size={20} className="ai-icon" />
+              <span>AI Nutrition Assistant</span>
             </div>
-          )}
-
-          {/* Chat Messages */}
-          {aiMessages.length > 0 && (
-            <div className="ai-gemini-messages">
-              {aiMessages.map((msg, idx) => (
-                <div key={idx} className={`ai-gemini-message ${msg.role}`}>
-                  <div className="ai-message-text">{msg.content}</div>
-
-                  {/* Food suggestion cards */}
-                  {msg.suggestions && msg.suggestions.length > 0 && (
-                    <div className="ai-food-suggestions">
-                      {msg.suggestions.map((food, foodIdx) => (
-                        <button
-                          key={foodIdx}
-                          className="ai-food-suggestion-btn"
-                          onClick={() => handleFoodSuggestionClick(food)}
-                        >
-                          <div className="suggestion-name">{food.name}</div>
-                          <div className="suggestion-macros">
-                            {food.calories} cal &bull; {food.protein}g P &bull; {food.carbs}g C &bull; {food.fat}g F
-                          </div>
-                        </button>
-                      ))}
-                      <button className="more-ideas-btn" onClick={requestMoreIdeas} disabled={aiLogging}>
-                        {aiLogging ? 'Loading...' : 'More ideas'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Selected suggestion action menu */}
-              {selectedSuggestion && (
-                <div className="food-suggestion-actions">
-                  <div className="action-header">{selectedSuggestion.name}</div>
-                  <div className="action-macros">
-                    {selectedSuggestion.calories} cal &bull; {selectedSuggestion.protein}g P &bull; {selectedSuggestion.carbs}g C &bull; {selectedSuggestion.fat}g F
-                  </div>
-                  <div className="action-buttons">
-                    <button className="action-btn log-btn" onClick={() => logFoodSuggestion(selectedSuggestion)}>
-                      <Check size={14} /> Log
-                    </button>
-                    <button className="action-btn details-btn" onClick={() => getFoodDetails(selectedSuggestion)}>
-                      <FileText size={14} /> Details
-                    </button>
-                    <button className="action-btn revise-btn" onClick={() => reviseFoodSuggestion(selectedSuggestion)}>
-                      <span>&#9998;</span> Revise
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Pending food log confirmation */}
-              {pendingFoodLog && (
-                <div className="ai-gemini-message assistant food-log">
-                  {pendingFoodLog.confirmation || 'Ready to log this food:'}
-                  <div className="ai-food-log-preview">
-                    <div className="food-name">{pendingFoodLog.food_name}</div>
-                    <div className="food-macros">
-                      {pendingFoodLog.calories} cal &bull; {pendingFoodLog.protein}g P &bull; {pendingFoodLog.carbs}g C &bull; {pendingFoodLog.fat}g F
-                    </div>
-                  </div>
-                  <div className="ai-meal-type-selector">
-                    <label>Add to:</label>
-                    {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
-                      <button
-                        key={type}
-                        className={`ai-meal-type-btn ${selectedAIMealType === type ? 'selected' : ''}`}
-                        onClick={() => setSelectedAIMealType(type)}
-                      >
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="ai-food-log-actions">
-                    <button className="confirm-btn" onClick={confirmAIFoodLog}>
-                      <Check size={14} /> Add
-                    </button>
-                    <button className="cancel-btn" onClick={cancelAIFoodLog}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Loading State */}
-          {aiLogging && (
-            <div className="ai-gemini-loading">
-              <div className="ai-loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-              <span>Thinking...</span>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Input Area - Fixed at bottom */}
-        <div className="ai-gemini-input-area">
-          {/* Meal Type Selector */}
-          <div className="ai-gemini-meal-selector">
-            <span className="meal-label">Logging to:</span>
-            {['breakfast', 'lunch', 'dinner', 'snack'].map(meal => (
-              <button
-                key={meal}
-                className={`ai-meal-chip ${selectedMealType === meal ? 'active' : ''}`}
-                onClick={() => setSelectedMealType(meal)}
-              >
-                {meal.charAt(0).toUpperCase() + meal.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {/* Input Row */}
-          <div className="ai-gemini-input-row">
-            <input
-              ref={aiInputRef}
-              type="text"
-              className="ai-gemini-input"
-              placeholder="Ask me anything or log food..."
-              value={aiInput}
-              onChange={(e) => setAiInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAiChat()}
-              disabled={aiLogging}
-            />
             <button
-              className="ai-gemini-send"
-              onClick={() => handleAiChat()}
-              disabled={aiLogging || !aiInput.trim()}
+              className="ai-teaser-open-btn"
+              onClick={() => setAiExpanded(true)}
             >
-              <Send size={20} />
+              <Maximize2 size={16} />
+              <span>Open</span>
+            </button>
+          </div>
+
+          <p className="ai-teaser-subtitle">Get personalized nutrition advice</p>
+
+          {/* Preview Pills - just show 2-3 */}
+          <div className="ai-teaser-pills">
+            {goals.protein_goal - totals.protein > 30 && (
+              <button
+                className="ai-teaser-pill protein"
+                onClick={() => { setAiExpanded(true); askAI('What high protein foods should I eat?'); }}
+              >
+                <Dumbbell size={16} />
+                <span>Need protein</span>
+              </button>
+            )}
+            <button
+              className="ai-teaser-pill"
+              onClick={() => { setAiExpanded(true); askAI('Give me a healthy snack idea'); }}
+            >
+              <Apple size={16} />
+              <span>Snack ideas</span>
+            </button>
+            <button
+              className="ai-teaser-pill"
+              onClick={() => { setAiExpanded(true); askAI('How am I doing today?'); }}
+            >
+              <BarChart3 size={16} />
+              <span>My progress</span>
             </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* AI Expanded Overlay */}
+      {/* AI Nutrition Assistant - Full Modal (Expanded) */}
       {aiExpanded && (
-        <div className="ai-expanded-overlay" onClick={() => setAiExpanded(false)} />
+        <>
+          <div className="ai-modal-overlay" onClick={() => setAiExpanded(false)} />
+          <div className="ai-modal">
+            {/* Modal Header */}
+            <div className="ai-modal-header">
+              <div className="ai-modal-title">
+                <Bot size={20} className="ai-icon" />
+                <span>AI Nutrition Assistant</span>
+              </div>
+              <button
+                className="ai-modal-close"
+                onClick={() => setAiExpanded(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable Content Area */}
+            <div className="ai-modal-content">
+              {/* Welcome Screen - when no messages */}
+              {aiMessages.length === 0 && !aiLogging && (
+                <div className="ai-modal-welcome">
+                  <p className="ai-modal-greeting">Hi {clientData?.name?.split(' ')[0] || 'there'},</p>
+                  <h2 className="ai-modal-headline">How can I help with nutrition today?</h2>
+
+                  {/* Dynamic suggestions */}
+                  <div className="ai-modal-suggestions">
+                    {goals.protein_goal - totals.protein > 30 && (
+                      <button
+                        className="ai-modal-pill protein"
+                        onClick={() => askAI('What high protein foods should I eat?')}
+                      >
+                        <Dumbbell size={18} />
+                        <span>Need {Math.round(goals.protein_goal - totals.protein)}g more protein</span>
+                      </button>
+                    )}
+                    {goals.calorie_goal - totals.calories > 500 && (
+                      <button
+                        className="ai-modal-pill calories"
+                        onClick={() => askAI(`What should I eat with ${goals.calorie_goal - totals.calories} calories left?`)}
+                      >
+                        <BarChart3 size={18} />
+                        <span>{goals.calorie_goal - totals.calories} cal remaining</span>
+                      </button>
+                    )}
+                    <button
+                      className="ai-modal-pill"
+                      onClick={() => askAI('I have some ingredients - help me make a meal')}
+                    >
+                      <ChefHat size={18} />
+                      <span>What can I make?</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="ai-modal-quick-actions">
+                    <button className="ai-modal-pill" onClick={() => askAI('What should I eat to hit my protein goal?')}>
+                      <Dumbbell size={18} />
+                      <span>Need protein</span>
+                    </button>
+                    <button className="ai-modal-pill" onClick={() => askAI('Give me a healthy snack idea')}>
+                      <Apple size={18} />
+                      <span>Snack ideas</span>
+                    </button>
+                    <button className="ai-modal-pill" onClick={() => askAI('How am I doing today?')}>
+                      <BarChart3 size={18} />
+                      <span>My progress</span>
+                    </button>
+                    <button className="ai-modal-pill" onClick={() => askAI('What can I eat for dinner?')}>
+                      <UtensilsCrossed size={18} />
+                      <span>Dinner ideas</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Chat Messages */}
+              {aiMessages.length > 0 && (
+                <div className="ai-modal-messages">
+                  {aiMessages.map((msg, idx) => (
+                    <div key={idx} className={`ai-modal-message ${msg.role}`}>
+                      <div className="ai-message-text">{msg.content}</div>
+
+                      {/* Food suggestion cards */}
+                      {msg.suggestions && msg.suggestions.length > 0 && (
+                        <div className="ai-food-suggestions">
+                          {msg.suggestions.map((food, foodIdx) => (
+                            <button
+                              key={foodIdx}
+                              className="ai-food-suggestion-btn"
+                              onClick={() => handleFoodSuggestionClick(food)}
+                            >
+                              <div className="suggestion-name">{food.name}</div>
+                              <div className="suggestion-macros">
+                                {food.calories} cal &bull; {food.protein}g P &bull; {food.carbs}g C &bull; {food.fat}g F
+                              </div>
+                            </button>
+                          ))}
+                          <button className="more-ideas-btn" onClick={requestMoreIdeas} disabled={aiLogging}>
+                            {aiLogging ? 'Loading...' : 'More ideas'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Selected suggestion action menu */}
+                  {selectedSuggestion && (
+                    <div className="food-suggestion-actions">
+                      <div className="action-header">{selectedSuggestion.name}</div>
+                      <div className="action-macros">
+                        {selectedSuggestion.calories} cal &bull; {selectedSuggestion.protein}g P &bull; {selectedSuggestion.carbs}g C &bull; {selectedSuggestion.fat}g F
+                      </div>
+                      <div className="action-buttons">
+                        <button className="action-btn log-btn" onClick={() => logFoodSuggestion(selectedSuggestion)}>
+                          <Check size={14} /> Log
+                        </button>
+                        <button className="action-btn details-btn" onClick={() => getFoodDetails(selectedSuggestion)}>
+                          <FileText size={14} /> Details
+                        </button>
+                        <button className="action-btn revise-btn" onClick={() => reviseFoodSuggestion(selectedSuggestion)}>
+                          <span>&#9998;</span> Revise
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pending food log confirmation */}
+                  {pendingFoodLog && (
+                    <div className="ai-modal-message assistant food-log">
+                      {pendingFoodLog.confirmation || 'Ready to log this food:'}
+                      <div className="ai-food-log-preview">
+                        <div className="food-name">{pendingFoodLog.food_name}</div>
+                        <div className="food-macros">
+                          {pendingFoodLog.calories} cal &bull; {pendingFoodLog.protein}g P &bull; {pendingFoodLog.carbs}g C &bull; {pendingFoodLog.fat}g F
+                        </div>
+                      </div>
+                      <div className="ai-meal-type-selector">
+                        <label>Add to:</label>
+                        {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
+                          <button
+                            key={type}
+                            className={`ai-meal-type-btn ${selectedAIMealType === type ? 'selected' : ''}`}
+                            onClick={() => setSelectedAIMealType(type)}
+                          >
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="ai-food-log-actions">
+                        <button className="confirm-btn" onClick={confirmAIFoodLog}>
+                          <Check size={14} /> Add
+                        </button>
+                        <button className="cancel-btn" onClick={cancelAIFoodLog}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Loading State */}
+              {aiLogging && (
+                <div className="ai-modal-loading">
+                  <div className="ai-loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <span>Thinking...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Fixed Bottom Input Area */}
+            <div className="ai-modal-input-area">
+              {/* Meal Type Selector */}
+              <div className="ai-modal-meal-selector">
+                <span className="meal-label">Logging to:</span>
+                {['breakfast', 'lunch', 'dinner', 'snack'].map(meal => (
+                  <button
+                    key={meal}
+                    className={`ai-meal-chip ${selectedMealType === meal ? 'active' : ''}`}
+                    onClick={() => setSelectedMealType(meal)}
+                  >
+                    {meal.charAt(0).toUpperCase() + meal.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input Row */}
+              <div className="ai-modal-input-row">
+                <input
+                  ref={aiInputRef}
+                  type="text"
+                  className="ai-modal-input"
+                  placeholder="Ask me anything or log food..."
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAiChat()}
+                  disabled={aiLogging}
+                  autoFocus
+                />
+                <button
+                  className="ai-modal-send"
+                  onClick={() => handleAiChat()}
+                  disabled={aiLogging || !aiInput.trim()}
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Copy Day Modal */}
