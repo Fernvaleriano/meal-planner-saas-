@@ -39,8 +39,8 @@ function Diary() {
 
   const [entries, setEntries] = useState(cachedDiary?.entries || []);
   const [loading, setLoading] = useState(false); // Start false for instant UI
-  const [totals, setTotals] = useState(cachedDiary?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
-  const [goals, setGoals] = useState(cachedDiary?.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 });
+  const [totals, setTotals] = useState(cachedDiary?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
+  const [goals, setGoals] = useState(cachedDiary?.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300 });
   const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
   const [waterGoal] = useState(8);
   const [waterLoading, setWaterLoading] = useState(false);
@@ -308,8 +308,8 @@ function Diary() {
     const cached = getCache(cacheKey);
     if (cached) {
       setEntries(cached.entries || []);
-      setTotals(cached.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 });
-      setGoals(cached.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 });
+      setTotals(cached.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
+      setGoals(cached.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300 });
       setWaterIntake(cached.water || 0);
     }
 
@@ -322,13 +322,16 @@ function Diary() {
       const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
       const newWater = waterData?.glasses || 0;
 
-      // Calculate totals
+      // Calculate totals (including micronutrients)
       const calculatedTotals = newEntries.reduce((acc, entry) => ({
         calories: acc.calories + (entry.calories || 0),
         protein: acc.protein + (entry.protein || 0),
         carbs: acc.carbs + (entry.carbs || 0),
-        fat: acc.fat + (entry.fat || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        fat: acc.fat + (entry.fat || 0),
+        fiber: acc.fiber + (entry.fiber || 0),
+        sugar: acc.sugar + (entry.sugar || 0),
+        sodium: acc.sodium + (entry.sodium || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 });
 
       // Update state
       setEntries(newEntries);
@@ -987,6 +990,10 @@ function Diary() {
   const proteinProgress = Math.min(100, Math.round((totals.protein / goals.protein_goal) * 100));
   const carbsProgress = Math.min(100, Math.round((totals.carbs / goals.carbs_goal) * 100));
   const fatProgress = Math.min(100, Math.round((totals.fat / goals.fat_goal) * 100));
+  // Micronutrient progress (use goals or daily values)
+  const fiberProgress = Math.min(100, Math.round((totals.fiber / (goals.fiber_goal || 28)) * 100));
+  const sugarProgress = Math.min(100, Math.round((totals.sugar / (goals.sugar_goal || 50)) * 100));
+  const sodiumProgress = Math.min(100, Math.round((totals.sodium / (goals.sodium_goal || 2300)) * 100));
 
   // Calorie ring component
   const CalorieRing = () => {
@@ -1275,27 +1282,51 @@ function Diary() {
           </div>
         </div>
 
-        {/* Macro Progress Bars */}
-        <div className="macro-progress-bars">
-          <div className="macro-bar-item">
-            <span className="macro-bar-label protein">P:</span>
-            <span className="macro-bar-value">{Math.round(totals.protein)}/{goals.protein_goal}g</span>
-            <div className="macro-bar-track">
-              <div className="macro-bar-fill protein" style={{ width: `${proteinProgress}%` }} />
+        {/* Macro Progress Bars - Horizontal Scroll */}
+        <div className="macro-progress-scroll">
+          <div className="macro-progress-bars">
+            <div className="macro-bar-item">
+              <span className="macro-bar-label protein">P:</span>
+              <span className="macro-bar-value">{Math.round(totals.protein)}/{goals.protein_goal}g</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill protein" style={{ width: `${proteinProgress}%` }} />
+              </div>
             </div>
-          </div>
-          <div className="macro-bar-item">
-            <span className="macro-bar-label carbs">C:</span>
-            <span className="macro-bar-value">{Math.round(totals.carbs)}/{goals.carbs_goal}g</span>
-            <div className="macro-bar-track">
-              <div className="macro-bar-fill carbs" style={{ width: `${carbsProgress}%` }} />
+            <div className="macro-bar-item">
+              <span className="macro-bar-label carbs">C:</span>
+              <span className="macro-bar-value">{Math.round(totals.carbs)}/{goals.carbs_goal}g</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill carbs" style={{ width: `${carbsProgress}%` }} />
+              </div>
             </div>
-          </div>
-          <div className="macro-bar-item">
-            <span className="macro-bar-label fat">F:</span>
-            <span className="macro-bar-value">{Math.round(totals.fat)}/{goals.fat_goal}g</span>
-            <div className="macro-bar-track">
-              <div className="macro-bar-fill fat" style={{ width: `${fatProgress}%` }} />
+            <div className="macro-bar-item">
+              <span className="macro-bar-label fat">F:</span>
+              <span className="macro-bar-value">{Math.round(totals.fat)}/{goals.fat_goal}g</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill fat" style={{ width: `${fatProgress}%` }} />
+              </div>
+            </div>
+            {/* Micronutrients - scroll right to see */}
+            <div className="macro-bar-item">
+              <span className="macro-bar-label fiber">Fiber:</span>
+              <span className="macro-bar-value">{Math.round(totals.fiber)}/{goals.fiber_goal || 28}g</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill fiber" style={{ width: `${fiberProgress}%` }} />
+              </div>
+            </div>
+            <div className="macro-bar-item">
+              <span className="macro-bar-label sugar">Sugar:</span>
+              <span className="macro-bar-value">{Math.round(totals.sugar)}/{goals.sugar_goal || 50}g</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill sugar" style={{ width: `${sugarProgress}%` }} />
+              </div>
+            </div>
+            <div className="macro-bar-item">
+              <span className="macro-bar-label sodium">Na:</span>
+              <span className="macro-bar-value">{Math.round(totals.sodium)}/{goals.sodium_goal || 2300}mg</span>
+              <div className="macro-bar-track">
+                <div className="macro-bar-fill sodium" style={{ width: `${sodiumProgress}%` }} />
+              </div>
             </div>
           </div>
         </div>
