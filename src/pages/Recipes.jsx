@@ -157,6 +157,11 @@ function Recipes() {
     loadRecipes();
   }, [clientData?.id]);
 
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load random recipes when discover tab is first opened
   useEffect(() => {
     if (activeTab === 'discover' && discoverRecipes.length === 0 && !hasSearched) {
