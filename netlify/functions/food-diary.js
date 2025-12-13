@@ -46,7 +46,7 @@ exports.handler = async (event) => {
       // Removed: client_id (already known), created_at (only used for ordering, not display)
       let entriesQuery = supabase
         .from('food_diary_entries')
-        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber')
+        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium, potassium, calcium, iron, vitamin_c, cholesterol')
         .eq('client_id', clientId)
         .order('meal_type', { ascending: true })
         .order('created_at', { ascending: true });
@@ -86,7 +86,14 @@ exports.handler = async (event) => {
         protein: 0,
         carbs: 0,
         fat: 0,
-        fiber: 0
+        fiber: 0,
+        sugar: 0,
+        sodium: 0,
+        potassium: 0,
+        calcium: 0,
+        iron: 0,
+        vitaminC: 0,
+        cholesterol: 0
       };
 
       // Group entries by meal type
@@ -103,6 +110,13 @@ exports.handler = async (event) => {
         totals.carbs += parseFloat(entry.carbs) || 0;
         totals.fat += parseFloat(entry.fat) || 0;
         totals.fiber += parseFloat(entry.fiber) || 0;
+        totals.sugar += parseFloat(entry.sugar) || 0;
+        totals.sodium += parseFloat(entry.sodium) || 0;
+        totals.potassium += parseFloat(entry.potassium) || 0;
+        totals.calcium += parseFloat(entry.calcium) || 0;
+        totals.iron += parseFloat(entry.iron) || 0;
+        totals.vitaminC += parseFloat(entry.vitamin_c) || 0;
+        totals.cholesterol += parseFloat(entry.cholesterol) || 0;
 
         const mealType = entry.meal_type || 'snack';
         if (mealGroups[mealType]) {
@@ -117,6 +131,13 @@ exports.handler = async (event) => {
       totals.carbs = Math.round(totals.carbs * 10) / 10;
       totals.fat = Math.round(totals.fat * 10) / 10;
       totals.fiber = Math.round(totals.fiber * 10) / 10;
+      totals.sugar = Math.round(totals.sugar * 10) / 10;
+      totals.sodium = Math.round(totals.sodium);
+      totals.potassium = Math.round(totals.potassium);
+      totals.calcium = Math.round(totals.calcium);
+      totals.iron = Math.round(totals.iron * 10) / 10;
+      totals.vitaminC = Math.round(totals.vitaminC * 10) / 10;
+      totals.cholesterol = Math.round(totals.cholesterol);
 
       return {
         statusCode: 200,
@@ -167,6 +188,11 @@ exports.handler = async (event) => {
         fiber,
         sugar,
         sodium,
+        potassium,
+        calcium,
+        iron,
+        vitaminC,
+        cholesterol,
         externalId,
         foodSource,
         isQuickAdd,
@@ -205,6 +231,11 @@ exports.handler = async (event) => {
         fiber: fiber != null ? safeNum(fiber, 0) : null,
         sugar: sugar != null ? safeNum(sugar, 0) : null,
         sodium: sodium != null ? safeNum(sodium, 0) : null,
+        potassium: potassium != null ? safeNum(potassium, 0) : null,
+        calcium: calcium != null ? safeNum(calcium, 0) : null,
+        iron: iron != null ? Math.round(parseFloat(iron) * 10) / 10 : null,
+        vitamin_c: vitaminC != null ? Math.round(parseFloat(vitaminC) * 10) / 10 : null,
+        cholesterol: cholesterol != null ? safeNum(cholesterol, 0) : null,
         external_id: externalId || null,
         food_source: foodSource || 'custom',
         is_quick_add: isQuickAdd || false,
@@ -272,6 +303,11 @@ exports.handler = async (event) => {
       if (updateData.fiber !== undefined) updateFields.fiber = updateData.fiber;
       if (updateData.sugar !== undefined) updateFields.sugar = updateData.sugar;
       if (updateData.sodium !== undefined) updateFields.sodium = updateData.sodium;
+      if (updateData.potassium !== undefined) updateFields.potassium = updateData.potassium;
+      if (updateData.calcium !== undefined) updateFields.calcium = updateData.calcium;
+      if (updateData.iron !== undefined) updateFields.iron = updateData.iron;
+      if (updateData.vitaminC !== undefined) updateFields.vitamin_c = updateData.vitaminC;
+      if (updateData.cholesterol !== undefined) updateFields.cholesterol = updateData.cholesterol;
       if (updateData.mealType !== undefined) updateFields.meal_type = updateData.mealType;
       if (updateData.notes !== undefined) updateFields.notes = updateData.notes;
 
