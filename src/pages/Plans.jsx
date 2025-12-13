@@ -1587,7 +1587,11 @@ Keep it practical and brief. Format with clear sections.`;
 
                     {meal.image_url && (
                       <div className="meal-card-image">
-                        <img src={meal.image_url} alt={meal.name} />
+                        <img
+                          src={meal.image_url}
+                          alt={meal.name}
+                          onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                        />
                       </div>
                     )}
                     <div className="meal-card-content">
@@ -1847,21 +1851,23 @@ Keep it practical and brief. Format with clear sections.`;
         {showMealModal && selectedMeal && (
           <div className="meal-modal-overlay" onClick={closeMealModal}>
             <div className="meal-modal" onClick={e => e.stopPropagation()}>
-              {/* Meal Image - with loading state */}
-              <div className="meal-modal-image">
-                {mealImageLoading ? (
+              {/* Meal Image - only show if we have one */}
+              {mealImageLoading ? (
+                <div className="meal-modal-image">
                   <div className="meal-image-loading">
                     <div className="meal-image-spinner"></div>
                     <span>Loading image...</span>
                   </div>
-                ) : mealImageUrl ? (
-                  <img src={mealImageUrl} alt={selectedMeal.name} />
-                ) : (
-                  <div className="meal-image-placeholder">
-                    <Utensils size={48} />
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : mealImageUrl ? (
+                <div className="meal-modal-image">
+                  <img
+                    src={mealImageUrl}
+                    alt={selectedMeal.name}
+                    onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                  />
+                </div>
+              ) : null}
 
               {/* Meal Name */}
               <h2 className="meal-modal-name">{selectedMeal.name}</h2>
