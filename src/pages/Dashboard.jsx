@@ -411,6 +411,10 @@ function Dashboard() {
       if (finalTranscript) {
         // Final result - append to original text (before voice started)
         setFoodInput(baseText ? `${baseText} ${finalTranscript}` : finalTranscript);
+
+        // Auto-stop recording once we have a final result
+        // This releases the mic immediately after the user finishes speaking
+        stopVoiceInput();
       } else if (interimTranscript) {
         // Show interim as preview (will be replaced by final)
         setFoodInput(baseText ? `${baseText} ${interimTranscript}` : interimTranscript);
