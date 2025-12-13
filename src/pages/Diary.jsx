@@ -1095,7 +1095,7 @@ function Diary() {
 
     const openAddFood = () => {
       setSelectedMealType(mealType);
-      setShowSearchModal(true);
+      setShowAILogModal(true);
     };
 
     const openSaveMeal = () => {
