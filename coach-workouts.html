@@ -1958,8 +1958,12 @@
             workoutDays[currentDayIndex].exercises.push({
                 id: exercise.id,
                 name: exercise.name,
-                thumbnailUrl: exercise.video_url || exercise.thumbnail_url,
-                muscleGroup: exercise.muscle_group,
+                video_url: exercise.video_url,
+                animation_url: exercise.animation_url,
+                thumbnail_url: exercise.thumbnail_url || exercise.video_url,
+                muscle_group: exercise.muscle_group,
+                equipment: exercise.equipment,
+                instructions: exercise.instructions,
                 sets: 3,
                 reps: '8-12',
                 restSeconds: 90
