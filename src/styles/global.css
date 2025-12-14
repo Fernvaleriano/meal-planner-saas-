@@ -130,6 +130,21 @@ body {
     object-fit: contain;
 }
 
+.nav-logo-left {
+    height: 72px;
+    width: auto;
+    object-fit: contain;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+}
+
+a.nav-left {
+    text-decoration: none;
+}
+
 .nav-coach-story {
     cursor: pointer;
     transition: transform 0.2s;
