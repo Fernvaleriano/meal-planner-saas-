@@ -1867,7 +1867,7 @@
             const hasVideo = exercise.video_url || exercise.animation_url;
             const videoSrc = exercise.video_url || exercise.animation_url;
             const thumbHtml = hasVideo
-                ? `<video class="exercise-thumb-video" src="${videoSrc}" muted autoplay loop playsinline></video>`
+                ? `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video>`
                 : `<img class="exercise-thumb" src="${exercise.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
             return `
                 <div class="exercise-item">
@@ -1997,7 +1997,7 @@
                 const hasVideo = ex.video_url || ex.animation_url;
                 const videoSrc = ex.video_url || ex.animation_url;
                 const thumbHtml = hasVideo
-                    ? `<video class="exercise-card-thumb-video" src="${videoSrc}" muted autoplay loop playsinline></video>`
+                    ? `<video class="exercise-card-thumb-video" src="${videoSrc}" muted loop playsinline preload="none" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0"></video>`
                     : `<img class="exercise-card-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
                 return `
                 <div class="exercise-card" onclick='addExerciseToDay(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
