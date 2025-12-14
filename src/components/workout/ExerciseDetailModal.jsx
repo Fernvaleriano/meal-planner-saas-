@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, Volume2, VolumeX, RotateCcw, Timer, Target, Dumbbell, Info, BarChart3, FileText } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import SetEditorModal from './SetEditorModal';
 
 function ExerciseDetailModal({
   exercise,
@@ -38,6 +39,7 @@ function ExerciseDetailModal({
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const [activeTab, setActiveTab] = useState('workout');
   const [showVideo, setShowVideo] = useState(false);
+  const [showSetEditor, setShowSetEditor] = useState(false);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -337,23 +339,23 @@ function ExerciseDetailModal({
           <span>{difficultyLevel}</span>
         </div>
 
-        {/* Time/Reps Boxes */}
-        <div className="modal-time-boxes">
+        {/* Time/Reps Boxes - Tappable to open editor */}
+        <div className="modal-time-boxes" onClick={() => setShowSetEditor(true)}>
           <div className="time-boxes-row">
             {isTimedExercise ? (
               <>
-                <div className="time-box">{formatDuration(exercise.duration)}</div>
-                <div className="time-box">{formatDuration(exercise.duration)}</div>
-                <div className="time-box add-box" onClick={addSet}>
+                <div className="time-box clickable">{formatDuration(exercise.duration)}</div>
+                <div className="time-box clickable">{formatDuration(exercise.duration)}</div>
+                <div className="time-box add-box" onClick={(e) => { e.stopPropagation(); addSet(); }}>
                   <Plus size={18} />
                 </div>
               </>
             ) : (
               <>
                 {sets.slice(0, 2).map((set, idx) => (
-                  <div key={idx} className="time-box">{set.reps || exercise.reps || 12}</div>
+                  <div key={idx} className="time-box clickable">{set.reps || exercise.reps || 12}</div>
                 ))}
-                <div className="time-box add-box" onClick={addSet}>
+                <div className="time-box add-box" onClick={(e) => { e.stopPropagation(); addSet(); }}>
                   <Plus size={18} />
                 </div>
               </>
@@ -433,99 +435,30 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Sets Progress and Tracking Section - Matching Reference Design */}
-        <div className="sets-tracking-section">
-          {/* Progress dots and counter */}
-          <div className="sets-progress-v3">
-            <div className="progress-dots">
-              {sets.map((set, idx) => (
-                <div
-                  key={idx}
-                  className={`progress-dot ${set.completed ? 'completed' : ''}`}
-                />
-              ))}
-            </div>
-            <span className="progress-text">{completedSets}/{sets.length} sets complete</span>
-          </div>
-
-          {/* Sets List - Reference Design Style */}
-          <div className="sets-list-v3">
+        {/* Sets Progress - Simple indicator */}
+        <div className="sets-progress-simple">
+          <div className="progress-dots">
             {sets.map((set, idx) => (
-              <div key={idx} className={`set-row-v3 ${set.completed ? 'done' : ''}`}>
-                <div className="set-number-v3">
-                  <span>{idx + 1}</span>
-                </div>
-
-                <div className="set-reps-control-v3">
-                  <button onClick={() => updateReps(idx, -1)}>
-                    <Minus size={16} />
-                  </button>
-                  <div className="value-display-v3">
-                    <span className="value">{set.reps || exercise.reps || '8-12'}</span>
-                    <span className="label">REPS</span>
-                  </div>
-                  <button onClick={() => updateReps(idx, 1)}>
-                    <Plus size={16} />
-                  </button>
-                </div>
-
-                <div className="set-weight-control-v3">
-                  <button onClick={() => updateWeight(idx, -2.5)}>
-                    <Minus size={16} />
-                  </button>
-                  <div className="value-display-v3">
-                    <span className="value">{set.weight || 0}</span>
-                    <span className="label">KG</span>
-                  </div>
-                  <button onClick={() => updateWeight(idx, 2.5)}>
-                    <Plus size={16} />
-                  </button>
-                </div>
-
-                <button
-                  className={`set-complete-btn-v3 ${set.completed ? 'completed' : ''}`}
-                  onClick={() => toggleSet(idx)}
-                >
-                  <Check size={20} />
-                </button>
-              </div>
-            ))}
-
-            <button className="add-set-btn-v3" onClick={addSet}>
-              <Plus size={18} />
-              <span>Add Set</span>
-            </button>
-          </div>
-
-          {/* Rest Time */}
-          <div className="rest-between-sets">
-            <Clock size={16} />
-            <span>Rest between sets: {exercise.restSeconds || 60}s</span>
-          </div>
-
-          {/* Personal Note Section */}
-          <div className="personal-note-section">
-            <div className="note-header-v3">
-              <span>Personal Note</span>
-              <button onClick={() => setEditingNote(!editingNote)}>
-                <Edit2 size={14} />
-                <span>{editingNote ? 'Save' : 'Edit'}</span>
-              </button>
-            </div>
-            {editingNote ? (
-              <textarea
-                className="note-textarea-v3"
-                value={personalNote}
-                onChange={(e) => setPersonalNote(e.target.value)}
-                placeholder="Add notes about form, weights, or how this exercise feels..."
-                autoFocus
+              <div
+                key={idx}
+                className={`progress-dot ${set.completed ? 'completed' : ''}`}
               />
-            ) : (
-              <p className="note-content-v3">{personalNote || 'No notes yet. Tap edit to add one!'}</p>
-            )}
+            ))}
           </div>
+          <span className="progress-text">{completedSets}/{sets.length} sets complete</span>
         </div>
       </div>
+
+      {/* Set Editor Modal */}
+      {showSetEditor && (
+        <SetEditorModal
+          exercise={exercise}
+          sets={sets}
+          isTimedExercise={isTimedExercise}
+          onSave={(newSets) => setSets(newSets)}
+          onClose={() => setShowSetEditor(false)}
+        />
+      )}
     </div>
   );
 }
