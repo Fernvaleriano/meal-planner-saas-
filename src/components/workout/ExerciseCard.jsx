@@ -126,8 +126,13 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         <div className="exercise-thumb">
           <img
             src={thumbnailUrl}
-            alt={exercise.name}
-            onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+            alt={exercise.name || 'Exercise'}
+            loading="lazy"
+            onError={(e) => {
+              if (e.target.src !== '/img/exercise-placeholder.svg') {
+                e.target.src = '/img/exercise-placeholder.svg';
+              }
+            }}
           />
           {exercise.video_url && (
             <div className="video-indicator">
