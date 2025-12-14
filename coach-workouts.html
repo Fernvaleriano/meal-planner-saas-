@@ -2282,6 +2282,8 @@
 
             const exerciseHTML = exercisesToShow.map(ex => {
                 const hasVideo = ex.video_url || ex.animation_url;
+                // Use thumbnail_url, fallback to animation_url, then video_url, then placeholder
+                const displayThumb = ex.thumbnail_url || ex.animation_url || ex.video_url || '/img/exercise-placeholder.svg';
                 const hasThumbnail = ex.thumbnail_url && !ex.thumbnail_url.includes('placeholder');
                 const secondaryMuscles = ex.secondary_muscles
                     ? (Array.isArray(ex.secondary_muscles) ? ex.secondary_muscles.slice(0, 2).join(', ') : ex.secondary_muscles)
@@ -2290,7 +2292,7 @@
                 return `
                 <div class="exercise-card" onclick='addExerciseToDay(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
                     <div class="exercise-thumb-container">
-                        <img class="exercise-card-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'" loading="lazy">
+                        <img class="exercise-card-thumb" src="${displayThumb}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'" loading="lazy">
                         ${hasVideo ? '<div class="video-indicator">▶</div>' : ''}
                         <button class="edit-thumb-btn ${hasThumbnail ? '' : 'no-thumb'}" onclick="event.stopPropagation(); openThumbnailModal(${JSON.stringify(ex).replace(/"/g, '&quot;')})" title="${hasThumbnail ? 'Change thumbnail' : 'Add thumbnail'}">
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
