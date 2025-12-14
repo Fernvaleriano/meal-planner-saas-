@@ -161,14 +161,14 @@ function Workouts() {
   const getExercisesFromWorkout = (workout) => {
     if (!workout?.workout_data) return [];
 
-    // Direct exercises array
-    if (workout.workout_data.exercises) {
+    // Direct exercises array (from API when fetching by date)
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
       return workout.workout_data.exercises;
     }
 
     // Days structure - get exercises from the first day (or scheduled day)
     if (workout.workout_data.days && workout.workout_data.days.length > 0) {
-      // For now, cycle through days based on which workout day it is
+      // Use day_index from API or default to 0
       const dayIndex = workout.day_index || 0;
       const day = workout.workout_data.days[dayIndex % workout.workout_data.days.length];
       return day?.exercises || [];
