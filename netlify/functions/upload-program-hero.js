@@ -137,10 +137,26 @@ exports.handler = async (event) => {
       };
     }
 
-    // Update program with new hero image URL
+    // First fetch current program_data
+    const { data: existingProgram, error: fetchError } = await supabase
+      .from('workout_programs')
+      .select('program_data')
+      .eq('id', programId)
+      .single();
+
+    if (fetchError) {
+      throw new Error('Failed to fetch program: ' + fetchError.message);
+    }
+
+    // Update program_data with new image_url
+    const updatedProgramData = {
+      ...(existingProgram.program_data || {}),
+      image_url: finalHeroImageUrl
+    };
+
     const { data: program, error: updateError } = await supabase
       .from('workout_programs')
-      .update({ hero_image_url: finalHeroImageUrl })
+      .update({ program_data: updatedProgramData })
       .eq('id', programId)
       .select()
       .single();
@@ -157,7 +173,7 @@ exports.handler = async (event) => {
         program: {
           id: program.id,
           name: program.name,
-          hero_image_url: program.hero_image_url
+          hero_image_url: program.program_data?.image_url
         }
       })
     };
