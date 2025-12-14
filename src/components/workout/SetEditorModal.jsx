@@ -131,24 +131,27 @@ function SetEditorModal({
         <div className="editor-sets-list">
           {localSets.map((set, index) => (
             <div key={index} className="editor-set-item">
-              <span className="set-number">{index + 1}</span>
-              <button
-                className={`set-value-input ${activeSetIndex === index ? 'active' : ''}`}
-                onClick={() => setActiveSetIndex(index)}
-              >
-                {editMode === 'time'
-                  ? (set.duration || exercise.duration || 45)
-                  : (set.reps || exercise.reps || 12)
-                }
-              </button>
-              <button className="set-delete-btn" onClick={() => deleteSet(index)}>
-                <X size={16} />
-              </button>
-
+              <div className="editor-set-row">
+                <span className="set-number">{index + 1}</span>
+                <button
+                  className={`set-value-input ${activeSetIndex === index ? 'active' : ''}`}
+                  onClick={() => setActiveSetIndex(index)}
+                >
+                  {editMode === 'time'
+                    ? (set.duration || exercise.duration || 45)
+                    : (set.reps || exercise.reps || 12)
+                  }
+                </button>
+                <button className="set-delete-btn" onClick={() => deleteSet(index)}>
+                  <X size={14} />
+                </button>
+              </div>
               {/* Rest time below each set */}
               <div className="set-rest-row">
-                <Clock size={14} />
-                <span>{set.restSeconds || exercise.restSeconds || 30}s rest</span>
+                <div className="rest-pill">
+                  <Clock size={12} />
+                  <span>{set.restSeconds || exercise.restSeconds || 30}s rest</span>
+                </div>
               </div>
             </div>
           ))}

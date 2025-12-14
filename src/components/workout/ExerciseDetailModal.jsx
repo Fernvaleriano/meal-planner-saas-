@@ -156,12 +156,7 @@ function ExerciseDetailModal({
   const toggleVideo = () => {
     if (videoUrl) {
       setShowVideo(true);
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.play().catch(() => {});
-          setIsVideoPlaying(true);
-        }
-      }, 100);
+      // Video will auto-play via onLoadedData handler
     }
   };
 
@@ -289,14 +284,23 @@ function ExerciseDetailModal({
                 loop
                 muted={isMuted}
                 playsInline
-                autoPlay
+                onError={(e) => {
+                  console.error('Video failed to load:', videoUrl);
+                  setShowVideo(false);
+                }}
+                onLoadedData={() => {
+                  if (videoRef.current) {
+                    videoRef.current.play().catch(() => {});
+                    setIsVideoPlaying(true);
+                  }
+                }}
                 onClick={() => {
                   if (videoRef.current) {
                     if (isVideoPlaying) {
                       videoRef.current.pause();
                       setIsVideoPlaying(false);
                     } else {
-                      videoRef.current.play();
+                      videoRef.current.play().catch(() => {});
                       setIsVideoPlaying(true);
                     }
                   }
