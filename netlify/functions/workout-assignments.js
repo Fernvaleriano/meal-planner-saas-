@@ -74,37 +74,45 @@ exports.handler = async (event) => {
           // Calculate which day of the program this date corresponds to
           const workoutData = activeAssignment.workout_data || {};
           const days = workoutData.days || [];
+          const schedule = workoutData.schedule || activeAssignment.schedule || {};
           const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
           const targetDate = new Date(date);
 
           // Get day of week (0=Sunday, 6=Saturday)
           const targetDayOfWeek = targetDate.getDay();
+          const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+          const targetDayName = dayNames[targetDayOfWeek];
 
-          // Find the workout for this day of week
-          // Map day index to actual day based on program structure
-          // If program has 3 days/week, they might be Mon/Wed/Fri
+          // Check if this day is in the selected days (if schedule exists)
+          const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+
           let todayWorkout = null;
 
           if (days.length > 0) {
-            // Simple approach: cycle through workout days based on date
-            const daysPerWeek = days.length;
-            const weekNumber = Math.floor((targetDate - startDate) / (7 * 24 * 60 * 60 * 1000));
-            const workoutDaysInWeek = [];
+            // Check if this day of week is a workout day
+            const isWorkoutDay = selectedDays.includes(targetDayName);
 
-            // Assign workout days to weekdays (skip weekends for typical programs)
-            const dayMapping = daysPerWeek <= 3
-              ? [1, 3, 5] // Mon, Wed, Fri for 3-day programs
-              : daysPerWeek === 4
-                ? [1, 2, 4, 5] // Mon, Tue, Thu, Fri
-                : daysPerWeek === 5
-                  ? [1, 2, 3, 4, 5] // Mon-Fri
-                  : [1, 2, 3, 4, 5, 6]; // Mon-Sat for 6-day
+            if (isWorkoutDay) {
+              // Calculate which workout day this is
+              // Count workout days from start date to target date
+              let workoutDayCount = 0;
+              const tempDate = new Date(startDate);
 
-            const dayIndex = dayMapping.indexOf(targetDayOfWeek);
-            if (dayIndex !== -1 && dayIndex < days.length) {
+              while (tempDate < targetDate) {
+                const tempDayName = dayNames[tempDate.getDay()];
+                if (selectedDays.includes(tempDayName)) {
+                  workoutDayCount++;
+                }
+                tempDate.setDate(tempDate.getDate() + 1);
+              }
+
+              // Cycle through program days
+              const dayIndex = workoutDayCount % days.length;
+
               todayWorkout = {
                 id: activeAssignment.id,
                 name: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                day_index: dayIndex,
                 workout_data: {
                   ...days[dayIndex],
                   exercises: days[dayIndex].exercises || [],
@@ -116,7 +124,7 @@ exports.handler = async (event) => {
               };
             }
           } else if (workoutData.exercises) {
-            // Fallback: use flat exercises list
+            // Fallback: use flat exercises list (for legacy data)
             todayWorkout = {
               id: activeAssignment.id,
               name: activeAssignment.name || 'Today\'s Workout',
@@ -198,7 +206,8 @@ exports.handler = async (event) => {
         name,
         startDate,
         endDate,
-        workoutData
+        workoutData,
+        schedule
       } = body;
 
       if (!clientId || !coachId) {
@@ -233,6 +242,12 @@ exports.handler = async (event) => {
         .eq('client_id', clientId)
         .eq('is_active', true);
 
+      // Store schedule in workout_data to avoid needing a new column
+      const workoutDataWithSchedule = {
+        ...finalWorkoutData,
+        schedule: schedule || { selectedDays: ['mon', 'tue', 'wed', 'thu', 'fri'] }
+      };
+
       // Create new assignment
       const { data: assignment, error } = await supabase
         .from('client_workout_assignments')
@@ -241,9 +256,9 @@ exports.handler = async (event) => {
           coach_id: coachId,
           program_id: programId,
           name: finalName || 'Custom Workout Plan',
-          start_date: startDate,
+          start_date: startDate || schedule?.startDate,
           end_date: endDate,
-          workout_data: finalWorkoutData || {},
+          workout_data: workoutDataWithSchedule,
           is_active: true
         }])
         .select()
