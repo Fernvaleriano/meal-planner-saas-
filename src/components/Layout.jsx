@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
 import BottomNav from './BottomNav';
 import DesktopSidebar from './DesktopSidebar';
+import ErrorBoundary from './ErrorBoundary';
 
 function Layout() {
   const location = useLocation();
@@ -15,7 +16,9 @@ function Layout() {
       <DesktopSidebar />
       <main className={`main-content ${hideTopNav ? 'no-top-nav' : ''}`}>
         <div className={`container ${hideTopNav ? 'full-width' : ''}`}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
       <BottomNav currentPath={location.pathname} />
