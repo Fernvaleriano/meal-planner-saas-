@@ -50,7 +50,7 @@ const MealTypeSelector = ({ selected, onChange }) => (
 
 // ==================== SNAP PHOTO MODAL ====================
 export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
-  const [preview, setPreview] = useState(null);
+  const [previews, setPreviews] = useState([]); // Array of images
   const [details, setDetails] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
@@ -58,6 +58,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
+  const MAX_PHOTOS = 4;
 
   // Update selected meal type when prop changes
   useEffect(() => {
@@ -69,20 +70,27 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     if (!file) return;
 
     setError(null);
-    setResults(null);
     const compressed = await compressImage(file);
-    setPreview(compressed);
+    setPreviews(prev => [...prev, compressed].slice(0, MAX_PHOTOS));
+
+    // Reset file input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const removePhoto = (index) => {
+    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setResults(null);
   };
 
   const analyzePhoto = async () => {
-    if (!preview) return;
+    if (previews.length === 0) return;
 
     setAnalyzing(true);
     setError(null);
 
     try {
       const data = await apiPost('/.netlify/functions/analyze-food-photo', {
-        image: preview,
+        images: previews, // Send array of images
         details: details || undefined
       });
 
@@ -138,7 +146,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   };
 
   const handleClose = () => {
-    setPreview(null);
+    setPreviews([]);
     setDetails('');
     setResults(null);
     setError(null);
@@ -157,9 +165,10 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
         </div>
 
         <div className="modal-body">
-          {!preview ? (
+          {previews.length === 0 ? (
             <div className="photo-capture-options">
-              <p className="photo-instructions">Take a photo or upload an image of your food</p>
+              <p className="photo-instructions">Take photos of your food</p>
+              <p className="photo-hint">Multiple angles help improve accuracy</p>
               <div className="photo-buttons">
                 <button className="photo-option-btn" onClick={() => cameraRef.current?.click()}>
                   <Camera size={24} />
@@ -188,7 +197,30 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
             </div>
           ) : !results ? (
             <div className="photo-preview-section">
-              <img src={preview} alt="Food preview" className="photo-preview-img" />
+              <div className="multi-photo-grid">
+                {previews.map((img, idx) => (
+                  <div key={idx} className="photo-preview-item">
+                    <img src={img} alt={`Preview ${idx + 1}`} className="photo-preview-thumb" />
+                    <button className="photo-remove-btn" onClick={() => removePhoto(idx)}>
+                      <X size={14} />
+                    </button>
+                    <span className="photo-number">{idx + 1}</span>
+                  </div>
+                ))}
+                {previews.length < MAX_PHOTOS && (
+                  <button className="add-photo-btn" onClick={() => cameraRef.current?.click()}>
+                    <Plus size={24} />
+                    <span>Add Angle</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="photo-tip">
+                {previews.length === 1
+                  ? "Add another angle for better accuracy"
+                  : `${previews.length} photos added`}
+              </p>
+
               <div className="photo-details-input">
                 <label>Add details (optional)</label>
                 <input
@@ -200,13 +232,29 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
               </div>
               {error && <div className="modal-error">{error}</div>}
               <div className="photo-actions">
-                <button className="btn-secondary" onClick={() => setPreview(null)}>
-                  Retake
+                <button className="btn-secondary" onClick={() => setPreviews([])}>
+                  Start Over
                 </button>
                 <button className="btn-primary" onClick={analyzePhoto} disabled={analyzing}>
-                  {analyzing ? <><Loader size={18} className="spin" /> Analyzing...</> : 'Analyze Photo'}
+                  {analyzing ? <><Loader size={18} className="spin" /> Analyzing...</> : `Analyze ${previews.length > 1 ? 'Photos' : 'Photo'}`}
                 </button>
               </div>
+
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              <input
+                ref={uploadRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
             </div>
           ) : (
             <div className="photo-results-section">
@@ -616,7 +664,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
 // ==================== SCAN LABEL MODAL ====================
 export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
-  const [preview, setPreview] = useState(null);
+  const [previews, setPreviews] = useState([]); // Array of images
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [servings, setServings] = useState(1);
@@ -624,6 +672,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
+  const MAX_PHOTOS = 4;
 
   useEffect(() => {
     setSelectedMealType(mealType);
@@ -634,21 +683,27 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     if (!file) return;
 
     setError(null);
-    setResult(null);
     const compressed = await compressImage(file);
-    setPreview(compressed);
+    setPreviews(prev => [...prev, compressed].slice(0, MAX_PHOTOS));
 
-    // Auto-analyze after capture
-    analyzeLabel(compressed);
+    // Reset file input so same file can be selected again
+    e.target.value = '';
   };
 
-  const analyzeLabel = async (imageData) => {
+  const removePhoto = (index) => {
+    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setResult(null);
+  };
+
+  const analyzeLabel = async () => {
+    if (previews.length === 0) return;
+
     setAnalyzing(true);
     setError(null);
 
     try {
       const data = await apiPost('/.netlify/functions/analyze-nutrition-label', {
-        image: imageData
+        images: previews // Send array of images
       });
 
       if (data?.calories !== undefined) {
@@ -709,7 +764,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   };
 
   const handleClose = () => {
-    setPreview(null);
+    setPreviews([]);
     setResult(null);
     setServings(1);
     setError(null);
@@ -730,9 +785,10 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         </div>
 
         <div className="modal-body">
-          {!preview ? (
+          {previews.length === 0 ? (
             <div className="photo-capture-options">
-              <p className="photo-instructions">Take a photo of the nutrition facts label</p>
+              <p className="photo-instructions">Take photos of the nutrition label and product</p>
+              <p className="photo-hint">Multiple angles help improve accuracy</p>
               <div className="photo-buttons">
                 <button className="photo-option-btn" onClick={() => cameraRef.current?.click()}>
                   <Camera size={24} />
@@ -761,10 +817,14 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
             </div>
           ) : analyzing ? (
             <div className="scan-analyzing">
-              <img src={preview} alt="Label preview" className="photo-preview-img small" />
+              <div className="multi-photo-preview">
+                {previews.map((img, idx) => (
+                  <img key={idx} src={img} alt={`Preview ${idx + 1}`} className="photo-preview-thumb" />
+                ))}
+              </div>
               <div className="analyzing-indicator">
                 <Loader size={24} className="spin" />
-                <span>Reading nutrition label...</span>
+                <span>Reading nutrition label{previews.length > 1 ? 's' : ''}...</span>
               </div>
             </div>
           ) : result ? (
@@ -807,7 +867,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
               <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
 
               <div className="scan-actions">
-                <button className="btn-secondary" onClick={() => { setPreview(null); setResult(null); }}>
+                <button className="btn-secondary" onClick={() => { setPreviews([]); setResult(null); }}>
                   Scan Again
                 </button>
                 <button className="btn-primary" onClick={addTooDiary}>
@@ -816,17 +876,57 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
               </div>
             </div>
           ) : (
-            <div className="scan-error-section">
-              <img src={preview} alt="Label preview" className="photo-preview-img small" />
+            <div className="multi-photo-section">
+              <div className="multi-photo-grid">
+                {previews.map((img, idx) => (
+                  <div key={idx} className="photo-preview-item">
+                    <img src={img} alt={`Preview ${idx + 1}`} className="photo-preview-thumb" />
+                    <button className="photo-remove-btn" onClick={() => removePhoto(idx)}>
+                      <X size={14} />
+                    </button>
+                    <span className="photo-number">{idx + 1}</span>
+                  </div>
+                ))}
+                {previews.length < MAX_PHOTOS && (
+                  <button className="add-photo-btn" onClick={() => cameraRef.current?.click()}>
+                    <Plus size={24} />
+                    <span>Add Photo</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="photo-tip">
+                {previews.length === 1
+                  ? "Add front of package for better accuracy"
+                  : `${previews.length} photos added`}
+              </p>
+
               {error && <div className="modal-error">{error}</div>}
+
               <div className="scan-actions">
-                <button className="btn-secondary" onClick={() => setPreview(null)}>
-                  Try Again
+                <button className="btn-secondary" onClick={() => setPreviews([])}>
+                  Start Over
                 </button>
-                <button className="btn-primary" onClick={() => analyzeLabel(preview)}>
-                  Retry Analysis
+                <button className="btn-primary" onClick={analyzeLabel}>
+                  Analyze {previews.length > 1 ? 'Photos' : 'Photo'}
                 </button>
               </div>
+
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              <input
+                ref={uploadRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
             </div>
           )}
         </div>

@@ -12343,3 +12343,136 @@ body {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+/* ========================================
+   MULTI-PHOTO UI COMPONENTS
+   ======================================== */
+.photo-hint {
+    font-size: 13px;
+    color: var(--gray-400);
+    margin-top: -8px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.multi-photo-section {
+    padding: 8px 0;
+}
+
+.multi-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.multi-photo-preview {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.photo-preview-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--gray-100);
+}
+
+.photo-preview-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.multi-photo-preview .photo-preview-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+}
+
+.photo-remove-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.photo-remove-btn:hover {
+    background: rgba(239, 68, 68, 0.9);
+}
+
+.photo-number {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--brand-primary);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-photo-btn {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 2px dashed var(--gray-300);
+    background: transparent;
+    color: var(--gray-400);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.add-photo-btn:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    background: rgba(13, 148, 136, 0.05);
+}
+
+.photo-tip {
+    font-size: 13px;
+    color: var(--gray-400);
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .photo-preview-item {
+    background: var(--gray-800);
+}
+
+[data-theme="dark"] .add-photo-btn {
+    border-color: var(--gray-600);
+    color: var(--gray-400);
+}
+
+[data-theme="dark"] .add-photo-btn:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    background: rgba(13, 148, 136, 0.1);
+}

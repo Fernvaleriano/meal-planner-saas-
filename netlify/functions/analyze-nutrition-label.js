@@ -57,9 +57,11 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { image } = body;
+        // Support both single image and multiple images
+        const { image, images } = body;
+        const imageArray = images || (image ? [image] : []);
 
-        if (!image) {
+        if (imageArray.length === 0) {
             return {
                 statusCode: 400,
                 headers,
@@ -67,18 +69,24 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Extract base64 data and media type
-        const matches = image.match(/^data:(.+);base64,(.+)$/);
-        if (!matches) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Invalid image format' })
-            };
+        // Process all images and extract base64 data
+        const processedImages = [];
+        for (const img of imageArray) {
+            const matches = img.match(/^data:(.+);base64,(.+)$/);
+            if (!matches) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ error: 'Invalid image format' })
+                };
+            }
+            processedImages.push({
+                mediaType: matches[1],
+                base64Data: matches[2]
+            });
         }
 
-        const mediaType = matches[1];
-        const base64Data = matches[2];
+        console.log(`📋 Processing ${processedImages.length} image(s) for nutrition label analysis`);
 
         // Initialize Anthropic client
         let anthropic;
@@ -98,7 +106,11 @@ exports.handler = async (event, context) => {
         console.log('📋 Calling Claude to read nutrition label...');
 
         // Build the prompt for nutrition label reading
-        const analysisPrompt = `You are reading a nutrition facts label from a food product. Extract the nutritional information accurately.
+        const multiImageNote = processedImages.length > 1
+            ? `You are viewing ${processedImages.length} images of a food product from different angles. Use ALL images together to get the most accurate information - one may show the nutrition facts, another may show the product name or front of package.`
+            : 'You are reading a nutrition facts label from a food product.';
+
+        const analysisPrompt = `${multiImageNote} Extract the nutritional information accurately.
 
 Look for and extract:
 1. Product name (from the label or packaging if visible)
@@ -127,6 +139,22 @@ Important:
 
 Return ONLY the JSON object, nothing else.`;
 
+        // Build content array with all images
+        const messageContent = [
+            ...processedImages.map((img, idx) => ({
+                type: "image",
+                source: {
+                    type: "base64",
+                    media_type: img.mediaType,
+                    data: img.base64Data
+                }
+            })),
+            {
+                type: "text",
+                text: analysisPrompt
+            }
+        ];
+
         let message;
         try {
             message = await anthropic.messages.create({
@@ -135,20 +163,7 @@ Return ONLY the JSON object, nothing else.`;
                 messages: [
                     {
                         role: "user",
-                        content: [
-                            {
-                                type: "image",
-                                source: {
-                                    type: "base64",
-                                    media_type: mediaType,
-                                    data: base64Data
-                                }
-                            },
-                            {
-                                type: "text",
-                                text: analysisPrompt
-                            }
-                        ]
+                        content: messageContent
                     }
                 ]
             });
