@@ -117,7 +117,8 @@ exports.handler = async (event) => {
                   ...days[dayIndex],
                   exercises: days[dayIndex].exercises || [],
                   estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
-                  estimatedCalories: days[dayIndex].estimatedCalories || 300
+                  estimatedCalories: days[dayIndex].estimatedCalories || 300,
+                  image_url: workoutData.image_url || null
                 },
                 program_id: activeAssignment.program_id,
                 client_id: activeAssignment.client_id
@@ -131,7 +132,8 @@ exports.handler = async (event) => {
               workout_data: {
                 exercises: workoutData.exercises,
                 estimatedMinutes: 45,
-                estimatedCalories: 300
+                estimatedCalories: 300,
+                image_url: workoutData.image_url || null
               },
               program_id: activeAssignment.program_id,
               client_id: activeAssignment.client_id
