@@ -58,6 +58,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [error, setError] = useState(null);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [isAdding, setIsAdding] = useState(false);
+  const isAddingRef = useRef(false); // Ref to prevent duplicate submissions
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
@@ -111,8 +112,10 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   };
 
   const addAllTooDiary = useCallback(async () => {
-    if (!results || !clientData?.id || isAdding) return;
+    // Use ref to prevent duplicate submissions (more reliable than state)
+    if (!results || !clientData?.id || isAddingRef.current) return;
 
+    isAddingRef.current = true;
     setIsAdding(true);
     const today = new Date().toISOString().split('T')[0];
     let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -153,16 +156,12 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } catch (err) {
       console.error('Failed to add foods:', err);
       setError('Failed to add foods. Please try again.');
-      showError('Failed to add food to diary', {
-        onRetry: async () => {
-          setError(null);
-          await addAllTooDiary();
-        }
-      });
+      isAddingRef.current = false; // Reset ref on error to allow retry
+      showError('Failed to add food to diary');
     } finally {
       setIsAdding(false);
     }
-  }, [results, clientData, selectedMealType, isAdding, onFoodLogged, showError, showSuccess]);
+  }, [results, clientData, selectedMealType, onFoodLogged, showError, showSuccess]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -171,6 +170,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     setError(null);
     setAnalyzing(false);
     setIsAdding(false);
+    isAddingRef.current = false;
     onClose();
   };
 
@@ -317,6 +317,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
   const [servings, setServings] = useState(1);
   const [selectedMeasure, setSelectedMeasure] = useState(0);
   const [isAdding, setIsAdding] = useState(false);
+  const isAddingRef = useRef(false); // Ref to prevent duplicate submissions
   const searchTimeout = useRef(null);
   const { showError, showSuccess } = useToast();
 
@@ -369,8 +370,10 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
   };
 
   const addTooDiary = useCallback(async () => {
-    if (!selectedFood || !clientData?.id || isAdding) return;
+    // Use ref to prevent duplicate submissions (more reliable than state)
+    if (!selectedFood || !clientData?.id || isAddingRef.current) return;
 
+    isAddingRef.current = true;
     setIsAdding(true);
     const nutrition = getScaledNutrition();
     const today = new Date().toISOString().split('T')[0];
@@ -399,15 +402,12 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
       handleClose();
     } catch (err) {
       console.error('Failed to add food:', err);
-      showError('Failed to add food to diary', {
-        onRetry: async () => {
-          await addTooDiary();
-        }
-      });
+      isAddingRef.current = false; // Reset ref on error to allow retry
+      showError('Failed to add food to diary');
     } finally {
       setIsAdding(false);
     }
-  }, [selectedFood, clientData, mealType, servings, selectedMeasure, isAdding, onFoodLogged, showError, showSuccess]);
+  }, [selectedFood, clientData, mealType, servings, selectedMeasure, onFoodLogged, showError, showSuccess]);
 
   const handleClose = () => {
     setQuery('');
@@ -415,6 +415,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     setSelectedFood(null);
     setServings(1);
     setIsAdding(false);
+    isAddingRef.current = false;
     onClose();
   };
 
@@ -552,6 +553,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [loading, setLoading] = useState(!getCachedFavorites().length);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [addingId, setAddingId] = useState(null);
+  const addingRef = useRef(false); // Ref to prevent duplicate submissions
   const { showError, showSuccess } = useToast();
 
   useEffect(() => {
@@ -587,8 +589,10 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
   };
 
   const addFavorite = useCallback(async (favorite) => {
-    if (addingId) return;
+    // Use ref to prevent duplicate submissions (more reliable than state)
+    if (addingRef.current) return;
 
+    addingRef.current = true;
     setAddingId(favorite.id);
     const today = new Date().toISOString().split('T')[0];
 
@@ -618,18 +622,16 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
         fat: favorite.fat
       });
       showSuccess('Food added to diary!');
+      addingRef.current = false;
       onClose();
     } catch (err) {
       console.error('Failed to add favorite:', err);
-      showError('Failed to add food to diary', {
-        onRetry: async () => {
-          await addFavorite(favorite);
-        }
-      });
+      addingRef.current = false; // Reset ref on error to allow retry
+      showError('Failed to add food to diary');
     } finally {
       setAddingId(null);
     }
-  }, [addingId, clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess]);
+  }, [clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess]);
 
   const deleteFavorite = async (favoriteId, e) => {
     e.stopPropagation();
@@ -719,6 +721,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [error, setError] = useState(null);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [isAdding, setIsAdding] = useState(false);
+  const isAddingRef = useRef(false); // Ref to prevent duplicate submissions
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
@@ -781,8 +784,10 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   };
 
   const addTooDiary = useCallback(async () => {
-    if (!result || !clientData?.id || isAdding) return;
+    // Use ref to prevent duplicate submissions (more reliable than state)
+    if (!result || !clientData?.id || isAddingRef.current) return;
 
+    isAddingRef.current = true;
     setIsAdding(true);
     const nutrition = getScaledNutrition();
     const today = new Date().toISOString().split('T')[0];
@@ -813,16 +818,12 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
       console.error('Food diary error:', err);
       const errorMessage = err?.response?.data?.error || err?.message || 'Failed to add food. Please try again.';
       setError(errorMessage);
-      showError('Failed to add food to diary', {
-        onRetry: async () => {
-          setError(null);
-          await addTooDiary();
-        }
-      });
+      isAddingRef.current = false; // Reset ref on error to allow retry
+      showError('Failed to add food to diary');
     } finally {
       setIsAdding(false);
     }
-  }, [result, clientData, selectedMealType, servings, isAdding, onFoodLogged, showError, showSuccess]);
+  }, [result, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -830,6 +831,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     setServings(1);
     setError(null);
     setAnalyzing(false);
+    isAddingRef.current = false;
     setIsAdding(false);
     onClose();
   };
