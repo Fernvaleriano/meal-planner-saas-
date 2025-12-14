@@ -2282,17 +2282,31 @@
 
             const exerciseHTML = exercisesToShow.map(ex => {
                 const hasVideo = ex.video_url || ex.animation_url;
-                // Use thumbnail_url, fallback to animation_url, then video_url, then placeholder
-                const displayThumb = ex.thumbnail_url || ex.animation_url || ex.video_url || '/img/exercise-placeholder.svg';
-                const hasThumbnail = ex.thumbnail_url && !ex.thumbnail_url.includes('placeholder');
+                // Determine what to display: prefer thumbnail_url (image), then try video sources
+                const thumbnailImg = ex.thumbnail_url;
+                const videoSrc = ex.animation_url || ex.video_url;
+                const hasThumbnail = thumbnailImg && !thumbnailImg.includes('placeholder');
                 const secondaryMuscles = ex.secondary_muscles
                     ? (Array.isArray(ex.secondary_muscles) ? ex.secondary_muscles.slice(0, 2).join(', ') : ex.secondary_muscles)
                     : '';
 
+                // Determine media element - use img for images, video for mp4s
+                let mediaElement;
+                if (thumbnailImg) {
+                    // Has a proper thumbnail image
+                    mediaElement = `<img class="exercise-card-thumb" src="${thumbnailImg}" alt="${ex.name}" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';" loading="lazy"><video class="exercise-card-thumb" src="${videoSrc || ''}" muted playsinline preload="metadata" style="display:none;"></video>`;
+                } else if (videoSrc) {
+                    // No thumbnail, but has video - show video first frame
+                    mediaElement = `<video class="exercise-card-thumb" src="${videoSrc}" muted playsinline preload="metadata"></video>`;
+                } else {
+                    // No media at all
+                    mediaElement = `<img class="exercise-card-thumb" src="/img/exercise-placeholder.svg" alt="${ex.name}">`;
+                }
+
                 return `
                 <div class="exercise-card" onclick='addExerciseToDay(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
                     <div class="exercise-thumb-container">
-                        <img class="exercise-card-thumb" src="${displayThumb}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'" loading="lazy">
+                        ${mediaElement}
                         ${hasVideo ? '<div class="video-indicator">▶</div>' : ''}
                         <button class="edit-thumb-btn ${hasThumbnail ? '' : 'no-thumb'}" onclick="event.stopPropagation(); openThumbnailModal(${JSON.stringify(ex).replace(/"/g, '&quot;')})" title="${hasThumbnail ? 'Change thumbnail' : 'Add thumbnail'}">
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
