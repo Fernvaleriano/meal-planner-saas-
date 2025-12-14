@@ -106,10 +106,12 @@ exports.handler = async (event) => {
           difficulty,
           duration_weeks: durationWeeks,
           days_per_week: daysPerWeek,
-          program_data: programData || {},
+          program_data: {
+            ...(programData || {}),
+            image_url: heroImageUrl || null
+          },
           is_template: isTemplate !== false,
-          is_published: isPublished || false,
-          hero_image_url: heroImageUrl
+          is_published: isPublished || false
         }])
         .select()
         .single();
@@ -144,10 +146,16 @@ exports.handler = async (event) => {
       if (updateData.difficulty !== undefined) updateFields.difficulty = updateData.difficulty;
       if (updateData.durationWeeks !== undefined) updateFields.duration_weeks = updateData.durationWeeks;
       if (updateData.daysPerWeek !== undefined) updateFields.days_per_week = updateData.daysPerWeek;
-      if (updateData.programData !== undefined) updateFields.program_data = updateData.programData;
       if (updateData.isTemplate !== undefined) updateFields.is_template = updateData.isTemplate;
       if (updateData.isPublished !== undefined) updateFields.is_published = updateData.isPublished;
-      if (updateData.heroImageUrl !== undefined) updateFields.hero_image_url = updateData.heroImageUrl;
+
+      // Store image_url inside program_data
+      if (updateData.programData !== undefined || updateData.heroImageUrl !== undefined) {
+        updateFields.program_data = {
+          ...(updateData.programData || {}),
+          image_url: updateData.heroImageUrl !== undefined ? updateData.heroImageUrl : (updateData.programData?.image_url || null)
+        };
+      }
 
       const { data: program, error } = await supabase
         .from('workout_programs')

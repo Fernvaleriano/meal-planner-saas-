@@ -2100,8 +2100,9 @@
                 document.getElementById('daysPerWeek').value = program.days_per_week || 3;
                 document.getElementById('programDescription').value = program.description || '';
 
-                // Load hero image if exists
-                setHeroImage(program.hero_image_url || null);
+                // Load hero image if exists (from program_data.image_url)
+                const heroUrl = program.program_data?.image_url || null;
+                setHeroImage(heroUrl);
                 pendingHeroImageData = null;
 
                 workoutDays = program.program_data?.days || [];
