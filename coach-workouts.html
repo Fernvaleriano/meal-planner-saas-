@@ -366,6 +366,94 @@
             resize: vertical;
         }
 
+        /* Hero Image Upload */
+        .hero-image-upload {
+            margin-top: 8px;
+        }
+
+        .hero-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            text-align: center;
+            background: var(--bg-tertiary);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero-upload-area:hover {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        .hero-upload-area svg {
+            color: var(--text-muted);
+        }
+
+        .hero-upload-area span {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .hero-upload-area .upload-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .hero-upload-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .hero-upload-buttons .or-divider {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .hero-preview {
+            position: relative;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            max-height: 200px;
+        }
+
+        .hero-preview img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+        }
+
+        .remove-hero-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .remove-hero-btn:hover {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        .remove-hero-btn svg {
+            color: white;
+        }
+
         /* Workout Days */
         .workout-day {
             background: var(--bg-tertiary);
@@ -1486,6 +1574,43 @@
                     <label class="form-label">Description</label>
                     <textarea class="form-textarea" id="programDescription" placeholder="Describe the program goals and structure..."></textarea>
                 </div>
+
+                <!-- Hero Image Upload -->
+                <div class="form-group">
+                    <label class="form-label">Cover Image</label>
+                    <div class="hero-image-upload">
+                        <div id="heroImagePreview" class="hero-preview" style="display: none;">
+                            <img id="heroPreviewImg" src="" alt="Cover preview">
+                            <button type="button" class="remove-hero-btn" onclick="removeHeroImage()" title="Remove image">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="heroUploadArea" class="hero-upload-area">
+                            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Upload cover image</span>
+                            <p class="upload-hint">This image will appear at the top of the workout for clients</p>
+                            <input type="file" id="heroFileInput" accept="image/*" onchange="previewHeroImage(event)" style="display: none;">
+                            <div class="hero-upload-buttons">
+                                <button type="button" class="btn-secondary" onclick="document.getElementById('heroFileInput').click()">
+                                    Choose File
+                                </button>
+                                <span class="or-divider">or</span>
+                                <button type="button" class="btn-secondary" onclick="showHeroUrlInput()">
+                                    Paste URL
+                                </button>
+                            </div>
+                            <div id="heroUrlInputContainer" style="display: none; margin-top: 12px; width: 100%;">
+                                <input type="text" id="heroUrlInput" class="form-input" placeholder="https://example.com/image.jpg" style="width: 100%;">
+                                <button type="button" class="btn-primary" onclick="applyHeroUrl()" style="margin-top: 8px;">Apply URL</button>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="heroImageUrl" value="">
+                </div>
             </div>
 
             <!-- Workout Days -->
@@ -1975,6 +2100,10 @@
                 document.getElementById('daysPerWeek').value = program.days_per_week || 3;
                 document.getElementById('programDescription').value = program.description || '';
 
+                // Load hero image if exists
+                setHeroImage(program.hero_image_url || null);
+                pendingHeroImageData = null;
+
                 workoutDays = program.program_data?.days || [];
                 renderWorkoutDays();
                 enableAssignButton(); // Enable assign button for existing program
@@ -1990,6 +2119,10 @@
             document.getElementById('programDifficulty').value = 'intermediate';
             document.getElementById('daysPerWeek').value = '4';
             document.getElementById('programDescription').value = '';
+
+            // Reset hero image
+            removeHeroImage();
+
             workoutDays = [];
             selectedClients.clear();
             addWorkoutDay();
@@ -2451,6 +2584,99 @@
             }
         }
 
+        // ============ HERO IMAGE UPLOAD ============
+
+        let pendingHeroImageData = null;
+
+        function previewHeroImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('heroPreviewImg').src = e.target.result;
+                document.getElementById('heroImagePreview').style.display = 'block';
+                document.getElementById('heroUploadArea').style.display = 'none';
+
+                pendingHeroImageData = {
+                    type: 'file',
+                    base64: e.target.result,
+                    name: file.name
+                };
+
+                // Store temporary marker in hidden field
+                document.getElementById('heroImageUrl').value = '__pending_upload__';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showHeroUrlInput() {
+            document.getElementById('heroUrlInputContainer').style.display = 'block';
+        }
+
+        function applyHeroUrl() {
+            const url = document.getElementById('heroUrlInput').value.trim();
+            if (!url) {
+                showToast('Please enter a valid URL', 'error');
+                return;
+            }
+
+            document.getElementById('heroPreviewImg').src = url;
+            document.getElementById('heroImagePreview').style.display = 'block';
+            document.getElementById('heroUploadArea').style.display = 'none';
+            document.getElementById('heroImageUrl').value = url;
+            pendingHeroImageData = { type: 'url', url: url };
+        }
+
+        function removeHeroImage() {
+            document.getElementById('heroPreviewImg').src = '';
+            document.getElementById('heroImagePreview').style.display = 'none';
+            document.getElementById('heroUploadArea').style.display = 'flex';
+            document.getElementById('heroFileInput').value = '';
+            document.getElementById('heroUrlInput').value = '';
+            document.getElementById('heroUrlInputContainer').style.display = 'none';
+            document.getElementById('heroImageUrl').value = '';
+            pendingHeroImageData = null;
+        }
+
+        function setHeroImage(url) {
+            if (url) {
+                document.getElementById('heroPreviewImg').src = url;
+                document.getElementById('heroImagePreview').style.display = 'block';
+                document.getElementById('heroUploadArea').style.display = 'none';
+                document.getElementById('heroImageUrl').value = url;
+            } else {
+                removeHeroImage();
+            }
+        }
+
+        async function uploadHeroImageIfNeeded() {
+            // If there's a pending file upload, upload it now
+            if (pendingHeroImageData && pendingHeroImageData.type === 'file' && currentProgramId) {
+                try {
+                    const result = await apiCall('/.netlify/functions/upload-program-hero', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            programId: currentProgramId,
+                            imageBase64: pendingHeroImageData.base64,
+                            imageName: pendingHeroImageData.name
+                        })
+                    });
+
+                    if (result.success) {
+                        document.getElementById('heroImageUrl').value = result.program.hero_image_url;
+                        pendingHeroImageData = null;
+                        return result.program.hero_image_url;
+                    }
+                } catch (err) {
+                    console.error('Error uploading hero image:', err);
+                    showToast('Warning: Hero image upload failed', 'error');
+                }
+            }
+
+            return document.getElementById('heroImageUrl').value || null;
+        }
+
         function addExerciseToDay(exercise) {
             workoutDays[currentDayIndex].exercises.push({
                 id: exercise.id,
@@ -2619,6 +2845,7 @@
             }
 
             const programName = document.getElementById('programName').value.trim();
+            const heroImageUrl = document.getElementById('heroImageUrl').value;
 
             try {
                 showToast('Assigning workout...', 'success');
@@ -2631,7 +2858,10 @@
                             coachId: currentCoachId,
                             programId: currentProgramId,
                             name: programName,
-                            workoutData: { days: workoutDays },
+                            workoutData: {
+                                days: workoutDays,
+                                image_url: heroImageUrl || null
+                            },
                             schedule: {
                                 startDate,
                                 weeksAmount,
@@ -2672,6 +2902,13 @@
 
             try {
                 let result;
+
+                // Get hero image URL (direct URL, not pending upload)
+                let heroImageUrl = document.getElementById('heroImageUrl').value;
+                if (heroImageUrl === '__pending_upload__') {
+                    heroImageUrl = null; // Will upload after save
+                }
+
                 if (currentProgramId) {
                     // Update existing program
                     result = await apiCall('/.netlify/functions/workout-programs', {
@@ -2683,11 +2920,16 @@
                             programType: document.getElementById('programType').value,
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                            programData: { days: workoutDays }
+                            programData: { days: workoutDays },
+                            heroImageUrl: heroImageUrl || undefined
                         })
                     });
+
+                    // Upload pending hero image if any
+                    await uploadHeroImageIfNeeded();
+
                 } else {
-                    // Create new program
+                    // Create new program (without hero image first, will add after)
                     result = await apiCall('/.netlify/functions/workout-programs', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -2697,10 +2939,14 @@
                             programType: document.getElementById('programType').value,
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                            programData: { days: workoutDays }
+                            programData: { days: workoutDays },
+                            heroImageUrl: heroImageUrl || undefined
                         })
                     });
                     currentProgramId = result.program?.id;
+
+                    // Upload pending hero image if any (now we have program ID)
+                    await uploadHeroImageIfNeeded();
                 }
 
                 showToast('Program saved! You can now assign it to clients.');
