@@ -75,6 +75,11 @@ exports.handler = async (event) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+  // Get batch parameter (default 0 = first batch)
+  const params = event.queryStringParameters || {};
+  const batchNum = parseInt(params.batch) || 0;
+  const batchSize = 30; // Process 30 at a time
+
   try {
     // Get all existing exercises
     const { data: existingExercises, error: exError } = await supabase
@@ -122,15 +127,12 @@ exports.handler = async (event) => {
 
     // Find exercises that need to be added
     const exercisesToAdd = [];
-    const alreadyExists = [];
 
     for (const file of allFiles) {
       const exerciseName = cleanExerciseName(file.name);
       const normalizedName = exerciseName.toLowerCase().trim();
 
-      if (existingNames.has(normalizedName)) {
-        alreadyExists.push(exerciseName);
-      } else {
+      if (!existingNames.has(normalizedName)) {
         // Get video URL
         const { data: urlData } = supabase.storage
           .from(BUCKET_NAME)
@@ -150,19 +152,36 @@ exports.handler = async (event) => {
       }
     }
 
-    // Insert new exercises
+    // Get batch to process
+    const startIdx = batchNum * batchSize;
+    const batch = exercisesToAdd.slice(startIdx, startIdx + batchSize);
+    const hasMore = startIdx + batchSize < exercisesToAdd.length;
+
+    // Insert batch of exercises
     let added = 0;
     let errors = [];
 
-    for (const exercise of exercisesToAdd) {
-      const { error } = await supabase
+    if (batch.length > 0) {
+      // Try batch insert first
+      const { error: batchError } = await supabase
         .from('exercises')
-        .insert(exercise);
+        .insert(batch);
 
-      if (error) {
-        errors.push({ name: exercise.name, error: error.message });
+      if (batchError) {
+        // If batch fails, try one by one
+        for (const exercise of batch) {
+          const { error } = await supabase
+            .from('exercises')
+            .insert(exercise);
+
+          if (error) {
+            errors.push({ name: exercise.name, error: error.message });
+          } else {
+            added++;
+          }
+        }
       } else {
-        added++;
+        added = batch.length;
       }
     }
 
@@ -172,11 +191,17 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         success: true,
         totalVideos: allFiles.length,
-        alreadyExisted: alreadyExists.length,
+        totalMissing: exercisesToAdd.length,
+        batchNumber: batchNum,
+        batchSize: batch.length,
         added,
         errors: errors.length,
-        errorDetails: errors.slice(0, 10),
-        addedExercises: exercisesToAdd.slice(0, 30).map(e => ({ name: e.name, muscle_group: e.muscle_group }))
+        hasMore,
+        nextBatchUrl: hasMore ? `?batch=${batchNum + 1}` : null,
+        message: hasMore
+          ? `Added ${added} exercises. Run again with ?batch=${batchNum + 1} to continue.`
+          : `Done! Added ${added} exercises. All exercises have been created.`,
+        addedExercises: batch.map(e => ({ name: e.name, muscle_group: e.muscle_group }))
       })
     };
 
