@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
+import { clearSessionCache } from '../utils/api';
 
 const AuthContext = createContext({});
 
@@ -209,6 +210,8 @@ export function AuthProvider({ children }) {
       setClientData(null);
       // Clear cached client data on logout
       localStorage.removeItem('cachedClientData');
+      // Clear API session cache
+      clearSessionCache();
     } catch (err) {
       console.error('Logout error:', err);
     }

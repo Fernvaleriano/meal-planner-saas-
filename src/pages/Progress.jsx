@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
+import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
@@ -70,6 +71,29 @@ function Progress() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Pull-to-refresh: Refresh progress data
+  const refreshProgressData = useCallback(async () => {
+    if (!clientData?.id) return;
+
+    // Ensure fresh session before fetching
+    await ensureFreshSession();
+
+    try {
+      const [measurementsData, photosData] = await Promise.all([
+        apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=20`),
+        apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`)
+      ]);
+
+      setMeasurements(measurementsData?.measurements || []);
+      setPhotos(photosData?.photos || []);
+    } catch (err) {
+      console.error('Error refreshing progress data:', err);
+    }
+  }, [clientData?.id]);
+
+  // Setup pull-to-refresh
+  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshProgressData);
 
   useEffect(() => {
     if (clientData?.id) {
@@ -228,7 +252,14 @@ function Progress() {
   };
 
   return (
-    <div className="progress-page">
+    <div className="progress-page" {...containerProps}>
+      {/* Pull-to-refresh indicator */}
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+        threshold={threshold}
+      />
+
       {/* Header */}
       <div className="page-header-gradient">
         <button className="back-btn-circle" onClick={() => navigate(-1)}>

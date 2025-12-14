@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, Upload, Search, Heart, Loader, Plus, Minus, Check, Trash2 } from 'lucide-react';
-import { apiGet, apiPost, apiDelete } from '../utils/api';
+import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
+import { useToast } from './Toast';
 
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
@@ -56,9 +57,11 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
+  const [isAdding, setIsAdding] = useState(false);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
+  const { showError, showSuccess } = useToast();
 
   // Update selected meal type when prop changes
   useEffect(() => {
@@ -107,14 +110,21 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     }
   };
 
-  const addAllTooDiary = async () => {
-    if (!results || !clientData?.id) return;
+  const addAllTooDiary = useCallback(async () => {
+    if (!results || !clientData?.id || isAdding) return;
 
+    setIsAdding(true);
     const today = new Date().toISOString().split('T')[0];
     let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
+    // Store results for retry
+    const foodsToAdd = [...results];
+
     try {
-      for (const food of results) {
+      // Ensure fresh session before adding
+      await ensureFreshSession();
+
+      for (const food of foodsToAdd) {
         await apiPost('/.netlify/functions/food-diary', {
           clientId: clientData.id,
           coachId: clientData.coach_id,
@@ -138,12 +148,21 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
       }
 
       onFoodLogged?.(addedTotals);
+      showSuccess('Food added to diary!');
       handleClose();
     } catch (err) {
+      console.error('Failed to add foods:', err);
       setError('Failed to add foods. Please try again.');
-      console.error(err);
+      showError('Failed to add food to diary', {
+        onRetry: async () => {
+          setError(null);
+          await addAllTooDiary();
+        }
+      });
+    } finally {
+      setIsAdding(false);
     }
-  };
+  }, [results, clientData, selectedMealType, isAdding, onFoodLogged, showError, showSuccess]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -151,6 +170,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     setResults(null);
     setError(null);
     setAnalyzing(false);
+    setIsAdding(false);
     onClose();
   };
 
@@ -277,8 +297,8 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
                 <span>{results.reduce((s, f) => s + (f.calories || 0), 0)} cal</span>
               </div>
               <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
-              <button className="btn-primary full-width" onClick={addAllTooDiary}>
-                <Check size={18} /> Add All to {selectedMealType}
+              <button className="btn-primary full-width" onClick={addAllTooDiary} disabled={isAdding}>
+                {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : <><Check size={18} /> Add All to {selectedMealType}</>}
               </button>
             </div>
           )}
@@ -296,7 +316,9 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
   const [selectedFood, setSelectedFood] = useState(null);
   const [servings, setServings] = useState(1);
   const [selectedMeasure, setSelectedMeasure] = useState(0);
+  const [isAdding, setIsAdding] = useState(false);
   const searchTimeout = useRef(null);
+  const { showError, showSuccess } = useToast();
 
   const searchFood = async (searchQuery) => {
     if (searchQuery.length < 2) {
@@ -346,41 +368,53 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     };
   };
 
-  const addTooDiary = async () => {
-    if (!selectedFood || !clientData?.id) return;
+  const addTooDiary = useCallback(async () => {
+    if (!selectedFood || !clientData?.id || isAdding) return;
 
+    setIsAdding(true);
     const nutrition = getScaledNutrition();
     const today = new Date().toISOString().split('T')[0];
+    const foodToAdd = { ...selectedFood };
 
     try {
+      await ensureFreshSession();
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
         entryDate: today,
         mealType: mealType,
-        foodName: selectedFood.name,
+        foodName: foodToAdd.name,
         calories: nutrition.calories,
         protein: nutrition.protein,
         carbs: nutrition.carbs,
         fat: nutrition.fat,
-        servingSize: selectedFood.measures?.[selectedMeasure]?.weight || 100,
-        servingUnit: selectedFood.measures?.[selectedMeasure]?.label || 'g',
+        servingSize: foodToAdd.measures?.[selectedMeasure]?.weight || 100,
+        servingUnit: foodToAdd.measures?.[selectedMeasure]?.label || 'g',
         numberOfServings: servings,
         foodSource: 'search'
       });
 
       onFoodLogged?.(nutrition);
+      showSuccess('Food added to diary!');
       handleClose();
     } catch (err) {
       console.error('Failed to add food:', err);
+      showError('Failed to add food to diary', {
+        onRetry: async () => {
+          await addTooDiary();
+        }
+      });
+    } finally {
+      setIsAdding(false);
     }
-  };
+  }, [selectedFood, clientData, mealType, servings, selectedMeasure, isAdding, onFoodLogged, showError, showSuccess]);
 
   const handleClose = () => {
     setQuery('');
     setResults([]);
     setSelectedFood(null);
     setServings(1);
+    setIsAdding(false);
     onClose();
   };
 
@@ -490,8 +524,8 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
                 </div>
               </div>
 
-              <button className="btn-primary full-width" onClick={addTooDiary}>
-                Add to {mealType}
+              <button className="btn-primary full-width" onClick={addTooDiary} disabled={isAdding}>
+                {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : `Add to ${mealType}`}
               </button>
             </div>
           )}
@@ -517,6 +551,8 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [favorites, setFavorites] = useState(getCachedFavorites);
   const [loading, setLoading] = useState(!getCachedFavorites().length);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
+  const [addingId, setAddingId] = useState(null);
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     setSelectedMealType(mealType);
@@ -550,10 +586,14 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
     }
   };
 
-  const addFavorite = async (favorite) => {
+  const addFavorite = useCallback(async (favorite) => {
+    if (addingId) return;
+
+    setAddingId(favorite.id);
     const today = new Date().toISOString().split('T')[0];
 
     try {
+      await ensureFreshSession();
       // Add each food item from the favorite meal
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
@@ -577,11 +617,19 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
         carbs: favorite.carbs,
         fat: favorite.fat
       });
+      showSuccess('Food added to diary!');
       onClose();
     } catch (err) {
       console.error('Failed to add favorite:', err);
+      showError('Failed to add food to diary', {
+        onRetry: async () => {
+          await addFavorite(favorite);
+        }
+      });
+    } finally {
+      setAddingId(null);
     }
-  };
+  }, [addingId, clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess]);
 
   const deleteFavorite = async (favoriteId, e) => {
     e.stopPropagation();
@@ -670,9 +718,11 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [servings, setServings] = useState(1);
   const [error, setError] = useState(null);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
+  const [isAdding, setIsAdding] = useState(false);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     setSelectedMealType(mealType);
@@ -730,38 +780,49 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     };
   };
 
-  const addTooDiary = async () => {
-    if (!result || !clientData?.id) return;
+  const addTooDiary = useCallback(async () => {
+    if (!result || !clientData?.id || isAdding) return;
 
+    setIsAdding(true);
     const nutrition = getScaledNutrition();
     const today = new Date().toISOString().split('T')[0];
+    const resultToAdd = { ...result };
 
     try {
+      await ensureFreshSession();
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
         entryDate: today,
         mealType: selectedMealType,
-        foodName: result.name || 'Scanned Food',
+        foodName: resultToAdd.name || 'Scanned Food',
         calories: nutrition.calories,
         protein: nutrition.protein,
         carbs: nutrition.carbs,
         fat: nutrition.fat,
         servingSize: 1,
-        servingUnit: result.servingSize || 'serving',
+        servingUnit: resultToAdd.servingSize || 'serving',
         numberOfServings: servings,
         foodSource: 'nutrition_label'
       });
 
       onFoodLogged?.(nutrition);
+      showSuccess('Food added to diary!');
       handleClose();
     } catch (err) {
-      // Show more detailed error for debugging
+      console.error('Food diary error:', err);
       const errorMessage = err?.response?.data?.error || err?.message || 'Failed to add food. Please try again.';
       setError(errorMessage);
-      console.error('Food diary error:', err);
+      showError('Failed to add food to diary', {
+        onRetry: async () => {
+          setError(null);
+          await addTooDiary();
+        }
+      });
+    } finally {
+      setIsAdding(false);
     }
-  };
+  }, [result, clientData, selectedMealType, servings, isAdding, onFoodLogged, showError, showSuccess]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -769,6 +830,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     setServings(1);
     setError(null);
     setAnalyzing(false);
+    setIsAdding(false);
     onClose();
   };
 
@@ -870,8 +932,8 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
                 <button className="btn-secondary" onClick={() => { setPreviews([]); setResult(null); }}>
                   Scan Again
                 </button>
-                <button className="btn-primary" onClick={addTooDiary}>
-                  Add to {selectedMealType}
+                <button className="btn-primary" onClick={addTooDiary} disabled={isAdding}>
+                  {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : `Add to ${selectedMealType}`}
                 </button>
               </div>
             </div>

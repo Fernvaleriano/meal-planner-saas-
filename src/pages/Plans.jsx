@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
+import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -123,6 +124,35 @@ function Plans() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Pull-to-refresh: Refresh plans data
+  const refreshPlansData = useCallback(async () => {
+    if (!clientData?.id) return;
+
+    // Ensure fresh session before fetching
+    await ensureFreshSession();
+
+    try {
+      const data = await apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`);
+      if (data?.plans) {
+        setPlans(data.plans);
+        setCache(`plans_full_${clientData.id}`, data.plans);
+
+        // Update selected plan if viewing one
+        if (selectedPlan) {
+          const updatedPlan = data.plans.find(p => String(p.id) === String(selectedPlan.id));
+          if (updatedPlan) {
+            setSelectedPlan(updatedPlan);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing plans:', err);
+    }
+  }, [clientData?.id, selectedPlan?.id]);
+
+  // Setup pull-to-refresh
+  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshPlansData);
 
   // Load plans with caching
   useEffect(() => {
@@ -1492,7 +1522,14 @@ Keep it practical and brief. Format with clear sections.`;
     const { numDays, calories, goal } = getPlanDetails(selectedPlan);
 
     return (
-      <div className="plans-page">
+      <div className="plans-page" {...containerProps}>
+        {/* Pull-to-refresh indicator */}
+        <PullToRefreshIndicator
+          pullDistance={pullDistance}
+          isRefreshing={isRefreshing}
+          threshold={threshold}
+        />
+
         {/* Header */}
         <div className="plan-detail-header">
           <button className="back-btn" onClick={handleBackToPlans}>
@@ -2283,7 +2320,14 @@ Keep it practical and brief. Format with clear sections.`;
 
   // Plans list view
   return (
-    <div className="plans-page">
+    <div className="plans-page" {...containerProps}>
+      {/* Pull-to-refresh indicator */}
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+        threshold={threshold}
+      />
+
       <h1 className="page-title">Meal Plans</h1>
 
       {plans.length === 0 ? (

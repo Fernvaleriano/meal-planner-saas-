@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiDelete } from '../utils/api';
+import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
+import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -90,6 +91,62 @@ function Diary() {
     const cached = localStorage.getItem('diary_collapsed_meals');
     return cached ? JSON.parse(cached) : {};
   });
+
+  // Pull-to-refresh: Refresh diary data
+  const refreshDiaryData = useCallback(async () => {
+    if (!clientData?.id) return;
+
+    // Ensure fresh session before fetching
+    await ensureFreshSession();
+
+    const dateStr = formatDate(currentDate);
+
+    try {
+      const [diaryData, waterData] = await Promise.all([
+        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
+        apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+      ]);
+
+      const newEntries = diaryData.entries || [];
+      const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
+      const newWater = waterData?.glasses || 0;
+
+      // Calculate totals
+      const calculatedTotals = newEntries.reduce((acc, entry) => ({
+        calories: acc.calories + (entry.calories || 0),
+        protein: acc.protein + (entry.protein || 0),
+        carbs: acc.carbs + (entry.carbs || 0),
+        fat: acc.fat + (entry.fat || 0),
+        fiber: acc.fiber + (entry.fiber || 0),
+        sugar: acc.sugar + (entry.sugar || 0),
+        sodium: acc.sodium + (entry.sodium || 0),
+        potassium: acc.potassium + (entry.potassium || 0),
+        calcium: acc.calcium + (entry.calcium || 0),
+        iron: acc.iron + (entry.iron || 0),
+        vitaminC: acc.vitaminC + (entry.vitamin_c || entry.vitaminC || 0),
+        cholesterol: acc.cholesterol + (entry.cholesterol || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
+
+      setEntries(newEntries);
+      setGoals(newGoals);
+      setWaterIntake(newWater);
+      setTotals(calculatedTotals);
+
+      // Update cache
+      const cacheKey = `diary_${clientData.id}_${dateStr}`;
+      setCache(cacheKey, {
+        entries: newEntries,
+        totals: calculatedTotals,
+        goals: newGoals,
+        water: newWater
+      });
+    } catch (err) {
+      console.error('Error refreshing diary:', err);
+    }
+  }, [clientData?.id, currentDate]);
+
+  // Setup pull-to-refresh
+  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshDiaryData);
 
   // Toggle meal collapse
   const toggleMealCollapse = (mealType) => {
@@ -1240,7 +1297,14 @@ function Diary() {
   };
 
   return (
-    <div className="diary-page">
+    <div className="diary-page" {...containerProps}>
+      {/* Pull-to-refresh indicator */}
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+        threshold={threshold}
+      />
+
       {/* Date Navigation */}
       <div className="date-navigator">
         <button className="date-nav-btn" onClick={() => changeDate(-1)}>
