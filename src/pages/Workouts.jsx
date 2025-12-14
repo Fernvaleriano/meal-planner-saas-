@@ -55,6 +55,11 @@ function Workouts() {
   const [completedExercises, setCompletedExercises] = useState(new Set());
   const [weeklyStats, setWeeklyStats] = useState({ completed: 0, total: 7 });
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Pull-to-refresh: Refresh workout data
   const refreshWorkoutData = useCallback(async () => {
     if (!clientData?.id) return;

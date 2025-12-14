@@ -37,6 +37,7 @@ function ExerciseDetailModal({
   const [restTimer, setRestTimer] = useState(null);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const [activeTab, setActiveTab] = useState('workout');
+  const [showVideo, setShowVideo] = useState(false);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -151,13 +152,14 @@ function ExerciseDetailModal({
 
   // Toggle video playback
   const toggleVideo = () => {
-    if (videoRef.current) {
-      if (isVideoPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsVideoPlaying(!isVideoPlaying);
+    if (videoUrl) {
+      setShowVideo(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(() => {});
+          setIsVideoPlaying(true);
+        }
+      }, 100);
     }
   };
 
@@ -274,27 +276,58 @@ function ExerciseDetailModal({
           </button>
         </div>
 
-        {/* Two Images Side by Side */}
+        {/* Video/Images Section */}
         <div className="exercise-images-v3">
-          <div className="image-container">
-            <img
-              src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
-              alt={`${exercise.name} - start position`}
-              onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-            />
-          </div>
-          <div className="image-container">
-            <img
-              src={exercise.end_position_url || exercise.animation_url || exercise.thumbnail_url || '/img/exercise-placeholder.svg'}
-              alt={`${exercise.name} - end position`}
-              onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-            />
-          </div>
-          {/* Center Play Button */}
-          {videoUrl && (
-            <button className="center-play-btn" onClick={toggleVideo}>
-              <Play size={32} fill="white" />
-            </button>
+          {showVideo && videoUrl ? (
+            /* Video Player */
+            <div className="video-container-full">
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                loop
+                muted={isMuted}
+                playsInline
+                autoPlay
+                onClick={() => {
+                  if (videoRef.current) {
+                    if (isVideoPlaying) {
+                      videoRef.current.pause();
+                      setIsVideoPlaying(false);
+                    } else {
+                      videoRef.current.play();
+                      setIsVideoPlaying(true);
+                    }
+                  }
+                }}
+              />
+              <button className="close-video-btn" onClick={() => setShowVideo(false)}>
+                <X size={20} />
+              </button>
+            </div>
+          ) : (
+            /* Two Images Side by Side */
+            <>
+              <div className="image-container">
+                <img
+                  src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
+                  alt={`${exercise.name} - start position`}
+                  onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                />
+              </div>
+              <div className="image-container">
+                <img
+                  src={exercise.end_position_url || exercise.animation_url || exercise.thumbnail_url || '/img/exercise-placeholder.svg'}
+                  alt={`${exercise.name} - end position`}
+                  onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                />
+              </div>
+              {/* Center Play Button */}
+              {videoUrl && (
+                <button className="center-play-btn" onClick={toggleVideo}>
+                  <Play size={32} fill="white" />
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -400,243 +433,97 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Hidden Tabs Content for History/Info (keeping functionality) */}
-        <div className="modal-tabs" style={{ display: 'none' }}>
-          <button
-            className={`tab-btn ${activeTab === 'workout' ? 'active' : ''}`}
-            onClick={() => setActiveTab('workout')}
-          >
-            <Timer size={16} />
-            Workout
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            <Trophy size={16} />
-            History
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`}
-            onClick={() => setActiveTab('info')}
-          >
-            <Target size={16} />
-            Info
-          </button>
-        </div>
+        {/* Sets Progress and Tracking Section - Matching Reference Design */}
+        <div className="sets-tracking-section">
+          {/* Progress dots and counter */}
+          <div className="sets-progress-v3">
+            <div className="progress-dots">
+              {sets.map((set, idx) => (
+                <div
+                  key={idx}
+                  className={`progress-dot ${set.completed ? 'completed' : ''}`}
+                />
+              ))}
+            </div>
+            <span className="progress-text">{completedSets}/{sets.length} sets complete</span>
+          </div>
 
-        {/* Tab Content */}
-        <div className="modal-content-v2">
-          {activeTab === 'workout' && (
-            <div className="workout-tab">
-              {/* Progress Summary */}
-              <div className="sets-progress">
-                <div className="progress-visual">
-                  {sets.map((set, idx) => (
-                    <div
-                      key={idx}
-                      className={`progress-dot ${set.completed ? 'completed' : ''}`}
-                      style={{ background: set.completed ? muscleColor : undefined }}
-                    />
-                  ))}
+          {/* Sets List - Reference Design Style */}
+          <div className="sets-list-v3">
+            {sets.map((set, idx) => (
+              <div key={idx} className={`set-row-v3 ${set.completed ? 'done' : ''}`}>
+                <div className="set-number-v3">
+                  <span>{idx + 1}</span>
                 </div>
-                <span className="progress-text">{completedSets}/{sets.length} sets complete</span>
-              </div>
 
-              {/* Sets List */}
-              <div className="sets-list-v2">
-                {sets.map((set, idx) => (
-                  <div key={idx} className={`set-row ${set.completed ? 'done' : ''}`}>
-                    <div className="set-number">
-                      <span>{idx + 1}</span>
-                    </div>
-
-                    <div className="set-reps-control">
-                      <button onClick={() => updateReps(idx, -1)} disabled={!workoutStarted}>
-                        <Minus size={14} />
-                      </button>
-                      <div className="value-display">
-                        <span className="value">{set.reps}</span>
-                        <span className="label">reps</span>
-                      </div>
-                      <button onClick={() => updateReps(idx, 1)} disabled={!workoutStarted}>
-                        <Plus size={14} />
-                      </button>
-                    </div>
-
-                    <div className="set-weight-control">
-                      <button onClick={() => updateWeight(idx, -2.5)} disabled={!workoutStarted}>
-                        <Minus size={14} />
-                      </button>
-                      <div className="value-display">
-                        <span className="value">{set.weight || 0}</span>
-                        <span className="label">kg</span>
-                      </div>
-                      <button onClick={() => updateWeight(idx, 2.5)} disabled={!workoutStarted}>
-                        <Plus size={14} />
-                      </button>
-                    </div>
-
-                    <button
-                      className={`set-complete-btn ${set.completed ? 'completed' : ''}`}
-                      onClick={() => toggleSet(idx)}
-                      disabled={!workoutStarted}
-                      style={{ background: set.completed ? muscleColor : undefined }}
-                    >
-                      <Check size={20} />
-                    </button>
+                <div className="set-reps-control-v3">
+                  <button onClick={() => updateReps(idx, -1)}>
+                    <Minus size={16} />
+                  </button>
+                  <div className="value-display-v3">
+                    <span className="value">{set.reps || exercise.reps || '8-12'}</span>
+                    <span className="label">REPS</span>
                   </div>
-                ))}
-
-                <button className="add-set-btn-v2" onClick={addSet}>
-                  <Plus size={16} />
-                  <span>Add Set</span>
-                </button>
-              </div>
-
-              {/* Rest Time Setting */}
-              <div className="rest-setting">
-                <Clock size={16} />
-                <span>Rest between sets: {exercise.restSeconds || 60}s</span>
-              </div>
-
-              {/* Personal Note */}
-              <div className="personal-note-v2">
-                <div className="note-header">
-                  <span>Personal Note</span>
-                  <button onClick={() => setEditingNote(!editingNote)}>
-                    <Edit2 size={14} />
-                    {editingNote ? 'Save' : 'Edit'}
+                  <button onClick={() => updateReps(idx, 1)}>
+                    <Plus size={16} />
                   </button>
                 </div>
-                {editingNote ? (
-                  <textarea
-                    value={personalNote}
-                    onChange={(e) => setPersonalNote(e.target.value)}
-                    placeholder="Add notes about form, weights, or how this exercise feels..."
-                    autoFocus
-                  />
-                ) : (
-                  <p className="note-content">{personalNote || 'No notes yet. Tap edit to add one!'}</p>
-                )}
+
+                <div className="set-weight-control-v3">
+                  <button onClick={() => updateWeight(idx, -2.5)}>
+                    <Minus size={16} />
+                  </button>
+                  <div className="value-display-v3">
+                    <span className="value">{set.weight || 0}</span>
+                    <span className="label">KG</span>
+                  </div>
+                  <button onClick={() => updateWeight(idx, 2.5)}>
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                <button
+                  className={`set-complete-btn-v3 ${set.completed ? 'completed' : ''}`}
+                  onClick={() => toggleSet(idx)}
+                >
+                  <Check size={20} />
+                </button>
               </div>
+            ))}
+
+            <button className="add-set-btn-v3" onClick={addSet}>
+              <Plus size={18} />
+              <span>Add Set</span>
+            </button>
+          </div>
+
+          {/* Rest Time */}
+          <div className="rest-between-sets">
+            <Clock size={16} />
+            <span>Rest between sets: {exercise.restSeconds || 60}s</span>
+          </div>
+
+          {/* Personal Note Section */}
+          <div className="personal-note-section">
+            <div className="note-header-v3">
+              <span>Personal Note</span>
+              <button onClick={() => setEditingNote(!editingNote)}>
+                <Edit2 size={14} />
+                <span>{editingNote ? 'Save' : 'Edit'}</span>
+              </button>
             </div>
-          )}
-
-          {activeTab === 'history' && (
-            <div className="history-tab">
-              {/* Personal Record */}
-              <div className="personal-record">
-                <Trophy size={24} style={{ color: '#f59e0b' }} />
-                <div className="pr-info">
-                  <span className="pr-label">Personal Record</span>
-                  <span className="pr-value">{maxWeight > 0 ? `${maxWeight} kg` : 'Not set yet'}</span>
-                </div>
-              </div>
-
-              {/* History Chart */}
-              <div className="history-chart-v2">
-                <h4>Weight Progress</h4>
-                {history.length > 0 ? (
-                  <div className="chart-container">
-                    <div className="chart-bars">
-                      {history.slice(0, 8).reverse().map((h, idx) => (
-                        <div key={idx} className="chart-bar-wrapper">
-                          <div
-                            className="chart-bar"
-                            style={{
-                              height: `${maxWeight > 0 ? (h.max_weight / maxWeight) * 100 : 0}%`,
-                              background: muscleColor
-                            }}
-                          />
-                          <span className="bar-label">{h.max_weight}kg</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="no-history">
-                    <p>Complete this exercise to start tracking your progress!</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Sessions */}
-              <div className="recent-sessions">
-                <h4>Recent Sessions</h4>
-                {history.length > 0 ? (
-                  <div className="sessions-list">
-                    {history.slice(0, 5).map((h, idx) => (
-                      <div key={idx} className="session-item">
-                        <span className="session-date">
-                          {new Date(h.workout_date).toLocaleDateString()}
-                        </span>
-                        <span className="session-sets">{h.total_sets || 3} sets</span>
-                        <span className="session-weight">{h.max_weight || 0} kg max</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="no-sessions">No previous sessions recorded</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'info' && (
-            <div className="info-tab">
-              {/* Muscles Worked */}
-              <div className="muscles-info">
-                <h4>Muscles Worked</h4>
-                <div className="muscle-groups">
-                  <div className="muscle-group primary">
-                    <span className="group-label">Primary</span>
-                    <span className="group-value" style={{ color: muscleColor }}>
-                      {exercise.muscle_group || exercise.primary_muscles || 'Not specified'}
-                    </span>
-                  </div>
-                  {exercise.secondary_muscles && (
-                    <div className="muscle-group secondary">
-                      <span className="group-label">Secondary</span>
-                      <span className="group-value">
-                        {Array.isArray(exercise.secondary_muscles)
-                          ? exercise.secondary_muscles.join(', ')
-                          : exercise.secondary_muscles}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Equipment */}
-              <div className="equipment-info">
-                <h4>Equipment Required</h4>
-                <div className="equipment-badge-large">
-                  <Dumbbell size={20} />
-                  <span>{exercise.equipment || 'Bodyweight'}</span>
-                </div>
-              </div>
-
-              {/* Instructions */}
-              {exercise.instructions && (
-                <div className="instructions-info">
-                  <h4>Instructions</h4>
-                  <p>{exercise.instructions}</p>
-                </div>
-              )}
-
-              {/* Tips */}
-              <div className="tips-info">
-                <h4>Form Tips</h4>
-                <ul>
-                  <li>Focus on controlled movement throughout</li>
-                  <li>Breathe out during the exertion phase</li>
-                  <li>Keep your core engaged</li>
-                  <li>Don't sacrifice form for weight</li>
-                </ul>
-              </div>
-            </div>
-          )}
+            {editingNote ? (
+              <textarea
+                className="note-textarea-v3"
+                value={personalNote}
+                onChange={(e) => setPersonalNote(e.target.value)}
+                placeholder="Add notes about form, weights, or how this exercise feels..."
+                autoFocus
+              />
+            ) : (
+              <p className="note-content-v3">{personalNote || 'No notes yet. Tap edit to add one!'}</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
