@@ -314,6 +314,41 @@ function Workouts() {
         </div>
       )}
 
+      {/* Week Calendar Strip */}
+      <div className="week-calendar-v2">
+        <div className="calendar-header">
+          <button className="week-nav-btn" onClick={goToPreviousWeek}>
+            <ChevronLeft size={20} />
+          </button>
+          <span className="month-label">
+            {getMonthName(weekDates[3])} {weekDates[3].getFullYear()}
+          </span>
+          <button className="week-nav-btn" onClick={goToNextWeek}>
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
+        <div className="week-days-strip">
+          {weekDates.map((date) => {
+            const dateStr = formatDate(date);
+            const isSelected = formatDate(selectedDate) === dateStr;
+            const isTodayDate = formatDate(new Date()) === dateStr;
+
+            return (
+              <button
+                key={dateStr}
+                className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
+                onClick={() => setSelectedDate(date)}
+              >
+                <span className="day-name">{getDayName(date)}</span>
+                <span className="day-number">{date.getDate()}</span>
+                {isTodayDate && !isSelected && <span className="today-dot"></span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Exercise List Section */}
       <div className="workout-content">
         <div className="exercises-list-v2">
