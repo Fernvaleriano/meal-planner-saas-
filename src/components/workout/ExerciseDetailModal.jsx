@@ -1,8 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, Volume2, VolumeX, RotateCcw, Timer, Target, Dumbbell } from 'lucide-react';
+import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, Volume2, VolumeX, RotateCcw, Timer, Target, Dumbbell, Info, BarChart3, FileText } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
-function ExerciseDetailModal({ exercise, onClose, isCompleted, onToggleComplete, workoutStarted }) {
+function ExerciseDetailModal({
+  exercise,
+  exercises = [],
+  currentIndex = 0,
+  onClose,
+  onSelectExercise,
+  isCompleted,
+  onToggleComplete,
+  workoutStarted,
+  completedExercises = new Set()
+}) {
   // Handle sets being a number or an array
   const initializeSets = () => {
     if (Array.isArray(exercise.sets)) {
@@ -198,9 +208,21 @@ function ExerciseDetailModal({ exercise, onClose, isCompleted, onToggleComplete,
 
   const muscleColor = getMuscleColor(exercise.muscle_group || exercise.muscleGroup);
 
+  // Check if this is a timed/interval exercise
+  const isTimedExercise = exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval';
+
+  // Get difficulty level
+  const difficultyLevel = exercise.difficulty || 'Novice';
+
+  // Format duration for display
+  const formatDuration = (seconds) => {
+    if (!seconds) return '45s';
+    return `${seconds}s`;
+  };
+
   return (
     <div className="exercise-modal-overlay-v2" onClick={onClose}>
-      <div className="exercise-modal-v2" onClick={(e) => e.stopPropagation()}>
+      <div className="exercise-modal-v2 modal-v3" onClick={(e) => e.stopPropagation()}>
         {/* Rest Timer Overlay */}
         {restTimer && (
           <div className="rest-timer-overlay">
@@ -241,76 +263,145 @@ function ExerciseDetailModal({ exercise, onClose, isCompleted, onToggleComplete,
           </div>
         )}
 
-        {/* Header */}
-        <div className="modal-header-v2">
+        {/* Header - Exercise Name with Info Icon */}
+        <div className="modal-header-v3">
           <button className="close-btn" onClick={onClose}>
             <ChevronLeft size={24} />
           </button>
-          <div className="header-info">
-            <h2>{exercise.name}</h2>
-            <div className="header-badges">
-              <span className="muscle-badge" style={{ background: `${muscleColor}20`, color: muscleColor }}>
-                {exercise.muscle_group || exercise.muscleGroup || 'General'}
-              </span>
-              <span className="equipment-badge">
-                <Dumbbell size={12} />
-                {exercise.equipment || 'Bodyweight'}
-              </span>
+          <h2 className="header-title">{exercise.name}</h2>
+          <button className="info-btn">
+            <Info size={20} />
+          </button>
+        </div>
+
+        {/* Two Images Side by Side */}
+        <div className="exercise-images-v3">
+          <div className="image-container">
+            <img
+              src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
+              alt={`${exercise.name} - start position`}
+              onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+            />
+          </div>
+          <div className="image-container">
+            <img
+              src={exercise.end_position_url || exercise.animation_url || exercise.thumbnail_url || '/img/exercise-placeholder.svg'}
+              alt={`${exercise.name} - end position`}
+              onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+            />
+          </div>
+          {/* Center Play Button */}
+          {videoUrl && (
+            <button className="center-play-btn" onClick={toggleVideo}>
+              <Play size={32} fill="white" />
+            </button>
+          )}
+        </div>
+
+        {/* Difficulty Level */}
+        <div className="difficulty-section">
+          <BarChart3 size={16} />
+          <span>{difficultyLevel}</span>
+        </div>
+
+        {/* Time/Reps Boxes */}
+        <div className="modal-time-boxes">
+          <div className="time-boxes-row">
+            {isTimedExercise ? (
+              <>
+                <div className="time-box">{formatDuration(exercise.duration)}</div>
+                <div className="time-box">{formatDuration(exercise.duration)}</div>
+                <div className="time-box add-box" onClick={addSet}>
+                  <Plus size={18} />
+                </div>
+              </>
+            ) : (
+              <>
+                {sets.slice(0, 2).map((set, idx) => (
+                  <div key={idx} className="time-box">{set.reps || exercise.reps || 12}</div>
+                ))}
+                <div className="time-box add-box" onClick={addSet}>
+                  <Plus size={18} />
+                </div>
+              </>
+            )}
+          </div>
+          <div className="rest-boxes-row">
+            <div className="rest-box">
+              <Timer size={14} />
+              <span>{exercise.restSeconds || 30}s</span>
+            </div>
+            <div className="rest-box">
+              <span>{exercise.restSeconds || 30}s</span>
+            </div>
+            <div className="rest-spacer"></div>
+          </div>
+        </div>
+
+        {/* Add Note Button */}
+        <div className="add-note-section">
+          <button className="add-note-btn" onClick={() => setEditingNote(!editingNote)}>
+            <FileText size={18} />
+            <span>{editingNote ? 'Save note' : 'Add note'}</span>
+          </button>
+          {editingNote && (
+            <textarea
+              className="note-textarea"
+              value={personalNote}
+              onChange={(e) => setPersonalNote(e.target.value)}
+              placeholder="Add notes about form, weights, or how this exercise feels..."
+              autoFocus
+            />
+          )}
+        </div>
+
+        {/* Muscle Groups Section */}
+        <div className="muscle-groups-section">
+          <h4>Muscle groups</h4>
+          <div className="muscle-info-row">
+            <span className="muscle-name">
+              {exercise.muscle_group || exercise.muscleGroup || 'Cardiovascular System'}
+            </span>
+            <div className="body-diagrams">
+              <img src="/img/body-front.svg" alt="Front muscles" onError={(e) => { e.target.style.display = 'none'; }} />
+              <img src="/img/body-back.svg" alt="Back muscles" onError={(e) => { e.target.style.display = 'none'; }} />
             </div>
           </div>
-          {isCompleted && (
-            <div className="completed-indicator">
-              <Check size={20} />
-            </div>
-          )}
         </div>
 
-        {/* Video Section */}
-        <div className="video-section-v2">
-          {videoUrl ? (
-            <div className="video-container-v2">
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                poster={exercise.thumbnail_url || '/img/exercise-placeholder.svg'}
-                loop
-                muted={isMuted}
-                playsInline
-                onClick={toggleVideo}
-              />
-              <div className="video-controls">
-                <button className="video-control-btn" onClick={toggleVideo}>
-                  {isVideoPlaying ? <Pause size={20} /> : <Play size={20} />}
-                </button>
-                <button className="video-control-btn" onClick={restartVideo}>
-                  <RotateCcw size={18} />
-                </button>
-                <button className="video-control-btn" onClick={toggleMute}>
-                  {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                </button>
-              </div>
-              {!isVideoPlaying && (
-                <div className="video-play-overlay" onClick={toggleVideo}>
-                  <Play size={48} />
-                </div>
-              )}
+        {/* Activity Progress Bar at Bottom */}
+        {exercises.length > 0 && (
+          <div className="activity-progress-bar">
+            <div className="activity-header">
+              <span>Activity {currentIndex + 1}/{exercises.length}</span>
             </div>
-          ) : (
-            <div className="video-placeholder-v2">
-              <img
-                src={exercise.thumbnail_url || '/img/exercise-placeholder.svg'}
-                alt={exercise.name}
-                onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-              />
-              <div className="placeholder-overlay">
-                <span>Demo video coming soon</span>
-              </div>
+            <div className="activity-thumbnails">
+              {exercises.slice(0, 7).map((ex, idx) => (
+                <button
+                  key={ex.id || idx}
+                  className={`activity-thumb ${idx === currentIndex ? 'active' : ''} ${completedExercises.has(ex.id) ? 'completed' : ''}`}
+                  onClick={() => onSelectExercise && onSelectExercise(ex)}
+                >
+                  <img
+                    src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                    alt={ex.name}
+                    onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                  />
+                </button>
+              ))}
             </div>
-          )}
-        </div>
+            {/* Complete Exercise Button */}
+            <button
+              className={`complete-exercise-btn ${isCompleted ? 'completed' : ''}`}
+              onClick={onToggleComplete}
+            >
+              <Check size={28} />
+            </button>
+          </div>
+        )}
 
-        {/* Tabs */}
-        <div className="modal-tabs">
+        {/* Hidden Tabs Content for History/Info (keeping functionality) */}
+        <div className="modal-tabs" style={{ display: 'none' }}>
           <button
             className={`tab-btn ${activeTab === 'workout' ? 'active' : ''}`}
             onClick={() => setActiveTab('workout')}

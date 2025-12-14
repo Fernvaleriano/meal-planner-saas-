@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Plus, Clock, ChevronRight, Minus, Play } from 'lucide-react';
+import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer } from 'lucide-react';
 
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted }) {
   // Handle sets being a number or an array
@@ -11,7 +11,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return Array(numSets).fill(null).map(() => ({
       reps: exercise.reps || 12,
       weight: 0,
-      completed: false
+      completed: false,
+      duration: exercise.duration || null // For timed exercises
     }));
   };
 
@@ -20,6 +21,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   // Calculate completed sets
   const completedSets = sets.filter(s => s.completed).length;
+
+  // Check if this is a timed/interval exercise
+  const isTimedExercise = exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval';
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
@@ -48,46 +52,77 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   // Add a set
   const addSet = (e) => {
     e.stopPropagation();
-    const lastSet = sets[sets.length - 1] || { reps: 12, weight: 0 };
+    const lastSet = sets[sets.length - 1] || { reps: 12, weight: 0, duration: exercise.duration };
     setSets([...sets, { ...lastSet, completed: false }]);
   };
 
   // Get thumbnail URL or placeholder
   const thumbnailUrl = exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg';
 
-  // Get muscle group color
-  const getMuscleColor = (muscle) => {
-    const colors = {
-      chest: '#ef4444',
-      back: '#3b82f6',
-      shoulders: '#f59e0b',
-      biceps: '#8b5cf6',
-      triceps: '#ec4899',
-      legs: '#10b981',
-      quadriceps: '#10b981',
-      hamstrings: '#059669',
-      glutes: '#14b8a6',
-      core: '#6366f1',
-      abs: '#6366f1'
-    };
-    return colors[muscle?.toLowerCase()] || '#64748b';
+  // Format duration for display
+  const formatDuration = (seconds) => {
+    if (!seconds) return null;
+    return `${seconds}s`;
   };
-
-  const muscleColor = getMuscleColor(exercise.muscle_group || exercise.muscleGroup);
 
   return (
     <div
       className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''}`}
       onClick={onClick}
     >
-      {/* Exercise Number Badge */}
-      <div className="exercise-number" style={{ background: muscleColor }}>
-        {isCompleted ? <Check size={14} /> : index + 1}
-      </div>
-
-      {/* Main Content */}
+      {/* Main Content - New Layout: Info on Left, Image on Right */}
       <div className="exercise-main">
-        {/* Thumbnail */}
+        {/* Info Section - LEFT SIDE */}
+        <div className="exercise-details">
+          <h3 className="exercise-title">{exercise.name}</h3>
+          <span className="equipment-subtitle">
+            {exercise.equipment || 'No equipment'}
+          </span>
+
+          {/* Time/Reps Boxes Row */}
+          <div className="time-boxes-row">
+            {isTimedExercise ? (
+              <>
+                {/* Duration boxes for timed exercises */}
+                <div className="time-box">
+                  {formatDuration(exercise.duration) || '45s'}
+                </div>
+                <div className="time-box">
+                  {formatDuration(exercise.duration) || '45s'}
+                </div>
+                <div className="time-box add-box" onClick={addSet}>
+                  <Plus size={16} />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Rep boxes for strength exercises */}
+                {sets.slice(0, 2).map((set, idx) => (
+                  <div key={idx} className="time-box">
+                    {set.reps || exercise.reps || 12}
+                  </div>
+                ))}
+                <div className="time-box add-box" onClick={addSet}>
+                  <Plus size={16} />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Rest Time Row */}
+          <div className="rest-row">
+            <div className="rest-box">
+              <Timer size={12} />
+              <span>{exercise.restSeconds || 30}s</span>
+            </div>
+            <div className="rest-box">
+              <span>{exercise.restSeconds || 30}s</span>
+            </div>
+            <div className="rest-spacer"></div>
+          </div>
+        </div>
+
+        {/* Thumbnail - RIGHT SIDE */}
         <div className="exercise-thumb">
           <img
             src={thumbnailUrl}
@@ -98,62 +133,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             <div className="video-indicator">
               <Play size={12} />
             </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="exercise-details">
-          <h3 className="exercise-title">{exercise.name}</h3>
-          <div className="exercise-meta-row">
-            <span className="muscle-tag" style={{ background: `${muscleColor}20`, color: muscleColor }}>
-              {exercise.muscle_group || exercise.muscleGroup || 'General'}
-            </span>
-            <span className="equipment-tag">
-              {exercise.equipment || 'Bodyweight'}
-            </span>
-          </div>
-          <div className="sets-summary">
-            <span className="sets-count">{sets.length} sets</span>
-            <span className="sets-divider">•</span>
-            <span className="reps-count">{exercise.reps || '8-12'} reps</span>
-            {exercise.restSeconds && (
-              <>
-                <span className="sets-divider">•</span>
-                <span className="rest-count">
-                  <Clock size={12} />
-                  {exercise.restSeconds}s rest
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Progress Ring / Action */}
-        <div className="exercise-action">
-          {workoutStarted ? (
-            <div className="progress-ring-container">
-              <svg className="progress-ring" viewBox="0 0 36 36">
-                <path
-                  className="progress-ring-bg"
-                  d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831
-                    a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className="progress-ring-fill"
-                  style={{
-                    strokeDasharray: `${(completedSets / sets.length) * 100}, 100`,
-                    stroke: isCompleted ? '#22c55e' : muscleColor
-                  }}
-                  d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831
-                    a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <span className="ring-text">{completedSets}/{sets.length}</span>
-            </div>
-          ) : (
-            <ChevronRight size={20} className="chevron-icon" />
           )}
         </div>
       </div>

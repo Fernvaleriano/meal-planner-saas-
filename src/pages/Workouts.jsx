@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award, Heart, MoreVertical } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
@@ -248,6 +248,12 @@ function Workouts() {
 
   const workoutDayName = getWorkoutDayName(todayWorkout);
 
+  // Get workout image (coach can upload this)
+  const workoutImage = todayWorkout?.workout_data?.image_url || todayWorkout?.workout_data?.thumbnail_url || null;
+
+  // Get workout description
+  const workoutDescription = todayWorkout?.workout_data?.description || '';
+
   return (
     <div className="workouts-page-v2" {...containerProps}>
       {/* Pull-to-refresh indicator */}
@@ -257,192 +263,128 @@ function Workouts() {
         threshold={threshold}
       />
 
-      {/* Hero Header */}
-      <div className="workout-hero">
-        <div className="hero-gradient"></div>
-        <div className="hero-content">
-          <div className="hero-date">
-            <Calendar size={16} />
-            <span>{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
-          </div>
-          <h1 className="hero-title">
-            {todayWorkout ? workoutDayName || todayWorkout.name || 'Today\'s Workout' : 'Workouts'}
-          </h1>
-          {todayWorkout && (
-            <div className="hero-meta">
-              <span className="meta-badge">
-                <Clock size={14} />
-                {todayWorkout.workout_data?.estimatedMinutes || 45} min
+      {/* Top Navigation Bar */}
+      <div className="workout-top-nav">
+        <button className="nav-back-btn">
+          <ChevronLeft size={24} />
+        </button>
+        <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
+        <button className="nav-menu-btn">
+          <MoreVertical size={24} />
+        </button>
+      </div>
+
+      {/* Hero Section with Image */}
+      {todayWorkout && (
+        <div className="workout-hero-v3" style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}>
+          <div className="hero-overlay"></div>
+          <div className="hero-content-v3">
+            <h1 className="hero-title-v3">
+              {workoutDayName || todayWorkout.name || 'Today\'s Workout'}
+            </h1>
+            <p className="hero-day-label">Day: {todayWorkout.workout_data?.dayName || 'Full Body'}</p>
+            <div className="hero-stats">
+              <span className="stat-item">
+                <Clock size={16} />
+                {todayWorkout.workout_data?.estimatedMinutes || 45} minutes
               </span>
-              <span className="meta-badge">
-                <Flame size={14} />
+              <span className="stat-item">
+                <Flame size={16} />
                 {todayWorkout.workout_data?.estimatedCalories || 300} kcal
               </span>
-              <span className="meta-badge">
-                <Dumbbell size={14} />
-                {totalExercises} exercises
-              </span>
             </div>
-          )}
-          {targetMuscles.length > 0 && (
-            <div className="hero-targets">
-              <Target size={14} />
-              {targetMuscles.slice(0, 3).map((muscle, idx) => (
-                <span key={idx} className="target-badge">{muscle}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Week Calendar Strip */}
-      <div className="week-calendar-v2">
-        <div className="calendar-header">
-          <button className="week-nav-btn" onClick={goToPreviousWeek}>
-            <ChevronLeft size={20} />
-          </button>
-          <span className="month-label">
-            {getMonthName(weekDates[3])} {weekDates[3].getFullYear()}
-          </span>
-          <button className="week-nav-btn" onClick={goToNextWeek}>
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        <div className="week-days-strip">
-          {weekDates.map((date) => {
-            const dateStr = formatDate(date);
-            const isSelected = formatDate(selectedDate) === dateStr;
-            const isTodayDate = formatDate(new Date()) === dateStr;
-
-            return (
-              <button
-                key={dateStr}
-                className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
-                onClick={() => setSelectedDate(date)}
-              >
-                <span className="day-name">{getDayName(date)}</span>
-                <span className="day-number">{date.getDate()}</span>
-                {isTodayDate && !isSelected && <span className="today-dot"></span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Progress Card */}
-      {todayWorkout && (
-        <div className="progress-card-v2">
-          <div className="progress-header">
-            <div className="progress-icon">
-              <TrendingUp size={20} />
-            </div>
-            <div className="progress-info">
-              <span className="progress-label">Workout Progress</span>
-              <span className="progress-value">{completedCount} of {totalExercises} exercises</span>
-            </div>
-            <div className="progress-percentage">
-              <span>{Math.round(progressPercent)}%</span>
-            </div>
+            {workoutDescription && (
+              <p className="hero-description">{workoutDescription}</p>
+            )}
           </div>
-          <div className="progress-bar-v2">
-            <div
-              className="progress-fill-v2"
-              style={{ width: `${progressPercent}%` }}
-            >
-              {progressPercent > 20 && <Zap size={14} />}
-            </div>
-          </div>
-          {progressPercent === 100 && (
-            <div className="progress-complete">
-              <Award size={16} />
-              <span>Workout Complete!</span>
-            </div>
-          )}
+          {/* Large Play Button */}
+          <button className="hero-play-btn" onClick={handleStartWorkout}>
+            <Play size={28} fill="white" />
+          </button>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="workout-content">
-        {/* Start/Complete Button */}
-        {todayWorkout && !workoutStarted && (
-          <button className="start-workout-btn-v2" onClick={handleStartWorkout}>
-            <div className="btn-icon">
-              <Play size={24} />
-            </div>
-            <div className="btn-text">
-              <span className="btn-title">Start Workout</span>
-              <span className="btn-subtitle">Let's crush it!</span>
-            </div>
+      {/* Track Heart Rate Button */}
+      {todayWorkout && (
+        <div className="track-heart-rate-section">
+          <button className="track-heart-btn">
+            <Heart size={20} />
+            <span>Track heart rate</span>
           </button>
-        )}
-
-        {/* Exercise List */}
-        <div className="exercises-section">
-          {todayWorkout && <h2 className="section-title">Exercises</h2>}
-
-          <div className="exercises-list-v2">
-            {loading ? (
-              <div className="loading-state-v2">
-                <div className="loading-spinner"></div>
-                <span>Loading workout...</span>
-              </div>
-            ) : todayWorkout ? (
-              exercises.map((exercise, index) => (
-                <ExerciseCard
-                  key={exercise.id || index}
-                  exercise={exercise}
-                  index={index}
-                  isCompleted={completedExercises.has(exercise.id)}
-                  onToggleComplete={() => toggleExerciseComplete(exercise.id)}
-                  onClick={() => setSelectedExercise(exercise)}
-                  workoutStarted={workoutStarted}
-                />
-              ))
-            ) : (
-              <div className="empty-state-v2">
-                <div className="empty-illustration">
-                  <Dumbbell size={64} />
-                </div>
-                <h3>Rest Day</h3>
-                <p>No workout scheduled for this day. Recovery is part of the process!</p>
-                <div className="empty-tips">
-                  <div className="tip">
-                    <span className="tip-icon">💧</span>
-                    <span>Stay hydrated</span>
-                  </div>
-                  <div className="tip">
-                    <span className="tip-icon">🧘</span>
-                    <span>Light stretching</span>
-                  </div>
-                  <div className="tip">
-                    <span className="tip-icon">😴</span>
-                    <span>Get good sleep</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
+      )}
 
-        {/* Complete Workout Button */}
-        {workoutStarted && completedCount === totalExercises && totalExercises > 0 && (
-          <button className="complete-workout-btn-v2" onClick={handleCompleteWorkout}>
-            <CheckCircle size={24} />
-            <span>Complete Workout</span>
-            <div className="confetti-burst"></div>
-          </button>
-        )}
+      {/* Exercise List Section */}
+      <div className="workout-content">
+        <div className="exercises-list-v2">
+          {loading ? (
+            <div className="loading-state-v2">
+              <div className="loading-spinner"></div>
+              <span>Loading workout...</span>
+            </div>
+          ) : todayWorkout ? (
+            exercises.map((exercise, index) => (
+              <ExerciseCard
+                key={exercise.id || index}
+                exercise={exercise}
+                index={index}
+                isCompleted={completedExercises.has(exercise.id)}
+                onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                onClick={() => setSelectedExercise(exercise)}
+                workoutStarted={workoutStarted}
+              />
+            ))
+          ) : (
+            <div className="empty-state-v2">
+              <div className="empty-illustration">
+                <Dumbbell size={64} />
+              </div>
+              <h3>Rest Day</h3>
+              <p>No workout scheduled for this day. Recovery is part of the process!</p>
+              <div className="empty-tips">
+                <div className="tip">
+                  <span className="tip-icon">💧</span>
+                  <span>Stay hydrated</span>
+                </div>
+                <div className="tip">
+                  <span className="tip-icon">🧘</span>
+                  <span>Light stretching</span>
+                </div>
+                <div className="tip">
+                  <span className="tip-icon">😴</span>
+                  <span>Get good sleep</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Finish Training Button at Bottom */}
+      {todayWorkout && (
+        <div className="finish-training-section">
+          <button
+            className={`finish-training-btn ${completedCount === totalExercises && totalExercises > 0 ? 'ready' : ''}`}
+            onClick={handleCompleteWorkout}
+          >
+            <span className="btn-text">Finish training</span>
+            <span className="btn-progress">{completedCount}/{totalExercises} activities done</span>
+          </button>
+        </div>
+      )}
 
       {/* Exercise Detail Modal */}
       {selectedExercise && (
         <ExerciseDetailModal
           exercise={selectedExercise}
+          exercises={exercises}
+          currentIndex={exercises.findIndex(e => e.id === selectedExercise.id)}
           onClose={() => setSelectedExercise(null)}
+          onSelectExercise={(exercise) => setSelectedExercise(exercise)}
           isCompleted={completedExercises.has(selectedExercise.id)}
           onToggleComplete={() => toggleExerciseComplete(selectedExercise.id)}
           workoutStarted={workoutStarted}
+          completedExercises={completedExercises}
         />
       )}
     </div>
