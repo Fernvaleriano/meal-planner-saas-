@@ -108,10 +108,13 @@ exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const dryRun = params.dryRun === 'true' || params.dry === 'true';
   const deleteUnlinked = params.deleteUnlinked === 'true';
+  const batchSize = parseInt(params.batch) || 100; // Process 100 at a time
+  const offset = parseInt(params.offset) || 0;
 
   try {
     console.log('=== Sync Exercises from Videos ===');
     console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
+    console.log(`Batch size: ${batchSize}, Offset: ${offset}`);
 
     // Step 1: List all video files in the bucket
     const allVideos = [];
@@ -173,7 +176,7 @@ exports.handler = async (event) => {
     console.log(`  - With video: ${exercisesWithVideo.length}`);
     console.log(`  - Without video: ${exercisesWithoutVideo.length}`);
 
-    // Step 3: Process each video - create or update exercise
+    // Step 3: Process videos in batches
     const results = {
       created: [],
       updated: [],
@@ -182,7 +185,15 @@ exports.handler = async (event) => {
       errors: []
     };
 
-    for (const video of allVideos) {
+    // Get the batch to process
+    const videoBatch = allVideos.slice(offset, offset + batchSize);
+    const hasMore = offset + batchSize < allVideos.length;
+    const nextOffset = offset + batchSize;
+    const remaining = Math.max(0, allVideos.length - nextOffset);
+
+    console.log(`Processing batch: ${offset} to ${offset + videoBatch.length} of ${allVideos.length}`);
+
+    for (const video of videoBatch) {
       const rawName = cleanExerciseName(video.filename);
       const { name: exerciseName, gender } = extractGenderVariant(rawName);
 
@@ -285,6 +296,13 @@ exports.handler = async (event) => {
     const response = {
       success: true,
       mode: dryRun ? 'DRY RUN - no changes made' : 'LIVE',
+      batch: {
+        processed: videoBatch.length,
+        offset: offset,
+        total: allVideos.length,
+        hasMore: hasMore,
+        remaining: remaining
+      },
       summary: {
         videosInBucket: allVideos.length,
         existingExercises: existingExercises.length,
@@ -301,6 +319,13 @@ exports.handler = async (event) => {
         errors: results.errors
       }
     };
+
+    if (hasMore) {
+      response.nextBatch = `?offset=${nextOffset}${dryRun ? '&dryRun=true' : ''}`;
+      response.message = `Processed ${videoBatch.length} videos. ${remaining} remaining. Call again with offset=${nextOffset}`;
+    } else {
+      response.message = 'All videos processed!';
+    }
 
     if (dryRun) {
       response.nextSteps = {
