@@ -76,9 +76,11 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { image, details } = body;
+        // Support both single image and multiple images
+        const { image, images, details } = body;
+        const imageArray = images || (image ? [image] : []);
 
-        if (!image) {
+        if (imageArray.length === 0) {
             return {
                 statusCode: 400,
                 headers,
@@ -86,20 +88,24 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Extract base64 data and media type
-        const matches = image.match(/^data:(.+);base64,(.+)$/);
-        if (!matches) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Invalid image format' })
-            };
+        // Process all images and extract base64 data
+        const processedImages = [];
+        for (const img of imageArray) {
+            const matches = img.match(/^data:(.+);base64,(.+)$/);
+            if (!matches) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ error: 'Invalid image format' })
+                };
+            }
+            processedImages.push({
+                mediaType: matches[1],
+                base64Data: matches[2]
+            });
         }
 
-        const mediaType = matches[1];
-        const base64Data = matches[2];
-
-        console.log(`📷 Image size: ${base64Data.length} bytes, type: ${mediaType}`);
+        console.log(`📷 Processing ${processedImages.length} image(s) for food analysis`);
 
         // User-provided context
         const userContext = details ? details.trim() : null;
@@ -121,8 +127,12 @@ exports.handler = async (event, context) => {
 
         console.log('🤖 Calling Claude for food analysis...');
 
-        // Build prompt
-        const analysisPrompt = `Analyze this food image and identify all food items visible. For each item, estimate the nutritional information.
+        // Build prompt with multi-image context
+        const multiImageNote = processedImages.length > 1
+            ? `You are viewing ${processedImages.length} images of food from different angles. Use ALL images together to get the most accurate identification and portion estimation.`
+            : 'Analyze this food image and identify all food items visible.';
+
+        const analysisPrompt = `${multiImageNote} For each item, estimate the nutritional information.
 ${userContext ? `\nIMPORTANT - User provided these details: "${userContext}"\nUse this information for your estimate.` : ''}
 
 Return ONLY a valid JSON array with this exact format (no markdown, no explanation):
@@ -141,8 +151,25 @@ Guidelines:
 - Round calories to nearest 5, macros to nearest gram
 - List each item separately
 - Return empty array [] if no food is visible
+${processedImages.length > 1 ? '- Use multiple angles to better estimate portion sizes' : ''}
 
 Return ONLY the JSON array.`;
+
+        // Build content array with all images
+        const messageContent = [
+            ...processedImages.map((img) => ({
+                type: "image",
+                source: {
+                    type: "base64",
+                    media_type: img.mediaType,
+                    data: img.base64Data
+                }
+            })),
+            {
+                type: "text",
+                text: analysisPrompt
+            }
+        ];
 
         let message;
         try {
@@ -152,20 +179,7 @@ Return ONLY the JSON array.`;
                 messages: [
                     {
                         role: "user",
-                        content: [
-                            {
-                                type: "image",
-                                source: {
-                                    type: "base64",
-                                    media_type: mediaType,
-                                    data: base64Data
-                                }
-                            },
-                            {
-                                type: "text",
-                                text: analysisPrompt
-                            }
-                        ]
+                        content: messageContent
                     }
                 ]
             });
