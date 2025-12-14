@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Home, NotebookPen, Dumbbell, Utensils, User } from 'lucide-react';
+import { Home, NotebookPen, Utensils, User } from 'lucide-react';
 
 function BottomNav({ currentPath }) {
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/diary', icon: NotebookPen, label: 'Diary' },
-    { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
     { path: '/plans', icon: Utensils, label: 'Plans' },
     { path: '/settings', icon: User, label: 'Profile' }
   ];
