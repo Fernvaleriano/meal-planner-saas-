@@ -35,7 +35,8 @@ exports.handler = async (event) => {
         exerciseType,
         difficulty,
         search,
-        limit = 50,
+        includeSecondary = 'true', // Include exercises where muscle is secondary (default: true)
+        limit = 100, // Increased default for better "All" results
         offset = 0
       } = event.queryStringParameters || {};
 
@@ -52,7 +53,13 @@ exports.handler = async (event) => {
 
       // Apply filters
       if (muscleGroup) {
-        query = query.eq('muscle_group', muscleGroup);
+        // Filter by primary muscle group OR secondary muscles containing the muscle
+        if (includeSecondary === 'true') {
+          // Use OR to match primary muscle_group OR secondary_muscles array contains the value
+          query = query.or(`muscle_group.eq.${muscleGroup},secondary_muscles.cs.["${muscleGroup}"]`);
+        } else {
+          query = query.eq('muscle_group', muscleGroup);
+        }
       }
       if (equipment) {
         query = query.eq('equipment', equipment);
@@ -64,7 +71,10 @@ exports.handler = async (event) => {
         query = query.eq('difficulty', difficulty);
       }
       if (search) {
-        query = query.ilike('name', `%${search}%`);
+        // Search by name OR by secondary_muscles containing the search term
+        // Also search in muscle_group for terms like "tricep" -> "triceps"
+        const searchTerm = search.toLowerCase().trim();
+        query = query.or(`name.ilike.%${searchTerm}%,muscle_group.ilike.%${searchTerm}%,secondary_muscles.cs.["${searchTerm}"]`);
       }
 
       // Pagination
