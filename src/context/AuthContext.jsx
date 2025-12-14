@@ -1,11 +1,33 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../utils/supabase';
 import { clearSessionCache } from '../utils/api';
 
 const AuthContext = createContext({});
 
+// Track client activity - call the API to update last_activity_at
+const trackClientActivity = async (userId) => {
+  if (!userId) return;
+
+  try {
+    const response = await fetch('/.netlify/functions/track-client-activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+
+    if (response.ok) {
+      console.log('SPA: Client activity tracked');
+    }
+  } catch (err) {
+    // Silent fail - don't disrupt user experience for tracking
+    console.error('SPA: Failed to track activity:', err.message);
+  }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  // Track if we've already tracked activity this session
+  const activityTrackedRef = useRef(false);
   // Initialize clientData from localStorage cache if available
   const [clientData, setClientData] = useState(() => {
     try {
@@ -141,6 +163,12 @@ export function AuthProvider({ children }) {
         if (session?.user && mounted) {
           setUser(session.user);
 
+          // Track client activity on app load (only once per session)
+          if (!activityTrackedRef.current) {
+            activityTrackedRef.current = true;
+            trackClientActivity(session.user.id);
+          }
+
           // If we have cached data, set loading to false immediately
           // and fetch fresh data in the background
           if (hasCachedData) {
@@ -179,6 +207,10 @@ export function AuthProvider({ children }) {
       console.log('SPA: Auth state change:', event);
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
+
+        // Track client activity on sign in
+        trackClientActivity(session.user.id);
+
         const client = await fetchClientData(session.user.id);
         setClientData(client);
       } else if (event === 'SIGNED_OUT') {
