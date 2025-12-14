@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiDelete } from '../utils/api';
+import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
+import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -72,18 +73,13 @@ function Dashboard() {
   const [servings, setServings] = useState(1);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // Pull-to-refresh state
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
-  const touchStartRef = useRef(0);
-  const dashboardRef = useRef(null);
-  const PULL_THRESHOLD = 80;
-
   // Refresh dashboard data
   const refreshData = useCallback(async () => {
-    if (!clientData?.id || isRefreshing) return;
+    if (!clientData?.id) return;
 
-    setIsRefreshing(true);
+    // Ensure fresh session before fetching
+    await ensureFreshSession();
+
     const dateKey = getTodayKey();
 
     try {
@@ -135,46 +131,11 @@ function Dashboard() {
       }
     } catch (err) {
       console.error('Error refreshing data:', err);
-    } finally {
-      setIsRefreshing(false);
     }
-  }, [clientData?.id, clientData?.coach_id, isRefreshing]);
+  }, [clientData?.id, clientData?.coach_id]);
 
-  // Pull-to-refresh touch handlers
-  const handleTouchStart = useCallback((e) => {
-    const scrollTop = dashboardRef.current?.scrollTop || window.scrollY;
-    if (scrollTop <= 0) {
-      touchStartRef.current = e.touches[0].clientY;
-    }
-  }, []);
-
-  const handleTouchMove = useCallback((e) => {
-    if (!touchStartRef.current) return;
-
-    const scrollTop = dashboardRef.current?.scrollTop || window.scrollY;
-    if (scrollTop > 0) {
-      touchStartRef.current = 0;
-      setPullDistance(0);
-      return;
-    }
-
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartRef.current;
-
-    if (diff > 0) {
-      // Apply resistance to pull
-      const resistance = Math.min(diff * 0.4, PULL_THRESHOLD * 1.5);
-      setPullDistance(resistance);
-    }
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    if (pullDistance >= PULL_THRESHOLD) {
-      refreshData();
-    }
-    touchStartRef.current = 0;
-    setPullDistance(0);
-  }, [pullDistance, refreshData]);
+  // Setup pull-to-refresh using the reusable hook
+  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshData);
 
   // Handle food logged from modals
   const handleFoodLogged = (nutrition) => {
@@ -702,27 +663,13 @@ function Dashboard() {
   };
 
   return (
-    <div
-      className="dashboard"
-      ref={dashboardRef}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="dashboard" {...containerProps}>
       {/* Pull-to-refresh indicator */}
-      {(pullDistance > 0 || isRefreshing) && (
-        <div
-          className="pull-to-refresh-indicator"
-          style={{
-            height: isRefreshing ? 50 : pullDistance,
-            opacity: isRefreshing ? 1 : Math.min(pullDistance / PULL_THRESHOLD, 1)
-          }}
-        >
-          <div className={`refresh-spinner ${isRefreshing ? 'spinning' : ''}`}>
-            {isRefreshing ? '↻' : pullDistance >= PULL_THRESHOLD ? '↓ Release to refresh' : '↓ Pull to refresh'}
-          </div>
-        </div>
-      )}
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+        threshold={threshold}
+      />
 
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiPut } from '../utils/api';
+import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
+import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Helper to get date string
 const formatDate = (date) => date.toISOString().split('T')[0];
@@ -53,6 +54,48 @@ function Workouts() {
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [completedExercises, setCompletedExercises] = useState(new Set());
   const [weeklyStats, setWeeklyStats] = useState({ completed: 0, total: 7 });
+
+  // Pull-to-refresh: Refresh workout data
+  const refreshWorkoutData = useCallback(async () => {
+    if (!clientData?.id) return;
+
+    // Ensure fresh session before fetching
+    await ensureFreshSession();
+
+    try {
+      const dateStr = formatDate(selectedDate);
+
+      // Fetch assigned workout for this date
+      const assignmentRes = await apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`);
+
+      if (assignmentRes.assignments && assignmentRes.assignments.length > 0) {
+        const assignment = assignmentRes.assignments[0];
+        setTodayWorkout(assignment);
+
+        // Fetch workout log if exists
+        const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
+        if (logRes.logs && logRes.logs.length > 0) {
+          setWorkoutLog(logRes.logs[0]);
+          setWorkoutStarted(logRes.logs[0].status === 'in_progress' || logRes.logs[0].status === 'completed');
+          const completed = new Set(
+            logRes.logs[0].exercises?.map(e => e.exercise_id) || []
+          );
+          setCompletedExercises(completed);
+        } else {
+          setWorkoutLog(null);
+          setCompletedExercises(new Set());
+        }
+      } else {
+        setTodayWorkout(null);
+        setWorkoutLog(null);
+      }
+    } catch (error) {
+      console.error('Error refreshing workout:', error);
+    }
+  }, [clientData?.id, selectedDate]);
+
+  // Setup pull-to-refresh
+  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshWorkoutData);
 
   // Fetch workout for selected date
   useEffect(() => {
@@ -206,7 +249,14 @@ function Workouts() {
   const workoutDayName = getWorkoutDayName(todayWorkout);
 
   return (
-    <div className="workouts-page-v2">
+    <div className="workouts-page-v2" {...containerProps}>
+      {/* Pull-to-refresh indicator */}
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+        threshold={threshold}
+      />
+
       {/* Hero Header */}
       <div className="workout-hero">
         <div className="hero-gradient"></div>
