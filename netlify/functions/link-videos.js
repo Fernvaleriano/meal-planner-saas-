@@ -11,6 +11,35 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Simple string similarity (Levenshtein-based)
+function similarity(s1, s2) {
+  const longer = s1.length > s2.length ? s1 : s2;
+  const shorter = s1.length > s2.length ? s2 : s1;
+  if (longer.length === 0) return 1.0;
+  return (longer.length - editDistance(longer, shorter)) / longer.length;
+}
+
+function editDistance(s1, s2) {
+  s1 = s1.toLowerCase();
+  s2 = s2.toLowerCase();
+  const costs = [];
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= s2.length; j++) {
+      if (i === 0) costs[j] = j;
+      else if (j > 0) {
+        let newValue = costs[j - 1];
+        if (s1.charAt(i - 1) !== s2.charAt(j - 1))
+          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+        costs[j - 1] = lastValue;
+        lastValue = newValue;
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -26,7 +55,16 @@ exports.handler = async (event) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+  // Check for fuzzy matching mode
+  const params = event.queryStringParameters || {};
+  const fuzzyMatch = params.fuzzy === 'true';
+
   try {
+    // Get all exercises for fuzzy matching
+    const { data: allExercises } = await supabase
+      .from('exercises')
+      .select('id, name, video_url');
+
     // List all files in the bucket (recursively)
     const allFiles = [];
 
@@ -75,6 +113,7 @@ exports.handler = async (event) => {
     // Link each video to exercises
     let matched = 0;
     let unmatched = 0;
+    let fuzzyMatched = 0;
     const matchedExercises = [];
     const unmatchedFiles = [];
 
@@ -89,7 +128,7 @@ exports.handler = async (event) => {
       // Extract exercise name from filename (remove .mp4)
       const exerciseName = file.name.replace(/\.mp4$/i, '');
 
-      // Try to match with exercise in database (case-insensitive)
+      // Try to match with exercise in database (case-insensitive exact match)
       const { data, error } = await supabase
         .from('exercises')
         .update({ video_url: videoUrl, animation_url: videoUrl })
@@ -100,8 +139,44 @@ exports.handler = async (event) => {
         matched++;
         matchedExercises.push({ file: file.name, exercise: data[0].name });
       } else {
+        // Find closest match for suggestion
+        let bestMatch = null;
+        let bestScore = 0;
+
+        for (const ex of allExercises || []) {
+          const score = similarity(exerciseName, ex.name);
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = ex;
+          }
+        }
+
+        // If fuzzy matching enabled and score > 0.8, auto-link
+        if (fuzzyMatch && bestScore > 0.8 && bestMatch) {
+          const { error: updateError } = await supabase
+            .from('exercises')
+            .update({ video_url: videoUrl, animation_url: videoUrl })
+            .eq('id', bestMatch.id);
+
+          if (!updateError) {
+            fuzzyMatched++;
+            matchedExercises.push({
+              file: file.name,
+              exercise: bestMatch.name,
+              fuzzy: true,
+              confidence: Math.round(bestScore * 100) + '%'
+            });
+            continue;
+          }
+        }
+
         unmatched++;
-        unmatchedFiles.push(file.name);
+        unmatchedFiles.push({
+          file: file.name,
+          suggestedMatch: bestMatch ? bestMatch.name : null,
+          confidence: bestMatch ? Math.round(bestScore * 100) + '%' : null,
+          alreadyHasVideo: bestMatch?.video_url ? true : false
+        });
       }
     }
 
@@ -112,9 +187,11 @@ exports.handler = async (event) => {
         success: true,
         totalFiles: allFiles.length,
         matched,
+        fuzzyMatched,
         unmatched,
-        matchedExercises: matchedExercises.slice(0, 20), // Show first 20
-        unmatchedFiles: unmatchedFiles.slice(0, 20) // Show first 20
+        matchedExercises,
+        unmatchedFiles,
+        tip: unmatched > 0 ? 'Add ?fuzzy=true to auto-link files with >80% name match' : null
       })
     };
 
