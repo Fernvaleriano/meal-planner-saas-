@@ -1997,7 +1997,7 @@
                 const hasVideo = ex.video_url || ex.animation_url;
                 const videoSrc = ex.video_url || ex.animation_url;
                 const thumbHtml = hasVideo
-                    ? `<video class="exercise-card-thumb-video" src="${videoSrc}" muted loop playsinline preload="none" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0"></video>`
+                    ? `<video class="exercise-card-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata" poster="/img/exercise-placeholder.svg" onloadeddata="this.removeAttribute('poster')" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0"></video>`
                     : `<img class="exercise-card-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
                 return `
                 <div class="exercise-card" onclick='addExerciseToDay(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
