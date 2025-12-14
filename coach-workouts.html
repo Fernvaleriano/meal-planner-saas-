@@ -1111,6 +1111,24 @@
             color: var(--text-muted);
         }
 
+        .exercise-card-secondary {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
+        .exercise-library-modal {
+            max-width: 700px;
+            max-height: 90vh;
+        }
+
+        .exercise-library-modal .modal-body {
+            max-height: calc(90vh - 80px);
+            overflow-y: auto;
+        }
+
         /* AI Modal Specific */
         .ai-form-group {
             margin-bottom: 20px;
@@ -1546,7 +1564,7 @@
 
     <!-- Exercise Library Modal -->
     <div class="modal-overlay" id="exerciseModal">
-        <div class="modal">
+        <div class="modal exercise-library-modal">
             <div class="modal-header">
                 <h3 class="modal-title">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1557,7 +1575,9 @@
                 <button class="modal-close" onclick="closeExerciseModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <input type="text" class="form-input" placeholder="Search exercises..." oninput="searchExercises(this.value)" style="margin-bottom: 16px;">
+                <input type="text" class="form-input" id="exerciseSearchInput" placeholder="Search exercises (e.g., tricep, bench press...)" oninput="searchExercises(this.value)" style="margin-bottom: 16px;">
+
+                <!-- Muscle Group Pills -->
                 <div class="exercise-filters">
                     <button class="filter-chip active" onclick="filterExercises('all', this)">All</button>
                     <button class="filter-chip" onclick="filterExercises('chest', this)">Chest</button>
@@ -1567,9 +1587,56 @@
                     <button class="filter-chip" onclick="filterExercises('arms', this)">Arms</button>
                     <button class="filter-chip" onclick="filterExercises('core', this)">Core</button>
                 </div>
+
+                <!-- Advanced Filters Row -->
+                <div class="advanced-filters-row" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <div class="filter-dropdown-group" style="flex: 1; min-width: 140px;">
+                        <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Equipment</label>
+                        <select id="equipmentFilter" class="form-input" onchange="applyFilters()" style="width: 100%;">
+                            <option value="">All Equipment</option>
+                            <option value="barbell">Barbell</option>
+                            <option value="dumbbell">Dumbbell</option>
+                            <option value="cable">Cable</option>
+                            <option value="machine">Machine</option>
+                            <option value="bodyweight">Bodyweight</option>
+                            <option value="kettlebell">Kettlebell</option>
+                            <option value="resistance band">Resistance Band</option>
+                            <option value="smith machine">Smith Machine</option>
+                            <option value="ez bar">EZ Bar</option>
+                        </select>
+                    </div>
+                    <div class="filter-dropdown-group" style="flex: 1; min-width: 140px;">
+                        <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Difficulty</label>
+                        <select id="difficultyFilter" class="form-input" onchange="applyFilters()" style="width: 100%;">
+                            <option value="">All Levels</option>
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div class="filter-dropdown-group" style="flex: 1; min-width: 140px;">
+                        <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Type</label>
+                        <select id="exerciseTypeFilter" class="form-input" onchange="applyFilters()" style="width: 100%;">
+                            <option value="">All Types</option>
+                            <option value="strength">Strength</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="flexibility">Flexibility</option>
+                            <option value="plyometric">Plyometric</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Results count -->
+                <div id="exerciseResultsCount" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Loading exercises...</div>
+
                 <div class="exercise-grid" id="exerciseGrid">
                     <!-- Exercises loaded here -->
                 </div>
+
+                <!-- Load More Button -->
+                <button id="loadMoreBtn" class="btn-secondary" onclick="loadMoreExercises()" style="width: 100%; margin-top: 16px; display: none;">
+                    Load More Exercises
+                </button>
             </div>
         </div>
     </div>
@@ -1689,6 +1756,11 @@
         let currentDayIndex = null;
         let currentExerciseFilter = 'all';
         let currentSearchTerm = '';
+        let currentEquipmentFilter = '';
+        let currentDifficultyFilter = '';
+        let currentExerciseTypeFilter = '';
+        let displayedExerciseCount = 0;
+        const EXERCISES_PER_PAGE = 50;
 
         // Helper for authenticated API calls
         async function apiCall(url, options = {}) {
@@ -1967,6 +2039,7 @@
         // Exercise modal
         function openExerciseModal(dayIndex) {
             currentDayIndex = dayIndex;
+            resetExerciseFilters();
             document.getElementById('exerciseModal').classList.add('active');
             renderExerciseGrid();
         }
@@ -1979,46 +2052,184 @@
             currentExerciseFilter = muscle;
             document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
             btn.classList.add('active');
+            displayedExerciseCount = 0;
             renderExerciseGrid();
         }
 
         function searchExercises(term) {
             currentSearchTerm = term.toLowerCase();
+            displayedExerciseCount = 0;
             renderExerciseGrid();
         }
 
-        function renderExerciseGrid() {
-            const container = document.getElementById('exerciseGrid');
+        function applyFilters() {
+            currentEquipmentFilter = document.getElementById('equipmentFilter').value;
+            currentDifficultyFilter = document.getElementById('difficultyFilter').value;
+            currentExerciseTypeFilter = document.getElementById('exerciseTypeFilter').value;
+            displayedExerciseCount = 0;
+            renderExerciseGrid();
+        }
+
+        function getFilteredExercises() {
             let filtered = exercises;
 
+            // Filter by muscle group (including secondary muscles)
             if (currentExerciseFilter !== 'all') {
+                filtered = filtered.filter(e => {
+                    const primaryMatch = e.muscle_group?.toLowerCase() === currentExerciseFilter ||
+                        e.primary_muscles?.toLowerCase().includes(currentExerciseFilter);
+
+                    // Check secondary muscles (can be array or string)
+                    let secondaryMatch = false;
+                    if (e.secondary_muscles) {
+                        if (Array.isArray(e.secondary_muscles)) {
+                            secondaryMatch = e.secondary_muscles.some(m =>
+                                m.toLowerCase().includes(currentExerciseFilter)
+                            );
+                        } else if (typeof e.secondary_muscles === 'string') {
+                            secondaryMatch = e.secondary_muscles.toLowerCase().includes(currentExerciseFilter);
+                        }
+                    }
+
+                    // Special handling for "arms" to include biceps and triceps
+                    if (currentExerciseFilter === 'arms') {
+                        const armMuscles = ['biceps', 'triceps', 'forearms', 'arms'];
+                        const armPrimaryMatch = armMuscles.some(m =>
+                            e.muscle_group?.toLowerCase().includes(m) ||
+                            e.primary_muscles?.toLowerCase().includes(m)
+                        );
+                        const armSecondaryMatch = e.secondary_muscles && (
+                            Array.isArray(e.secondary_muscles)
+                                ? e.secondary_muscles.some(sm => armMuscles.some(m => sm.toLowerCase().includes(m)))
+                                : armMuscles.some(m => e.secondary_muscles.toLowerCase().includes(m))
+                        );
+                        return armPrimaryMatch || armSecondaryMatch;
+                    }
+
+                    return primaryMatch || secondaryMatch;
+                });
+            }
+
+            // Filter by equipment
+            if (currentEquipmentFilter) {
                 filtered = filtered.filter(e =>
-                    e.muscle_group?.toLowerCase() === currentExerciseFilter ||
-                    e.primary_muscles?.toLowerCase().includes(currentExerciseFilter)
+                    e.equipment?.toLowerCase() === currentEquipmentFilter.toLowerCase()
                 );
             }
 
-            if (currentSearchTerm) {
+            // Filter by difficulty
+            if (currentDifficultyFilter) {
                 filtered = filtered.filter(e =>
-                    e.name.toLowerCase().includes(currentSearchTerm)
+                    e.difficulty?.toLowerCase() === currentDifficultyFilter.toLowerCase()
                 );
             }
+
+            // Filter by exercise type
+            if (currentExerciseTypeFilter) {
+                filtered = filtered.filter(e =>
+                    e.exercise_type?.toLowerCase() === currentExerciseTypeFilter.toLowerCase()
+                );
+            }
+
+            // Search filter (includes name, muscle_group, and secondary_muscles)
+            if (currentSearchTerm) {
+                filtered = filtered.filter(e => {
+                    const nameMatch = e.name.toLowerCase().includes(currentSearchTerm);
+                    const muscleMatch = e.muscle_group?.toLowerCase().includes(currentSearchTerm);
+                    const primaryMatch = e.primary_muscles?.toLowerCase().includes(currentSearchTerm);
+
+                    // Check secondary muscles for search
+                    let secondaryMatch = false;
+                    if (e.secondary_muscles) {
+                        if (Array.isArray(e.secondary_muscles)) {
+                            secondaryMatch = e.secondary_muscles.some(m =>
+                                m.toLowerCase().includes(currentSearchTerm)
+                            );
+                        } else if (typeof e.secondary_muscles === 'string') {
+                            secondaryMatch = e.secondary_muscles.toLowerCase().includes(currentSearchTerm);
+                        }
+                    }
+
+                    return nameMatch || muscleMatch || primaryMatch || secondaryMatch;
+                });
+            }
+
+            return filtered;
+        }
+
+        function renderExerciseGrid(append = false) {
+            const container = document.getElementById('exerciseGrid');
+            const countDisplay = document.getElementById('exerciseResultsCount');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+            const filtered = getFilteredExercises();
+            const totalCount = filtered.length;
+
+            // Update results count
+            countDisplay.textContent = `${totalCount} exercise${totalCount !== 1 ? 's' : ''} found`;
 
             if (filtered.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>No exercises found</p></div>';
+                container.innerHTML = '<div class="empty-state"><p>No exercises found</p><span style="color: var(--text-secondary); font-size: 13px;">Try adjusting your filters or search term</span></div>';
+                loadMoreBtn.style.display = 'none';
                 return;
             }
 
-            container.innerHTML = filtered.slice(0, 50).map(ex => {
+            // Determine how many to show
+            const endIndex = append ? displayedExerciseCount + EXERCISES_PER_PAGE : EXERCISES_PER_PAGE;
+            const exercisesToShow = filtered.slice(0, endIndex);
+            displayedExerciseCount = exercisesToShow.length;
+
+            // Show/hide load more button
+            if (displayedExerciseCount < totalCount) {
+                loadMoreBtn.style.display = 'block';
+                loadMoreBtn.textContent = `Load More (${displayedExerciseCount} of ${totalCount})`;
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+
+            const exerciseHTML = exercisesToShow.map(ex => {
                 const hasVideo = ex.video_url || ex.animation_url;
+                const secondaryMuscles = ex.secondary_muscles
+                    ? (Array.isArray(ex.secondary_muscles) ? ex.secondary_muscles.slice(0, 2).join(', ') : ex.secondary_muscles)
+                    : '';
+
                 return `
                 <div class="exercise-card" onclick='addExerciseToDay(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
-                    <img class="exercise-card-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                    <img class="exercise-card-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'" loading="lazy">
                     ${hasVideo ? '<div class="video-indicator">▶</div>' : ''}
                     <div class="exercise-card-name">${ex.name}</div>
-                    <div class="exercise-card-meta">${ex.muscle_group || ex.primary_muscles || 'General'}</div>
+                    <div class="exercise-card-meta">${ex.muscle_group || ex.primary_muscles || 'General'}${ex.equipment ? ' • ' + ex.equipment : ''}</div>
+                    ${secondaryMuscles ? `<div class="exercise-card-secondary">Also: ${secondaryMuscles}</div>` : ''}
                 </div>
             `}).join('');
+
+            if (append) {
+                container.innerHTML += exerciseHTML;
+            } else {
+                container.innerHTML = exerciseHTML;
+            }
+        }
+
+        function loadMoreExercises() {
+            renderExerciseGrid(true);
+        }
+
+        function resetExerciseFilters() {
+            currentExerciseFilter = 'all';
+            currentSearchTerm = '';
+            currentEquipmentFilter = '';
+            currentDifficultyFilter = '';
+            currentExerciseTypeFilter = '';
+            displayedExerciseCount = 0;
+
+            // Reset UI
+            document.querySelectorAll('.filter-chip').forEach((c, i) => {
+                c.classList.toggle('active', i === 0);
+            });
+            document.getElementById('exerciseSearchInput').value = '';
+            document.getElementById('equipmentFilter').value = '';
+            document.getElementById('difficultyFilter').value = '';
+            document.getElementById('exerciseTypeFilter').value = '';
         }
 
         function addExerciseToDay(exercise) {
