@@ -294,6 +294,17 @@ a.nav-left {
     margin: 0 auto;
 }
 
+/* No top nav - for pages with custom navigation */
+.main-content.no-top-nav {
+    padding: 0;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+.container.full-width {
+    max-width: 100%;
+    padding: 0;
+}
+
 /* ========================================
    DESKTOP SIDEBAR
    ======================================== */

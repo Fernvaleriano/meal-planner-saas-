@@ -2,17 +2,23 @@ import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
 import BottomNav from './BottomNav';
 import DesktopSidebar from './DesktopSidebar';
+import ErrorBoundary from './ErrorBoundary';
 
 function Layout() {
   const location = useLocation();
 
+  // Hide top nav on pages that have their own navigation
+  const hideTopNav = location.pathname === '/workouts';
+
   return (
     <div className="app-layout">
-      <TopNav />
+      {!hideTopNav && <TopNav />}
       <DesktopSidebar />
-      <main className="main-content">
-        <div className="container">
-          <Outlet />
+      <main className={`main-content ${hideTopNav ? 'no-top-nav' : ''}`}>
+        <div className={`container ${hideTopNav ? 'full-width' : ''}`}>
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
       <BottomNav currentPath={location.pathname} />
