@@ -1129,6 +1129,52 @@
             overflow-y: auto;
         }
 
+        .exercise-thumb-container {
+            position: relative;
+        }
+
+        .edit-thumb-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            background: rgba(0, 0, 0, 0.6);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+        }
+
+        .exercise-card:hover .edit-thumb-btn {
+            opacity: 1;
+        }
+
+        .edit-thumb-btn:hover {
+            background: rgba(13, 148, 136, 0.9);
+        }
+
+        .edit-thumb-btn.no-thumb {
+            opacity: 1;
+            background: rgba(239, 68, 68, 0.8);
+            animation: pulse-thumb 2s infinite;
+        }
+
+        @keyframes pulse-thumb {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .edit-thumb-btn.no-thumb:hover {
+            background: rgba(13, 148, 136, 0.9);
+            animation: none;
+        }
+
         /* AI Modal Specific */
         .ai-form-group {
             margin-bottom: 20px;
@@ -1641,6 +1687,51 @@
         </div>
     </div>
 
+    <!-- Thumbnail Upload Modal -->
+    <div class="modal-overlay" id="thumbnailModal">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Upload Thumbnail
+                </h3>
+                <button class="modal-close" onclick="closeThumbnailModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="thumbnailExerciseName" style="font-weight: 600; margin-bottom: 16px; color: var(--text-primary);"></div>
+
+                <div id="thumbnailPreviewContainer" style="margin-bottom: 16px; text-align: center; display: none;">
+                    <img id="thumbnailPreview" src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid var(--border-color);">
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <button class="btn-secondary" onclick="document.getElementById('thumbnailFileInput').click()" style="flex: 1;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 8px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        Upload Image
+                    </button>
+                    <input type="file" id="thumbnailFileInput" accept="image/*" onchange="previewThumbnail(event)" style="display: none;">
+                </div>
+
+                <div style="text-align: center; color: var(--text-muted); margin-bottom: 16px;">or</div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Paste Image URL</label>
+                    <input type="text" id="thumbnailUrlInput" class="form-input" placeholder="https://example.com/image.jpg" oninput="previewThumbnailUrl(this.value)">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px;">
+                <button class="btn-secondary" onclick="closeThumbnailModal()">Cancel</button>
+                <button class="btn-primary" id="saveThumbnailBtn" onclick="saveThumbnail()" disabled>
+                    Save Thumbnail
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Generate Modal -->
     <div class="modal-overlay" id="aiModal">
         <div class="modal">
@@ -1761,6 +1852,8 @@
         let currentExerciseTypeFilter = '';
         let displayedExerciseCount = 0;
         const EXERCISES_PER_PAGE = 50;
+        let currentThumbnailExercise = null;
+        let pendingThumbnailData = null;
 
         // Helper for authenticated API calls
         async function apiCall(url, options = {}) {
@@ -2189,14 +2282,22 @@
 
             const exerciseHTML = exercisesToShow.map(ex => {
                 const hasVideo = ex.video_url || ex.animation_url;
+                const hasThumbnail = ex.thumbnail_url && !ex.thumbnail_url.includes('placeholder');
                 const secondaryMuscles = ex.secondary_muscles
                     ? (Array.isArray(ex.secondary_muscles) ? ex.secondary_muscles.slice(0, 2).join(', ') : ex.secondary_muscles)
                     : '';
 
                 return `
                 <div class="exercise-card" onclick='addExerciseToDay(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
-                    <img class="exercise-card-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'" loading="lazy">
-                    ${hasVideo ? '<div class="video-indicator">▶</div>' : ''}
+                    <div class="exercise-thumb-container">
+                        <img class="exercise-card-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'" loading="lazy">
+                        ${hasVideo ? '<div class="video-indicator">▶</div>' : ''}
+                        <button class="edit-thumb-btn ${hasThumbnail ? '' : 'no-thumb'}" onclick="event.stopPropagation(); openThumbnailModal(${JSON.stringify(ex).replace(/"/g, '&quot;')})" title="${hasThumbnail ? 'Change thumbnail' : 'Add thumbnail'}">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                    </div>
                     <div class="exercise-card-name">${ex.name}</div>
                     <div class="exercise-card-meta">${ex.muscle_group || ex.primary_muscles || 'General'}${ex.equipment ? ' • ' + ex.equipment : ''}</div>
                     ${secondaryMuscles ? `<div class="exercise-card-secondary">Also: ${secondaryMuscles}</div>` : ''}
@@ -2230,6 +2331,108 @@
             document.getElementById('equipmentFilter').value = '';
             document.getElementById('difficultyFilter').value = '';
             document.getElementById('exerciseTypeFilter').value = '';
+        }
+
+        // ============ THUMBNAIL UPLOAD FUNCTIONS ============
+
+        function openThumbnailModal(exercise) {
+            currentThumbnailExercise = exercise;
+            pendingThumbnailData = null;
+            document.getElementById('thumbnailExerciseName').textContent = exercise.name;
+            document.getElementById('thumbnailPreviewContainer').style.display = 'none';
+            document.getElementById('thumbnailPreview').src = '';
+            document.getElementById('thumbnailUrlInput').value = '';
+            document.getElementById('thumbnailFileInput').value = '';
+            document.getElementById('saveThumbnailBtn').disabled = true;
+            document.getElementById('thumbnailModal').classList.add('active');
+        }
+
+        function closeThumbnailModal() {
+            document.getElementById('thumbnailModal').classList.remove('active');
+            currentThumbnailExercise = null;
+            pendingThumbnailData = null;
+        }
+
+        function previewThumbnail(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('thumbnailPreview').src = e.target.result;
+                document.getElementById('thumbnailPreviewContainer').style.display = 'block';
+                document.getElementById('thumbnailUrlInput').value = '';
+                document.getElementById('saveThumbnailBtn').disabled = false;
+                pendingThumbnailData = {
+                    type: 'file',
+                    base64: e.target.result,
+                    name: file.name
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function previewThumbnailUrl(url) {
+            if (!url.trim()) {
+                document.getElementById('thumbnailPreviewContainer').style.display = 'none';
+                document.getElementById('saveThumbnailBtn').disabled = true;
+                pendingThumbnailData = null;
+                return;
+            }
+
+            // Show preview
+            document.getElementById('thumbnailPreview').src = url;
+            document.getElementById('thumbnailPreviewContainer').style.display = 'block';
+            document.getElementById('thumbnailFileInput').value = '';
+            document.getElementById('saveThumbnailBtn').disabled = false;
+            pendingThumbnailData = {
+                type: 'url',
+                url: url
+            };
+        }
+
+        async function saveThumbnail() {
+            if (!currentThumbnailExercise || !pendingThumbnailData) return;
+
+            const saveBtn = document.getElementById('saveThumbnailBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                let payload = { exerciseId: currentThumbnailExercise.id };
+
+                if (pendingThumbnailData.type === 'url') {
+                    payload.thumbnailUrl = pendingThumbnailData.url;
+                } else if (pendingThumbnailData.type === 'file') {
+                    payload.imageBase64 = pendingThumbnailData.base64;
+                    payload.imageName = pendingThumbnailData.name;
+                }
+
+                const result = await apiCall('/.netlify/functions/upload-exercise-thumbnail', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                if (result.success) {
+                    // Update the exercise in our local array
+                    const exerciseIndex = exercises.findIndex(e => e.id === currentThumbnailExercise.id);
+                    if (exerciseIndex !== -1) {
+                        exercises[exerciseIndex].thumbnail_url = result.exercise.thumbnail_url;
+                    }
+
+                    showToast('Thumbnail updated successfully!');
+                    closeThumbnailModal();
+                    renderExerciseGrid(); // Refresh the grid to show new thumbnail
+                } else {
+                    throw new Error(result.error || 'Failed to save thumbnail');
+                }
+            } catch (err) {
+                console.error('Error saving thumbnail:', err);
+                showToast('Error saving thumbnail: ' + err.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Thumbnail';
+            }
         }
 
         function addExerciseToDay(exercise) {
