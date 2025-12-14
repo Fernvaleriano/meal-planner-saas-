@@ -12476,3 +12476,552 @@ body {
     color: var(--brand-primary);
     background: rgba(13, 148, 136, 0.1);
 }
+
+/* ==================== EXERCISE SELECTOR MODAL ==================== */
+.exercise-selector-modal {
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.exercise-search-container {
+    display: flex;
+    gap: 12px;
+    padding: 0 20px 16px;
+}
+
+.exercise-search-input-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.exercise-search-input-wrapper .search-icon {
+    position: absolute;
+    left: 14px;
+    color: #64748b;
+    pointer-events: none;
+}
+
+.exercise-search-input {
+    width: 100%;
+    padding: 14px 40px 14px 44px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.exercise-search-input:focus {
+    border-color: #0d9488;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.exercise-search-input::placeholder {
+    color: #64748b;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.search-clear-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.filter-toggle-btn {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.filter-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.filter-toggle-btn.active {
+    background: rgba(13, 148, 136, 0.2);
+    border-color: #0d9488;
+    color: #0d9488;
+}
+
+/* Muscle Group Pills */
+.muscle-group-pills {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.muscle-group-pills::-webkit-scrollbar {
+    display: none;
+}
+
+.muscle-pill {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.muscle-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.muscle-pill.active {
+    color: white;
+    border-color: transparent;
+}
+
+/* Exercise Filters Panel */
+.exercise-filters-panel {
+    padding: 0 20px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.filter-select-wrapper {
+    position: relative;
+}
+
+.filter-select {
+    width: 100%;
+    padding: 10px 32px 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    appearance: none;
+    outline: none;
+}
+
+.filter-select:focus {
+    border-color: #0d9488;
+}
+
+.filter-select option {
+    background: #1e293b;
+    color: white;
+}
+
+.select-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    pointer-events: none;
+}
+
+.clear-filters-btn {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: none;
+    border-radius: 8px;
+    color: #ef4444;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clear-filters-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* Results Header */
+.exercise-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.results-count {
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* Exercise List Container */
+.exercise-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+/* Exercise Grid */
+.exercise-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 500px) {
+    .exercise-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Exercise Selector Card */
+.exercise-selector-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.exercise-selector-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.exercise-selector-card.selected {
+    border-color: #0d9488;
+    background: rgba(13, 148, 136, 0.1);
+}
+
+.exercise-thumbnail {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.exercise-thumbnail img,
+.exercise-thumbnail video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.exercise-thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+}
+
+.selection-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: all 0.2s;
+}
+
+.selection-indicator.selected {
+    background: #0d9488;
+    border-color: #0d9488;
+}
+
+.exercise-info {
+    padding: 12px;
+}
+
+.exercise-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.exercise-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.exercise-muscle-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.exercise-equipment {
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: capitalize;
+}
+
+.exercise-secondary {
+    font-size: 11px;
+    color: #64748b;
+    font-style: italic;
+}
+
+/* Loading & Error States */
+.exercise-loading,
+.exercise-error,
+.exercise-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.exercise-loading .spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.exercise-loading p,
+.exercise-error p,
+.exercise-empty p {
+    margin: 16px 0 8px;
+    font-size: 15px;
+    color: white;
+}
+
+.exercise-empty .empty-icon {
+    color: #475569;
+}
+
+.exercise-empty span {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.exercise-error button {
+    margin-top: 16px;
+    padding: 10px 20px;
+    background: #0d9488;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Load More Button */
+.load-more-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Multi-select Footer */
+.exercise-selector-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.exercise-selector-footer span {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.confirm-selection-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-selection-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+/* Light mode overrides */
+[data-theme="light"] .exercise-search-input {
+    background: white;
+    border-color: var(--gray-200);
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .exercise-search-input:focus {
+    border-color: #0d9488;
+    background: white;
+}
+
+[data-theme="light"] .muscle-pill {
+    background: var(--gray-100);
+    border-color: var(--gray-200);
+    color: var(--gray-600);
+}
+
+[data-theme="light"] .muscle-pill:hover {
+    background: var(--gray-200);
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .filter-toggle-btn {
+    background: white;
+    border-color: var(--gray-200);
+    color: var(--gray-500);
+}
+
+[data-theme="light"] .filter-select {
+    background: white;
+    border-color: var(--gray-200);
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .filter-select option {
+    background: white;
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .exercise-selector-card {
+    background: white;
+    border-color: var(--gray-200);
+}
+
+[data-theme="light"] .exercise-selector-card:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-300);
+}
+
+[data-theme="light"] .exercise-name {
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .exercise-equipment {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+[data-theme="light"] .exercise-thumbnail {
+    background: var(--gray-100);
+}
+
+[data-theme="light"] .exercise-list-container {
+    background: var(--gray-50);
+}
+
+[data-theme="light"] .load-more-btn {
+    background: white;
+    border-color: var(--gray-200);
+    color: var(--gray-600);
+}
+
+[data-theme="light"] .exercise-selector-footer {
+    background: var(--gray-50);
+    border-color: var(--gray-200);
+}
