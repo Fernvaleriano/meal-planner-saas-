@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Dumbbell } from 'lucide-react';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
 
@@ -322,6 +323,28 @@ function Settings() {
       <div className="settings-version">
         Zique Fitness Nutrition v1.0
       </div>
+
+      {/* Hidden Workouts Link (Beta) */}
+      <Link
+        to="/workouts"
+        className="hidden-workouts-link"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+          padding: '12px',
+          marginTop: '8px',
+          marginBottom: '20px',
+          color: 'var(--gray-400)',
+          fontSize: '12px',
+          textDecoration: 'none',
+          opacity: 0.5
+        }}
+      >
+        <Dumbbell size={14} />
+        <span>Workouts (Beta)</span>
+      </Link>
 
       {/* Password Reset Modal */}
       {showPasswordModal && (
