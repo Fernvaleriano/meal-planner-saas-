@@ -2,11 +2,20 @@ import { useState } from 'react';
 import { Check, Plus, Clock, ChevronRight, Minus, Play } from 'lucide-react';
 
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted }) {
-  const [sets, setSets] = useState(exercise.sets || [
-    { reps: exercise.reps || 12, weight: 0, completed: false },
-    { reps: exercise.reps || 12, weight: 0, completed: false },
-    { reps: exercise.reps || 12, weight: 0, completed: false },
-  ]);
+  // Handle sets being a number or an array
+  const initializeSets = () => {
+    if (Array.isArray(exercise.sets)) {
+      return exercise.sets;
+    }
+    const numSets = typeof exercise.sets === 'number' ? exercise.sets : 3;
+    return Array(numSets).fill(null).map(() => ({
+      reps: exercise.reps || 12,
+      weight: 0,
+      completed: false
+    }));
+  };
+
+  const [sets, setSets] = useState(initializeSets);
   const [showSets, setShowSets] = useState(false);
 
   // Calculate completed sets

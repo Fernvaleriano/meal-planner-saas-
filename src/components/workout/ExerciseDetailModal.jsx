@@ -3,11 +3,21 @@ import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, 
 import { apiGet } from '../../utils/api';
 
 function ExerciseDetailModal({ exercise, onClose, isCompleted, onToggleComplete, workoutStarted }) {
-  const [sets, setSets] = useState(exercise.sets || [
-    { reps: exercise.reps || 12, weight: 0, completed: false, restSeconds: exercise.restSeconds || 60 },
-    { reps: exercise.reps || 12, weight: 0, completed: false, restSeconds: exercise.restSeconds || 60 },
-    { reps: exercise.reps || 12, weight: 0, completed: false, restSeconds: exercise.restSeconds || 60 },
-  ]);
+  // Handle sets being a number or an array
+  const initializeSets = () => {
+    if (Array.isArray(exercise.sets)) {
+      return exercise.sets;
+    }
+    const numSets = typeof exercise.sets === 'number' ? exercise.sets : 3;
+    return Array(numSets).fill(null).map(() => ({
+      reps: exercise.reps || 12,
+      weight: 0,
+      completed: false,
+      restSeconds: exercise.restSeconds || 60
+    }));
+  };
+
+  const [sets, setSets] = useState(initializeSets);
   const [personalNote, setPersonalNote] = useState(exercise.notes || '');
   const [editingNote, setEditingNote] = useState(false);
   const [history, setHistory] = useState([]);
