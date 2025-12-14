@@ -40,6 +40,11 @@ function editDistance(s1, s2) {
   return costs[s2.length];
 }
 
+// Normalize name for matching (lowercase, trim spaces, remove trailing spaces before extension)
+function normalizeName(name) {
+  return name.toLowerCase().replace(/\.mp4$/i, '').trim().replace(/\s+/g, ' ');
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -60,12 +65,29 @@ exports.handler = async (event) => {
   const fuzzyMatch = params.fuzzy === 'true';
 
   try {
-    // Get all exercises for fuzzy matching
-    const { data: allExercises } = await supabase
+    // Get all exercises upfront (one query instead of many)
+    const { data: allExercises, error: exError } = await supabase
       .from('exercises')
       .select('id, name, video_url');
 
-    // List all files in the bucket (recursively)
+    if (exError) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to fetch exercises: ' + exError.message })
+      };
+    }
+
+    // Create lookup map for fast matching
+    const exerciseMap = new Map();
+    const exerciseList = [];
+    for (const ex of allExercises || []) {
+      const normalizedName = normalizeName(ex.name);
+      exerciseMap.set(normalizedName, ex);
+      exerciseList.push({ ...ex, normalizedName });
+    }
+
+    // List all files in the bucket
     const allFiles = [];
 
     async function listFilesRecursive(prefix = '') {
@@ -82,7 +104,6 @@ exports.handler = async (event) => {
         const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
 
         if (item.id === null) {
-          // It's a folder, recurse
           await listFilesRecursive(itemPath);
         } else if (item.name.toLowerCase().endsWith('.mp4')) {
           allFiles.push({
@@ -94,8 +115,6 @@ exports.handler = async (event) => {
     }
 
     await listFilesRecursive();
-
-    console.log(`Found ${allFiles.length} MP4 files in storage`);
 
     if (allFiles.length === 0) {
       return {
@@ -110,74 +129,81 @@ exports.handler = async (event) => {
       };
     }
 
-    // Link each video to exercises
+    // Process all files and collect updates
     let matched = 0;
-    let unmatched = 0;
     let fuzzyMatched = 0;
+    let unmatched = 0;
+    let skipped = 0;
     const matchedExercises = [];
     const unmatchedFiles = [];
+    const updates = [];
 
     for (const file of allFiles) {
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from(BUCKET_NAME)
         .getPublicUrl(file.path);
 
       const videoUrl = urlData.publicUrl;
+      const normalizedFileName = normalizeName(file.name);
 
-      // Extract exercise name from filename (remove .mp4)
-      const exerciseName = file.name.replace(/\.mp4$/i, '');
+      // Try exact match first (in memory - fast!)
+      let exercise = exerciseMap.get(normalizedFileName);
 
-      // Try to match with exercise in database (case-insensitive exact match)
-      const { data, error } = await supabase
-        .from('exercises')
-        .update({ video_url: videoUrl, animation_url: videoUrl })
-        .ilike('name', exerciseName)
-        .select('id, name');
-
-      if (!error && data && data.length > 0) {
+      if (exercise) {
+        // Already has this video? Skip
+        if (exercise.video_url === videoUrl) {
+          skipped++;
+          continue;
+        }
         matched++;
-        matchedExercises.push({ file: file.name, exercise: data[0].name });
+        matchedExercises.push({ file: file.name, exercise: exercise.name });
+        updates.push({ id: exercise.id, video_url: videoUrl, animation_url: videoUrl });
       } else {
-        // Find closest match for suggestion
+        // Find best fuzzy match
         let bestMatch = null;
         let bestScore = 0;
 
-        for (const ex of allExercises || []) {
-          const score = similarity(exerciseName, ex.name);
+        for (const ex of exerciseList) {
+          const score = similarity(normalizedFileName, ex.normalizedName);
           if (score > bestScore) {
             bestScore = score;
             bestMatch = ex;
           }
         }
 
-        // If fuzzy matching enabled and score > 0.8, auto-link
-        if (fuzzyMatch && bestScore > 0.8 && bestMatch) {
-          const { error: updateError } = await supabase
-            .from('exercises')
-            .update({ video_url: videoUrl, animation_url: videoUrl })
-            .eq('id', bestMatch.id);
-
-          if (!updateError) {
-            fuzzyMatched++;
-            matchedExercises.push({
-              file: file.name,
-              exercise: bestMatch.name,
-              fuzzy: true,
-              confidence: Math.round(bestScore * 100) + '%'
-            });
-            continue;
-          }
+        // Auto-link if fuzzy enabled and good match
+        if (fuzzyMatch && bestScore > 0.8 && bestMatch && !bestMatch.video_url) {
+          fuzzyMatched++;
+          matchedExercises.push({
+            file: file.name,
+            exercise: bestMatch.name,
+            fuzzy: true,
+            confidence: Math.round(bestScore * 100) + '%'
+          });
+          updates.push({ id: bestMatch.id, video_url: videoUrl, animation_url: videoUrl });
+          // Mark as having video now
+          bestMatch.video_url = videoUrl;
+        } else {
+          unmatched++;
+          unmatchedFiles.push({
+            file: file.name,
+            suggestedMatch: bestMatch ? bestMatch.name : null,
+            confidence: bestMatch ? Math.round(bestScore * 100) + '%' : null,
+            alreadyHasVideo: bestMatch?.video_url ? true : false
+          });
         }
-
-        unmatched++;
-        unmatchedFiles.push({
-          file: file.name,
-          suggestedMatch: bestMatch ? bestMatch.name : null,
-          confidence: bestMatch ? Math.round(bestScore * 100) + '%' : null,
-          alreadyHasVideo: bestMatch?.video_url ? true : false
-        });
       }
+    }
+
+    // Batch update all matches (much faster than individual updates)
+    let updateErrors = 0;
+    for (const update of updates) {
+      const { error } = await supabase
+        .from('exercises')
+        .update({ video_url: update.video_url, animation_url: update.animation_url })
+        .eq('id', update.id);
+
+      if (error) updateErrors++;
     }
 
     return {
@@ -189,7 +215,9 @@ exports.handler = async (event) => {
         matched,
         fuzzyMatched,
         unmatched,
-        matchedExercises,
+        skipped,
+        updateErrors,
+        matchedExercises: matchedExercises.slice(0, 50),
         unmatchedFiles,
         tip: unmatched > 0 ? 'Add ?fuzzy=true to auto-link files with >80% name match' : null
       })
