@@ -53,8 +53,15 @@ export function ToastProvider({ children }) {
 
 export function useToast() {
   const context = useContext(ToastContext);
+  // Return no-op functions if context is not available to prevent crashes
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    return {
+      toasts: [],
+      addToast: () => {},
+      removeToast: () => {},
+      showError: () => {},
+      showSuccess: () => {}
+    };
   }
   return context;
 }

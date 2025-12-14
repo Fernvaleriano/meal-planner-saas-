@@ -99,7 +99,7 @@ function Diary() {
     // Ensure fresh session before fetching
     await ensureFreshSession();
 
-    const dateStr = formatDate(currentDate);
+    const dateStr = formatDateKey(currentDate);
 
     try {
       const [diaryData, waterData] = await Promise.all([
