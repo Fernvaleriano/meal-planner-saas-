@@ -6,7 +6,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
   'Content-Type': 'application/json'
 };
 
@@ -24,71 +24,68 @@ exports.handler = async (event) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
   const params = event.queryStringParameters || {};
-  const confirm = params.confirm === 'true';
+  const dryRun = params.dryRun === 'true';
+  const limit = parseInt(params.limit) || 50;
 
   try {
-    // Get exercises without videos
-    const { data: noVideoExercises, error: fetchError } = await supabase
+    // Find exercises without video_url
+    const { data: exercisesWithoutVideo, error: fetchError } = await supabase
       .from('exercises')
       .select('id, name')
-      .is('video_url', null);
+      .is('video_url', null)
+      .limit(limit);
 
     if (fetchError) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'Failed to fetch exercises: ' + fetchError.message })
-      };
+      throw new Error('Failed to fetch exercises: ' + fetchError.message);
     }
 
-    // Also get exercises with empty string video_url
-    const { data: emptyVideoExercises } = await supabase
-      .from('exercises')
-      .select('id, name')
-      .eq('video_url', '');
-
-    const allNoVideo = [...(noVideoExercises || []), ...(emptyVideoExercises || [])];
-
-    // Get exercises WITH videos (to keep)
-    const { data: withVideoExercises } = await supabase
-      .from('exercises')
-      .select('id, name, video_url')
-      .not('video_url', 'is', null)
-      .neq('video_url', '');
-
-    if (!confirm) {
-      // Preview mode - show what would be deleted
+    if (!exercisesWithoutVideo || exercisesWithoutVideo.length === 0) {
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          preview: true,
-          message: 'Add ?confirm=true to actually delete these exercises',
-          toDelete: allNoVideo.length,
-          toKeep: (withVideoExercises || []).length,
-          exercisesToDelete: allNoVideo.slice(0, 50).map(e => e.name),
-          exercisesToKeep: (withVideoExercises || []).slice(0, 20).map(e => e.name)
+          success: true,
+          message: 'No exercises without videos found. All done!',
+          deleted: 0,
+          remaining: 0
         })
       };
     }
 
-    // Delete exercises without videos
-    let deleted = 0;
-    let errors = [];
+    // Get total count of exercises without videos
+    const { count: totalWithoutVideo } = await supabase
+      .from('exercises')
+      .select('*', { count: 'exact', head: true })
+      .is('video_url', null);
 
-    for (const exercise of allNoVideo) {
-      const { error } = await supabase
-        .from('exercises')
-        .delete()
-        .eq('id', exercise.id);
+    const remaining = totalWithoutVideo - exercisesWithoutVideo.length;
 
-      if (error) {
-        errors.push({ name: exercise.name, error: error.message });
-      } else {
-        deleted++;
-      }
+    if (dryRun) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          mode: 'DRY RUN',
+          wouldDelete: exercisesWithoutVideo.length,
+          totalWithoutVideo: totalWithoutVideo,
+          remaining: remaining,
+          exercises: exercisesWithoutVideo.slice(0, 20),
+          nextStep: 'Run without ?dryRun=true to delete'
+        })
+      };
+    }
+
+    // Delete the exercises
+    const ids = exercisesWithoutVideo.map(e => e.id);
+    const { error: deleteError } = await supabase
+      .from('exercises')
+      .delete()
+      .in('id', ids);
+
+    if (deleteError) {
+      throw new Error('Failed to delete: ' + deleteError.message);
     }
 
     return {
@@ -96,10 +93,12 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         success: true,
-        deleted,
-        kept: (withVideoExercises || []).length,
-        errors: errors.length,
-        message: `Deleted ${deleted} exercises without videos. ${(withVideoExercises || []).length} exercises with videos remain.`
+        deleted: exercisesWithoutVideo.length,
+        remaining: remaining,
+        message: remaining > 0
+          ? 'Deleted ' + exercisesWithoutVideo.length + '. ' + remaining + ' more to delete. Call again!'
+          : 'All exercises without videos have been deleted!',
+        deletedExercises: exercisesWithoutVideo.slice(0, 10)
       })
     };
 
