@@ -446,6 +446,11 @@
             font-size: 1.2rem;
         }
 
+        .exercise-thumb-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+
         .exercise-thumb {
             width: 56px;
             height: 56px;
@@ -453,6 +458,25 @@
             background: var(--bg-tertiary);
             object-fit: cover;
             flex-shrink: 0;
+        }
+
+        .video-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .video-badge svg {
+            width: 10px;
+            height: 10px;
         }
 
         .exercise-info {
@@ -1823,11 +1847,15 @@
 
         // Render single exercise item
         function renderExerciseItem(exercise, dayIndex, exIndex) {
-            const thumbUrl = exercise.thumbnailUrl || exercise.video_url || '/img/exercise-placeholder.svg';
+            const thumbUrl = exercise.thumbnail_url || exercise.video_url || exercise.thumbnailUrl || exercise.animation_url || '/img/exercise-placeholder.svg';
+            const hasVideo = exercise.video_url || exercise.animation_url;
             return `
                 <div class="exercise-item">
                     <div class="exercise-drag">⋮⋮</div>
-                    <img class="exercise-thumb" src="${thumbUrl}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                    <div class="exercise-thumb-wrap">
+                        <img class="exercise-thumb" src="${thumbUrl}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                        ${hasVideo ? '<div class="video-badge"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>' : ''}
+                    </div>
                     <div class="exercise-info">
                         <div class="exercise-name">${exercise.name}</div>
                         <div class="exercise-config">
@@ -1958,8 +1986,12 @@
             workoutDays[currentDayIndex].exercises.push({
                 id: exercise.id,
                 name: exercise.name,
-                thumbnailUrl: exercise.video_url || exercise.thumbnail_url,
-                muscleGroup: exercise.muscle_group,
+                video_url: exercise.video_url,
+                animation_url: exercise.animation_url,
+                thumbnail_url: exercise.thumbnail_url || exercise.video_url,
+                muscle_group: exercise.muscle_group,
+                equipment: exercise.equipment,
+                instructions: exercise.instructions,
                 sets: 3,
                 reps: '8-12',
                 restSeconds: 90
