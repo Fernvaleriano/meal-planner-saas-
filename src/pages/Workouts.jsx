@@ -326,7 +326,7 @@ function Workouts() {
             <ChevronLeft size={20} />
           </button>
           <span className="month-label">
-            {getMonthName(weekDates[3])} {weekDates[3].getFullYear()}
+            {weekDates.length > 3 ? `${getMonthName(weekDates[3])} ${weekDates[3].getFullYear()}` : ''}
           </span>
           <button className="week-nav-btn" onClick={goToNextWeek}>
             <ChevronRight size={20} />
@@ -363,13 +363,13 @@ function Workouts() {
               <span>Loading workout...</span>
             </div>
           ) : todayWorkout ? (
-            exercises.map((exercise, index) => (
+            exercises.filter(Boolean).map((exercise, index) => (
               <ExerciseCard
                 key={exercise.id || index}
                 exercise={exercise}
                 index={index}
-                isCompleted={completedExercises.has(exercise.id)}
-                onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                isCompleted={completedExercises.has(exercise?.id)}
+                onToggleComplete={() => toggleExerciseComplete(exercise?.id)}
                 onClick={() => setSelectedExercise(exercise)}
                 workoutStarted={workoutStarted}
               />
@@ -417,12 +417,12 @@ function Workouts() {
       {selectedExercise && (
         <ExerciseDetailModal
           exercise={selectedExercise}
-          exercises={exercises}
-          currentIndex={exercises.findIndex(e => e.id === selectedExercise.id)}
+          exercises={exercises.filter(Boolean)}
+          currentIndex={Math.max(0, exercises.findIndex(e => e?.id === selectedExercise?.id))}
           onClose={() => setSelectedExercise(null)}
           onSelectExercise={(exercise) => setSelectedExercise(exercise)}
-          isCompleted={completedExercises.has(selectedExercise.id)}
-          onToggleComplete={() => toggleExerciseComplete(selectedExercise.id)}
+          isCompleted={completedExercises.has(selectedExercise?.id)}
+          onToggleComplete={() => toggleExerciseComplete(selectedExercise?.id)}
           workoutStarted={workoutStarted}
           completedExercises={completedExercises}
         />
