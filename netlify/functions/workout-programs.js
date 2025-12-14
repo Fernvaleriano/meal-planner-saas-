@@ -84,7 +84,8 @@ exports.handler = async (event) => {
         daysPerWeek,
         programData,
         isTemplate,
-        isPublished
+        isPublished,
+        heroImageUrl
       } = body;
 
       if (!coachId || !name) {
@@ -107,7 +108,8 @@ exports.handler = async (event) => {
           days_per_week: daysPerWeek,
           program_data: programData || {},
           is_template: isTemplate !== false,
-          is_published: isPublished || false
+          is_published: isPublished || false,
+          hero_image_url: heroImageUrl
         }])
         .select()
         .single();
@@ -145,6 +147,7 @@ exports.handler = async (event) => {
       if (updateData.programData !== undefined) updateFields.program_data = updateData.programData;
       if (updateData.isTemplate !== undefined) updateFields.is_template = updateData.isTemplate;
       if (updateData.isPublished !== undefined) updateFields.is_published = updateData.isPublished;
+      if (updateData.heroImageUrl !== undefined) updateFields.hero_image_url = updateData.heroImageUrl;
 
       const { data: program, error } = await supabase
         .from('workout_programs')
