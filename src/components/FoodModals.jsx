@@ -701,8 +701,10 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
       onFoodLogged?.(nutrition);
       handleClose();
     } catch (err) {
-      setError('Failed to add food. Please try again.');
-      console.error(err);
+      // Show more detailed error for debugging
+      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to add food. Please try again.';
+      setError(errorMessage);
+      console.error('Food diary error:', err);
     }
   };
 

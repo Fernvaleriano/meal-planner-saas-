@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -71,6 +71,110 @@ function Dashboard() {
   const [parsedFoods, setParsedFoods] = useState(null);
   const [servings, setServings] = useState(1);
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Pull-to-refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const touchStartRef = useRef(0);
+  const dashboardRef = useRef(null);
+  const PULL_THRESHOLD = 80;
+
+  // Refresh dashboard data
+  const refreshData = useCallback(async () => {
+    if (!clientData?.id || isRefreshing) return;
+
+    setIsRefreshing(true);
+    const dateKey = getTodayKey();
+
+    try {
+      // Fetch all data in parallel
+      const [diaryData, plansData, supplementsData, intakeData] = await Promise.all([
+        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
+        apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
+        clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
+        apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => null)
+      ]);
+
+      // Update diary progress
+      if (diaryData?.entries) {
+        const totals = diaryData.entries.reduce((acc, entry) => ({
+          calories: acc.calories + (entry.calories || 0),
+          protein: acc.protein + (entry.protein || 0),
+          carbs: acc.carbs + (entry.carbs || 0),
+          fat: acc.fat + (entry.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        setTodayProgress(totals);
+
+        if (diaryData?.goals) {
+          setTargets({
+            calories: diaryData.goals.calorie_goal || 2600,
+            protein: diaryData.goals.protein_goal || 221,
+            carbs: diaryData.goals.carbs_goal || 260,
+            fat: diaryData.goals.fat_goal || 75
+          });
+        }
+      }
+
+      // Update meal plans
+      if (plansData?.plans) {
+        setMealPlans(plansData.plans.slice(0, 3));
+      }
+
+      // Update supplements
+      if (supplementsData?.protocols) {
+        setSupplements(supplementsData.protocols);
+      }
+
+      // Update supplement intake
+      if (intakeData?.intake) {
+        const intakeMap = {};
+        intakeData.intake.forEach(record => {
+          intakeMap[record.protocol_id] = true;
+        });
+        setSupplementIntake(intakeMap);
+      }
+    } catch (err) {
+      console.error('Error refreshing data:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [clientData?.id, clientData?.coach_id, isRefreshing]);
+
+  // Pull-to-refresh touch handlers
+  const handleTouchStart = useCallback((e) => {
+    const scrollTop = dashboardRef.current?.scrollTop || window.scrollY;
+    if (scrollTop <= 0) {
+      touchStartRef.current = e.touches[0].clientY;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!touchStartRef.current) return;
+
+    const scrollTop = dashboardRef.current?.scrollTop || window.scrollY;
+    if (scrollTop > 0) {
+      touchStartRef.current = 0;
+      setPullDistance(0);
+      return;
+    }
+
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartRef.current;
+
+    if (diff > 0) {
+      // Apply resistance to pull
+      const resistance = Math.min(diff * 0.4, PULL_THRESHOLD * 1.5);
+      setPullDistance(resistance);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (pullDistance >= PULL_THRESHOLD) {
+      refreshData();
+    }
+    touchStartRef.current = 0;
+    setPullDistance(0);
+  }, [pullDistance, refreshData]);
 
   // Handle food logged from modals
   const handleFoodLogged = (nutrition) => {
@@ -598,7 +702,28 @@ function Dashboard() {
   };
 
   return (
-    <div className="dashboard">
+    <div
+      className="dashboard"
+      ref={dashboardRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {(pullDistance > 0 || isRefreshing) && (
+        <div
+          className="pull-to-refresh-indicator"
+          style={{
+            height: isRefreshing ? 50 : pullDistance,
+            opacity: isRefreshing ? 1 : Math.min(pullDistance / PULL_THRESHOLD, 1)
+          }}
+        >
+          <div className={`refresh-spinner ${isRefreshing ? 'spinning' : ''}`}>
+            {isRefreshing ? '↻' : pullDistance >= PULL_THRESHOLD ? '↓ Release to refresh' : '↓ Pull to refresh'}
+          </div>
+        </div>
+      )}
+
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
         <div className="ai-hero-header">
