@@ -4230,7 +4230,7 @@ function displayDietPlan(multiDayData) {
                                 <span style="font-weight: 600; color: #92400e; font-size: 11px;">📝 Note for Client:</span>
                                 <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 3px 10px; font-size: 10px; border-radius: 4px;">Save</button>
                             </div>
-                            <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical;" placeholder="Add a note about this meal...">${existingNote}</textarea>
+                            <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical; color: #333; background: white;" placeholder="Add a note about this meal...">${existingNote}</textarea>
                         </div>
 
                         <!-- AI Brainstorm Expandable Panel -->
@@ -4283,7 +4283,7 @@ function displayDietPlan(multiDayData) {
                 <h4 style="margin: 0; color: #0369a1; font-size: 14px; font-weight: 600;">📝 Coach Notes for Client</h4>
                 <button id="saveNotesBtn" data-action="save-coach-notes" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">Save Notes</button>
             </div>
-            <textarea id="coachNotesInput" placeholder="Add personalized notes, tips, or instructions for your client..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; resize: vertical;"></textarea>
+            <textarea id="coachNotesInput" placeholder="Add personalized notes, tips, or instructions for your client..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; resize: vertical; color: #333; background: white;"></textarea>
             <p style="margin-top: 6px; font-size: 11px; color: #64748b;">These notes will be visible to the client when they view this plan.</p>
         </div>
     `;
