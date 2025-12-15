@@ -985,15 +985,16 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* My Meal Plans Section */}
+      {/* Latest Meal Plan Section - only show most recent */}
       <div className="meal-plans-section">
         <h2 className="section-heading-icon">
           <Utensils size={22} className="section-icon-svg" />
-          My Meal Plans
+          Latest Meal Plan
         </h2>
         <div className="meal-plans-container">
           {mealPlans.length > 0 ? (
-            mealPlans.map((plan) => {
+            (() => {
+              const plan = mealPlans[0]; // Only show most recent plan
               const planData = plan.plan_data || {};
               const days = planData.currentPlan || planData.days || [];
               const numDays = days.length || 1;
@@ -1002,24 +1003,34 @@ function Dashboard() {
               const formattedTime = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
               const summary = planData.summary || planData.description || '';
 
-              // Extract calories from first day's targets (same logic as Plans.jsx)
+              // Calculate actual calories from meals (not target calories)
               let calories = '-';
-              if (days.length > 0 && days[0]?.targets?.calories) {
-                calories = days[0].targets.calories;
-              } else if (planData.dailyCalories) {
-                calories = planData.dailyCalories;
-              } else if (planData.calories) {
-                calories = planData.calories;
+              if (days.length > 0) {
+                let totalCalories = 0;
+                days.forEach(day => {
+                  if (day.plan && Array.isArray(day.plan)) {
+                    day.plan.forEach(meal => {
+                      totalCalories += meal.calories || 0;
+                    });
+                  }
+                });
+                const avgCalories = Math.round(totalCalories / days.length);
+                if (avgCalories > 0) {
+                  calories = avgCalories;
+                }
               }
 
               // Extract goal
               const goalLabels = { 'lose weight': 'Lose Weight', 'maintain': 'Maintain', 'gain muscle': 'Gain Muscle' };
               const goal = planData.goal ? (goalLabels[planData.goal.toLowerCase()] || planData.goal) : '-';
 
+              // Get custom plan name if available
+              const planName = plan.plan_name || planData.planName || `${numDays}-Day Meal Plan`;
+
               return (
                 <Link to={`/plans/${plan.id}`} key={plan.id} className="meal-plan-card">
                   <div className="plan-header">
-                    <div className="plan-title">{numDays}-Day Meal Plan</div>
+                    <div className="plan-title">{planName}</div>
                     <div className="plan-date">{formattedDate} at {formattedTime}</div>
                   </div>
                   {summary && <div className="plan-summary">{summary}</div>}
@@ -1040,7 +1051,7 @@ function Dashboard() {
                   <button className="view-plan-btn">View Plan</button>
                 </Link>
               );
-            })
+            })()
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">🍽️</div>
