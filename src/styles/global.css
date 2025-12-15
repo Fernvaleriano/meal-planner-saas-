@@ -4297,6 +4297,55 @@ a.nav-left {
     border-color: var(--brand-primary);
 }
 
+/* Voice button in AI modal */
+.ai-modal-input-row .voice-btn {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 50%;
+    color: var(--gray-600);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.ai-modal-input-row .voice-btn:hover {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+    color: var(--gray-700);
+}
+
+.ai-modal-input-row .voice-btn.recording {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+    animation: pulse 1.5s infinite;
+}
+
+[data-theme="dark"] .ai-modal-input-row .voice-btn {
+    background: #334155;
+    border-color: #475569;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .ai-modal-input-row .voice-btn:hover {
+    background: #3f4f63;
+    border-color: #5a6a7e;
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .ai-modal-input-row .voice-btn.recording {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+}
+
 .ai-modal-send {
     width: 48px;
     height: 48px;
