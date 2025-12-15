@@ -4,10 +4,18 @@ import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer } from 'lucide-rea
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted }) {
   // Handle sets being a number or an array
   const initializeSets = () => {
-    if (Array.isArray(exercise.sets)) {
-      return exercise.sets;
+    if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
+      // Filter out null/undefined values and ensure each set has required properties
+      const filtered = exercise.sets.filter(Boolean).map(set => ({
+        reps: set?.reps || exercise.reps || 12,
+        weight: set?.weight || 0,
+        completed: set?.completed || false,
+        duration: set?.duration || exercise.duration || null
+      }));
+      // Return filtered if not empty, otherwise fall through to default
+      if (filtered.length > 0) return filtered;
     }
-    const numSets = typeof exercise.sets === 'number' ? exercise.sets : 3;
+    const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : 3;
     return Array(numSets).fill(null).map(() => ({
       reps: exercise.reps || 12,
       weight: 0,
@@ -99,7 +107,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 {/* Rep boxes for strength exercises */}
                 {sets.slice(0, 2).map((set, idx) => (
                   <div key={idx} className="time-box">
-                    {set.reps || exercise.reps || 12}
+                    {set?.reps || exercise.reps || 12}
                   </div>
                 ))}
                 <div className="time-box add-box" onClick={addSet}>
