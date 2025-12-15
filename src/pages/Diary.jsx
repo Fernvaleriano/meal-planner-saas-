@@ -44,7 +44,6 @@ function Diary() {
   const [goals, setGoals] = useState(cachedDiary?.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300, potassium_goal: 3500, calcium_goal: 1000, iron_goal: 18, vitaminC_goal: 90, cholesterol_goal: 300 });
   const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
   const [waterGoal] = useState(8);
-  const [waterLoading, setWaterLoading] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [aiLogging, setAiLogging] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('snack');
@@ -78,6 +77,10 @@ function Diary() {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
   const preVoiceInputRef = useRef('');
+
+  // Water debounce ref
+  const waterDebounceRef = useRef(null);
+  const waterPendingRef = useRef(null);
 
   // Food search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -421,53 +424,52 @@ function Diary() {
 
   }, [clientData?.id, currentDate]);
 
-  // Handle water intake actions - with loading lock to prevent race conditions
-  const handleWaterAction = async (action, amount = 1) => {
-    if (!clientData?.id || waterLoading) return;
+  // Handle water intake actions - debounced to allow rapid tapping
+  const handleWaterAction = (action, amount = 1) => {
+    if (!clientData?.id) return;
 
-    setWaterLoading(true);
-    const previousValue = waterIntake;
+    // Calculate new value based on current pending value or current state
+    const currentValue = waterPendingRef.current !== null ? waterPendingRef.current : waterIntake;
+    let newGlasses = currentValue;
 
-    // Calculate new value optimistically
-    let newGlasses = waterIntake;
     if (action === 'add') {
-      newGlasses = Math.min(waterGoal, waterIntake + amount);
+      newGlasses = Math.min(waterGoal, currentValue + amount);
     } else if (action === 'remove') {
-      newGlasses = Math.max(0, waterIntake - amount);
+      newGlasses = Math.max(0, currentValue - amount);
     } else if (action === 'complete') {
       newGlasses = waterGoal;
     }
 
-    // Update UI immediately (optimistic update)
+    // Update UI immediately
     setWaterIntake(newGlasses);
+    waterPendingRef.current = newGlasses;
 
-    // Update cache
+    // Update cache immediately
     const dateStr = formatDate(currentDate);
     const cacheKey = `diary_${clientData.id}_${dateStr}`;
     const cached = getCache(cacheKey) || {};
     setCache(cacheKey, { ...cached, water: newGlasses });
 
-    // Save to server - send the exact value to set
-    try {
-      const response = await apiPost('/.netlify/functions/water-intake', {
-        clientId: clientData.id,
-        date: dateStr,
-        glasses: newGlasses  // Send exact value instead of action
-      });
-
-      // Sync with server's confirmed value
-      if (response && typeof response.glasses === 'number') {
-        setWaterIntake(response.glasses);
-        setCache(cacheKey, { ...cached, water: response.glasses });
-      }
-    } catch (err) {
-      console.error('Error saving water intake:', err);
-      // Rollback on error
-      setWaterIntake(previousValue);
-      setCache(cacheKey, { ...cached, water: previousValue });
-    } finally {
-      setWaterLoading(false);
+    // Cancel previous debounce timer
+    if (waterDebounceRef.current) {
+      clearTimeout(waterDebounceRef.current);
     }
+
+    // Set new debounce timer - save after 800ms of no tapping
+    waterDebounceRef.current = setTimeout(async () => {
+      const valueToSave = waterPendingRef.current;
+      waterPendingRef.current = null;
+
+      try {
+        await apiPost('/.netlify/functions/water-intake', {
+          clientId: clientData.id,
+          date: dateStr,
+          glasses: valueToSave
+        });
+      } catch (err) {
+        console.error('Error saving water intake:', err);
+      }
+    }, 800);
   };
 
   // Handle AI food logging
@@ -1722,7 +1724,7 @@ function Diary() {
           <button
             className="water-btn-compact"
             onClick={() => handleWaterAction('remove', 1)}
-            disabled={waterLoading || waterIntake <= 0}
+            disabled={waterIntake <= 0}
             aria-label="Remove one glass"
           >
             −
@@ -1736,7 +1738,7 @@ function Diary() {
           <button
             className="water-btn-compact"
             onClick={() => handleWaterAction('add', 1)}
-            disabled={waterLoading || waterIntake >= waterGoal}
+            disabled={waterIntake >= waterGoal}
             aria-label="Add one glass"
           >
             +
