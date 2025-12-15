@@ -7,23 +7,12 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
 const BUCKET_NAME = 'meal-images';
 
-// Convert Supabase storage URL to optimized image URL using Supabase Image Transformations
-// This reduces image size significantly (from ~500KB to ~20KB for thumbnails)
+// Return the original storage URL without transformation
+// Note: Supabase Image Transformations (/render/image/) require a paid plan
+// and will fail with 404 if not enabled, breaking image display
 function getOptimizedImageUrl(originalUrl, width = 280, quality = 75) {
-  if (!originalUrl || !originalUrl.includes('supabase.co/storage')) {
-    return originalUrl;
-  }
-
-  // Convert /storage/v1/object/public/ to /storage/v1/render/image/public/
-  // and add transformation parameters
-  const optimizedUrl = originalUrl.replace(
-    '/storage/v1/object/public/',
-    '/storage/v1/render/image/public/'
-  );
-
-  // Add resize and quality parameters
-  const separator = optimizedUrl.includes('?') ? '&' : '?';
-  return `${optimizedUrl}${separator}width=${width}&quality=${quality}&resize=contain`;
+  // Return original URL directly - transformations disabled to ensure images load
+  return originalUrl;
 }
 
 // Helper function to ensure bucket exists
