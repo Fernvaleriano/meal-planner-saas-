@@ -108,10 +108,12 @@ exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const dryRun = params.dryRun === 'true' || params.dry === 'true';
   const folderParam = params.folder || null; // Process specific folder
+  const limit = Math.min(parseInt(params.limit) || 100, 200); // Max 200 videos per call
+  const offset = parseInt(params.offset) || 0;
 
   try {
     console.log('=== Sync Exercises from Videos ===');
-    console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
+    console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}, Limit: ${limit}, Offset: ${offset}`);
 
     // Step 1: Get list of folders (top-level only)
     const { data: topLevel, error: listError } = await supabase.storage
@@ -157,42 +159,37 @@ exports.handler = async (event) => {
       };
     }
 
-    // Step 2: List videos in the specified folder
-    const videos = [];
+    // Step 2: List videos in the specified folder (with pagination)
+    const { data: folderContents, error: folderError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(folderParam, {
+        limit: limit,
+        offset: offset,
+        sortBy: { column: 'name', order: 'asc' }
+      });
 
-    async function listFolderVideos(prefix) {
-      const { data, error } = await supabase.storage
-        .from(BUCKET_NAME)
-        .list(prefix, { limit: 1000 });
-
-      if (error) {
-        console.error('Error listing folder:', error);
-        return;
-      }
-
-      for (const item of data || []) {
-        const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
-
-        if (item.id === null) {
-          // Subfolder - recurse
-          await listFolderVideos(itemPath);
-        } else if (item.name.toLowerCase().endsWith('.mp4')) {
-          const { data: urlData } = supabase.storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(itemPath);
-
-          videos.push({
-            filename: item.name,
-            path: itemPath,
-            folder: prefix,
-            url: urlData.publicUrl
-          });
-        }
-      }
+    if (folderError) {
+      throw new Error('Failed to list folder: ' + folderError.message);
     }
 
-    await listFolderVideos(folderParam);
-    console.log(`Found ${videos.length} videos in folder "${folderParam}"`);
+    // Filter to only MP4 files
+    const videos = (folderContents || [])
+      .filter(item => item.name.toLowerCase().endsWith('.mp4'))
+      .map(item => {
+        const itemPath = `${folderParam}/${item.name}`;
+        const { data: urlData } = supabase.storage
+          .from(BUCKET_NAME)
+          .getPublicUrl(itemPath);
+
+        return {
+          filename: item.name,
+          path: itemPath,
+          folder: folderParam,
+          url: urlData.publicUrl
+        };
+      });
+
+    console.log(`Found ${videos.length} videos in folder "${folderParam}" (offset: ${offset}, limit: ${limit})`);
 
     // Step 3: Get existing exercises
     const { data: existingExercises, error: exError } = await supabase
@@ -291,7 +288,11 @@ exports.handler = async (event) => {
       }
     }
 
-    // Find next folder to process
+    // Determine if there are more videos in this folder
+    const hasMoreInFolder = videos.length === limit;
+    const nextOffset = offset + limit;
+
+    // Find next folder to process (only if done with current folder)
     const currentIndex = allFolders.indexOf(folderParam);
     const nextFolder = currentIndex < allFolders.length - 1 ? allFolders[currentIndex + 1] : null;
 
@@ -300,8 +301,14 @@ exports.handler = async (event) => {
       success: true,
       mode: dryRun ? 'DRY RUN - no changes made' : 'LIVE',
       folder: folderParam,
+      pagination: {
+        offset: offset,
+        limit: limit,
+        processed: videos.length,
+        hasMore: hasMoreInFolder
+      },
       summary: {
-        videosInFolder: videos.length,
+        videosProcessed: videos.length,
         created: results.created.length,
         updated: results.updated.length,
         skipped: results.skipped.length,
@@ -316,14 +323,17 @@ exports.handler = async (event) => {
         currentFolder: folderParam,
         folderIndex: currentIndex + 1,
         totalFolders: allFolders.length,
-        nextFolder: nextFolder,
+        nextFolder: hasMoreInFolder ? null : nextFolder,
         remainingFolders: allFolders.length - currentIndex - 1
       }
     };
 
-    if (nextFolder) {
+    if (hasMoreInFolder) {
+      response.nextBatch = `?folder=${folderParam}&offset=${nextOffset}&limit=${limit}${dryRun ? '&dryRun=true' : ''}`;
+      response.message = `Processed ${videos.length} videos. More in this folder - continue with offset=${nextOffset}`;
+    } else if (nextFolder) {
       response.nextBatch = `?folder=${nextFolder}${dryRun ? '&dryRun=true' : ''}`;
-      response.message = `Folder "${folderParam}" complete. Next: ${nextFolder}`;
+      response.message = `Folder "${folderParam}" complete. Next folder: ${nextFolder}`;
     } else {
       response.message = 'All folders processed!';
     }
