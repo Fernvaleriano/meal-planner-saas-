@@ -11699,12 +11699,32 @@ a.nav-left {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.exercise-card-v2 .time-box.with-weight {
+    height: 56px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+}
+
+.exercise-card-v2 .time-box .reps-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+}
+
+.exercise-card-v2 .time-box .weight-value {
+    font-size: 12px;
+    font-weight: 400;
+    color: #9ca3af;
+}
+
 .exercise-card-v2 .time-box.add-box {
     background: #2a2a2a;
     color: #9ca3af;
     cursor: pointer;
     flex: 1;
-    max-width: 200px;
+    max-width: 70px;
+    height: 56px;
 }
 
 .exercise-card-v2 .time-box.add-box:hover {

@@ -92,22 +92,22 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             {isTimedExercise ? (
               <>
                 {/* Duration boxes for timed exercises */}
-                <div className="time-box">
-                  {formatDuration(exercise.duration) || '45s'}
-                </div>
-                <div className="time-box">
-                  {formatDuration(exercise.duration) || '45s'}
-                </div>
+                {sets.map((set, idx) => (
+                  <div key={idx} className="time-box with-weight">
+                    <span className="reps-value">{formatDuration(set?.duration || exercise.duration) || '45s'}</span>
+                  </div>
+                ))}
                 <div className="time-box add-box" onClick={addSet}>
                   <Plus size={16} />
                 </div>
               </>
             ) : (
               <>
-                {/* Rep boxes for strength exercises */}
-                {sets.slice(0, 2).map((set, idx) => (
-                  <div key={idx} className="time-box">
-                    {set?.reps || exercise.reps || 12}
+                {/* Rep boxes for strength exercises - show reps and weight */}
+                {sets.map((set, idx) => (
+                  <div key={idx} className="time-box with-weight">
+                    <span className="reps-value">{set?.reps || exercise.reps || 12}x</span>
+                    <span className="weight-value">{set?.weight || 0} kg</span>
                   </div>
                 ))}
                 <div className="time-box add-box" onClick={addSet}>
@@ -119,13 +119,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
           {/* Rest Time Row */}
           <div className="rest-row">
-            <div className="rest-box">
-              <Timer size={12} />
-              <span>{exercise.restSeconds || 30}s</span>
-            </div>
-            <div className="rest-box">
-              <span>{exercise.restSeconds || 30}s</span>
-            </div>
+            {sets.map((set, idx) => (
+              <div key={idx} className="rest-box">
+                {idx === 0 && <Timer size={12} />}
+                <span>{set?.restSeconds || exercise.restSeconds || 30}s</span>
+              </div>
+            ))}
             <div className="rest-spacer"></div>
           </div>
         </div>
