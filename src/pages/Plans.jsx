@@ -1603,7 +1603,7 @@ Keep it practical and brief. Format with clear sections.`;
           {/* Daily Totals - calculated from actual meals */}
           {currentDay.plan && Array.isArray(currentDay.plan) && (
             <div className="daily-targets-card">
-              <h3 className="daily-targets-title">Today's Totals</h3>
+              <h3 className="daily-targets-title">Daily Totals</h3>
               <div className="daily-targets-grid">
                 <div className="target-box calories">
                   <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.calories || 0), 0)}</span>
