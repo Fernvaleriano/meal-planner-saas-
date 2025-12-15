@@ -108,7 +108,7 @@ exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const dryRun = params.dryRun === 'true' || params.dry === 'true';
   const deleteUnlinked = params.deleteUnlinked === 'true';
-  const batchSize = parseInt(params.batch) || 100; // Process 100 at a time
+  const batchSize = Math.min(parseInt(params.batch) || 100, 500); // Process up to 500 at a time
   const offset = parseInt(params.offset) || 0;
 
   try {
