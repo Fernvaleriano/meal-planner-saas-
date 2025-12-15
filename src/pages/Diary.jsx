@@ -425,6 +425,8 @@ function Diary() {
   const handleWaterAction = async (action, amount = 1) => {
     if (!clientData?.id) return;
 
+    const previousValue = waterIntake;
+
     // Calculate new value optimistically
     let newGlasses = waterIntake;
     if (action === 'add') {
@@ -444,16 +446,24 @@ function Diary() {
     const cached = getCache(cacheKey) || {};
     setCache(cacheKey, { ...cached, water: newGlasses });
 
-    // Save to server in background
+    // Save to server - send the exact value to set
     try {
-      await apiPost('/.netlify/functions/water-intake', {
+      const response = await apiPost('/.netlify/functions/water-intake', {
         clientId: clientData.id,
         date: dateStr,
-        action: action,
-        glasses: amount
+        glasses: newGlasses  // Send exact value instead of action
       });
+
+      // Sync with server's confirmed value
+      if (response && typeof response.glasses === 'number') {
+        setWaterIntake(response.glasses);
+        setCache(cacheKey, { ...cached, water: response.glasses });
+      }
     } catch (err) {
       console.error('Error saving water intake:', err);
+      // Rollback on error
+      setWaterIntake(previousValue);
+      setCache(cacheKey, { ...cached, water: previousValue });
     }
   };
 
