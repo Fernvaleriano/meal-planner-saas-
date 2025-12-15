@@ -73,6 +73,17 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return `${seconds}s`;
   };
 
+  // Parse reps - if it's a range like "8-12", return just the first number
+  const parseReps = (reps) => {
+    if (typeof reps === 'number') return reps;
+    if (typeof reps === 'string') {
+      // Handle ranges like "8-12" - take the first number
+      const match = reps.match(/^(\d+)/);
+      if (match) return parseInt(match[1], 10);
+    }
+    return 12; // default
+  };
+
   return (
     <div
       className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''}`}
@@ -106,7 +117,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 {/* Rep boxes for strength exercises - show reps and weight */}
                 {sets.map((set, idx) => (
                   <div key={idx} className="time-box with-weight">
-                    <span className="reps-value">{set?.reps || exercise.reps || 12}x</span>
+                    <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
                     <span className="weight-value">{set?.weight || 0} kg</span>
                   </div>
                 ))}
