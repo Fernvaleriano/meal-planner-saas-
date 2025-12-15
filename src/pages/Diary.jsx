@@ -421,10 +421,11 @@ function Diary() {
 
   }, [clientData?.id, currentDate]);
 
-  // Handle water intake actions - optimistic updates with cache
+  // Handle water intake actions - with loading lock to prevent race conditions
   const handleWaterAction = async (action, amount = 1) => {
-    if (!clientData?.id) return;
+    if (!clientData?.id || waterLoading) return;
 
+    setWaterLoading(true);
     const previousValue = waterIntake;
 
     // Calculate new value optimistically
@@ -464,6 +465,8 @@ function Diary() {
       // Rollback on error
       setWaterIntake(previousValue);
       setCache(cacheKey, { ...cached, water: previousValue });
+    } finally {
+      setWaterLoading(false);
     }
   };
 
