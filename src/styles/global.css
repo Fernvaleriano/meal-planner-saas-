@@ -7894,6 +7894,9 @@ a.nav-left {
     justify-content: center;
     z-index: 1000;
     animation: fadeIn 0.2s ease;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    touch-action: none;
 }
 
 [data-theme="dark"] .meal-modal-overlay {
@@ -9418,6 +9421,7 @@ a.nav-left {
     flex-direction: column;
     animation: modalPop 0.3s ease-out;
     overflow: hidden;
+    touch-action: auto;
 }
 
 .grocery-header {
@@ -9443,6 +9447,8 @@ a.nav-left {
     padding: 20px;
     padding-bottom: 100px;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     /* Extra space at bottom to ensure all content is visible */
 }
 
