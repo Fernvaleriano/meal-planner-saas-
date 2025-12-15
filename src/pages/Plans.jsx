@@ -324,16 +324,21 @@ function Plans() {
       days = planData.days;
     }
 
-    // Get calories from first day's targets, or from plan-level data
+    // Calculate actual calories from meals (average per day)
     let calories = '-';
-    if (days.length > 0 && days[0]?.targets?.calories) {
-      calories = days[0].targets.calories;
-    } else if (planData.dailyCalories) {
-      calories = planData.dailyCalories;
-    } else if (planData.calories) {
-      calories = planData.calories;
-    } else if (planData.nutrition?.calories) {
-      calories = planData.nutrition.calories;
+    if (days.length > 0) {
+      let totalCalories = 0;
+      days.forEach(day => {
+        if (day.plan && Array.isArray(day.plan)) {
+          day.plan.forEach(meal => {
+            totalCalories += meal.calories || 0;
+          });
+        }
+      });
+      const avgCalories = Math.round(totalCalories / days.length);
+      if (avgCalories > 0) {
+        calories = avgCalories;
+      }
     }
 
     const goalLabels = {
