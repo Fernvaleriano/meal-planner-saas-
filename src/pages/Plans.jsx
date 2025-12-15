@@ -349,7 +349,10 @@ function Plans() {
     const goal = planData.goal ? (goalLabels[planData.goal.toLowerCase()] || planData.goal) : '-';
     const summary = planData.summary || null;
 
-    return { numDays, calories, goal, summary };
+    // Get custom plan name if coach provided one
+    const planName = plan.plan_name || planData.planName || null;
+
+    return { numDays, calories, goal, summary, planName };
   };
 
   // Get days from plan
@@ -1524,7 +1527,7 @@ Keep it practical and brief. Format with clear sections.`;
   if (selectedPlan) {
     const days = getPlanDays(selectedPlan);
     const currentDay = days[selectedDay] || {};
-    const { numDays, calories, goal } = getPlanDetails(selectedPlan);
+    const { numDays, calories, goal, planName } = getPlanDetails(selectedPlan);
 
     return (
       <div className="plans-page" {...containerProps}>
@@ -1541,7 +1544,7 @@ Keep it practical and brief. Format with clear sections.`;
             <ChevronLeft size={24} />
           </button>
           <div className="plan-detail-title">
-            <h1>{numDays}-Day Meal Plan</h1>
+            <h1>{planName || `${numDays}-Day Meal Plan`}</h1>
             <span className="plan-detail-date">{formatDate(selectedPlan.created_at)}</span>
           </div>
         </div>
@@ -1597,25 +1600,25 @@ Keep it practical and brief. Format with clear sections.`;
         <div className="day-content">
           <h2 className="day-title">Day {selectedDay + 1}</h2>
 
-          {/* Daily Targets */}
-          {currentDay.targets && (
+          {/* Daily Totals - calculated from actual meals */}
+          {currentDay.plan && Array.isArray(currentDay.plan) && (
             <div className="daily-targets-card">
-              <h3 className="daily-targets-title">Your Daily Targets</h3>
+              <h3 className="daily-targets-title">Today's Totals</h3>
               <div className="daily-targets-grid">
                 <div className="target-box calories">
-                  <span className="target-value">{currentDay.targets.calories || '-'}</span>
+                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.calories || 0), 0)}</span>
                   <span className="target-label">Calories</span>
                 </div>
                 <div className="target-box protein">
-                  <span className="target-value">{currentDay.targets.protein || '-'}g</span>
+                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.protein || 0), 0)}g</span>
                   <span className="target-label">Protein</span>
                 </div>
                 <div className="target-box carbs">
-                  <span className="target-value">{currentDay.targets.carbs || '-'}g</span>
+                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.carbs || 0), 0)}g</span>
                   <span className="target-label">Carbs</span>
                 </div>
                 <div className="target-box fat">
-                  <span className="target-value">{currentDay.targets.fat || '-'}g</span>
+                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.fat || 0), 0)}g</span>
                   <span className="target-label">Fat</span>
                 </div>
               </div>
@@ -2346,7 +2349,7 @@ Keep it practical and brief. Format with clear sections.`;
       ) : (
         <div className="plans-grid">
           {plans.map(plan => {
-            const { numDays, calories, goal, summary } = getPlanDetails(plan);
+            const { numDays, calories, goal, summary, planName } = getPlanDetails(plan);
 
             return (
               <div
@@ -2355,7 +2358,7 @@ Keep it practical and brief. Format with clear sections.`;
                 onClick={() => handleViewPlan(plan)}
               >
                 <div className="plan-card-header">
-                  <div className="plan-card-title">{numDays}-Day Meal Plan</div>
+                  <div className="plan-card-title">{planName || `${numDays}-Day Meal Plan`}</div>
                   <div className="plan-card-date">
                     {formatDate(plan.created_at)} at {formatTime(plan.created_at)}
                   </div>
