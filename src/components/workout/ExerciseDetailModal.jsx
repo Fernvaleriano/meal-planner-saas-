@@ -227,6 +227,17 @@ function ExerciseDetailModal({
     return `${seconds}s`;
   };
 
+  // Parse reps - if it's a range like "8-12", return just the first number
+  const parseReps = (reps) => {
+    if (typeof reps === 'number') return reps;
+    if (typeof reps === 'string') {
+      // Handle ranges like "8-12" - take the first number
+      const match = reps.match(/^(\d+)/);
+      if (match) return parseInt(match[1], 10);
+    }
+    return 12; // default
+  };
+
   return (
     <div className="exercise-modal-overlay-v2" onClick={onClose}>
       <div className="exercise-modal-v2 modal-v3" onClick={(e) => e.stopPropagation()}>
@@ -364,8 +375,11 @@ function ExerciseDetailModal({
               </>
             ) : (
               <>
-                {sets.slice(0, 2).map((set, idx) => (
-                  <div key={idx} className="time-box clickable">{set?.reps || exercise.reps || 12}</div>
+                {sets.map((set, idx) => (
+                  <div key={idx} className="time-box with-weight clickable">
+                    <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
+                    <span className="weight-value">{set?.weight || 0} kg</span>
+                  </div>
                 ))}
                 <div className="time-box add-box" onClick={(e) => { e.stopPropagation(); addSet(); }}>
                   <Plus size={18} />
