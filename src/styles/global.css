@@ -5410,22 +5410,24 @@ a.nav-left {
 }
 
 .daily-targets-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
-    max-width: 400px;
     margin: 0 auto;
 }
 
 .target-box {
     background: #1e293b;
     border-radius: 12px;
-    padding: 16px 8px;
+    padding: 12px 6px;
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    max-width: 85px;
 }
 
 .target-box.calories { background: #14b8a6; }
@@ -5434,17 +5436,18 @@ a.nav-left {
 .target-box.fat { background: #ef4444; }
 
 .target-value {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: white;
+    white-space: nowrap;
 }
 
 .target-label {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.9);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 /* Meal Card with Image */
