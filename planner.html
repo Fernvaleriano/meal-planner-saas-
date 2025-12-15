@@ -1612,9 +1612,9 @@
 
                 <!-- Plan Name -->
                 <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
-                    <label class="font-bold text-purple-900 block mb-2">📝 Plan Name (Optional)</label>
-                    <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., Cutting Phase, Maintenance, Bulk Season...">
-                    <p class="text-xs text-purple-700 mt-1">Give your plan a name to help organize and identify it later</p>
+                    <label class="font-bold text-purple-900 block mb-2">📝 Plan Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., John's Cutting Phase, Sarah's Maintenance Plan..." required>
+                    <p class="text-xs text-purple-700 mt-1">Name this plan to identify it later (e.g., client name + goal)</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2976,6 +2976,18 @@ async function generateDietPlan() {
 
     clientName = client.client_name;
 
+    // Validate plan name is provided
+    const planNameInput = document.getElementById('dp_plan_name');
+    const planName = planNameInput ? planNameInput.value.trim() : '';
+    if (!planName) {
+        alert('⚠️ Please enter a name for this meal plan (e.g., "' + clientName + '\'s Cutting Plan").');
+        planNameInput?.focus();
+        button.disabled = false;
+        resultDiv.innerHTML = '';
+        if (window.currentProgressInterval) clearInterval(window.currentProgressInterval);
+        return;
+    }
+
     // Fetch client's favorite meals
     const clientFavorites = await getClientFavorites(clientId);
     let favoriteMealsText = '';
@@ -3087,6 +3099,7 @@ async function generateDietPlan() {
     lastPlanQuery = {
         clientName,
         clientId,
+        planName,
         calories: Math.round(tdee),
         protein,
         carbs,
