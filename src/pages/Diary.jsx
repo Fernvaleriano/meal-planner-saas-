@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -62,6 +62,8 @@ function Diary() {
   const [saveMealType, setSaveMealType] = useState('');
   const [copyDateInput, setCopyDateInput] = useState('');
   const [copyMode, setCopyMode] = useState('from');
+  const [showEditEntryModal, setShowEditEntryModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
 
   // AI Assistant states
   const [aiMessages, setAiMessages] = useState([]);
@@ -567,6 +569,66 @@ function Diary() {
       setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
     } catch (err) {
       console.error('Error deleting entry:', err);
+    }
+  };
+
+  // Handle opening edit modal for a food entry
+  const handleEditEntry = (entry) => {
+    setEditingEntry({
+      ...entry,
+      numberOfServings: entry.number_of_servings || 1
+    });
+    setShowEditEntryModal(true);
+  };
+
+  // Handle updating a food entry
+  const handleUpdateEntry = async (updatedEntry) => {
+    try {
+      const result = await apiPut('/.netlify/functions/food-diary', {
+        entryId: updatedEntry.id,
+        numberOfServings: updatedEntry.numberOfServings,
+        calories: updatedEntry.calories,
+        protein: updatedEntry.protein,
+        carbs: updatedEntry.carbs,
+        fat: updatedEntry.fat,
+        fiber: updatedEntry.fiber,
+        sugar: updatedEntry.sugar,
+        sodium: updatedEntry.sodium
+      });
+
+      if (result.entry) {
+        // Find the old entry to calculate totals difference
+        const oldEntry = entries.find(e => e.id === updatedEntry.id);
+        const updatedEntries = entries.map(e =>
+          e.id === updatedEntry.id ? result.entry : e
+        );
+
+        // Update totals
+        let updatedTotals = totals;
+        if (oldEntry) {
+          updatedTotals = {
+            calories: totals.calories - (oldEntry.calories || 0) + (result.entry.calories || 0),
+            protein: totals.protein - (oldEntry.protein || 0) + (result.entry.protein || 0),
+            carbs: totals.carbs - (oldEntry.carbs || 0) + (result.entry.carbs || 0),
+            fat: totals.fat - (oldEntry.fat || 0) + (result.entry.fat || 0)
+          };
+          setTotals(updatedTotals);
+        }
+
+        setEntries(updatedEntries);
+
+        // Update cache
+        const dateStr = formatDate(currentDate);
+        const cacheKey = `diary_${clientData.id}_${dateStr}`;
+        const cached = getCache(cacheKey) || {};
+        setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
+      }
+
+      setShowEditEntryModal(false);
+      setEditingEntry(null);
+    } catch (err) {
+      console.error('Error updating entry:', err);
+      alert('Failed to update entry');
     }
   };
 
@@ -1095,7 +1157,7 @@ function Diary() {
   };
 
   // Swipeable entry component with long-press for selection
-  const SwipeableEntry = ({ entry, onDelete, isSelected, onToggleSelect, inSelectionMode, onLongPress }) => {
+  const SwipeableEntry = ({ entry, onDelete, onEdit, isSelected, onToggleSelect, inSelectionMode, onLongPress }) => {
     const [touchStart, setTouchStart] = useState(null);
     const [touchEnd, setTouchEnd] = useState(null);
     const [swiped, setSwiped] = useState(false);
@@ -1154,6 +1216,8 @@ function Diary() {
     const handleClick = () => {
       if (inSelectionMode) {
         onToggleSelect();
+      } else if (!swiped) {
+        onEdit(entry);
       }
     };
 
@@ -1251,6 +1315,7 @@ function Diary() {
                     key={entry.id}
                     entry={entry}
                     onDelete={() => handleDeleteEntry(entry.id, entry.food_name)}
+                    onEdit={handleEditEntry}
                     isSelected={selectedEntries.has(entry.id)}
                     onToggleSelect={() => toggleEntrySelection(entry.id)}
                     inSelectionMode={selectionMode}
@@ -1967,6 +2032,149 @@ function Diary() {
                   Unable to load weekly data.
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Entry Modal */}
+      {showEditEntryModal && editingEntry && (
+        <div className="modal-overlay active" onClick={() => { setShowEditEntryModal(false); setEditingEntry(null); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Edit Food</h3>
+              <button className="modal-close" onClick={() => { setShowEditEntryModal(false); setEditingEntry(null); }}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div className="edit-food-name" style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '8px' }}>
+                {editingEntry.food_name}
+              </div>
+              {editingEntry.brand && (
+                <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '16px' }}>{editingEntry.brand}</div>
+              )}
+
+              {/* Servings Adjuster */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontWeight: 500, marginBottom: '8px', color: '#374151' }}>Number of Servings</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    onClick={() => {
+                      const newServings = Math.max(0.25, (editingEntry.numberOfServings || 1) - 0.25);
+                      const ratio = newServings / (editingEntry.number_of_servings || 1);
+                      const original = entries.find(e => e.id === editingEntry.id);
+                      setEditingEntry({
+                        ...editingEntry,
+                        numberOfServings: newServings,
+                        calories: Math.round((original?.calories || 0) / (original?.number_of_servings || 1) * newServings),
+                        protein: Math.round((original?.protein || 0) / (original?.number_of_servings || 1) * newServings),
+                        carbs: Math.round((original?.carbs || 0) / (original?.number_of_servings || 1) * newServings),
+                        fat: Math.round((original?.fat || 0) / (original?.number_of_servings || 1) * newServings)
+                      });
+                    }}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      border: '2px solid #e2e8f0',
+                      background: 'white',
+                      fontSize: '1.2rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    −
+                  </button>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 600, minWidth: '60px', textAlign: 'center' }}>
+                    {editingEntry.numberOfServings || 1}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const newServings = (editingEntry.numberOfServings || 1) + 0.25;
+                      const original = entries.find(e => e.id === editingEntry.id);
+                      setEditingEntry({
+                        ...editingEntry,
+                        numberOfServings: newServings,
+                        calories: Math.round((original?.calories || 0) / (original?.number_of_servings || 1) * newServings),
+                        protein: Math.round((original?.protein || 0) / (original?.number_of_servings || 1) * newServings),
+                        carbs: Math.round((original?.carbs || 0) / (original?.number_of_servings || 1) * newServings),
+                        fat: Math.round((original?.fat || 0) / (original?.number_of_servings || 1) * newServings)
+                      });
+                    }}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      border: '2px solid #e2e8f0',
+                      background: 'white',
+                      fontSize: '1.2rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Nutrition Preview */}
+              <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+                <div style={{ fontWeight: 500, marginBottom: '12px', color: '#374151' }}>Nutrition</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#f97316' }}>{editingEntry.calories || 0}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Calories</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#3b82f6' }}>{editingEntry.protein || 0}g</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Protein</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#10b981' }}>{editingEntry.carbs || 0}g</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Carbs</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#f59e0b' }}>{editingEntry.fat || 0}g</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Fat</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={() => { setShowEditEntryModal(false); setEditingEntry(null); }}
+                  style={{
+                    flex: 1,
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    background: 'white',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleUpdateEntry(editingEntry)}
+                  style={{
+                    flex: 1,
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    color: 'white',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>
