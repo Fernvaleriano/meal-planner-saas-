@@ -973,12 +973,12 @@ Return ONLY valid JSON:
     }).join(', ');
   };
 
-  // Load saved meals from database
+  // Load saved meals from database (coach-level library)
   const loadSavedMeals = async () => {
-    if (!clientData?.id) return;
+    if (!clientData?.coach_id) return;
     setSavedMealsLoading(true);
     try {
-      const response = await apiGet(`/.netlify/functions/saved-meals?clientId=${clientData.id}`);
+      const response = await apiGet(`/.netlify/functions/saved-meals?coachId=${clientData.coach_id}`);
       if (response.meals) {
         setSavedMeals(response.meals.map(m => ({
           id: m.id.toString(),
@@ -993,12 +993,12 @@ Return ONLY valid JSON:
     }
   };
 
-  // Save meal to library
+  // Save meal to coach's library (shared across all clients)
   const saveMealToLibrary = async (mealData) => {
-    if (!clientData?.id) return;
+    if (!clientData?.coach_id) return;
     try {
       await apiPost('/.netlify/functions/saved-meals', {
-        clientId: clientData.id,
+        coachId: clientData.coach_id,
         mealData: mealData
       });
       loadSavedMeals(); // Refresh list
@@ -1007,11 +1007,11 @@ Return ONLY valid JSON:
     }
   };
 
-  // Delete saved meal
+  // Delete saved meal from coach's library
   const deleteSavedMeal = async (mealId) => {
-    if (!clientData?.id) return;
+    if (!clientData?.coach_id) return;
     try {
-      await apiGet(`/.netlify/functions/saved-meals?mealId=${mealId}&clientId=${clientData.id}&_method=DELETE`);
+      await apiGet(`/.netlify/functions/saved-meals?mealId=${mealId}&coachId=${clientData.coach_id}&_method=DELETE`);
       setSavedMeals(prev => prev.filter(m => m.id !== mealId));
     } catch (err) {
       console.error('Error deleting saved meal:', err);
