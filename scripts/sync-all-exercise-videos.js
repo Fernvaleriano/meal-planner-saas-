@@ -1,24 +1,22 @@
 #!/usr/bin/env node
 /**
- * Sync All Exercise Videos
+ * Sync All Exercise Videos (Folder-based)
  *
  * This script automatically syncs all videos from the Supabase storage bucket
- * to the exercises database, handling pagination automatically.
+ * to the exercises database, processing one folder at a time to avoid timeouts.
  *
  * Usage:
  *   node scripts/sync-all-exercise-videos.js
  *   node scripts/sync-all-exercise-videos.js --dry-run   # Preview changes
- *   node scripts/sync-all-exercise-videos.js --batch=200  # Custom batch size
  */
 
 const https = require('https');
 const http = require('http');
 
 // Configuration
-const SITE_URL = process.env.SITE_URL || 'https://ziquefitness.netlify.app';
-const BATCH_SIZE = parseInt(process.argv.find(a => a.startsWith('--batch='))?.split('=')[1]) || 100;
+const SITE_URL = process.env.SITE_URL || 'https://ziquefitnessnutrition.com';
 const DRY_RUN = process.argv.includes('--dry-run');
-const DELAY_BETWEEN_BATCHES = 1000; // 1 second between batches
+const DELAY_BETWEEN_FOLDERS = 500; // 0.5 second between folders
 
 // Colors for terminal output
 const colors = {
@@ -57,42 +55,55 @@ function sleep(ms) {
 }
 
 async function syncAllVideos() {
-  log('\n=== Exercise Video Sync ===\n', 'blue');
+  log('\n=== Exercise Video Sync (Folder-based) ===\n', 'blue');
   log(`Site: ${SITE_URL}`, 'dim');
-  log(`Batch size: ${BATCH_SIZE}`, 'dim');
   log(`Mode: ${DRY_RUN ? 'DRY RUN (no changes)' : 'LIVE'}`, DRY_RUN ? 'yellow' : 'green');
   log('');
 
-  let offset = 0;
   let totalCreated = 0;
   let totalUpdated = 0;
   let totalSkipped = 0;
   let totalErrors = 0;
   let totalVideos = 0;
-  let batchNumber = 1;
 
   try {
-    while (true) {
-      const url = `${SITE_URL}/.netlify/functions/sync-exercises-from-videos?batch=${BATCH_SIZE}&offset=${offset}${DRY_RUN ? '&dryRun=true' : ''}`;
+    // First, get the list of folders
+    const baseUrl = `${SITE_URL}/.netlify/functions/sync-exercises-from-videos`;
+    log('Fetching folder list...', 'dim');
 
-      log(`\n[Batch ${batchNumber}] Processing videos ${offset} - ${offset + BATCH_SIZE}...`, 'blue');
+    const folderList = await fetchUrl(baseUrl);
+
+    if (!folderList.folders || folderList.folders.length === 0) {
+      log('No folders found in bucket!', 'red');
+      return;
+    }
+
+    const folders = folderList.folders;
+    log(`Found ${folders.length} folders to process: ${folders.join(', ')}\n`, 'dim');
+
+    // Process each folder
+    for (let i = 0; i < folders.length; i++) {
+      const folder = folders[i];
+      const url = `${baseUrl}?folder=${encodeURIComponent(folder)}${DRY_RUN ? '&dryRun=true' : ''}`;
+
+      log(`[${i + 1}/${folders.length}] Processing folder: ${folder}...`, 'blue');
 
       const result = await fetchUrl(url);
 
       if (result.error) {
-        log(`Error: ${result.error}`, 'red');
-        break;
+        log(`  Error: ${result.error}`, 'red');
+        totalErrors++;
+        continue;
       }
 
-      totalVideos = result.batch.total;
+      totalVideos += result.summary.videosInFolder;
       totalCreated += result.summary.created;
       totalUpdated += result.summary.updated;
       totalSkipped += result.summary.skipped;
       totalErrors += result.summary.errors;
 
-      // Show batch results
-      const processed = result.batch.processed;
-      log(`  Created: ${result.summary.created} | Updated: ${result.summary.updated} | Skipped: ${result.summary.skipped}`, 'dim');
+      // Show folder results
+      log(`  Videos: ${result.summary.videosInFolder} | Created: ${result.summary.created} | Updated: ${result.summary.updated} | Skipped: ${result.summary.skipped}`, 'dim');
 
       if (result.summary.errors > 0) {
         log(`  Errors: ${result.summary.errors}`, 'red');
@@ -102,27 +113,21 @@ async function syncAllVideos() {
       }
 
       // Progress bar
-      const progress = Math.min(100, Math.round(((offset + processed) / totalVideos) * 100));
+      const progress = Math.round(((i + 1) / folders.length) * 100);
       const progressBar = '█'.repeat(Math.floor(progress / 2)) + '░'.repeat(50 - Math.floor(progress / 2));
-      log(`  [${progressBar}] ${progress}% (${offset + processed}/${totalVideos})`, 'green');
+      log(`  [${progressBar}] ${progress}%`, 'green');
 
-      // Check if we're done
-      if (!result.batch.hasMore) {
-        break;
+      // Small delay between folders
+      if (i < folders.length - 1) {
+        await sleep(DELAY_BETWEEN_FOLDERS);
       }
-
-      offset = result.batch.offset + result.batch.processed;
-      batchNumber++;
-
-      // Small delay between batches to avoid overwhelming the server
-      await sleep(DELAY_BETWEEN_BATCHES);
     }
 
     // Final summary
     log('\n' + '='.repeat(50), 'blue');
     log('SYNC COMPLETE', 'green');
     log('='.repeat(50), 'blue');
-    log(`\nTotal videos in bucket: ${totalVideos}`);
+    log(`\nTotal videos processed: ${totalVideos}`);
     log(`  Created: ${totalCreated}`, totalCreated > 0 ? 'green' : 'dim');
     log(`  Updated: ${totalUpdated}`, totalUpdated > 0 ? 'green' : 'dim');
     log(`  Skipped: ${totalSkipped}`, 'dim');

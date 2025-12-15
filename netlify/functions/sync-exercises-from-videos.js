@@ -107,25 +107,66 @@ exports.handler = async (event) => {
 
   const params = event.queryStringParameters || {};
   const dryRun = params.dryRun === 'true' || params.dry === 'true';
-  const deleteUnlinked = params.deleteUnlinked === 'true';
-  const batchSize = Math.min(parseInt(params.batch) || 100, 500); // Process up to 500 at a time
-  const offset = parseInt(params.offset) || 0;
+  const folderParam = params.folder || null; // Process specific folder
 
   try {
     console.log('=== Sync Exercises from Videos ===');
     console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
-    console.log(`Batch size: ${batchSize}, Offset: ${offset}`);
 
-    // Step 1: List all video files in the bucket
-    const allVideos = [];
+    // Step 1: Get list of folders (top-level only)
+    const { data: topLevel, error: listError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list('', { limit: 100 });
 
-    async function listFilesRecursive(prefix = '') {
+    if (listError) {
+      throw new Error('Failed to list bucket: ' + listError.message);
+    }
+
+    // Get folder names
+    const allFolders = (topLevel || [])
+      .filter(item => item.id === null) // folders have null id
+      .map(item => item.name);
+
+    console.log(`Found ${allFolders.length} folders: ${allFolders.join(', ')}`);
+
+    // If no folder specified, return list of folders to process
+    if (!folderParam) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: 'Use ?folder=NAME to sync a specific folder',
+          folders: allFolders,
+          totalFolders: allFolders.length,
+          example: `?folder=${allFolders[0] || 'chest'}`,
+          syncAllScript: 'Use the browser console script to sync all folders automatically'
+        }, null, 2)
+      };
+    }
+
+    // Verify folder exists
+    if (!allFolders.includes(folderParam)) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: `Folder "${folderParam}" not found`,
+          availableFolders: allFolders
+        })
+      };
+    }
+
+    // Step 2: List videos in the specified folder
+    const videos = [];
+
+    async function listFolderVideos(prefix) {
       const { data, error } = await supabase.storage
         .from(BUCKET_NAME)
         .list(prefix, { limit: 1000 });
 
       if (error) {
-        console.error('Error listing files:', error);
+        console.error('Error listing folder:', error);
         return;
       }
 
@@ -133,14 +174,14 @@ exports.handler = async (event) => {
         const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
 
         if (item.id === null) {
-          // It's a folder
-          await listFilesRecursive(itemPath);
+          // Subfolder - recurse
+          await listFolderVideos(itemPath);
         } else if (item.name.toLowerCase().endsWith('.mp4')) {
           const { data: urlData } = supabase.storage
             .from(BUCKET_NAME)
             .getPublicUrl(itemPath);
 
-          allVideos.push({
+          videos.push({
             filename: item.name,
             path: itemPath,
             folder: prefix,
@@ -150,10 +191,10 @@ exports.handler = async (event) => {
       }
     }
 
-    await listFilesRecursive();
-    console.log(`Found ${allVideos.length} videos in storage`);
+    await listFolderVideos(folderParam);
+    console.log(`Found ${videos.length} videos in folder "${folderParam}"`);
 
-    // Step 2: Get existing exercises
+    // Step 3: Get existing exercises
     const { data: existingExercises, error: exError } = await supabase
       .from('exercises')
       .select('id, name, video_url');
@@ -162,43 +203,26 @@ exports.handler = async (event) => {
       throw new Error('Failed to fetch exercises: ' + exError.message);
     }
 
-    console.log(`Found ${existingExercises.length} existing exercises`);
-
-    // Create lookup maps
+    // Create lookup map
     const exercisesByName = new Map();
     for (const ex of existingExercises) {
       exercisesByName.set(ex.name.toLowerCase(), ex);
     }
 
-    const exercisesWithVideo = existingExercises.filter(e => e.video_url);
-    const exercisesWithoutVideo = existingExercises.filter(e => !e.video_url);
-
-    console.log(`  - With video: ${exercisesWithVideo.length}`);
-    console.log(`  - Without video: ${exercisesWithoutVideo.length}`);
-
-    // Step 3: Process videos in batches
+    // Step 4: Process all videos in this folder
     const results = {
       created: [],
       updated: [],
       skipped: [],
-      deleted: [],
       errors: []
     };
 
-    // Get the batch to process
-    const videoBatch = allVideos.slice(offset, offset + batchSize);
-    const hasMore = offset + batchSize < allVideos.length;
-    const nextOffset = offset + batchSize;
-    const remaining = Math.max(0, allVideos.length - nextOffset);
-
-    console.log(`Processing batch: ${offset} to ${offset + videoBatch.length} of ${allVideos.length}`);
-
-    for (const video of videoBatch) {
+    for (const video of videos) {
       const rawName = cleanExerciseName(video.filename);
       const { name: exerciseName, gender } = extractGenderVariant(rawName);
 
       // Determine muscle group from folder
-      const folderLower = video.folder.toLowerCase();
+      const folderLower = video.folder.split('/')[0].toLowerCase(); // Use top-level folder
       const muscleGroup = FOLDER_TO_MUSCLE[folderLower] || 'general';
 
       // Detect equipment and type from name
@@ -259,7 +283,6 @@ exports.handler = async (event) => {
             results.errors.push({ name: exerciseName, error: error.message });
           } else {
             results.created.push({ name: exerciseName, id: data.id, muscleGroup });
-            // Add to map so we don't create duplicates
             exercisesByName.set(exerciseName.toLowerCase(), { id: data.id, name: exerciseName });
           }
         } else {
@@ -268,70 +291,41 @@ exports.handler = async (event) => {
       }
     }
 
-    // Step 4: Optionally delete exercises without videos
-    if (deleteUnlinked) {
-      for (const ex of exercisesWithoutVideo) {
-        // Don't delete if we just linked it
-        if (results.updated.some(u => u.id === ex.id)) continue;
-        if (results.created.some(c => c.id === ex.id)) continue;
-
-        if (!dryRun) {
-          const { error } = await supabase
-            .from('exercises')
-            .delete()
-            .eq('id', ex.id);
-
-          if (error) {
-            results.errors.push({ name: ex.name, error: 'Delete failed: ' + error.message });
-          } else {
-            results.deleted.push({ name: ex.name, id: ex.id });
-          }
-        } else {
-          results.deleted.push({ name: ex.name, id: ex.id, dryRun: true });
-        }
-      }
-    }
+    // Find next folder to process
+    const currentIndex = allFolders.indexOf(folderParam);
+    const nextFolder = currentIndex < allFolders.length - 1 ? allFolders[currentIndex + 1] : null;
 
     // Build response
     const response = {
       success: true,
       mode: dryRun ? 'DRY RUN - no changes made' : 'LIVE',
-      batch: {
-        processed: videoBatch.length,
-        offset: offset,
-        total: allVideos.length,
-        hasMore: hasMore,
-        remaining: remaining
-      },
+      folder: folderParam,
       summary: {
-        videosInBucket: allVideos.length,
-        existingExercises: existingExercises.length,
+        videosInFolder: videos.length,
         created: results.created.length,
         updated: results.updated.length,
         skipped: results.skipped.length,
-        deleted: results.deleted.length,
         errors: results.errors.length
       },
       details: {
-        created: results.created.slice(0, 50),
-        updated: results.updated.slice(0, 50),
-        deleted: results.deleted.slice(0, 50),
+        created: results.created.slice(0, 20),
+        updated: results.updated.slice(0, 20),
         errors: results.errors
+      },
+      progress: {
+        currentFolder: folderParam,
+        folderIndex: currentIndex + 1,
+        totalFolders: allFolders.length,
+        nextFolder: nextFolder,
+        remainingFolders: allFolders.length - currentIndex - 1
       }
     };
 
-    if (hasMore) {
-      response.nextBatch = `?offset=${nextOffset}${dryRun ? '&dryRun=true' : ''}`;
-      response.message = `Processed ${videoBatch.length} videos. ${remaining} remaining. Call again with offset=${nextOffset}`;
+    if (nextFolder) {
+      response.nextBatch = `?folder=${nextFolder}${dryRun ? '&dryRun=true' : ''}`;
+      response.message = `Folder "${folderParam}" complete. Next: ${nextFolder}`;
     } else {
-      response.message = 'All videos processed!';
-    }
-
-    if (dryRun) {
-      response.nextSteps = {
-        toSync: 'Run without ?dryRun=true to apply changes',
-        toDelete: 'Add ?deleteUnlinked=true to also delete exercises without videos'
-      };
+      response.message = 'All folders processed!';
     }
 
     return {
