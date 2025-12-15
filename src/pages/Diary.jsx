@@ -74,6 +74,11 @@ function Diary() {
   const [suggestionContext, setSuggestionContext] = useState(null);
   const [selectedAIMealType, setSelectedAIMealType] = useState(null);
 
+  // Voice input states
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
+  const preVoiceInputRef = useRef('');
+
   // Food search states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -814,6 +819,155 @@ function Diary() {
     setTimeout(() => {
       handleAiChat(question);
     }, 100);
+  };
+
+  // Voice input functions for AI assistant
+  const toggleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice input is not supported in this browser. Please try Chrome or Safari.');
+      return;
+    }
+
+    if (isRecording) {
+      stopVoiceInput();
+    } else {
+      startVoiceInput();
+    }
+  };
+
+  const startVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // Clean up any existing recognition
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {
+        console.log('Previous recognition cleanup:', e);
+      }
+      recognitionRef.current = null;
+    }
+
+    // Store current input before voice starts
+    preVoiceInputRef.current = aiInput;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      const baseText = preVoiceInputRef.current;
+
+      // Update input with transcript
+      if (finalTranscript) {
+        // Final result - append to original text (before voice started)
+        setAiInput(baseText ? `${baseText} ${finalTranscript}` : finalTranscript);
+
+        // Auto-stop recording once we have a final result
+        stopVoiceInput();
+      } else if (interimTranscript) {
+        // Show interim as preview (will be replaced by final)
+        setAiInput(baseText ? `${baseText} ${interimTranscript}` : interimTranscript);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Voice recognition error:', event.error);
+      if (event.error === 'no-speech') {
+        alert('No speech detected. Please try again.');
+      } else if (event.error === 'not-allowed') {
+        alert('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else if (event.error !== 'aborted') {
+        alert('Voice error: ' + event.error);
+      }
+      resetVoiceUI();
+    };
+
+    recognition.onend = () => {
+      resetVoiceUI();
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+      alert('Could not start microphone. Please try again.');
+      resetVoiceUI();
+    }
+  };
+
+  const stopVoiceInput = () => {
+    // Update UI immediately
+    setIsRecording(false);
+
+    if (recognitionRef.current) {
+      const rec = recognitionRef.current;
+      recognitionRef.current = null;
+
+      // Clear event handlers first to prevent callbacks during cleanup
+      rec.onstart = null;
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+
+      try {
+        // Use stop() first - this gracefully finishes and properly releases the microphone
+        rec.stop();
+      } catch (e) {
+        console.log('Error calling stop():', e);
+      }
+
+      // Also call abort() after a brief delay as a fallback to ensure cleanup
+      setTimeout(() => {
+        try {
+          rec.abort();
+        } catch (e) {
+          // Ignore - recognition may already be stopped
+        }
+      }, 100);
+    }
+  };
+
+  const resetVoiceUI = () => {
+    setIsRecording(false);
+
+    // Stop recognition if it's still running
+    if (recognitionRef.current) {
+      const rec = recognitionRef.current;
+      recognitionRef.current = null;
+
+      // Clear handlers
+      rec.onstart = null;
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+
+      try {
+        rec.stop();
+      } catch (e) { /* ignore */ }
+      try {
+        rec.abort();
+      } catch (e) { /* ignore */ }
+    }
   };
 
   // Handle AI chat message
@@ -1831,6 +1985,14 @@ function Diary() {
 
               {/* Input Row */}
               <div className="ai-modal-input-row">
+                <button
+                  className={`voice-btn ${isRecording ? 'recording' : ''}`}
+                  onClick={toggleVoiceInput}
+                  aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+                  aria-pressed={isRecording}
+                >
+                  <Mic size={20} />
+                </button>
                 <input
                   ref={aiInputRef}
                   type="text"
@@ -1843,7 +2005,13 @@ function Diary() {
                 />
                 <button
                   className="ai-modal-send"
-                  onClick={() => handleAiChat()}
+                  onClick={() => {
+                    // Stop recording when send is pressed
+                    if (isRecording) {
+                      stopVoiceInput();
+                    }
+                    handleAiChat();
+                  }}
                   disabled={aiLogging || !aiInput.trim()}
                 >
                   <Send size={20} />
