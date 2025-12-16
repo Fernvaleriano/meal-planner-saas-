@@ -2162,6 +2162,74 @@
     </div>
 </div>
 
+<!-- Adjust Portions Modal -->
+<div id="adjustPortionsModal" class="custom-meal-overlay">
+    <div class="custom-meal-modal" style="max-width: 400px;">
+        <div class="custom-meal-header">
+            <h2>⚖️ Adjust Portions</h2>
+            <p style="color: #666; margin: 0;">Scale the meal portions up or down</p>
+        </div>
+
+        <div style="padding: 20px;">
+            <div id="adjustMealName" style="font-weight: 600; font-size: 14px; text-align: center; margin-bottom: 16px; color: #1e293b; line-height: 1.4;"></div>
+
+            <!-- Portion Controls -->
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 16px;">
+                <button onclick="adjustPortionValue(-0.25)" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #e2e8f0; background: white; color: #475569; cursor: pointer; font-size: 20px;">−</button>
+                <div style="text-align: center; min-width: 80px;">
+                    <div id="portionValue" style="font-size: 2rem; font-weight: 700; color: #6366f1;">100%</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">of original</div>
+                </div>
+                <button onclick="adjustPortionValue(0.25)" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #e2e8f0; background: white; color: #475569; cursor: pointer; font-size: 20px;">+</button>
+            </div>
+
+            <!-- Preset Buttons -->
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px;">
+                <button onclick="setPortionValue(0.5)" class="portion-preset-btn" data-value="0.5">50%</button>
+                <button onclick="setPortionValue(0.75)" class="portion-preset-btn" data-value="0.75">75%</button>
+                <button onclick="setPortionValue(1.0)" class="portion-preset-btn active" data-value="1">100%</button>
+                <button onclick="setPortionValue(1.25)" class="portion-preset-btn" data-value="1.25">125%</button>
+                <button onclick="setPortionValue(1.5)" class="portion-preset-btn" data-value="1.5">150%</button>
+                <button onclick="setPortionValue(2.0)" class="portion-preset-btn" data-value="2">200%</button>
+            </div>
+
+            <!-- Macro Preview -->
+            <div style="background: white; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0;">
+                <h4 style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0;">New Macros</h4>
+                <div id="adjustMacroPreview" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; padding: 0 20px 20px;">
+            <button onclick="closeAdjustPortionsModal()" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; color: #475569; font-weight: 600; cursor: pointer;">Cancel</button>
+            <button id="applyAdjustBtn" onclick="applyPortionAdjustment()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #6366f1; color: white; font-weight: 600; cursor: pointer;">Apply Changes</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.portion-preset-btn {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.portion-preset-btn:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+.portion-preset-btn.active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: white;
+}
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/api-helper.js"></script>
 <script>
@@ -4408,6 +4476,7 @@ function displayDietPlan(multiDayData) {
                                 <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">💪 +Protein</button>
                                 <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">🥗 -Carbs</button>
                                 <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">✨ Simpler</button>
+                                <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;">⚖️ Adjust</button>
                                 <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer;">🎯 Custom</button>
                                 <button data-action="save-meal-to-library" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #ec4899; color: white; border: none; border-radius: 4px; cursor: pointer;">💾 Save</button>
                             </div>
@@ -5959,6 +6028,218 @@ function closeCustomMealModal() {
 
     // Reset to first tab
     switchCustomMealTab('calculate');
+}
+
+// ============================================
+// ADJUST PORTIONS MODAL FUNCTIONS
+// ============================================
+let adjustPortionsDayIndex = null;
+let adjustPortionsMealIndex = null;
+let adjustPortionsMultiplier = 1.0;
+let adjustPortionsOriginalMeal = null;
+
+function openAdjustPortionsModal(dayIndex, mealIndex) {
+    adjustPortionsDayIndex = dayIndex;
+    adjustPortionsMealIndex = mealIndex;
+    adjustPortionsMultiplier = 1.0;
+
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    adjustPortionsOriginalMeal = { ...meal };
+
+    document.getElementById('adjustMealName').textContent = meal.name;
+    document.getElementById('portionValue').textContent = '100%';
+    updateAdjustMacroPreview();
+    updatePresetButtonStates();
+
+    document.getElementById('adjustPortionsModal').classList.add('show');
+}
+
+function closeAdjustPortionsModal() {
+    document.getElementById('adjustPortionsModal').classList.remove('show');
+    adjustPortionsDayIndex = null;
+    adjustPortionsMealIndex = null;
+    adjustPortionsOriginalMeal = null;
+    adjustPortionsMultiplier = 1.0;
+}
+
+function adjustPortionValue(delta) {
+    adjustPortionsMultiplier = Math.max(0.25, Math.min(3.0, adjustPortionsMultiplier + delta));
+    document.getElementById('portionValue').textContent = Math.round(adjustPortionsMultiplier * 100) + '%';
+    updateAdjustMacroPreview();
+    updatePresetButtonStates();
+}
+
+function setPortionValue(value) {
+    adjustPortionsMultiplier = value;
+    document.getElementById('portionValue').textContent = Math.round(adjustPortionsMultiplier * 100) + '%';
+    updateAdjustMacroPreview();
+    updatePresetButtonStates();
+}
+
+function updatePresetButtonStates() {
+    document.querySelectorAll('.portion-preset-btn').forEach(btn => {
+        const btnValue = parseFloat(btn.dataset.value);
+        if (Math.abs(btnValue - adjustPortionsMultiplier) < 0.01) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // Enable/disable apply button
+    const applyBtn = document.getElementById('applyAdjustBtn');
+    if (Math.abs(adjustPortionsMultiplier - 1.0) < 0.01) {
+        applyBtn.style.opacity = '0.5';
+        applyBtn.style.cursor = 'not-allowed';
+    } else {
+        applyBtn.style.opacity = '1';
+        applyBtn.style.cursor = 'pointer';
+    }
+}
+
+function updateAdjustMacroPreview() {
+    if (!adjustPortionsOriginalMeal) return;
+
+    const meal = adjustPortionsOriginalMeal;
+    const mult = adjustPortionsMultiplier;
+
+    const previewDiv = document.getElementById('adjustMacroPreview');
+    previewDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="flex: 1; font-size: 0.875rem; color: #475569;">Calories:</span>
+            <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.calories}</span>
+            <span style="color: #94a3b8;">→</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${Math.round(meal.calories * mult)}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="flex: 1; font-size: 0.875rem; color: #475569;">Protein:</span>
+            <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.protein}g</span>
+            <span style="color: #94a3b8;">→</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${Math.round(meal.protein * mult)}g</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="flex: 1; font-size: 0.875rem; color: #475569;">Carbs:</span>
+            <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.carbs}g</span>
+            <span style="color: #94a3b8;">→</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${Math.round(meal.carbs * mult)}g</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0;">
+            <span style="flex: 1; font-size: 0.875rem; color: #475569;">Fat:</span>
+            <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.fat}g</span>
+            <span style="color: #94a3b8;">→</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${Math.round(meal.fat * mult)}g</span>
+        </div>
+    `;
+}
+
+async function applyPortionAdjustment() {
+    if (Math.abs(adjustPortionsMultiplier - 1.0) < 0.01) {
+        closeAdjustPortionsModal();
+        return;
+    }
+
+    const dayIndex = adjustPortionsDayIndex;
+    const mealIndex = adjustPortionsMealIndex;
+    const meal = adjustPortionsOriginalMeal;
+    const mult = adjustPortionsMultiplier;
+
+    // Save for undo
+    saveUndoState(dayIndex, mealIndex);
+
+    closeAdjustPortionsModal();
+
+    // Show processing state
+    const mealCards = document.querySelectorAll('.meal-card');
+    let targetCard = null;
+    mealCards.forEach(card => {
+        const btn = card.querySelector(`[data-day-index="${dayIndex}"][data-meal-index="${mealIndex}"]`);
+        if (btn) targetCard = card;
+    });
+
+    if (targetCard) {
+        targetCard.style.opacity = '0.6';
+        targetCard.style.pointerEvents = 'none';
+    }
+
+    try {
+        // Create the prompt for AI to scale the meal
+        const prompt = `Scale this meal to ${Math.round(mult * 100)}% of original portions: "${meal.name}" (${meal.type})
+
+ORIGINAL MEAL:
+- Calories: ${meal.calories}
+- Protein: ${meal.protein}g
+- Carbs: ${meal.carbs}g
+- Fat: ${meal.fat}g
+- Ingredients: ${meal.ingredients ? (Array.isArray(meal.ingredients) ? meal.ingredients.join(', ') : meal.ingredients) : 'N/A'}
+
+SCALING RULES:
+1. Multiply ALL ingredient amounts by ${mult.toFixed(2)}
+2. Keep the same meal composition, just scaled
+3. Round ingredient amounts to practical measurements (e.g., 150g instead of 148.5g)
+4. Update meal name to reflect the new portions
+
+CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses.
+MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses.
+
+Return ONLY valid JSON:
+{"type":"${meal.type}","name":"Scaled Meal Name (with new portions)","ingredients":["Ingredient (scaled amount)"],"instructions":"Instructions"}`;
+
+        const response = await fetchWithAuth('/.netlify/functions/generate-meal-plan', {
+            method: 'POST',
+            body: JSON.stringify({
+                prompt,
+                isJson: true,
+                skipAutoScale: true,
+                targets: {
+                    calories: Math.round(meal.calories * mult),
+                    protein: Math.round(meal.protein * mult),
+                    carbs: Math.round(meal.carbs * mult),
+                    fat: Math.round(meal.fat * mult)
+                },
+                mealsPerDay: 1
+            })
+        });
+
+        const data = await response.json();
+        let scaledMeal = data.success && data.data ? data.data : null;
+
+        if (!scaledMeal) {
+            // Fallback: just scale the macros without AI
+            scaledMeal = {
+                ...meal,
+                name: meal.name + ` (${Math.round(mult * 100)}%)`,
+                calories: Math.round(meal.calories * mult),
+                protein: Math.round(meal.protein * mult),
+                carbs: Math.round(meal.carbs * mult),
+                fat: Math.round(meal.fat * mult)
+            };
+        } else {
+            // Ensure we use our calculated macros
+            scaledMeal.type = scaledMeal.type || meal.type;
+            scaledMeal.calories = Math.round(meal.calories * mult);
+            scaledMeal.protein = Math.round(meal.protein * mult);
+            scaledMeal.carbs = Math.round(meal.carbs * mult);
+            scaledMeal.fat = Math.round(meal.fat * mult);
+        }
+
+        // Update the plan
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = scaledMeal;
+        hasUnsavedChanges = true;
+
+        // Re-render the plan
+        renderPlan(lastPlanQuery.currentPlan);
+
+        console.log('✅ Portion adjusted successfully');
+
+    } catch (err) {
+        console.error('Error adjusting portions:', err);
+        alert('Failed to adjust portions. Please try again.');
+    } finally {
+        if (targetCard) {
+            targetCard.style.opacity = '1';
+            targetCard.style.pointerEvents = 'auto';
+        }
+    }
 }
 
 function switchCustomMealTab(tab) {
@@ -7846,6 +8127,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             customMeal(dayIndex, mealIndex);
+        },
+        'adjust-portions': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            openAdjustPortionsModal(dayIndex, mealIndex);
         },
         'save-meal-to-library': () => {
             const target = event.target.closest('[data-day-index]');
