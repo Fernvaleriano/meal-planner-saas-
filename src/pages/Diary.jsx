@@ -179,6 +179,59 @@ function Diary() {
   // Setup pull-to-refresh
   const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshDiaryData);
 
+  // Cleanup microphone on component unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        const rec = recognitionRef.current;
+        recognitionRef.current = null;
+
+        // Clear all handlers
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+
+        try {
+          rec.stop();
+        } catch (e) {
+          console.log('Cleanup: Error calling stop:', e);
+        }
+
+        try {
+          rec.abort();
+        } catch (e) {
+          console.log('Cleanup: Error calling abort:', e);
+        }
+      }
+    };
+  }, []);
+
+  // Cleanup microphone when AI modal closes
+  useEffect(() => {
+    if (!aiExpanded && recognitionRef.current) {
+      setIsRecording(false);
+      const rec = recognitionRef.current;
+      recognitionRef.current = null;
+
+      // Clear all handlers
+      rec.onstart = null;
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+
+      try {
+        rec.stop();
+      } catch (e) { /* ignore */ }
+
+      setTimeout(() => {
+        try {
+          rec.abort();
+        } catch (e) { /* ignore */ }
+      }, 100);
+    }
+  }, [aiExpanded]);
+
   // Toggle meal collapse
   const toggleMealCollapse = (mealType) => {
     setCollapsedMeals(prev => {
