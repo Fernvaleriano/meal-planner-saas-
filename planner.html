@@ -4341,6 +4341,7 @@ function displayDietPlan(multiDayData) {
                                 <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">🥗 -Carbs</button>
                                 <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">✨ Simpler</button>
                                 <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer;">🎯 Custom</button>
+                                <button data-action="save-meal-to-library" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #ec4899; color: white; border: none; border-radius: 4px; cursor: pointer;">💾 Save</button>
                             </div>
                             <!-- Chat Messages -->
                             <div id="ai-chat-messages-${dayIndex}-${mealIndex}" class="ai-chat-messages" style="max-height: 150px; overflow-y: auto; padding: 8px 10px; min-height: 40px;">
@@ -4507,19 +4508,29 @@ async function retrySavePlan() {
         saveBtn.disabled = true;
     }
 
-    const success = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+    try {
+        const success = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
 
-    if (success) {
-        // Hide the save button and show normal status
-        hideSaveRetryButton();
-        updatePlanStatusUI();
-    } else {
-        // Still failed, reset button
+        if (success) {
+            // Hide the save button and show normal status
+            hideSaveRetryButton();
+            updatePlanStatusUI();
+            alert('✅ Plan saved successfully!');
+        } else {
+            // Still failed, reset button
+            if (saveBtn) {
+                saveBtn.innerHTML = '💾 Save Plan';
+                saveBtn.disabled = false;
+            }
+            alert('Failed to save plan. Check the browser console (F12) for details.');
+        }
+    } catch (error) {
+        console.error('Retry save error:', error);
         if (saveBtn) {
             saveBtn.innerHTML = '💾 Save Plan';
             saveBtn.disabled = false;
         }
-        alert('Failed to save plan. Please check your connection and try again.');
+        alert('Save failed: ' + error.message);
     }
 }
 
@@ -4679,8 +4690,15 @@ async function saveCoachPlan(planData, clientName) {
 
     } catch (error) {
         console.error('Error saving plan:', error);
-        // Show error to user so they know save failed
-        console.error('⚠️ Plan save failed - user will need to retry');
+        // Show error to user so they know what failed
+        console.error('⚠️ Plan save failed:', error.message);
+
+        // Show specific error to help debug
+        if (error.message.includes('Not authenticated')) {
+            alert('Session expired. Please refresh the page and log in again.');
+        } else {
+            console.error('Save error details:', error);
+        }
         return false;
     }
 }
@@ -4917,32 +4935,37 @@ async function sendAiBrainstorm(dayIndex, mealIndex, quickAction = null) {
         // If there are clickable meal suggestions, display them
         if (data.suggestions && data.suggestions.length > 0) {
             let suggestionsHtml = `<div style="margin-top: 8px; margin-bottom: 8px;">
-                <p style="font-size: 10px; color: #6d28d9; margin-bottom: 6px; font-weight: 600;">Click to apply:</p>`;
+                <p style="font-size: 10px; color: #6d28d9; margin-bottom: 6px; font-weight: 600;">Tap to apply or save:</p>`;
 
             data.suggestions.forEach((suggestion, idx) => {
                 const suggestionJson = JSON.stringify(suggestion).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 suggestionsHtml += `
-                    <div class="ai-meal-suggestion"
-                         onclick="applyMealSuggestion(${dayIndex}, ${mealIndex}, this)"
-                         data-suggestion="${suggestionJson}"
-                         style="background: white; border: 2px solid #c4b5fd; border-radius: 8px; padding: 10px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div style="flex: 1;">
-                                <p style="font-weight: 600; color: #4c1d95; font-size: 12px; margin-bottom: 4px;">${escapeHtml(suggestion.name)}</p>
-                                ${suggestion.description ? `<p style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">${escapeHtml(suggestion.description)}</p>` : ''}
-                                <div style="display: flex; gap: 8px; font-size: 10px;">
-                                    <span style="color: #dc2626; font-weight: 600;">${suggestion.calories} cal</span>
-                                    <span style="color: #2563eb;">${suggestion.protein}g P</span>
-                                    <span style="color: #16a34a;">${suggestion.carbs}g C</span>
-                                    <span style="color: #ca8a04;">${suggestion.fat}g F</span>
-                                </div>
+                    <div class="ai-meal-suggestion" data-suggestion="${suggestionJson}"
+                         style="background: white; border: 2px solid #c4b5fd; border-radius: 8px; padding: 10px; margin-bottom: 6px; transition: all 0.2s;">
+                        <div style="margin-bottom: 8px;">
+                            <p style="font-weight: 600; color: #4c1d95; font-size: 12px; margin-bottom: 4px;">${escapeHtml(suggestion.name)}</p>
+                            ${suggestion.description ? `<p style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">${escapeHtml(suggestion.description)}</p>` : ''}
+                            <div style="display: flex; gap: 8px; font-size: 10px;">
+                                <span style="color: #dc2626; font-weight: 600;">${suggestion.calories} cal</span>
+                                <span style="color: #2563eb;">${suggestion.protein}g P</span>
+                                <span style="color: #16a34a;">${suggestion.carbs}g C</span>
+                                <span style="color: #ca8a04;">${suggestion.fat}g F</span>
                             </div>
-                            <span style="background: #7c3aed; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap;">Apply</span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button onclick="applyMealSuggestion(${dayIndex}, ${mealIndex}, this.parentElement.parentElement)" style="flex: 1; background: #7c3aed; color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer;">✓ Apply</button>
+                            <button onclick="saveSuggestionToLibrary(this.parentElement.parentElement)" style="background: #ec4899; color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer;">💾 Save</button>
                         </div>
                     </div>`;
             });
 
-            suggestionsHtml += `</div>`;
+            // Add "More suggestions" button
+            suggestionsHtml += `
+                <button onclick="sendAiBrainstorm(${dayIndex}, ${mealIndex}, 'more-alternatives')"
+                    style="width: 100%; padding: 8px; background: #e9d5ff; color: #6d28d9; border: 2px dashed #c4b5fd; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; margin-top: 4px;">
+                    🔄 More suggestions
+                </button>
+            </div>`;
             messagesEl.innerHTML += suggestionsHtml;
         }
 
@@ -5838,6 +5861,62 @@ async function saveMealToLibrary(meal) {
         console.error('Error saving meal to library:', error);
         alert('Failed to save meal to library. Please try again.');
         return null;
+    }
+}
+
+// Save an AI suggestion to library (before applying it)
+async function saveSuggestionToLibrary(element) {
+    try {
+        const suggestionData = JSON.parse(element.dataset.suggestion.replace(/&quot;/g, '"'));
+
+        const mealData = {
+            name: suggestionData.name,
+            type: suggestionData.type || 'meal',
+            calories: suggestionData.calories,
+            protein: suggestionData.protein,
+            carbs: suggestionData.carbs,
+            fat: suggestionData.fat,
+            ingredients: suggestionData.ingredients || [],
+            instructions: suggestionData.instructions || '',
+            description: suggestionData.description || '',
+            source: 'AI Suggestion'
+        };
+
+        const saved = await saveMealToLibrary(mealData);
+        if (saved) {
+            alert(`✅ "${suggestionData.name}" saved to your meal library!`);
+        }
+    } catch (error) {
+        console.error('Error saving suggestion:', error);
+        alert('Failed to save suggestion. Please try again.');
+    }
+}
+
+// Save a meal from the current plan to library
+async function saveMealFromPlan(dayIndex, mealIndex) {
+    const meal = lastPlanQuery.currentPlan[dayIndex]?.plan[mealIndex];
+    if (!meal) {
+        alert('Could not find meal to save');
+        return;
+    }
+
+    // Prepare meal data for saving
+    const mealData = {
+        name: meal.name,
+        type: meal.type,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        ingredients: meal.ingredients || [],
+        instructions: meal.instructions || '',
+        recipe: meal.recipe || null,
+        source: 'AI Generated'
+    };
+
+    const saved = await saveMealToLibrary(mealData);
+    if (saved) {
+        alert(`✅ "${meal.name}" saved to your meal library!`);
     }
 }
 
@@ -7578,6 +7657,12 @@ document.addEventListener('click', function(event) {
             const dayIndex = parseInt(target.dataset.dayIndex);
             const mealIndex = parseInt(target.dataset.mealIndex);
             customMeal(dayIndex, mealIndex);
+        },
+        'save-meal-to-library': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            saveMealFromPlan(dayIndex, mealIndex);
         },
         'edit-custom-meal': () => {
             const target = event.target.closest('[data-day-index]');

@@ -49,13 +49,23 @@ exports.handler = async (event) => {
         }
 
         // Determine if this is a meal suggestion request (should return options)
-        const isMealSuggestionRequest = quickAction && ['alternatives', 'higher-protein', 'lower-carb', 'simpler', 'lower-cal'].includes(quickAction);
+        // Check quick actions OR detect meal-related keywords in custom messages
+        const mealSuggestionKeywords = [
+            'how about', 'what about', 'can i have', 'i want', 'make it', 'change to',
+            'swap for', 'replace with', 'give me', 'suggest', 'recommend', 'instead',
+            'protein shake', 'smoothie', 'breakfast', 'lunch', 'dinner', 'snack',
+            'eggs', 'chicken', 'salmon', 'steak', 'oatmeal', 'salad', 'sandwich',
+            'with a', 'and a', 'plus', 'add'
+        ];
+        const messageHasMealKeywords = message && mealSuggestionKeywords.some(kw => message.toLowerCase().includes(kw));
+        const isMealSuggestionRequest = (quickAction && ['alternatives', 'higher-protein', 'lower-carb', 'simpler', 'lower-cal', 'more-alternatives'].includes(quickAction)) || messageHasMealKeywords;
 
         // Build the prompt based on quick action or custom message
         let userRequest = message;
         if (quickAction) {
             const actionPrompts = {
                 'alternatives': `Suggest 3 alternative meals that could replace "${meal.name}" with similar macros (around ${meal.calories} cal, ${meal.protein}g protein). Keep the same meal type (${meal.type}).`,
+                'more-alternatives': `Suggest 3 MORE alternative meals (different from typical suggestions) that could replace "${meal.name}" with similar macros (around ${meal.calories} cal, ${meal.protein}g protein). Be creative and offer variety.`,
                 'higher-protein': `Suggest 2-3 variations of "${meal.name}" with MORE protein while keeping calories similar. Current: ${meal.protein}g protein, ${meal.calories} cal. Target: at least ${Math.round(meal.protein * 1.3)}g protein.`,
                 'lower-carb': `Suggest 2-3 variations of "${meal.name}" with FEWER carbs while keeping protein similar. Current: ${meal.carbs}g carbs. Target: under ${Math.round(meal.carbs * 0.6)}g carbs.`,
                 'simpler': `Suggest 2-3 simpler versions of "${meal.name}" using fewer ingredients and easier preparation, while keeping similar nutrition.`,
@@ -64,6 +74,11 @@ exports.handler = async (event) => {
                 'budget': `Suggest budget-friendly alternatives or modifications for "${meal.name}" using cheaper ingredients.`
             };
             userRequest = actionPrompts[quickAction] || message;
+        }
+
+        // For custom meal descriptions, enhance the request
+        if (!quickAction && messageHasMealKeywords) {
+            userRequest = `The coach wants to replace the current ${meal.type} with: "${message}". Create 1-2 variations of this meal idea with accurate macros that fit around ${meal.calories} calories.`;
         }
 
         // Build meal context
