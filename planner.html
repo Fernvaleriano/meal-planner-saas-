@@ -4444,7 +4444,9 @@ async function publishPlanToClient() {
     if (!currentCoach || !lastPlanQuery.planId) {
         // Check if save failed - show more helpful message
         if (lastPlanQuery.currentPlan && !lastPlanQuery.planId) {
-            alert('Plan needs to be saved first. Please click the "Save Plan" button to save your plan before submitting to client.');
+            // Show the Save button so user can actually save
+            showSaveRetryButton();
+            alert('Plan needs to be saved first. Please click the "Save Plan" button that has appeared to save your plan before submitting to client.');
         } else {
             alert('Please generate a plan first.');
         }
