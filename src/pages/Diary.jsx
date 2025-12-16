@@ -95,6 +95,9 @@ function Diary() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedEntries, setSelectedEntries] = useState(new Set());
 
+  // Diary interactions (reactions & comments from coach)
+  const [interactions, setInteractions] = useState({ reactions: {}, comments: {} });
+
   // Collapsible meal sections
   const [collapsedMeals, setCollapsedMeals] = useState(() => {
     // Load from localStorage
@@ -120,6 +123,24 @@ function Diary() {
       const newEntries = diaryData.entries || [];
       const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
       const newWater = waterData?.glasses || 0;
+
+      // Fetch interactions (reactions & comments) for these entries
+      if (newEntries.length > 0) {
+        try {
+          const interactionsData = await apiGet(
+            `/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`
+          );
+          setInteractions({
+            reactions: interactionsData.reactions || {},
+            comments: interactionsData.comments || {}
+          });
+        } catch (err) {
+          console.log('No interactions found or error fetching:', err.message);
+          setInteractions({ reactions: {}, comments: {} });
+        }
+      } else {
+        setInteractions({ reactions: {}, comments: {} });
+      }
 
       // Calculate totals
       const calculatedTotals = newEntries.reduce((acc, entry) => ({
@@ -1331,7 +1352,7 @@ function Diary() {
   };
 
   // Swipeable entry component with long-press for selection
-  const SwipeableEntry = ({ entry, onDelete, onEdit, isSelected, onToggleSelect, inSelectionMode, onLongPress }) => {
+  const SwipeableEntry = ({ entry, onDelete, onEdit, isSelected, onToggleSelect, inSelectionMode, onLongPress, reactions, comments }) => {
     const [touchStart, setTouchStart] = useState(null);
     const [touchEnd, setTouchEnd] = useState(null);
     const [swiped, setSwiped] = useState(false);
@@ -1411,7 +1432,24 @@ function Diary() {
           )}
           <div className="meal-entry-info">
             <span className="meal-entry-name">{entry.food_name}</span>
-            <span className="meal-entry-serving">{entry.number_of_servings || 1} serving</span>
+            <span className="meal-entry-serving">
+              {entry.number_of_servings || 1} serving
+              {/* Show coach interaction indicators */}
+              {(reactions?.length > 0 || comments?.length > 0) && (
+                <span className="meal-entry-interactions">
+                  {reactions?.map((r, i) => (
+                    <span key={i} className="meal-entry-reaction" title={r.coachName}>
+                      {r.reaction}
+                    </span>
+                  ))}
+                  {comments?.length > 0 && (
+                    <span className="meal-entry-comment-count" title={`${comments.length} comment${comments.length > 1 ? 's' : ''}`}>
+                      💬{comments.length}
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
           </div>
           <span className="meal-entry-cals">{entry.calories || 0}</span>
         </div>
@@ -1494,6 +1532,8 @@ function Diary() {
                     onToggleSelect={() => toggleEntrySelection(entry.id)}
                     inSelectionMode={selectionMode}
                     onLongPress={handleLongPress}
+                    reactions={interactions.reactions[entry.id] || []}
+                    comments={interactions.comments[entry.id] || []}
                   />
                 ))}
               </div>

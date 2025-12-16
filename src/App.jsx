@@ -9,6 +9,7 @@ import Settings from './pages/Settings';
 import Recipes from './pages/Recipes';
 import CheckIn from './pages/CheckIn';
 import Progress from './pages/Progress';
+import Feed from './pages/Feed';
 import Login from './pages/Login';
 import LoadingScreen from './components/LoadingScreen';
 
@@ -54,6 +55,7 @@ function App() {
         <Route path="recipes" element={<Recipes />} />
         <Route path="check-in" element={<CheckIn />} />
         <Route path="progress" element={<Progress />} />
+        <Route path="feed" element={<Feed />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

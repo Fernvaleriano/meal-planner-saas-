@@ -1,10 +1,18 @@
 import { Link } from 'react-router-dom';
-import { Home, NotebookPen, Utensils, User } from 'lucide-react';
+import { Home, NotebookPen, Utensils, User, Activity } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 function BottomNav({ currentPath }) {
+  const { user, clientData } = useAuth();
+
+  // Check if user is a coach (their auth ID is a coach_id in the clients table)
+  // For coaches, show Feed in navigation
+  const isCoach = user && clientData?.coach_id === user.id;
+
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/diary', icon: NotebookPen, label: 'Diary' },
+    ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Feed' }] : []),
     { path: '/plans', icon: Utensils, label: 'Plans' },
     { path: '/settings', icon: User, label: 'Profile' }
   ];

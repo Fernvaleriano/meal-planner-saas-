@@ -1,14 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, NotebookPen, Utensils, User, LogOut } from 'lucide-react';
+import { Home, NotebookPen, Utensils, User, LogOut, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 function DesktopSidebar() {
   const location = useLocation();
-  const { clientData, logout } = useAuth();
+  const { user, clientData, logout } = useAuth();
+
+  // Check if user is a coach (their auth ID matches their own coach_id)
+  const isCoach = user && clientData?.coach_id === user.id;
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/diary', icon: NotebookPen, label: 'Diary' },
+    ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Client Feed' }] : []),
     { path: '/plans', icon: Utensils, label: 'Meal Plans' },
     { path: '/settings', icon: User, label: 'Profile' }
   ];
