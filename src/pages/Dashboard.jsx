@@ -431,7 +431,13 @@ function Dashboard() {
     }
   };
 
-  const startVoiceInput = () => {
+  // Helper to detect iOS
+  const isIOS = () => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  };
+
+  const startVoiceInput = async () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     // Clean up any existing recognition
@@ -442,6 +448,24 @@ function Dashboard() {
         console.log('Previous recognition cleanup:', e);
       }
       recognitionRef.current = null;
+    }
+
+    // iOS Safari requires microphone to be "warmed up" with getUserMedia first
+    // This prevents the audio-capture error that commonly occurs on iOS
+    if (isIOS() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Stop the stream immediately - we just needed to activate the mic permission
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        console.error('iOS microphone warmup failed:', err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          alert('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
+        } else {
+          alert('Could not access microphone. Please check your microphone permissions in Settings.');
+        }
+        return;
+      }
     }
 
     // Store current input before voice starts
@@ -493,7 +517,9 @@ function Dashboard() {
       const errorMessages = {
         'no-speech': 'No speech detected. Please try again and speak clearly.',
         'not-allowed': 'Microphone access denied. Please allow microphone access in your browser settings.',
-        'audio-capture': 'Could not access your microphone. Please check that:\n• No other app is using the microphone\n• Your microphone is properly connected\n• You have granted microphone permissions',
+        'audio-capture': isIOS()
+          ? 'Could not access microphone on your iPhone. Please:\n• Go to Settings > Safari > Microphone and allow access\n• Make sure no other app is using the microphone\n• Try closing and reopening Safari'
+          : 'Could not access your microphone. Please check that:\n• No other app is using the microphone\n• Your microphone is properly connected\n• You have granted microphone permissions',
         'network': 'Network error. Voice recognition requires an internet connection.',
         'service-not-allowed': 'Voice recognition is not available. Please try again later.',
         'bad-grammar': 'Could not understand the speech. Please try again.',
