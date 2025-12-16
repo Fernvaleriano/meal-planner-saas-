@@ -731,6 +731,91 @@
                 display: none;
             }
         }
+
+        /* Coach Bottom Navigation */
+        .coach-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .coach-bottom-nav-inner {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .coach-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--gray-500);
+            font-size: 10px;
+            padding: 4px 8px;
+            transition: color 0.2s;
+        }
+
+        .coach-nav-item.active {
+            color: var(--brand-primary);
+        }
+
+        .coach-nav-icon {
+            width: 48px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            margin-bottom: 2px;
+        }
+
+        .coach-nav-item.active .coach-nav-icon {
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .coach-nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .coach-bottom-nav {
+                display: block;
+            }
+            .main-content {
+                padding-bottom: calc(100px + env(safe-area-inset-bottom));
+            }
+        }
+
+        [data-theme="dark"] .coach-bottom-nav {
+            background: #1e293b;
+            border-color: #334155;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .coach-nav-item {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .coach-nav-item.active {
+            color: #2dd4bf;
+        }
+
+        [data-theme="dark"] .coach-nav-item.active .coach-nav-icon {
+            background: rgba(45, 212, 191, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -1151,5 +1236,51 @@
             }
         });
     </script>
+
+    <!-- Coach Bottom Navigation -->
+    <nav class="coach-bottom-nav">
+        <div class="coach-bottom-nav-inner">
+            <a href="dashboard.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Dashboard</span>
+            </a>
+            <a href="manage-clients.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Clients</span>
+            </a>
+            <a href="client-feed.html" class="coach-nav-item active">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Feed</span>
+            </a>
+            <a href="planner.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Planner</span>
+            </a>
+            <a href="coach-profile.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Profile</span>
+            </a>
+        </div>
+    </nav>
 </body>
 </html>
