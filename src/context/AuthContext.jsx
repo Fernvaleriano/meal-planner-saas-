@@ -139,18 +139,68 @@ export function AuthProvider({ children }) {
 
       // Check if we already have cached client data in localStorage
       let hasCachedData = false;
+      let cachedData = null;
       try {
         const cached = localStorage.getItem('cachedClientData');
         if (cached) {
           const parsed = JSON.parse(cached);
-          hasCachedData = parsed && parsed.id && !parsed.error;
+          if (parsed && parsed.id && !parsed.error) {
+            hasCachedData = true;
+            cachedData = parsed;
+          }
         }
       } catch (e) {
         // Ignore parse errors
       }
 
+      // CRITICAL: If we have valid cached data, show the app immediately!
+      // Don't wait for getSession() - it can be slow on poor networks
+      if (hasCachedData && cachedData) {
+        console.log('SPA: Have cached data, showing app immediately');
+        setClientData(cachedData);
+        setLoading(false);
+
+        // Run auth validation in background (non-blocking)
+        (async () => {
+          try {
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Auth timeout')), 10000)
+            );
+            const sessionPromise = supabase.auth.getSession();
+            const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+
+            if (session?.user && mounted) {
+              setUser(session.user);
+
+              // Track client activity on app load (only once per session)
+              if (!activityTrackedRef.current) {
+                activityTrackedRef.current = true;
+                trackClientActivity(session.user.id);
+              }
+
+              // Fetch fresh data in background
+              fetchClientData(session.user.id).then(client => {
+                if (mounted && client && !client.error) {
+                  setClientData(client);
+                }
+              });
+            } else if (!session && mounted) {
+              // Session expired, clear cached data and redirect to login
+              console.log('SPA: Session expired, clearing cache');
+              localStorage.removeItem('cachedClientData');
+              setClientData(null);
+              setUser(null);
+            }
+          } catch (err) {
+            console.error('SPA: Background auth error:', err);
+            // Keep using cached data on background auth failure
+          }
+        })();
+        return;
+      }
+
+      // No cached data - must wait for auth
       try {
-        // Add timeout to prevent hanging forever
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Auth timeout')), 10000)
         );
@@ -169,24 +219,11 @@ export function AuthProvider({ children }) {
             trackClientActivity(session.user.id);
           }
 
-          // If we have cached data, set loading to false immediately
-          // and fetch fresh data in the background
-          if (hasCachedData) {
-            console.log('SPA: Have cached data, setting loading=false immediately');
+          // No cached data, wait for fetch to complete
+          const client = await fetchClientData(session.user.id);
+          if (mounted) {
+            setClientData(client);
             setLoading(false);
-            // Fetch fresh data in background (don't await)
-            fetchClientData(session.user.id).then(client => {
-              if (mounted && client && !client.error) {
-                setClientData(client);
-              }
-            });
-          } else {
-            // No cached data, wait for fetch to complete
-            const client = await fetchClientData(session.user.id);
-            if (mounted) {
-              setClientData(client);
-              setLoading(false);
-            }
           }
         } else if (mounted) {
           // No session, clear loading
