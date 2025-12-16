@@ -6176,6 +6176,14 @@
             }
 
             try {
+                // Get session for authentication
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    alert('Session expired. Please log in again.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
                 // Show loading state on delete button
                 const deleteBtn = document.getElementById('deleteSelectedBtn');
                 const originalText = deleteBtn.innerHTML;
@@ -6185,7 +6193,10 @@
                 // Delete all selected plans
                 const deletePromises = Array.from(selectedPlans).map(planId =>
                     fetch(`${DELETE_PLAN_ENDPOINT}?planId=${planId}&coachId=${currentUser.id}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`
+                        }
                     })
                 );
 
