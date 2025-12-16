@@ -81,19 +81,23 @@ exports.handler = async (event, context) => {
     if (planId) {
       console.log('📝 Updating existing plan:', planId);
 
-      // First try with client_id
       const updateData = {
         plan_data: planData,
         client_name: clientName || 'Unnamed Client',
         updated_at: new Date().toISOString()
       };
 
+      // Track optional columns for retry logic
+      const optionalColumns = [];
+
       if (planName) {
         updateData.plan_name = planName;
+        optionalColumns.push('plan_name');
       }
 
       if (clientId) {
         updateData.client_id = clientId;
+        optionalColumns.push('client_id');
       }
 
       let result = await supabase
@@ -107,10 +111,18 @@ exports.handler = async (event, context) => {
       data = result.data;
       error = result.error;
 
-      // If any error and we included client_id, retry without it
-      if (error && clientId) {
-        console.log('⚠️ Update failed with client_id, retrying without it. Error:', error.message);
-        delete updateData.client_id;
+      // If error and we included optional columns, retry without them
+      if (error && optionalColumns.length > 0) {
+        console.log('⚠️ Update failed with optional columns, retrying. Error:', error.message);
+
+        // Remove all optional columns
+        for (const col of optionalColumns) {
+          if (updateData[col] !== undefined) {
+            console.log(`⚠️ Removing optional column: ${col}`);
+            delete updateData[col];
+          }
+        }
+
         result = await supabase
           .from('coach_meal_plans')
           .update(updateData)
@@ -138,12 +150,17 @@ exports.handler = async (event, context) => {
         created_at: new Date().toISOString()
       };
 
+      // Track optional columns for retry logic
+      const optionalColumns = [];
+
       if (planName) {
         insertData.plan_name = planName;
+        optionalColumns.push('plan_name');
       }
 
       if (clientId) {
         insertData.client_id = clientId;
+        optionalColumns.push('client_id');
       }
 
       // Try to insert
@@ -156,10 +173,18 @@ exports.handler = async (event, context) => {
       data = result.data;
       error = result.error;
 
-      // If any error and we included client_id, retry without it
-      if (error && clientId) {
-        console.log('⚠️ Insert failed with client_id, retrying without it. Error:', error.message);
-        delete insertData.client_id;
+      // If error and we included optional columns, retry without them one at a time
+      if (error && optionalColumns.length > 0) {
+        console.log('⚠️ Insert failed with optional columns, retrying. Error:', error.message);
+
+        // Try removing each optional column
+        for (const col of optionalColumns) {
+          if (insertData[col] !== undefined) {
+            console.log(`⚠️ Removing optional column: ${col}`);
+            delete insertData[col];
+          }
+        }
+
         result = await supabase
           .from('coach_meal_plans')
           .insert([insertData])
@@ -171,6 +196,8 @@ exports.handler = async (event, context) => {
 
       if (error) {
         console.error('❌ Insert error:', error);
+      } else {
+        console.log('✅ Plan created successfully with ID:', data.id);
       }
     }
 

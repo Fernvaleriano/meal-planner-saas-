@@ -4764,8 +4764,10 @@ async function saveCoachPlan(planData, clientName) {
             }
 
             if (!response.ok) {
-                console.error(`❌ [Save #${attemptId}] API error:`, data);
-                throw new Error(data.error || `API error: ${response.status}`);
+                console.error(`❌ [Save #${attemptId}] API error response:`, JSON.stringify(data));
+                const errorMsg = data.error || data.message || `API error: ${response.status}`;
+                const errorDetails = data.details ? ` (${data.details})` : '';
+                throw new Error(errorMsg + errorDetails);
             }
 
             console.log(`📥 [Save #${attemptId}] API response received:`, data);
@@ -4802,14 +4804,18 @@ async function saveCoachPlan(planData, clientName) {
     } catch (error) {
         console.error(`❌ [Save #${attemptId}] Error saving plan:`, error);
         console.error(`⚠️ [Save #${attemptId}] Plan save failed:`, error.message);
+        console.error(`🔍 [Save #${attemptId}] Save error details:`, error.stack || error);
 
-        // Show specific error to help debug
+        // Show specific error to help debug - always show the error message
         if (error.message.includes('Not authenticated')) {
             alert('Session expired. Please refresh the page and log in again.');
         } else if (error.message.includes('timed out')) {
             alert('Save request timed out. Please check your network connection and try again.');
+        } else if (error.message.includes('Server configuration error')) {
+            alert('Server configuration error. Please contact support.');
         } else {
-            console.error(`🔍 [Save #${attemptId}] Save error details:`, error.stack || error);
+            // Show the actual error message so user can report it
+            console.error(`📋 [Save #${attemptId}] Full error for support:`, error.message);
         }
         return false;
     } finally {
