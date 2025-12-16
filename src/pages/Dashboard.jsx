@@ -199,99 +199,83 @@ function Dashboard() {
     };
   }, []);
 
-  // Load today's progress, meal plans, and supplements - progressive loading with caching
+  // Load today's progress, meal plans, and supplements - all in parallel for faster loading
   useEffect(() => {
     if (!clientData?.id) return;
 
     const dateKey = getTodayKey();
 
-    // Load diary data (progress rings) - high priority
-    apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`)
-      .then(diaryData => {
-        if (diaryData?.entries) {
-          const totals = diaryData.entries.reduce((acc, entry) => ({
-            calories: acc.calories + (entry.calories || 0),
-            protein: acc.protein + (entry.protein || 0),
-            carbs: acc.carbs + (entry.carbs || 0),
-            fat: acc.fat + (entry.fat || 0)
-          }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-          setTodayProgress(totals);
+    // Fetch all data in parallel for faster initial load
+    Promise.all([
+      apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
+      apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
+      clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : Promise.resolve(null),
+      apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
+      clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : Promise.resolve(null)
+    ]).then(([diaryData, plansData, supplementsData, intakeData, storiesData]) => {
+      // Process diary data
+      if (diaryData?.entries) {
+        const totals = diaryData.entries.reduce((acc, entry) => ({
+          calories: acc.calories + (entry.calories || 0),
+          protein: acc.protein + (entry.protein || 0),
+          carbs: acc.carbs + (entry.carbs || 0),
+          fat: acc.fat + (entry.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        setTodayProgress(totals);
 
-          // Cache progress and targets together
-          const newTargets = diaryData?.goals ? {
-            calories: diaryData.goals.calorie_goal || 2600,
-            protein: diaryData.goals.protein_goal || 221,
-            carbs: diaryData.goals.carbs_goal || 260,
-            fat: diaryData.goals.fat_goal || 75
-          } : targets;
+        const newTargets = diaryData?.goals ? {
+          calories: diaryData.goals.calorie_goal || 2600,
+          protein: diaryData.goals.protein_goal || 221,
+          carbs: diaryData.goals.carbs_goal || 260,
+          fat: diaryData.goals.fat_goal || 75
+        } : targets;
 
-          if (diaryData?.goals) {
-            setTargets(newTargets);
-          }
-
-          // Update cache with current state
-          const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
-          setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, progress: totals, targets: newTargets });
+        if (diaryData?.goals) {
+          setTargets(newTargets);
         }
-      })
-      .catch(err => console.error('Error loading diary:', err));
 
-    // Load meal plans - medium priority
-    apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`)
-      .then(plansData => {
-        if (plansData?.plans) {
-          const plans = plansData.plans.slice(0, 3);
-          setMealPlans(plans);
-          setCache(`plans_${clientData.id}`, plans);
-        }
-      })
-      .catch(err => console.error('Error loading meal plans:', err));
+        const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
+        setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, progress: totals, targets: newTargets });
+      }
 
-    // Load supplements - medium priority
-    if (clientData.coach_id) {
-      apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`)
-        .then(supplementsData => {
-          if (supplementsData?.protocols) {
-            setSupplements(supplementsData.protocols);
-            setCache(`supplements_${clientData.id}`, { protocols: supplementsData.protocols });
-          }
-        })
-        .catch(err => console.error('Error loading supplements:', err));
+      // Process meal plans
+      if (plansData?.plans) {
+        const plans = plansData.plans.slice(0, 3);
+        setMealPlans(plans);
+        setCache(`plans_${clientData.id}`, plans);
+      }
 
-      // Load coach stories - low priority (cached for instant display)
-      apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`)
-        .then(storiesData => {
-          if (storiesData) {
-            const newCoachData = {
-              name: storiesData.coachName,
-              avatar: storiesData.coachAvatar,
-              showAvatar: storiesData.showAvatarInGreeting
-            };
-            const newHasStories = storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0);
-            setCoachData(newCoachData);
-            setHasStories(newHasStories);
-            setCache(`coach_${clientData.id}`, { coachData: newCoachData, hasStories: newHasStories });
-          }
-        })
-        .catch(err => console.error('Error loading coach stories:', err));
-    }
+      // Process supplements
+      if (supplementsData?.protocols) {
+        setSupplements(supplementsData.protocols);
+        setCache(`supplements_${clientData.id}`, { protocols: supplementsData.protocols });
+      }
 
-    // Load supplement intake - medium priority
-    apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`)
-      .then(intakeData => {
-        if (intakeData?.intake) {
-          const intakeMap = {};
-          intakeData.intake.forEach(record => {
-            intakeMap[record.protocol_id] = true;
-          });
-          setSupplementIntake(intakeMap);
+      // Process supplement intake
+      if (intakeData?.intake) {
+        const intakeMap = {};
+        intakeData.intake.forEach(record => {
+          intakeMap[record.protocol_id] = true;
+        });
+        setSupplementIntake(intakeMap);
 
-          // Update cache with intake
-          const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
-          setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, intake: intakeMap });
-        }
-      })
-      .catch(err => console.error('Error loading supplement intake:', err));
+        const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
+        setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, intake: intakeMap });
+      }
+
+      // Process coach stories
+      if (storiesData) {
+        const newCoachData = {
+          name: storiesData.coachName,
+          avatar: storiesData.coachAvatar,
+          showAvatar: storiesData.showAvatarInGreeting
+        };
+        const newHasStories = storiesData.hasUnseenStories || (storiesData.stories && storiesData.stories.length > 0);
+        setCoachData(newCoachData);
+        setHasStories(newHasStories);
+        setCache(`coach_${clientData.id}`, { coachData: newCoachData, hasStories: newHasStories });
+      }
+    }).catch(err => console.error('Error loading dashboard data:', err));
 
   }, [clientData?.id, clientData?.coach_id]);
 

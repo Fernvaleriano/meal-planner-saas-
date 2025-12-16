@@ -7,8 +7,8 @@ let sessionCache = {
   refreshPromise: null
 };
 
-// Session is considered fresh if retrieved within the last 30 seconds
-const SESSION_CACHE_TTL = 30000;
+// Session is considered fresh if retrieved within the last 2 minutes (reduced API overhead)
+const SESSION_CACHE_TTL = 120000;
 
 // Session is considered stale if it expires within the next 5 minutes
 const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000;

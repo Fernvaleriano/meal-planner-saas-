@@ -127,8 +127,9 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
       // Ensure fresh session before adding
       await ensureFreshSession();
 
-      for (const food of foodsToAdd) {
-        await apiPost('/.netlify/functions/food-diary', {
+      // Create all food logging requests in parallel for faster logging
+      const logPromises = foodsToAdd.map(food =>
+        apiPost('/.netlify/functions/food-diary', {
           clientId: clientData.id,
           coachId: clientData.coach_id,
           entryDate: today,
@@ -142,13 +143,19 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
           servingUnit: 'serving',
           numberOfServings: 1,
           foodSource: 'ai_photo'
-        });
+        })
+      );
 
-        addedTotals.calories += food.calories || 0;
-        addedTotals.protein += food.protein || 0;
-        addedTotals.carbs += food.carbs || 0;
-        addedTotals.fat += food.fat || 0;
-      }
+      // Execute all requests in parallel
+      await Promise.all(logPromises);
+
+      // Calculate totals
+      addedTotals = foodsToAdd.reduce((acc, food) => ({
+        calories: acc.calories + (food.calories || 0),
+        protein: acc.protein + (food.protein || 0),
+        carbs: acc.carbs + (food.carbs || 0),
+        fat: acc.fat + (food.fat || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
       onFoodLogged?.(addedTotals);
       showSuccess('Food added to diary!');
