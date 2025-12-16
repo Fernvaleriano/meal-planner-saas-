@@ -284,7 +284,9 @@ CREATE POLICY "Users can manage exercise logs via workout" ON exercise_logs
 -- EXERCISE HISTORY VIEW (For progress tracking)
 -- ==============================================
 
-CREATE OR REPLACE VIEW exercise_history AS
+CREATE OR REPLACE VIEW exercise_history
+WITH (security_invoker = true)
+AS
 SELECT
     el.id,
     el.exercise_id,
@@ -356,12 +358,15 @@ CREATE POLICY "Service can manage PRs" ON personal_records
 -- ==============================================
 
 CREATE OR REPLACE FUNCTION update_gym_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- Apply to all gym tables with updated_at
 CREATE TRIGGER update_coach_settings_timestamp
@@ -392,7 +397,11 @@ CREATE TRIGGER update_workout_logs_timestamp
 -- For now, we'll create a function to enable gym features by email
 
 CREATE OR REPLACE FUNCTION enable_gym_features_for_email(target_email TEXT)
-RETURNS VOID AS $$
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     target_user_id UUID;
 BEGIN
@@ -407,7 +416,7 @@ BEGIN
         DO UPDATE SET gym_features_enabled = true, updated_at = NOW();
     END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Run this to enable for Fernando:
 -- SELECT enable_gym_features_for_email('contact@ziquefitness.com');
