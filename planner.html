@@ -4621,8 +4621,17 @@ async function savePlanChanges() {
     }
 }
 
+// Lock to prevent concurrent saves
+let isSaving = false;
+
 // SAVE COACH PLAN TO DATABASE
 async function saveCoachPlan(planData, clientName) {
+    // Prevent concurrent saves
+    if (isSaving) {
+        console.log('⏳ Save already in progress, skipping duplicate call');
+        return false;
+    }
+
     if (!currentCoach) {
         console.warn('No coach session - plan not saved to history');
         return false;
@@ -4649,6 +4658,7 @@ async function saveCoachPlan(planData, clientName) {
         return false;
     }
 
+    isSaving = true;
     try {
         console.log('Saving plan to coach history...', planData.planId ? `(updating plan ${planData.planId})` : '(creating new plan)');
 
@@ -4665,8 +4675,12 @@ async function saveCoachPlan(planData, clientName) {
             planName: planName  // Custom plan name for organization
         };
 
+        console.log('📤 Sending save request to API...');
+
         // Use authenticated API call
         const data = await apiPost(SAVE_COACH_PLAN_ENDPOINT, payload);
+
+        console.log('📥 API response received:', data);
         console.log('Plan saved to history with ID:', data.planId);
 
         // Store the planId, planName and status in lastPlanQuery so it can be used when sharing
@@ -4700,6 +4714,8 @@ async function saveCoachPlan(planData, clientName) {
             console.error('Save error details:', error);
         }
         return false;
+    } finally {
+        isSaving = false;
     }
 }
 
