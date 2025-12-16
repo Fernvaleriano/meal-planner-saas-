@@ -1,10 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
-const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 // Helper function to strip markdown formatting and special characters from text
 function stripMarkdown(text) {
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
         return rateLimitResponse(rateLimit.resetIn);
     }
 
-    if (!ANTHROPIC_API_KEY) {
+    if (!GEMINI_API_KEY) {
         return {
             statusCode: 500,
             headers,
@@ -338,26 +338,32 @@ Rules for clickable suggestions:
 - If they need more protein, suggest high-protein options that fit within remaining calories
 - If they're low on calories, suggest nutrient-dense foods`;
 
-        // Call Claude API
-        const anthropic = new Anthropic({
-            apiKey: ANTHROPIC_API_KEY
+        // Call Gemini API
+        const geminiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: `${systemPrompt}\n\nUser message: ${message}` }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1024
+                }
+            })
         });
 
-        const response = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1024,
-            system: systemPrompt,
-            messages: [
-                { role: 'user', content: message }
-            ]
-        });
+        if (!geminiResponse.ok) {
+            const errorText = await geminiResponse.text();
+            console.error('Gemini API error:', errorText);
+            throw new Error(`Gemini API error: ${geminiResponse.status}`);
+        }
+
+        const geminiData = await geminiResponse.json();
 
         let aiResponse = '';
-        if (response.content && response.content.length > 0) {
-            aiResponse = response.content
-                .filter(block => block.type === 'text')
-                .map(block => block.text)
-                .join('');
+        if (geminiData.candidates && geminiData.candidates[0]?.content?.parts?.[0]?.text) {
+            aiResponse = geminiData.candidates[0].content.parts[0].text;
         }
 
         // Check if AI wants to log food (response is JSON)

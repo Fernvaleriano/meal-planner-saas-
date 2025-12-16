@@ -1,8 +1,8 @@
-// Smart food photo analysis using Claude 3.5 Sonnet (more accurate, slower)
-const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+// Smart food photo analysis using Gemini 2.0 Flash (cost-effective vision model)
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -46,7 +46,7 @@ exports.handler = async (event, context) => {
         const { user, error: authError } = await authenticateRequest(event);
         if (authError) return authError;
 
-        // Rate limit - 10 smart analyses per minute per user (more restrictive due to cost)
+        // Rate limit - 10 smart analyses per minute per user
         const rateLimit = checkRateLimit(user.id, 'analyze-food-photo-smart', 10, 60000);
         if (!rateLimit.allowed) {
             console.warn(`🚫 Rate limit exceeded for user ${user.id} on analyze-food-photo-smart`);
@@ -55,12 +55,12 @@ exports.handler = async (event, context) => {
 
         console.log(`🧠 Smart analysis for user ${user.id} (${rateLimit.remaining} requests remaining)`);
 
-        if (!ANTHROPIC_API_KEY) {
-            console.error('ANTHROPIC_API_KEY is not configured');
+        if (!GEMINI_API_KEY) {
+            console.error('GEMINI_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'Smart AI analysis is not configured. Please add ANTHROPIC_API_KEY to environment variables.' })
+                body: JSON.stringify({ error: 'Smart AI analysis is not configured. Please add GEMINI_API_KEY to environment variables.' })
             };
         }
 
@@ -96,28 +96,13 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const mediaType = matches[1];
+        const mimeType = matches[1];
         const base64Data = matches[2];
 
         // User-provided context about the food (optional)
         const userContext = details ? details.trim() : null;
 
-        // Initialize Anthropic client
-        let anthropic;
-        try {
-            anthropic = new Anthropic({
-                apiKey: ANTHROPIC_API_KEY,
-            });
-        } catch (initError) {
-            console.error('Failed to initialize Anthropic client:', initError);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ error: 'Failed to initialize AI client', details: initError.message })
-            };
-        }
-
-        console.log('🧠 Calling Claude 3.5 Sonnet for smart food analysis...');
+        console.log('🧠 Calling Gemini 2.0 Flash for smart food analysis...');
 
         // Build the prompt
         const analysisPrompt = `Analyze this food image carefully and identify all food items visible. For each item, provide accurate nutritional estimates.
@@ -150,33 +135,38 @@ Guidelines for ACCURATE estimation:
 
 Take your time to be accurate. Return ONLY the JSON array.`;
 
-        let message;
+        // Build parts array for Gemini
+        const parts = [
+            { text: analysisPrompt },
+            {
+                inline_data: {
+                    mime_type: mimeType,
+                    data: base64Data
+                }
+            }
+        ];
+
+        let response;
         try {
-            message = await anthropic.messages.create({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1024,
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "image",
-                                source: {
-                                    type: "base64",
-                                    media_type: mediaType,
-                                    data: base64Data
-                                }
-                            },
-                            {
-                                type: "text",
-                                text: analysisPrompt
-                            }
-                        ]
+            response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts }],
+                    generationConfig: {
+                        temperature: 0.3,
+                        maxOutputTokens: 1024
                     }
-                ]
+                })
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Gemini API error:', errorText);
+                throw new Error(`Gemini API error: ${response.status}`);
+            }
         } catch (apiError) {
-            console.error('Anthropic API error:', apiError);
+            console.error('Gemini API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
@@ -187,11 +177,21 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             };
         }
 
-        console.log('✅ Claude response received');
+        const data = await response.json();
+        console.log('✅ Gemini response received');
 
-        // Extract text from response
-        const content = message.content[0].text;
-        console.log('Claude response:', content.substring(0, 200));
+        // Extract response text
+        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+            console.error('Invalid Gemini response structure:', JSON.stringify(data).substring(0, 500));
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Invalid AI response structure' })
+            };
+        }
+
+        const content = data.candidates[0].content.parts[0].text;
+        console.log('Gemini response:', content.substring(0, 200));
 
         // Parse the response
         let foods = [];
@@ -214,7 +214,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
                     console.error('Could not parse extracted JSON:', e);
                 }
             } else {
-                console.error('Could not parse Claude response:', trimmedContent);
+                console.error('Could not parse Gemini response:', trimmedContent);
             }
         }
 
@@ -233,7 +233,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             headers,
             body: JSON.stringify({
                 foods,
-                model: 'claude-sonnet-4',
+                model: 'gemini-2.0-flash',
                 smart: true
             })
         };

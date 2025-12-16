@@ -1,8 +1,8 @@
-// Nutrition label analysis using Claude AI
-const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+// Nutrition label analysis using Gemini 2.0 Flash
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 const headers = {
     ...corsHeaders,
@@ -36,8 +36,8 @@ exports.handler = async (event, context) => {
 
         console.log(`📋 Nutrition label scan for user ${user.id} (${rateLimit.remaining} requests remaining)`);
 
-        if (!ANTHROPIC_API_KEY) {
-            console.error('ANTHROPIC_API_KEY is not configured');
+        if (!GEMINI_API_KEY) {
+            console.error('GEMINI_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
@@ -81,29 +81,14 @@ exports.handler = async (event, context) => {
                 };
             }
             processedImages.push({
-                mediaType: matches[1],
+                mimeType: matches[1],
                 base64Data: matches[2]
             });
         }
 
         console.log(`📋 Processing ${processedImages.length} image(s) for nutrition label analysis`);
 
-        // Initialize Anthropic client
-        let anthropic;
-        try {
-            anthropic = new Anthropic({
-                apiKey: ANTHROPIC_API_KEY,
-            });
-        } catch (initError) {
-            console.error('Failed to initialize Anthropic client:', initError);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ error: 'Failed to initialize AI client' })
-            };
-        }
-
-        console.log('📋 Calling Claude to read nutrition label...');
+        console.log('📋 Calling Gemini to read nutrition label...');
 
         // Build the prompt for nutrition label reading
         const multiImageNote = processedImages.length > 1
@@ -139,36 +124,38 @@ Important:
 
 Return ONLY the JSON object, nothing else.`;
 
-        // Build content array with all images
-        const messageContent = [
-            ...processedImages.map((img, idx) => ({
-                type: "image",
-                source: {
-                    type: "base64",
-                    media_type: img.mediaType,
+        // Build parts array for Gemini
+        const parts = [
+            { text: analysisPrompt },
+            ...processedImages.map((img) => ({
+                inline_data: {
+                    mime_type: img.mimeType,
                     data: img.base64Data
                 }
-            })),
-            {
-                type: "text",
-                text: analysisPrompt
-            }
+            }))
         ];
 
-        let message;
+        let response;
         try {
-            message = await anthropic.messages.create({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 512,
-                messages: [
-                    {
-                        role: "user",
-                        content: messageContent
+            response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts }],
+                    generationConfig: {
+                        temperature: 0.2,
+                        maxOutputTokens: 512
                     }
-                ]
+                })
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Gemini API error:', errorText);
+                throw new Error(`Gemini API error: ${response.status}`);
+            }
         } catch (apiError) {
-            console.error('Anthropic API error:', apiError);
+            console.error('Gemini API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
@@ -179,11 +166,21 @@ Return ONLY the JSON object, nothing else.`;
             };
         }
 
-        console.log('✅ Claude response received');
+        const data = await response.json();
+        console.log('✅ Gemini response received');
 
-        // Extract text from response
-        const content = message.content[0].text;
-        console.log('Claude response:', content.substring(0, 300));
+        // Extract response text
+        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+            console.error('Invalid Gemini response structure:', JSON.stringify(data).substring(0, 500));
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Invalid AI response structure' })
+            };
+        }
+
+        const content = data.candidates[0].content.parts[0].text;
+        console.log('Gemini response:', content.substring(0, 300));
 
         // Parse the response
         let result;
@@ -211,7 +208,7 @@ Return ONLY the JSON object, nothing else.`;
                     };
                 }
             } else {
-                console.error('Could not parse Claude response:', trimmedContent);
+                console.error('Could not parse Gemini response:', trimmedContent);
                 return {
                     statusCode: 400,
                     headers,
