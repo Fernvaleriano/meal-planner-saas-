@@ -460,6 +460,11 @@ function Diary() {
       const valueToSave = waterPendingRef.current;
       waterPendingRef.current = null;
 
+      // Don't save if value is null or clientId is missing
+      if (valueToSave === null || valueToSave === undefined || !clientData?.id) {
+        return;
+      }
+
       try {
         await apiPost('/.netlify/functions/water-intake', {
           clientId: clientData.id,

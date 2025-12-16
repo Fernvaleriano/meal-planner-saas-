@@ -96,24 +96,46 @@ exports.handler = async (event) => {
         newGlasses = Math.max(0, (existing?.glasses || 0) - (glasses || 1));
       } else if (action === 'complete') {
         newGlasses = goal;
-      } else if (typeof glasses === 'number') {
-        newGlasses = Math.max(0, Math.min(goal, glasses));
+      } else if (glasses !== null && glasses !== undefined) {
+        // Handle direct glasses value (number or string)
+        const parsedGlasses = typeof glasses === 'string' ? parseInt(glasses, 10) : glasses;
+        if (!isNaN(parsedGlasses)) {
+          newGlasses = Math.max(0, Math.min(goal, parsedGlasses));
+        }
       }
 
-      // Upsert the water intake
-      const { data: intake, error } = await supabase
-        .from('water_intake')
-        .upsert({
-          client_id: clientId,
-          date: targetDate,
-          glasses: newGlasses,
-          goal: goal,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'client_id,date'
-        })
-        .select()
-        .single();
+      // Use explicit insert or update instead of upsert for reliability
+      let intake;
+      let error;
+
+      if (existing) {
+        // Update existing record
+        const result = await supabase
+          .from('water_intake')
+          .update({
+            glasses: newGlasses,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+        intake = result.data;
+        error = result.error;
+      } else {
+        // Insert new record
+        const result = await supabase
+          .from('water_intake')
+          .insert({
+            client_id: clientId,
+            date: targetDate,
+            glasses: newGlasses,
+            goal: goal
+          })
+          .select()
+          .single();
+        intake = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
