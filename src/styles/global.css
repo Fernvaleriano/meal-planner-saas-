@@ -166,15 +166,15 @@ body {
 /* Responsive logo sizing for different screen sizes */
 @media (max-width: 500px) {
     .nav-logo-left {
-        height: 48px;
-        max-width: 55%;
+        height: 60px;
+        max-width: 60%;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
-        height: 42px;
-        max-width: 50%;
+        height: 54px;
+        max-width: 55%;
     }
 }
 
