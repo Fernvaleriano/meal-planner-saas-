@@ -15548,14 +15548,17 @@ a.nav-left {
     align-items: center;
     gap: 4px;
     margin-left: 8px;
+    background: rgba(13, 148, 136, 0.15);
+    padding: 2px 8px;
+    border-radius: 12px;
 }
 
 .meal-entry-reaction {
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 .meal-entry-comment-count {
     font-size: 0.75rem;
     color: var(--brand-primary);
-    font-weight: 500;
+    font-weight: 600;
 }
