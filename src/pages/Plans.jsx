@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, Scale, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -119,6 +119,18 @@ function Plans() {
   const [showMealPrepModal, setShowMealPrepModal] = useState(false);
   const [mealPrepGuide, setMealPrepGuide] = useState(null);
   const [mealPrepLoading, setMealPrepLoading] = useState(false);
+
+  // Adjust portions modal state
+  const [showAdjustPortionsModal, setShowAdjustPortionsModal] = useState(false);
+  const [portionMultiplier, setPortionMultiplier] = useState(1.0);
+  const [adjustMealTarget, setAdjustMealTarget] = useState(null);
+
+  // Type meal modal state
+  const [showTypeMealModal, setShowTypeMealModal] = useState(false);
+  const [typeMealInput, setTypeMealInput] = useState('');
+  const [typeMealLoading, setTypeMealLoading] = useState(false);
+  const [typeMealSuggestions, setTypeMealSuggestions] = useState([]);
+  const [typeMealTarget, setTypeMealTarget] = useState(null);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -808,6 +820,240 @@ Return ONLY valid JSON:
       alert('Failed to revise meal. Please try again.');
     } finally {
       setProcessingMeal(null);
+    }
+  };
+
+  // Adjust portions - open modal to scale meal up or down
+  const handleAdjustPortions = (meal) => {
+    setAdjustMealTarget(meal);
+    setPortionMultiplier(1.0);
+    setShowAdjustPortionsModal(true);
+  };
+
+  // Apply portion adjustment to meal
+  const applyPortionAdjustment = async () => {
+    if (!adjustMealTarget || portionMultiplier === 1.0) {
+      setShowAdjustPortionsModal(false);
+      return;
+    }
+
+    const meal = adjustMealTarget;
+
+    // Save original meal for undo
+    const days = getPlanDays(selectedPlan);
+    const originalMeal = JSON.parse(JSON.stringify(days[meal.dayIdx].plan[meal.mealIdx]));
+
+    closeMealModal();
+    setShowAdjustPortionsModal(false);
+    setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'adjust' });
+
+    try {
+      // Calculate new macros based on multiplier
+      const adjustedMeal = {
+        ...meal,
+        calories: Math.round(meal.calories * portionMultiplier),
+        protein: Math.round(meal.protein * portionMultiplier),
+        carbs: Math.round(meal.carbs * portionMultiplier),
+        fat: Math.round(meal.fat * portionMultiplier),
+        fiber: meal.fiber ? Math.round(meal.fiber * portionMultiplier) : undefined,
+        sugar: meal.sugar ? Math.round(meal.sugar * portionMultiplier) : undefined,
+        sodium: meal.sodium ? Math.round(meal.sodium * portionMultiplier) : undefined,
+        image_url: null // Will regenerate image
+      };
+
+      // Update meal name to reflect portion change
+      const portionLabel = portionMultiplier > 1
+        ? `${Math.round(portionMultiplier * 100)}%`
+        : `${Math.round(portionMultiplier * 100)}%`;
+
+      // Revise ingredients with AI to get accurate scaled amounts
+      const prompt = `Scale this meal to ${Math.round(portionMultiplier * 100)}% of original portions: "${meal.name}" (${meal.type || meal.meal_type || 'meal'})
+
+ORIGINAL MEAL:
+- Calories: ${meal.calories}
+- Protein: ${meal.protein}g
+- Carbs: ${meal.carbs}g
+- Fat: ${meal.fat}g
+- Ingredients: ${meal.ingredients ? (Array.isArray(meal.ingredients) ? meal.ingredients.join(', ') : meal.ingredients) : 'N/A'}
+
+SCALING RULES:
+1. Multiply ALL ingredient amounts by ${portionMultiplier.toFixed(2)}
+2. Keep the same meal composition, just scaled
+3. Round ingredient amounts to practical measurements (e.g., 150g instead of 148.5g)
+4. Update meal name to reflect the new portions
+
+CRITICAL: Return ingredients as ARRAY OF STRINGS with amounts in parentheses.
+MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses.
+
+Return ONLY valid JSON:
+{"type":"${meal.type || meal.meal_type || 'meal'}","name":"Scaled Meal Name (with new portions)","ingredients":["Ingredient (scaled amount)"],"instructions":"Instructions"}`;
+
+      const data = await apiPost('/.netlify/functions/generate-meal-plan', {
+        prompt,
+        isJson: true,
+        skipAutoScale: true,
+        targets: {
+          calories: adjustedMeal.calories,
+          protein: adjustedMeal.protein,
+          carbs: adjustedMeal.carbs,
+          fat: adjustedMeal.fat
+        },
+        mealsPerDay: 1
+      });
+
+      let scaledMeal = data.success && data.data ? data.data : adjustedMeal;
+
+      // Ensure required fields and use calculated macros
+      scaledMeal.type = scaledMeal.type || meal.type || meal.meal_type || 'meal';
+      scaledMeal.meal_type = scaledMeal.type;
+      scaledMeal.calories = adjustedMeal.calories;
+      scaledMeal.protein = adjustedMeal.protein;
+      scaledMeal.carbs = adjustedMeal.carbs;
+      scaledMeal.fat = adjustedMeal.fat;
+      scaledMeal.image_url = null;
+
+      // Update the plan
+      const updatedPlan = { ...selectedPlan };
+      const updatedDays = [...getPlanDays(updatedPlan)];
+      updatedDays[meal.dayIdx] = { ...updatedDays[meal.dayIdx] };
+      updatedDays[meal.dayIdx].plan = [...updatedDays[meal.dayIdx].plan];
+      updatedDays[meal.dayIdx].plan[meal.mealIdx] = scaledMeal;
+
+      if (updatedPlan.plan_data.currentPlan) {
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, currentPlan: updatedDays };
+      } else {
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, days: updatedDays };
+      }
+
+      setSelectedPlan(updatedPlan);
+      setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+      setCache(`plans_full_${clientData.id}`, null);
+      await savePlanToDatabase(updatedPlan);
+      loadMealImagesForPlan(updatedPlan);
+
+      setUndoData({
+        dayIdx: meal.dayIdx,
+        mealIdx: meal.mealIdx,
+        meal: originalMeal,
+        action: 'adjust'
+      });
+
+      console.log('Portion adjusted successfully');
+
+    } catch (err) {
+      console.error('Adjust portion error:', err);
+      alert('Failed to adjust portions. Please try again.');
+    } finally {
+      setProcessingMeal(null);
+      setAdjustMealTarget(null);
+    }
+  };
+
+  // Type meal - open modal to type a custom meal description
+  const handleTypeMeal = (meal) => {
+    setTypeMealTarget(meal);
+    setTypeMealInput('');
+    setTypeMealSuggestions([]);
+    setTypeMealLoading(false);
+    closeMealModal();
+    setShowTypeMealModal(true);
+  };
+
+  // Create meal from typed description
+  const createTypedMeal = async () => {
+    if (!typeMealInput.trim() || !typeMealTarget) return;
+
+    const meal = typeMealTarget;
+
+    // Save original meal for undo
+    const days = getPlanDays(selectedPlan);
+    const originalMeal = JSON.parse(JSON.stringify(days[meal.dayIdx].plan[meal.mealIdx]));
+
+    setTypeMealLoading(true);
+
+    try {
+      // Get the user's exact meal description
+      const userMealDescription = typeMealInput.trim();
+
+      const prompt = `Create a meal EXACTLY as described by the user: "${userMealDescription}"
+
+MEAL TYPE: ${meal.type || meal.meal_type || 'meal'}
+
+CRITICAL RULES:
+1. CREATE THE MEAL EXACTLY AS THE USER TYPED IT - include all ingredients and portions they specified
+2. If the user says "chicken breast 200g with rice 150g", you MUST include exactly those amounts
+3. Do NOT substitute or change what the user asked for
+4. Calculate accurate macros based on USDA data for the ingredients specified
+5. If portions aren't specified, use reasonable default portions
+
+MEAL NAME FORMAT: Use the user's description as the meal name, with portions in parentheses.
+
+Return ONLY valid JSON:
+{"type":"${meal.type || meal.meal_type || 'meal'}","name":"Meal Name (with portions)","ingredients":["Ingredient (amount)"],"instructions":"Simple preparation instructions","calories":number,"protein":number,"carbs":number,"fat":number}`;
+
+      const data = await apiPost('/.netlify/functions/generate-meal-plan', {
+        prompt,
+        isJson: true,
+        skipAutoScale: true,
+        targets: {
+          calories: meal.calories || 500,
+          protein: meal.protein || 30,
+          carbs: meal.carbs || 50,
+          fat: meal.fat || 15
+        },
+        mealsPerDay: 1
+      });
+
+      let newMeal = data.success && data.data ? data.data : null;
+
+      if (!newMeal) {
+        throw new Error('Invalid response from API');
+      }
+
+      // Ensure required fields
+      newMeal.type = newMeal.type || meal.type || meal.meal_type || 'meal';
+      newMeal.meal_type = newMeal.type;
+      newMeal.name = newMeal.name || userMealDescription;
+      newMeal.image_url = null;
+
+      setShowTypeMealModal(false);
+      setProcessingMeal({ dayIdx: meal.dayIdx, mealIdx: meal.mealIdx, action: 'type' });
+
+      // Update the plan
+      const updatedPlan = { ...selectedPlan };
+      const updatedDays = [...getPlanDays(updatedPlan)];
+      updatedDays[meal.dayIdx] = { ...updatedDays[meal.dayIdx] };
+      updatedDays[meal.dayIdx].plan = [...updatedDays[meal.dayIdx].plan];
+      updatedDays[meal.dayIdx].plan[meal.mealIdx] = newMeal;
+
+      if (updatedPlan.plan_data.currentPlan) {
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, currentPlan: updatedDays };
+      } else {
+        updatedPlan.plan_data = { ...updatedPlan.plan_data, days: updatedDays };
+      }
+
+      setSelectedPlan(updatedPlan);
+      setPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+      setCache(`plans_full_${clientData.id}`, null);
+      await savePlanToDatabase(updatedPlan);
+      loadMealImagesForPlan(updatedPlan);
+
+      setUndoData({
+        dayIdx: meal.dayIdx,
+        mealIdx: meal.mealIdx,
+        meal: originalMeal,
+        action: 'type'
+      });
+
+      console.log('Typed meal created successfully');
+
+    } catch (err) {
+      console.error('Create typed meal error:', err);
+      alert('Failed to create meal. Please try again.');
+    } finally {
+      setTypeMealLoading(false);
+      setProcessingMeal(null);
+      setTypeMealTarget(null);
     }
   };
 
@@ -1980,6 +2226,22 @@ Keep it practical and brief. Format with clear sections.`;
                 </button>
 
                 <button
+                  className="meal-action-btn adjust"
+                  onClick={() => handleAdjustPortions(selectedMeal)}
+                >
+                  <Scale size={18} />
+                  <span>Adjust</span>
+                </button>
+
+                <button
+                  className="meal-action-btn type-meal"
+                  onClick={() => handleTypeMeal(selectedMeal)}
+                >
+                  <Sparkles size={18} />
+                  <span>Type Meal</span>
+                </button>
+
+                <button
                   className="meal-action-btn revise"
                   onClick={() => handleReviseMeal(selectedMeal)}
                 >
@@ -2317,6 +2579,205 @@ Keep it practical and brief. Format with clear sections.`;
               )}
 
               <button className="meal-modal-close" onClick={closeCustomModal}>
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Adjust Portions Modal */}
+        {showAdjustPortionsModal && adjustMealTarget && (
+          <div className="meal-modal-overlay" onClick={() => setShowAdjustPortionsModal(false)}>
+            <div className="adjust-portions-modal" onClick={e => e.stopPropagation()}>
+              <div className="adjust-portions-header">
+                <Scale size={24} />
+                <h2>Adjust Portions</h2>
+              </div>
+              <p className="adjust-portions-hint">Scale the meal portions up or down</p>
+
+              <div className="adjust-portions-preview">
+                <div className="meal-preview-name">{adjustMealTarget.name}</div>
+                <div className="portion-controls">
+                  <button
+                    className="portion-btn decrease"
+                    onClick={() => setPortionMultiplier(prev => Math.max(0.25, prev - 0.25))}
+                    disabled={portionMultiplier <= 0.25}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <div className="portion-display">
+                    <span className="portion-value">{Math.round(portionMultiplier * 100)}%</span>
+                    <span className="portion-label">of original</span>
+                  </div>
+                  <button
+                    className="portion-btn increase"
+                    onClick={() => setPortionMultiplier(prev => Math.min(3.0, prev + 0.25))}
+                    disabled={portionMultiplier >= 3.0}
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+
+                <div className="portion-presets">
+                  <button
+                    className={`preset-btn ${portionMultiplier === 0.5 ? 'active' : ''}`}
+                    onClick={() => setPortionMultiplier(0.5)}
+                  >
+                    50%
+                  </button>
+                  <button
+                    className={`preset-btn ${portionMultiplier === 0.75 ? 'active' : ''}`}
+                    onClick={() => setPortionMultiplier(0.75)}
+                  >
+                    75%
+                  </button>
+                  <button
+                    className={`preset-btn ${portionMultiplier === 1.0 ? 'active' : ''}`}
+                    onClick={() => setPortionMultiplier(1.0)}
+                  >
+                    100%
+                  </button>
+                  <button
+                    className={`preset-btn ${portionMultiplier === 1.25 ? 'active' : ''}`}
+                    onClick={() => setPortionMultiplier(1.25)}
+                  >
+                    125%
+                  </button>
+                  <button
+                    className={`preset-btn ${portionMultiplier === 1.5 ? 'active' : ''}`}
+                    onClick={() => setPortionMultiplier(1.5)}
+                  >
+                    150%
+                  </button>
+                  <button
+                    className={`preset-btn ${portionMultiplier === 2.0 ? 'active' : ''}`}
+                    onClick={() => setPortionMultiplier(2.0)}
+                  >
+                    200%
+                  </button>
+                </div>
+
+                <div className="adjusted-macros-preview">
+                  <h4>New Macros</h4>
+                  <div className="macro-row">
+                    <span className="macro-name">Calories:</span>
+                    <span className="macro-original">{adjustMealTarget.calories}</span>
+                    <ChevronRight size={14} className="macro-arrow" />
+                    <span className="macro-new">{Math.round(adjustMealTarget.calories * portionMultiplier)}</span>
+                  </div>
+                  <div className="macro-row">
+                    <span className="macro-name">Protein:</span>
+                    <span className="macro-original">{adjustMealTarget.protein}g</span>
+                    <ChevronRight size={14} className="macro-arrow" />
+                    <span className="macro-new">{Math.round(adjustMealTarget.protein * portionMultiplier)}g</span>
+                  </div>
+                  <div className="macro-row">
+                    <span className="macro-name">Carbs:</span>
+                    <span className="macro-original">{adjustMealTarget.carbs}g</span>
+                    <ChevronRight size={14} className="macro-arrow" />
+                    <span className="macro-new">{Math.round(adjustMealTarget.carbs * portionMultiplier)}g</span>
+                  </div>
+                  <div className="macro-row">
+                    <span className="macro-name">Fat:</span>
+                    <span className="macro-original">{adjustMealTarget.fat}g</span>
+                    <ChevronRight size={14} className="macro-arrow" />
+                    <span className="macro-new">{Math.round(adjustMealTarget.fat * portionMultiplier)}g</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="adjust-portions-actions">
+                <button className="cancel-btn" onClick={() => setShowAdjustPortionsModal(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="apply-btn"
+                  onClick={applyPortionAdjustment}
+                  disabled={portionMultiplier === 1.0}
+                >
+                  Apply Changes
+                </button>
+              </div>
+
+              <button className="meal-modal-close" onClick={() => setShowAdjustPortionsModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Type Meal Modal */}
+        {showTypeMealModal && typeMealTarget && (
+          <div className="meal-modal-overlay" onClick={() => setShowTypeMealModal(false)}>
+            <div className="type-meal-modal" onClick={e => e.stopPropagation()}>
+              <div className="type-meal-header">
+                <Sparkles size={24} />
+                <h2>Type Your Meal</h2>
+              </div>
+              <p className="type-meal-hint">
+                Type exactly what you want to eat and we'll create it for you
+              </p>
+
+              <div className="type-meal-input-section">
+                <textarea
+                  className="type-meal-input"
+                  placeholder="e.g., Grilled chicken breast 200g with brown rice 150g and steamed broccoli 100g"
+                  value={typeMealInput}
+                  onChange={e => setTypeMealInput(e.target.value)}
+                  rows={4}
+                  disabled={typeMealLoading}
+                />
+                <div className="type-meal-examples">
+                  <span className="examples-label">Examples:</span>
+                  <button
+                    className="example-chip"
+                    onClick={() => setTypeMealInput('Salmon fillet 180g with quinoa 120g and asparagus')}
+                  >
+                    Salmon with quinoa
+                  </button>
+                  <button
+                    className="example-chip"
+                    onClick={() => setTypeMealInput('Greek yogurt 200g with mixed berries 100g and honey')}
+                  >
+                    Greek yogurt bowl
+                  </button>
+                  <button
+                    className="example-chip"
+                    onClick={() => setTypeMealInput('Chicken stir fry with vegetables and jasmine rice')}
+                  >
+                    Chicken stir fry
+                  </button>
+                </div>
+              </div>
+
+              <div className="type-meal-actions">
+                <button
+                  className="cancel-btn"
+                  onClick={() => setShowTypeMealModal(false)}
+                  disabled={typeMealLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="create-btn"
+                  onClick={createTypedMeal}
+                  disabled={!typeMealInput.trim() || typeMealLoading}
+                >
+                  {typeMealLoading ? (
+                    <>
+                      <div className="btn-spinner"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      Create Meal
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <button className="meal-modal-close" onClick={() => setShowTypeMealModal(false)}>
                 <X size={24} />
               </button>
             </div>
