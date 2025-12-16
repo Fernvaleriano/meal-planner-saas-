@@ -308,6 +308,10 @@
             gap: 1rem;
         }
 
+        .meal-menu-item:hover {
+            background: #f3f4f6 !important;
+        }
+
         .meal-card-image {
             width: 120px;
             height: 120px;
@@ -2130,6 +2134,27 @@ function updateClientSummary() {
         summary.classList.add('hidden');
     }
 }
+
+// Toggle meal overflow menu
+function toggleMealMenu(dayIndex, mealIndex) {
+    const menu = document.getElementById(`meal-menu-${dayIndex}-${mealIndex}`);
+    const allMenus = document.querySelectorAll('.meal-dropdown-menu');
+
+    // Close all other menus
+    allMenus.forEach(m => {
+        if (m !== menu) m.style.display = 'none';
+    });
+
+    // Toggle this menu
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close meal menus when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.meal-overflow-menu')) {
+        document.querySelectorAll('.meal-dropdown-menu').forEach(m => m.style.display = 'none');
+    }
+});
 
 // Restore sidebar collapsed state on load
 (function restoreSidebarState() {
@@ -4291,73 +4316,75 @@ function displayDietPlan(multiDayData) {
                         🍽️
                     </div>
                     <div class="meal-card-content">
-                        <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
-                        <p class="text-blue-700">${meal.name}</p>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
+                                <p class="text-blue-700">${meal.name}</p>
+                            </div>
+                            <!-- Overflow menu for less-used actions -->
+                            <div class="meal-overflow-menu" style="position: relative;">
+                                <button onclick="toggleMealMenu(${dayIndex}, ${mealIndex})" class="btn" style="background: #e5e7eb; color: #374151; padding: 6px 10px; font-size: 14px;" title="More options">⋯</button>
+                                <div id="meal-menu-${dayIndex}-${mealIndex}" class="meal-dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 160px; margin-top: 4px;">
+                                    <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #374151;">🔄 Change Meal</button>
+                                    ${isCustomMeal
+                                        ? `<button data-action="edit-custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #374151;">✎ Edit Custom</button>`
+                                        : `<button data-action="revise-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #374151;">✏️ Revise</button>`
+                                    }
+                                    <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #374151;">🎯 Build Custom</button>
+                                    ${hasUndoState ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #dc2626;">↩️ Undo Change</button>` : ''}
+                                    <hr style="margin: 4px 0; border: none; border-top: 1px solid #e5e7eb;">
+                                    ${isCustomMeal
+                                        ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #374151;">📷 Generate Image</button>
+                                           <button data-action="upload-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #374151;">📤 Upload Photo</button>`
+                                        : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" class="meal-menu-item" style="display: block; width: 100%; text-align: left; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: #374151;">📷 Generate Image</button>`
+                                    }
+                                </div>
+                            </div>
+                        </div>
                         <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 my-2">
                             <span>${meal.calories} cal</span>
                             <span>${meal.protein}g P</span>
                             <span>${meal.carbs}g C</span>
                             <span>${meal.fat}g F</span>
                         </div>
-                        <div class="flex gap-2 mt-2 flex-wrap">
-                            <button data-action="change-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">🔄 Change</button>
-                            ${editOrReviseButton}
-                            <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-custom text-xs flex-1" title="Create exact meal from scratch">🎯 Custom</button>
-                            <button data-action="get-recipe" data-meal-name="${meal.name}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs flex-1">📖 Recipe</button>
-                            ${undoButton}
-                        </div>
-                        <div class="flex gap-2 mt-2">
-                            ${isCustomMeal
-                                ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs" style="background: #8b5cf6; color: white;">📷 Generate Image</button>
-                                   <button data-action="upload-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn text-xs" style="background: #0ea5e9; color: white;">📤 Upload Photo</button>`
-                                : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" class="btn text-xs" style="background: #8b5cf6; color: white;">📷 Generate Image</button>`
-                            }
-                        </div>
-                        <div class="meal-note-section" style="margin-top: 12px; background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fcd34d;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                <span style="font-weight: 600; color: #92400e; font-size: 11px;">📝 Note for Client:</span>
-                                <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 3px 10px; font-size: 10px; border-radius: 4px;">Save</button>
+
+                        <!-- Recipe button - keep visible -->
+                        <button data-action="get-recipe" data-meal-name="${meal.name}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs w-full mb-3">📖 View Recipe & Ingredients</button>
+
+                        <!-- AI Chat - Always Visible -->
+                        <div class="ai-chat-section" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 2px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
+                            <!-- Quick Actions -->
+                            <div style="padding: 8px 10px; border-bottom: 1px solid #ddd6fe; display: flex; flex-wrap: wrap; gap: 4px;">
+                                <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Swap</button>
+                                <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">💪 +Protein</button>
+                                <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">🥗 -Carbs</button>
+                                <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">✨ Simpler</button>
                             </div>
-                            <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical; color: #333; background: white;" placeholder="Add a note about this meal...">${existingNote}</textarea>
+                            <!-- Chat Messages -->
+                            <div id="ai-chat-messages-${dayIndex}-${mealIndex}" class="ai-chat-messages" style="max-height: 150px; overflow-y: auto; padding: 8px 10px; min-height: 40px;">
+                                <p style="font-size: 11px; color: #7c3aed; font-style: italic;">💬 Describe a meal or ask for changes...</p>
+                            </div>
+                            <!-- Chat Input -->
+                            <div style="padding: 8px 10px; border-top: 1px solid #ddd6fe; display: flex; gap: 6px;">
+                                <input type="text" id="ai-chat-input-${dayIndex}-${mealIndex}"
+                                    placeholder="e.g., 2 eggs with toast and avocado..."
+                                    style="flex: 1; padding: 8px 10px; border: 1px solid #c4b5fd; border-radius: 6px; font-size: 12px; background: white; color: #1f2937;"
+                                    onkeypress="if(event.key==='Enter')sendAiBrainstorm(${dayIndex},${mealIndex})">
+                                <button data-action="send-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
+                                    style="padding: 8px 14px; background: #7c3aed; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                    Send
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- AI Brainstorm Expandable Panel -->
-                        <div class="ai-brainstorm-section" style="margin-top: 12px;">
-                            <button data-action="toggle-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
-                                class="ai-brainstorm-toggle"
-                                style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                                <span>🤖 AI Brainstorm</span>
-                                <span class="ai-toggle-icon" id="ai-toggle-icon-${dayIndex}-${mealIndex}">▼</span>
-                            </button>
-                            <div id="ai-brainstorm-panel-${dayIndex}-${mealIndex}" class="ai-brainstorm-panel" style="display: none; margin-top: 8px; background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #c4b5fd; border-radius: 6px; overflow: hidden;">
-                                <!-- Quick Actions -->
-                                <div style="padding: 10px; border-bottom: 1px solid #ddd6fe;">
-                                    <p style="font-size: 10px; color: #6d28d9; margin-bottom: 6px; font-weight: 600;">Quick Actions:</p>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                        <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Alternatives</button>
-                                        <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">💪 More Protein</button>
-                                        <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">🥗 Lower Carb</button>
-                                        <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">✨ Simpler</button>
-                                        <button data-action="ai-quick-action" data-quick-action="prep-tips" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #ec4899; color: white; border: none; border-radius: 4px; cursor: pointer;">📋 Prep Tips</button>
-                                    </div>
-                                </div>
-                                <!-- Chat Area -->
-                                <div id="ai-chat-messages-${dayIndex}-${mealIndex}" class="ai-chat-messages" style="max-height: 200px; overflow-y: auto; padding: 10px; min-height: 60px;">
-                                    <p style="font-size: 11px; color: #7c3aed; font-style: italic;">Ask AI for meal ideas, modifications, or tips...</p>
-                                </div>
-                                <!-- Input Area -->
-                                <div style="padding: 10px; border-top: 1px solid #ddd6fe; display: flex; gap: 6px;">
-                                    <input type="text" id="ai-chat-input-${dayIndex}-${mealIndex}"
-                                        placeholder="Ask about this meal..."
-                                        style="flex: 1; padding: 8px 10px; border: 1px solid #c4b5fd; border-radius: 4px; font-size: 12px; background: white; color: #1f2937;"
-                                        onkeypress="if(event.key==='Enter')sendAiBrainstorm(${dayIndex},${mealIndex})">
-                                    <button data-action="send-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
-                                        style="padding: 8px 12px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                                        ➤
-                                    </button>
-                                </div>
+                        <!-- Note for Client - Collapsible -->
+                        <details style="margin-top: 10px;">
+                            <summary style="font-size: 11px; color: #92400e; cursor: pointer; padding: 6px; background: #fef3c7; border-radius: 6px;">📝 Add Note for Client</summary>
+                            <div style="background: #fef3c7; padding: 10px; border-radius: 0 0 6px 6px; border: 1px solid #fcd34d; border-top: none;">
+                                <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical; color: #333; background: white;" placeholder="Add a note about this meal...">${existingNote}</textarea>
+                                <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px; margin-top: 6px;">Save Note</button>
                             </div>
-                        </div>
+                        </details>
                     </div>
                 </div>`;
             }
