@@ -1595,7 +1595,7 @@
                 </div>
             </div>
 
-            <div class="space-y-6">
+            <div class="space-y-4">
                 <!-- Client Selector Section -->
                 <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
                     <label class="font-bold text-teal-900 block mb-2">👤 Select Client</label>
@@ -1608,37 +1608,52 @@
                             <input type="hidden" id="dp_selected_client_id">
                         </div>
                     </div>
+                    <!-- Client Summary (shown after client selected) -->
+                    <div id="client-summary" class="hidden mt-3 p-2 bg-white rounded border border-teal-300">
+                        <span id="client-summary-text" class="text-sm text-teal-800 font-medium"></span>
+                    </div>
                 </div>
 
-                <!-- Plan Name -->
-                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
-                    <label class="font-bold text-purple-900 block mb-2">📝 Plan Name <span class="text-red-500">*</span></label>
-                    <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., John's Cutting Phase, Sarah's Maintenance Plan..." required>
-                    <p class="text-xs text-purple-700 mt-1">Name this plan to identify it later (e.g., client name + goal)</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label for="dp_age" class="font-semibold text-gray-700">Age</label><input type="number" id="dp_age" class="input-field" placeholder="30" required></div>
-                    <div><label for="dp_gender" class="font-semibold text-gray-700">Gender</label><select id="dp_gender" class="input-field"><option value="male">Male</option><option value="female">Female</option></select></div>
-                    <div><label for="dp_weight" class="font-semibold text-gray-700">Weight (lbs)</label><input type="number" id="dp_weight" class="input-field" placeholder="155" required></div>
-                    <div><label for="dp_height_ft" class="font-semibold text-gray-700">Height (ft)</label><input type="number" id="dp_height_ft" class="input-field" placeholder="5" required></div>
-                    <div><label for="dp_height_in" class="font-semibold text-gray-700">Height (in)</label><input type="number" id="dp_height_in" class="input-field" placeholder="10" required></div>
-                    <div><label for="dp_activity" class="font-semibold text-gray-700">Activity</label><select id="dp_activity" class="input-field"><option value="1.2">Sedentary</option><option value="1.55" selected>Moderate</option><option value="1.725">Very Active</option></select></div>
+                <!-- Client Details - Collapsible -->
+                <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" onclick="toggleSection('client-details')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
+                        <span class="font-bold text-gray-700">📋 Client Details</span>
+                        <span id="client-details-arrow" class="text-gray-500 transition-transform">▼</span>
+                    </button>
+                    <div id="client-details-content" class="p-4 border-t border-gray-200">
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div><label for="dp_age" class="text-sm font-semibold text-gray-700">Age</label><input type="number" id="dp_age" class="input-field" placeholder="30" required></div>
+                            <div><label for="dp_gender" class="text-sm font-semibold text-gray-700">Gender</label><select id="dp_gender" class="input-field"><option value="male">Male</option><option value="female">Female</option></select></div>
+                            <div><label for="dp_weight" class="text-sm font-semibold text-gray-700">Weight (lbs)</label><input type="number" id="dp_weight" class="input-field" placeholder="155" required></div>
+                            <div><label for="dp_height_ft" class="text-sm font-semibold text-gray-700">Height (ft)</label><input type="number" id="dp_height_ft" class="input-field" placeholder="5" required></div>
+                            <div><label for="dp_height_in" class="text-sm font-semibold text-gray-700">Height (in)</label><input type="number" id="dp_height_in" class="input-field" placeholder="10" required></div>
+                            <div><label for="dp_activity" class="text-sm font-semibold text-gray-700">Activity</label><select id="dp_activity" class="input-field"><option value="1.2">Sedentary</option><option value="1.55" selected>Moderate</option><option value="1.725">Very Active</option></select></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Days selector hidden - defaulting to 1 day for simplicity -->
                 <input type="hidden" id="dp_days" value="1">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label class="font-semibold text-gray-700">Goal</label><select id="dp_goal" class="input-field"><option value="lose weight">Lose Weight</option><option value="maintain weight" selected>Maintain</option><option value="gain muscle">Gain Muscle</option></select></div>
-                    <div><label class="font-semibold text-gray-700">Calorie Adjustment</label><select id="dp_calorie_adjustment" class="input-field"><option value="0" selected>Standard (Recommended)</option><option value="-250">Slightly Aggressive (-250 cals)</option><option value="-500">Aggressive (-500 cals)</option><option value="-750">Most Aggressive (-750 cals)</option><option value="250">Slight Surplus (+250 cals)</option><option value="500">Moderate Surplus (+500 cals)</option></select></div>
-                    <div><label class="font-semibold text-gray-700">Diet Type</label><select id="dp_preference" class="input-field"><option value="omnivore" selected>Omnivore</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="keto">Keto</option></select></div>
-                    <div><label class="font-semibold text-gray-700">Macronutrient Preference</label><select id="dp_macro_preference" class="input-field"><option value="balanced" selected>Balanced (Default)</option><option value="lower-carb">Lower Carb</option><option value="higher-carb">Higher Carb / Lower Fat</option></select></div>
-                    <div><label for="dp_allergies" class="font-semibold text-gray-700">Allergies</label><input type="text" id="dp_allergies" class="input-field" placeholder="e.g., dairy, nuts"></div>
-                    <div><label for="dp_disliked_foods" class="font-semibold text-gray-700">Disliked Foods</label><input type="text" id="dp_disliked_foods" class="input-field" placeholder="e.g., mushrooms, olives"></div>
-                    <div><label for="dp_preferred_foods" class="font-semibold text-gray-700">Preferred Foods or Cuisines</label><input type="text" id="dp_preferred_foods" class="input-field" placeholder="e.g., Italian, Mexican"></div>
-                    <div><label for="dp_budget" class="font-semibold text-gray-700">Budget (Optional)</label><input type="text" id="dp_budget" class="input-field" placeholder="e.g., $50/week"></div>
-                    <div><label class="font-semibold text-gray-700">Meals Per Day</label><select id="dp_meals" class="input-field"><option value="3 meals">3 Meals</option><option value="3 meals, 1 snack" selected>3 Meals + 1 Snack</option><option value="3 meals, 2 snacks">3 Meals + 2 Snacks</option><option value="3 meals, 3 snacks">3 Meals + 3 Snacks</option></select></div>
+                <!-- Plan Preferences - Collapsible -->
+                <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" onclick="toggleSection('plan-preferences')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
+                        <span class="font-bold text-gray-700">⚙️ Plan Preferences</span>
+                        <span id="plan-preferences-arrow" class="text-gray-500 transition-transform">▼</span>
+                    </button>
+                    <div id="plan-preferences-content" class="p-4 border-t border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div><label class="text-sm font-semibold text-gray-700">Goal</label><select id="dp_goal" class="input-field"><option value="lose weight">Lose Weight</option><option value="maintain weight" selected>Maintain</option><option value="gain muscle">Gain Muscle</option></select></div>
+                            <div><label class="text-sm font-semibold text-gray-700">Calorie Adjustment</label><select id="dp_calorie_adjustment" class="input-field"><option value="0" selected>Standard (Recommended)</option><option value="-250">Slightly Aggressive (-250 cals)</option><option value="-500">Aggressive (-500 cals)</option><option value="-750">Most Aggressive (-750 cals)</option><option value="250">Slight Surplus (+250 cals)</option><option value="500">Moderate Surplus (+500 cals)</option></select></div>
+                            <div><label class="text-sm font-semibold text-gray-700">Diet Type</label><select id="dp_preference" class="input-field"><option value="omnivore" selected>Omnivore</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="keto">Keto</option></select></div>
+                            <div><label class="text-sm font-semibold text-gray-700">Macronutrient Preference</label><select id="dp_macro_preference" class="input-field"><option value="balanced" selected>Balanced (Default)</option><option value="lower-carb">Lower Carb</option><option value="higher-carb">Higher Carb / Lower Fat</option></select></div>
+                            <div><label for="dp_allergies" class="text-sm font-semibold text-gray-700">Allergies</label><input type="text" id="dp_allergies" class="input-field" placeholder="e.g., dairy, nuts"></div>
+                            <div><label for="dp_disliked_foods" class="text-sm font-semibold text-gray-700">Disliked Foods</label><input type="text" id="dp_disliked_foods" class="input-field" placeholder="e.g., mushrooms, olives"></div>
+                            <div><label for="dp_preferred_foods" class="text-sm font-semibold text-gray-700">Preferred Foods or Cuisines</label><input type="text" id="dp_preferred_foods" class="input-field" placeholder="e.g., Italian, Mexican"></div>
+                            <div><label for="dp_budget" class="text-sm font-semibold text-gray-700">Budget (Optional)</label><input type="text" id="dp_budget" class="input-field" placeholder="e.g., $50/week"></div>
+                            <div><label class="text-sm font-semibold text-gray-700">Meals Per Day</label><select id="dp_meals" class="input-field"><option value="3 meals">3 Meals</option><option value="3 meals, 1 snack" selected>3 Meals + 1 Snack</option><option value="3 meals, 2 snacks">3 Meals + 2 Snacks</option><option value="3 meals, 3 snacks">3 Meals + 3 Snacks</option></select></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Custom Targets Override -->
@@ -1712,54 +1727,68 @@
                     </div>
                 </div>
 
-                <!-- Cooking Equipment -->
-                <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
-                    <label class="font-bold text-teal-900 block mb-2">🍳 Available Cooking Equipment</label>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        <label class="flex items-center"><input type="checkbox" id="equip_stove" value="Stove" class="mr-2 h-4 w-4" checked> Stove</label>
-                        <label class="flex items-center"><input type="checkbox" id="equip_oven" value="Oven" class="mr-2 h-4 w-4" checked> Oven</label>
-                        <label class="flex items-center"><input type="checkbox" id="equip_microwave" value="Microwave" class="mr-2 h-4 w-4" checked> Microwave</label>
-                        <label class="flex items-center"><input type="checkbox" id="equip_airfryer" value="Air Fryer" class="mr-2 h-4 w-4"> Air Fryer</label>
-                        <label class="flex items-center"><input type="checkbox" id="equip_grill" value="Grill" class="mr-2 h-4 w-4"> Grill</label>
-                        <label class="flex items-center"><input type="checkbox" id="equip_blender" value="Blender" class="mr-2 h-4 w-4" checked> Blender</label>
-                    </div>
-                </div>
-
-                <!-- Branded Fitness Foods Preference -->
-                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="dp_use_branded_foods" class="mr-2 h-5 w-5">
-                        <label for="dp_use_branded_foods" class="font-bold text-purple-900">🏋️ Use Branded Fitness Foods</label>
-                    </div>
-                    <p class="text-sm text-purple-700 mt-1">Include popular fitness brands like Quest Bars, Premier Protein, Fairlife, Oikos, Halo Top, and more in meal plans.</p>
-                </div>
-
-                <!-- Start from Scratch Option -->
-                <div class="p-4 bg-slate-50 border-2 border-slate-400 rounded-lg">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="dp_start_from_scratch" class="mr-2 h-5 w-5">
-                        <label for="dp_start_from_scratch" class="font-bold text-slate-900">📝 DIY Meal Plan</label>
-                    </div>
-                    <p class="text-sm text-slate-600 mt-2">Skip auto-generated meals and get a blank template instead. You'll manually add each breakfast, lunch, dinner, and snack yourself — ideal for clients with very specific meal preferences.</p>
-                </div>
-
-                <!-- Plan Templates -->
-                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
-                    <div class="flex items-center mb-3">
-                        <input type="checkbox" id="dp_use_template" class="mr-2 h-5 w-5">
-                        <label for="dp_use_template" class="font-bold text-purple-900">📋 Use Plan Template</label>
-                    </div>
-                    <p class="text-sm text-purple-700 mb-3">Apply a saved template to quickly create a meal plan structure.</p>
-                    <div id="template-selector-fields" class="hidden">
-                        <div class="flex gap-2 items-center">
-                            <select id="dp_template_select" class="input-field border-purple-400 flex-1">
-                                <option value="">Select a template...</option>
-                            </select>
-                            <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 8px 12px; font-size: 12px;" title="Edit template" disabled>✏️</button>
-                            <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 8px 12px; font-size: 12px;" title="Delete template" disabled>🗑️</button>
+                <!-- Advanced Options - Collapsible (collapsed by default) -->
+                <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" onclick="toggleSection('advanced-options')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
+                        <span class="font-bold text-gray-700">🔧 Advanced Options</span>
+                        <span id="advanced-options-arrow" class="text-gray-500 transition-transform rotate-[-90deg]">▼</span>
+                    </button>
+                    <div id="advanced-options-content" class="hidden p-4 border-t border-gray-200 space-y-4">
+                        <!-- Cooking Equipment -->
+                        <div class="p-3 bg-teal-50 border border-teal-300 rounded-lg">
+                            <label class="font-semibold text-teal-900 block mb-2 text-sm">🍳 Cooking Equipment</label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_stove" value="Stove" class="mr-2 h-4 w-4" checked> Stove</label>
+                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_oven" value="Oven" class="mr-2 h-4 w-4" checked> Oven</label>
+                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_microwave" value="Microwave" class="mr-2 h-4 w-4" checked> Microwave</label>
+                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_airfryer" value="Air Fryer" class="mr-2 h-4 w-4"> Air Fryer</label>
+                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_grill" value="Grill" class="mr-2 h-4 w-4"> Grill</label>
+                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_blender" value="Blender" class="mr-2 h-4 w-4" checked> Blender</label>
+                            </div>
                         </div>
-                        <div id="template-preview" class="mt-2 text-sm text-purple-600 hidden"></div>
+
+                        <!-- Branded Fitness Foods Preference -->
+                        <div class="flex items-center p-3 bg-purple-50 border border-purple-300 rounded-lg">
+                            <input type="checkbox" id="dp_use_branded_foods" class="mr-2 h-5 w-5">
+                            <div>
+                                <label for="dp_use_branded_foods" class="font-semibold text-purple-900 text-sm">🏋️ Use Branded Fitness Foods</label>
+                                <p class="text-xs text-purple-700">Quest Bars, Premier Protein, Fairlife, etc.</p>
+                            </div>
+                        </div>
+
+                        <!-- Start from Scratch Option -->
+                        <div class="flex items-center p-3 bg-slate-50 border border-slate-300 rounded-lg">
+                            <input type="checkbox" id="dp_start_from_scratch" class="mr-2 h-5 w-5">
+                            <div>
+                                <label for="dp_start_from_scratch" class="font-semibold text-slate-900 text-sm">📝 DIY Meal Plan</label>
+                                <p class="text-xs text-slate-600">Blank template - add meals manually</p>
+                            </div>
+                        </div>
+
+                        <!-- Plan Templates -->
+                        <div class="p-3 bg-purple-50 border border-purple-300 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <input type="checkbox" id="dp_use_template" class="mr-2 h-5 w-5">
+                                <label for="dp_use_template" class="font-semibold text-purple-900 text-sm">📋 Use Plan Template</label>
+                            </div>
+                            <div id="template-selector-fields" class="hidden">
+                                <div class="flex gap-2 items-center">
+                                    <select id="dp_template_select" class="input-field border-purple-400 flex-1 text-sm">
+                                        <option value="">Select a template...</option>
+                                    </select>
+                                    <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled>✏️</button>
+                                    <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 6px 10px; font-size: 11px;" title="Delete template" disabled>🗑️</button>
+                                </div>
+                                <div id="template-preview" class="mt-2 text-sm text-purple-600 hidden"></div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Plan Name - Right before generate -->
+                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
+                    <label class="font-bold text-purple-900 block mb-2">📝 Plan Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., John's Cutting Phase, Week 1 Meal Prep..." required>
                 </div>
 
                 <button data-action="generate-plan" id="generate-plan-btn" class="btn btn-primary w-full text-lg">✨ Create Diet Plan</button>
@@ -2074,6 +2103,34 @@ function toggleSidebarSection(label) {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
 }
 
+// Collapsible form sections toggle
+function toggleSection(sectionId) {
+    const content = document.getElementById(sectionId + '-content');
+    const arrow = document.getElementById(sectionId + '-arrow');
+    if (content && arrow) {
+        const isHidden = content.classList.contains('hidden');
+        content.classList.toggle('hidden');
+        arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+    }
+}
+
+// Update client summary when client is selected
+function updateClientSummary() {
+    const age = document.getElementById('dp_age').value;
+    const gender = document.getElementById('dp_gender').value;
+    const weight = document.getElementById('dp_weight').value;
+    const summary = document.getElementById('client-summary');
+    const summaryText = document.getElementById('client-summary-text');
+
+    if (age && weight) {
+        const genderText = gender === 'male' ? 'M' : 'F';
+        summaryText.textContent = `${age}yo ${genderText}, ${weight}lbs`;
+        summary.classList.remove('hidden');
+    } else {
+        summary.classList.add('hidden');
+    }
+}
+
 // Restore sidebar collapsed state on load
 (function restoreSidebarState() {
     const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
@@ -2301,6 +2358,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 console.log('✅ All fields auto-populated from client profile');
+
+                // Update client summary and collapse sections since data is auto-filled
+                updateClientSummary();
+
+                // Collapse client details and preferences since they're auto-populated
+                const clientDetailsContent = document.getElementById('client-details-content');
+                const clientDetailsArrow = document.getElementById('client-details-arrow');
+                const planPrefsContent = document.getElementById('plan-preferences-content');
+                const planPrefsArrow = document.getElementById('plan-preferences-arrow');
+
+                if (clientDetailsContent && !clientDetailsContent.classList.contains('hidden')) {
+                    clientDetailsContent.classList.add('hidden');
+                    if (clientDetailsArrow) clientDetailsArrow.style.transform = 'rotate(-90deg)';
+                }
+                if (planPrefsContent && !planPrefsContent.classList.contains('hidden')) {
+                    planPrefsContent.classList.add('hidden');
+                    if (planPrefsArrow) planPrefsArrow.style.transform = 'rotate(-90deg)';
+                }
 
                 // Fetch and populate calorie goals from calorie_goals table
                 loadClientCalorieGoals(parseInt(selectedValue));
