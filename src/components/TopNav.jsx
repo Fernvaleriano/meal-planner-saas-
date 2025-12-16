@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, X, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 
 function TopNav() {
   const { clientData } = useAuth();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -63,6 +64,34 @@ function TopNav() {
     return date.toLocaleDateString();
   };
 
+  // Handle notification click
+  const handleNotificationClick = async (notif) => {
+    // Mark as read if unread
+    if (!notif.is_read) {
+      try {
+        await apiPost('/.netlify/functions/notifications', {
+          notificationIds: [notif.id]
+        });
+        setNotifications(prev => prev.map(n =>
+          n.id === notif.id ? { ...n, is_read: true } : n
+        ));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (err) {
+        console.error('Error marking notification read:', err);
+      }
+    }
+
+    // Navigate based on notification type
+    if (notif.type === 'diary_reaction' || notif.type === 'diary_comment') {
+      // Navigate to diary - use metadata date if available, otherwise today
+      const dateParam = notif.metadata?.entry_date || '';
+      setShowNotifications(false);
+      navigate(dateParam ? `/diary?date=${dateParam}` : '/diary');
+    } else {
+      setShowNotifications(false);
+    }
+  };
+
   return (
     <nav className="top-nav">
       {/* Left: Logo */}
@@ -111,9 +140,10 @@ function TopNav() {
                   </div>
                 ) : (
                   notifications.map(notif => (
-                    <div
+                    <button
                       key={notif.id}
                       className={`notification-item ${!notif.is_read ? 'unread' : ''}`}
+                      onClick={() => handleNotificationClick(notif)}
                     >
                       <div className="notification-content">
                         <div className="notification-title">{notif.title}</div>
@@ -123,7 +153,7 @@ function TopNav() {
                         <div className="notification-time">{formatTime(notif.created_at)}</div>
                       </div>
                       {!notif.is_read && <div className="notification-dot" />}
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
