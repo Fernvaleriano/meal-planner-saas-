@@ -556,6 +556,42 @@
             100% { background-position: -200% 0; }
         }
 
+        /* Image Styling Question Styles */
+        .styling-question {
+            margin-bottom: 1rem;
+        }
+        .styling-question-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .styling-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .styling-option-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 9999px;
+            background: white;
+            color: #374151;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .styling-option-btn:hover {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+        .styling-option-btn.selected {
+            border-color: #8b5cf6;
+            background: #8b5cf6;
+            color: white;
+        }
+
         .prose h3 { margin-bottom: 0.5em; }
         .prose ul { list-style-type: disc; padding-left: 1.5em; }
         .prose ol { list-style-type: decimal; padding-left: 1.5em; }
@@ -1843,6 +1879,38 @@
             <div class="flex gap-2">
                 <button onclick="closeImagePromptModal()" class="btn btn-secondary flex-1">Cancel</button>
                 <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1">🎨 Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- IMAGE STYLING QUESTIONS MODAL -->
+    <div id="image-styling-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-purple-600">🎨 Style Your Image</h3>
+                <button onclick="closeImageStylingModal()" class="text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-gray-600 mb-4">Meal: <strong id="styling-meal-name"></strong></p>
+
+            <!-- Questions Container -->
+            <div id="styling-questions-container">
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <span class="ml-3 text-gray-600">Preparing styling options...</span>
+                </div>
+            </div>
+
+            <!-- Custom Input Option -->
+            <div id="styling-custom-input" class="mt-4 hidden">
+                <p class="text-sm text-gray-500 mb-2">Or describe your own style:</p>
+                <input type="text" id="styling-custom-text" class="input-field w-full"
+                       placeholder="e.g., rustic wooden board, herbs scattered around">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeImageStylingModal()" class="btn btn-secondary flex-1">Cancel</button>
+                <button onclick="generateStyledImage()" id="generate-styled-image-btn" class="btn btn-primary flex-1" disabled>🎨 Generate Image</button>
             </div>
         </div>
     </div>
@@ -8493,6 +8561,214 @@ function closeImagePromptModal() {
     currentMealName = null;
 }
 
+// ===== IMAGE STYLING QUESTIONS MODAL =====
+let stylingState = {
+    mealName: null,
+    imageId: null,
+    questions: [],
+    answers: {}
+};
+
+// Open styling questions modal
+async function openImageStylingModal(mealName, imageId) {
+    stylingState = {
+        mealName: mealName,
+        imageId: imageId,
+        questions: [],
+        answers: {}
+    };
+
+    // Update modal title
+    document.getElementById('styling-meal-name').textContent = mealName;
+
+    // Reset container with loading state
+    document.getElementById('styling-questions-container').innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span class="ml-3 text-gray-600">Preparing styling options...</span>
+        </div>
+    `;
+
+    // Hide custom input and disable generate button
+    document.getElementById('styling-custom-input').classList.add('hidden');
+    document.getElementById('styling-custom-text').value = '';
+    document.getElementById('generate-styled-image-btn').disabled = true;
+
+    // Show modal
+    document.getElementById('image-styling-modal').classList.remove('hidden');
+
+    // Fetch styling questions from API
+    try {
+        const data = await apiPost('/.netlify/functions/image-style-questions', { mealName });
+
+        if (data.questions && data.questions.length > 0) {
+            stylingState.questions = data.questions;
+            renderStylingQuestions(data.questions);
+        } else {
+            throw new Error('No questions returned');
+        }
+    } catch (error) {
+        console.error('Error fetching styling questions:', error);
+        // Fallback to simple text input
+        document.getElementById('styling-questions-container').innerHTML = `
+            <p class="text-gray-600 mb-3">Describe how you want the image to look:</p>
+            <input type="text" id="styling-fallback-input" class="input-field w-full"
+                   placeholder="e.g., white plate, sliced to show inside, roasted vegetables">
+        `;
+        document.getElementById('styling-custom-input').classList.add('hidden');
+        document.getElementById('generate-styled-image-btn').disabled = false;
+    }
+}
+
+// Render styling questions with button options
+function renderStylingQuestions(questions) {
+    const container = document.getElementById('styling-questions-container');
+    let html = '';
+
+    questions.forEach((q, index) => {
+        html += `
+            <div class="styling-question" data-question="${index}">
+                <label class="styling-question-label">${q.question}</label>
+                <div class="styling-options">
+                    ${q.options.map((opt, optIndex) => `
+                        <button type="button" class="styling-option-btn"
+                                data-question="${index}"
+                                data-option="${optIndex}"
+                                onclick="selectStylingOption(${index}, ${optIndex}, '${opt.replace(/'/g, "\\'")}')">
+                            ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    document.getElementById('styling-custom-input').classList.remove('hidden');
+    updateGenerateButtonState();
+}
+
+// Handle option button click
+function selectStylingOption(questionIndex, optionIndex, optionText) {
+    // Store answer
+    stylingState.answers[questionIndex] = optionText;
+
+    // Update button styles for this question
+    const questionEl = document.querySelector(`.styling-question[data-question="${questionIndex}"]`);
+    if (questionEl) {
+        questionEl.querySelectorAll('.styling-option-btn').forEach((btn, idx) => {
+            if (idx === optionIndex) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+    }
+
+    updateGenerateButtonState();
+}
+
+// Update generate button state
+function updateGenerateButtonState() {
+    const btn = document.getElementById('generate-styled-image-btn');
+    const answeredCount = Object.keys(stylingState.answers).length;
+    const totalQuestions = stylingState.questions.length;
+    const customText = document.getElementById('styling-custom-text').value.trim();
+
+    // Enable if at least one answer selected or custom text provided
+    btn.disabled = (answeredCount === 0 && !customText);
+}
+
+// Close styling modal
+function closeImageStylingModal() {
+    document.getElementById('image-styling-modal').classList.add('hidden');
+    stylingState = { mealName: null, imageId: null, questions: [], answers: {} };
+}
+
+// Generate image with styled prompt
+async function generateStyledImage() {
+    const btn = document.getElementById('generate-styled-image-btn');
+    const mealName = stylingState.mealName;
+    const imageId = stylingState.imageId;
+
+    // Build prompt from selections
+    let promptParts = [];
+
+    // Check for fallback input first
+    const fallbackInput = document.getElementById('styling-fallback-input');
+    if (fallbackInput && fallbackInput.value.trim()) {
+        promptParts.push(fallbackInput.value.trim());
+    } else {
+        // Add selected answers
+        Object.keys(stylingState.answers).forEach(key => {
+            promptParts.push(stylingState.answers[key]);
+        });
+
+        // Add custom text if provided
+        const customText = document.getElementById('styling-custom-text').value.trim();
+        if (customText) {
+            promptParts.push(customText);
+        }
+    }
+
+    // Build final prompt
+    const customPrompt = `${mealName}: ${promptParts.join(', ')}`;
+    console.log('Generating image with prompt:', customPrompt);
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating...';
+
+    try {
+        // Get the image element
+        const imageElement = document.getElementById(imageId);
+        if (!imageElement) {
+            throw new Error('Image container not found');
+        }
+
+        // Generate the image
+        const data = await apiPost('/.netlify/functions/meal-image', {
+            mealName,
+            regenerate: true,
+            customPrompt: customPrompt
+        });
+
+        if (data.success && data.imageUrl) {
+            mealImageCache[mealName] = data.imageUrl;
+            saveImageToStorage(mealName, data.imageUrl);
+
+            // Update the image element
+            if (imageElement.classList.contains('meal-card-image-placeholder')) {
+                updateImageElement(imageElement, data.imageUrl, mealName);
+            } else {
+                // It's already an image container, just update the img src
+                const img = imageElement.querySelector('img');
+                if (img) {
+                    img.src = data.imageUrl;
+                    img.onclick = () => showMealImageLarge({ src: data.imageUrl, alt: mealName });
+                }
+            }
+
+            closeImageStylingModal();
+            console.log('✅ Generated styled image for:', mealName);
+        } else {
+            throw new Error(data.error || 'Failed to generate image');
+        }
+    } catch (error) {
+        console.error('Error generating styled image:', error);
+        alert('Failed to generate image: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🎨 Generate Image';
+    }
+}
+
+// Listen for custom text input changes
+document.addEventListener('input', (e) => {
+    if (e.target.id === 'styling-custom-text' || e.target.id === 'styling-fallback-input') {
+        updateGenerateButtonState();
+    }
+});
+
 // Submit custom image prompt
 async function submitCustomImagePrompt() {
     const customPrompt = document.getElementById('custom-image-prompt').value.trim();
@@ -8581,24 +8857,8 @@ document.addEventListener('click', async (e) => {
         const imageId = button.dataset.imageId;
         const mealName = button.dataset.mealName;
 
-        // Check if the current image is a placeholder (broken/missing image)
-        // If so, force regeneration to replace the broken cached entry
-        const imageElement = document.getElementById(imageId);
-        const isPlaceholder = imageElement && (
-            imageElement.classList.contains('meal-card-image-placeholder') ||
-            imageElement.innerHTML === '🍽️'
-        );
-
-        // Disable button and show loading
-        button.disabled = true;
-        button.textContent = '⏳ Generating...';
-
-        // Force regenerate if it's a placeholder (broken image)
-        await fetchMealImage(mealName, imageId, isPlaceholder);
-
-        // Re-enable button
-        button.disabled = false;
-        button.textContent = '📷 Generate Image';
+        // Open the styling questions modal instead of generating immediately
+        openImageStylingModal(mealName, imageId);
     }
 
     // Handle "Generate All Images" button
