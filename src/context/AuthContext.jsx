@@ -63,6 +63,25 @@ export function AuthProvider({ children }) {
     return 'dark';
   });
 
+  // Check if user is a coach by querying the coaches table
+  const checkIsCoach = useCallback(async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('coaches')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (error || !data) {
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('SPA: Error checking coach status:', err);
+      return false;
+    }
+  }, []);
+
   // Fetch client data from database with retry logic
   const fetchClientData = useCallback(async (userId, retryCount = 0) => {
     const maxRetries = 2;
@@ -76,30 +95,38 @@ export function AuthProvider({ children }) {
         }, 10000)
       );
 
+      // Fetch client data and check coach status in parallel
       const fetchPromise = supabase
         .from('clients')
         .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
         .eq('user_id', userId)
         .single();
 
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      const [clientResult, isCoach] = await Promise.all([
+        Promise.race([fetchPromise, timeoutPromise]),
+        checkIsCoach(userId)
+      ]);
+
+      const { data, error } = clientResult;
 
       if (error) {
         console.error('SPA: Error fetching client data:', error.message, error.code);
         throw new Error(error.message);
       }
 
-      console.log('SPA: Got client data successfully:', { id: data?.id, name: data?.client_name });
+      // Add isCoach flag to the client data
+      const enrichedData = { ...data, is_coach: isCoach };
+      console.log('SPA: Got client data successfully:', { id: enrichedData?.id, name: enrichedData?.client_name, isCoach });
 
       // Cache successful result to localStorage
       try {
-        localStorage.setItem('cachedClientData', JSON.stringify(data));
+        localStorage.setItem('cachedClientData', JSON.stringify(enrichedData));
         console.log('SPA: Cached client data to localStorage');
       } catch (e) {
         console.error('SPA: Failed to cache client data:', e);
       }
 
-      return data;
+      return enrichedData;
     } catch (err) {
       console.error('SPA: Error in fetchClientData:', err.message);
 
@@ -128,7 +155,7 @@ export function AuthProvider({ children }) {
       // No cache available, return fallback
       return { id: null, client_name: 'User', error: true, errorMessage: err.message };
     }
-  }, []);
+  }, [checkIsCoach]);
 
   // Initialize auth state
   useEffect(() => {

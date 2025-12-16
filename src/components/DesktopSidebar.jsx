@@ -4,10 +4,10 @@ import { useAuth } from '../context/AuthContext';
 
 function DesktopSidebar() {
   const location = useLocation();
-  const { user, clientData, logout } = useAuth();
+  const { clientData, logout } = useAuth();
 
-  // Check if user is a coach (their auth ID matches their own coach_id)
-  const isCoach = user && clientData?.coach_id === user.id;
+  // Check if user is a coach (has entry in coaches table)
+  const isCoach = clientData?.is_coach === true;
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
