@@ -1,8 +1,8 @@
-// Food photo analysis using Claude (Anthropic)
-const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+// Food photo analysis using Gemini 2.0 Flash (cost-effective vision model)
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -55,12 +55,12 @@ exports.handler = async (event, context) => {
 
         console.log(`📸 Photo analysis for user ${user.id}`);
 
-        if (!ANTHROPIC_API_KEY) {
-            console.error('ANTHROPIC_API_KEY is not configured');
+        if (!GEMINI_API_KEY) {
+            console.error('GEMINI_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'AI analysis is not configured. Please add ANTHROPIC_API_KEY.' })
+                body: JSON.stringify({ error: 'AI analysis is not configured. Please add GEMINI_API_KEY.' })
             };
         }
 
@@ -100,7 +100,7 @@ exports.handler = async (event, context) => {
                 };
             }
             processedImages.push({
-                mediaType: matches[1],
+                mimeType: matches[1],
                 base64Data: matches[2]
             });
         }
@@ -109,23 +109,6 @@ exports.handler = async (event, context) => {
 
         // User-provided context
         const userContext = details ? details.trim() : null;
-
-        // Initialize Anthropic client
-        let anthropic;
-        try {
-            anthropic = new Anthropic({
-                apiKey: ANTHROPIC_API_KEY,
-            });
-        } catch (initError) {
-            console.error('Failed to initialize Anthropic client:', initError);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ error: 'Failed to initialize AI client', details: initError.message })
-            };
-        }
-
-        console.log('🤖 Calling Claude for food analysis...');
 
         // Build prompt with multi-image context
         const multiImageNote = processedImages.length > 1
@@ -155,36 +138,40 @@ ${processedImages.length > 1 ? '- Use multiple angles to better estimate portion
 
 Return ONLY the JSON array.`;
 
-        // Build content array with all images
-        const messageContent = [
+        console.log('🤖 Calling Gemini for food analysis...');
+
+        // Build parts array with images and text for Gemini
+        const parts = [
+            { text: analysisPrompt },
             ...processedImages.map((img) => ({
-                type: "image",
-                source: {
-                    type: "base64",
-                    media_type: img.mediaType,
+                inline_data: {
+                    mime_type: img.mimeType,
                     data: img.base64Data
                 }
-            })),
-            {
-                type: "text",
-                text: analysisPrompt
-            }
+            }))
         ];
 
-        let message;
+        let response;
         try {
-            message = await anthropic.messages.create({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1024,
-                messages: [
-                    {
-                        role: "user",
-                        content: messageContent
+            response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts }],
+                    generationConfig: {
+                        temperature: 0.3,
+                        maxOutputTokens: 1024
                     }
-                ]
+                })
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Gemini API error:', errorText);
+                throw new Error(`Gemini API error: ${response.status}`);
+            }
         } catch (apiError) {
-            console.error('Anthropic API error:', apiError);
+            console.error('Gemini API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
@@ -195,10 +182,20 @@ Return ONLY the JSON array.`;
             };
         }
 
-        console.log('✅ Claude response received');
+        const data = await response.json();
+        console.log('✅ Gemini response received');
 
-        // Extract response
-        const content = message.content[0].text;
+        // Extract response text
+        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+            console.error('Invalid Gemini response structure:', JSON.stringify(data).substring(0, 500));
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Invalid AI response structure' })
+            };
+        }
+
+        const content = data.candidates[0].content.parts[0].text;
         console.log('Response preview:', content.substring(0, 200));
 
         // Parse the response

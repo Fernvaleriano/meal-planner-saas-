@@ -213,6 +213,17 @@ exports.handler = async (event, context) => {
       };
     }
 
+    if (!data) {
+      console.error('❌ No data returned - plan may not exist or not owned by coach');
+      return {
+        statusCode: 404,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: 'Plan not found or access denied'
+        })
+      };
+    }
+
     console.log('✅ Meal plan saved with ID:', data.id);
 
     return {
