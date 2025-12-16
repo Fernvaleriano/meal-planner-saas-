@@ -15,8 +15,8 @@
         const savedTheme = localStorage.getItem(THEME_KEY);
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // Priority: saved preference > default to dark
-        const theme = savedTheme || DARK;
+        // Priority: saved preference > default to light
+        const theme = savedTheme || LIGHT;
 
         // Always save the theme to ensure it persists (prevents system theme override)
         setTheme(theme, true);
@@ -81,11 +81,12 @@
             if (savedTheme) {
                 return;
             }
-            // No preference saved - but we default to dark anyway, so only switch if system is dark
+            // No preference saved - default to light, but respect system dark preference
             if (e.matches) {
                 setTheme(DARK, true);
+            } else {
+                setTheme(LIGHT, true);
             }
-            // If system goes to light, we still stay dark (user hasn't opted for light)
         } catch (err) {
             // localStorage not available, stay with current theme
             console.warn('Theme: localStorage not available');

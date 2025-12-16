@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('theme');
       return oldKey;
     }
-    return 'dark';
+    return 'light';
   });
 
   // Fetch client data from database with retry logic
