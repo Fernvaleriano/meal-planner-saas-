@@ -4508,19 +4508,29 @@ async function retrySavePlan() {
         saveBtn.disabled = true;
     }
 
-    const success = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+    try {
+        const success = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
 
-    if (success) {
-        // Hide the save button and show normal status
-        hideSaveRetryButton();
-        updatePlanStatusUI();
-    } else {
-        // Still failed, reset button
+        if (success) {
+            // Hide the save button and show normal status
+            hideSaveRetryButton();
+            updatePlanStatusUI();
+            alert('✅ Plan saved successfully!');
+        } else {
+            // Still failed, reset button
+            if (saveBtn) {
+                saveBtn.innerHTML = '💾 Save Plan';
+                saveBtn.disabled = false;
+            }
+            alert('Failed to save plan. Check the browser console (F12) for details.');
+        }
+    } catch (error) {
+        console.error('Retry save error:', error);
         if (saveBtn) {
             saveBtn.innerHTML = '💾 Save Plan';
             saveBtn.disabled = false;
         }
-        alert('Failed to save plan. Please check your connection and try again.');
+        alert('Save failed: ' + error.message);
     }
 }
 
@@ -4680,8 +4690,15 @@ async function saveCoachPlan(planData, clientName) {
 
     } catch (error) {
         console.error('Error saving plan:', error);
-        // Show error to user so they know save failed
-        console.error('⚠️ Plan save failed - user will need to retry');
+        // Show error to user so they know what failed
+        console.error('⚠️ Plan save failed:', error.message);
+
+        // Show specific error to help debug
+        if (error.message.includes('Not authenticated')) {
+            alert('Session expired. Please refresh the page and log in again.');
+        } else {
+            console.error('Save error details:', error);
+        }
         return false;
     }
 }
