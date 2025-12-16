@@ -218,21 +218,25 @@ function Diary() {
       const rec = recognitionRef.current;
       recognitionRef.current = null;
 
-      // Clear all handlers
-      rec.onstart = null;
-      rec.onresult = null;
-      rec.onerror = null;
-      rec.onend = null;
-
+      // Stop first, then clear handlers - order matters!
       try {
         rec.stop();
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.log('Modal close cleanup: Error stopping recognition:', e);
+      }
 
+      // Clear handlers and force abort after stop completes
       setTimeout(() => {
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
         try {
           rec.abort();
-        } catch (e) { /* ignore */ }
-      }, 100);
+        } catch (e) {
+          // Ignore - already stopped
+        }
+      }, 150);
     }
   }, [aiExpanded]);
 
@@ -989,12 +993,21 @@ function Diary() {
 
     recognition.onerror = (event) => {
       console.error('Voice recognition error:', event.error);
-      if (event.error === 'no-speech') {
-        alert('No speech detected. Please try again.');
-      } else if (event.error === 'not-allowed') {
-        alert('Microphone access denied. Please allow microphone access in your browser settings.');
-      } else if (event.error !== 'aborted') {
-        alert('Voice error: ' + event.error);
+
+      // User-friendly error messages for each error type
+      const errorMessages = {
+        'no-speech': 'No speech detected. Please try again and speak clearly.',
+        'not-allowed': 'Microphone access denied. Please allow microphone access in your browser settings.',
+        'audio-capture': 'Could not access your microphone. Please check that:\n• No other app is using the microphone\n• Your microphone is properly connected\n• You have granted microphone permissions',
+        'network': 'Network error. Voice recognition requires an internet connection.',
+        'service-not-allowed': 'Voice recognition is not available. Please try again later.',
+        'bad-grammar': 'Could not understand the speech. Please try again.',
+        'language-not-supported': 'Language not supported. Please try speaking in English.'
+      };
+
+      if (event.error !== 'aborted') {
+        const message = errorMessages[event.error] || `Voice input error: ${event.error}. Please try again.`;
+        alert(message);
       }
       resetVoiceUI();
     };
@@ -1021,27 +1034,26 @@ function Diary() {
       const rec = recognitionRef.current;
       recognitionRef.current = null;
 
-      // Clear event handlers first to prevent callbacks during cleanup
-      rec.onstart = null;
-      rec.onresult = null;
-      rec.onerror = null;
-      rec.onend = null;
-
+      // IMPORTANT: Stop FIRST, then clear handlers after a delay
+      // Clearing handlers before stop() can cause the mic to stay active
       try {
-        // Use stop() first - this gracefully finishes and properly releases the microphone
         rec.stop();
       } catch (e) {
         console.log('Error calling stop():', e);
       }
 
-      // Also call abort() after a brief delay as a fallback to ensure cleanup
+      // Clear handlers and force abort after allowing stop() to complete
       setTimeout(() => {
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
         try {
           rec.abort();
         } catch (e) {
-          // Ignore - recognition may already be stopped
+          // Ignore - recognition already stopped
         }
-      }, 100);
+      }, 150);
     }
   };
 
@@ -1053,18 +1065,25 @@ function Diary() {
       const rec = recognitionRef.current;
       recognitionRef.current = null;
 
-      // Clear handlers
-      rec.onstart = null;
-      rec.onresult = null;
-      rec.onerror = null;
-      rec.onend = null;
-
+      // Stop first, then clear handlers - order matters!
       try {
         rec.stop();
-      } catch (e) { /* ignore */ }
-      try {
-        rec.abort();
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.log('ResetVoiceUI: Error stopping recognition:', e);
+      }
+
+      // Clear handlers and force abort after stop completes
+      setTimeout(() => {
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        try {
+          rec.abort();
+        } catch (e) {
+          // Ignore - already stopped
+        }
+      }, 150);
     }
   };
 
