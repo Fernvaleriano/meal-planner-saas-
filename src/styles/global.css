@@ -157,24 +157,24 @@ body {
 }
 
 .nav-logo-left {
-    height: 72px;
+    height: 120px;
     width: auto;
-    max-width: 60%;
+    max-width: 75%;
     object-fit: contain;
 }
 
 /* Responsive logo sizing for different screen sizes */
 @media (max-width: 500px) {
     .nav-logo-left {
-        height: 60px;
-        max-width: 60%;
+        height: 110px;
+        max-width: 70%;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
-        height: 54px;
-        max-width: 55%;
+        height: 95px;
+        max-width: 65%;
     }
 }
 
