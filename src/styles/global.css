@@ -8812,7 +8812,7 @@ a.nav-left {
     border-radius: 6px;
     font-size: 0.8rem;
     background: white;
-    max-width: 80px;
+    min-width: 100px;
 }
 
 [data-theme="dark"] .unit-select {
