@@ -98,6 +98,10 @@ function Diary() {
   // Diary interactions (reactions & comments from coach)
   const [interactions, setInteractions] = useState({ reactions: {}, comments: {} });
 
+  // Interaction detail modal state
+  const [showInteractionModal, setShowInteractionModal] = useState(false);
+  const [selectedInteraction, setSelectedInteraction] = useState(null);
+
   // Collapsible meal sections
   const [collapsedMeals, setCollapsedMeals] = useState(() => {
     // Load from localStorage
@@ -1436,18 +1440,29 @@ function Diary() {
               {entry.number_of_servings || 1} serving
               {/* Show coach interaction indicators */}
               {(reactions?.length > 0 || comments?.length > 0) && (
-                <span className="meal-entry-interactions">
+                <button
+                  className="meal-entry-interactions"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedInteraction({
+                      foodName: entry.food_name,
+                      reactions: reactions || [],
+                      comments: comments || []
+                    });
+                    setShowInteractionModal(true);
+                  }}
+                >
                   {reactions?.map((r, i) => (
-                    <span key={i} className="meal-entry-reaction" title={r.coachName}>
+                    <span key={i} className="meal-entry-reaction">
                       {r.reaction}
                     </span>
                   ))}
                   {comments?.length > 0 && (
-                    <span className="meal-entry-comment-count" title={`${comments.length} comment${comments.length > 1 ? 's' : ''}`}>
+                    <span className="meal-entry-comment-count">
                       💬{comments.length}
                     </span>
                   )}
-                </span>
+                </button>
               )}
             </span>
           </div>
@@ -2876,6 +2891,60 @@ function Diary() {
           setCache(cacheKey, { ...cached, totals: updatedTotals });
         }}
       />
+
+      {/* Coach Interaction Detail Modal */}
+      {showInteractionModal && selectedInteraction && (
+        <div className="modal-overlay" onClick={() => setShowInteractionModal(false)}>
+          <div className="interaction-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="interaction-modal-header">
+              <h3>Coach Feedback</h3>
+              <button className="modal-close-btn" onClick={() => setShowInteractionModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="interaction-modal-food">
+              {selectedInteraction.foodName}
+            </div>
+            <div className="interaction-modal-content">
+              {selectedInteraction.reactions?.length > 0 && (
+                <div className="interaction-section">
+                  <div className="interaction-section-title">Reactions</div>
+                  {selectedInteraction.reactions.map((r, i) => (
+                    <div key={i} className="interaction-reaction-item">
+                      <div className="interaction-avatar">
+                        {r.coachName?.charAt(0)?.toUpperCase() || 'C'}
+                      </div>
+                      <div className="interaction-details">
+                        <span className="interaction-coach-name">{r.coachName || 'Coach'}</span>
+                        <span className="interaction-emoji">{r.reaction}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedInteraction.comments?.length > 0 && (
+                <div className="interaction-section">
+                  <div className="interaction-section-title">Comments</div>
+                  {selectedInteraction.comments.map((c, i) => (
+                    <div key={i} className="interaction-comment-item">
+                      <div className="interaction-avatar">
+                        {c.authorName?.charAt(0)?.toUpperCase() || 'C'}
+                      </div>
+                      <div className="interaction-comment-bubble">
+                        <span className="interaction-coach-name">{c.authorName || 'Coach'}</span>
+                        <p className="interaction-comment-text">{c.comment}</p>
+                        <span className="interaction-comment-time">
+                          {new Date(c.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
