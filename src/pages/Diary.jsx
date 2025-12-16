@@ -119,29 +119,23 @@ function Diary() {
     const dateStr = formatDateKey(currentDate);
 
     try {
-      const [diaryData, waterData] = await Promise.all([
+      // Fetch diary, water, and interactions all in parallel for faster loading
+      const [diaryData, waterData, interactionsData] = await Promise.all([
         apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
-        apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+        apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
+        apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);
 
       const newEntries = diaryData.entries || [];
       const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
       const newWater = waterData?.glasses || 0;
 
-      // Fetch interactions (reactions & comments) for these entries
-      if (newEntries.length > 0) {
-        try {
-          const interactionsData = await apiGet(
-            `/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`
-          );
-          setInteractions({
-            reactions: interactionsData.reactions || {},
-            comments: interactionsData.comments || {}
-          });
-        } catch (err) {
-          console.log('No interactions found or error fetching:', err.message);
-          setInteractions({ reactions: {}, comments: {} });
-        }
+      // Apply interactions data
+      if (interactionsData) {
+        setInteractions({
+          reactions: interactionsData.reactions || {},
+          comments: interactionsData.comments || {}
+        });
       } else {
         setInteractions({ reactions: {}, comments: {} });
       }
@@ -462,14 +456,25 @@ function Diary() {
       setWaterIntake(cached.water || 0);
     }
 
-    // Fetch fresh data in background
+    // Fetch fresh data in background - all requests in parallel for faster loading
     Promise.all([
       apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
-      apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
-    ]).then(([diaryData, waterData]) => {
+      apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
+      apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+    ]).then(([diaryData, waterData, interactionsData]) => {
       const newEntries = diaryData.entries || [];
       const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
       const newWater = waterData?.glasses || 0;
+
+      // Apply interactions data
+      if (interactionsData) {
+        setInteractions({
+          reactions: interactionsData.reactions || {},
+          comments: interactionsData.comments || {}
+        });
+      } else {
+        setInteractions({ reactions: {}, comments: {} });
+      }
 
       // Calculate totals (including micronutrients)
       const calculatedTotals = newEntries.reduce((acc, entry) => ({
@@ -590,13 +595,12 @@ function Diary() {
         return;
       }
 
-      // Step 2: Log each food item
+      // Step 2: Log all food items in parallel for faster logging
       const dateStr = formatDate(currentDate);
-      let newEntries = [];
-      let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-      for (const food of aiData.foods) {
-        const result = await apiPost('/.netlify/functions/food-diary', {
+      // Create all food logging requests
+      const logPromises = aiData.foods.map(food =>
+        apiPost('/.netlify/functions/food-diary', {
           clientId: clientData.id,
           coachId: clientData.coach_id,
           entryDate: dateStr,
@@ -610,17 +614,20 @@ function Diary() {
           servingUnit: 'serving',
           numberOfServings: 1,
           foodSource: 'ai'
-        });
+        })
+      );
 
-        if (result.entry) {
-          newEntries.push(result.entry);
-        }
+      // Execute all requests in parallel
+      const results = await Promise.all(logPromises);
 
-        addedTotals.calories += food.calories || 0;
-        addedTotals.protein += food.protein || 0;
-        addedTotals.carbs += food.carbs || 0;
-        addedTotals.fat += food.fat || 0;
-      }
+      // Collect entries and calculate totals
+      const newEntries = results.filter(r => r.entry).map(r => r.entry);
+      const addedTotals = aiData.foods.reduce((acc, food) => ({
+        calories: acc.calories + (food.calories || 0),
+        protein: acc.protein + (food.protein || 0),
+        carbs: acc.carbs + (food.carbs || 0),
+        fat: acc.fat + (food.fat || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
       // Update local state
       const updatedEntries = [...entries, ...newEntries];

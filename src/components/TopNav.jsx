@@ -1,22 +1,60 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, X, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 
+// Cache notifications to avoid fetching on every mount
+const notificationCache = {
+  data: null,
+  timestamp: 0,
+  clientId: null
+};
+const NOTIFICATION_CACHE_TTL = 60000; // 1 minute cache
+
 function TopNav() {
   const { clientData } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState(() => {
+    // Initialize from cache if valid
+    if (notificationCache.data &&
+        notificationCache.clientId === clientData?.id &&
+        Date.now() - notificationCache.timestamp < NOTIFICATION_CACHE_TTL) {
+      return notificationCache.data.notifications || [];
+    }
+    return [];
+  });
+  const [unreadCount, setUnreadCount] = useState(() => {
+    if (notificationCache.data &&
+        notificationCache.clientId === clientData?.id &&
+        Date.now() - notificationCache.timestamp < NOTIFICATION_CACHE_TTL) {
+      return notificationCache.data.unreadCount || 0;
+    }
+    return 0;
+  });
+  const hasFetchedRef = useRef(false);
 
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
+  // Fetch notifications with caching
+  const fetchNotifications = useCallback(async (force = false) => {
     if (!clientData?.id) return;
+
+    // Check cache first (unless forced refresh)
+    if (!force &&
+        notificationCache.data &&
+        notificationCache.clientId === clientData.id &&
+        Date.now() - notificationCache.timestamp < NOTIFICATION_CACHE_TTL) {
+      return; // Use cached data
+    }
 
     try {
       const data = await apiGet(`/.netlify/functions/notifications?clientId=${clientData.id}`);
+
+      // Update cache
+      notificationCache.data = data;
+      notificationCache.timestamp = Date.now();
+      notificationCache.clientId = clientData.id;
+
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch (err) {
@@ -24,11 +62,15 @@ function TopNav() {
     }
   }, [clientData?.id]);
 
-  // Load notifications on mount and periodically
+  // Load notifications on mount (with cache check) and periodically
   useEffect(() => {
-    fetchNotifications();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Only fetch if we haven't already or cache is stale
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchNotifications();
+    }
+    // Refresh every 60 seconds (matching cache TTL)
+    const interval = setInterval(() => fetchNotifications(true), 60000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
