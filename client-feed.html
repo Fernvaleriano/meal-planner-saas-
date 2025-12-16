@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <title>Client Feed - Zique Fitness Nutrition</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-primary-light: #14b8a6;
+            --brand-primary-dark: #0f766e;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --gray-50: #0f172a;
+            --gray-100: #1e293b;
+            --gray-200: #334155;
+            --gray-300: #475569;
+            --gray-400: #64748b;
+            --gray-500: #94a3b8;
+            --gray-600: #cbd5e1;
+            --gray-700: #e2e8f0;
+            --gray-800: #f1f5f9;
+            --gray-900: #f8fafc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--gray-100);
+            border-right: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        [data-theme="dark"] .sidebar {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .sidebar-header {
+            border-color: #334155;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--gray-900);
+        }
+
+        .sidebar-logo-img {
+            width: 36px;
+            height: 36px;
+        }
+
+        .sidebar-logo span {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-nav-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--gray-400);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .sidebar-nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--gray-600);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .sidebar-nav-item:hover {
+            background: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .sidebar-nav-item:hover {
+            background: #334155;
+        }
+
+        .sidebar-nav-item.active {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        .sidebar-nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .sidebar-footer {
+            border-color: #334155;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sidebar-user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--gray-900);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-user-role {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .sidebar-logout {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-logout:hover {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        /* Filters */
+        .filters-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-700);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        [data-theme="dark"] .filter-select {
+            background: #1e293b;
+            border-color: #334155;
+            color: var(--gray-300);
+        }
+
+        .filter-input {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-700);
+            font-size: 0.9rem;
+        }
+
+        [data-theme="dark"] .filter-input {
+            background: #1e293b;
+            border-color: #334155;
+            color: var(--gray-300);
+        }
+
+        /* Feed Cards */
+        .feed-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 700px;
+        }
+
+        .feed-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        [data-theme="dark"] .feed-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .feed-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .feed-card-header {
+            border-color: #334155;
+        }
+
+        .feed-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .feed-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .feed-client-info {
+            flex: 1;
+        }
+
+        .feed-client-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 1rem;
+        }
+
+        .feed-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .feed-meal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .feed-meal-badge.breakfast { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .feed-meal-badge.lunch { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+        .feed-meal-badge.dinner { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+        .feed-meal-badge.snack { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+        .feed-card-body {
+            padding: 16px;
+        }
+
+        .feed-food-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .feed-food-brand {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+        }
+
+        .feed-macros {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .feed-macro {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .feed-macro.calories { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .feed-macro.protein { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .feed-macro.carbs { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+        .feed-macro.fat { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+
+        .feed-card-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .feed-card-actions {
+            border-color: #334155;
+        }
+
+        .reaction-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        [data-theme="dark"] .reaction-btn {
+            background: #334155;
+            border-color: #475569;
+            color: var(--gray-400);
+        }
+
+        .reaction-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .reaction-btn.has-reaction {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .reaction-picker {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            display: none;
+            gap: 4px;
+            padding: 8px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            z-index: 50;
+        }
+
+        [data-theme="dark"] .reaction-picker {
+            background: #334155;
+        }
+
+        .reaction-picker.show {
+            display: flex;
+        }
+
+        .reaction-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reaction-option:hover {
+            background: var(--gray-100);
+            transform: scale(1.2);
+        }
+
+        [data-theme="dark"] .reaction-option:hover {
+            background: #475569;
+        }
+
+        .comment-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        [data-theme="dark"] .comment-btn {
+            background: #334155;
+            border-color: #475569;
+            color: var(--gray-400);
+        }
+
+        .comment-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .comment-btn.has-comments {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .comment-count {
+            background: var(--brand-primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        /* Comments Section */
+        .comments-section {
+            display: none;
+            padding: 12px 16px;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .comments-section {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        .comments-section.show {
+            display: block;
+        }
+
+        .comment-list {
+            margin-bottom: 12px;
+        }
+
+        .comment-item {
+            padding: 10px 12px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .comment-item {
+            background: #1e293b;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--gray-900);
+        }
+
+        .comment-text {
+            font-size: 0.9rem;
+            color: var(--gray-700);
+            margin-top: 4px;
+        }
+
+        .comment-time {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: 4px;
+        }
+
+        .comment-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .comment-input {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            font-size: 0.9rem;
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .comment-input {
+            background: #1e293b;
+            border-color: #475569;
+            color: var(--gray-100);
+        }
+
+        .comment-submit {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--brand-primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .comment-submit:hover {
+            background: var(--brand-primary-dark);
+        }
+
+        .comment-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Loading & Empty States */
+        .loading-state, .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.2rem;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .load-more-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-700);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        [data-theme="dark"] .load-more-btn {
+            background: #1e293b;
+            border-color: #334155;
+            color: var(--gray-300);
+        }
+
+        .load-more-btn:hover {
+            background: var(--gray-100);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 16px;
+                background: var(--brand-gradient);
+                color: white;
+                position: sticky;
+                top: 0;
+                z-index: 50;
+            }
+
+            .mobile-menu-btn {
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: white;
+                padding: 8px;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+
+            .mobile-header h1 {
+                font-size: 1.25rem;
+                font-weight: 600;
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 99;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-header {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i data-lucide="menu" style="width:24px;height:24px;"></i>
+        </button>
+        <h1>Client Feed</h1>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
+                <span>Zique Fitness</span>
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Menu</div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
+                        Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
+                        Clients
+                    </a>
+                    <a href="client-feed.html" class="sidebar-nav-item active">
+                        <span class="sidebar-nav-icon"><i data-lucide="activity"></i></span>
+                        Client Feed
+                    </a>
+                    <a href="manage-recipes.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
+                        Recipes
+                    </a>
+                    <a href="planner.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
+                        AI Planner
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-label">Settings</div>
+                <div class="sidebar-nav-items">
+                    <a href="coach-profile.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
+                        My Profile
+                    </a>
+                    <a href="supplement-protocols.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
+                        Supplements
+                    </a>
+                    <a href="reminder-settings.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
+                        Reminders
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="userAvatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <i data-lucide="log-out" style="width:18px;height:18px;"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Client Activity Feed</h1>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <select class="filter-select" id="clientFilter">
+                <option value="">All Clients</option>
+            </select>
+            <select class="filter-select" id="mealFilter">
+                <option value="">All Meals</option>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+                <option value="snack">Snack</option>
+            </select>
+            <input type="date" class="filter-input" id="dateFilter">
+        </div>
+
+        <!-- Feed Container -->
+        <div class="feed-container" id="feedContainer">
+            <div class="loading-state" id="loadingState">
+                <p>Loading client activity...</p>
+            </div>
+        </div>
+
+        <button class="load-more-btn" id="loadMoreBtn" style="display:none;">Load More</button>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanlsbnlhbnl3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1NTI0NzYsImV4cCI6MjA1MDEyODQ3Nn0.5sHN0zqXVhFDBUFT5TN0ajZ6uDMSI7ax8U4Fvocz3_E';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let offset = 0;
+        const limit = 20;
+        let hasMore = true;
+        let clients = {};
+
+        const REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+
+            // Check auth
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentUser = session.user;
+            document.getElementById('userEmail').textContent = currentUser.email;
+            document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
+
+            // Load clients for filter
+            await loadClients();
+
+            // Load feed
+            await loadFeed(true);
+
+            // Event listeners
+            document.getElementById('clientFilter').addEventListener('change', () => loadFeed(true));
+            document.getElementById('mealFilter').addEventListener('change', () => loadFeed(true));
+            document.getElementById('dateFilter').addEventListener('change', () => loadFeed(true));
+            document.getElementById('loadMoreBtn').addEventListener('click', () => loadFeed(false));
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+
+            // Mobile menu
+            document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('sidebarOverlay').classList.toggle('active');
+            });
+            document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+            });
+        });
+
+        async function loadClients() {
+            const { data } = await supabase
+                .from('clients')
+                .select('id, client_name')
+                .eq('coach_id', currentUser.id);
+
+            const select = document.getElementById('clientFilter');
+            (data || []).forEach(client => {
+                clients[client.id] = client.client_name;
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.client_name;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadFeed(reset = false) {
+            if (reset) {
+                offset = 0;
+                hasMore = true;
+                document.getElementById('feedContainer').innerHTML = '<div class="loading-state"><p>Loading client activity...</p></div>';
+            }
+
+            const clientId = document.getElementById('clientFilter').value;
+            const mealType = document.getElementById('mealFilter').value;
+            const date = document.getElementById('dateFilter').value;
+
+            let url = `/.netlify/functions/coach-activity-feed?coachId=${currentUser.id}&limit=${limit}&offset=${offset}`;
+            if (clientId) url += `&clientId=${clientId}`;
+            if (mealType) url += `&mealType=${mealType}`;
+            if (date) url += `&date=${date}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (reset) {
+                    document.getElementById('feedContainer').innerHTML = '';
+                }
+
+                if (data.entries && data.entries.length > 0) {
+                    data.entries.forEach(entry => renderFeedCard(entry));
+                    offset += data.entries.length;
+                    hasMore = data.hasMore;
+                } else if (reset) {
+                    document.getElementById('feedContainer').innerHTML = `
+                        <div class="empty-state">
+                            <i data-lucide="calendar" style="width:64px;height:64px;"></i>
+                            <h3>No activity yet</h3>
+                            <p>When your clients log their meals, they'll appear here.</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                }
+
+                document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
+            } catch (err) {
+                console.error('Error loading feed:', err);
+                if (reset) {
+                    document.getElementById('feedContainer').innerHTML = '<div class="empty-state"><p>Error loading feed. Please try again.</p></div>';
+                }
+            }
+        }
+
+        function renderFeedCard(entry) {
+            const card = document.createElement('div');
+            card.className = 'feed-card';
+            card.dataset.entryId = entry.id;
+
+            const initials = entry.clientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+            const hasReaction = entry.reaction?.reaction;
+            const commentCount = entry.comments?.length || 0;
+
+            card.innerHTML = `
+                <div class="feed-card-header">
+                    <div class="feed-avatar">${entry.clientPhoto ? `<img src="${entry.clientPhoto}" alt="">` : initials}</div>
+                    <div class="feed-client-info">
+                        <div class="feed-client-name">${entry.clientName}</div>
+                        <div class="feed-meta">
+                            <span class="feed-meal-badge ${entry.mealType}">${entry.mealType}</span>
+                            <span>${formatTime(entry.createdAt)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="feed-card-body">
+                    <div class="feed-food-name">${entry.foodName}</div>
+                    ${entry.brand ? `<div class="feed-food-brand">${entry.brand}</div>` : ''}
+                    <div class="feed-macros">
+                        <span class="feed-macro calories">${entry.calories} cal</span>
+                        <span class="feed-macro protein">${Math.round(entry.protein || 0)}g P</span>
+                        <span class="feed-macro carbs">${Math.round(entry.carbs || 0)}g C</span>
+                        <span class="feed-macro fat">${Math.round(entry.fat || 0)}g F</span>
+                    </div>
+                </div>
+                <div class="feed-card-actions">
+                    <button class="reaction-btn ${hasReaction ? 'has-reaction' : ''}" onclick="toggleReactionPicker(this, ${entry.id}, ${entry.clientId})">
+                        <span class="reaction-emoji">${hasReaction || '+'}</span>
+                        <span>${hasReaction ? '' : 'React'}</span>
+                        <div class="reaction-picker" onclick="event.stopPropagation()">
+                            ${REACTIONS.map(r => `<button class="reaction-option" onclick="addReaction(${entry.id}, ${entry.clientId}, '${r}', this)">${r}</button>`).join('')}
+                        </div>
+                    </button>
+                    <button class="comment-btn ${commentCount > 0 ? 'has-comments' : ''}" onclick="toggleComments(this)">
+                        <i data-lucide="message-circle" style="width:18px;height:18px;"></i>
+                        ${commentCount > 0 ? `<span class="comment-count">${commentCount}</span>` : ''}
+                        <span>Comment</span>
+                    </button>
+                </div>
+                <div class="comments-section">
+                    <div class="comment-list">
+                        ${(entry.comments || []).map(c => `
+                            <div class="comment-item">
+                                <div class="comment-author">${c.authorType === 'coach' ? 'You' : entry.clientName}</div>
+                                <div class="comment-text">${c.comment}</div>
+                                <div class="comment-time">${formatTime(c.createdAt)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="comment-input-row">
+                        <input type="text" class="comment-input" placeholder="Write a comment..." maxlength="500">
+                        <button class="comment-submit" onclick="addComment(${entry.id}, ${entry.clientId}, this)">
+                            <i data-lucide="send" style="width:18px;height:18px;"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('feedContainer').appendChild(card);
+            lucide.createIcons();
+        }
+
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays === 1) return 'yesterday';
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        function toggleReactionPicker(btn, entryId, clientId) {
+            const picker = btn.querySelector('.reaction-picker');
+            document.querySelectorAll('.reaction-picker.show').forEach(p => {
+                if (p !== picker) p.classList.remove('show');
+            });
+            picker.classList.toggle('show');
+        }
+
+        async function addReaction(entryId, clientId, reaction, btn) {
+            const card = btn.closest('.feed-card');
+            const reactionBtn = card.querySelector('.reaction-btn');
+            const currentReaction = reactionBtn.querySelector('.reaction-emoji').textContent;
+
+            try {
+                if (currentReaction === reaction) {
+                    // Remove reaction
+                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ entryId, coachId: currentUser.id })
+                    });
+                    reactionBtn.classList.remove('has-reaction');
+                    reactionBtn.querySelector('.reaction-emoji').textContent = '+';
+                    reactionBtn.querySelector('span:last-of-type').textContent = 'React';
+                } else {
+                    // Add reaction
+                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ entryId, coachId: currentUser.id, clientId, reaction })
+                    });
+                    reactionBtn.classList.add('has-reaction');
+                    reactionBtn.querySelector('.reaction-emoji').textContent = reaction;
+                    reactionBtn.querySelector('span:last-of-type').textContent = '';
+                }
+            } catch (err) {
+                console.error('Error saving reaction:', err);
+            }
+
+            reactionBtn.querySelector('.reaction-picker').classList.remove('show');
+        }
+
+        function toggleComments(btn) {
+            const card = btn.closest('.feed-card');
+            const section = card.querySelector('.comments-section');
+            section.classList.toggle('show');
+        }
+
+        async function addComment(entryId, clientId, btn) {
+            const card = btn.closest('.feed-card');
+            const input = card.querySelector('.comment-input');
+            const comment = input.value.trim();
+
+            if (!comment) return;
+
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/.netlify/functions/comment-on-diary-entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entryId,
+                        clientId,
+                        coachId: currentUser.id,
+                        comment,
+                        authorType: 'coach'
+                    })
+                });
+
+                if (response.ok) {
+                    const list = card.querySelector('.comment-list');
+                    list.innerHTML += `
+                        <div class="comment-item">
+                            <div class="comment-author">You</div>
+                            <div class="comment-text">${comment}</div>
+                            <div class="comment-time">just now</div>
+                        </div>
+                    `;
+                    input.value = '';
+
+                    // Update comment count
+                    const commentBtn = card.querySelector('.comment-btn');
+                    commentBtn.classList.add('has-comments');
+                    let countEl = commentBtn.querySelector('.comment-count');
+                    if (countEl) {
+                        countEl.textContent = parseInt(countEl.textContent) + 1;
+                    } else {
+                        commentBtn.insertAdjacentHTML('afterbegin', '<span class="comment-count">1</span>');
+                    }
+                }
+            } catch (err) {
+                console.error('Error adding comment:', err);
+            }
+
+            btn.disabled = false;
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            window.location.href = 'index.html';
+        }
+
+        // Close reaction pickers when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.reaction-btn')) {
+                document.querySelectorAll('.reaction-picker.show').forEach(p => p.classList.remove('show'));
+            }
+        });
+    </script>
+</body>
+</html>
