@@ -6,12 +6,18 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
+  console.log('🔵 save-coach-plan function invoked');
+
   // Handle CORS preflight requests
   const corsResponse = handleCors(event);
-  if (corsResponse) return corsResponse;
+  if (corsResponse) {
+    console.log('✅ CORS preflight handled');
+    return corsResponse;
+  }
 
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
+    console.log('❌ Invalid method:', event.httpMethod);
     return {
       statusCode: 405,
       headers: corsHeaders,
@@ -30,7 +36,23 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { coachId, clientName, planData, clientId, planId, planName } = JSON.parse(event.body);
+    // Log request body size
+    const bodySize = event.body ? event.body.length : 0;
+    console.log(`📦 Request body size: ${(bodySize / 1024).toFixed(2)} KB`);
+
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(event.body);
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError.message);
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Invalid JSON in request body' })
+      };
+    }
+
+    const { coachId, clientName, planData, clientId, planId, planName } = parsedBody;
 
     console.log('📝 Saving plan for coach:', coachId, 'client:', clientName, 'clientId:', clientId, 'planId:', planId, 'planName:', planName);
 

@@ -4623,17 +4623,26 @@ async function savePlanChanges() {
 
 // Lock to prevent concurrent saves
 let isSaving = false;
+let saveAttemptCount = 0;
 
 // SAVE COACH PLAN TO DATABASE
 async function saveCoachPlan(planData, clientName) {
+    const attemptId = ++saveAttemptCount;
+    console.log(`🔵 [Save #${attemptId}] saveCoachPlan called`);
+
     // Prevent concurrent saves
     if (isSaving) {
-        console.log('⏳ Save already in progress, skipping duplicate call');
+        console.log(`⏳ [Save #${attemptId}] Save already in progress, skipping duplicate call`);
         return false;
     }
 
     if (!currentCoach) {
-        console.warn('No coach session - plan not saved to history');
+        console.warn(`❌ [Save #${attemptId}] No coach session - plan not saved to history`);
+        return false;
+    }
+
+    if (!currentCoach.id) {
+        console.error(`❌ [Save #${attemptId}] Coach session exists but has no ID:`, currentCoach);
         return false;
     }
 
@@ -4641,81 +4650,171 @@ async function saveCoachPlan(planData, clientName) {
     if (!planData && lastPlanQuery) {
         planData = lastPlanQuery;
         clientName = lastPlanQuery.clientName || clientName;
-        console.log('📝 Auto-save: Using lastPlanQuery for plan data');
+        console.log(`📝 [Save #${attemptId}] Auto-save: Using lastPlanQuery for plan data`);
     }
 
     // Check if planData exists
     if (!planData) {
-        console.warn('No plan data provided - cannot save');
+        console.warn(`❌ [Save #${attemptId}] No plan data provided - cannot save`);
         return false;
     }
 
     // Validate that clientId exists and is valid
     if (!planData.clientId || isNaN(planData.clientId) || planData.clientId <= 0) {
-        console.error('❌ Cannot save plan: Invalid or missing clientId', planData.clientId);
-        // Don't show alert for auto-saves, just log the warning
-        console.warn('⚠️ Plan not saved: No valid client ID. Select a client to enable saving.');
+        console.error(`❌ [Save #${attemptId}] Cannot save plan: Invalid or missing clientId`, planData.clientId);
+        console.warn(`⚠️ [Save #${attemptId}] Plan not saved: No valid client ID. Select a client to enable saving.`);
         return false;
     }
 
     isSaving = true;
+    console.log(`🔒 [Save #${attemptId}] Lock acquired, isSaving = true`);
+
     try {
-        console.log('Saving plan to coach history...', planData.planId ? `(updating plan ${planData.planId})` : '(creating new plan)');
+        console.log(`📋 [Save #${attemptId}] Saving plan to coach history...`, planData.planId ? `(updating plan ${planData.planId})` : '(creating new plan)');
 
         // Get plan name from form or planData
         const planNameInput = document.getElementById('dp_plan_name');
         const planName = planData.planName || (planNameInput ? planNameInput.value.trim() : '') || null;
 
+        // Create a clean copy of planData to avoid circular references
+        const cleanPlanData = {
+            clientName: planData.clientName,
+            clientId: planData.clientId,
+            planName: planData.planName,
+            calories: planData.calories,
+            protein: planData.protein,
+            carbs: planData.carbs,
+            fat: planData.fat,
+            preference: planData.preference,
+            macroPreference: planData.macroPreference,
+            allergies: planData.allergies,
+            dislikedFoods: planData.dislikedFoods,
+            preferredFoods: planData.preferredFoods,
+            budget: planData.budget,
+            equipmentStr: planData.equipmentStr,
+            originalTargets: planData.originalTargets,
+            useBrandedFoods: planData.useBrandedFoods,
+            currentPlan: planData.currentPlan,
+            planId: planData.planId,
+            status: planData.status,
+            summary: planData.summary,
+            fromTemplate: planData.fromTemplate,
+            startedFromScratch: planData.startedFromScratch
+        };
+
         const payload = {
             coachId: currentCoach.id,
             clientName: clientName,
-            planData: planData,
-            clientId: planData.clientId,  // Always include clientId (validated above)
-            planId: planData.planId || null,  // Include planId for updates (null for new plans)
-            planName: planName  // Custom plan name for organization
+            planData: cleanPlanData,
+            clientId: planData.clientId,
+            planId: planData.planId || null,
+            planName: planName
         };
 
-        console.log('📤 Sending save request to API...');
-
-        // Use authenticated API call
-        const data = await apiPost(SAVE_COACH_PLAN_ENDPOINT, payload);
-
-        console.log('📥 API response received:', data);
-        console.log('Plan saved to history with ID:', data.planId);
-
-        // Store the planId, planName and status in lastPlanQuery so it can be used when sharing
-        if (lastPlanQuery) {
-            lastPlanQuery.planId = data.planId;
-            lastPlanQuery.planName = data.planName || planName;
-            lastPlanQuery.status = data.status || 'draft';
-            console.log('✅ Plan ID stored for sharing:', data.planId, 'Name:', lastPlanQuery.planName, 'Status:', lastPlanQuery.status);
-
-            // Update the UI to show draft status
-            updatePlanStatusUI();
-
-            // Hide retry button if it was showing
-            hideSaveRetryButton();
-
-            // Clear unsaved changes flag
-            clearUnsavedChanges();
+        // Test JSON serialization before sending
+        let payloadString;
+        try {
+            payloadString = JSON.stringify(payload);
+            console.log(`📦 [Save #${attemptId}] Payload size: ${(payloadString.length / 1024).toFixed(2)} KB`);
+        } catch (jsonError) {
+            console.error(`❌ [Save #${attemptId}] Failed to serialize payload:`, jsonError);
+            return false;
         }
 
-        return true; // Return success
+        console.log(`📤 [Save #${attemptId}] Sending save request to API...`);
+
+        // Use authenticated API call with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.error(`⏱️ [Save #${attemptId}] Request timed out after 30 seconds`);
+            controller.abort();
+        }, 30000);
+
+        try {
+            const token = await getAuthToken();
+            if (!token) {
+                clearTimeout(timeoutId);
+                console.error(`❌ [Save #${attemptId}] No auth token available`);
+                return false;
+            }
+
+            const response = await fetch(SAVE_COACH_PLAN_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: payloadString,
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+            console.log(`📨 [Save #${attemptId}] Response received: status ${response.status}`);
+
+            // Try to get response text first (in case it's not valid JSON)
+            const responseText = await response.text();
+            console.log(`📄 [Save #${attemptId}] Response body length: ${responseText.length} chars`);
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error(`❌ [Save #${attemptId}] Failed to parse response as JSON:`, responseText.substring(0, 500));
+                throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`);
+            }
+
+            if (!response.ok) {
+                console.error(`❌ [Save #${attemptId}] API error:`, data);
+                throw new Error(data.error || `API error: ${response.status}`);
+            }
+
+            console.log(`📥 [Save #${attemptId}] API response received:`, data);
+            console.log(`✅ [Save #${attemptId}] Plan saved to history with ID:`, data.planId);
+
+            // Store the planId, planName and status in lastPlanQuery so it can be used when sharing
+            if (lastPlanQuery) {
+                lastPlanQuery.planId = data.planId;
+                lastPlanQuery.planName = data.planName || planName;
+                lastPlanQuery.status = data.status || 'draft';
+                console.log(`✅ [Save #${attemptId}] Plan ID stored for sharing:`, data.planId, 'Name:', lastPlanQuery.planName, 'Status:', lastPlanQuery.status);
+
+                // Update the UI to show draft status
+                updatePlanStatusUI();
+
+                // Hide retry button if it was showing
+                hideSaveRetryButton();
+
+                // Clear unsaved changes flag
+                clearUnsavedChanges();
+            }
+
+            return true; // Return success
+
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                console.error(`⏱️ [Save #${attemptId}] Request was aborted (timeout)`);
+                throw new Error('Request timed out. Please check your network connection and try again.');
+            }
+            throw fetchError;
+        }
 
     } catch (error) {
-        console.error('Error saving plan:', error);
-        // Show error to user so they know what failed
-        console.error('⚠️ Plan save failed:', error.message);
+        console.error(`❌ [Save #${attemptId}] Error saving plan:`, error);
+        console.error(`⚠️ [Save #${attemptId}] Plan save failed:`, error.message);
 
         // Show specific error to help debug
         if (error.message.includes('Not authenticated')) {
             alert('Session expired. Please refresh the page and log in again.');
+        } else if (error.message.includes('timed out')) {
+            alert('Save request timed out. Please check your network connection and try again.');
         } else {
-            console.error('Save error details:', error);
+            console.error(`🔍 [Save #${attemptId}] Save error details:`, error.stack || error);
         }
         return false;
     } finally {
         isSaving = false;
+        console.log(`🔓 [Save #${attemptId}] Lock released, isSaving = false`);
     }
 }
 
