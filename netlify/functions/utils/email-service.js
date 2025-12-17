@@ -1524,6 +1524,115 @@ async function sendWelcomeEmail({ coach, plan, resetLink }) {
     });
 }
 
+/**
+ * Generate new client signup notification email for coach
+ */
+function generateNewClientSignupEmail({ coachName, clientName, clientEmail }) {
+    const subject = `New Client Signup: ${clientName}`;
+
+    const textBody = `Hi ${coachName},
+
+Great news! A new client has signed up using your signup code.
+
+Client Details:
+- Name: ${clientName}
+- Email: ${clientEmail}
+- Signed up: ${new Date().toLocaleString()}
+
+They've completed their intake form and are ready to get started!
+
+Next steps:
+- Review their profile and preferences
+- Create a personalized meal plan
+- Send them a welcome message
+
+View your clients:
+${APP_URL}/dashboard.html
+
+Best,
+Zique Fitness Nutrition
+
+---
+Zique Fitness Nutrition
+${APP_URL}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background-color: #10b981; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">New Client Signup!</h1>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">Hi <strong>${coachName}</strong>,</p>
+
+        <p style="margin-bottom: 20px;">Great news! A new client has signed up using your signup code.</p>
+
+        <div style="background-color: #d1fae5; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #10b981;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #065f46;">Client Details:</p>
+            <table style="width: 100%; color: #047857;">
+                <tr><td style="padding: 4px 0;">Name:</td><td style="padding: 4px 0;"><strong>${clientName}</strong></td></tr>
+                <tr><td style="padding: 4px 0;">Email:</td><td style="padding: 4px 0;">${clientEmail}</td></tr>
+                <tr><td style="padding: 4px 0;">Signed up:</td><td style="padding: 4px 0;">${new Date().toLocaleString()}</td></tr>
+            </table>
+        </div>
+
+        <p style="margin-bottom: 15px;">They've completed their intake form and are ready to get started!</p>
+
+        <p style="margin-bottom: 15px;"><strong>Next steps:</strong></p>
+        <ul style="margin: 0 0 25px 0; padding-left: 20px; color: #475569;">
+            <li style="margin-bottom: 8px;">Review their profile and preferences</li>
+            <li style="margin-bottom: 8px;">Create a personalized meal plan</li>
+            <li style="margin-bottom: 0;">Send them a welcome message</li>
+        </ul>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${APP_URL}/dashboard.html" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">View Clients</a>
+        </div>
+
+        <p style="margin-top: 30px; color: #64748b;">
+            Best,<br>
+            <strong>Zique Fitness Nutrition</strong>
+        </p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">Zique Fitness Nutrition</p>
+    </div>
+</body>
+</html>`;
+
+    return { subject, text: textBody, html: htmlBody };
+}
+
+/**
+ * Send new client signup notification to coach
+ */
+async function sendNewClientSignupEmail({ coach, client }) {
+    if (!coach || !coach.email) {
+        return { success: false, error: 'Coach email not available' };
+    }
+
+    const emailContent = generateNewClientSignupEmail({
+        coachName: coach.full_name || coach.email.split('@')[0],
+        clientName: client.name || client.client_name || 'New Client',
+        clientEmail: client.email
+    });
+
+    return sendEmail({
+        to: coach.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+    });
+}
+
 module.exports = {
     sendEmail,
     sendCheckinReminder,
@@ -1544,5 +1653,7 @@ module.exports = {
     sendNewPaymentNotification,
     sendCancellationNotification,
     sendWelcomeEmail,
-    generateWelcomeEmail
+    generateWelcomeEmail,
+    sendNewClientSignupEmail,
+    generateNewClientSignupEmail
 };

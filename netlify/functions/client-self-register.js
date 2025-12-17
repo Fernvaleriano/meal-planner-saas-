@@ -3,6 +3,7 @@
  * Allows clients to sign up without individual invitations
  */
 const { createClient } = require('@supabase/supabase-js');
+const { sendNewClientSignupEmail } = require('./utils/email-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -239,6 +240,18 @@ exports.handler = async (event, context) => {
             });
         }
 
+        // Send email notification to coach about new client signup
+        try {
+            await sendNewClientSignupEmail({
+                coach: coach,
+                client: { name: name.trim(), email: email.trim().toLowerCase() }
+            });
+            console.log('Coach notification email sent for new client:', email);
+        } catch (emailError) {
+            console.error('Failed to send coach notification email:', emailError);
+            // Don't fail registration if email fails
+        }
+
         console.log('Client self-registered:', newClient.id, 'Coach:', coach.id, 'User:', authUser.id);
 
         return {
@@ -332,6 +345,26 @@ async function completeExistingClientRegistration(supabase, clientId, coachId, b
         await calculateAndSaveNutritionGoals(supabase, clientId, coachId, {
             weight, heightFt, heightIn, age, gender, activityLevel, goal
         });
+    }
+
+    // Send email notification to coach - need to fetch coach details first
+    try {
+        const { data: coachData } = await supabase
+            .from('coaches')
+            .select('full_name, email')
+            .eq('id', coachId)
+            .single();
+
+        if (coachData) {
+            await sendNewClientSignupEmail({
+                coach: coachData,
+                client: { name: name.trim(), email: email.trim().toLowerCase() }
+            });
+            console.log('Coach notification email sent for existing client registration:', email);
+        }
+    } catch (emailError) {
+        console.error('Failed to send coach notification email:', emailError);
+        // Don't fail registration if email fails
     }
 
     return {

@@ -6,9 +6,9 @@ ALTER TABLE coaches
     ADD COLUMN IF NOT EXISTS signup_code VARCHAR(20) UNIQUE,
     ADD COLUMN IF NOT EXISTS signup_code_enabled BOOLEAN DEFAULT true;
 
--- Generate a default signup code for existing coaches (8 character alphanumeric)
+-- Set your specific signup code
 UPDATE coaches
-SET signup_code = UPPER(SUBSTRING(MD5(RANDOM()::TEXT || id::TEXT) FROM 1 FOR 8))
+SET signup_code = 'ZFFV'
 WHERE signup_code IS NULL;
 
 -- Create index for fast lookup by signup code
