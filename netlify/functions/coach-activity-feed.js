@@ -83,12 +83,15 @@ exports.handler = async (event) => {
 
     const { data: entries, error: entriesError } = await query;
 
+    console.log('coach-activity-feed: coachId=', coachId, 'entries found=', entries?.length || 0);
+
     if (entriesError) {
       console.error('Error fetching entries:', entriesError);
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: entriesError.message }) };
     }
 
     if (!entries || entries.length === 0) {
+      console.log('coach-activity-feed: No entries found for coach', coachId);
       return {
         statusCode: 200,
         headers: corsHeaders,
