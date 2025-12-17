@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, X, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
+import StoryViewer from './StoryViewer';
 
 // Cache notifications to avoid fetching on every mount
 const notificationCache = {
@@ -11,6 +12,14 @@ const notificationCache = {
   clientId: null
 };
 const NOTIFICATION_CACHE_TTL = 60000; // 1 minute cache
+
+// Cache stories to avoid fetching on every mount
+const storyCache = {
+  data: null,
+  timestamp: 0,
+  clientId: null
+};
+const STORY_CACHE_TTL = 60000; // 1 minute cache
 
 function TopNav() {
   const { clientData } = useAuth();
@@ -34,6 +43,37 @@ function TopNav() {
     return 0;
   });
   const hasFetchedRef = useRef(false);
+
+  // Story state
+  const [stories, setStories] = useState(() => {
+    if (storyCache.data &&
+        storyCache.clientId === clientData?.id &&
+        Date.now() - storyCache.timestamp < STORY_CACHE_TTL) {
+      return storyCache.data.stories || [];
+    }
+    return [];
+  });
+  const [coachData, setCoachData] = useState(() => {
+    if (storyCache.data &&
+        storyCache.clientId === clientData?.id &&
+        Date.now() - storyCache.timestamp < STORY_CACHE_TTL) {
+      return {
+        name: storyCache.data.coachName,
+        avatar: storyCache.data.coachAvatar
+      };
+    }
+    return null;
+  });
+  const [hasUnseenStories, setHasUnseenStories] = useState(() => {
+    if (storyCache.data &&
+        storyCache.clientId === clientData?.id &&
+        Date.now() - storyCache.timestamp < STORY_CACHE_TTL) {
+      return storyCache.data.hasUnseenStories || false;
+    }
+    return false;
+  });
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const hasFetchedStoriesRef = useRef(false);
 
   // Fetch notifications with caching
   const fetchNotifications = useCallback(async (force = false) => {
@@ -73,6 +113,63 @@ function TopNav() {
     const interval = setInterval(() => fetchNotifications(true), 60000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  // Fetch stories with caching
+  const fetchStories = useCallback(async (force = false) => {
+    if (!clientData?.id || !clientData?.coach_id) return;
+
+    // Check cache first (unless forced refresh)
+    if (!force &&
+        storyCache.data &&
+        storyCache.clientId === clientData.id &&
+        Date.now() - storyCache.timestamp < STORY_CACHE_TTL) {
+      return; // Use cached data
+    }
+
+    try {
+      const data = await apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`);
+
+      // Update cache
+      storyCache.data = data;
+      storyCache.timestamp = Date.now();
+      storyCache.clientId = clientData.id;
+
+      setStories(data.stories || []);
+      setCoachData({
+        name: data.coachName,
+        avatar: data.coachAvatar
+      });
+      setHasUnseenStories(data.hasUnseenStories || false);
+    } catch (err) {
+      console.error('Error fetching stories:', err);
+    }
+  }, [clientData?.id, clientData?.coach_id]);
+
+  // Load stories on mount (with cache check) and periodically
+  useEffect(() => {
+    if (!hasFetchedStoriesRef.current) {
+      hasFetchedStoriesRef.current = true;
+      fetchStories();
+    }
+    // Refresh every 60 seconds (matching cache TTL)
+    const interval = setInterval(() => fetchStories(true), 60000);
+    return () => clearInterval(interval);
+  }, [fetchStories]);
+
+  // Handle story click
+  const handleStoryClick = () => {
+    if (stories.length > 0) {
+      setShowStoryViewer(true);
+    }
+  };
+
+  // Handle story viewer close
+  const handleStoryViewerClose = () => {
+    setShowStoryViewer(false);
+    setHasUnseenStories(false);
+    // Refresh stories to update viewed status
+    fetchStories(true);
+  };
 
   // Mark all as read
   const markAllRead = async () => {
@@ -148,8 +245,24 @@ function TopNav() {
       {/* Center: Empty spacer */}
       <div className="nav-center"></div>
 
-      {/* Right: Notifications */}
+      {/* Right: Stories + Notifications */}
       <div className="nav-right">
+        {/* Stories button */}
+        {stories.length > 0 && coachData && (
+          <button
+            className="nav-coach-story"
+            onClick={handleStoryClick}
+            aria-label="View coach stories"
+          >
+            <div className={`story-ring ${hasUnseenStories ? 'unseen' : ''}`}>
+              <img
+                src={coachData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(coachData.name || 'Coach')}&background=0d9488&color=fff`}
+                alt={coachData.name || 'Coach'}
+              />
+            </div>
+          </button>
+        )}
+
         <div className="notification-wrapper">
           <button
             className="nav-btn"
@@ -203,6 +316,17 @@ function TopNav() {
           )}
         </div>
       </div>
+
+      {/* Story Viewer Modal */}
+      {showStoryViewer && stories.length > 0 && (
+        <StoryViewer
+          stories={stories}
+          coachName={coachData?.name}
+          coachAvatar={coachData?.avatar}
+          clientId={clientData?.id}
+          onClose={handleStoryViewerClose}
+        />
+      )}
     </nav>
   );
 }

@@ -132,6 +132,12 @@ body {
     min-width: 44px;
 }
 
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .nav-left {
     max-width: 65%;
 }
