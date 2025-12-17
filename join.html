@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zique Fitness">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/logo.png">
+    <title>Join - Client Sign Up</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --error: #dc2626;
+            --error-bg: #fef2f2;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--brand-gradient);
+            padding: 32px 24px;
+            text-align: center;
+            color: white;
+        }
+
+        .header img {
+            height: 60px;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 15px;
+            opacity: 0.9;
+        }
+
+        .form-container {
+            padding: 32px 24px;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .form-group label .required {
+            color: var(--error);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        .form-group input.error {
+            border-color: var(--error);
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .code-input {
+            text-align: center;
+            font-size: 24px !important;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 500px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--brand-gradient);
+            color: white;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .error-message {
+            background: var(--error-bg);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--success-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            color: var(--success);
+        }
+
+        .success-message h2 {
+            font-size: 24px;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .success-message p {
+            color: var(--gray-600);
+            margin-bottom: 24px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: var(--gray-400);
+            font-size: 13px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--gray-200);
+        }
+
+        .divider span {
+            padding: 0 12px;
+        }
+
+        .login-link {
+            text-align: center;
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .login-link a {
+            color: var(--brand-primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .optional-badge {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--gray-400);
+            background: var(--gray-100);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="/icons/logo.png" alt="Logo">
+            <h1>Join Your Coach</h1>
+            <p>Enter your coach's signup code to get started</p>
+        </div>
+
+        <div class="form-container">
+            <div id="errorMessage" class="error-message"></div>
+
+            <!-- Step 1: Enter Code -->
+            <div id="step1" class="step active">
+                <div class="form-group">
+                    <label for="signupCode">Coach Signup Code <span class="required">*</span></label>
+                    <input type="text" id="signupCode" class="code-input" placeholder="XXXXXXXX" maxlength="20" autocomplete="off">
+                    <p class="hint">Your coach should have provided this code to you</p>
+                </div>
+                <button type="button" class="btn btn-primary" id="verifyCodeBtn">Continue</button>
+
+                <div class="divider"><span>or</span></div>
+                <p class="login-link">Already have an account? <a href="/app">Log in</a></p>
+            </div>
+
+            <!-- Step 2: Basic Info -->
+            <div id="step2" class="step">
+                <p class="section-title">Account Information</p>
+                <div class="form-group">
+                    <label for="name">Full Name <span class="required">*</span></label>
+                    <input type="text" id="name" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email <span class="required">*</span></label>
+                    <input type="email" id="email" placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password <span class="required">*</span></label>
+                    <input type="password" id="password" placeholder="At least 6 characters">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm your password">
+                </div>
+
+                <p class="section-title" style="margin-top: 24px;">Profile Details <span class="optional-badge">Optional</span></p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <input type="tel" id="phone" placeholder="(555) 123-4567">
+                    </div>
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" placeholder="30" min="13" max="120">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender">
+                            <option value="">Select...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="goal">Goal</label>
+                        <select id="goal">
+                            <option value="maintain">Maintain Weight</option>
+                            <option value="lose">Lose Weight</option>
+                            <option value="gain">Build Muscle</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="weight">Weight (lbs)</label>
+                        <input type="number" id="weight" placeholder="150" min="50" max="700">
+                    </div>
+                    <div class="form-group">
+                        <label for="heightFt">Height</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="heightFt" placeholder="ft" min="3" max="8" style="width: 50%;">
+                            <input type="number" id="heightIn" placeholder="in" min="0" max="11" style="width: 50%;">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" id="submitBtn">Create Account</button>
+                <button type="button" class="btn btn-secondary" id="backBtn">Back</button>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div id="step3" class="step">
+                <div class="success-message">
+                    <div class="success-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2>Welcome!</h2>
+                    <p>Your account has been created successfully. You can now log in to access your dashboard.</p>
+                    <a href="/app" class="btn btn-primary" style="display: inline-block; text-decoration: none;">Go to App</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const errorMessage = document.getElementById('errorMessage');
+        const verifyCodeBtn = document.getElementById('verifyCodeBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const backBtn = document.getElementById('backBtn');
+        const signupCodeInput = document.getElementById('signupCode');
+
+        let validatedCode = null;
+
+        // Show error
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        // Hide error
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        // Show step
+        function showStep(stepNumber) {
+            step1.classList.remove('active');
+            step2.classList.remove('active');
+            step3.classList.remove('active');
+            document.getElementById('step' + stepNumber).classList.add('active');
+            hideError();
+        }
+
+        // Auto-uppercase code input
+        signupCodeInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Verify code (Step 1 -> Step 2)
+        verifyCodeBtn.addEventListener('click', async () => {
+            const code = signupCodeInput.value.trim();
+
+            if (!code) {
+                showError('Please enter a signup code');
+                return;
+            }
+
+            verifyCodeBtn.disabled = true;
+            verifyCodeBtn.innerHTML = '<span class="loading"></span> Verifying...';
+
+            // For now, we'll just proceed to step 2 and validate on submit
+            // The server will validate the code when creating the account
+            validatedCode = code;
+            showStep(2);
+
+            verifyCodeBtn.disabled = false;
+            verifyCodeBtn.textContent = 'Continue';
+        });
+
+        // Back button
+        backBtn.addEventListener('click', () => {
+            showStep(1);
+        });
+
+        // Submit registration
+        submitBtn.addEventListener('click', async () => {
+            hideError();
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const phone = document.getElementById('phone').value.trim();
+            const age = document.getElementById('age').value;
+            const gender = document.getElementById('gender').value;
+            const goal = document.getElementById('goal').value;
+            const weight = document.getElementById('weight').value;
+            const heightFt = document.getElementById('heightFt').value;
+            const heightIn = document.getElementById('heightIn').value;
+
+            // Validate required fields
+            if (!name) {
+                showError('Please enter your full name');
+                return;
+            }
+            if (!email) {
+                showError('Please enter your email');
+                return;
+            }
+            if (!password) {
+                showError('Please enter a password');
+                return;
+            }
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return;
+            }
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading"></span> Creating account...';
+
+            try {
+                const response = await fetch('/.netlify/functions/client-self-register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        signupCode: validatedCode,
+                        name,
+                        email,
+                        password,
+                        phone: phone || null,
+                        age: age ? parseInt(age) : null,
+                        gender: gender || null,
+                        goal: goal || 'maintain',
+                        weight: weight ? parseFloat(weight) : null,
+                        heightFt: heightFt ? parseInt(heightFt) : null,
+                        heightIn: heightIn ? parseInt(heightIn) : null,
+                        activityLevel: 1.55, // Default to moderate
+                        budget: 'moderate',
+                        allergies: 'none',
+                        dislikedFoods: 'none',
+                        unitPreference: 'imperial'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create account');
+                }
+
+                // Success!
+                showStep(3);
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Account';
+            }
+        });
+
+        // Check for code in URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeFromUrl = urlParams.get('code');
+        if (codeFromUrl) {
+            signupCodeInput.value = codeFromUrl.toUpperCase();
+        }
+    </script>
+</body>
+</html>
