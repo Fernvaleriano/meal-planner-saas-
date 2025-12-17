@@ -21,8 +21,14 @@ const setCache = (key, data) => {
   } catch (e) { /* ignore */ }
 };
 
-// Get today's date key for cache
-const getTodayKey = () => new Date().toISOString().split('T')[0];
+// Get today's date key for cache (uses local timezone, NOT UTC)
+const getTodayKey = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function Dashboard() {
   const { clientData } = useAuth();
@@ -341,7 +347,7 @@ function Dashboard() {
     setIsLogging(true);
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayKey();
       let totalAdded = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
       for (const food of parsedFoods) {
@@ -595,7 +601,7 @@ function Dashboard() {
   // Handle supplement checkbox toggle - optimistic update for instant response
   const handleSupplementToggle = async (protocolId) => {
     const isCurrentlyTaken = supplementIntake[protocolId];
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayKey();
 
     // Optimistic update - update UI immediately
     if (isCurrentlyTaken) {

@@ -5,6 +5,15 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
+// Get today's date in local timezone (NOT UTC)
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   return new Promise((resolve) => {
@@ -44,7 +53,7 @@ function Progress() {
   // Measurement modal
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [measurementForm, setMeasurementForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     weight: '',
     bodyFat: '',
     chest: '',
@@ -63,7 +72,7 @@ function Progress() {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoType, setPhotoType] = useState('progress');
-  const [photoDate, setPhotoDate] = useState(new Date().toISOString().split('T')[0]);
+  const [photoDate, setPhotoDate] = useState(getLocalDateString());
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef(null);
 
@@ -176,7 +185,7 @@ function Progress() {
       alert('Measurement saved!');
       setShowMeasurementModal(false);
       setMeasurementForm({
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         weight: '', bodyFat: '', chest: '', waist: '', hips: '',
         leftArm: '', rightArm: '', leftThigh: '', rightThigh: '', notes: ''
       });
@@ -241,7 +250,7 @@ function Progress() {
       setPhotoPreview(null);
       setPhotoFile(null);
       setPhotoType('progress');
-      setPhotoDate(new Date().toISOString().split('T')[0]);
+      setPhotoDate(getLocalDateString());
       loadPhotos();
     } catch (err) {
       console.error('Error uploading photo:', err);
