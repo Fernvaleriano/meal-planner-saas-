@@ -392,6 +392,83 @@
             margin-bottom: 12px;
         }
 
+        /* Meal Items List */
+        .meal-items-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            cursor: pointer;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .meal-items-toggle:hover {
+            color: var(--brand-primary);
+        }
+
+        .meal-items-count {
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .meal-items-count {
+            color: var(--gray-300);
+        }
+
+        .meal-items-list {
+            display: none;
+            background: var(--gray-50);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .meal-items-list {
+            background: #0f172a;
+        }
+
+        .meal-items-list.show {
+            display: block;
+        }
+
+        .meal-item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .meal-item-row {
+            border-color: #334155;
+        }
+
+        .meal-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .meal-item-name {
+            font-size: 0.9rem;
+            color: var(--gray-800);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 12px;
+        }
+
+        [data-theme="dark"] .meal-item-name {
+            color: var(--gray-200);
+        }
+
+        .meal-item-cal {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--gray-500);
+            flex-shrink: 0;
+        }
+
         .feed-macros {
             display: flex;
             flex-wrap: wrap;
@@ -1014,14 +1091,15 @@
             try {
                 const response = await fetch(url);
                 const data = await response.json();
+                console.log('Feed data:', data);
 
                 if (reset) {
                     document.getElementById('feedContainer').innerHTML = '';
                 }
 
-                if (data.entries && data.entries.length > 0) {
-                    data.entries.forEach(entry => renderFeedCard(entry));
-                    offset += data.entries.length;
+                if (data.meals && data.meals.length > 0) {
+                    data.meals.forEach(meal => renderMealCard(meal));
+                    offset += data.meals.length;
                     hasMore = data.hasMore;
                 } else if (reset) {
                     document.getElementById('feedContainer').innerHTML = `
@@ -1043,42 +1121,57 @@
             }
         }
 
-        function renderFeedCard(entry) {
+        function renderMealCard(meal) {
             const card = document.createElement('div');
             card.className = 'feed-card';
-            card.dataset.entryId = entry.id;
+            card.dataset.mealKey = meal.mealKey;
+            card.dataset.entryId = meal.entryIds[0]; // Primary entry for reactions/comments
 
-            const initials = entry.clientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-            const hasReaction = entry.reaction?.reaction;
-            const commentCount = entry.comments?.length || 0;
+            const initials = meal.clientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+            const hasReaction = meal.reactions.length > 0 ? meal.reactions[0].reaction : null;
+            const commentCount = meal.comments?.length || 0;
+            const primaryEntryId = meal.entryIds[0];
+
+            // Generate items list HTML
+            const itemsHtml = meal.items.map(item => `
+                <div class="meal-item-row">
+                    <span class="meal-item-name">${item.foodName}</span>
+                    <span class="meal-item-cal">${Math.round(item.calories)} cal</span>
+                </div>
+            `).join('');
 
             card.innerHTML = `
                 <div class="feed-card-header">
-                    <div class="feed-avatar">${entry.clientPhoto ? `<img src="${entry.clientPhoto}" alt="">` : initials}</div>
+                    <div class="feed-avatar">${meal.clientPhoto ? `<img src="${meal.clientPhoto}" alt="">` : initials}</div>
                     <div class="feed-client-info">
-                        <div class="feed-client-name">${entry.clientName}</div>
+                        <div class="feed-client-name">${meal.clientName}</div>
                         <div class="feed-meta">
-                            <span class="feed-meal-badge ${entry.mealType}">${entry.mealType}</span>
-                            <span>${formatTime(entry.createdAt)}</span>
+                            <span class="feed-meal-badge ${meal.mealType}">${meal.mealType}</span>
+                            <span>${formatTime(meal.latestCreatedAt)}</span>
                         </div>
                     </div>
                 </div>
                 <div class="feed-card-body">
-                    <div class="feed-food-name">${entry.foodName}</div>
-                    ${entry.brand ? `<div class="feed-food-brand">${entry.brand}</div>` : ''}
+                    <div class="meal-items-toggle" onclick="toggleMealItems(this)">
+                        <span class="meal-items-count">${meal.items.length} item${meal.items.length !== 1 ? 's' : ''}</span>
+                        <i data-lucide="chevron-down" style="width:18px;height:18px;transition:transform 0.2s;"></i>
+                    </div>
+                    <div class="meal-items-list show">
+                        ${itemsHtml}
+                    </div>
                     <div class="feed-macros">
-                        <span class="feed-macro calories">${entry.calories} cal</span>
-                        <span class="feed-macro protein">${Math.round(entry.protein || 0)}g P</span>
-                        <span class="feed-macro carbs">${Math.round(entry.carbs || 0)}g C</span>
-                        <span class="feed-macro fat">${Math.round(entry.fat || 0)}g F</span>
+                        <span class="feed-macro calories">${meal.totalCalories} cal</span>
+                        <span class="feed-macro protein">${meal.totalProtein}g P</span>
+                        <span class="feed-macro carbs">${meal.totalCarbs}g C</span>
+                        <span class="feed-macro fat">${meal.totalFat}g F</span>
                     </div>
                 </div>
                 <div class="feed-card-actions">
-                    <button class="reaction-btn ${hasReaction ? 'has-reaction' : ''}" onclick="toggleReactionPicker(this, ${entry.id}, ${entry.clientId})">
+                    <button class="reaction-btn ${hasReaction ? 'has-reaction' : ''}" onclick="toggleReactionPicker(this, ${primaryEntryId}, '${meal.clientId}')">
                         <span class="reaction-emoji">${hasReaction || '+'}</span>
                         <span>${hasReaction ? '' : 'React'}</span>
                         <div class="reaction-picker" onclick="event.stopPropagation()">
-                            ${REACTIONS.map(r => `<button class="reaction-option" onclick="addReaction(${entry.id}, ${entry.clientId}, '${r}', this)">${r}</button>`).join('')}
+                            ${REACTIONS.map(r => `<button class="reaction-option" onclick="addReaction(${primaryEntryId}, '${meal.clientId}', '${r}', this)">${r}</button>`).join('')}
                         </div>
                     </button>
                     <button class="comment-btn ${commentCount > 0 ? 'has-comments' : ''}" onclick="toggleComments(this)">
@@ -1089,9 +1182,9 @@
                 </div>
                 <div class="comments-section">
                     <div class="comment-list">
-                        ${(entry.comments || []).map(c => `
+                        ${(meal.comments || []).map(c => `
                             <div class="comment-item">
-                                <div class="comment-author">${c.authorType === 'coach' ? 'You' : entry.clientName}</div>
+                                <div class="comment-author">${c.authorType === 'coach' ? 'You' : meal.clientName}</div>
                                 <div class="comment-text">${c.comment}</div>
                                 <div class="comment-time">${formatTime(c.createdAt)}</div>
                             </div>
@@ -1099,7 +1192,7 @@
                     </div>
                     <div class="comment-input-row">
                         <input type="text" class="comment-input" placeholder="Write a comment..." maxlength="500">
-                        <button class="comment-submit" onclick="addComment(${entry.id}, ${entry.clientId}, this)">
+                        <button class="comment-submit" onclick="addComment(${primaryEntryId}, '${meal.clientId}', this)">
                             <i data-lucide="send" style="width:18px;height:18px;"></i>
                         </button>
                     </div>
@@ -1108,6 +1201,15 @@
 
             document.getElementById('feedContainer').appendChild(card);
             lucide.createIcons();
+        }
+
+        function toggleMealItems(btn) {
+            const itemsList = btn.nextElementSibling;
+            const icon = btn.querySelector('svg, i');
+            itemsList.classList.toggle('show');
+            if (icon) {
+                icon.style.transform = itemsList.classList.contains('show') ? 'rotate(0deg)' : 'rotate(-90deg)';
+            }
         }
 
         function formatTime(dateStr) {
