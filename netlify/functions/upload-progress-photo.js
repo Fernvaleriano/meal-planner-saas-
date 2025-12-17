@@ -1,5 +1,6 @@
 // Netlify Function to upload progress photos
 const { createClient } = require('@supabase/supabase-js');
+const { getDefaultDate } = require('./utils/timezone');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -75,7 +76,7 @@ exports.handler = async (event, context) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { clientId, coachId, photoData, photoType, notes, takenDate } = body;
+    const { clientId, coachId, photoData, photoType, notes, takenDate, timezone } = body;
 
     // Validate required fields with detailed error messages
     if (!clientId) {
@@ -167,7 +168,7 @@ exports.handler = async (event, context) => {
           storage_path: filename,
           photo_type: photoType || 'progress',
           notes: notes || null,
-          taken_date: takenDate || new Date().toISOString().split('T')[0]
+          taken_date: getDefaultDate(takenDate, timezone)
         }
       ])
       .select()

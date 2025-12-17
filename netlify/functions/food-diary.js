@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { getDefaultDate } = require('./utils/timezone');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -32,7 +33,7 @@ exports.handler = async (event) => {
   try {
     // GET - Fetch diary entries for a date or date range
     if (event.httpMethod === 'GET') {
-      const { clientId, date, startDate, endDate } = event.queryStringParameters || {};
+      const { clientId, date, startDate, endDate, timezone } = event.queryStringParameters || {};
 
       if (!clientId) {
         return {
@@ -58,8 +59,8 @@ exports.handler = async (event) => {
       } else if (startDate && endDate) {
         entriesQuery = entriesQuery.gte('entry_date', startDate).lte('entry_date', endDate);
       } else {
-        // Default to today
-        const today = new Date().toISOString().split('T')[0];
+        // Default to today in user's timezone
+        const today = getDefaultDate(null, timezone);
         entriesQuery = entriesQuery.eq('entry_date', today);
       }
 
@@ -192,7 +193,8 @@ exports.handler = async (event) => {
         externalId,
         foodSource,
         isQuickAdd,
-        notes
+        notes,
+        timezone
       } = body;
 
       if (!clientId || !foodName || !mealType) {
@@ -214,7 +216,7 @@ exports.handler = async (event) => {
       // Note: Only include columns that exist in the database schema
       const insertData = {
         client_id: clientId,
-        entry_date: entryDate || new Date().toISOString().split('T')[0],
+        entry_date: getDefaultDate(entryDate, timezone),
         meal_type: mealType,
         food_name: foodName,
         brand: brand || null,

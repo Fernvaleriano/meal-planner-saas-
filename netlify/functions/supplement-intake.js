@@ -1,6 +1,7 @@
 // Netlify Function for tracking client supplement intake
 // Allows clients to check off supplements they've taken each day
 const { createClient } = require('@supabase/supabase-js');
+const { getDefaultDate } = require('./utils/timezone');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -29,7 +30,7 @@ exports.handler = async (event, context) => {
 
     // GET - Fetch today's supplement intake for a client
     if (event.httpMethod === 'GET') {
-        const { clientId, date } = event.queryStringParameters || {};
+        const { clientId, date, timezone } = event.queryStringParameters || {};
 
         if (!clientId) {
             return {
@@ -39,8 +40,8 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Use provided date or default to today
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        // Use provided date or default to today in user's timezone
+        const targetDate = getDefaultDate(date, timezone);
 
         try {
             const { data: intake, error } = await supabase
@@ -73,7 +74,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { clientId, protocolId, date, setStartDate } = body;
+            const { clientId, protocolId, date, setStartDate, timezone } = body;
 
             if (!clientId || !protocolId) {
                 return {
@@ -83,8 +84,8 @@ exports.handler = async (event, context) => {
                 };
             }
 
-            // Use provided date or default to today
-            const targetDate = date || new Date().toISOString().split('T')[0];
+            // Use provided date or default to today in user's timezone
+            const targetDate = getDefaultDate(date, timezone);
 
             const insertData = {
                 client_id: clientId,
@@ -156,7 +157,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
         try {
             const body = JSON.parse(event.body);
-            const { clientId, protocolId, action } = body;
+            const { clientId, protocolId, action, timezone } = body;
 
             if (!clientId || !protocolId) {
                 return {
@@ -167,7 +168,7 @@ exports.handler = async (event, context) => {
             }
 
             if (action === 'restart') {
-                const today = new Date().toISOString().split('T')[0];
+                const today = getDefaultDate(null, timezone);
 
                 // Update client_start_date to today
                 const { data: protocol, error } = await supabase
@@ -206,7 +207,7 @@ exports.handler = async (event, context) => {
 
     // DELETE - Unmark a supplement (remove intake record)
     if (event.httpMethod === 'DELETE') {
-        const { clientId, protocolId, date } = event.queryStringParameters || {};
+        const { clientId, protocolId, date, timezone } = event.queryStringParameters || {};
 
         if (!clientId || !protocolId) {
             return {
@@ -216,8 +217,8 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Use provided date or default to today
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        // Use provided date or default to today in user's timezone
+        const targetDate = getDefaultDate(date, timezone);
 
         try {
             const { error } = await supabase
