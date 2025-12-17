@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0d9488">
+    <title>Join - Client Sign Up</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 100%;
+            padding: 40px 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+        .logo { height: 60px; margin-bottom: 24px; }
+        h1 { font-size: 24px; color: #0f172a; margin-bottom: 8px; }
+        p { color: #64748b; font-size: 15px; margin-bottom: 24px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 20px;
+            font-family: monospace;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 700;
+        }
+        input:focus { outline: none; border-color: #0d9488; }
+        .hint { font-size: 12px; color: #94a3b8; margin-top: 6px; text-align: center; }
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .error.show { display: block; }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+        .divider span { padding: 0 12px; }
+        .login-link { font-size: 14px; color: #64748b; }
+        .login-link a { color: #0d9488; font-weight: 600; text-decoration: none; }
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/icons/logo.png" alt="Logo" class="logo">
+        <h1>Join Your Coach</h1>
+        <p>Enter the signup code your coach gave you</p>
+
+        <div id="error" class="error"></div>
+
+        <div class="form-group">
+            <label for="code">Signup Code</label>
+            <input type="text" id="code" placeholder="XXXXXXXX" maxlength="20" autocomplete="off">
+            <p class="hint">Code provided by your coach</p>
+        </div>
+
+        <button type="button" class="btn" id="continueBtn">Continue</button>
+
+        <div class="divider"><span>or</span></div>
+        <p class="login-link">Already have an account? <a href="/app">Log in</a></p>
+    </div>
+
+    <script>
+        const codeInput = document.getElementById('code');
+        const continueBtn = document.getElementById('continueBtn');
+        const errorDiv = document.getElementById('error');
+
+        // Auto-uppercase
+        codeInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+
+        // Check URL for pre-filled code
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeFromUrl = urlParams.get('code');
+        if (codeFromUrl) {
+            codeInput.value = codeFromUrl.toUpperCase();
+        }
+
+        // Enter key submits
+        codeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') continueBtn.click();
+        });
+
+        continueBtn.addEventListener('click', async () => {
+            const code = codeInput.value.trim();
+
+            if (!code) {
+                errorDiv.textContent = 'Please enter a signup code';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            if (code.length < 6) {
+                errorDiv.textContent = 'Invalid code format';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            errorDiv.classList.remove('show');
+            continueBtn.disabled = true;
+            continueBtn.innerHTML = '<span class="loading"></span> Verifying...';
+
+            try {
+                // Validate the code exists
+                const response = await fetch(`/.netlify/functions/validate-signup-code?code=${encodeURIComponent(code)}`);
+                const data = await response.json();
+
+                if (!response.ok || !data.valid) {
+                    throw new Error(data.error || 'Invalid signup code');
+                }
+
+                // Redirect to intake form with the code
+                window.location.href = `/client-intake.html?code=${encodeURIComponent(code)}`;
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.add('show');
+                continueBtn.disabled = false;
+                continueBtn.textContent = 'Continue';
+            }
+        });
+    </script>
+</body>
+</html>

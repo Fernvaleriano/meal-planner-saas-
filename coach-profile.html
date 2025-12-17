@@ -1048,6 +1048,41 @@
                     </div>
                 </div>
 
+                <!-- Client Signup Code -->
+                <div class="settings-card" id="signupCodeCard">
+                    <div class="settings-card-title">Client Signup</div>
+                    <div class="settings-item" style="cursor: default;">
+                        <div class="settings-item-left">
+                            <div class="settings-icon"><i data-lucide="user-plus"></i></div>
+                            <div>
+                                <div class="settings-label">Your Signup Code</div>
+                                <div class="settings-sublabel" style="font-family: monospace; font-size: 18px; font-weight: 700; letter-spacing: 2px; color: #0d9488;" id="signupCodeDisplay">Loading...</div>
+                            </div>
+                        </div>
+                        <button onclick="copySignupCode()" style="background: #f1f5f9; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: #475569;" id="copyCodeBtn">Copy</button>
+                    </div>
+                    <div class="settings-item" style="cursor: default;">
+                        <div class="settings-item-left">
+                            <div class="settings-icon"><i data-lucide="link"></i></div>
+                            <div>
+                                <div class="settings-label">Signup Link</div>
+                                <div class="settings-sublabel" style="font-size: 12px; word-break: break-all;" id="signupLinkDisplay">Loading...</div>
+                            </div>
+                        </div>
+                        <button onclick="copySignupLink()" style="background: #f1f5f9; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: #475569;" id="copyLinkBtn">Copy</button>
+                    </div>
+                    <div class="settings-item" onclick="openRegenerateCodeModal()">
+                        <div class="settings-item-left">
+                            <div class="settings-icon"><i data-lucide="refresh-cw"></i></div>
+                            <div>
+                                <div class="settings-label">Regenerate Code</div>
+                                <div class="settings-sublabel">Get a new signup code (old code will stop working)</div>
+                            </div>
+                        </div>
+                        <span class="settings-arrow">›</span>
+                    </div>
+                </div>
+
                 <!-- Subscription Settings -->
                 <div class="settings-card" id="subscriptionCard">
                     <div class="settings-card-title">Subscription</div>
@@ -1329,6 +1364,9 @@
 
                 // Update subscription display
                 updateSubscriptionDisplay(coachData);
+
+                // Update signup code display
+                updateSignupCodeDisplay(coachData);
 
                 // Show content
                 loadingDiv.style.display = 'none';
@@ -1763,6 +1801,97 @@
                 endRow.style.display = 'none';
                 cancelRow.style.display = status === 'canceled' || status === 'none' ? 'none' : 'flex';
             }
+        }
+
+        // Signup Code Functions
+        let currentSignupCode = null;
+
+        function updateSignupCodeDisplay(coachData) {
+            const codeDisplay = document.getElementById('signupCodeDisplay');
+            const linkDisplay = document.getElementById('signupLinkDisplay');
+
+            if (coachData.signup_code) {
+                currentSignupCode = coachData.signup_code;
+                codeDisplay.textContent = coachData.signup_code;
+                linkDisplay.textContent = `${window.location.origin}/join?code=${coachData.signup_code}`;
+            } else {
+                codeDisplay.textContent = 'Not set';
+                linkDisplay.textContent = 'Generate a code first';
+            }
+        }
+
+        function copySignupCode() {
+            if (!currentSignupCode) return;
+
+            navigator.clipboard.writeText(currentSignupCode).then(() => {
+                const btn = document.getElementById('copyCodeBtn');
+                btn.textContent = 'Copied!';
+                btn.style.background = '#dcfce7';
+                btn.style.color = '#16a34a';
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.style.background = '#f1f5f9';
+                    btn.style.color = '#475569';
+                }, 2000);
+            });
+        }
+
+        function copySignupLink() {
+            if (!currentSignupCode) return;
+
+            const link = `${window.location.origin}/join?code=${currentSignupCode}`;
+            navigator.clipboard.writeText(link).then(() => {
+                const btn = document.getElementById('copyLinkBtn');
+                btn.textContent = 'Copied!';
+                btn.style.background = '#dcfce7';
+                btn.style.color = '#16a34a';
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.style.background = '#f1f5f9';
+                    btn.style.color = '#475569';
+                }, 2000);
+            });
+        }
+
+        function openRegenerateCodeModal() {
+            if (confirm('Are you sure you want to regenerate your signup code? The old code will stop working immediately.')) {
+                regenerateSignupCode();
+            }
+        }
+
+        async function regenerateSignupCode() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) return;
+
+                // Generate new 8-character code
+                const newCode = generateRandomCode(8);
+
+                const { error } = await supabaseClient
+                    .from('coaches')
+                    .update({ signup_code: newCode })
+                    .eq('id', session.user.id);
+
+                if (error) throw error;
+
+                currentSignupCode = newCode;
+                document.getElementById('signupCodeDisplay').textContent = newCode;
+                document.getElementById('signupLinkDisplay').textContent = `${window.location.origin}/join?code=${newCode}`;
+
+                alert('Your signup code has been regenerated!');
+            } catch (error) {
+                console.error('Error regenerating code:', error);
+                alert('Failed to regenerate code. Please try again.');
+            }
+        }
+
+        function generateRandomCode(length) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing characters like 0, O, I, 1
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
         }
 
         // Profile Photo Functions

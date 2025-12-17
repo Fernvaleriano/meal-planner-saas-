@@ -897,9 +897,11 @@
         const coachNameEl = document.getElementById('coachName');
         const errorMessageEl = document.getElementById('errorMessage');
 
-        // Get token from URL
+        // Get token or code from URL
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
+        const signupCode = urlParams.get('code');
+        const isSignupCodeFlow = !!signupCode && !token;
 
         let clientData = null;
         let coachData = null;
@@ -952,8 +954,38 @@
             return { feet, inches };
         }
 
-        // Validate intake token
+        // Validate intake token or signup code
         async function validateToken() {
+            // Handle signup code flow
+            if (isSignupCodeFlow) {
+                try {
+                    const response = await fetch(`/.netlify/functions/validate-signup-code?code=${encodeURIComponent(signupCode)}`);
+                    const data = await response.json();
+
+                    if (!response.ok || !data.valid) {
+                        showError(data.error || 'Invalid signup code. Please check with your coach.');
+                        return;
+                    }
+
+                    coachData = data.coach;
+
+                    // Show coach name
+                    if (coachData && coachData.name) {
+                        coachNameEl.textContent = coachData.name;
+                    }
+
+                    // Show form
+                    loadingState.style.display = 'none';
+                    formContent.style.display = 'block';
+
+                } catch (error) {
+                    console.error('Code validation error:', error);
+                    showError('Unable to validate signup code. Please try again or contact your coach.');
+                }
+                return;
+            }
+
+            // Handle token flow (invited clients)
             if (!token) {
                 showError('No invitation token provided. Please use the link from your invitation email.');
                 return;
@@ -1073,7 +1105,6 @@
             }
 
             const formData = {
-                token: token,
                 name: document.getElementById('name').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
@@ -1096,11 +1127,23 @@
                 unitPreference: unitSystem
             };
 
+            // Add token or signupCode based on flow
+            if (isSignupCodeFlow) {
+                formData.signupCode = signupCode;
+            } else {
+                formData.token = token;
+            }
+
             submitBtn.disabled = true;
             submitBtn.textContent = 'Creating your account...';
 
+            // Use appropriate endpoint based on flow
+            const endpoint = isSignupCodeFlow
+                ? '/.netlify/functions/client-self-register'
+                : '/.netlify/functions/complete-client-registration';
+
             try {
-                const response = await fetch('/.netlify/functions/complete-client-registration', {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
