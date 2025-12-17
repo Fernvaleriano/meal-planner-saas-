@@ -75,6 +75,30 @@
   status = 301
   force = true
 
+[[redirects]]
+  from = "/client-checkin.html"
+  to = "/app/check-in"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/client-workouts.html"
+  to = "/app/workouts"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/client-forgot-password.html"
+  to = "/app"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/client-reset-password.html"
+  to = "/app"
+  status = 301
+  force = true
+
 [build.environment]
   NODE_VERSION = "18"
 
