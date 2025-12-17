@@ -28,6 +28,26 @@ const formatDateKey = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+// Helper to get gender-based default goals
+// Male: 2500 cal, Female/default: 2000 cal (using 30/40/30 macro split)
+const getGenderBasedDefaults = (gender) => {
+  const isMale = gender === 'male';
+  return {
+    calorie_goal: isMale ? 2500 : 2000,
+    protein_goal: isMale ? 188 : 150,
+    carbs_goal: isMale ? 250 : 200,
+    fat_goal: isMale ? 83 : 67,
+    fiber_goal: isMale ? 30 : 25,
+    sugar_goal: 50,
+    sodium_goal: 2300,
+    potassium_goal: 3500,
+    calcium_goal: 1000,
+    iron_goal: 18,
+    vitaminC_goal: 90,
+    cholesterol_goal: 300
+  };
+};
+
 function Diary() {
   const { clientData, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -41,7 +61,7 @@ function Diary() {
   const [entries, setEntries] = useState(cachedDiary?.entries || []);
   const [loading, setLoading] = useState(false); // Start false for instant UI
   const [totals, setTotals] = useState(cachedDiary?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
-  const [goals, setGoals] = useState(cachedDiary?.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300, potassium_goal: 3500, calcium_goal: 1000, iron_goal: 18, vitaminC_goal: 90, cholesterol_goal: 300 });
+  const [goals, setGoals] = useState(cachedDiary?.goals || getGenderBasedDefaults(clientData?.gender));
   const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
   const [waterGoal] = useState(8);
   const [aiInput, setAiInput] = useState('');
@@ -127,7 +147,7 @@ function Diary() {
       ]);
 
       const newEntries = diaryData.entries || [];
-      const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
+      const newGoals = diaryData.goals || getGenderBasedDefaults(clientData?.gender);
       const newWater = waterData?.glasses || 0;
 
       // Apply interactions data
@@ -463,7 +483,7 @@ function Diary() {
       apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
     ]).then(([diaryData, waterData, interactionsData]) => {
       const newEntries = diaryData.entries || [];
-      const newGoals = diaryData.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75 };
+      const newGoals = diaryData.goals || getGenderBasedDefaults(clientData?.gender);
       const newWater = waterData?.glasses || 0;
 
       // Apply interactions data
