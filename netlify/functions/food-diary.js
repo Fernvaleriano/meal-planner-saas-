@@ -236,9 +236,24 @@ exports.handler = async (event) => {
         notes: notes || null
       };
 
-      // Only add coach_id if it's a valid UUID (not null, undefined, or empty)
-      if (coachId && typeof coachId === 'string' && coachId.length > 0) {
-        insertData.coach_id = coachId;
+      // Ensure coach_id is set - look it up from clients table if not provided
+      let resolvedCoachId = coachId;
+      if (!resolvedCoachId || typeof resolvedCoachId !== 'string' || resolvedCoachId.length === 0) {
+        // Look up coach_id from the client's record
+        const { data: clientRecord } = await supabase
+          .from('clients')
+          .select('coach_id')
+          .eq('id', clientId)
+          .single();
+
+        if (clientRecord?.coach_id) {
+          resolvedCoachId = clientRecord.coach_id;
+          console.log('POST - Looked up coach_id from client record:', resolvedCoachId);
+        }
+      }
+
+      if (resolvedCoachId && typeof resolvedCoachId === 'string' && resolvedCoachId.length > 0) {
+        insertData.coach_id = resolvedCoachId;
       }
       console.log('POST - Inserting:', JSON.stringify(insertData));
 
