@@ -2193,7 +2193,7 @@
                 // Coach viewing from client profile - go back to client profile
                 backButton.href = `client-profile.html?clientId=${fromClientId}`;
             } else if (clientView || shareId) {
-                backButton.href = 'client-dashboard.html';
+                backButton.href = '/app';
             } else {
                 backButton.href = 'dashboard.html';
             }
@@ -2307,7 +2307,7 @@
                     const { data: { session: existingSession } } = await supabaseClient.auth.getSession();
                     if (!existingSession) {
                         alert('Please log in to view this plan.');
-                        const redirectUrl = isClientView ? 'client-login.html' : 'index.html';
+                        const redirectUrl = isClientView ? '/app' : 'index.html';
                         window.location.href = redirectUrl;
                         return;
                     }
@@ -2320,7 +2320,7 @@
                 if (!session || !session.access_token) {
                     console.error('No valid session after refresh');
                     alert('Please log in to view this plan.');
-                    const redirectUrl = isClientView ? 'client-login.html' : 'index.html';
+                    const redirectUrl = isClientView ? '/app' : 'index.html';
                     window.location.href = redirectUrl;
                     return;
                 }
@@ -2343,7 +2343,7 @@
                     if (clientError || !clientData) {
                         console.error('Client lookup error:', clientError);
                         alert('Client account not found. Please contact your coach.');
-                        window.location.href = 'client-login.html';
+                        window.location.href = '/app';
                         return;
                     }
 
@@ -2483,7 +2483,7 @@
             } catch (error) {
                 console.error('Error loading plan:', error);
                 alert('Failed to load plan. Please try again.');
-                const redirectUrl = isClientView ? 'client-dashboard.html' : 'dashboard.html';
+                const redirectUrl = isClientView ? '/app' : 'dashboard.html';
                 window.location.href = redirectUrl;
             }
         }
@@ -2522,7 +2522,7 @@
                 // Plan was deleted by coach
                 console.log('Plan deleted');
                 alert('This meal plan has been removed by your coach.');
-                const redirectUrl = isClientView ? 'client-dashboard.html' : 'dashboard.html';
+                const redirectUrl = isClientView ? '/app' : 'dashboard.html';
                 window.location.href = redirectUrl;
             } else if (eventType === 'UPDATE') {
                 // Plan was updated - reload and display
@@ -6554,7 +6554,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             if (failCount === 0) {
                 btn.innerHTML = `<span class="btn-icon">✓</span><span class="btn-text">All ${successCount} Meals Logged!</span>`;
                 btn.style.background = 'linear-gradient(135deg, #15803d 0%, #166534 100%)';
-                hint.innerHTML = `<span class="log-progress-text" style="color: #15803d;">✓ Successfully logged all meals to today's diary. <a href="client-diary.html" style="color: #0369a1; font-weight: 600;">View Diary →</a></span>`;
+                hint.innerHTML = `<span class="log-progress-text" style="color: #15803d;">✓ Successfully logged all meals to today's diary. <a href="/app/diary" style="color: #0369a1; font-weight: 600;">View Diary →</a></span>`;
             } else {
                 btn.innerHTML = `<span class="btn-icon">⚠️</span><span class="btn-text">${successCount} Logged, ${failCount} Failed</span>`;
                 btn.style.background = 'linear-gradient(135deg, #ca8a04 0%, #a16207 100%)';
@@ -6936,7 +6936,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
 
     <!-- Bottom Navigation (Client only) -->
     <nav class="bottom-nav" id="clientBottomNav" style="display: none;">
-        <a href="client-dashboard.html" class="bottom-nav-item">
+        <a href="/app" class="bottom-nav-item">
             <div class="nav-icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
@@ -6944,7 +6944,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             </div>
             <span class="nav-label">Home</span>
         </a>
-        <a href="client-diary.html" class="bottom-nav-item">
+        <a href="/app/diary" class="bottom-nav-item">
             <div class="nav-icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -6953,7 +6953,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             </div>
             <span class="nav-label">Diary</span>
         </a>
-        <a href="client-plans.html" class="bottom-nav-item active">
+        <a href="/app/plans" class="bottom-nav-item active">
             <div class="nav-icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
@@ -6961,7 +6961,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             </div>
             <span class="nav-label">Plans</span>
         </a>
-        <a href="client-settings.html" class="bottom-nav-item">
+        <a href="/app/settings" class="bottom-nav-item">
             <div class="nav-icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>

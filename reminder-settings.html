@@ -990,7 +990,7 @@
             const previewBody = message
                 .replace(/{client_name}/g, 'John')
                 .replace(/{coach_name}/g, 'Your Coach')
-                .replace(/{checkin_link}/g, window.location.origin + '/client-dashboard.html');
+                .replace(/{checkin_link}/g, window.location.origin + '/app');
 
             document.getElementById('previewSubject').textContent = previewSubject;
             document.getElementById('previewBody').textContent = previewBody;
