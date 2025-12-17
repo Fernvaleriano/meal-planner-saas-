@@ -1,5 +1,5 @@
 // Netlify Function to get client activity feed for coaches
-// Shows recent food diary entries from all clients for the coach to engage with
+// Shows recent food diary entries grouped by meal for the coach to engage with
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -38,7 +38,10 @@ exports.handler = async (event) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Build the query for diary entries
+    // Build the query for diary entries - fetch more than limit to account for grouping
+    // We'll fetch extra entries to ensure we have enough meals after grouping
+    const fetchLimit = parseInt(limit, 10) * 5; // Fetch 5x to account for multiple items per meal
+
     let query = supabase
       .from('food_diary_entries')
       .select(`
@@ -59,7 +62,7 @@ exports.handler = async (event) => {
       `)
       .eq('coach_id', coachId)
       .order('created_at', { ascending: false })
-      .range(parseInt(offset, 10), parseInt(offset, 10) + parseInt(limit, 10) - 1);
+      .limit(fetchLimit);
 
     // Apply filters
     if (clientId) {
@@ -89,7 +92,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ entries: [], clients: {}, reactions: {}, comments: {} })
+        body: JSON.stringify({ meals: [], clients: {}, hasMore: false })
       };
     }
 
@@ -148,50 +151,108 @@ exports.handler = async (event) => {
       });
     });
 
-    // Enrich entries with client info
-    const enrichedEntries = entries.map(entry => ({
-      id: entry.id,
-      clientId: entry.client_id,
-      clientName: clientMap[entry.client_id]?.name || 'Client',
-      clientPhoto: clientMap[entry.client_id]?.photo,
-      entryDate: entry.entry_date,
-      mealType: entry.meal_type,
-      foodName: entry.food_name,
-      brand: entry.brand,
-      calories: entry.calories,
-      protein: entry.protein,
-      carbs: entry.carbs,
-      fat: entry.fat,
-      servingSize: entry.serving_size,
-      servingUnit: entry.serving_unit,
-      numberOfServings: entry.number_of_servings,
-      createdAt: entry.created_at,
-      reaction: reactionsMap[entry.id] || null,
-      comments: commentsMap[entry.id] || []
-    }));
+    // Group entries by client + date + meal_type
+    const mealsMap = new Map();
 
-    // Get total count for pagination
-    let countQuery = supabase
-      .from('food_diary_entries')
-      .select('id', { count: 'exact', head: true })
-      .eq('coach_id', coachId);
+    entries.forEach(entry => {
+      const mealKey = `${entry.client_id}_${entry.entry_date}_${entry.meal_type}`;
 
-    if (clientId) countQuery = countQuery.eq('client_id', clientId);
-    if (mealType) countQuery = countQuery.eq('meal_type', mealType);
-    if (date) countQuery = countQuery.eq('entry_date', date);
-    if (startDate) countQuery = countQuery.gte('entry_date', startDate);
-    if (endDate) countQuery = countQuery.lte('entry_date', endDate);
+      if (!mealsMap.has(mealKey)) {
+        mealsMap.set(mealKey, {
+          mealKey,
+          clientId: entry.client_id,
+          clientName: clientMap[entry.client_id]?.name || 'Client',
+          clientPhoto: clientMap[entry.client_id]?.photo,
+          entryDate: entry.entry_date,
+          mealType: entry.meal_type,
+          items: [],
+          totalCalories: 0,
+          totalProtein: 0,
+          totalCarbs: 0,
+          totalFat: 0,
+          latestCreatedAt: entry.created_at,
+          entryIds: [],
+          reactions: [],
+          comments: []
+        });
+      }
 
-    const { count } = await countQuery;
+      const meal = mealsMap.get(mealKey);
+
+      // Add food item to the meal
+      meal.items.push({
+        id: entry.id,
+        foodName: entry.food_name,
+        brand: entry.brand,
+        calories: entry.calories || 0,
+        protein: entry.protein || 0,
+        carbs: entry.carbs || 0,
+        fat: entry.fat || 0,
+        servingSize: entry.serving_size,
+        servingUnit: entry.serving_unit,
+        numberOfServings: entry.number_of_servings,
+        createdAt: entry.created_at
+      });
+
+      // Sum up macros
+      meal.totalCalories += entry.calories || 0;
+      meal.totalProtein += entry.protein || 0;
+      meal.totalCarbs += entry.carbs || 0;
+      meal.totalFat += entry.fat || 0;
+
+      // Track entry IDs for reactions/comments
+      meal.entryIds.push(entry.id);
+
+      // Update latest created_at for sorting
+      if (new Date(entry.created_at) > new Date(meal.latestCreatedAt)) {
+        meal.latestCreatedAt = entry.created_at;
+      }
+
+      // Collect reactions for this entry
+      if (reactionsMap[entry.id]) {
+        meal.reactions.push({
+          entryId: entry.id,
+          ...reactionsMap[entry.id]
+        });
+      }
+
+      // Collect comments for this entry
+      if (commentsMap[entry.id]) {
+        meal.comments.push(...commentsMap[entry.id].map(c => ({
+          entryId: entry.id,
+          ...c
+        })));
+      }
+    });
+
+    // Convert to array and sort by latest activity
+    let meals = Array.from(mealsMap.values())
+      .sort((a, b) => new Date(b.latestCreatedAt) - new Date(a.latestCreatedAt));
+
+    // Apply pagination to grouped meals
+    const startIdx = parseInt(offset, 10);
+    const endIdx = startIdx + parseInt(limit, 10);
+    const paginatedMeals = meals.slice(startIdx, endIdx);
+    const hasMore = endIdx < meals.length;
+
+    // Round the totals
+    paginatedMeals.forEach(meal => {
+      meal.totalCalories = Math.round(meal.totalCalories);
+      meal.totalProtein = Math.round(meal.totalProtein);
+      meal.totalCarbs = Math.round(meal.totalCarbs);
+      meal.totalFat = Math.round(meal.totalFat);
+      // Sort comments by date
+      meal.comments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    });
 
     return {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({
-        entries: enrichedEntries,
+        meals: paginatedMeals,
         clients: clientMap,
-        totalCount: count || 0,
-        hasMore: (parseInt(offset, 10) + entries.length) < (count || 0)
+        totalMeals: meals.length,
+        hasMore
       })
     };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, User, Calendar, RefreshCw, MessageCircle, Send } from 'lucide-react';
+import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -8,14 +8,19 @@ import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefr
 // Available reaction emojis
 const REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
 
-// Meal type icons
-const getMealIcon = (mealType) => {
+// Meal type config
+const getMealConfig = (mealType) => {
   switch (mealType) {
-    case 'breakfast': return <Sunrise size={16} className="meal-icon breakfast" />;
-    case 'lunch': return <Sun size={16} className="meal-icon lunch" />;
-    case 'dinner': return <Moon size={16} className="meal-icon dinner" />;
-    case 'snack': return <Apple size={16} className="meal-icon snack" />;
-    default: return null;
+    case 'breakfast':
+      return { icon: Sunrise, label: 'Breakfast', color: '#f59e0b' };
+    case 'lunch':
+      return { icon: Sun, label: 'Lunch', color: '#f97316' };
+    case 'dinner':
+      return { icon: Moon, label: 'Dinner', color: '#8b5cf6' };
+    case 'snack':
+      return { icon: Apple, label: 'Snack', color: '#10b981' };
+    default:
+      return { icon: Sun, label: mealType, color: '#64748b' };
   }
 };
 
@@ -36,33 +41,44 @@ const formatRelativeTime = (dateStr) => {
   return date.toLocaleDateString();
 };
 
-// Feed entry card component
-function FeedEntryCard({ entry, coachId, onUpdate }) {
+// Meal card component - shows grouped food items
+function MealCard({ meal, coachId, onUpdate }) {
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
-  const [localReaction, setLocalReaction] = useState(entry.reaction?.reaction || null);
-  const [localComments, setLocalComments] = useState(entry.comments || []);
+
+  // Get the first reaction for the meal (simplify to one reaction per meal)
+  const [localReaction, setLocalReaction] = useState(
+    meal.reactions.length > 0 ? meal.reactions[0].reaction : null
+  );
+  const [localComments, setLocalComments] = useState(meal.comments || []);
+
+  // Use the first entry ID for reactions (could be enhanced to react to all)
+  const primaryEntryId = meal.entryIds[0];
+
+  const mealConfig = getMealConfig(meal.mealType);
+  const MealIcon = mealConfig.icon;
 
   const handleReaction = async (reaction) => {
-    if (loading) return;
+    if (loading || !primaryEntryId) return;
     setLoading(true);
 
     try {
       if (localReaction === reaction) {
         // Remove reaction
         await apiDelete('/.netlify/functions/react-to-diary-entry', {
-          entryId: entry.id,
+          entryId: primaryEntryId,
           coachId
         });
         setLocalReaction(null);
       } else {
         // Add/update reaction
         await apiPost('/.netlify/functions/react-to-diary-entry', {
-          entryId: entry.id,
+          entryId: primaryEntryId,
           coachId,
-          clientId: entry.clientId,
+          clientId: meal.clientId,
           reaction
         });
         setLocalReaction(reaction);
@@ -77,13 +93,13 @@ function FeedEntryCard({ entry, coachId, onUpdate }) {
 
   const handleComment = async (e) => {
     e.preventDefault();
-    if (!comment.trim() || loading) return;
+    if (!comment.trim() || loading || !primaryEntryId) return;
 
     setLoading(true);
     try {
       const result = await apiPost('/.netlify/functions/comment-on-diary-entry', {
-        entryId: entry.id,
-        clientId: entry.clientId,
+        entryId: primaryEntryId,
+        clientId: meal.clientId,
         coachId,
         comment: comment.trim(),
         authorType: 'coach'
@@ -105,42 +121,65 @@ function FeedEntryCard({ entry, coachId, onUpdate }) {
   };
 
   return (
-    <div className="feed-entry-card">
-      {/* Header with client info */}
-      <div className="feed-entry-header">
+    <div className="feed-meal-card">
+      {/* Header with client info and meal type */}
+      <div className="feed-meal-header">
         <div className="feed-client-info">
-          {entry.clientPhoto ? (
-            <img src={entry.clientPhoto} alt="" className="feed-client-avatar" />
+          {meal.clientPhoto ? (
+            <img src={meal.clientPhoto} alt="" className="feed-client-avatar" />
           ) : (
             <div className="feed-client-avatar-placeholder">
               <User size={20} />
             </div>
           )}
           <div className="feed-client-details">
-            <span className="feed-client-name">{entry.clientName}</span>
-            <span className="feed-entry-time">
-              {getMealIcon(entry.mealType)}
-              {entry.mealType} • {formatRelativeTime(entry.createdAt)}
-            </span>
+            <span className="feed-client-name">{meal.clientName}</span>
+            <div className="feed-meal-meta">
+              <span
+                className="feed-meal-type-badge"
+                style={{ backgroundColor: `${mealConfig.color}20`, color: mealConfig.color }}
+              >
+                <MealIcon size={14} />
+                {mealConfig.label}
+              </span>
+              <span className="feed-meal-time">{formatRelativeTime(meal.latestCreatedAt)}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Food entry details */}
-      <div className="feed-entry-content">
-        <div className="feed-food-name">{entry.foodName}</div>
-        {entry.brand && <div className="feed-food-brand">{entry.brand}</div>}
-        <div className="feed-food-macros">
-          <span className="macro calories">{entry.calories} cal</span>
-          <span className="macro protein">{Math.round(entry.protein || 0)}g P</span>
-          <span className="macro carbs">{Math.round(entry.carbs || 0)}g C</span>
-          <span className="macro fat">{Math.round(entry.fat || 0)}g F</span>
-        </div>
-        {entry.numberOfServings && entry.numberOfServings !== 1 && (
-          <div className="feed-serving-info">
-            {entry.numberOfServings} servings
+      {/* Food items list */}
+      <div className="feed-meal-content">
+        <button
+          className="feed-meal-toggle"
+          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+        >
+          <span className="feed-meal-item-count">
+            {meal.items.length} item{meal.items.length !== 1 ? 's' : ''}
+          </span>
+          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+
+        {expanded && (
+          <div className="feed-meal-items">
+            {meal.items.map((item, idx) => (
+              <div key={item.id || idx} className="feed-meal-item">
+                <span className="feed-item-name">{item.foodName}</span>
+                {item.brand && <span className="feed-item-brand">{item.brand}</span>}
+                <span className="feed-item-calories">{Math.round(item.calories)} cal</span>
+              </div>
+            ))}
           </div>
         )}
+
+        {/* Total macros */}
+        <div className="feed-meal-totals">
+          <span className="macro-total calories">{meal.totalCalories} cal</span>
+          <span className="macro-total protein">{meal.totalProtein}g P</span>
+          <span className="macro-total carbs">{meal.totalCarbs}g C</span>
+          <span className="macro-total fat">{meal.totalFat}g F</span>
+        </div>
       </div>
 
       {/* Interaction buttons */}
@@ -199,7 +238,7 @@ function FeedEntryCard({ entry, coachId, onUpdate }) {
               {localComments.map((c, idx) => (
                 <div key={c.id || idx} className={`feed-comment ${c.authorType}`}>
                   <span className="feed-comment-author">
-                    {c.authorType === 'coach' ? 'You' : entry.clientName}
+                    {c.authorType === 'coach' ? 'You' : meal.clientName}
                   </span>
                   <span className="feed-comment-text">{c.comment}</span>
                   <span className="feed-comment-time">
@@ -232,7 +271,7 @@ function FeedEntryCard({ entry, coachId, onUpdate }) {
 function Feed() {
   const { user, clientData } = useAuth();
   const navigate = useNavigate();
-  const [entries, setEntries] = useState([]);
+  const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(false);
@@ -272,13 +311,13 @@ function Feed() {
       const result = await apiGet(url);
 
       if (reset) {
-        setEntries(result.entries || []);
+        setMeals(result.meals || []);
       } else {
-        setEntries(prev => [...prev, ...(result.entries || [])]);
+        setMeals(prev => [...prev, ...(result.meals || [])]);
       }
 
       setHasMore(result.hasMore || false);
-      setOffset(currentOffset + (result.entries?.length || 0));
+      setOffset(currentOffset + (result.meals?.length || 0));
 
       // Extract unique clients for filter dropdown
       if (reset && result.clients) {
@@ -328,7 +367,7 @@ function Feed() {
     setShowFilters(false);
   };
 
-  if (loading && entries.length === 0) {
+  if (loading && meals.length === 0) {
     return (
       <div className="feed-page">
         <div className="feed-loading">
@@ -349,7 +388,7 @@ function Feed() {
 
       {/* Header */}
       <div className="feed-header">
-        <h1>Client Activity</h1>
+        <h1>Client Activity Feed</h1>
         <button
           className={`feed-filter-btn ${showFilters ? 'active' : ''}`}
           onClick={() => setShowFilters(!showFilters)}
@@ -414,7 +453,7 @@ function Feed() {
           <p>Error loading feed: {error}</p>
           <button onClick={() => fetchFeed(true)}>Try Again</button>
         </div>
-      ) : entries.length === 0 ? (
+      ) : meals.length === 0 ? (
         <div className="feed-empty">
           <Calendar size={48} />
           <h3>No activity yet</h3>
@@ -422,10 +461,10 @@ function Feed() {
         </div>
       ) : (
         <div className="feed-entries">
-          {entries.map(entry => (
-            <FeedEntryCard
-              key={entry.id}
-              entry={entry}
+          {meals.map(meal => (
+            <MealCard
+              key={meal.mealKey}
+              meal={meal}
               coachId={coachId}
               onUpdate={() => fetchFeed(true)}
             />
