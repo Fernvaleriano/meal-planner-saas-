@@ -80,6 +80,17 @@ body {
     color: var(--gray-900);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* App Layout - prevents horizontal scroll on mobile */
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* ========================================
@@ -13890,9 +13901,13 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     width: 100%;
+    max-width: 100vw;
     overflow: hidden;
     background: linear-gradient(180deg, rgba(13, 148, 136, 0.1) 0%, transparent 100%);
     transition: opacity 0.2s ease;
+    position: relative;
+    left: 0;
+    right: 0;
 }
 
 .refresh-spinner {
@@ -14776,6 +14791,10 @@ a.nav-left {
 .feed-page {
     padding-bottom: 100px;
     min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
 }
 
 .feed-header {
@@ -15349,6 +15368,240 @@ a.nav-left {
     background: #1e293b;
     border-color: #334155;
     color: #e2e8f0;
+}
+
+/* ========================================
+   MEAL CARD STYLES (grouped feed items)
+   ======================================== */
+.feed-meal-card {
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="dark"] .feed-meal-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.feed-meal-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+[data-theme="dark"] .feed-meal-header {
+    border-color: #334155;
+}
+
+.feed-meal-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.feed-meal-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.feed-meal-time {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+}
+
+.feed-meal-content {
+    padding: 0 16px 16px;
+}
+
+.feed-meal-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .feed-meal-toggle {
+    color: #94a3b8;
+}
+
+.feed-meal-toggle:hover {
+    color: var(--brand-primary);
+}
+
+.feed-meal-item-count {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .feed-meal-item-count {
+    color: #e2e8f0;
+}
+
+.feed-meal-items {
+    border-radius: 12px;
+    background: var(--gray-50);
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+[data-theme="dark"] .feed-meal-items {
+    background: #0f172a;
+}
+
+.feed-meal-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--gray-200);
+    gap: 8px;
+}
+
+[data-theme="dark"] .feed-meal-item {
+    border-color: #334155;
+}
+
+.feed-meal-item:last-child {
+    border-bottom: none;
+}
+
+.feed-item-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--gray-800);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .feed-item-name {
+    color: #f1f5f9;
+}
+
+.feed-item-brand {
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    flex-shrink: 0;
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.feed-item-calories {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    flex-shrink: 0;
+    min-width: 60px;
+    text-align: right;
+}
+
+[data-theme="dark"] .feed-item-calories {
+    color: #94a3b8;
+}
+
+.feed-meal-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.macro-total {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.macro-total.calories {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+
+.macro-total.protein {
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+}
+
+.macro-total.carbs {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16a34a;
+}
+
+.macro-total.fat {
+    background: rgba(249, 115, 22, 0.12);
+    color: #ea580c;
+}
+
+[data-theme="dark"] .macro-total.calories {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+[data-theme="dark"] .macro-total.protein {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .macro-total.carbs {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+[data-theme="dark"] .macro-total.fat {
+    background: rgba(249, 115, 22, 0.2);
+    color: #fb923c;
+}
+
+/* Mobile optimizations for meal cards */
+@media (max-width: 480px) {
+    .feed-meal-card {
+        margin-left: -8px;
+        margin-right: -8px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .feed-meal-item {
+        padding: 10px 12px;
+    }
+
+    .feed-item-brand {
+        display: none;
+    }
+
+    .feed-meal-totals {
+        gap: 6px;
+    }
+
+    .macro-total {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
 }
 
 /* ========================================
