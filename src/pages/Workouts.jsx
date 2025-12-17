@@ -6,15 +6,18 @@ import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
-// Helper to get date string - wrapped in try/catch for safety
+// Helper to get date string in LOCAL timezone (NOT UTC)
+// Using toISOString() would give UTC which causes wrong dates near midnight
 const formatDate = (date) => {
   try {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-      return new Date().toISOString().split('T')[0];
-    }
-    return date.toISOString().split('T')[0];
+    const d = (date && date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   } catch {
-    return new Date().toISOString().split('T')[0];
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 };
 

@@ -3,6 +3,16 @@ import { X, Camera, Upload, Search, Heart, Loader, Plus, Minus, Check, Trash2 } 
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { useToast } from './Toast';
 
+// Get today's date in local timezone (NOT UTC)
+// Using toISOString().split('T')[0] would give UTC date which is wrong for users in different timezones
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   return new Promise((resolve) => {
@@ -117,7 +127,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
     isAddingRef.current = true;
     setIsAdding(true);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
     // Store results for retry
@@ -383,7 +393,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     isAddingRef.current = true;
     setIsAdding(true);
     const nutrition = getScaledNutrition();
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const foodToAdd = { ...selectedFood };
 
     try {
@@ -601,7 +611,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
     addingRef.current = true;
     setAddingId(favorite.id);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
 
     try {
       await ensureFreshSession();
@@ -797,7 +807,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     isAddingRef.current = true;
     setIsAdding(true);
     const nutrition = getScaledNutrition();
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const resultToAdd = { ...result };
 
     try {

@@ -20,6 +20,15 @@ const setCache = (key, data) => {
   } catch (e) { /* ignore */ }
 };
 
+// Get today's date in local timezone (NOT UTC)
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 function Plans() {
   const { clientData } = useAuth();
   const { planId } = useParams();
@@ -502,7 +511,7 @@ function Plans() {
     try {
       setActionLoading('log');
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
