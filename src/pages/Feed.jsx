@@ -290,11 +290,15 @@ function Feed() {
 
   // Fetch feed data
   const fetchFeed = useCallback(async (reset = false) => {
-    if (!coachId) return;
+    if (!coachId) {
+      console.log('Feed: No coachId, skipping fetch');
+      return;
+    }
 
     const currentOffset = reset ? 0 : offset;
     if (reset) {
       setLoading(true);
+      setError(null);
     } else {
       setLoadingMore(true);
     }
@@ -308,7 +312,13 @@ function Feed() {
       if (filterMealType) url += `&mealType=${filterMealType}`;
       if (filterDate) url += `&date=${filterDate}`;
 
+      console.log('Feed: Fetching from', url);
       const result = await apiGet(url);
+      console.log('Feed: Got result', result);
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
       if (reset) {
         setMeals(result.meals || []);
@@ -328,8 +338,8 @@ function Feed() {
         setClients(clientList);
       }
     } catch (err) {
-      console.error('Error fetching feed:', err);
-      setError(err.message);
+      console.error('Feed: Error fetching feed:', err);
+      setError(err.message || 'Failed to load feed');
     } finally {
       setLoading(false);
       setLoadingMore(false);
