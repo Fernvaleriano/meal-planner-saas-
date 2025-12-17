@@ -66,10 +66,22 @@ exports.handler = async (event) => {
       console.error('Error fetching replies:', repliesError);
     }
 
-    // Get unique client IDs from both reactions and replies
+    // Get all views for this story
+    const { data: views, error: viewsError } = await supabase
+      .from('story_views')
+      .select('client_id, viewed_at')
+      .eq('story_id', storyId)
+      .order('viewed_at', { ascending: false });
+
+    if (viewsError) {
+      console.error('Error fetching views:', viewsError);
+    }
+
+    // Get unique client IDs from reactions, replies, and views
     const clientIds = [...new Set([
       ...(reactions || []).map(r => r.client_id),
-      ...(replies || []).map(r => r.client_id)
+      ...(replies || []).map(r => r.client_id),
+      ...(views || []).map(v => v.client_id)
     ])];
 
     // Fetch client names
@@ -103,6 +115,13 @@ exports.handler = async (event) => {
       createdAt: r.created_at
     }));
 
+    // Format views with client names
+    const formattedViews = (views || []).map(v => ({
+      clientId: v.client_id,
+      clientName: clientMap[v.client_id] || 'Unknown Client',
+      viewedAt: v.viewed_at
+    }));
+
     // Group reactions by emoji for summary
     const reactionSummary = {};
     formattedReactions.forEach(r => {
@@ -127,8 +146,10 @@ exports.handler = async (event) => {
         reactions: formattedReactions,
         reactionSummary,
         replies: formattedReplies,
+        views: formattedViews,
         totalReactions: formattedReactions.length,
-        totalReplies: formattedReplies.length
+        totalReplies: formattedReplies.length,
+        totalViews: formattedViews.length
       })
     };
 

@@ -1857,6 +1857,21 @@
             font-size: 1.25rem;
         }
 
+        /* Views list - more compact since no additional content */
+        .views-list .view-item {
+            padding: 8px 12px;
+        }
+
+        .views-list .view-item .interaction-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 0.875rem;
+        }
+
+        .views-list .view-item .interaction-header {
+            margin-bottom: 0;
+        }
+
         .no-interactions {
             text-align: center;
             padding: 24px;
@@ -4151,20 +4166,44 @@
 
         function renderInteractions(data) {
             const body = document.getElementById('interactionsModalBody');
-            const { reactions, reactionSummary, replies, totalReactions, totalReplies } = data;
+            const { reactions, reactionSummary, replies, views, totalReactions, totalReplies, totalViews } = data;
 
-            if (totalReactions === 0 && totalReplies === 0) {
+            if (totalViews === 0 && totalReactions === 0 && totalReplies === 0) {
                 body.innerHTML = `
                     <div class="no-interactions">
                         <span class="no-interactions-icon">💭</span>
                         <p>No interactions yet</p>
-                        <p style="font-size: 0.875rem; margin-top: 4px;">Your clients haven't reacted or commented on this story yet.</p>
+                        <p style="font-size: 0.875rem; margin-top: 4px;">Your clients haven't viewed or interacted with this story yet.</p>
                     </div>
                 `;
                 return;
             }
 
             let html = '';
+
+            // Views section (show first - who saw the story)
+            if (totalViews > 0) {
+                html += `
+                    <div class="interactions-section">
+                        <div class="interactions-section-title">
+                            <span>👁️</span> Viewed by (${totalViews})
+                        </div>
+                        <div class="interaction-list views-list">
+                            ${views.map(v => `
+                                <div class="interaction-item view-item">
+                                    <div class="interaction-avatar">${getInitials(v.clientName)}</div>
+                                    <div class="interaction-content">
+                                        <div class="interaction-header">
+                                            <span class="interaction-name">${escapeHtml(v.clientName)}</span>
+                                            <span class="interaction-time">${formatTimeAgo(v.viewedAt)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
 
             // Reactions section
             if (totalReactions > 0) {
