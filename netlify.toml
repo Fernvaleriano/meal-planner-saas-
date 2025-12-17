@@ -26,6 +26,13 @@
   to = "/app/:splat"
   status = 301
 
+# Redirect old PWA start_url to new SPA
+[[redirects]]
+  from = "/portal.html"
+  to = "/app"
+  status = 301
+  force = true
+
 # Redirect old PWA URLs to new SPA at /app
 [[redirects]]
   from = "/client-login.html"
