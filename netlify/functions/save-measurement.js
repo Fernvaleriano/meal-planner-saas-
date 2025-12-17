@@ -1,5 +1,6 @@
 // Netlify Function to save client measurements
 const { createClient } = require('@supabase/supabase-js');
+const { getDefaultDate } = require('./utils/timezone');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -53,7 +54,8 @@ exports.handler = async (event, context) => {
       leftThigh,
       rightThigh,
       measurementUnit,
-      notes
+      notes,
+      timezone
     } = body;
 
     // Validate required fields with detailed error messages
@@ -84,7 +86,7 @@ exports.handler = async (event, context) => {
       .insert([{
         client_id: clientId,
         coach_id: coachId,
-        measured_date: measuredDate || new Date().toISOString().split('T')[0],
+        measured_date: getDefaultDate(measuredDate, timezone),
         weight: weight || null,
         weight_unit: weightUnit || 'lbs',
         body_fat_percentage: bodyFatPercentage || null,

@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { getDefaultDate } = require('./utils/timezone');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -110,7 +111,8 @@ exports.handler = async (event) => {
         assignmentId,
         workoutDate,
         workoutName,
-        exercises // Array of exercise data
+        exercises, // Array of exercise data
+        timezone
       } = body;
 
       if (!clientId) {
@@ -128,7 +130,7 @@ exports.handler = async (event) => {
           client_id: clientId,
           coach_id: coachId,
           assignment_id: assignmentId,
-          workout_date: workoutDate || new Date().toISOString().split('T')[0],
+          workout_date: getDefaultDate(workoutDate, timezone),
           workout_name: workoutName,
           started_at: new Date().toISOString(),
           status: 'in_progress'

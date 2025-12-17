@@ -1,5 +1,6 @@
 // Netlify Function for tracking water intake
 const { createClient } = require('@supabase/supabase-js');
+const { getDefaultDate } = require('./utils/timezone');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -30,7 +31,7 @@ exports.handler = async (event) => {
   try {
     // GET - Fetch water intake for a date
     if (event.httpMethod === 'GET') {
-      const { clientId, date } = event.queryStringParameters || {};
+      const { clientId, date, timezone } = event.queryStringParameters || {};
 
       if (!clientId) {
         return {
@@ -40,7 +41,7 @@ exports.handler = async (event) => {
         };
       }
 
-      const targetDate = date || new Date().toISOString().split('T')[0];
+      const targetDate = getDefaultDate(date, timezone);
 
       const { data: intake, error } = await supabase
         .from('water_intake')
@@ -67,7 +68,7 @@ exports.handler = async (event) => {
     // POST - Update water intake (add/remove glasses)
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { clientId, glasses, date, action } = body;
+      const { clientId, glasses, date, action, timezone } = body;
 
       if (!clientId) {
         return {
@@ -77,7 +78,7 @@ exports.handler = async (event) => {
         };
       }
 
-      const targetDate = date || new Date().toISOString().split('T')[0];
+      const targetDate = getDefaultDate(date, timezone);
 
       // Get current intake
       const { data: existing } = await supabase

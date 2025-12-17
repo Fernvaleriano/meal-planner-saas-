@@ -1,5 +1,17 @@
 import { supabase } from './supabase';
 
+/**
+ * Get the user's timezone using the browser's Intl API
+ * Returns IANA timezone string like 'America/Los_Angeles' or 'Asia/Bangkok'
+ */
+function getUserTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'UTC';
+  }
+}
+
 // Session cache to avoid repeated getSession calls within short timeframes
 let sessionCache = {
   session: null,
@@ -205,23 +217,35 @@ async function authenticatedFetch(url, options = {}) {
 
 // API helper methods
 export async function apiGet(url) {
-  return authenticatedFetch(url, { method: 'GET' });
+  // Add timezone to query parameters for date-aware endpoints
+  const timezone = getUserTimezone();
+  const separator = url.includes('?') ? '&' : '?';
+  const urlWithTimezone = `${url}${separator}timezone=${encodeURIComponent(timezone)}`;
+  return authenticatedFetch(urlWithTimezone, { method: 'GET' });
 }
 
 export async function apiPost(url, data) {
+  // Add timezone to request body for date-aware endpoints
+  const timezone = getUserTimezone();
   return authenticatedFetch(url, {
     method: 'POST',
-    body: JSON.stringify(data)
+    body: JSON.stringify({ ...data, timezone })
   });
 }
 
 export async function apiPut(url, data) {
+  // Add timezone to request body for date-aware endpoints
+  const timezone = getUserTimezone();
   return authenticatedFetch(url, {
     method: 'PUT',
-    body: JSON.stringify(data)
+    body: JSON.stringify({ ...data, timezone })
   });
 }
 
 export async function apiDelete(url) {
-  return authenticatedFetch(url, { method: 'DELETE' });
+  // Add timezone to query parameters for date-aware endpoints
+  const timezone = getUserTimezone();
+  const separator = url.includes('?') ? '&' : '?';
+  const urlWithTimezone = `${url}${separator}timezone=${encodeURIComponent(timezone)}`;
+  return authenticatedFetch(urlWithTimezone, { method: 'DELETE' });
 }
