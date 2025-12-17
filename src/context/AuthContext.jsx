@@ -98,7 +98,7 @@ export function AuthProvider({ children }) {
       // Fetch client data and check coach status in parallel
       const fetchPromise = supabase
         .from('clients')
-        .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal')
+        .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal, gender')
         .eq('user_id', userId)
         .single();
 

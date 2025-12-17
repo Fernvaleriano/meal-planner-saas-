@@ -71,14 +71,23 @@ exports.handler = async (event) => {
         .eq('client_id', clientId)
         .single();
 
-      // Run BOTH queries in parallel for faster loading
-      const [entriesResult, goalsResult] = await Promise.all([
+      // Build client query to get gender for fallback defaults
+      const clientQuery = supabase
+        .from('clients')
+        .select('gender')
+        .eq('id', clientId)
+        .single();
+
+      // Run ALL queries in parallel for faster loading
+      const [entriesResult, goalsResult, clientResult] = await Promise.all([
         entriesQuery,
-        goalsQuery
+        goalsQuery,
+        clientQuery
       ]);
 
       const { data: entries, error } = entriesResult;
       const { data: goals } = goalsResult;
+      const { data: clientInfo } = clientResult;
 
       if (error) throw error;
 
@@ -141,6 +150,21 @@ exports.handler = async (event) => {
       totals.vitaminC = Math.round(totals.vitaminC * 10) / 10;
       totals.cholesterol = Math.round(totals.cholesterol);
 
+      // Use gender-based defaults if no goals exist
+      // Male: 2500 cal, Female/default: 2000 cal (using 30/40/30 macro split)
+      const isMale = clientInfo?.gender === 'male';
+      const defaultGoals = isMale ? {
+        calorie_goal: 2500,
+        protein_goal: 188,
+        carbs_goal: 250,
+        fat_goal: 83
+      } : {
+        calorie_goal: 2000,
+        protein_goal: 150,
+        carbs_goal: 200,
+        fat_goal: 67
+      };
+
       return {
         statusCode: 200,
         headers,
@@ -148,12 +172,7 @@ exports.handler = async (event) => {
           entries: entries || [],
           mealGroups,
           totals,
-          goals: goals || {
-            calorie_goal: 2000,
-            protein_goal: 150,
-            carbs_goal: 200,
-            fat_goal: 65
-          }
+          goals: goals || defaultGoals
         })
       };
     }

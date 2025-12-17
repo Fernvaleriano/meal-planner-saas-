@@ -40,18 +40,38 @@ exports.handler = async (event) => {
         throw error;
       }
 
-      // Return default goals if none exist
+      // If no goals exist, use gender-based defaults
+      let defaultGoals = goals;
+      if (!goals) {
+        // Fetch client's gender for gender-based defaults
+        const { data: client } = await supabase
+          .from('clients')
+          .select('gender')
+          .eq('id', clientId)
+          .single();
+
+        const isMale = client?.gender === 'male';
+        // Male: 2500 cal, Female: 2000 cal (using 30/40/30 macro split)
+        defaultGoals = isMale ? {
+          calorie_goal: 2500,
+          protein_goal: 188,  // (2500 * 0.30) / 4
+          carbs_goal: 250,    // (2500 * 0.40) / 4
+          fat_goal: 83,       // (2500 * 0.30) / 9
+          fiber_goal: 30
+        } : {
+          calorie_goal: 2000,
+          protein_goal: 150,  // (2000 * 0.30) / 4
+          carbs_goal: 200,    // (2000 * 0.40) / 4
+          fat_goal: 67,       // (2000 * 0.30) / 9
+          fiber_goal: 25
+        };
+      }
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          goals: goals || {
-            calorie_goal: 2000,
-            protein_goal: 150,
-            carbs_goal: 200,
-            fat_goal: 65,
-            fiber_goal: 25
-          }
+          goals: defaultGoals
         })
       };
     }
@@ -133,16 +153,29 @@ exports.handler = async (event) => {
         if (error) throw error;
         result = data;
       } else {
-        // Insert new
+        // Insert new - use gender-based defaults if no values provided
+        let defaults = { calorie: 2000, protein: 150, carbs: 200, fat: 67 };
+        if (!calorieGoal || !proteinGoal || !carbsGoal || !fatGoal) {
+          const { data: client } = await supabase
+            .from('clients')
+            .select('gender')
+            .eq('id', clientId)
+            .single();
+
+          if (client?.gender === 'male') {
+            defaults = { calorie: 2500, protein: 188, carbs: 250, fat: 83 };
+          }
+        }
+
         const { data, error } = await supabase
           .from('calorie_goals')
           .insert([{
             client_id: clientId,
             coach_id: coachId,
-            calorie_goal: calorieGoal || 2000,
-            protein_goal: proteinGoal || 150,
-            carbs_goal: carbsGoal || 200,
-            fat_goal: fatGoal || 65,
+            calorie_goal: calorieGoal || defaults.calorie,
+            protein_goal: proteinGoal || defaults.protein,
+            carbs_goal: carbsGoal || defaults.carbs,
+            fat_goal: fatGoal || defaults.fat,
             fiber_goal: fiberGoal || null,
             sugar_goal: sugarGoal || null,
             sodium_goal: sodiumGoal || null
