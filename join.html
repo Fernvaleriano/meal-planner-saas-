@@ -354,21 +354,21 @@
                     <input type="password" id="confirmPassword" placeholder="Confirm your password">
                 </div>
 
-                <p class="section-title" style="margin-top: 24px;">Profile Details <span class="optional-badge">Optional</span></p>
+                <p class="section-title" style="margin-top: 24px;">Profile Details</p>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="phone">Phone</label>
+                        <label for="phone">Phone <span class="optional-badge">Optional</span></label>
                         <input type="tel" id="phone" placeholder="(555) 123-4567">
                     </div>
                     <div class="form-group">
-                        <label for="age">Age</label>
-                        <input type="number" id="age" placeholder="30" min="13" max="120">
+                        <label for="age">Age <span class="required">*</span></label>
+                        <input type="number" id="age" placeholder="30" min="13" max="120" required>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender">
+                        <label for="gender">Gender <span class="required">*</span></label>
+                        <select id="gender" required>
                             <option value="">Select...</option>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
@@ -376,8 +376,9 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="goal">Goal</label>
-                        <select id="goal">
+                        <label for="goal">Goal <span class="required">*</span></label>
+                        <select id="goal" required>
+                            <option value="">Select...</option>
                             <option value="maintain">Maintain Weight</option>
                             <option value="lose">Lose Weight</option>
                             <option value="gain">Build Muscle</option>
@@ -386,16 +387,26 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="weight">Weight (lbs)</label>
-                        <input type="number" id="weight" placeholder="150" min="50" max="700">
+                        <label for="weight">Weight (lbs) <span class="required">*</span></label>
+                        <input type="number" id="weight" placeholder="150" min="50" max="700" required>
                     </div>
                     <div class="form-group">
-                        <label for="heightFt">Height</label>
+                        <label for="heightFt">Height <span class="required">*</span></label>
                         <div style="display: flex; gap: 8px;">
-                            <input type="number" id="heightFt" placeholder="ft" min="3" max="8" style="width: 50%;">
+                            <input type="number" id="heightFt" placeholder="ft" min="3" max="8" style="width: 50%;" required>
                             <input type="number" id="heightIn" placeholder="in" min="0" max="11" style="width: 50%;">
                         </div>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="allergies">Food Allergies <span class="required">*</span></label>
+                    <input type="text" id="allergies" placeholder="e.g., peanuts, shellfish, dairy (or 'none')" required>
+                    <p class="hint">List any food allergies or type "none"</p>
+                </div>
+                <div class="form-group">
+                    <label for="dislikedFoods">Foods You Dislike <span class="required">*</span></label>
+                    <input type="text" id="dislikedFoods" placeholder="e.g., broccoli, fish, mushrooms (or 'none')" required>
+                    <p class="hint">Foods you want to avoid in your meal plans</p>
                 </div>
 
                 <button type="button" class="btn btn-primary" id="submitBtn">Create Account</button>
@@ -497,6 +508,8 @@
             const weight = document.getElementById('weight').value;
             const heightFt = document.getElementById('heightFt').value;
             const heightIn = document.getElementById('heightIn').value;
+            const allergies = document.getElementById('allergies').value.trim();
+            const dislikedFoods = document.getElementById('dislikedFoods').value.trim();
 
             // Validate required fields
             if (!name) {
@@ -519,6 +532,34 @@
                 showError('Passwords do not match');
                 return;
             }
+            if (!age) {
+                showError('Please enter your age');
+                return;
+            }
+            if (!gender) {
+                showError('Please select your gender');
+                return;
+            }
+            if (!goal) {
+                showError('Please select your goal');
+                return;
+            }
+            if (!weight) {
+                showError('Please enter your weight');
+                return;
+            }
+            if (!heightFt) {
+                showError('Please enter your height');
+                return;
+            }
+            if (!allergies) {
+                showError('Please enter your food allergies (or type "none")');
+                return;
+            }
+            if (!dislikedFoods) {
+                showError('Please enter foods you dislike (or type "none")');
+                return;
+            }
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="loading"></span> Creating account...';
@@ -535,16 +576,16 @@
                         email,
                         password,
                         phone: phone || null,
-                        age: age ? parseInt(age) : null,
-                        gender: gender || null,
-                        goal: goal || 'maintain',
-                        weight: weight ? parseFloat(weight) : null,
-                        heightFt: heightFt ? parseInt(heightFt) : null,
-                        heightIn: heightIn ? parseInt(heightIn) : null,
+                        age: parseInt(age),
+                        gender,
+                        goal,
+                        weight: parseFloat(weight),
+                        heightFt: parseInt(heightFt),
+                        heightIn: heightIn ? parseInt(heightIn) : 0,
                         activityLevel: 1.55, // Default to moderate
                         budget: 'moderate',
-                        allergies: 'none',
-                        dislikedFoods: 'none',
+                        allergies,
+                        dislikedFoods,
                         unitPreference: 'imperial'
                     })
                 });
