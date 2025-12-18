@@ -190,7 +190,7 @@ exports.handler = async (event) => {
       // Get the diary entry info
       const { data: entry } = await supabase
         .from('food_diary_entries')
-        .select('food_name, meal_type')
+        .select('food_name, meal_type, entry_date')
         .eq('id', entryId)
         .single();
 
@@ -212,8 +212,18 @@ exports.handler = async (event) => {
           .insert({
             client_id: clientId,
             type: 'diary_comment',
-            title: `💬 ${coachName} commented on your ${mealType}`,
-            message: `"${comment.substring(0, 100)}${comment.length > 100 ? '...' : ''}"`,
+            title: `💬 Your coach commented on your ${mealType}`,
+            message: `"${comment.trim()}"`,
+            related_entry_id: entryId,
+            metadata: {
+              food_name: foodName,
+              meal_type: mealType,
+              entry_date: entry?.entry_date,
+              comment_preview: comment.substring(0, 100),
+              full_comment: comment.trim(),
+              coach_name: coachName,
+              comment_id: data.id
+            },
             is_read: false,
             created_at: new Date().toISOString()
           });

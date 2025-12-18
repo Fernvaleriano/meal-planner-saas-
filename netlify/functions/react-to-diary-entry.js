@@ -111,14 +111,22 @@ exports.handler = async (event) => {
         const foodName = entry?.food_name || 'your meal';
         const mealType = entry?.meal_type || 'meal';
 
-        // Create notification for the client
+        // Create notification for the client with entry reference
         await supabase
           .from('notifications')
           .insert({
             client_id: clientId,
             type: 'diary_reaction',
-            title: `${reaction} ${coachName} reacted to your ${mealType}`,
-            message: `${coachName} reacted with ${reaction} to "${foodName}"`,
+            title: `${reaction} Your coach reacted to your ${mealType}`,
+            message: `Your coach reacted with ${reaction} to "${foodName}"`,
+            related_entry_id: entryId,
+            metadata: {
+              food_name: entry?.food_name,
+              meal_type: entry?.meal_type,
+              entry_date: entry?.entry_date,
+              reaction: reaction,
+              coach_name: coachName
+            },
             is_read: false,
             created_at: new Date().toISOString()
           });
