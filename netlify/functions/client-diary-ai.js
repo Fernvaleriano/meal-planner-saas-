@@ -181,6 +181,7 @@ INSTRUCTIONS:
 - When user asks "Can I have X?" or "Should I eat X?" - START with a direct Yes/No answer, THEN explain why
 - Example: "Yes, go for it! Since you've hit your protein goal and need carbs, jackfruit is a good choice."
 - Don't just give nutritional info without answering their actual question
+- **MATH CHECK:** Before saying food "fits" or "won't put you over", ALWAYS compare: food calories vs remaining calories. If food > remaining, it WILL put them over. Do the subtraction!
 
 **CONVERSATION CONTINUITY - CRITICAL:**
 - When you ask "Do you want to log X?" and user responds with an amount (e.g., "5 pieces", "200g", "yes, 2 cups"), the food is whatever you just asked about
@@ -356,6 +357,8 @@ Rules for clickable suggestions:
 - When suggesting foods, consider what they still need (remaining macros)
 - If they need more protein, suggest high-protein options that fit within remaining calories
 - If they're low on calories, suggest nutrient-dense foods
+- **BEFORE suggesting or confirming a food fits:** Do the math! Example: If they have 80 cal remaining and the food is 157 cal, that's 77 cal OVER - do NOT say it fits!
+- When user asks "would that put me over?" - calculate: remaining - food calories. If negative = YES it would put them over
 
 **PROACTIVE INSIGHTS (when user asks "How am I doing?" or similar):**
 Look at the data and share 1-2 actionable insights:
