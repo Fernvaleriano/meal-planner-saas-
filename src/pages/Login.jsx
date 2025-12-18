@@ -121,6 +121,11 @@ function Login() {
           </div>
         </form>
 
+        {/* Back to role selection */}
+        <div className="login-back-link">
+          <a href="/login-select.html">Not a client? Go back to select your role</a>
+        </div>
+
         {/* Footer */}
         <div className="login-footer">
           <p>Powered by Zique Fitness</p>
@@ -287,6 +292,24 @@ function Login() {
         }
 
         .forgot-password-link a:hover {
+          color: #14b8a6;
+        }
+
+        .login-back-link {
+          margin-top: 24px;
+          padding-top: 24px;
+          border-top: 1px solid rgba(148, 163, 184, 0.2);
+          text-align: center;
+        }
+
+        .login-back-link a {
+          color: #94a3b8;
+          font-size: 0.875rem;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+
+        .login-back-link a:hover {
           color: #14b8a6;
         }
 
