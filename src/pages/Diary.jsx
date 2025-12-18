@@ -1179,6 +1179,9 @@ function Diary() {
     setAiLogging(true);
     setSelectedSuggestion(null);
 
+    // Capture current conversation history before adding new message
+    const currentHistory = [...aiMessages];
+
     // Add user message
     setAiMessages(prev => [...prev, { role: 'user', content: message }]);
     setAiInput('');
@@ -1190,7 +1193,8 @@ function Diary() {
         message: message,
         todayEntries: entries || [],
         goals: goals || {},
-        totals: totals || { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        totals: totals || { calories: 0, protein: 0, carbs: 0, fat: 0 },
+        conversationHistory: currentHistory
       });
 
       if (data.error) {

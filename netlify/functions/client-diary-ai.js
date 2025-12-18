@@ -64,7 +64,7 @@ exports.handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body || '{}');
-        const { clientId, clientFirstName, message, todayEntries, goals, totals } = body;
+        const { clientId, clientFirstName, message, todayEntries, goals, totals, conversationHistory } = body;
 
         if (!clientId || !message) {
             return {
@@ -338,14 +338,47 @@ Rules for clickable suggestions:
 - If they need more protein, suggest high-protein options that fit within remaining calories
 - If they're low on calories, suggest nutrient-dense foods`;
 
+        // Build conversation contents for Gemini API (multi-turn conversation)
+        // Gemini uses "user" and "model" roles
+        const contents = [];
+
+        // Add system prompt as the first user message (Gemini doesn't have a system role)
+        contents.push({
+            role: 'user',
+            parts: [{ text: systemPrompt }]
+        });
+        // Add a model acknowledgment to establish the context
+        contents.push({
+            role: 'model',
+            parts: [{ text: 'I understand. I\'m ready to help with nutrition tracking and food logging.' }]
+        });
+
+        // Add conversation history if provided (limit to last 10 messages to stay within token limits)
+        if (conversationHistory && Array.isArray(conversationHistory)) {
+            const recentHistory = conversationHistory.slice(-10);
+            for (const msg of recentHistory) {
+                contents.push({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                });
+            }
+        }
+
+        // Add current user message (only if not already in history)
+        const lastMsg = contents[contents.length - 1];
+        if (!lastMsg || lastMsg.role !== 'user' || lastMsg.parts[0].text !== message) {
+            contents.push({
+                role: 'user',
+                parts: [{ text: message }]
+            });
+        }
+
         // Call Gemini API
         const geminiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: `${systemPrompt}\n\nUser message: ${message}` }]
-                }],
+                contents: contents,
                 generationConfig: {
                     temperature: 0.7,
                     maxOutputTokens: 1024
