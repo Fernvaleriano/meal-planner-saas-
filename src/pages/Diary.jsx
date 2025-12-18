@@ -122,6 +122,22 @@ function Diary() {
   const [showInteractionModal, setShowInteractionModal] = useState(false);
   const [selectedInteraction, setSelectedInteraction] = useState(null);
 
+  // Highlighted entry ID (from notification navigation)
+  const [highlightedEntryId, setHighlightedEntryId] = useState(null);
+
+  // Handle highlight parameter from URL
+  useEffect(() => {
+    const highlightParam = searchParams.get('highlight');
+    if (highlightParam) {
+      setHighlightedEntryId(parseInt(highlightParam, 10));
+      // Clear highlight after 3 seconds
+      const timer = setTimeout(() => {
+        setHighlightedEntryId(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
   // Collapsible meal sections
   const [collapsedMeals, setCollapsedMeals] = useState(() => {
     // Load from localStorage
@@ -1481,7 +1497,17 @@ function Diary() {
   };
 
   // Swipeable entry component with long-press for selection
-  const SwipeableEntry = ({ entry, onDelete, onEdit, isSelected, onToggleSelect, inSelectionMode, onLongPress, reactions, comments }) => {
+  const SwipeableEntry = ({ entry, onDelete, onEdit, isSelected, onToggleSelect, inSelectionMode, onLongPress, reactions, comments, isHighlighted }) => {
+    const entryRef = useRef(null);
+
+    // Scroll into view if highlighted
+    useEffect(() => {
+      if (isHighlighted && entryRef.current) {
+        setTimeout(() => {
+          entryRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }, [isHighlighted]);
     const [touchStart, setTouchStart] = useState(null);
     const [touchEnd, setTouchEnd] = useState(null);
     const [swiped, setSwiped] = useState(false);
@@ -1547,11 +1573,13 @@ function Diary() {
 
     return (
       <div
-        className={`meal-entry-swipeable ${swiped ? 'swiped' : ''} ${isSelected ? 'selected' : ''}`}
+        ref={entryRef}
+        className={`meal-entry-swipeable ${swiped ? 'swiped' : ''} ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onClick={handleClick}
+        data-entry-id={entry.id}
       >
         <div className="meal-entry-content">
           {inSelectionMode && (
@@ -1674,6 +1702,7 @@ function Diary() {
                     onLongPress={handleLongPress}
                     reactions={interactions.reactions[entry.id] || []}
                     comments={interactions.comments[entry.id] || []}
+                    isHighlighted={entry.id === highlightedEntryId}
                   />
                 ))}
               </div>

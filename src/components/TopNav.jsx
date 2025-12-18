@@ -4,6 +4,7 @@ import { Bell, X, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import StoryViewer from './StoryViewer';
+import NotificationDetail from './NotificationDetail';
 
 // Cache notifications to avoid fetching on every mount
 const notificationCache = {
@@ -74,6 +75,9 @@ function TopNav() {
   });
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const hasFetchedStoriesRef = useRef(false);
+
+  // Selected notification for detail view
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   // Fetch notifications with caching
   const fetchNotifications = useCallback(async (force = false) => {
@@ -220,15 +224,24 @@ function TopNav() {
       }
     }
 
-    // Navigate based on notification type
+    // Show detail modal for diary reactions and comments
     if (notif.type === 'diary_reaction' || notif.type === 'diary_comment') {
-      // Navigate to diary - use metadata date if available, otherwise today
-      const dateParam = notif.metadata?.entry_date || '';
       setShowNotifications(false);
-      navigate(dateParam ? `/diary?date=${dateParam}` : '/diary');
+      setSelectedNotification(notif);
     } else {
       setShowNotifications(false);
     }
+  };
+
+  // Handle closing notification detail
+  const handleCloseNotificationDetail = () => {
+    setSelectedNotification(null);
+  };
+
+  // Handle reply success
+  const handleReplySuccess = () => {
+    // Could show a toast here
+    setSelectedNotification(null);
   };
 
   return (
@@ -325,6 +338,16 @@ function TopNav() {
           coachAvatar={coachData?.avatar}
           clientId={clientData?.id}
           onClose={handleStoryViewerClose}
+        />
+      )}
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <NotificationDetail
+          notification={selectedNotification}
+          clientId={clientData?.id}
+          onClose={handleCloseNotificationDetail}
+          onReplySuccess={handleReplySuccess}
         />
       )}
     </nav>
