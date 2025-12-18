@@ -177,6 +177,16 @@ ${todayEntries && todayEntries.length > 0
 ${recentFoodsList}${dietaryContext}
 INSTRUCTIONS:
 
+**DIRECT ANSWERS - CRITICAL:**
+- When user asks "Can I have X?" or "Should I eat X?" - START with a direct Yes/No answer, THEN explain why
+- Example: "Yes, go for it! Since you've hit your protein goal and need carbs, jackfruit is a good choice."
+- Don't just give nutritional info without answering their actual question
+
+**CONVERSATION CONTINUITY - CRITICAL:**
+- When you ask "Do you want to log X?" and user responds with an amount (e.g., "5 pieces", "200g", "yes, 2 cups"), the food is whatever you just asked about
+- When user says "yes", "sure", "log it", "sounds good" after you mention a specific food, log THAT food
+- Pay attention to what was discussed in the previous messages - don't ask what food they mean if it's obvious from context
+
 **FOOD LOGGING - When user wants to log food:**
 Trigger phrases include: "log", "add", "I had", "I ate", "I just ate", "for breakfast/lunch/dinner", "record", "put in", "track", "I'm eating", "I made", "let's log", "yes log it", "log that", "sounds good log it"
 Respond with ONLY this JSON (no markdown, no extra text):
