@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zique Fitness">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/logo.png">
+    <title>Log In - Zique Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            padding: 20px;
+        }
+
+        .select-container {
+            width: 100%;
+            max-width: 440px;
+            padding: 48px 40px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .select-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .select-logo img {
+            height: 80px;
+            width: auto;
+        }
+
+        .select-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .select-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 12px;
+        }
+
+        .select-header p {
+            color: #94a3b8;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .select-options {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .select-option {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 24px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(148, 163, 184, 0.15);
+            border-radius: 16px;
+            color: #f1f5f9;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .select-option:hover {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(13, 148, 136, 0.2);
+        }
+
+        .select-option-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--brand-gradient);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .select-option-icon svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
+
+        .select-option-content {
+            flex: 1;
+        }
+
+        .select-option-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .select-option-description {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        .select-option-arrow {
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .select-option:hover .select-option-arrow {
+            color: var(--brand-primary);
+            transform: translateX(4px);
+        }
+
+        .select-footer {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .select-footer p {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .select-footer a {
+            color: var(--brand-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .select-footer a:hover {
+            color: #14b8a6;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: #94a3b8;
+        }
+
+        .back-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Safe area for notched devices */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            body {
+                padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .select-container {
+                padding: 32px 24px;
+            }
+
+            .select-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .select-option {
+                padding: 20px;
+                gap: 16px;
+            }
+
+            .select-option-icon {
+                width: 48px;
+                height: 48px;
+            }
+
+            .select-option-icon svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            .select-option-title {
+                font-size: 1rem;
+            }
+
+            .select-option-description {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
+</head>
+<body>
+    <div class="select-container">
+        <!-- Logo -->
+        <div class="select-logo">
+            <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg" alt="Zique Fitness">
+        </div>
+
+        <!-- Header -->
+        <div class="select-header">
+            <h1>Welcome to Zique Fitness</h1>
+            <p>Please select how you'd like to sign in</p>
+        </div>
+
+        <!-- Options -->
+        <div class="select-options">
+            <a href="/login.html" class="select-option">
+                <div class="select-option-icon">
+                    <!-- Clipboard/Coach icon -->
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </div>
+                <div class="select-option-content">
+                    <div class="select-option-title">I'm a Coach</div>
+                    <div class="select-option-description">Access your coaching dashboard</div>
+                </div>
+                <div class="select-option-arrow">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </a>
+
+            <a href="/app/login" class="select-option">
+                <div class="select-option-icon">
+                    <!-- User/Client icon -->
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+                <div class="select-option-content">
+                    <div class="select-option-title">I'm a Client</div>
+                    <div class="select-option-description">Access your meal plans & food diary</div>
+                </div>
+                <div class="select-option-arrow">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="select-footer">
+            <p>Don't have an account? <a href="/signup.html">Sign up as a coach</a></p>
+        </div>
+
+        <!-- Back to home link -->
+        <a href="/" class="back-link">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to home
+        </a>
+    </div>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+    <!-- Cookie Consent Banner for GDPR Compliance -->
+    <script src="/js/cookie-consent.js"></script>
+</body>
+</html>
