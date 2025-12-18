@@ -11,6 +11,7 @@ import CheckIn from './pages/CheckIn';
 import Progress from './pages/Progress';
 import Feed from './pages/Feed';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
 
 function ProtectedRoute({ children }) {
@@ -38,6 +39,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route
         path="/"
         element={

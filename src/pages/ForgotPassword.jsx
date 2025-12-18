@@ -1,51 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
-import { useAuth } from '../context/AuthContext';
 
-function Login() {
+function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      navigate('/', { replace: true });
-    }
-  }, [user, navigate]);
-
-  const handleLogin = async (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (authError) throw authError;
-
-      // Check if user is a client
+      // First verify this email belongs to a client
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id')
-        .eq('user_id', data.user.id)
+        .select('id, email')
+        .eq('email', email.toLowerCase().trim())
         .single();
 
       if (clientError || !client) {
-        await supabase.auth.signOut();
-        throw new Error('This account is not registered as a client');
+        throw new Error('No account found with this email address');
       }
 
-      navigate('/', { replace: true });
+      // Send password reset email via Supabase
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/set-password.html`
+      });
+
+      if (resetError) throw resetError;
+
+      setSuccess(true);
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Failed to send reset email');
     } finally {
       setLoading(false);
     }
@@ -64,62 +54,75 @@ function Login() {
 
         {/* Header */}
         <div className="login-header">
-          <h1>Welcome Back</h1>
-          <p>Sign in to your client portal</p>
+          <h1>Reset Password</h1>
+          <p>Enter your email to receive a reset link</p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleLogin} className="login-form">
-          {error && (
-            <div className="login-error">
-              {error}
-            </div>
-          )}
-
-          <div className="login-field">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              required
-              autoComplete="email"
-              autoCapitalize="none"
-            />
-          </div>
-
-          <div className="login-field">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="login-button"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="login-spinner"></span>
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
+        {!success ? (
+          <form onSubmit={handleResetPassword} className="login-form">
+            {error && (
+              <div className="login-error">
+                {error}
+              </div>
             )}
-          </button>
 
-          <div className="forgot-password-link">
-            <a href="/forgot-password">Forgot your password?</a>
+            <div className="login-field">
+              <label>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                autoComplete="email"
+                autoCapitalize="none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="login-button"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="login-spinner"></span>
+                  Sending...
+                </>
+              ) : (
+                'Send Reset Link'
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="back-link"
+              onClick={() => navigate('/login')}
+            >
+              Back to Sign In
+            </button>
+          </form>
+        ) : (
+          <div className="success-message">
+            <div className="success-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <h2>Check Your Email</h2>
+            <p>We've sent a password reset link to <strong>{email}</strong></p>
+            <p className="note">Don't forget to check your spam folder if you don't see it.</p>
+            <button
+              type="button"
+              className="login-button"
+              onClick={() => navigate('/login')}
+            >
+              Back to Sign In
+            </button>
           </div>
-        </form>
+        )}
 
         {/* Footer */}
         <div className="login-footer">
@@ -274,20 +277,55 @@ function Login() {
           to { transform: rotate(360deg); }
         }
 
-        .forgot-password-link {
-          text-align: center;
-          margin-top: 4px;
-        }
-
-        .forgot-password-link a {
+        .back-link {
+          width: 100%;
+          padding: 14px;
+          background: transparent;
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 12px;
           color: #94a3b8;
-          font-size: 0.9rem;
-          text-decoration: none;
-          transition: color 0.2s;
+          font-size: 0.95rem;
+          font-weight: 500;
+          font-family: inherit;
+          cursor: pointer;
+          transition: all 0.2s;
         }
 
-        .forgot-password-link a:hover {
-          color: #14b8a6;
+        .back-link:hover {
+          border-color: rgba(148, 163, 184, 0.5);
+          color: #f1f5f9;
+        }
+
+        .success-message {
+          text-align: center;
+        }
+
+        .success-icon {
+          color: #10b981;
+          margin-bottom: 20px;
+        }
+
+        .success-message h2 {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #f1f5f9;
+          margin-bottom: 12px;
+        }
+
+        .success-message p {
+          color: #94a3b8;
+          font-size: 0.95rem;
+          margin-bottom: 8px;
+        }
+
+        .success-message p strong {
+          color: #f1f5f9;
+        }
+
+        .success-message .note {
+          font-size: 0.85rem;
+          color: #64748b;
+          margin-bottom: 24px;
         }
 
         .login-footer {
@@ -311,4 +349,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default ForgotPassword;

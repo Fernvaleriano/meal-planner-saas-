@@ -88,7 +88,7 @@ exports.handler = async (event, context) => {
     }
 
     // Send password reset email using Supabase Auth
-    const redirectUrl = `${APP_URL}/client-reset-password.html`;
+    const redirectUrl = `${APP_URL}/set-password.html`;
 
     const { error: resetError } = await supabase.auth.admin.generateLink({
       type: 'recovery',
