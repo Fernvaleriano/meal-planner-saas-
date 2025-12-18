@@ -4773,6 +4773,38 @@ a.nav-left {
     color: #f1f5f9;
 }
 
+/* Undo Button for AI logged foods */
+.ai-undo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ai-undo-btn:hover {
+    background: var(--gray-100);
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .ai-undo-btn {
+    background: #1e293b;
+    border-color: #475569;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .ai-undo-btn:hover {
+    background: #334155;
+    color: #f1f5f9;
+}
+
 /* Modal Loading */
 .ai-modal-loading {
     display: flex;
