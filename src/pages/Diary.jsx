@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
@@ -84,13 +84,28 @@ function Diary() {
   const [showEditEntryModal, setShowEditEntryModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
 
-  // AI Assistant states
-  const [aiMessages, setAiMessages] = useState([]);
+  // AI Assistant states - load conversation from localStorage for persistence
+  const [aiMessages, setAiMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ai_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Only restore if less than 24 hours old
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          return parsed.messages || [];
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load AI chat history:', e);
+    }
+    return [];
+  });
   const [aiExpanded, setAiExpanded] = useState(false);
   const aiInputRef = useRef(null);
   const [pendingFoodLog, setPendingFoodLog] = useState(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState(null);
   const [suggestionContext, setSuggestionContext] = useState(null);
+  const [lastLoggedEntry, setLastLoggedEntry] = useState(null); // For undo functionality
   const [selectedAIMealType, setSelectedAIMealType] = useState(null);
 
   // Voice input states
@@ -137,6 +152,22 @@ function Diary() {
       return () => clearTimeout(timer);
     }
   }, [searchParams]);
+
+  // Persist AI chat history to localStorage (expires after 24 hours)
+  useEffect(() => {
+    if (aiMessages.length > 0) {
+      // Strip undo data from older messages to prevent stale undo attempts
+      const messagesForStorage = aiMessages.map(msg => ({
+        ...msg,
+        canUndo: false,
+        undoEntryId: null
+      }));
+      localStorage.setItem('ai_chat_history', JSON.stringify({
+        messages: messagesForStorage,
+        timestamp: Date.now()
+      }));
+    }
+  }, [aiMessages]);
 
   // Collapsible meal sections
   const [collapsedMeals, setCollapsedMeals] = useState(() => {
@@ -1332,10 +1363,19 @@ function Diary() {
         setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
       }
 
-      // Clear pending and show success
+      // Clear pending and show success with undo option
       setPendingFoodLog(null);
       setSelectedAIMealType(null);
-      setAiMessages(prev => [...prev, { role: 'assistant', content: `Added "${food.food_name}" to your ${mealType}!` }]);
+      // Store the logged entry for undo (includes the entry ID from result)
+      if (result.entry) {
+        setLastLoggedEntry({ ...result.entry, mealType });
+      }
+      setAiMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `Added "${food.food_name}" to your ${mealType}!`,
+        canUndo: true,
+        undoEntryId: result.entry?.id
+      }]);
     } catch (err) {
       console.error('Error adding food:', err);
       setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t add that food. Please try manually.' }]);
@@ -1347,6 +1387,50 @@ function Diary() {
     setPendingFoodLog(null);
     setSelectedAIMealType(null);
     setAiMessages(prev => [...prev, { role: 'assistant', content: 'No problem! Let me know if you want to log something else.' }]);
+  };
+
+  // Undo last food log from AI
+  const undoLastFoodLog = async (entryId) => {
+    if (!entryId) return;
+
+    try {
+      // Find the entry to get food name for confirmation message
+      const entryToUndo = entries.find(e => e.id === entryId);
+      const foodName = entryToUndo?.food_name || 'food';
+
+      await apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`);
+
+      // Update local state
+      const updatedEntries = entries.filter(e => e.id !== entryId);
+      if (entryToUndo) {
+        const updatedTotals = {
+          calories: totals.calories - (entryToUndo.calories || 0),
+          protein: totals.protein - (entryToUndo.protein || 0),
+          carbs: totals.carbs - (entryToUndo.carbs || 0),
+          fat: totals.fat - (entryToUndo.fat || 0)
+        };
+        setTotals(updatedTotals);
+
+        // Update cache
+        const dateStr = formatDate(currentDate);
+        const cacheKey = `diary_${clientData.id}_${dateStr}`;
+        const cached = getCache(cacheKey) || {};
+        setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
+      }
+
+      setEntries(updatedEntries);
+      setLastLoggedEntry(null);
+
+      // Update the message to remove undo option and show confirmation
+      setAiMessages(prev => prev.map(msg =>
+        msg.undoEntryId === entryId
+          ? { ...msg, content: `Removed "${foodName}" from your diary.`, canUndo: false, undoEntryId: null }
+          : msg
+      ));
+    } catch (err) {
+      console.error('Error undoing food log:', err);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, couldn\'t undo that. Try deleting it manually from your diary.' }]);
+    }
   };
 
   // Save meal as favorite
@@ -2107,6 +2191,16 @@ function Diary() {
                   {aiMessages.map((msg, idx) => (
                     <div key={idx} className={`ai-modal-message ${msg.role}`}>
                       <div className="ai-message-text">{msg.content}</div>
+
+                      {/* Undo button for recently logged foods */}
+                      {msg.canUndo && msg.undoEntryId && (
+                        <button
+                          className="ai-undo-btn"
+                          onClick={() => undoLastFoodLog(msg.undoEntryId)}
+                        >
+                          <RotateCcw size={14} /> Undo
+                        </button>
+                      )}
 
                       {/* Food suggestion cards */}
                       {msg.suggestions && msg.suggestions.length > 0 && (

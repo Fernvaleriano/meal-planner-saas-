@@ -192,6 +192,15 @@ Trigger phrases include: "log", "add", "I had", "I ate", "I just ate", "for brea
 Respond with ONLY this JSON (no markdown, no extra text):
 {"action":"log_food","food_name":"descriptive name","calories":number,"protein":number,"carbs":number,"fat":number,"meal_type":"breakfast|lunch|dinner|snack","confirmation":"brief message"}
 
+**SERVING SIZE HANDLING:**
+- When user gives clear amounts (grams, oz, cups, "1 medium apple"), log directly
+- When user says vague amounts like "some", "a bit", "pieces" for variable-size foods, make a reasonable assumption and state it:
+  - "5 pieces of jackfruit" → assume ~165g total (about 33g per piece), mention "Logging 5 pieces (~165g)"
+  - "a handful of almonds" → assume ~1oz/28g (~23 almonds)
+  - "some chicken" → assume ~4oz/113g (typical serving)
+- Include the assumed portion in the confirmation message so user can correct if needed
+- For packaged foods with standard sizes (Quest bar, Premier Protein), use the package nutrition
+
 **INGREDIENT-BASED MEAL IDEAS - When user shares what ingredients they have:**
 Trigger phrases include: "I have", "in my fridge", "ingredients", "what can I make", "I only have", "all I have is", "I've got"
 1. Suggest 2-3 quick meal ideas using their ingredients that fit their remaining macros
@@ -346,7 +355,16 @@ Rules for clickable suggestions:
 **When they still have calories remaining (positive remaining calories):**
 - When suggesting foods, consider what they still need (remaining macros)
 - If they need more protein, suggest high-protein options that fit within remaining calories
-- If they're low on calories, suggest nutrient-dense foods`;
+- If they're low on calories, suggest nutrient-dense foods
+
+**PROACTIVE INSIGHTS (when user asks "How am I doing?" or similar):**
+Look at the data and share 1-2 actionable insights:
+- If they consistently miss protein at certain meals: "I notice your breakfasts tend to be low-protein. Adding eggs or Greek yogurt could help hit your goals earlier in the day."
+- If they eat the same foods repeatedly: "You've had [food] 4 times this week - want to try some alternatives for variety?"
+- If they're making good progress: Acknowledge it briefly, suggest one thing to optimize
+- If they're way under calories by evening: "You have 800 calories left for dinner - that's a lot to fit in one meal. Consider a snack now."
+- If their protein is front-loaded: "Great protein at breakfast/lunch! Dinner can be lighter on protein."
+- Keep insights SHORT and ACTIONABLE - one suggestion they can act on now`;
 
         // Build conversation contents for Gemini API (multi-turn conversation)
         // Gemini uses "user" and "model" roles
