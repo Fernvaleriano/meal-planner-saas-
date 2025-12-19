@@ -292,6 +292,8 @@ function Feed() {
   const fetchFeed = useCallback(async (reset = false) => {
     if (!coachId) {
       console.log('Feed: No coachId, skipping fetch');
+      // Still need to clear loading state even if we can't fetch
+      setLoading(false);
       return;
     }
 

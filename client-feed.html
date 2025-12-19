@@ -775,14 +775,17 @@
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
+                visibility: hidden;
             }
 
             .sidebar.open {
                 transform: translateX(0);
+                visibility: visible;
             }
 
             .main-content {
                 margin-left: 0;
+                width: 100%;
             }
 
             .mobile-header {
@@ -1045,22 +1048,53 @@
         document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
 
-            // Check auth
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                window.location.href = 'index.html';
-                return;
+            try {
+                // Check auth with timeout (10 seconds)
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Session timeout')), 10000)
+                );
+
+                let session;
+                try {
+                    const result = await Promise.race([sessionPromise, timeoutPromise]);
+                    session = result.data?.session;
+                } catch (err) {
+                    console.error('Session error:', err);
+                    document.getElementById('feedContainer').innerHTML = `
+                        <div class="empty-state">
+                            <h3>Connection Error</h3>
+                            <p>Could not connect to the server. Please check your internet connection and try again.</p>
+                            <button class="load-more-btn" onclick="window.location.reload()">Retry</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                currentUser = session.user;
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
+
+                // Load clients for filter (non-blocking - don't wait for it to complete)
+                loadClients().catch(err => console.error('Failed to load clients filter:', err));
+
+                // Load feed
+                await loadFeed(true);
+            } catch (err) {
+                console.error('Initialization error:', err);
+                document.getElementById('feedContainer').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Feed</h3>
+                        <p>${err.message || 'An unexpected error occurred'}</p>
+                        <button class="load-more-btn" onclick="window.location.reload()">Retry</button>
+                    </div>
+                `;
             }
-
-            currentUser = session.user;
-            document.getElementById('userEmail').textContent = currentUser.email;
-            document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
-
-            // Load clients for filter
-            await loadClients();
-
-            // Load feed
-            await loadFeed(true);
 
             // Event listeners
             document.getElementById('clientFilter').addEventListener('change', () => loadFeed(true));
@@ -1097,6 +1131,12 @@
         }
 
         async function loadFeed(reset = false) {
+            if (!currentUser) {
+                console.error('loadFeed: No current user');
+                document.getElementById('feedContainer').innerHTML = '<div class="empty-state"><p>Please log in to view the feed.</p></div>';
+                return;
+            }
+
             if (reset) {
                 offset = 0;
                 hasMore = true;
@@ -1113,7 +1153,17 @@
             if (date) url += `&date=${date}`;
 
             try {
-                const response = await fetch(url);
+                // Add timeout for fetch (15 seconds)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
                 const data = await response.json();
                 console.log('Feed data:', data);
 
@@ -1140,7 +1190,16 @@
             } catch (err) {
                 console.error('Error loading feed:', err);
                 if (reset) {
-                    document.getElementById('feedContainer').innerHTML = '<div class="empty-state"><p>Error loading feed. Please try again.</p></div>';
+                    const errorMessage = err.name === 'AbortError'
+                        ? 'Request timed out. Please check your connection and try again.'
+                        : (err.message || 'Error loading feed. Please try again.');
+                    document.getElementById('feedContainer').innerHTML = `
+                        <div class="empty-state">
+                            <h3>Error Loading Feed</h3>
+                            <p>${errorMessage}</p>
+                            <button class="load-more-btn" onclick="loadFeed(true)">Retry</button>
+                        </div>
+                    `;
                 }
             }
         }
