@@ -630,6 +630,47 @@
                 subtitle: 'Take a few minutes to tell me about yourself so I can create the perfect plan for you.',
                 buttonText: 'Let\'s Go'
             },
+            // Basic Info
+            {
+                id: 'name',
+                type: 'text',
+                question: 'What\'s your name?',
+                placeholder: 'First and last name'
+            },
+            {
+                id: 'email',
+                type: 'email',
+                question: 'What\'s your email address?',
+                subtext: 'I\'ll use this to reach out to you',
+                placeholder: 'your@email.com'
+            },
+            {
+                id: 'phone',
+                type: 'text',
+                question: 'What\'s your phone number?',
+                placeholder: '(555) 123-4567'
+            },
+            {
+                id: 'age',
+                type: 'text',
+                question: 'How old are you?',
+                placeholder: 'e.g., 28'
+            },
+            {
+                id: 'gender',
+                type: 'single',
+                question: 'What\'s your gender?',
+                options: ['Female', 'Male', 'Other', 'Prefer not to say']
+            },
+            {
+                id: 'social',
+                type: 'text',
+                question: 'What\'s your Instagram or Facebook?',
+                subtext: 'Optional - but it helps me connect with you',
+                placeholder: '@yourusername',
+                required: false
+            },
+            // Goals & Fitness
             {
                 id: 'goal',
                 type: 'single',
@@ -668,26 +709,9 @@
                 type: 'textarea',
                 question: 'Any health concerns to share?',
                 subtext: 'Disorders, illnesses, injuries - anything I should know about',
-                placeholder: 'e.g., Endometriosis, shoulder injury, bad knees...'
+                placeholder: 'e.g., Endometriosis, shoulder injury, bad knees... Type "None" if none.'
             },
-            {
-                id: 'all_or_nothing',
-                type: 'single',
-                question: 'Do you have an all-or-nothing mindset?',
-                subtext: 'Be honest - this helps me understand how to coach you',
-                options: [
-                    'Yes - everything has to be perfect or I feel like a failure',
-                    'Sometimes - depends on the situation',
-                    'Not really - I\'m pretty flexible',
-                    'No - I believe in progress over perfection'
-                ]
-            },
-            {
-                id: 'gym_intimidation',
-                type: 'toggle',
-                question: 'Does the gym intimidate you?',
-                options: ['Yes', 'No']
-            },
+            // Workout Preferences
             {
                 id: 'gym_or_home',
                 type: 'single',
@@ -702,18 +726,19 @@
                 options: ['1-2 days per week', '3-4 days per week', '5-6 days per week', 'Every day']
             },
             {
-                id: 'pushups',
-                type: 'single',
-                question: 'How many push-ups can you do in one set?',
-                subtext: 'This helps me gauge your current strength',
-                options: ['Less than 10', '10-20', '20-30', '30+', 'I\'m not sure']
-            },
-            {
                 id: 'workout_time',
                 type: 'single',
                 question: 'How much time per workout?',
                 options: ['15-30 minutes', '30-45 minutes', '45-60 minutes', '60+ minutes']
             },
+            {
+                id: 'cooking_equipment',
+                type: 'multi',
+                question: 'What cooking equipment do you have?',
+                subtext: 'Select all that apply',
+                options: ['Stovetop', 'Oven', 'Microwave', 'Air Fryer', 'Instant Pot', 'Slow Cooker', 'Grill', 'Blender']
+            },
+            // Nutrition
             {
                 id: 'eating_style',
                 type: 'single',
@@ -721,31 +746,41 @@
                 options: ['Following a structured diet plan', 'Flexible dieting / tracking macros', 'Intuitive eating', 'I need guidance on this']
             },
             {
-                id: 'emotional_eater',
-                type: 'toggle',
-                question: 'Are you an emotional eater?',
-                subtext: 'Do you tend to eat based on feelings rather than hunger?',
-                options: ['Yes', 'No']
+                id: 'diet_type',
+                type: 'single',
+                question: 'Do you follow a specific diet?',
+                options: ['No specific diet', 'Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo', 'Mediterranean', 'Other']
             },
             {
-                id: 'meal_prep',
-                type: 'toggle',
-                question: 'Do you find it easy to plan and prepare meals in advance?',
-                options: ['Yes', 'No']
+                id: 'budget',
+                type: 'single',
+                question: 'What\'s your food budget preference?',
+                subtext: 'This helps me recommend appropriate meal options',
+                options: ['Budget-friendly', 'Moderate', 'Premium (no restrictions)']
             },
             {
                 id: 'allergies',
                 type: 'text',
-                question: 'Any food allergies?',
+                question: 'Any food allergies or intolerances?',
                 subtext: 'Type "None" if you don\'t have any',
-                placeholder: 'e.g., Gluten, dairy, nuts...'
+                placeholder: 'e.g., Gluten, dairy, nuts, shellfish...'
             },
             {
-                id: 'breakfast',
-                type: 'single',
-                question: 'Do you eat breakfast?',
-                options: ['Yes, always', 'Sometimes', 'Rarely', 'Never']
+                id: 'disliked_foods',
+                type: 'textarea',
+                question: 'Any foods you dislike or won\'t eat?',
+                subtext: 'Type "None" if there aren\'t any',
+                placeholder: 'e.g., Mushrooms, liver, brussels sprouts...'
             },
+            {
+                id: 'preferred_foods',
+                type: 'textarea',
+                question: 'Any foods you love and want included?',
+                subtext: 'Optional - foods you\'d like in your meal plans',
+                placeholder: 'e.g., Chicken, rice, broccoli, salmon...',
+                required: false
+            },
+            // Physical Stats
             {
                 id: 'height',
                 type: 'text',
@@ -758,34 +793,7 @@
                 question: 'What was your weight the last time you checked?',
                 placeholder: 'e.g., 165 lbs or 75 kg'
             },
-            {
-                id: 'email',
-                type: 'email',
-                question: 'What\'s your email address?',
-                subtext: 'I\'ll use this to reach out to you',
-                placeholder: 'your@email.com'
-            },
-            {
-                id: 'social',
-                type: 'text',
-                question: 'What\'s your Instagram or Facebook?',
-                subtext: 'Optional - but it helps me connect with you',
-                placeholder: '@yourusername',
-                required: false
-            },
-            {
-                id: 'name',
-                type: 'text',
-                question: 'What\'s your name?',
-                placeholder: 'First and last name'
-            },
-            {
-                id: 'phone_type',
-                type: 'single',
-                question: 'What kind of phone do you have?',
-                subtext: 'This helps with app recommendations',
-                options: ['Apple (iPhone)', 'Android']
-            },
+            // Final
             {
                 id: 'referral',
                 type: 'text',
