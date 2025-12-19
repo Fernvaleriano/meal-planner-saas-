@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Apply - Zique Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-primary-dark: #0f766e;
+            --brand-primary-light: #14b8a6;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --error: #dc2626;
+            --success: #16a34a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-900);
+            color: white;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--brand-gradient);
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        /* Header */
+        .form-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .logo {
+            height: 40px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--brand-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .question-counter {
+            font-size: 14px;
+            color: var(--gray-400);
+        }
+
+        /* Form Container */
+        .form-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 80px 24px;
+            overflow: hidden;
+        }
+
+        /* Question Slides */
+        .questions-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .question-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        .question-slide.active {
+            position: relative;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        .question-slide.exit-up {
+            opacity: 0;
+            transform: translateY(-40px);
+        }
+
+        .question-slide.enter-down {
+            transform: translateY(40px);
+        }
+
+        /* Question Number */
+        .question-number {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--brand-primary-light);
+            margin-bottom: 16px;
+        }
+
+        .question-number span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: rgba(20, 184, 166, 0.2);
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        /* Question Text */
+        .question-text {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        .question-subtext {
+            font-size: 1rem;
+            color: var(--gray-400);
+            margin-bottom: 32px;
+        }
+
+        /* Input Styles */
+        .input-text {
+            width: 100%;
+            padding: 20px 0;
+            font-size: 1.25rem;
+            font-family: inherit;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--gray-700);
+            color: white;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-text:focus {
+            border-color: var(--brand-primary);
+        }
+
+        .input-text::placeholder {
+            color: var(--gray-600);
+        }
+
+        /* Choice Options */
+        .choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .choice-option {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .choice-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--gray-600);
+        }
+
+        .choice-option.selected {
+            background: rgba(20, 184, 166, 0.15);
+            border-color: var(--brand-primary);
+        }
+
+        .choice-key {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-400);
+            flex-shrink: 0;
+        }
+
+        .choice-option.selected .choice-key {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        .choice-text {
+            font-size: 1rem;
+            color: var(--gray-200);
+        }
+
+        .choice-option.selected .choice-text {
+            color: white;
+        }
+
+        /* Multi-select grid */
+        .choices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .choices-grid .choice-option {
+            flex-direction: column;
+            text-align: center;
+            padding: 20px 16px;
+        }
+
+        .choices-grid .choice-key {
+            margin-bottom: 8px;
+        }
+
+        /* Checkbox for multi-select */
+        .choice-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--gray-600);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .choice-option.selected .choice-checkbox {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+        }
+
+        .choice-checkbox svg {
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.2s;
+        }
+
+        .choice-option.selected .choice-checkbox svg {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* True/False Toggle */
+        .toggle-container {
+            display: flex;
+            gap: 16px;
+        }
+
+        .toggle-option {
+            flex: 1;
+            padding: 24px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .toggle-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .toggle-option.selected {
+            background: rgba(20, 184, 166, 0.15);
+            border-color: var(--brand-primary);
+            color: var(--brand-primary-light);
+        }
+
+        /* Textarea */
+        .input-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--gray-700);
+            border-radius: 12px;
+            color: white;
+            outline: none;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .input-textarea:focus {
+            border-color: var(--brand-primary);
+        }
+
+        .input-textarea::placeholder {
+            color: var(--gray-600);
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--brand-gradient);
+            color: white;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .keyboard-hint kbd {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-family: inherit;
+            margin: 0 4px;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--brand-gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 40px;
+        }
+
+        .welcome-title {
+            font-size: clamp(1.75rem, 5vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: var(--brand-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-text {
+            font-size: 1.125rem;
+            color: var(--gray-400);
+            max-width: 500px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+
+        /* Thank You Screen */
+        .thank-you-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .thank-you-icon {
+            width: 100px;
+            height: 100px;
+            background: rgba(16, 185, 129, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        .thank-you-icon svg {
+            width: 50px;
+            height: 50px;
+            color: #10b981;
+        }
+
+        .thank-you-title {
+            font-size: clamp(1.75rem, 5vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .thank-you-text {
+            font-size: 1.125rem;
+            color: var(--gray-400);
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Error message */
+        .error-message {
+            color: var(--error);
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Loading state */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--gray-700);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--gray-400);
+            font-size: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .form-header {
+                padding: 16px 20px;
+            }
+
+            .form-container {
+                padding: 70px 20px 100px;
+            }
+
+            .choices-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .toggle-container {
+                flex-direction: column;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Hide number input spinners */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="form-header">
+        <span class="logo-text">Zique Fitness</span>
+        <span class="question-counter" id="questionCounter"></span>
+    </header>
+
+    <!-- Form Container -->
+    <div class="form-container">
+        <div class="questions-wrapper" id="questionsWrapper">
+            <!-- Questions will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Submitting your application...</p>
+    </div>
+
+    <script>
+        // Form Configuration
+        const questions = [
+            {
+                id: 'welcome',
+                type: 'welcome',
+                title: 'Ready to Transform?',
+                subtitle: 'Take a few minutes to tell me about yourself so I can create the perfect plan for you.',
+                buttonText: 'Let\'s Go'
+            },
+            {
+                id: 'goal',
+                type: 'single',
+                question: 'What\'s your primary goal?',
+                subtext: 'Choose the one that matters most to you right now',
+                options: ['Lose weight', 'Build muscle', 'Tone up', 'Improve overall health', 'Increase energy']
+            },
+            {
+                id: 'focus_areas',
+                type: 'multi',
+                question: 'Select areas you\'d like to focus on:',
+                subtext: 'Choose all that apply',
+                options: ['Total Body', 'Quads', 'Hamstrings', 'Inner Legs', 'Glutes', 'Arms', 'Core', 'Back']
+            },
+            {
+                id: 'fitness_level',
+                type: 'single',
+                question: 'What\'s your current fitness level?',
+                options: ['Complete beginner', 'Could be in better shape', 'Moderately fit', 'Pretty fit', 'Very athletic']
+            },
+            {
+                id: 'daily_activity',
+                type: 'single',
+                question: 'How do you typically spend your day?',
+                options: ['Mostly sitting (desk job)', 'Mix of sitting and standing', 'I\'m always on my feet', 'Physically demanding job']
+            },
+            {
+                id: 'struggles',
+                type: 'multi',
+                question: 'What do you struggle with?',
+                subtext: 'Select all that apply',
+                options: ['Lack of motivation', 'No clear direction', 'Busy schedule', 'Bad eating habits', 'Consistency', 'Injury concerns']
+            },
+            {
+                id: 'health_concerns',
+                type: 'textarea',
+                question: 'Any health concerns to share?',
+                subtext: 'Disorders, illnesses, injuries - anything I should know about',
+                placeholder: 'e.g., Endometriosis, shoulder injury, bad knees...'
+            },
+            {
+                id: 'all_or_nothing',
+                type: 'single',
+                question: 'Do you have an all-or-nothing mindset?',
+                subtext: 'Be honest - this helps me understand how to coach you',
+                options: [
+                    'Yes - everything has to be perfect or I feel like a failure',
+                    'Sometimes - depends on the situation',
+                    'Not really - I\'m pretty flexible',
+                    'No - I believe in progress over perfection'
+                ]
+            },
+            {
+                id: 'gym_intimidation',
+                type: 'toggle',
+                question: 'Does the gym intimidate you?',
+                options: ['Yes', 'No']
+            },
+            {
+                id: 'gym_or_home',
+                type: 'single',
+                question: 'Gym or Home Gym?',
+                options: ['Gym', 'Home Gym', 'Both', 'Outdoors']
+            },
+            {
+                id: 'workout_days',
+                type: 'single',
+                question: 'How many workout days can you realistically fit?',
+                subtext: 'Be honest with yourself',
+                options: ['1-2 days per week', '3-4 days per week', '5-6 days per week', 'Every day']
+            },
+            {
+                id: 'pushups',
+                type: 'single',
+                question: 'How many push-ups can you do in one set?',
+                subtext: 'This helps me gauge your current strength',
+                options: ['Less than 10', '10-20', '20-30', '30+', 'I\'m not sure']
+            },
+            {
+                id: 'workout_time',
+                type: 'single',
+                question: 'How much time per workout?',
+                options: ['15-30 minutes', '30-45 minutes', '45-60 minutes', '60+ minutes']
+            },
+            {
+                id: 'eating_style',
+                type: 'single',
+                question: 'What\'s your preferred way of eating?',
+                options: ['Following a structured diet plan', 'Flexible dieting / tracking macros', 'Intuitive eating', 'I need guidance on this']
+            },
+            {
+                id: 'emotional_eater',
+                type: 'toggle',
+                question: 'Are you an emotional eater?',
+                subtext: 'Do you tend to eat based on feelings rather than hunger?',
+                options: ['Yes', 'No']
+            },
+            {
+                id: 'meal_prep',
+                type: 'toggle',
+                question: 'Do you find it easy to plan and prepare meals in advance?',
+                options: ['Yes', 'No']
+            },
+            {
+                id: 'allergies',
+                type: 'text',
+                question: 'Any food allergies?',
+                subtext: 'Type "None" if you don\'t have any',
+                placeholder: 'e.g., Gluten, dairy, nuts...'
+            },
+            {
+                id: 'breakfast',
+                type: 'single',
+                question: 'Do you eat breakfast?',
+                options: ['Yes, always', 'Sometimes', 'Rarely', 'Never']
+            },
+            {
+                id: 'height',
+                type: 'text',
+                question: 'What\'s your height?',
+                placeholder: 'e.g., 5\'3" or 160cm'
+            },
+            {
+                id: 'weight',
+                type: 'text',
+                question: 'What was your weight the last time you checked?',
+                placeholder: 'e.g., 165 lbs or 75 kg'
+            },
+            {
+                id: 'email',
+                type: 'email',
+                question: 'What\'s your email address?',
+                subtext: 'I\'ll use this to reach out to you',
+                placeholder: 'your@email.com'
+            },
+            {
+                id: 'social',
+                type: 'text',
+                question: 'What\'s your Instagram or Facebook?',
+                subtext: 'Optional - but it helps me connect with you',
+                placeholder: '@yourusername',
+                required: false
+            },
+            {
+                id: 'name',
+                type: 'text',
+                question: 'What\'s your name?',
+                placeholder: 'First and last name'
+            },
+            {
+                id: 'phone_type',
+                type: 'single',
+                question: 'What kind of phone do you have?',
+                subtext: 'This helps with app recommendations',
+                options: ['Apple (iPhone)', 'Android']
+            },
+            {
+                id: 'referral',
+                type: 'text',
+                question: 'Did anyone refer you?',
+                subtext: 'If so, let me know who!',
+                placeholder: 'Name or "No"',
+                required: false
+            },
+            {
+                id: 'commitment',
+                type: 'single',
+                question: 'How serious are you about joining my coaching services?',
+                options: [
+                    'I\'m ready to commit 100%',
+                    'Very interested, just have a few questions',
+                    'I\'m still deciding if this is the right fit',
+                    'Just exploring options for now'
+                ]
+            },
+            {
+                id: 'thank_you',
+                type: 'thank_you',
+                title: 'You\'re all set!',
+                subtitle: 'Thanks for filling out this form. I\'ll be reaching out to you soon to discuss your fitness journey!'
+            }
+        ];
+
+        // State
+        let currentQuestion = 0;
+        let answers = {};
+
+        // DOM Elements
+        const questionsWrapper = document.getElementById('questionsWrapper');
+        const progressBar = document.getElementById('progressBar');
+        const questionCounter = document.getElementById('questionCounter');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Render all questions
+        function renderQuestions() {
+            questionsWrapper.innerHTML = questions.map((q, index) => {
+                return `<div class="question-slide ${index === 0 ? 'active' : ''}" data-index="${index}">
+                    ${renderQuestionContent(q, index)}
+                </div>`;
+            }).join('');
+
+            // Add event listeners
+            addEventListeners();
+            updateProgress();
+        }
+
+        function renderQuestionContent(q, index) {
+            switch (q.type) {
+                case 'welcome':
+                    return `
+                        <div class="welcome-screen">
+                            <div class="welcome-icon">💪</div>
+                            <h1 class="welcome-title">${q.title}</h1>
+                            <p class="welcome-text">${q.subtitle}</p>
+                            <button class="btn btn-primary btn-start" onclick="nextQuestion()">
+                                ${q.buttonText}
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                </svg>
+                            </button>
+                        </div>`;
+
+                case 'thank_you':
+                    return `
+                        <div class="thank-you-screen">
+                            <div class="thank-you-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <h1 class="thank-you-title">${q.title}</h1>
+                            <p class="thank-you-text">${q.subtitle}</p>
+                        </div>`;
+
+                case 'single':
+                    return `
+                        <div class="question-number"><span>${index}</span></div>
+                        <h2 class="question-text">${q.question}</h2>
+                        ${q.subtext ? `<p class="question-subtext">${q.subtext}</p>` : '<div style="height: 24px"></div>'}
+                        <div class="choices-container" data-question-id="${q.id}">
+                            ${q.options.map((opt, i) => `
+                                <div class="choice-option" data-value="${opt}" onclick="selectSingle(this, '${q.id}')">
+                                    <span class="choice-key">${String.fromCharCode(65 + i)}</span>
+                                    <span class="choice-text">${opt}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="error-message" id="error-${q.id}">Please select an option</div>
+                        ${renderNavButtons(index, q)}`;
+
+                case 'multi':
+                    return `
+                        <div class="question-number"><span>${index}</span></div>
+                        <h2 class="question-text">${q.question}</h2>
+                        ${q.subtext ? `<p class="question-subtext">${q.subtext}</p>` : '<div style="height: 24px"></div>'}
+                        <div class="choices-container choices-grid" data-question-id="${q.id}">
+                            ${q.options.map((opt, i) => `
+                                <div class="choice-option" data-value="${opt}" onclick="selectMulti(this, '${q.id}')">
+                                    <div class="choice-checkbox">
+                                        <svg width="14" height="14" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24">
+                                            <path d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </div>
+                                    <span class="choice-text">${opt}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="error-message" id="error-${q.id}">Please select at least one option</div>
+                        ${renderNavButtons(index, q)}`;
+
+                case 'toggle':
+                    return `
+                        <div class="question-number"><span>${index}</span></div>
+                        <h2 class="question-text">${q.question}</h2>
+                        ${q.subtext ? `<p class="question-subtext">${q.subtext}</p>` : '<div style="height: 24px"></div>'}
+                        <div class="toggle-container" data-question-id="${q.id}">
+                            ${q.options.map(opt => `
+                                <div class="toggle-option" data-value="${opt}" onclick="selectToggle(this, '${q.id}')">${opt}</div>
+                            `).join('')}
+                        </div>
+                        <div class="error-message" id="error-${q.id}">Please select an option</div>
+                        ${renderNavButtons(index, q)}`;
+
+                case 'text':
+                case 'email':
+                    return `
+                        <div class="question-number"><span>${index}</span></div>
+                        <h2 class="question-text">${q.question}</h2>
+                        ${q.subtext ? `<p class="question-subtext">${q.subtext}</p>` : '<div style="height: 24px"></div>'}
+                        <input type="${q.type === 'email' ? 'email' : 'text'}"
+                               class="input-text"
+                               id="input-${q.id}"
+                               placeholder="${q.placeholder || ''}"
+                               data-question-id="${q.id}"
+                               ${q.required === false ? '' : 'required'}>
+                        <div class="error-message" id="error-${q.id}">${q.type === 'email' ? 'Please enter a valid email' : 'Please fill in this field'}</div>
+                        ${renderNavButtons(index, q)}`;
+
+                case 'textarea':
+                    return `
+                        <div class="question-number"><span>${index}</span></div>
+                        <h2 class="question-text">${q.question}</h2>
+                        ${q.subtext ? `<p class="question-subtext">${q.subtext}</p>` : '<div style="height: 24px"></div>'}
+                        <textarea class="input-textarea"
+                                  id="input-${q.id}"
+                                  placeholder="${q.placeholder || ''}"
+                                  data-question-id="${q.id}"></textarea>
+                        <div class="error-message" id="error-${q.id}">Please fill in this field</div>
+                        ${renderNavButtons(index, q)}`;
+
+                default:
+                    return '';
+            }
+        }
+
+        function renderNavButtons(index, q) {
+            const isLast = index === questions.length - 2; // Before thank you screen
+            const showBack = index > 1; // Don't show back on welcome or first question
+            const isRequired = q.required !== false;
+
+            return `
+                <div class="nav-buttons">
+                    ${showBack ? `
+                        <button class="btn btn-secondary" onclick="prevQuestion()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+                            </svg>
+                            Back
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-primary" onclick="${isLast ? 'submitForm()' : 'nextQuestion()'}">
+                        ${isLast ? 'Submit' : 'Continue'}
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isLast ? 'M5 13l4 4L19 7' : 'M13 7l5 5m0 0l-5 5m5-5H6'}"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="keyboard-hint">Press <kbd>Enter</kbd> to continue</p>
+            `;
+        }
+
+        // Selection handlers
+        function selectSingle(element, questionId) {
+            const container = element.parentElement;
+            container.querySelectorAll('.choice-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            answers[questionId] = element.dataset.value;
+            hideError(questionId);
+
+            // Auto-advance after short delay
+            setTimeout(() => nextQuestion(), 300);
+        }
+
+        function selectMulti(element, questionId) {
+            element.classList.toggle('selected');
+            const container = element.parentElement;
+            const selected = Array.from(container.querySelectorAll('.choice-option.selected'))
+                .map(opt => opt.dataset.value);
+            answers[questionId] = selected;
+            if (selected.length > 0) hideError(questionId);
+        }
+
+        function selectToggle(element, questionId) {
+            const container = element.parentElement;
+            container.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            answers[questionId] = element.dataset.value;
+            hideError(questionId);
+
+            // Auto-advance after short delay
+            setTimeout(() => nextQuestion(), 300);
+        }
+
+        // Navigation
+        function nextQuestion() {
+            const q = questions[currentQuestion];
+
+            // Validate current question
+            if (!validateQuestion(q)) return;
+
+            // Save text input value
+            if (q.type === 'text' || q.type === 'email' || q.type === 'textarea') {
+                const input = document.getElementById(`input-${q.id}`);
+                if (input) answers[q.id] = input.value.trim();
+            }
+
+            if (currentQuestion < questions.length - 1) {
+                goToQuestion(currentQuestion + 1);
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestion > 0) {
+                goToQuestion(currentQuestion - 1);
+            }
+        }
+
+        function goToQuestion(index) {
+            const slides = document.querySelectorAll('.question-slide');
+            const currentSlide = slides[currentQuestion];
+            const nextSlide = slides[index];
+
+            // Determine direction
+            const isForward = index > currentQuestion;
+
+            // Animate out
+            currentSlide.classList.remove('active');
+            currentSlide.classList.add(isForward ? 'exit-up' : 'enter-down');
+
+            // Animate in
+            nextSlide.classList.add(isForward ? 'enter-down' : 'exit-up');
+
+            setTimeout(() => {
+                nextSlide.classList.remove('exit-up', 'enter-down');
+                nextSlide.classList.add('active');
+                currentSlide.classList.remove('exit-up', 'enter-down');
+            }, 50);
+
+            currentQuestion = index;
+            updateProgress();
+
+            // Focus input if text type
+            const q = questions[currentQuestion];
+            if (q.type === 'text' || q.type === 'email' || q.type === 'textarea') {
+                setTimeout(() => {
+                    const input = document.getElementById(`input-${q.id}`);
+                    if (input) input.focus();
+                }, 500);
+            }
+        }
+
+        function updateProgress() {
+            const totalQuestions = questions.length - 2; // Exclude welcome and thank you
+            const currentQ = Math.max(0, currentQuestion - 1); // Exclude welcome
+            const progress = Math.min(100, (currentQ / totalQuestions) * 100);
+            progressBar.style.width = `${progress}%`;
+
+            // Update counter
+            if (currentQuestion === 0 || currentQuestion === questions.length - 1) {
+                questionCounter.textContent = '';
+            } else {
+                questionCounter.textContent = `${currentQuestion} of ${totalQuestions}`;
+            }
+        }
+
+        // Validation
+        function validateQuestion(q) {
+            if (q.type === 'welcome' || q.type === 'thank_you') return true;
+            if (q.required === false) return true;
+
+            let isValid = true;
+
+            switch (q.type) {
+                case 'single':
+                case 'toggle':
+                    isValid = !!answers[q.id];
+                    break;
+                case 'multi':
+                    isValid = answers[q.id] && answers[q.id].length > 0;
+                    break;
+                case 'text':
+                case 'textarea':
+                    const input = document.getElementById(`input-${q.id}`);
+                    isValid = input && input.value.trim() !== '';
+                    break;
+                case 'email':
+                    const emailInput = document.getElementById(`input-${q.id}`);
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    isValid = emailInput && emailRegex.test(emailInput.value.trim());
+                    break;
+            }
+
+            if (!isValid) {
+                showError(q.id);
+            }
+
+            return isValid;
+        }
+
+        function showError(questionId) {
+            const errorEl = document.getElementById(`error-${questionId}`);
+            if (errorEl) errorEl.classList.add('show');
+        }
+
+        function hideError(questionId) {
+            const errorEl = document.getElementById(`error-${questionId}`);
+            if (errorEl) errorEl.classList.remove('show');
+        }
+
+        // Submit
+        async function submitForm() {
+            const q = questions[currentQuestion];
+            if (!validateQuestion(q)) return;
+
+            // Save last answer
+            if (q.type === 'text' || q.type === 'email' || q.type === 'textarea') {
+                const input = document.getElementById(`input-${q.id}`);
+                if (input) answers[q.id] = input.value.trim();
+            }
+
+            loadingOverlay.classList.add('show');
+
+            try {
+                // Get UTM params
+                const urlParams = new URLSearchParams(window.location.search);
+                const metadata = {
+                    utm_source: urlParams.get('utm_source'),
+                    utm_medium: urlParams.get('utm_medium'),
+                    utm_content: urlParams.get('utm_content'),
+                    utm_campaign: urlParams.get('utm_campaign'),
+                    referrer: document.referrer,
+                    submitted_at: new Date().toISOString()
+                };
+
+                const response = await fetch('/.netlify/functions/submit-apply-form', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        form_slug: 'apply',
+                        response_data: answers,
+                        metadata: metadata
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Submission failed');
+                }
+
+                // Show thank you screen
+                goToQuestion(questions.length - 1);
+
+            } catch (error) {
+                console.error('Submission error:', error);
+                alert('There was an error submitting your application. Please try again.');
+            } finally {
+                loadingOverlay.classList.remove('show');
+            }
+        }
+
+        // Event listeners
+        function addEventListeners() {
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    const q = questions[currentQuestion];
+                    if (q.type !== 'textarea') {
+                        e.preventDefault();
+                        if (currentQuestion === questions.length - 2) {
+                            submitForm();
+                        } else {
+                            nextQuestion();
+                        }
+                    }
+                }
+            });
+
+            // Letter key shortcuts for choices
+            document.addEventListener('keydown', (e) => {
+                const q = questions[currentQuestion];
+                if (q.type === 'single' && !e.metaKey && !e.ctrlKey) {
+                    const keyIndex = e.key.toUpperCase().charCodeAt(0) - 65;
+                    if (keyIndex >= 0 && keyIndex < (q.options?.length || 0)) {
+                        const container = document.querySelector(`[data-question-id="${q.id}"]`);
+                        if (container) {
+                            const option = container.querySelectorAll('.choice-option')[keyIndex];
+                            if (option) selectSingle(option, q.id);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        renderQuestions();
+    </script>
+</body>
+</html>
