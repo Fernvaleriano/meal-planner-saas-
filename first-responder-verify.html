@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Responder Verification | Zique Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .form-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .form-header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d9ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .progress-bar {
+            width: 120px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* Questions Container */
+        .questions-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .question-slide {
+            width: 100%;
+            max-width: 600px;
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .question-slide.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .question-number {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: #00d9ff;
+            margin-bottom: 16px;
+        }
+
+        .question-number span {
+            background: rgba(0, 217, 255, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .question-text {
+            font-size: 1.75rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 12px;
+        }
+
+        .question-subtitle {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 32px;
+        }
+
+        /* Input Styles */
+        .text-input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 1.125rem;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .text-input::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* File Upload Styles */
+        .file-upload-zone {
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .file-upload-zone:hover {
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .file-upload-zone.dragover {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .file-upload-zone.has-file {
+            border-color: #00ff88;
+            border-style: solid;
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(0, 255, 136, 0.2));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke: #00d9ff;
+        }
+
+        .upload-text {
+            font-size: 1.125rem;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 8px;
+        }
+
+        .upload-subtext {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-preview {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .file-preview.show {
+            display: flex;
+        }
+
+        .file-preview-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .file-preview-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .file-preview-name {
+            font-weight: 500;
+            color: #ffffff;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .file-preview-size {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .file-remove {
+            background: rgba(255, 99, 99, 0.2);
+            border: none;
+            color: #ff6363;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .file-remove:hover {
+            background: rgba(255, 99, 99, 0.3);
+        }
+
+        /* Navigation */
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .nav-btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-back {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ffffff;
+        }
+
+        .btn-back:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #00d9ff 0%, #00ff88 100%);
+            border: none;
+            color: #1a1a2e;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.3);
+        }
+
+        .btn-next:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #00ff88 0%, #00d9ff 100%);
+        }
+
+        /* Enter hint */
+        .enter-hint {
+            margin-top: 16px;
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .enter-hint kbd {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        /* Success Screen */
+        .success-screen {
+            display: none;
+            text-align: center;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .success-screen.active {
+            display: block;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 217, 255, 0.2));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-icon svg {
+            width: 50px;
+            height: 50px;
+            stroke: #00ff88;
+        }
+
+        .success-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .success-message {
+            font-size: 1.125rem;
+            color: rgba(255,255,255,0.7);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 46, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Error message */
+        .error-message {
+            background: rgba(255, 99, 99, 0.1);
+            border: 1px solid rgba(255, 99, 99, 0.3);
+            color: #ff6363;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-header {
+                padding: 16px 20px;
+            }
+
+            .questions-wrapper {
+                padding: 20px;
+            }
+
+            .question-text {
+                font-size: 1.5rem;
+            }
+
+            .file-upload-zone {
+                padding: 30px 20px;
+            }
+        }
+
+        /* Badge icon for header */
+        .badge-icon {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.875rem;
+        }
+
+        .badge-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <!-- Header -->
+        <header class="form-header">
+            <div class="logo">ZIQUE FITNESS</div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span class="progress-text" id="progressText">1 of 5</span>
+            </div>
+        </header>
+
+        <!-- Questions -->
+        <main class="questions-wrapper">
+            <!-- Question 1: First Name -->
+            <div class="question-slide active" data-question="0">
+                <div class="question-number"><span>1 →</span></div>
+                <h2 class="question-text">What's your first name?</h2>
+                <p class="question-subtitle">Let's start with the basics</p>
+                <input type="text" class="text-input" id="firstName" placeholder="Type your first name..." autocomplete="given-name">
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" id="btn-next-0">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+                <p class="enter-hint">press <kbd>Enter ↵</kbd></p>
+            </div>
+
+            <!-- Question 2: Last Name -->
+            <div class="question-slide" data-question="1">
+                <div class="question-number"><span>2 →</span></div>
+                <h2 class="question-text">And your last name?</h2>
+                <input type="text" class="text-input" id="lastName" placeholder="Type your last name..." autocomplete="family-name">
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">
+                        ← Back
+                    </button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" id="btn-next-1">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+                <p class="enter-hint">press <kbd>Enter ↵</kbd></p>
+            </div>
+
+            <!-- Question 3: Email -->
+            <div class="question-slide" data-question="2">
+                <div class="question-number"><span>3 →</span></div>
+                <h2 class="question-text">What's your email address?</h2>
+                <p class="question-subtitle">We'll send your verification confirmation here</p>
+                <input type="email" class="text-input" id="email" placeholder="name@example.com" autocomplete="email">
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">
+                        ← Back
+                    </button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" id="btn-next-2">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+                <p class="enter-hint">press <kbd>Enter ↵</kbd></p>
+            </div>
+
+            <!-- Question 4: Agency Name -->
+            <div class="question-slide" data-question="3">
+                <div class="question-number"><span>4 →</span></div>
+                <h2 class="question-text">What agency or department do you work for?</h2>
+                <p class="question-subtitle">Police department, fire station, EMS, etc.</p>
+                <input type="text" class="text-input" id="agencyName" placeholder="e.g., Los Angeles Fire Department">
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">
+                        ← Back
+                    </button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" id="btn-next-3">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+                <p class="enter-hint">press <kbd>Enter ↵</kbd></p>
+            </div>
+
+            <!-- Question 5: ID Photo Upload -->
+            <div class="question-slide" data-question="4">
+                <div class="question-number"><span>5 →</span></div>
+                <h2 class="question-text">Upload a photo of your ID badge</h2>
+                <p class="question-subtitle">This helps us verify your first responder status. Max 10MB.</p>
+
+                <div class="file-upload-zone" id="uploadZone" onclick="document.getElementById('idPhoto').click()">
+                    <div class="upload-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <p class="upload-text">Click to upload or drag and drop</p>
+                    <p class="upload-subtext">PNG, JPG, or PDF up to 10MB</p>
+                </div>
+
+                <input type="file" class="file-input" id="idPhoto" accept="image/*,.pdf" onchange="handleFileSelect(event)">
+
+                <div class="file-preview" id="filePreview">
+                    <img class="file-preview-image" id="previewImage" src="" alt="Preview">
+                    <div class="file-preview-info">
+                        <div class="file-preview-name" id="fileName"></div>
+                        <div class="file-preview-size" id="fileSize"></div>
+                    </div>
+                    <button class="file-remove" onclick="removeFile(event)">Remove</button>
+                </div>
+
+                <div class="error-message" id="fileError"></div>
+
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">
+                        ← Back
+                    </button>
+                    <button class="nav-btn btn-next btn-submit" onclick="submitForm()" id="btn-submit">
+                        Submit Verification <span>→</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success Screen -->
+            <div class="success-screen" id="successScreen">
+                <div class="success-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2 class="success-title">Verification Submitted!</h2>
+                <p class="success-message">Thank you for submitting your verification. We'll review your information and get back to you within 24-48 hours.</p>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div style="text-align: center;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Uploading your verification...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+
+        let currentQuestion = 0;
+        const totalQuestions = 5;
+        let selectedFile = null;
+
+        // Form data
+        const formData = {
+            firstName: '',
+            lastName: '',
+            email: '',
+            agencyName: '',
+            idPhotoUrl: ''
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateProgress();
+            setupEnterKeyNavigation();
+            setupDragAndDrop();
+            setupInputValidation();
+        });
+
+        function updateProgress() {
+            const progress = ((currentQuestion + 1) / totalQuestions) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('progressText').textContent = `${currentQuestion + 1} of ${totalQuestions}`;
+        }
+
+        function showQuestion(index) {
+            document.querySelectorAll('.question-slide').forEach(slide => {
+                slide.classList.remove('active');
+            });
+            document.querySelector(`[data-question="${index}"]`).classList.add('active');
+
+            // Focus the input if there is one
+            const activeSlide = document.querySelector(`[data-question="${index}"]`);
+            const input = activeSlide.querySelector('input:not([type="file"])');
+            if (input) {
+                setTimeout(() => input.focus(), 100);
+            }
+        }
+
+        function nextQuestion() {
+            // Validate current question
+            if (!validateCurrentQuestion()) return;
+
+            // Save current answer
+            saveCurrentAnswer();
+
+            if (currentQuestion < totalQuestions - 1) {
+                currentQuestion++;
+                showQuestion(currentQuestion);
+                updateProgress();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion(currentQuestion);
+                updateProgress();
+            }
+        }
+
+        function validateCurrentQuestion() {
+            const inputs = {
+                0: 'firstName',
+                1: 'lastName',
+                2: 'email',
+                3: 'agencyName'
+            };
+
+            if (currentQuestion in inputs) {
+                const input = document.getElementById(inputs[currentQuestion]);
+                const value = input.value.trim();
+
+                if (!value) {
+                    input.style.borderColor = '#ff6363';
+                    input.focus();
+                    return false;
+                }
+
+                // Email validation
+                if (currentQuestion === 2) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(value)) {
+                        input.style.borderColor = '#ff6363';
+                        input.focus();
+                        return false;
+                    }
+                }
+
+                input.style.borderColor = 'rgba(255,255,255,0.1)';
+            }
+
+            return true;
+        }
+
+        function saveCurrentAnswer() {
+            const inputs = {
+                0: 'firstName',
+                1: 'lastName',
+                2: 'email',
+                3: 'agencyName'
+            };
+
+            if (currentQuestion in inputs) {
+                const input = document.getElementById(inputs[currentQuestion]);
+                formData[inputs[currentQuestion]] = input.value.trim();
+            }
+        }
+
+        function setupEnterKeyNavigation() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    const activeSlide = document.querySelector('.question-slide.active');
+                    if (activeSlide) {
+                        const questionIndex = parseInt(activeSlide.dataset.question);
+                        if (questionIndex < totalQuestions - 1) {
+                            nextQuestion();
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupInputValidation() {
+            document.querySelectorAll('.text-input').forEach(input => {
+                input.addEventListener('input', () => {
+                    input.style.borderColor = 'rgba(255,255,255,0.1)';
+                });
+            });
+        }
+
+        // File upload handling
+        function setupDragAndDrop() {
+            const uploadZone = document.getElementById('uploadZone');
+
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    processFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
+            const errorEl = document.getElementById('fileError');
+            errorEl.classList.remove('show');
+
+            // Validate file type
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                errorEl.textContent = 'Please upload an image (PNG, JPG) or PDF file.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            // Validate file size
+            if (file.size > MAX_FILE_SIZE) {
+                errorEl.textContent = 'File is too large. Maximum size is 10MB.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Show preview
+            const previewEl = document.getElementById('filePreview');
+            const previewImage = document.getElementById('previewImage');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const uploadZone = document.getElementById('uploadZone');
+
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewImage.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // PDF - show placeholder
+                previewImage.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#00d9ff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>');
+                previewImage.style.display = 'block';
+            }
+
+            previewEl.classList.add('show');
+            uploadZone.classList.add('has-file');
+        }
+
+        function removeFile(event) {
+            event.stopPropagation();
+            selectedFile = null;
+            document.getElementById('idPhoto').value = '';
+            document.getElementById('filePreview').classList.remove('show');
+            document.getElementById('uploadZone').classList.remove('has-file');
+            document.getElementById('fileError').classList.remove('show');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        async function submitForm() {
+            // Validate all fields
+            saveCurrentAnswer();
+
+            const errorEl = document.getElementById('fileError');
+
+            // Check required fields
+            if (!formData.firstName || !formData.lastName || !formData.email || !formData.agencyName) {
+                errorEl.textContent = 'Please complete all fields before submitting.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            if (!selectedFile) {
+                errorEl.textContent = 'Please upload your ID badge photo.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingOverlay').classList.add('show');
+            errorEl.classList.remove('show');
+
+            try {
+                // Upload file to Supabase Storage
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+                const uploadResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/first-responder-ids/${fileName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': selectedFile.type,
+                        'x-upsert': 'true'
+                    },
+                    body: selectedFile
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload file');
+                }
+
+                // Get the public URL
+                formData.idPhotoUrl = `${SUPABASE_URL}/storage/v1/object/public/first-responder-ids/${fileName}`;
+
+                // Submit form data
+                const response = await fetch('/.netlify/functions/submit-apply-form', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        form_slug: 'first-responder-verification',
+                        response_data: {
+                            first_name: formData.firstName,
+                            last_name: formData.lastName,
+                            name: `${formData.firstName} ${formData.lastName}`,
+                            email: formData.email,
+                            agency_name: formData.agencyName,
+                            id_photo_url: formData.idPhotoUrl
+                        },
+                        metadata: {
+                            submitted_at: new Date().toISOString(),
+                            form_type: 'first_responder_verification',
+                            utm_source: new URLSearchParams(window.location.search).get('utm_source') || 'direct'
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit form');
+                }
+
+                // Show success
+                document.getElementById('loadingOverlay').classList.remove('show');
+                document.querySelectorAll('.question-slide').forEach(slide => {
+                    slide.classList.remove('active');
+                });
+                document.getElementById('successScreen').classList.add('active');
+                document.querySelector('.progress-container').style.display = 'none';
+
+            } catch (error) {
+                console.error('Submit error:', error);
+                document.getElementById('loadingOverlay').classList.remove('show');
+                errorEl.textContent = 'Something went wrong. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+    </script>
+</body>
+</html>

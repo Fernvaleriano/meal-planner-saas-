@@ -313,6 +313,48 @@
             color: var(--gray-600);
         }
 
+        .badge-form-type {
+            background: rgba(2, 132, 199, 0.1);
+            color: var(--brand-secondary);
+        }
+
+        .badge-first-responder {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        /* ID Photo Preview */
+        .id-photo-preview {
+            margin: 16px 0;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        [data-theme="dark"] .id-photo-preview {
+            background: var(--gray-200);
+        }
+
+        .id-photo-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .id-photo-preview a {
+            display: inline-block;
+            margin-top: 12px;
+            color: var(--brand-primary);
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .id-photo-preview a:hover {
+            text-decoration: underline;
+        }
+
         /* Detail Modal */
         .modal-overlay {
             position: fixed;
@@ -606,6 +648,8 @@
                 <h2 class="responses-title">All Responses</h2>
                 <div class="filter-tabs">
                     <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="apply">Applications</button>
+                    <button class="filter-tab" data-filter="first-responder">First Responders</button>
                     <button class="filter-tab" data-filter="unread">Unread</button>
                 </div>
             </div>
@@ -697,10 +741,8 @@
 
                 if (error) throw error;
 
-                // Filter to only apply form responses
-                responses = (data || []).filter(r =>
-                    r.metadata?.form_slug === 'apply' || !r.form_template_id
-                );
+                // Store all responses
+                responses = data || [];
 
                 updateStats();
                 renderResponses();
@@ -722,6 +764,15 @@
             ).length;
         }
 
+        // Get form type from response
+        function getFormType(response) {
+            const slug = response.metadata?.form_slug;
+            if (slug === 'first-responder-verification' || response.metadata?.form_type === 'first_responder_verification') {
+                return 'first-responder';
+            }
+            return 'apply';
+        }
+
         // Render responses
         function renderResponses() {
             loadingState.style.display = 'none';
@@ -729,6 +780,10 @@
             let filtered = responses;
             if (currentFilter === 'unread') {
                 filtered = responses.filter(r => !r.is_read);
+            } else if (currentFilter === 'apply') {
+                filtered = responses.filter(r => getFormType(r) === 'apply');
+            } else if (currentFilter === 'first-responder') {
+                filtered = responses.filter(r => getFormType(r) === 'first-responder');
             }
 
             if (filtered.length === 0) {
@@ -742,12 +797,27 @@
 
             responseList.innerHTML = filtered.map(r => {
                 const data = r.response_data || {};
-                const name = data.name || 'Unknown';
+                const formType = getFormType(r);
+                const isFirstResponder = formType === 'first-responder';
+
+                const name = data.name || (data.first_name && data.last_name ? `${data.first_name} ${data.last_name}` : 'Unknown');
                 const email = data.email || 'No email';
-                const goal = data.goal || 'Not specified';
-                const commitment = data.commitment || '';
                 const source = r.metadata?.utm_source || 'Direct';
                 const date = formatDate(r.submitted_at);
+
+                // Different preview based on form type
+                let previewHtml = '';
+                if (isFirstResponder) {
+                    const agency = data.agency_name || 'Not specified';
+                    previewHtml = `<span class="preview-item"><span class="preview-label">Agency:</span> ${agency}</span>`;
+                } else {
+                    const goal = data.goal || 'Not specified';
+                    const commitment = data.commitment || '';
+                    previewHtml = `
+                        <span class="preview-item"><span class="preview-label">Goal:</span> ${goal}</span>
+                        ${commitment ? `<span class="preview-item"><span class="preview-label">Commitment:</span> ${commitment.substring(0, 40)}...</span>` : ''}
+                    `;
+                }
 
                 return `
                     <li class="response-item ${r.is_read ? '' : 'unread'}" onclick="openDetail('${r.id}')">
@@ -756,6 +826,7 @@
                                 <div class="response-name">
                                     ${name}
                                     ${!r.is_read ? '<span class="badge badge-new">New</span>' : ''}
+                                    ${isFirstResponder ? '<span class="badge badge-first-responder">First Responder</span>' : ''}
                                 </div>
                                 <div class="response-email">${email}</div>
                             </div>
@@ -766,8 +837,7 @@
                             </div>
                         </div>
                         <div class="response-preview">
-                            <span class="preview-item"><span class="preview-label">Goal:</span> ${goal}</span>
-                            ${commitment ? `<span class="preview-item"><span class="preview-label">Commitment:</span> ${commitment.substring(0, 40)}...</span>` : ''}
+                            ${previewHtml}
                         </div>
                     </li>
                 `;
@@ -803,46 +873,91 @@
             if (!response) return;
 
             const data = response.response_data || {};
-            const name = data.name || 'Unknown';
+            const formType = getFormType(response);
+            const isFirstResponder = formType === 'first-responder';
+
+            const name = data.name || (data.first_name && data.last_name ? `${data.first_name} ${data.last_name}` : 'Unknown');
             const email = data.email || '';
 
             document.getElementById('modalName').textContent = name;
             document.getElementById('modalDate').textContent = formatDate(response.submitted_at);
             document.getElementById('emailLink').href = `mailto:${email}`;
 
-            // Build detail sections
-            const sections = {
-                'Contact Info': ['name', 'email', 'social', 'phone_type'],
-                'Goals & Fitness': ['goal', 'focus_areas', 'fitness_level', 'daily_activity', 'struggles'],
-                'Health': ['health_concerns', 'allergies', 'all_or_nothing'],
-                'Workout': ['gym_intimidation', 'gym_or_home', 'workout_days', 'pushups', 'workout_time'],
-                'Nutrition': ['eating_style', 'emotional_eater', 'meal_prep', 'breakfast'],
-                'Physical Stats': ['height', 'weight'],
-                'Other': ['referral', 'commitment']
-            };
-
             let bodyHtml = '';
 
-            for (const [sectionTitle, fields] of Object.entries(sections)) {
-                const sectionRows = fields
-                    .filter(field => data[field] !== undefined && data[field] !== null && data[field] !== '')
-                    .map(field => {
-                        const label = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                        const value = Array.isArray(data[field]) ? data[field].join(', ') : data[field];
-                        return `<div class="detail-row">
-                            <div class="detail-label">${label}</div>
-                            <div class="detail-value">${value}</div>
-                        </div>`;
-                    })
-                    .join('');
+            if (isFirstResponder) {
+                // First Responder verification form
+                bodyHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Contact Info</div>
+                        <div class="detail-row">
+                            <div class="detail-label">First Name</div>
+                            <div class="detail-value">${data.first_name || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Last Name</div>
+                            <div class="detail-value">${data.last_name || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Email</div>
+                            <div class="detail-value">${data.email || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-section-title">Verification</div>
+                        <div class="detail-row">
+                            <div class="detail-label">Agency/Department</div>
+                            <div class="detail-value">${data.agency_name || '-'}</div>
+                        </div>
+                    </div>
+                `;
 
-                if (sectionRows) {
+                // Show ID photo if available
+                if (data.id_photo_url) {
+                    const isImage = data.id_photo_url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
                     bodyHtml += `
                         <div class="detail-section">
-                            <div class="detail-section-title">${sectionTitle}</div>
-                            ${sectionRows}
+                            <div class="detail-section-title">ID Badge Photo</div>
+                            <div class="id-photo-preview">
+                                ${isImage ? `<img src="${data.id_photo_url}" alt="ID Badge" />` : '<p>PDF Document</p>'}
+                                <a href="${data.id_photo_url}" target="_blank">Open in new tab</a>
+                            </div>
                         </div>
                     `;
+                }
+            } else {
+                // Application form - build detail sections
+                const sections = {
+                    'Contact Info': ['name', 'email', 'phone', 'social'],
+                    'Goals & Fitness': ['goal', 'focus_areas', 'fitness_level', 'daily_activity', 'struggles'],
+                    'Health': ['health_concerns', 'allergies', 'age', 'gender'],
+                    'Workout': ['gym_or_home', 'workout_days', 'workout_time', 'equipment'],
+                    'Nutrition': ['eating_style', 'diet_type', 'preferred_foods', 'disliked_foods', 'budget'],
+                    'Physical Stats': ['height', 'weight'],
+                    'Other': ['referral', 'commitment']
+                };
+
+                for (const [sectionTitle, fields] of Object.entries(sections)) {
+                    const sectionRows = fields
+                        .filter(field => data[field] !== undefined && data[field] !== null && data[field] !== '')
+                        .map(field => {
+                            const label = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const value = Array.isArray(data[field]) ? data[field].join(', ') : data[field];
+                            return `<div class="detail-row">
+                                <div class="detail-label">${label}</div>
+                                <div class="detail-value">${value}</div>
+                            </div>`;
+                        })
+                        .join('');
+
+                    if (sectionRows) {
+                        bodyHtml += `
+                            <div class="detail-section">
+                                <div class="detail-section-title">${sectionTitle}</div>
+                                ${sectionRows}
+                            </div>
+                        `;
+                    }
                 }
             }
 
