@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <title>Form Responses - Zique Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+        }
+
+        [data-theme="dark"] {
+            --gray-50: #0f172a;
+            --gray-100: #1e293b;
+            --gray-200: #334155;
+            --gray-300: #475569;
+            --gray-400: #64748b;
+            --gray-500: #94a3b8;
+            --gray-600: #cbd5e1;
+            --gray-700: #e2e8f0;
+            --gray-800: #f1f5f9;
+            --gray-900: #f8fafc;
+        }
+
+        [data-theme="dark"] body {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            background: var(--brand-gradient);
+            padding: 16px 24px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            min-height: calc(72px + env(safe-area-inset-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-logo {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+        }
+
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--gray-500);
+            font-size: 1rem;
+        }
+
+        /* Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .stat-card {
+            background: var(--gray-100);
+            border-color: var(--gray-200);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--brand-primary);
+        }
+
+        .stat-label {
+            color: var(--gray-500);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* Responses List */
+        .responses-container {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .responses-container {
+            background: var(--gray-100);
+            border-color: var(--gray-200);
+        }
+
+        .responses-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .responses-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+        }
+
+        .filter-tab.active {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        .response-list {
+            list-style: none;
+        }
+
+        .response-item {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .response-item:hover {
+            background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .response-item:hover {
+            background: var(--gray-200);
+        }
+
+        .response-item:last-child {
+            border-bottom: none;
+        }
+
+        .response-item.unread {
+            background: rgba(13, 148, 136, 0.05);
+            border-left: 3px solid var(--brand-primary);
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .response-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .response-email {
+            font-size: 14px;
+            color: var(--brand-primary);
+        }
+
+        .response-date {
+            font-size: 13px;
+            color: var(--gray-500);
+            text-align: right;
+        }
+
+        .response-preview {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .preview-item {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .preview-label {
+            color: var(--gray-400);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-new {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-source {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        /* Detail Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        [data-theme="dark"] .modal-content {
+            background: var(--gray-100);
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-600);
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .detail-row {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            width: 40%;
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        .detail-value {
+            width: 60%;
+            font-size: 14px;
+            color: var(--gray-900);
+            font-weight: 500;
+        }
+
+        .modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--brand-gradient);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 80px 24px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 32px;
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            color: var(--gray-500);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 24px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .main-content {
+                padding: 20px 16px;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+
+            .responses-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .response-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .response-date {
+                text-align: left;
+            }
+
+            .detail-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .detail-label,
+            .detail-value {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <a href="/dashboard.html" class="nav-brand">
+            <div class="nav-logo">Z</div>
+            <span class="nav-title">Form Responses</span>
+        </a>
+        <div class="nav-actions">
+            <a href="/dashboard.html" class="nav-btn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Application Responses</h1>
+            <p class="page-subtitle">View and manage submissions from your apply form</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">-</div>
+                <div class="stat-label">Total Responses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="unreadCount">-</div>
+                <div class="stat-label">Unread</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="todayCount">-</div>
+                <div class="stat-label">Today</div>
+            </div>
+        </div>
+
+        <!-- Responses List -->
+        <div class="responses-container">
+            <div class="responses-header">
+                <h2 class="responses-title">All Responses</h2>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="unread">Unread</button>
+                </div>
+            </div>
+
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h3 class="empty-title">No responses yet</h3>
+                <p class="empty-text">When someone fills out your apply form, their responses will appear here.</p>
+            </div>
+
+            <ul class="response-list" id="responseList" style="display: none;"></ul>
+        </div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title" id="modalName">Response Details</h3>
+                    <p class="modal-subtitle" id="modalDate"></p>
+                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <a class="btn btn-primary" id="emailLink" href="">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    Send Email
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let responses = [];
+        let currentFilter = 'all';
+
+        // DOM Elements
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
+        const responseList = document.getElementById('responseList');
+        const totalCount = document.getElementById('totalCount');
+        const unreadCount = document.getElementById('unreadCount');
+        const todayCount = document.getElementById('todayCount');
+        const detailModal = document.getElementById('detailModal');
+
+        // Initialize
+        async function init() {
+            // Check auth
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            loadResponses();
+        }
+
+        // Load responses
+        async function loadResponses() {
+            try {
+                // Get responses for the apply form (by slug in metadata)
+                const { data, error } = await supabaseClient
+                    .from('form_responses')
+                    .select('*')
+                    .order('submitted_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Filter to only apply form responses
+                responses = (data || []).filter(r =>
+                    r.metadata?.form_slug === 'apply' || !r.form_template_id
+                );
+
+                updateStats();
+                renderResponses();
+
+            } catch (err) {
+                console.error('Error loading responses:', err);
+                loadingState.innerHTML = '<p style="color: var(--error);">Failed to load responses</p>';
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            const today = new Date().toDateString();
+
+            totalCount.textContent = responses.length;
+            unreadCount.textContent = responses.filter(r => !r.is_read).length;
+            todayCount.textContent = responses.filter(r =>
+                new Date(r.submitted_at).toDateString() === today
+            ).length;
+        }
+
+        // Render responses
+        function renderResponses() {
+            loadingState.style.display = 'none';
+
+            let filtered = responses;
+            if (currentFilter === 'unread') {
+                filtered = responses.filter(r => !r.is_read);
+            }
+
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                responseList.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            responseList.style.display = 'block';
+
+            responseList.innerHTML = filtered.map(r => {
+                const data = r.response_data || {};
+                const name = data.name || 'Unknown';
+                const email = data.email || 'No email';
+                const goal = data.goal || 'Not specified';
+                const commitment = data.commitment || '';
+                const source = r.metadata?.utm_source || 'Direct';
+                const date = formatDate(r.submitted_at);
+
+                return `
+                    <li class="response-item ${r.is_read ? '' : 'unread'}" onclick="openDetail('${r.id}')">
+                        <div class="response-header">
+                            <div>
+                                <div class="response-name">
+                                    ${name}
+                                    ${!r.is_read ? '<span class="badge badge-new">New</span>' : ''}
+                                </div>
+                                <div class="response-email">${email}</div>
+                            </div>
+                            <div class="response-date">
+                                ${date}
+                                <br>
+                                <span class="badge badge-source">${source}</span>
+                            </div>
+                        </div>
+                        <div class="response-preview">
+                            <span class="preview-item"><span class="preview-label">Goal:</span> ${goal}</span>
+                            ${commitment ? `<span class="preview-item"><span class="preview-label">Commitment:</span> ${commitment.substring(0, 40)}...</span>` : ''}
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffHours = diffMs / (1000 * 60 * 60);
+
+            if (diffHours < 24) {
+                if (diffHours < 1) {
+                    const mins = Math.floor(diffMs / (1000 * 60));
+                    return `${mins}m ago`;
+                }
+                return `${Math.floor(diffHours)}h ago`;
+            }
+
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        }
+
+        // Open detail modal
+        async function openDetail(id) {
+            const response = responses.find(r => r.id == id);
+            if (!response) return;
+
+            const data = response.response_data || {};
+            const name = data.name || 'Unknown';
+            const email = data.email || '';
+
+            document.getElementById('modalName').textContent = name;
+            document.getElementById('modalDate').textContent = formatDate(response.submitted_at);
+            document.getElementById('emailLink').href = `mailto:${email}`;
+
+            // Build detail sections
+            const sections = {
+                'Contact Info': ['name', 'email', 'social', 'phone_type'],
+                'Goals & Fitness': ['goal', 'focus_areas', 'fitness_level', 'daily_activity', 'struggles'],
+                'Health': ['health_concerns', 'allergies', 'all_or_nothing'],
+                'Workout': ['gym_intimidation', 'gym_or_home', 'workout_days', 'pushups', 'workout_time'],
+                'Nutrition': ['eating_style', 'emotional_eater', 'meal_prep', 'breakfast'],
+                'Physical Stats': ['height', 'weight'],
+                'Other': ['referral', 'commitment']
+            };
+
+            let bodyHtml = '';
+
+            for (const [sectionTitle, fields] of Object.entries(sections)) {
+                const sectionRows = fields
+                    .filter(field => data[field] !== undefined && data[field] !== null && data[field] !== '')
+                    .map(field => {
+                        const label = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        const value = Array.isArray(data[field]) ? data[field].join(', ') : data[field];
+                        return `<div class="detail-row">
+                            <div class="detail-label">${label}</div>
+                            <div class="detail-value">${value}</div>
+                        </div>`;
+                    })
+                    .join('');
+
+                if (sectionRows) {
+                    bodyHtml += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">${sectionTitle}</div>
+                            ${sectionRows}
+                        </div>
+                    `;
+                }
+            }
+
+            // Add metadata
+            if (response.metadata) {
+                const meta = response.metadata;
+                bodyHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Source</div>
+                        <div class="detail-row">
+                            <div class="detail-label">UTM Source</div>
+                            <div class="detail-value">${meta.utm_source || 'Direct'}</div>
+                        </div>
+                        ${meta.utm_medium ? `<div class="detail-row">
+                            <div class="detail-label">UTM Medium</div>
+                            <div class="detail-value">${meta.utm_medium}</div>
+                        </div>` : ''}
+                        ${meta.referrer ? `<div class="detail-row">
+                            <div class="detail-label">Referrer</div>
+                            <div class="detail-value">${meta.referrer}</div>
+                        </div>` : ''}
+                    </div>
+                `;
+            }
+
+            document.getElementById('modalBody').innerHTML = bodyHtml;
+            detailModal.classList.add('show');
+
+            // Mark as read
+            if (!response.is_read) {
+                await supabaseClient
+                    .from('form_responses')
+                    .update({ is_read: true })
+                    .eq('id', id);
+
+                response.is_read = true;
+                updateStats();
+                renderResponses();
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            detailModal.classList.remove('show');
+        }
+
+        // Close modal on overlay click
+        detailModal.addEventListener('click', (e) => {
+            if (e.target === detailModal) closeModal();
+        });
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFilter = tab.dataset.filter;
+                renderResponses();
+            });
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
