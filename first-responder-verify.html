@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>First Responder Verification | Zique Fitness</title>
+    <title>First Responder Verification | FitForShift Wellness</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,12 +37,21 @@
         }
 
         .logo {
-            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            height: 45px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #00d9ff 0%, #00ff88 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #ffffff;
+            letter-spacing: 1px;
         }
 
         .progress-container {
@@ -462,7 +471,9 @@
     <div class="form-container">
         <!-- Header -->
         <header class="form-header">
-            <div class="logo">ZIQUE FITNESS</div>
+            <div class="logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Fit%20For%20Shift/Untitled%20design%20-%202025-12-19T221845.209.png" alt="FitForShift">
+            </div>
             <div class="progress-container">
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill"></div>
