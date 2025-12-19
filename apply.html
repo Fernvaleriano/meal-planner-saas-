@@ -979,8 +979,14 @@
             answers[questionId] = element.dataset.value;
             hideError(questionId);
 
-            // Auto-advance after short delay
-            setTimeout(() => nextQuestion(), 300);
+            // Auto-advance after short delay (submit if last question)
+            setTimeout(() => {
+                if (currentQuestion === questions.length - 2) {
+                    submitForm();
+                } else {
+                    nextQuestion();
+                }
+            }, 300);
         }
 
         function selectMulti(element, questionId) {
@@ -999,8 +1005,14 @@
             answers[questionId] = element.dataset.value;
             hideError(questionId);
 
-            // Auto-advance after short delay
-            setTimeout(() => nextQuestion(), 300);
+            // Auto-advance after short delay (submit if last question)
+            setTimeout(() => {
+                if (currentQuestion === questions.length - 2) {
+                    submitForm();
+                } else {
+                    nextQuestion();
+                }
+            }, 300);
         }
 
         // Navigation
