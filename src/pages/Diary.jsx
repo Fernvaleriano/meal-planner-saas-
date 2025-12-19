@@ -102,6 +102,7 @@ function Diary() {
   });
   const [aiExpanded, setAiExpanded] = useState(false);
   const aiInputRef = useRef(null);
+  const aiContentRef = useRef(null); // Ref for auto-scrolling chat content
   const [pendingFoodLog, setPendingFoodLog] = useState(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState(null);
   const [suggestionContext, setSuggestionContext] = useState(null);
@@ -168,6 +169,16 @@ function Diary() {
       }));
     }
   }, [aiMessages]);
+
+  // Auto-scroll chat to bottom when new messages arrive or loading state changes
+  useEffect(() => {
+    if (aiContentRef.current) {
+      // Use requestAnimationFrame to ensure DOM has updated before scrolling
+      requestAnimationFrame(() => {
+        aiContentRef.current.scrollTop = aiContentRef.current.scrollHeight;
+      });
+    }
+  }, [aiMessages, aiLogging, pendingFoodLog]);
 
   // Collapsible meal sections
   const [collapsedMeals, setCollapsedMeals] = useState(() => {
@@ -2116,7 +2127,7 @@ function Diary() {
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="ai-modal-content">
+            <div className="ai-modal-content" ref={aiContentRef}>
               {/* Welcome Screen - when no messages */}
               {aiMessages.length === 0 && !aiLogging && (
                 <div className="ai-modal-welcome">
