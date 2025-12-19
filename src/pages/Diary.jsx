@@ -170,15 +170,22 @@ function Diary() {
     }
   }, [aiMessages]);
 
-  // Auto-scroll chat to bottom when new messages arrive or loading state changes
+  // Auto-scroll chat to bottom when modal opens, new messages arrive, or loading state changes
   useEffect(() => {
-    if (aiContentRef.current) {
-      // Use requestAnimationFrame to ensure DOM has updated before scrolling
-      requestAnimationFrame(() => {
-        aiContentRef.current.scrollTop = aiContentRef.current.scrollHeight;
-      });
+    if (aiExpanded && aiContentRef.current) {
+      // Use setTimeout to ensure modal has rendered before scrolling
+      const scrollToBottom = () => {
+        if (aiContentRef.current) {
+          aiContentRef.current.scrollTop = aiContentRef.current.scrollHeight;
+        }
+      };
+      // Immediate scroll for message updates
+      scrollToBottom();
+      // Delayed scroll for modal open (ensures DOM is ready)
+      const timer = setTimeout(scrollToBottom, 50);
+      return () => clearTimeout(timer);
     }
-  }, [aiMessages, aiLogging, pendingFoodLog]);
+  }, [aiExpanded, aiMessages, aiLogging, pendingFoodLog]);
 
   // Collapsible meal sections
   const [collapsedMeals, setCollapsedMeals] = useState(() => {
