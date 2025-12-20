@@ -169,7 +169,13 @@ exports.handler = async (event) => {
 2. DIET TYPE: ${dietaryPreferences.diet_type && dietaryPreferences.diet_type !== 'no_preference' && dietaryPreferences.diet_type !== 'standard' ? `Client follows ${dietaryPreferences.diet_type.toUpperCase()} diet. Only suggest appropriate foods!` : 'No specific diet.'}
 3. DISLIKES: ${dietaryPreferences.disliked_foods ? `Client dislikes: ${dietaryPreferences.disliked_foods}. Avoid these.` : 'No dislikes listed.'}
 4. PREFERENCES: ${dietaryPreferences.preferred_foods ? `Client likes: ${dietaryPreferences.preferred_foods}. Include sometimes, mixed with variety.` : 'No preferences listed.'}
-5. REMAINING MACROS: Suggest foods that help meet their remaining goals (shown in TODAY'S PROGRESS below).
+5. REMAINING CALORIES: ${remaining.calories > 0 ? `Client has ${Math.round(remaining.calories)} calories left. ONLY suggest foods that fit within this budget!` : 'Client is at or over calorie goal - do NOT suggest more food!'}
+6. REMAINING MACROS: Suggest foods that help meet their remaining goals.
+   - If protein is OVER: suggest LOW-protein foods (fruits, vegetables, grains)
+   - If fat is OVER: suggest LOW-fat foods (avoid nuts, cheese, oils)
+   - If carbs are LOW: suggest carb-rich foods (fruit, rice, bread, oats)
+   - Match your suggestions to what they NEED, not what they're already over on!
+   - **CRITICAL: Every suggestion must fit within their remaining ${Math.round(remaining.calories)} calories!**
 
 **CRITICAL - FOOD SUGGESTION FORMAT:**
 When suggesting foods, OUTPUT THE FOOD ITEMS FIRST using this format:
