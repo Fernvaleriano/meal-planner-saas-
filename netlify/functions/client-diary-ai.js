@@ -64,7 +64,7 @@ exports.handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body || '{}');
-        const { clientId, clientFirstName, message, todayEntries, goals, totals, conversationHistory } = body;
+        const { clientId, clientFirstName, message, todayEntries, goals, totals, conversationHistory, previousSuggestions } = body;
 
         if (!clientId || !message) {
             return {
@@ -138,6 +138,11 @@ exports.handler = async (event) => {
             ? `\nFOODS EATEN IN THE PAST 7 DAYS (avoid suggesting these repeatedly):\n${recentFoods.join(', ')}\n`
             : '';
 
+        // Build list of previously suggested foods in this conversation (for unlimited variety)
+        const previousSuggestionsList = previousSuggestions && previousSuggestions.length > 0
+            ? `\n**ALREADY SUGGESTED IN THIS CONVERSATION (DO NOT SUGGEST THESE AGAIN - THIS IS CRITICAL):**\n${previousSuggestions.join(', ')}\n\nThe user has already seen ${previousSuggestions.length} suggestions. You MUST suggest completely NEW and DIFFERENT foods from entirely different categories. Be creative!\n`
+            : '';
+
         // Build dietary preferences context
         let dietaryContext = '';
         if (dietaryPreferences.diet_type || dietaryPreferences.allergies || dietaryPreferences.disliked_foods || dietaryPreferences.preferred_foods) {
@@ -192,7 +197,7 @@ TODAY'S LOGGED FOODS:
 ${todayEntries && todayEntries.length > 0
     ? todayEntries.map(e => `- ${e.meal_type}: ${e.food_name} (${e.calories} cal, ${e.protein}g P)`).join('\n')
     : 'No foods logged yet today.'}
-${recentFoodsList}${dietaryContext}
+${recentFoodsList}${previousSuggestionsList}${dietaryContext}
 INSTRUCTIONS:
 
 **DIRECT ANSWERS - CRITICAL:**
@@ -234,38 +239,57 @@ Trigger phrases include: "I have", "in my fridge", "ingredients", "what can I ma
 **VARIETY IN FOOD SUGGESTIONS - CRITICAL:**
 When suggesting foods, you MUST vary your recommendations. Be creative and suggest real branded products people actually buy. Draw from these diverse categories:
 
-PROTEIN BARS & SNACKS (suggest specific brands!):
-- Bars: Quest bars, Barebells, RXBar, ONE bars, Built bars, Think! bars, KIND protein bars, Clif Builder's bars, Pure Protein bars, Grenade Carb Killa
-- Vegan bars: GoMacro bars, No Cow bars, Vega protein bars, Garden of Life bars, Larabar Protein, Orgain bars
-- Jerky & meat snacks: beef jerky, turkey sticks, Chomps sticks, Epic bars, Biltong
-- Vegan jerky: Louisville Vegan Jerky, Primal Spirit Plant-Based Strips, Noble Jerky
-- Other: protein chips (Quest, Legendary Foods), protein cookies, meat & cheese snack packs
+PROTEIN BARS & SNACKS (suggest specific brands and flavors!):
+- Bars: Quest bars (Chocolate Chip Cookie Dough, Cookies & Cream, Birthday Cake, Peanut Butter, S'mores, Blueberry Muffin, Mint Chocolate, White Chocolate Raspberry), Barebells (Cookies & Cream, Caramel Cashew, Hazelnut Nougat, Salty Peanut), RXBar (Chocolate Sea Salt, Peanut Butter, Blueberry, Maple Sea Salt), ONE bars (Birthday Cake, Almond Bliss, Peanut Butter Pie), Built bars (Puff varieties, Brownie Batter), Think! bars, KIND protein bars, Clif Builder's bars, Pure Protein bars, Grenade Carb Killa (White Chocolate Cookie, Dark Chocolate Raspberry), Perfect Bar (Peanut Butter, Dark Chocolate Chip), Kirkland Protein Bars
+- Vegan bars: GoMacro bars (Peanut Butter Chocolate Chip, Sunflower Butter), No Cow bars (Chocolate Fudge Brownie, Peanut Butter), Vega protein bars, Garden of Life bars, Larabar Protein, Orgain bars, ALOHA protein bars, 88 Acres bars
+- Jerky & meat snacks: Jack Link's beef jerky, Old Trapper jerky, Tillamook Country Smoker, turkey sticks, Chomps sticks (Original, Jalapeno, Italian), Epic bars (Venison, Bison, Beef), Biltong, Country Archer jerky, Krave jerky, Lorissa's Kitchen
+- Vegan jerky: Louisville Vegan Jerky, Primal Spirit Plant-Based Strips, Noble Jerky, It's Jerky Y'all, Moku jerky
+- Other: protein chips (Quest Tortilla Chips, Legendary Foods, Wilde Chips), protein cookies (Lenny & Larry's, Quest Cookies), meat & cheese snack packs (P3, Hillshire Snacking), beef sticks, turkey pepperoni
 
 PROTEIN SHAKES & DRINKS:
-- Ready-to-drink: Premier Protein shakes, Fairlife protein shakes, Core Power, Muscle Milk, Orgain
-- Vegan RTD: Orgain Plant Protein shakes, Ripple protein shakes, Evolve Plant Protein, Koia protein drinks
-- Powders: whey protein shake, casein shake, plant protein shake
-- Vegan powders: pea protein, hemp protein, brown rice protein, Vega Sport, Garden of Life Raw Organic
-- Other: protein coffee, protein smoothie
+- Ready-to-drink: Premier Protein shakes (Chocolate, Vanilla, Caramel, Cafe Latte, Cookies & Cream, Strawberry), Fairlife protein shakes (Chocolate, Vanilla, Salted Caramel), Core Power (Chocolate, Vanilla, Strawberry Banana), Muscle Milk, Orgain, Boost High Protein, Ensure Max Protein, Iconic Protein, SlimFast Advanced, Atkins shakes
+- Vegan RTD: Orgain Plant Protein shakes, Ripple protein shakes, Evolve Plant Protein, Koia protein drinks, Oatly Protein, Silk Ultra, Good Karma Protein
+- Powders: Optimum Nutrition Gold Standard Whey, Dymatize ISO100, Ghost Whey, MyProtein, Isopure, BSN Syntha-6, casein shake, Naked Whey
+- Vegan powders: pea protein, hemp protein, brown rice protein, Vega Sport, Garden of Life Raw Organic, Orgain Organic Protein, KOS Plant Protein, Sunwarrior
+- Protein coffee: Super Coffee, High Brew Protein, La Colombe Protein, Starbucks Protein Blended
+- Protein smoothies: homemade with protein powder, Smoothie King (The Hulk, Gladiator), Tropical Smoothie (Island Green with protein)
 
 HIGH-PROTEIN WHOLE FOODS:
-- Poultry: chicken breast, turkey, ground turkey, chicken thighs, rotisserie chicken
-- Fish/Seafood: salmon, tuna, shrimp, tilapia, cod, sardines, canned tuna
-- Meat: lean beef, ground beef, pork tenderloin, steak
-- Eggs & Dairy: eggs, egg whites, cottage cheese, string cheese, cheese cubes
-- Plant-based proteins: tofu, tempeh, edamame, lentils, black beans, chickpeas, seitan, TVP (textured vegetable protein)
-- Vegan meat alternatives: Beyond Meat, Impossible Burger, Field Roast, Tofurky, Gardein, MorningStar Farms
+- Poultry: chicken breast (grilled, baked, air-fried), turkey breast, ground turkey, chicken thighs, rotisserie chicken, deli turkey slices, smoked turkey, chicken sausage, turkey sausage, turkey bacon
+- Fish/Seafood: salmon (baked, grilled, smoked), tuna (canned, seared, poke), shrimp (grilled, cocktail), tilapia, cod, sardines, canned tuna, tuna salad, salmon patties, fish tacos, crab, lobster, mussels, scallops
+- Meat: lean beef (sirloin, tenderloin, flank), ground beef (90/10, 93/7), pork tenderloin, steak (ribeye, NY strip, filet mignon), pork chops, ham, Canadian bacon, lamb chops, bison
+- Eggs & Dairy: whole eggs (scrambled, hard-boiled, poached, fried, omelette), egg whites, cottage cheese (2%, 4%, low-fat), Greek yogurt (Fage, Chobani, Oikos, Siggi's), string cheese, cheese cubes, ricotta cheese, Icelandic skyr
+- Plant-based proteins: tofu (firm, extra firm, silken), tempeh, edamame, lentils (red, green, black), black beans, chickpeas, kidney beans, seitan, TVP (textured vegetable protein), hemp seeds, nutritional yeast, spirulina
+- Vegan meat alternatives: Beyond Meat (burger, sausage, ground), Impossible Burger, Field Roast, Tofurky (slices, sausages), Gardein (chicken, beef), MorningStar Farms, Lightlife, Quorn, Boca Burger, Sweet Earth
 
 QUICK HIGH-PROTEIN SNACK COMBOS (suggest these creative pairings!):
-- Cottage cheese + fruit (berries, peaches, pineapple)
+- Cottage cheese + fruit (berries, peaches, pineapple, mango, banana)
+- Cottage cheese + honey + cinnamon
 - Apple slices + peanut butter or almond butter
-- Rice cakes + almond butter + banana
+- Banana + peanut butter
+- Celery + peanut butter
+- Rice cakes + almond butter + banana slices
 - Hard boiled eggs + everything bagel seasoning
+- Hard boiled eggs + hot sauce
 - Deli turkey roll-ups with cheese
+- Deli turkey + hummus + cucumber wraps
+- Ham & cheese roll-ups
 - Tuna salad on crackers
+- Tuna salad stuffed avocado
+- Chicken salad on cucumber slices
 - Overnight oats with protein powder
-- Protein pancakes or waffles
-- Smoothie bowl with protein powder
+- Protein pancakes or waffles (Kodiak Cakes, Birch Benders)
+- Smoothie bowl with protein powder + toppings
+- Greek yogurt parfait (yogurt + granola + berries)
+- Cheese + apple slices
+- String cheese + grapes
+- Ants on a log (celery + peanut butter + raisins)
+- Caprese skewers (mozzarella + tomato + basil)
+- Hummus + veggies (carrots, bell peppers, cucumber)
+- Guacamole + whole grain tortilla chips
+- Egg muffins (pre-made egg cups with veggies)
+- Turkey pepperoni + cheese slices
+- Smoked salmon on cucumber rounds with cream cheese
 
 VEGAN HIGH-PROTEIN SNACK COMBOS:
 - Edamame with sea salt
@@ -320,6 +344,24 @@ EATING OUT - RESTAURANT OPTIONS (balance is key - enjoy your food!):
 - The key is TRACKING, not avoiding. Eat what you want, log it, and make it fit your day
 - Chain restaurants with nutrition info: Chipotle, Chick-fil-A, Panera, Subway, McDonald's, Five Guys
 
+SPECIFIC RESTAURANT HIGH-PROTEIN OPTIONS:
+- Chipotle: Chicken bowl (no rice, extra protein), Steak burrito bowl, Carnitas salad, Barbacoa bowl
+- Chick-fil-A: Grilled nuggets, Grilled chicken sandwich, Grilled chicken cool wrap, Egg white grill
+- McDonald's: Egg McMuffin, McChicken (grilled), Southwest Grilled Chicken Salad, Artisan Grilled Chicken
+- Wendy's: Grilled chicken sandwich, Jr. Hamburger, Chili, Grilled chicken wrap
+- Subway: Turkey breast sub, Rotisserie chicken, Steak & cheese, Egg & cheese (breakfast)
+- Panera: Power breakfast bowl, Greek salad with chicken, Turkey sandwich, Ten Vegetable Soup
+- Starbucks: Protein boxes, Egg bites (bacon & gruyere, egg white & red pepper), Turkey bacon sandwich
+- Panda Express: Grilled teriyaki chicken, String bean chicken breast, Broccoli beef
+- Five Guys: Little hamburger (bunless), Bacon cheeseburger (lettuce wrap)
+- Taco Bell: Power menu bowl, Chicken soft taco (fresco style), Black beans
+- Jersey Mike's: Turkey & provolone sub, Chicken Philly, Club sub
+- Wingstop: Plain wings, Lemon pepper wings (boneless or bone-in)
+- Buffalo Wild Wings: Naked tenders, Traditional wings (dry rub), Grilled chicken salad
+- Popeyes: Blackened chicken tenders, Blackened chicken sandwich
+- KFC: Grilled chicken breast, Kentucky grilled chicken thigh
+- Arby's: Roast turkey farmhouse salad, Classic roast beef (small)
+
 **SUGGESTION RULES:**
 0. **CRITICAL - RESPECT DIETARY RESTRICTIONS:** If the client has dietary preferences listed above (vegan, vegetarian, allergies, etc.), you MUST ONLY suggest foods that comply with their diet. For example:
    - VEGAN: NO meat, fish, eggs, dairy, honey. Only suggest plant-based options.
@@ -327,13 +369,22 @@ EATING OUT - RESTAURANT OPTIONS (balance is key - enjoy your food!):
    - ALLERGIES: NEVER suggest foods containing their allergens - this is a safety issue!
    - DISLIKED FOODS: Avoid suggesting foods they've marked as disliked.
 1. Check what they've eaten recently (past 7 days list above) - suggest something DIFFERENT
-2. NEVER suggest the same food twice in one conversation
+2. **NEVER REPEAT - CRITICAL:** Check the "ALREADY SUGGESTED IN THIS CONVERSATION" list above. You MUST NOT suggest ANY food that appears in that list. This is the #1 most important rule!
 3. When asked for snack ideas, prioritize branded protein bars/shakes and creative combos over plain yogurt
 4. Mix it up - rotate through bars, shakes, whole foods, and combo ideas
 5. Consider convenience - suggest grab-and-go options for busy people
 6. Offer 2-3 specific options with actual brand names when possible
-7. When user says "give me different options" or "more ideas" - suggest COMPLETELY DIFFERENT foods from different categories (e.g., if you suggested bars, now suggest shakes or whole foods)
+7. **UNLIMITED VARIETY:** When user asks for "more ideas" or "different options", you MUST draw from COMPLETELY DIFFERENT food categories than what was already suggested. Keep cycling through:
+   - Protein bars (Quest, Barebells, RXBar, ONE, Built, Think!, KIND, Clif, Pure Protein, Grenade, etc.)
+   - Ready-to-drink shakes (Premier Protein, Fairlife, Core Power, Muscle Milk, Orgain, etc.)
+   - Whole foods (chicken, fish, eggs, cottage cheese, Greek yogurt, etc.)
+   - Quick combos (cottage cheese + fruit, apple + peanut butter, etc.)
+   - Jerky & meat snacks (beef jerky, turkey sticks, Chomps, Epic bars, etc.)
+   - 5-minute meals (scrambled eggs, tuna salad, rotisserie chicken, etc.)
+   - Restaurant options (Chipotle bowl, grilled chicken sandwich, etc.)
+   There are HUNDREDS of options - keep suggesting new ones indefinitely!
 8. For vegan/vegetarian clients: Focus on plant-based proteins like tofu, tempeh, legumes, seitan, and vegan protein products
+9. **BE CREATIVE:** Use specific brand variations (e.g., "Quest Cookies & Cream Bar" vs "Quest Chocolate Chip Cookie Dough"), different preparations (grilled vs baked), and unique combos the user hasn't seen
 
 **CLICKABLE FOOD SUGGESTIONS FORMAT - IMPORTANT:**
 When suggesting specific foods, format each suggestion using this EXACT pattern so they become clickable buttons:
