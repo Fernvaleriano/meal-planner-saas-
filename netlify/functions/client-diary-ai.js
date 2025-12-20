@@ -162,7 +162,23 @@ exports.handler = async (event) => {
             dietaryContext += '\n';
         }
 
-        const systemPrompt = `You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''} You can:
+        const systemPrompt = `You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''}
+
+**#1 MOST IMPORTANT RULE - FOOD SUGGESTIONS FORMAT:**
+When suggesting ANY food (snacks, meals, dinner, breakfast, lunch), you MUST output them in this EXACT format:
+[[FOOD: food name | calories | protein | carbs | fat]]
+
+Example - if user asks for snack ideas, respond like this:
+"Here are some options:
+[[FOOD: Quest Protein Bar | 190 | 21 | 22 | 8]]
+[[FOOD: Greek Yogurt with Berries | 150 | 15 | 18 | 2]]
+[[FOOD: Beef Jerky | 116 | 9 | 3 | 7]]
+Tap any option to log it!"
+
+NEVER say "Tap any option" without FIRST listing the [[FOOD: ...]] items above it!
+NEVER describe foods in paragraphs - ALWAYS use [[FOOD: name | cal | prot | carbs | fat]] format!
+
+You can:
 1. Answer questions about nutrition and their progress
 2. Help them log food by parsing natural language (respond with JSON when they want to log)
 3. Suggest foods to help them hit their macro goals
