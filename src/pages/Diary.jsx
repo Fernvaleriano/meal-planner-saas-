@@ -106,6 +106,7 @@ function Diary() {
   const [pendingFoodLog, setPendingFoodLog] = useState(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState(null);
   const [suggestionContext, setSuggestionContext] = useState(null);
+  const [allSuggestedFoods, setAllSuggestedFoods] = useState([]); // Track all suggested foods for variety
   const [lastLoggedEntry, setLastLoggedEntry] = useState(null); // For undo functionality
   const [selectedAIMealType, setSelectedAIMealType] = useState(null);
 
@@ -1243,7 +1244,8 @@ function Diary() {
         todayEntries: entries || [],
         goals: goals || {},
         totals: totals || { calories: 0, protein: 0, carbs: 0, fat: 0 },
-        conversationHistory: currentHistory
+        conversationHistory: currentHistory,
+        previousSuggestions: allSuggestedFoods // Pass all previously suggested foods
       });
 
       if (data.error) {
@@ -1255,6 +1257,13 @@ function Diary() {
       const { cleanText, suggestions } = parseFoodSuggestions(data.response);
 
       if (suggestions.length > 0) {
+        // Track all suggested foods for variety - add new suggestions to the list
+        setAllSuggestedFoods(prev => {
+          const newFoods = suggestions.map(s => s.name.toLowerCase());
+          const combined = [...new Set([...prev, ...newFoods])];
+          return combined;
+        });
+
         // Add message with parsed suggestions
         setAiMessages(prev => [...prev, {
           role: 'assistant',
