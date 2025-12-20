@@ -170,6 +170,10 @@ exports.handler = async (event) => {
 3. DISLIKES: ${dietaryPreferences.disliked_foods ? `Client dislikes: ${dietaryPreferences.disliked_foods}. Avoid these.` : 'No dislikes listed.'}
 4. PREFERENCES: ${dietaryPreferences.preferred_foods ? `Client likes: ${dietaryPreferences.preferred_foods}. Include sometimes, mixed with variety.` : 'No preferences listed.'}
 5. REMAINING MACROS: Suggest foods that help meet their remaining goals (shown in TODAY'S PROGRESS below).
+   - If protein is OVER: suggest LOW-protein foods (fruits, vegetables, grains)
+   - If fat is OVER: suggest LOW-fat foods (avoid nuts, cheese, oils)
+   - If carbs are LOW: suggest carb-rich foods (fruit, rice, bread, oats)
+   - Match your suggestions to what they NEED, not what they're already over on!
 
 **CRITICAL - FOOD SUGGESTION FORMAT:**
 When suggesting foods, OUTPUT THE FOOD ITEMS FIRST using this format:
