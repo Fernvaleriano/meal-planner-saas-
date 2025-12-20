@@ -467,16 +467,27 @@ Look at the data and share 1-2 actionable insights:
             role: 'user',
             parts: [{ text: systemPrompt }]
         });
-        // Add a model acknowledgment to establish the context
+        // Add a model acknowledgment that demonstrates the correct food format
         contents.push({
             role: 'model',
-            parts: [{ text: 'I understand. I\'m ready to help with nutrition tracking and food logging.' }]
+            parts: [{ text: 'I understand. When suggesting foods, I will ALWAYS use this format:\n[[FOOD: Food Name | calories | protein | carbs | fat]]\n[[FOOD: Food Name | calories | protein | carbs | fat]]\n[[FOOD: Food Name | calories | protein | carbs | fat]]\nThen a brief message. I\'m ready to help!' }]
         });
 
-        // Add conversation history if provided (limit to last 10 messages to stay within token limits)
+        // Add conversation history if provided (limit to last 6 messages to stay within token limits)
+        // Also filter out broken AI responses that say "tap any option" without [[FOOD:...]] items
+        // These bad examples can teach the AI the wrong pattern
         if (conversationHistory && Array.isArray(conversationHistory)) {
-            const recentHistory = conversationHistory.slice(-10);
+            const recentHistory = conversationHistory.slice(-6);
             for (const msg of recentHistory) {
+                // Skip broken AI responses that mention "tap" but have no food tags
+                if (msg.role === 'assistant') {
+                    const hasTapPrompt = /tap any option|tap to log/i.test(msg.content);
+                    const hasFoodTags = /\[\[FOOD:/i.test(msg.content);
+                    if (hasTapPrompt && !hasFoodTags) {
+                        console.log('Filtering out broken AI response from history');
+                        continue; // Skip this bad example
+                    }
+                }
                 contents.push({
                     role: msg.role === 'user' ? 'user' : 'model',
                     parts: [{ text: msg.content }]
@@ -493,30 +504,57 @@ Look at the data and share 1-2 actionable insights:
             });
         }
 
+        // Helper function to check if response is missing food suggestions
+        const isMissingFoodSuggestions = (response) => {
+            const hasTapPrompt = /tap any option|tap to log|click to log/i.test(response);
+            const hasFoodTags = /\[\[FOOD:/i.test(response);
+            return hasTapPrompt && !hasFoodTags;
+        };
+
+        // Helper function to call Gemini API
+        const callGemini = async (messageContents, temp = 0.7) => {
+            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: messageContents,
+                    generationConfig: {
+                        temperature: temp,
+                        maxOutputTokens: 2048
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Gemini API error:', errorText);
+                throw new Error(`Gemini API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                return data.candidates[0].content.parts[0].text;
+            }
+            return '';
+        };
+
         // Call Gemini API
-        const geminiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: contents,
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 2048
-                }
-            })
-        });
+        let aiResponse = await callGemini(contents);
 
-        if (!geminiResponse.ok) {
-            const errorText = await geminiResponse.text();
-            console.error('Gemini API error:', errorText);
-            throw new Error(`Gemini API error: ${geminiResponse.status}`);
-        }
+        // If response says "tap any option" but has no [[FOOD:...]] tags, retry once with a reminder
+        if (isMissingFoodSuggestions(aiResponse)) {
+            console.log('AI response missing food suggestions, retrying with reminder...');
 
-        const geminiData = await geminiResponse.json();
+            // Add a reminder message and retry
+            const retryContents = [...contents, {
+                role: 'model',
+                parts: [{ text: aiResponse }]
+            }, {
+                role: 'user',
+                parts: [{ text: 'You forgot to include the [[FOOD: name | cal | prot | carbs | fat]] items! Please provide 3 food suggestions using the correct format. Start with the [[FOOD:...]] lines.' }]
+            }];
 
-        let aiResponse = '';
-        if (geminiData.candidates && geminiData.candidates[0]?.content?.parts?.[0]?.text) {
-            aiResponse = geminiData.candidates[0].content.parts[0].text;
+            aiResponse = await callGemini(retryContents, 0.8);
         }
 
         // Check if AI wants to log food (response is JSON)
