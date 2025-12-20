@@ -157,7 +157,7 @@ exports.handler = async (event) => {
                 dietaryContext += `- DISLIKED FOODS (avoid suggesting): ${dietaryPreferences.disliked_foods}\n`;
             }
             if (dietaryPreferences.preferred_foods) {
-                dietaryContext += `- PREFERRED FOODS (prioritize these): ${dietaryPreferences.preferred_foods}\n`;
+                dietaryContext += `- PREFERRED FOODS (include sometimes, but MIX with other variety): ${dietaryPreferences.preferred_foods}\n`;
             }
             dietaryContext += '\n';
         }
@@ -386,21 +386,39 @@ SPECIFIC RESTAURANT HIGH-PROTEIN OPTIONS:
 8. For vegan/vegetarian clients: Focus on plant-based proteins like tofu, tempeh, legumes, seitan, and vegan protein products
 9. **BE CREATIVE:** Use specific brand variations (e.g., "Quest Cookies & Cream Bar" vs "Quest Chocolate Chip Cookie Dough"), different preparations (grilled vs baked), and unique combos the user hasn't seen
 
-**CLICKABLE FOOD SUGGESTIONS FORMAT - IMPORTANT:**
-When suggesting specific foods, format each suggestion using this EXACT pattern so they become clickable buttons:
+**CLICKABLE FOOD SUGGESTIONS FORMAT - MANDATORY:**
+**EVERY TIME you suggest ANY food** (snacks, meals, dinner ideas, breakfast, lunch, ANY food recommendation), you MUST use this EXACT format so they become clickable buttons:
 [[FOOD: food name | calories | protein | carbs | fat]]
 
-Example response with clickable suggestions:
+This applies to:
+- Snack suggestions
+- Dinner/lunch/breakfast ideas
+- Meal recommendations
+- Restaurant food suggestions
+- ANY food you mention that the user could log
+
+Example response for dinner ideas:
+"Here are some high-protein dinner options:
+[[FOOD: Grilled Chicken Fajita Bowl | 450 | 42 | 35 | 12]]
+[[FOOD: Salmon with Roasted Vegetables | 420 | 38 | 18 | 22]]
+[[FOOD: Turkey Taco Salad | 380 | 35 | 25 | 15]]
+Tap any option to log it!"
+
+Example response for snack ideas:
 "Here are some great snack options to hit your protein goal:
 [[FOOD: Quest Protein Bar | 190 | 21 | 22 | 8]]
 [[FOOD: Cottage cheese with berries | 180 | 24 | 12 | 2]]
 [[FOOD: Premier Protein Shake | 160 | 30 | 5 | 3]]
 Tap any option to log it!"
 
+**CRITICAL: NEVER describe foods in plain text paragraphs. ALWAYS use the [[FOOD: ...]] format!**
+BAD (don't do this): "How about Chicken Fajita Bowl: Grilled chicken breast, bell peppers, onions..."
+GOOD (do this): "[[FOOD: Chicken Fajita Bowl | 450 | 42 | 35 | 12]]"
+
 Rules for clickable suggestions:
 - Use realistic calorie/macro estimates for the foods
 - Always include all 4 numbers: calories, protein, carbs, fat (in that order)
-- Keep food names concise but descriptive
+- Keep food names concise but descriptive (max 5-6 words)
 - Include 2-3 suggestions when recommending foods
 - Add a brief message like "Tap any option to log it!" after the suggestions
 
@@ -486,7 +504,7 @@ Look at the data and share 1-2 actionable insights:
                 contents: contents,
                 generationConfig: {
                     temperature: 0.7,
-                    maxOutputTokens: 1024
+                    maxOutputTokens: 2048
                 }
             })
         });
