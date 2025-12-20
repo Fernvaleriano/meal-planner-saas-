@@ -157,7 +157,7 @@ exports.handler = async (event) => {
                 dietaryContext += `- DISLIKED FOODS (avoid suggesting): ${dietaryPreferences.disliked_foods}\n`;
             }
             if (dietaryPreferences.preferred_foods) {
-                dietaryContext += `- PREFERRED FOODS (prioritize these): ${dietaryPreferences.preferred_foods}\n`;
+                dietaryContext += `- PREFERRED FOODS (include sometimes, but MIX with other variety): ${dietaryPreferences.preferred_foods}\n`;
             }
             dietaryContext += '\n';
         }
@@ -504,7 +504,7 @@ Look at the data and share 1-2 actionable insights:
                 contents: contents,
                 generationConfig: {
                     temperature: 0.7,
-                    maxOutputTokens: 1024
+                    maxOutputTokens: 2048
                 }
             })
         });
