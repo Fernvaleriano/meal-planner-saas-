@@ -473,10 +473,21 @@ Look at the data and share 1-2 actionable insights:
             parts: [{ text: 'I understand. When suggesting foods, I will ALWAYS use this format:\n[[FOOD: Food Name | calories | protein | carbs | fat]]\n[[FOOD: Food Name | calories | protein | carbs | fat]]\n[[FOOD: Food Name | calories | protein | carbs | fat]]\nThen a brief message. I\'m ready to help!' }]
         });
 
-        // Add conversation history if provided (limit to last 10 messages to stay within token limits)
+        // Add conversation history if provided (limit to last 6 messages to stay within token limits)
+        // Also filter out broken AI responses that say "tap any option" without [[FOOD:...]] items
+        // These bad examples can teach the AI the wrong pattern
         if (conversationHistory && Array.isArray(conversationHistory)) {
-            const recentHistory = conversationHistory.slice(-10);
+            const recentHistory = conversationHistory.slice(-6);
             for (const msg of recentHistory) {
+                // Skip broken AI responses that mention "tap" but have no food tags
+                if (msg.role === 'assistant') {
+                    const hasTapPrompt = /tap any option|tap to log/i.test(msg.content);
+                    const hasFoodTags = /\[\[FOOD:/i.test(msg.content);
+                    if (hasTapPrompt && !hasFoodTags) {
+                        console.log('Filtering out broken AI response from history');
+                        continue; // Skip this bad example
+                    }
+                }
                 contents.push({
                     role: msg.role === 'user' ? 'user' : 'model',
                     parts: [{ text: msg.content }]
