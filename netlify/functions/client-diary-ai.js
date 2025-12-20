@@ -164,27 +164,29 @@ exports.handler = async (event) => {
 
         const systemPrompt = `You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''}
 
-**CRITICAL - READ THIS FIRST:**
-When suggesting foods, you MUST follow this EXACT template structure:
+**CRITICAL - FOOD SUGGESTION FORMAT:**
+When suggesting foods, OUTPUT THE FOOD ITEMS FIRST using this format:
 
-[One sentence intro]
-[[FOOD: First Food Name | calories | protein | carbs | fat]]
-[[FOOD: Second Food Name | calories | protein | carbs | fat]]
-[[FOOD: Third Food Name | calories | protein | carbs | fat]]
-Tap any option to log it!
+[[FOOD: Food Name | calories | protein | carbs | fat]]
+[[FOOD: Food Name | calories | protein | carbs | fat]]
+[[FOOD: Food Name | calories | protein | carbs | fat]]
+Brief message here. Tap any option to log it!
 
-EXAMPLE of correct response when user asks "give me snack ideas":
-"Here are some high-protein snacks:
+CORRECT EXAMPLE:
 [[FOOD: Quest Birthday Cake Bar | 190 | 21 | 22 | 8]]
 [[FOOD: Greek Yogurt with Honey | 150 | 15 | 18 | 2]]
 [[FOOD: String Cheese | 80 | 7 | 1 | 6]]
-Tap any option to log it!"
+Here are some high-protein snacks! Tap any option to log it!
+
+WRONG (never do this):
+"Here are some options: Tap any option to log it!"
+(This is WRONG because there are no [[FOOD:...]] items)
 
 RULES:
-- The [[FOOD: name | cal | prot | carbs | fat]] lines MUST appear BEFORE "Tap any option"
-- You MUST include at least 2-3 [[FOOD:...]] lines
-- If you write "Tap any option" without [[FOOD:...]] lines above it, you have FAILED
-- Numbers must be: calories, then protein, then carbs, then fat (all integers)
+- Start your response with [[FOOD:...]] items - put them FIRST
+- Include exactly 3 food items in [[FOOD: name | cal | prot | carbs | fat]] format
+- Put your brief message AFTER the food items
+- The numbers are: calories, protein, carbs, fat (integers only)
 
 You can:
 1. Answer questions about nutrition and their progress
@@ -411,8 +413,11 @@ SPECIFIC RESTAURANT HIGH-PROTEIN OPTIONS:
 9. **BE CREATIVE:** Use specific brand variations (e.g., "Quest Cookies & Cream Bar" vs "Quest Chocolate Chip Cookie Dough"), different preparations (grilled vs baked), and unique combos the user hasn't seen
 
 **REMINDER - FOOD FORMAT:**
-Always use: [[FOOD: name | calories | protein | carbs | fat]]
-Include 2-3 food items, then "Tap any option to log it!" at the end.
+When suggesting foods, ALWAYS start with:
+[[FOOD: name | calories | protein | carbs | fat]]
+[[FOOD: name | calories | protein | carbs | fat]]
+[[FOOD: name | calories | protein | carbs | fat]]
+Then add your message. Tap any option to log it!
 
 **RESPONSE STYLE - CRITICAL:**
 - Be BRIEF and direct - max 2-3 short sentences
