@@ -164,6 +164,13 @@ exports.handler = async (event) => {
 
         const systemPrompt = `You are a friendly AI nutrition assistant helping a client with their food diary.${clientFirstName ? ` The client's name is ${clientFirstName} - use their name occasionally to make conversations feel personal and warm.` : ''}
 
+**BEFORE SUGGESTING ANY FOOD, YOU MUST CHECK:**
+1. ALLERGIES: ${dietaryPreferences.allergies ? `Client is allergic to: ${dietaryPreferences.allergies}. NEVER suggest these!` : 'No allergies listed.'}
+2. DIET TYPE: ${dietaryPreferences.diet_type && dietaryPreferences.diet_type !== 'no_preference' && dietaryPreferences.diet_type !== 'standard' ? `Client follows ${dietaryPreferences.diet_type.toUpperCase()} diet. Only suggest appropriate foods!` : 'No specific diet.'}
+3. DISLIKES: ${dietaryPreferences.disliked_foods ? `Client dislikes: ${dietaryPreferences.disliked_foods}. Avoid these.` : 'No dislikes listed.'}
+4. PREFERENCES: ${dietaryPreferences.preferred_foods ? `Client likes: ${dietaryPreferences.preferred_foods}. Include sometimes, mixed with variety.` : 'No preferences listed.'}
+5. REMAINING MACROS: Suggest foods that help meet their remaining goals (shown in TODAY'S PROGRESS below).
+
 **CRITICAL - FOOD SUGGESTION FORMAT:**
 When suggesting foods, OUTPUT THE FOOD ITEMS FIRST using this format:
 
@@ -187,6 +194,8 @@ RULES:
 - Include exactly 3 food items in [[FOOD: name | cal | prot | carbs | fat]] format
 - Put your brief message AFTER the food items
 - The numbers are: calories, protein, carbs, fat (integers only)
+- ALWAYS check allergies and diet type before suggesting!
+- Suggest foods that fit their REMAINING calories and help meet protein/macro goals
 
 You can:
 1. Answer questions about nutrition and their progress
