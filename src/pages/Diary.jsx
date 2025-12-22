@@ -864,6 +864,13 @@ function Diary() {
             carbs: entry.carbs,
             fat: entry.fat,
             fiber: entry.fiber,
+            sugar: entry.sugar,
+            sodium: entry.sodium,
+            potassium: entry.potassium,
+            calcium: entry.calcium,
+            iron: entry.iron,
+            vitaminC: entry.vitamin_c,
+            cholesterol: entry.cholesterol,
             foodSource: 'copied'
           });
           copiedCount++;
@@ -938,6 +945,14 @@ function Diary() {
         protein: food.protein,
         carbs: food.carbs,
         fat: food.fat,
+        fiber: food.fiber,
+        sugar: food.sugar,
+        sodium: food.sodium,
+        potassium: food.potassium,
+        calcium: food.calcium,
+        iron: food.iron,
+        vitaminC: food.vitaminC,
+        cholesterol: food.cholesterol,
         servingSize: food.serving_size || 1,
         servingUnit: food.serving_unit || 'serving',
         numberOfServings: 1,
@@ -950,7 +965,15 @@ function Diary() {
           calories: totals.calories + (food.calories || 0),
           protein: totals.protein + (food.protein || 0),
           carbs: totals.carbs + (food.carbs || 0),
-          fat: totals.fat + (food.fat || 0)
+          fat: totals.fat + (food.fat || 0),
+          fiber: totals.fiber + (food.fiber || 0),
+          sugar: totals.sugar + (food.sugar || 0),
+          sodium: totals.sodium + (food.sodium || 0),
+          potassium: totals.potassium + (food.potassium || 0),
+          calcium: totals.calcium + (food.calcium || 0),
+          iron: totals.iron + (food.iron || 0),
+          vitaminC: totals.vitaminC + (food.vitaminC || 0),
+          cholesterol: totals.cholesterol + (food.cholesterol || 0)
         };
         setEntries(updatedEntries);
         setTotals(updatedTotals);
@@ -1518,6 +1541,14 @@ function Diary() {
           protein: food.protein,
           carbs: food.carbs,
           fat: food.fat,
+          fiber: food.fiber,
+          sugar: food.sugar,
+          sodium: food.sodium,
+          potassium: food.potassium,
+          calcium: food.calcium,
+          iron: food.iron,
+          vitaminC: food.vitamin_c,
+          cholesterol: food.cholesterol,
           servingSize: food.serving_size || 1,
           servingUnit: food.serving_unit || 'serving',
           numberOfServings: food.number_of_servings || 1,
