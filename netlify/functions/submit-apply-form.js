@@ -84,7 +84,7 @@ exports.handler = async (event) => {
         // Use FitForShift email for first responder forms if configured
         if (isFirstResponderForm && FITFORSHIFT_NOTIFICATION_EMAIL) {
             notificationTo = FITFORSHIFT_NOTIFICATION_EMAIL;
-            formName = 'First Responder Verification';
+            formName = 'FitForShift Wellness';
         }
 
         try {
