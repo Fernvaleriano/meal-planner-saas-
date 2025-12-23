@@ -45,9 +45,10 @@ exports.handler = async (event) => {
 
       // Build entries query - only select columns used by the UI (reduces payload ~15%)
       // Removed: client_id (already known), created_at (only used for ordering, not display)
+      // Note: Only select columns that exist in the database schema
       let entriesQuery = supabase
         .from('food_diary_entries')
-        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium, potassium, calcium, iron, vitamin_c, cholesterol')
+        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium')
         .eq('client_id', clientId)
         .order('meal_type', { ascending: true })
         .order('created_at', { ascending: true });
@@ -208,11 +209,6 @@ exports.handler = async (event) => {
         fiber,
         sugar,
         sodium,
-        potassium,
-        calcium,
-        iron,
-        vitaminC,
-        cholesterol,
         externalId,
         foodSource,
         isQuickAdd,
@@ -236,6 +232,7 @@ exports.handler = async (event) => {
       };
 
       // Build insert data - only include coach_id if it's a valid value
+      // Note: Only include columns that exist in the database schema
       const insertData = {
         client_id: clientId,
         entry_date: getDefaultDate(entryDate, timezone),
@@ -252,11 +249,6 @@ exports.handler = async (event) => {
         fiber: fiber != null ? safeNum(fiber, 0) : null,
         sugar: sugar != null ? safeNum(sugar, 0) : null,
         sodium: sodium != null ? safeNum(sodium, 0) : null,
-        potassium: potassium != null ? safeNum(potassium, 0) : null,
-        calcium: calcium != null ? safeNum(calcium, 0) : null,
-        iron: iron != null ? safeNum(iron, 0) : null,
-        vitamin_c: vitaminC != null ? safeNum(vitaminC, 0) : null,
-        cholesterol: cholesterol != null ? safeNum(cholesterol, 0) : null,
         external_id: externalId || null,
         food_source: foodSource || 'custom',
         is_quick_add: isQuickAdd || false,
