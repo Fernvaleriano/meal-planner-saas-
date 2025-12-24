@@ -90,8 +90,9 @@ function Diary() {
       const saved = localStorage.getItem('ai_chat_history');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Only restore if less than 24 hours old
-        if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+        // Only restore if less than 5 minutes old
+        const FIVE_MINUTES = 5 * 60 * 1000;
+        if (parsed.timestamp && Date.now() - parsed.timestamp < FIVE_MINUTES) {
           return parsed.messages || [];
         }
       }
@@ -109,6 +110,8 @@ function Diary() {
   const [allSuggestedFoods, setAllSuggestedFoods] = useState([]); // Track all suggested foods for variety
   const [lastLoggedEntry, setLastLoggedEntry] = useState(null); // For undo functionality
   const [selectedAIMealType, setSelectedAIMealType] = useState(null);
+  const lastActivityRef = useRef(Date.now()); // Track last activity for auto-cleanup
+  const inactivityTimerRef = useRef(null); // Timer for clearing conversation after inactivity
 
   // Voice input states
   const [isRecording, setIsRecording] = useState(false);
@@ -155,7 +158,7 @@ function Diary() {
     }
   }, [searchParams]);
 
-  // Persist AI chat history to localStorage (expires after 24 hours)
+  // Persist AI chat history to localStorage (expires after 5 minutes)
   useEffect(() => {
     if (aiMessages.length > 0) {
       // Strip undo data from older messages to prevent stale undo attempts
@@ -170,6 +173,35 @@ function Diary() {
       }));
     }
   }, [aiMessages]);
+
+  // Auto-clear conversation after 5 minutes of inactivity
+  useEffect(() => {
+    const FIVE_MINUTES = 5 * 60 * 1000;
+
+    // Clear any existing timer
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+
+    // Only set timer if there are messages
+    if (aiMessages.length > 0) {
+      inactivityTimerRef.current = setTimeout(() => {
+        console.log('Clearing conversation due to inactivity');
+        setAiMessages([]);
+        localStorage.removeItem('ai_chat_history');
+        setPendingFoodLog(null);
+        setSelectedSuggestion(null);
+        setAllSuggestedFoods([]);
+      }, FIVE_MINUTES);
+    }
+
+    // Cleanup timer on unmount
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [aiMessages.length]); // Only re-run when message count changes
 
   // Auto-scroll chat to bottom when modal opens, new messages arrive, or loading state changes
   useEffect(() => {
@@ -991,6 +1023,17 @@ function Diary() {
       .trim();
 
     return { cleanText, suggestions };
+  };
+
+  // Clear conversation and start fresh
+  const clearConversation = () => {
+    setAiMessages([]);
+    localStorage.removeItem('ai_chat_history');
+    setPendingFoodLog(null);
+    setSelectedSuggestion(null);
+    setAllSuggestedFoods([]);
+    setAiInput('');
+    setSuggestionContext(null);
   };
 
   // Open AI chat and ask a question
@@ -2134,12 +2177,23 @@ function Diary() {
                 <Bot size={20} className="ai-icon" />
                 <span>AI Nutrition Assistant</span>
               </div>
-              <button
-                className="ai-modal-close"
-                onClick={() => setAiExpanded(false)}
-              >
-                <X size={20} />
-              </button>
+              <div className="ai-modal-header-actions">
+                {aiMessages.length > 0 && (
+                  <button
+                    className="ai-modal-new-conversation"
+                    onClick={clearConversation}
+                    title="New conversation"
+                  >
+                    <RotateCcw size={18} />
+                  </button>
+                )}
+                <button
+                  className="ai-modal-close"
+                  onClick={() => setAiExpanded(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Scrollable Content Area */}
