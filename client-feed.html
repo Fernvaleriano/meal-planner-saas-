@@ -774,13 +774,12 @@
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
-                transform: translateX(-100%);
-                visibility: hidden;
+                display: none;
             }
 
             .sidebar.open {
+                display: flex;
                 transform: translateX(0);
-                visibility: visible;
             }
 
             .main-content {
@@ -1046,10 +1045,12 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Client Feed: Initializing...');
             lucide.createIcons();
 
             try {
                 // Check auth with timeout (10 seconds)
+                console.log('Client Feed: Checking session...');
                 const sessionPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Session timeout')), 10000)
@@ -1059,8 +1060,9 @@
                 try {
                     const result = await Promise.race([sessionPromise, timeoutPromise]);
                     session = result.data?.session;
+                    console.log('Client Feed: Session check complete, has session:', !!session);
                 } catch (err) {
-                    console.error('Session error:', err);
+                    console.error('Client Feed: Session error:', err);
                     document.getElementById('feedContainer').innerHTML = `
                         <div class="empty-state">
                             <h3>Connection Error</h3>
@@ -1072,11 +1074,13 @@
                 }
 
                 if (!session) {
+                    console.log('Client Feed: No session, redirecting to login');
                     window.location.href = 'index.html';
                     return;
                 }
 
                 currentUser = session.user;
+                console.log('Client Feed: User authenticated:', currentUser.id);
                 document.getElementById('userEmail').textContent = currentUser.email;
                 document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
 
@@ -1084,9 +1088,11 @@
                 loadClients().catch(err => console.error('Failed to load clients filter:', err));
 
                 // Load feed
+                console.log('Client Feed: Starting to load feed...');
                 await loadFeed(true);
+                console.log('Client Feed: Feed load complete');
             } catch (err) {
-                console.error('Initialization error:', err);
+                console.error('Client Feed: Initialization error:', err);
                 document.getElementById('feedContainer').innerHTML = `
                     <div class="empty-state">
                         <h3>Error Loading Feed</h3>
@@ -1096,22 +1102,27 @@
                 `;
             }
 
-            // Event listeners
-            document.getElementById('clientFilter').addEventListener('change', () => loadFeed(true));
-            document.getElementById('mealFilter').addEventListener('change', () => loadFeed(true));
-            document.getElementById('dateFilter').addEventListener('change', () => loadFeed(true));
-            document.getElementById('loadMoreBtn').addEventListener('click', () => loadFeed(false));
-            document.getElementById('logoutBtn').addEventListener('click', logout);
+            // Event listeners - setup after initialization to avoid errors
+            try {
+                document.getElementById('clientFilter').addEventListener('change', () => loadFeed(true));
+                document.getElementById('mealFilter').addEventListener('change', () => loadFeed(true));
+                document.getElementById('dateFilter').addEventListener('change', () => loadFeed(true));
+                document.getElementById('loadMoreBtn').addEventListener('click', () => loadFeed(false));
+                document.getElementById('logoutBtn').addEventListener('click', logout);
 
-            // Mobile menu
-            document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('open');
-                document.getElementById('sidebarOverlay').classList.toggle('active');
-            });
-            document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('active');
-            });
+                // Mobile menu
+                document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.toggle('open');
+                    document.getElementById('sidebarOverlay').classList.toggle('active');
+                });
+                document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('sidebarOverlay').classList.remove('active');
+                });
+                console.log('Client Feed: Event listeners setup complete');
+            } catch (err) {
+                console.error('Client Feed: Error setting up event listeners:', err);
+            }
         });
 
         async function loadClients() {
@@ -1131,6 +1142,8 @@
         }
 
         async function loadFeed(reset = false) {
+            console.log('loadFeed called: reset=', reset, 'currentUser=', currentUser?.id);
+
             if (!currentUser) {
                 console.error('loadFeed: No current user');
                 document.getElementById('feedContainer').innerHTML = '<div class="empty-state"><p>Please log in to view the feed.</p></div>';
@@ -1152,20 +1165,27 @@
             if (mealType) url += `&mealType=${mealType}`;
             if (date) url += `&date=${date}`;
 
+            console.log('loadFeed: Fetching from', url);
+
             try {
                 // Add timeout for fetch (15 seconds)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                const timeoutId = setTimeout(() => {
+                    console.log('loadFeed: Request timed out after 15s');
+                    controller.abort();
+                }, 15000);
 
                 const response = await fetch(url, { signal: controller.signal });
                 clearTimeout(timeoutId);
+
+                console.log('loadFeed: Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error(`Server error: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('Feed data:', data);
+                console.log('loadFeed: Got data, meals count:', data.meals?.length || 0);
 
                 if (reset) {
                     document.getElementById('feedContainer').innerHTML = '';
@@ -1187,8 +1207,9 @@
                 }
 
                 document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
+                console.log('loadFeed: Success, hasMore=', hasMore);
             } catch (err) {
-                console.error('Error loading feed:', err);
+                console.error('loadFeed: Error:', err);
                 if (reset) {
                     const errorMessage = err.name === 'AbortError'
                         ? 'Request timed out. Please check your connection and try again.'
@@ -1200,6 +1221,9 @@
                             <button class="load-more-btn" onclick="loadFeed(true)">Retry</button>
                         </div>
                     `;
+                } else {
+                    // If loading more failed, show error toast but keep existing content
+                    alert('Failed to load more items. Please try again.');
                 }
             }
         }
