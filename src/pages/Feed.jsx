@@ -290,6 +290,8 @@ function Feed() {
 
   // Fetch feed data
   const fetchFeed = useCallback(async (reset = false) => {
+    console.log('Feed: fetchFeed called, reset=', reset, 'coachId=', coachId);
+
     if (!coachId) {
       console.log('Feed: No coachId, skipping fetch');
       // Still need to clear loading state even if we can't fetch
@@ -301,6 +303,7 @@ function Feed() {
     if (reset) {
       setLoading(true);
       setError(null);
+      setOffset(0); // Reset offset immediately when resetting
     } else {
       setLoadingMore(true);
     }
@@ -316,7 +319,7 @@ function Feed() {
 
       console.log('Feed: Fetching from', url);
       const result = await apiGet(url);
-      console.log('Feed: Got result', result);
+      console.log('Feed: Got result, meals count:', result.meals?.length || 0);
 
       if (result.error) {
         throw new Error(result.error);
@@ -329,7 +332,9 @@ function Feed() {
       }
 
       setHasMore(result.hasMore || false);
-      setOffset(currentOffset + (result.meals?.length || 0));
+      if (!reset) {
+        setOffset(currentOffset + (result.meals?.length || 0));
+      }
 
       // Extract unique clients for filter dropdown
       if (reset && result.clients) {
@@ -339,6 +344,8 @@ function Feed() {
         }));
         setClients(clientList);
       }
+
+      console.log('Feed: Fetch complete, hasMore=', result.hasMore);
     } catch (err) {
       console.error('Feed: Error fetching feed:', err);
       setError(err.message || 'Failed to load feed');
@@ -350,7 +357,9 @@ function Feed() {
 
   // Initial fetch
   useEffect(() => {
+    console.log('Feed: useEffect triggered, calling fetchFeed');
     fetchFeed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coachId, filterClient, filterMealType, filterDate]);
 
   // Pull to refresh
