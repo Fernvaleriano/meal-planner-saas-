@@ -32,7 +32,7 @@ ALTER TABLE clients
 
 -- Add meal planning preferences
 ALTER TABLE clients
-  ADD COLUMN IF NOT EXISTS meal_count VARCHAR(50) DEFAULT '3 meals',
+  ADD COLUMN IF NOT EXISTS meal_count VARCHAR(50) DEFAULT '3 meals, 1 snack',
   ADD COLUMN IF NOT EXISTS cooking_equipment JSONB DEFAULT '[]'::jsonb;
 
 -- Add protein powder info
