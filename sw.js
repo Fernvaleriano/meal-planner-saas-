@@ -1,8 +1,8 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v8';
-const STATIC_CACHE = 'zique-static-v8';
-const DATA_CACHE = 'zique-data-v5';
-const CDN_CACHE = 'zique-cdn-v3';
+const CACHE_NAME = 'zique-fitness-v9';
+const STATIC_CACHE = 'zique-static-v9';
+const DATA_CACHE = 'zique-data-v6';
+const CDN_CACHE = 'zique-cdn-v4';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -175,6 +175,12 @@ self.addEventListener('fetch', (event) => {
       url.hostname.includes('supabase') ||
       url.hostname.includes('replicate')) {
     return;
+  }
+
+  // ALWAYS fetch client-feed.html fresh (never cache it)
+  if (url.pathname.includes('client-feed.html')) {
+    console.log('[SW] Bypassing cache for client-feed.html - fetching fresh');
+    return; // Let browser fetch directly, no caching
   }
 
   // For HTML pages - network first, fallback to cache
