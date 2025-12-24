@@ -145,38 +145,54 @@ exports.handler = async (event) => {
       };
     }
 
-    // Verify folder exists
-    if (!allFolders.includes(folderParam)) {
+    // Check if this folder has subfolders - if so, list them instead of processing
+    const { data: folderContents } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(folderParam, { limit: 1000 });
+
+    const subfolders = (folderContents || []).filter(item => item.id === null).map(item => item.name);
+
+    // If folder has many subfolders, list them for individual processing
+    if (subfolders.length > 1) {
       return {
-        statusCode: 400,
+        statusCode: 200,
         headers,
         body: JSON.stringify({
-          error: `Folder "${folderParam}" not found`,
-          availableFolders: allFolders
-        })
+          success: true,
+          message: `Folder "${folderParam}" has ${subfolders.length} subfolders. Sync each one individually to avoid timeout.`,
+          parentFolder: folderParam,
+          subfolders: subfolders,
+          totalSubfolders: subfolders.length,
+          examples: subfolders.slice(0, 5).map(sf => `?folder=${encodeURIComponent(folderParam + '/' + sf)}`),
+          hint: 'Call this endpoint for each subfolder'
+        }, null, 2)
       };
     }
 
-    // Step 2: List videos in the specified folder
+    // Step 2: List videos in the specified folder (with pagination, limited depth)
     const videos = [];
+    let offset = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    async function listFolderVideos(prefix) {
+    while (hasMore && videos.length < 500) { // Limit to 500 videos per call
       const { data, error } = await supabase.storage
         .from(BUCKET_NAME)
-        .list(prefix, { limit: 1000 });
+        .list(folderParam, { limit: pageSize, offset });
 
       if (error) {
         console.error('Error listing folder:', error);
-        return;
+        break;
       }
 
-      for (const item of data || []) {
-        const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
+      if (!data || data.length === 0) {
+        hasMore = false;
+        break;
+      }
 
-        if (item.id === null) {
-          // Subfolder - recurse
-          await listFolderVideos(itemPath);
-        } else if (item.name.toLowerCase().endsWith('.mp4')) {
+      for (const item of data) {
+        if (item.id !== null && /\.(mp4|mov|webm|gif)$/i.test(item.name)) {
+          const itemPath = `${folderParam}/${item.name}`;
           const { data: urlData } = supabase.storage
             .from(BUCKET_NAME)
             .getPublicUrl(itemPath);
@@ -184,14 +200,15 @@ exports.handler = async (event) => {
           videos.push({
             filename: item.name,
             path: itemPath,
-            folder: prefix,
+            folder: folderParam,
             url: urlData.publicUrl
           });
         }
       }
-    }
 
-    await listFolderVideos(folderParam);
+      offset += data.length;
+      hasMore = data.length === pageSize;
+    }
     console.log(`Found ${videos.length} videos in folder "${folderParam}"`);
 
     // Step 3: Get existing exercises
