@@ -4599,6 +4599,41 @@ a.nav-left {
     color: #f1f5f9;
 }
 
+.ai-modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-modal-new-conversation {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-100);
+    border: none;
+    border-radius: 50%;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .ai-modal-new-conversation {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.ai-modal-new-conversation:hover {
+    background: var(--gray-200);
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .ai-modal-new-conversation:hover {
+    background: #475569;
+    color: #f1f5f9;
+}
+
 .ai-modal-close {
     width: 40px;
     height: 40px;
