@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/icons/logo.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <script src="/js/theme.js"></script>
     <title>Client Feed - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -1043,9 +1046,25 @@
 
         const REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
 
+        // Stuck loading detector - if still loading after 25 seconds, show error
+        let loadingTimeout = setTimeout(() => {
+            const container = document.getElementById('feedContainer');
+            if (container && container.innerHTML.includes('Loading client activity')) {
+                console.error('STUCK LOADING - showing error after 25 seconds');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>⏱️ Loading Timeout</h3>
+                        <p>The feed is taking too long to load. This might be due to a slow connection.</p>
+                        <p style="font-size: 0.9em; color: var(--gray-500); margin-top: 8px;">Try clearing your browser cache or using Wi-Fi.</p>
+                        <button class="load-more-btn" onclick="window.location.reload()">Reload Page</button>
+                    </div>
+                `;
+            }
+        }, 25000); // 25 seconds
+
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('Client Feed: Initializing...');
+            console.log('Client Feed: Initializing... (v1.1)');
             lucide.createIcons();
 
             try {
@@ -1204,6 +1223,12 @@
                         </div>
                     `;
                     lucide.createIcons();
+                }
+
+                // Clear the stuck loading timeout since we loaded successfully
+                if (loadingTimeout) {
+                    clearTimeout(loadingTimeout);
+                    loadingTimeout = null;
                 }
 
                 document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
