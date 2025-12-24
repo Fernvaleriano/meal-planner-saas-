@@ -220,7 +220,7 @@ exports.handler = async (event, context) => {
           calorie_adjustment: calorieAdjustment || 0,
           diet_type: dietType || null,
           macro_preference: macroPreference || 'balanced',
-          meal_count: mealCount || '3 meals',
+          meal_count: mealCount || '3 meals, 1 snack',
           budget: budget || null,
           // Food preferences
           allergies: allergies || null,
