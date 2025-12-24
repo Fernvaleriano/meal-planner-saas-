@@ -10,7 +10,7 @@
     <script src="/js/theme.js"></script>
     <title>Client Feed - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0" as="script">
     <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1032,8 +1032,9 @@
         <button class="load-more-btn" id="loadMoreBtn" style="display:none;">Load More</button>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
     <script>
+        // Client Feed v2.0 - Fixed duplicate supabase declaration issue
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanlsbnlhbnl3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1NTI0NzYsImV4cCI6MjA1MDEyODQ3Nn0.5sHN0zqXVhFDBUFT5TN0ajZ6uDMSI7ax8U4Fvocz3_E';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1064,7 +1065,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('Client Feed: Initializing... (v1.1)');
+            console.log('Client Feed: Initializing... (v2.0 - cache fix)');
             lucide.createIcons();
 
             try {
