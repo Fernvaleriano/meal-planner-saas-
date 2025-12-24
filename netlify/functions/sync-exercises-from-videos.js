@@ -108,6 +108,8 @@ exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const dryRun = params.dryRun === 'true' || params.dry === 'true';
   const folderParam = params.folder || null; // Process specific folder
+  const batchStart = parseInt(params.start) || 0; // Pagination offset
+  const batchSize = 50; // Process 50 at a time to avoid timeout
 
   try {
     console.log('=== Sync Exercises from Videos ===');
@@ -169,47 +171,41 @@ exports.handler = async (event) => {
       };
     }
 
-    // Step 2: List videos in the specified folder (with pagination, limited depth)
-    const videos = [];
-    let offset = 0;
-    const pageSize = 1000;
-    let hasMore = true;
+    // Step 2: List ALL video files in folder first (just names, no URLs yet)
+    const allVideoFiles = [];
+    let listOffset = 0;
 
-    while (hasMore && videos.length < 500) { // Limit to 500 videos per call
+    while (true) {
       const { data, error } = await supabase.storage
         .from(BUCKET_NAME)
-        .list(folderParam, { limit: pageSize, offset });
+        .list(folderParam, { limit: 1000, offset: listOffset });
 
-      if (error) {
-        console.error('Error listing folder:', error);
-        break;
-      }
-
-      if (!data || data.length === 0) {
-        hasMore = false;
-        break;
-      }
+      if (error || !data || data.length === 0) break;
 
       for (const item of data) {
         if (item.id !== null && /\.(mp4|mov|webm|gif)$/i.test(item.name)) {
-          const itemPath = `${folderParam}/${item.name}`;
-          const { data: urlData } = supabase.storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(itemPath);
-
-          videos.push({
-            filename: item.name,
-            path: itemPath,
-            folder: folderParam,
-            url: urlData.publicUrl
-          });
+          allVideoFiles.push(item.name);
         }
       }
 
-      offset += data.length;
-      hasMore = data.length === pageSize;
+      listOffset += data.length;
+      if (data.length < 1000) break;
     }
-    console.log(`Found ${videos.length} videos in folder "${folderParam}"`);
+
+    const totalVideos = allVideoFiles.length;
+    console.log(`Found ${totalVideos} total videos in folder "${folderParam}"`);
+
+    // Get only the batch we're processing
+    const batchFiles = allVideoFiles.slice(batchStart, batchStart + batchSize);
+    const videos = batchFiles.map(filename => {
+      const itemPath = `${folderParam}/${filename}`;
+      const { data: urlData } = supabase.storage
+        .from(BUCKET_NAME)
+        .getPublicUrl(itemPath);
+      return { filename, path: itemPath, folder: folderParam, url: urlData.publicUrl };
+    });
+
+    console.log(`Processing batch: ${batchStart} to ${batchStart + videos.length} of ${totalVideos}`);
 
     // Step 3: Get existing exercises
     const { data: existingExercises, error: exError } = await supabase
@@ -308,17 +304,23 @@ exports.handler = async (event) => {
       }
     }
 
-    // Find next folder to process
-    const currentIndex = allFolders.indexOf(folderParam);
-    const nextFolder = currentIndex < allFolders.length - 1 ? allFolders[currentIndex + 1] : null;
+    // Calculate pagination
+    const hasMoreInFolder = batchStart + batchSize < totalVideos;
+    const nextStart = batchStart + batchSize;
 
     // Build response
     const response = {
       success: true,
       mode: dryRun ? 'DRY RUN - no changes made' : 'LIVE',
       folder: folderParam,
+      batch: {
+        start: batchStart,
+        size: batchSize,
+        processed: videos.length,
+        totalInFolder: totalVideos,
+        hasMore: hasMoreInFolder
+      },
       summary: {
-        videosInFolder: videos.length,
         created: results.created.length,
         updated: results.updated.length,
         skipped: results.skipped.length,
@@ -328,21 +330,14 @@ exports.handler = async (event) => {
         created: results.created.slice(0, 20),
         updated: results.updated.slice(0, 20),
         errors: results.errors
-      },
-      progress: {
-        currentFolder: folderParam,
-        folderIndex: currentIndex + 1,
-        totalFolders: allFolders.length,
-        nextFolder: nextFolder,
-        remainingFolders: allFolders.length - currentIndex - 1
       }
     };
 
-    if (nextFolder) {
-      response.nextBatch = `?folder=${nextFolder}${dryRun ? '&dryRun=true' : ''}`;
-      response.message = `Folder "${folderParam}" complete. Next: ${nextFolder}`;
+    if (hasMoreInFolder) {
+      response.nextBatch = `?folder=${encodeURIComponent(folderParam)}&start=${nextStart}`;
+      response.message = `Processed ${batchStart}-${batchStart + videos.length} of ${totalVideos}. Call nextBatch to continue.`;
     } else {
-      response.message = 'All folders processed!';
+      response.message = `Folder "${folderParam}" complete! All ${totalVideos} videos processed.`;
     }
 
     return {
