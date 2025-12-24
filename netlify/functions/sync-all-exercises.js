@@ -174,7 +174,8 @@ exports.handler = async (event) => {
 
   const params = event.queryStringParameters || {};
   const dryRun = params.dryRun === 'true' || params.dry === 'true';
-  const limit = parseInt(params.limit) || 0; // 0 = no limit
+  const limit = parseInt(params.limit) || 500; // Process 500 per batch
+  const offset = parseInt(params.offset) || 0; // Start from this index
 
   try {
     console.log('=== Sync All Exercises from Storage ===');
@@ -264,13 +265,13 @@ exports.handler = async (event) => {
       errors: []
     };
 
-    let processed = 0;
+    // Apply offset and limit
+    const videosToProcess = allVideos.slice(offset, offset + limit);
+    const hasMore = offset + limit < allVideos.length;
 
-    for (const video of allVideos) {
-      // Apply limit if specified
-      if (limit > 0 && processed >= limit) {
-        break;
-      }
+    console.log(`Processing videos ${offset} to ${offset + videosToProcess.length} of ${allVideos.length}`);
+
+    for (const video of videosToProcess) {
 
       const exerciseName = cleanExerciseName(video.filename);
       const nameLower = exerciseName.toLowerCase().trim();
@@ -361,18 +362,23 @@ exports.handler = async (event) => {
           });
         }
       }
-
-      processed++;
     }
 
     // Build response
     const response = {
       success: true,
       mode: dryRun ? 'DRY RUN - no changes made' : 'LIVE',
+      batch: {
+        offset: offset,
+        limit: limit,
+        processedInBatch: videosToProcess.length,
+        hasMore: hasMore,
+        nextOffset: hasMore ? offset + limit : null,
+        progress: `${Math.min(offset + limit, allVideos.length)}/${allVideos.length} videos`
+      },
       summary: {
         totalVideosInStorage: allVideos.length,
         existingExercisesInDB: existingExercises.length,
-        processed: processed,
         created: results.created.length,
         updated: results.updated.length,
         skipped: results.skipped.length,
@@ -400,6 +406,15 @@ exports.handler = async (event) => {
       response.hint = 'Run without ?dryRun=true to actually create the exercises';
     } else {
       response.message = `Successfully synced ${results.created.length} new exercises and updated ${results.updated.length} existing ones!`;
+    }
+
+    if (hasMore) {
+      const nextUrl = `?offset=${offset + limit}${dryRun ? '&dryRun=true' : ''}`;
+      response.nextBatch = nextUrl;
+      response.continueMessage = `More videos to process. Run with ${nextUrl} to continue.`;
+    } else {
+      response.complete = true;
+      response.completeMessage = 'All videos have been processed!';
     }
 
     return {
