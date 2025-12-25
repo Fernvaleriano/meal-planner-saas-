@@ -627,7 +627,7 @@
                 id: 'welcome',
                 type: 'welcome',
                 title: 'Ready to Transform?',
-                subtitle: 'Take just 2 minutes to tell me about yourself so I can create the perfect plan for you.',
+                subtitle: 'Take just 60 seconds to tell me about yourself. I\'ll personally reach out within 24 hours!',
                 buttonText: 'Let\'s Go'
             },
             // Basic Info
@@ -664,10 +664,11 @@
                 options: ['Lose weight', 'Build muscle', 'Tone up', 'Improve overall health', 'Increase energy']
             },
             {
-                id: 'fitness_level',
+                id: 'barrier',
                 type: 'single',
-                question: 'What\'s your current fitness level?',
-                options: ['Complete beginner', 'Could be in better shape', 'Moderately fit', 'Pretty fit', 'Very athletic']
+                question: 'What\'s your biggest barrier or challenge right now?',
+                subtext: 'This helps me understand what\'s holding you back',
+                options: ['No time', 'Lack of motivation', 'Don\'t know where to start', 'No accountability', 'Tried before and failed', 'Injuries or health issues', 'Cost concerns']
             },
             {
                 id: 'health_concerns',
@@ -675,43 +676,6 @@
                 question: 'Any health concerns, injuries, or conditions I should know about?',
                 placeholder: 'e.g., Shoulder injury, bad knees, diabetes... Type "None" if none.',
                 subtext: 'This helps me design a safe program for you'
-            },
-            // Workout Preferences
-            {
-                id: 'gym_or_home',
-                type: 'single',
-                question: 'Where will you be working out?',
-                options: ['Gym', 'Home Gym', 'Both', 'Outdoors']
-            },
-            {
-                id: 'workout_days',
-                type: 'single',
-                question: 'How many days per week can you commit to working out?',
-                subtext: 'Be realistic with yourself',
-                options: ['1-2 days', '3-4 days', '5-6 days', 'Every day']
-            },
-            // Nutrition
-            {
-                id: 'diet_type',
-                type: 'single',
-                question: 'Do you follow a specific diet?',
-                options: ['No specific diet', 'Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo', 'Low-carb', 'Other']
-            },
-            {
-                id: 'allergies',
-                type: 'multi',
-                question: 'Any food allergies or intolerances?',
-                subtext: 'Select all that apply',
-                options: ['None', 'Dairy', 'Gluten', 'Nuts', 'Shellfish', 'Eggs', 'Soy', 'Other']
-            },
-            // Contact (Optional)
-            {
-                id: 'phone',
-                type: 'text',
-                question: 'What\'s your phone number?',
-                subtext: 'Optional - for faster response',
-                placeholder: '(555) 123-4567',
-                required: false
             },
             // Final
             {
