@@ -645,12 +645,6 @@
                 placeholder: 'your@email.com'
             },
             {
-                id: 'phone',
-                type: 'text',
-                question: 'What\'s your phone number?',
-                placeholder: '(555) 123-4567'
-            },
-            {
                 id: 'age',
                 type: 'single',
                 question: 'What\'s your age range?',
@@ -705,22 +699,19 @@
             },
             {
                 id: 'allergies',
-                type: 'text',
+                type: 'multi',
                 question: 'Any food allergies or intolerances?',
-                placeholder: 'e.g., Gluten, dairy, nuts, shellfish... or "None"'
+                subtext: 'Select all that apply',
+                options: ['None', 'Dairy', 'Gluten', 'Nuts', 'Shellfish', 'Eggs', 'Soy', 'Other']
             },
-            // Physical Stats
+            // Contact (Optional)
             {
-                id: 'height',
+                id: 'phone',
                 type: 'text',
-                question: 'What\'s your height?',
-                placeholder: 'e.g., 5\'3" or 160cm'
-            },
-            {
-                id: 'weight',
-                type: 'text',
-                question: 'What\'s your current weight?',
-                placeholder: 'e.g., 165 lbs or 75 kg'
+                question: 'What\'s your phone number?',
+                subtext: 'Optional - for faster response',
+                placeholder: '(555) 123-4567',
+                required: false
             },
             // Final
             {
