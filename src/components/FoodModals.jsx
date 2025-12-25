@@ -65,6 +65,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [details, setDetails] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
+  const [servings, setServings] = useState({}); // Track servings per food item { 0: 1, 1: 1.5, ... }
   const [error, setError] = useState(null);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [isAdding, setIsAdding] = useState(false);
@@ -110,6 +111,12 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
       if (data?.foods && data.foods.length > 0) {
         setResults(data.foods);
+        // Initialize servings to 1 for each food item
+        const initialServings = {};
+        data.foods.forEach((_, idx) => {
+          initialServings[idx] = 1;
+        });
+        setServings(initialServings);
       } else {
         setError('No food detected in the image. Try adding details or take a clearer photo.');
       }
@@ -119,6 +126,42 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const updateServings = (index, delta) => {
+    setServings(prev => ({
+      ...prev,
+      [index]: Math.max(0.5, (prev[index] || 1) + delta)
+    }));
+  };
+
+  const deleteFood = (index) => {
+    setResults(prev => prev.filter((_, i) => i !== index));
+    setServings(prev => {
+      const newServings = {};
+      Object.keys(prev).forEach(key => {
+        const oldIndex = parseInt(key);
+        if (oldIndex < index) {
+          newServings[oldIndex] = prev[oldIndex];
+        } else if (oldIndex > index) {
+          newServings[oldIndex - 1] = prev[oldIndex];
+        }
+      });
+      return newServings;
+    });
+  };
+
+  const calculateTotal = () => {
+    if (!results) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    return results.reduce((acc, food, idx) => {
+      const foodServings = servings[idx] || 1;
+      return {
+        calories: acc.calories + (food.calories || 0) * foodServings,
+        protein: acc.protein + (food.protein || 0) * foodServings,
+        carbs: acc.carbs + (food.carbs || 0) * foodServings,
+        fat: acc.fat + (food.fat || 0) * foodServings
+      };
+    }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
   };
 
   const addAllTooDiary = useCallback(async () => {
@@ -138,34 +181,30 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
       await ensureFreshSession();
 
       // Create all food logging requests in parallel for faster logging
-      const logPromises = foodsToAdd.map(food =>
-        apiPost('/.netlify/functions/food-diary', {
+      const logPromises = foodsToAdd.map((food, idx) => {
+        const foodServings = servings[idx] || 1;
+        return apiPost('/.netlify/functions/food-diary', {
           clientId: clientData.id,
           coachId: clientData.coach_id,
           entryDate: today,
           mealType: selectedMealType,
           foodName: food.name,
-          calories: food.calories,
-          protein: food.protein,
-          carbs: food.carbs,
-          fat: food.fat,
+          calories: Math.round(food.calories * foodServings),
+          protein: Math.round((food.protein * foodServings) * 10) / 10,
+          carbs: Math.round((food.carbs * foodServings) * 10) / 10,
+          fat: Math.round((food.fat * foodServings) * 10) / 10,
           servingSize: 1,
           servingUnit: 'serving',
-          numberOfServings: 1,
+          numberOfServings: foodServings,
           foodSource: 'ai_photo'
-        })
-      );
+        });
+      });
 
       // Execute all requests in parallel
       await Promise.all(logPromises);
 
-      // Calculate totals
-      addedTotals = foodsToAdd.reduce((acc, food) => ({
-        calories: acc.calories + (food.calories || 0),
-        protein: acc.protein + (food.protein || 0),
-        carbs: acc.carbs + (food.carbs || 0),
-        fat: acc.fat + (food.fat || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      // Calculate totals using the calculateTotal function
+      addedTotals = calculateTotal();
 
       onFoodLogged?.(addedTotals);
       showSuccess('Food added to diary!');
@@ -178,12 +217,13 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setIsAdding(false);
     }
-  }, [results, clientData, selectedMealType, onFoodLogged, showError, showSuccess]);
+  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess]);
 
   const handleClose = () => {
     setPreviews([]);
     setDetails('');
     setResults(null);
+    setServings({});
     setError(null);
     setAnalyzing(false);
     setIsAdding(false);
@@ -295,28 +335,63 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
             </div>
           ) : (
             <div className="photo-results-section">
-              <h3>Detected Foods</h3>
+              <div className="photo-results-header">
+                <h3>Detected Foods</h3>
+                <button className="btn-text-danger" onClick={() => { setResults(null); setServings({}); }}>
+                  Clear All
+                </button>
+              </div>
               <div className="detected-foods-list">
-                {results.map((food, idx) => (
-                  <div key={idx} className="detected-food-item">
-                    <div className="detected-food-name">{food.name}</div>
-                    <div className="detected-food-macros">
-                      <span>{food.calories} cal</span>
-                      <span>P: {food.protein}g</span>
-                      <span>C: {food.carbs}g</span>
-                      <span>F: {food.fat}g</span>
+                {results.map((food, idx) => {
+                  const foodServings = servings[idx] || 1;
+                  const scaledCalories = Math.round(food.calories * foodServings);
+                  const scaledProtein = Math.round((food.protein * foodServings) * 10) / 10;
+                  const scaledCarbs = Math.round((food.carbs * foodServings) * 10) / 10;
+                  const scaledFat = Math.round((food.fat * foodServings) * 10) / 10;
+
+                  return (
+                    <div key={idx} className="detected-food-item-editable">
+                      <div className="detected-food-header">
+                        <div className="detected-food-name">{food.name}</div>
+                        <button className="delete-food-btn" onClick={() => deleteFood(idx)} title="Delete this food">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                      <div className="detected-food-servings">
+                        <label>Servings</label>
+                        <div className="servings-controls">
+                          <button onClick={() => updateServings(idx, -0.5)}><Minus size={16} /></button>
+                          <span className="servings-value">{foodServings}</span>
+                          <button onClick={() => updateServings(idx, 0.5)}><Plus size={16} /></button>
+                        </div>
+                      </div>
+                      <div className="detected-food-macros">
+                        <span>{scaledCalories} cal</span>
+                        <span>P: {scaledProtein}g</span>
+                        <span>C: {scaledCarbs}g</span>
+                        <span>F: {scaledFat}g</span>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+              {results.length > 0 && (
+                <>
+                  <div className="photo-results-total">
+                    <strong>Total:</strong>
+                    <span>{Math.round(calculateTotal().calories)} cal</span>
                   </div>
-                ))}
-              </div>
-              <div className="photo-results-total">
-                <strong>Total:</strong>
-                <span>{results.reduce((s, f) => s + (f.calories || 0), 0)} cal</span>
-              </div>
-              <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
-              <button className="btn-primary full-width" onClick={addAllTooDiary} disabled={isAdding}>
-                {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : <><Check size={18} /> Add All to {selectedMealType}</>}
-              </button>
+                  <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
+                  <button className="btn-primary full-width" onClick={addAllTooDiary} disabled={isAdding}>
+                    {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : <><Check size={18} /> Add All to {selectedMealType}</>}
+                  </button>
+                </>
+              )}
+              {results.length === 0 && (
+                <div className="modal-info">
+                  All foods removed. Take a new photo to scan again.
+                </div>
+              )}
             </div>
           )}
         </div>
