@@ -102,12 +102,12 @@
 
         /* Form Container */
         .form-container {
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             padding: 80px 24px;
-            overflow: hidden;
+            overflow-y: auto;
         }
 
         /* Question Slides */
@@ -565,6 +565,7 @@
 
             .form-container {
                 padding: 70px 20px 100px;
+                justify-content: flex-start;
             }
 
             .choices-grid {
