@@ -627,7 +627,7 @@
                 id: 'welcome',
                 type: 'welcome',
                 title: 'Ready to Transform?',
-                subtitle: 'Take a few minutes to tell me about yourself so I can create the perfect plan for you.',
+                subtitle: 'Take just 60 seconds to tell me about yourself. I\'ll personally reach out within 24 hours!',
                 buttonText: 'Let\'s Go'
             },
             // Basic Info
@@ -645,171 +645,47 @@
                 placeholder: 'your@email.com'
             },
             {
-                id: 'phone',
-                type: 'text',
-                question: 'What\'s your phone number?',
-                placeholder: '(555) 123-4567'
-            },
-            {
                 id: 'age',
-                type: 'text',
-                question: 'How old are you?',
-                placeholder: 'e.g., 28'
+                type: 'single',
+                question: 'What\'s your age range?',
+                options: ['Under 18', '18-25', '26-35', '36-45', '46-55', '56+']
             },
             {
                 id: 'gender',
                 type: 'single',
-                question: 'What\'s your gender?',
+                question: 'How do you identify?',
                 options: ['Female', 'Male', 'Other', 'Prefer not to say']
-            },
-            {
-                id: 'social',
-                type: 'text',
-                question: 'What\'s your Instagram or Facebook?',
-                subtext: 'Optional - but it helps me connect with you',
-                placeholder: '@yourusername',
-                required: false
             },
             // Goals & Fitness
             {
                 id: 'goal',
                 type: 'single',
                 question: 'What\'s your primary goal?',
-                subtext: 'Choose the one that matters most to you right now',
                 options: ['Lose weight', 'Build muscle', 'Tone up', 'Improve overall health', 'Increase energy']
             },
             {
-                id: 'focus_areas',
-                type: 'multi',
-                question: 'Select areas you\'d like to focus on:',
-                subtext: 'Choose all that apply',
-                options: ['Total Body', 'Quads', 'Hamstrings', 'Inner Legs', 'Glutes', 'Arms', 'Core', 'Back']
-            },
-            {
-                id: 'fitness_level',
+                id: 'barrier',
                 type: 'single',
-                question: 'What\'s your current fitness level?',
-                options: ['Complete beginner', 'Could be in better shape', 'Moderately fit', 'Pretty fit', 'Very athletic']
-            },
-            {
-                id: 'daily_activity',
-                type: 'single',
-                question: 'How do you typically spend your day?',
-                options: ['Mostly sitting (desk job)', 'Mix of sitting and standing', 'I\'m always on my feet', 'Physically demanding job']
-            },
-            {
-                id: 'struggles',
-                type: 'multi',
-                question: 'What do you struggle with?',
-                subtext: 'Select all that apply',
-                options: ['Lack of motivation', 'No clear direction', 'Busy schedule', 'Bad eating habits', 'Consistency', 'Injury concerns']
+                question: 'What\'s your biggest barrier or challenge right now?',
+                subtext: 'This helps me understand what\'s holding you back',
+                options: ['No time', 'Lack of motivation', 'Don\'t know where to start', 'No accountability', 'Tried before and failed', 'Injuries or health issues', 'Cost concerns']
             },
             {
                 id: 'health_concerns',
                 type: 'textarea',
-                question: 'Any health concerns to share?',
-                subtext: 'Disorders, illnesses, injuries - anything I should know about',
-                placeholder: 'e.g., Endometriosis, shoulder injury, bad knees... Type "None" if none.'
-            },
-            // Workout Preferences
-            {
-                id: 'gym_or_home',
-                type: 'single',
-                question: 'Gym or Home Gym?',
-                options: ['Gym', 'Home Gym', 'Both', 'Outdoors']
-            },
-            {
-                id: 'workout_days',
-                type: 'single',
-                question: 'How many workout days can you realistically fit?',
-                subtext: 'Be honest with yourself',
-                options: ['1-2 days per week', '3-4 days per week', '5-6 days per week', 'Every day']
-            },
-            {
-                id: 'workout_time',
-                type: 'single',
-                question: 'How much time per workout?',
-                options: ['15-30 minutes', '30-45 minutes', '45-60 minutes', '60+ minutes']
-            },
-            {
-                id: 'cooking_equipment',
-                type: 'multi',
-                question: 'What cooking equipment do you have?',
-                subtext: 'Select all that apply',
-                options: ['Stovetop', 'Oven', 'Microwave', 'Air Fryer', 'Instant Pot', 'Slow Cooker', 'Grill', 'Blender']
-            },
-            // Nutrition
-            {
-                id: 'eating_style',
-                type: 'single',
-                question: 'What\'s your preferred way of eating?',
-                options: ['Following a structured diet plan', 'Flexible dieting / tracking macros', 'Intuitive eating', 'I need guidance on this']
-            },
-            {
-                id: 'diet_type',
-                type: 'single',
-                question: 'Do you follow a specific diet?',
-                options: ['No specific diet', 'Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo', 'Mediterranean', 'Other']
-            },
-            {
-                id: 'budget',
-                type: 'single',
-                question: 'What\'s your food budget preference?',
-                subtext: 'This helps me recommend appropriate meal options',
-                options: ['Budget-friendly', 'Moderate', 'Premium (no restrictions)']
-            },
-            {
-                id: 'allergies',
-                type: 'text',
-                question: 'Any food allergies or intolerances?',
-                subtext: 'Type "None" if you don\'t have any',
-                placeholder: 'e.g., Gluten, dairy, nuts, shellfish...'
-            },
-            {
-                id: 'disliked_foods',
-                type: 'textarea',
-                question: 'Any foods you dislike or won\'t eat?',
-                subtext: 'Type "None" if there aren\'t any',
-                placeholder: 'e.g., Mushrooms, liver, brussels sprouts...'
-            },
-            {
-                id: 'preferred_foods',
-                type: 'textarea',
-                question: 'Any foods you love and want included?',
-                subtext: 'Optional - foods you\'d like in your meal plans',
-                placeholder: 'e.g., Chicken, rice, broccoli, salmon...',
-                required: false
-            },
-            // Physical Stats
-            {
-                id: 'height',
-                type: 'text',
-                question: 'What\'s your height?',
-                placeholder: 'e.g., 5\'3" or 160cm'
-            },
-            {
-                id: 'weight',
-                type: 'text',
-                question: 'What was your weight the last time you checked?',
-                placeholder: 'e.g., 165 lbs or 75 kg'
+                question: 'Any health concerns, injuries, or conditions I should know about?',
+                placeholder: 'e.g., Shoulder injury, bad knees, diabetes... Type "None" if none.',
+                subtext: 'This helps me design a safe program for you'
             },
             // Final
             {
-                id: 'referral',
-                type: 'text',
-                question: 'Did anyone refer you?',
-                subtext: 'If so, let me know who!',
-                placeholder: 'Name or "No"',
-                required: false
-            },
-            {
                 id: 'commitment',
                 type: 'single',
-                question: 'How serious are you about joining my coaching services?',
+                question: 'How ready are you to start your fitness journey?',
                 options: [
-                    'I\'m ready to commit 100%',
+                    'Ready to commit 100% right now',
                     'Very interested, just have a few questions',
-                    'I\'m still deciding if this is the right fit',
+                    'Still deciding if this is the right fit',
                     'Just exploring options for now'
                 ]
             },
@@ -817,7 +693,7 @@
                 id: 'thank_you',
                 type: 'thank_you',
                 title: 'You\'re all set!',
-                subtitle: 'Thanks for filling out this form. I\'ll be reaching out to you soon to discuss your fitness journey!'
+                subtitle: 'Thanks for applying! I\'ll personally reach out within 24 hours to discuss your goals and answer any questions you have.'
             }
         ];
 
