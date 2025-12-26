@@ -44,29 +44,60 @@
       el.scrollTop = el.scrollHeight;
     }
 
+    // Check if a folder has video files
+    async function hasVideoFiles(path) {
+      const { data } = await db.storage.from(BUCKET).list(path, { limit: 10 });
+      return (data || []).some(f => f.id !== null && /\.(mp4|mov|webm|gif)$/i.test(f.name));
+    }
+
+    // Recursively find all folders with videos (up to 4 levels deep)
+    async function findFoldersWithVideos(path, depth = 0) {
+      if (depth > 3) return []; // Max 4 levels deep
+
+      const folders = [];
+      const { data } = await db.storage.from(BUCKET).list(path, { limit: 200 });
+
+      if (!data) return [];
+
+      // Check if this folder has videos
+      const videos = data.filter(f => f.id !== null && /\.(mp4|mov|webm|gif)$/i.test(f.name));
+      if (videos.length > 0) {
+        folders.push(path);
+      }
+
+      // Check subfolders
+      const subfolders = data.filter(f => f.id === null);
+      for (const sub of subfolders) {
+        const subPath = path ? `${path}/${sub.name}` : sub.name;
+        const subResults = await findFoldersWithVideos(subPath, depth + 1);
+        folders.push(...subResults);
+      }
+
+      return folders;
+    }
+
     async function loadFolders() {
-      log('Loading folders from storage...');
+      log('Loading folders from storage (scanning all levels)...');
       allSubfolders = [];
 
+      // Get all top-level items
       const { data: topLevel } = await db.storage.from(BUCKET).list('', { limit: 100 });
       const mainFolders = (topLevel || []).filter(f => f.id === null);
 
-      for (const folder of mainFolders) {
-        const { data: subs } = await db.storage.from(BUCKET).list(folder.name, { limit: 100 });
-        const subfolders = (subs || []).filter(s => s.id === null);
+      log(`Found ${mainFolders.length} top-level folders, scanning for videos...`);
 
-        if (subfolders.length > 0) {
-          for (const sub of subfolders) {
-            allSubfolders.push(`${folder.name}/${sub.name}`);
-          }
-        } else {
-          allSubfolders.push(folder.name);
-        }
+      for (const folder of mainFolders) {
+        log(`Scanning: ${folder.name}...`);
+        const foldersWithVideos = await findFoldersWithVideos(folder.name, 1);
+        allSubfolders.push(...foldersWithVideos);
       }
+
+      // Deduplicate
+      allSubfolders = [...new Set(allSubfolders)].sort();
 
       const select = document.getElementById('folderSelect');
       select.innerHTML = allSubfolders.map(f => `<option value="${f}">${f}</option>`).join('');
-      log(`Found ${allSubfolders.length} folders to sync`, 'success');
+      log(`Found ${allSubfolders.length} folders with videos to sync`, 'success');
     }
 
     async function syncFolder(folderPath) {
