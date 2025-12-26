@@ -14,7 +14,7 @@
 </head>
 <body>
   <h1>Exercise Sync Tool</h1>
-  <p>This runs in your browser - no timeout limits!</p>
+  <p>This runs in your browser - calls Netlify function for DB writes (no RLS issues!)</p>
 
   <div>
     <button onclick="loadFolders()">1. Load Folders</button>
@@ -38,48 +38,14 @@
     let shouldStop = false;
     let allSubfolders = [];
 
-    const FOLDER_TO_MUSCLE = {
-      'chest': 'chest', 'back': 'back', 'shoulders': 'shoulders', 'legs': 'legs',
-      'arms': 'arms', 'biceps': 'arms', 'triceps': 'arms', 'forearms': 'arms',
-      'core': 'core', 'abs': 'core', 'abdominals': 'core',
-      'glutes': 'legs', 'cardio': 'cardio', 'stretching': 'flexibility',
-      'yoga': 'flexibility', 'powerlifting': 'full_body', 'calisthenics': 'full_body'
-    };
-
     function log(msg, type = '') {
       const el = document.getElementById('log');
       el.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
       el.scrollTop = el.scrollHeight;
     }
 
-    function getMuscleGroup(path) {
-      const parts = path.toLowerCase().split('/');
-      for (const part of parts) {
-        for (const [key, val] of Object.entries(FOLDER_TO_MUSCLE)) {
-          if (part.includes(key)) return val;
-        }
-      }
-      return 'full_body';
-    }
-
-    function cleanName(filename) {
-      return filename.replace(/\.(mp4|mov|webm|gif)$/i, '').replace(/[_-]/g, ' ').trim();
-    }
-
-    function detectEquipment(name) {
-      const n = name.toLowerCase();
-      if (n.includes('barbell') || n.includes(' bb')) return 'Barbell';
-      if (n.includes('dumbbell') || n.includes(' db')) return 'Dumbbell';
-      if (n.includes('cable')) return 'Cable';
-      if (n.includes('machine')) return 'Machine';
-      if (n.includes('kettlebell')) return 'Kettlebell';
-      if (n.includes('band')) return 'Resistance Band';
-      if (n.includes('smith')) return 'Smith Machine';
-      return 'Bodyweight';
-    }
-
     async function loadFolders() {
-      log('Loading folders...');
+      log('Loading folders from storage...');
       allSubfolders = [];
 
       const { data: topLevel } = await db.storage.from(BUCKET).list('', { limit: 100 });
@@ -107,53 +73,43 @@
       const folder = folderPath || document.getElementById('folderSelect').value;
       log(`Syncing: ${folder}`);
 
-      let offset = 0;
+      let start = 0;
       let total = 0;
-      const muscleGroup = getMuscleGroup(folder);
+      let hasMore = true;
 
-      while (!shouldStop) {
-        const { data: files } = await db.storage.from(BUCKET).list(folder, {
-          limit: 50,
-          offset,
-          sortBy: { column: 'name', order: 'asc' }
-        });
+      // Call Netlify function in batches until done
+      while (hasMore && !shouldStop) {
+        try {
+          const url = `/.netlify/functions/sync-exercises-from-videos?folder=${encodeURIComponent(folder)}&start=${start}`;
+          log(`Fetching batch at offset ${start}...`);
 
-        if (!files || files.length === 0) break;
+          const response = await fetch(url);
+          const result = await response.json();
 
-        const videos = files.filter(f => f.id !== null && /\.(mp4|mov|webm|gif)$/i.test(f.name));
-
-        if (videos.length > 0) {
-          const exercises = videos.map(v => {
-            const path = `${folder}/${v.name}`;
-            const { data } = db.storage.from(BUCKET).getPublicUrl(path);
-            const name = cleanName(v.name);
-            return {
-              name,
-              muscle_group: muscleGroup,
-              equipment: detectEquipment(name),
-              exercise_type: 'strength',
-              difficulty: 'intermediate',
-              video_url: data.publicUrl,
-              animation_url: data.publicUrl,
-              source: 'browser-sync'
-            };
-          });
-
-          const { error } = await db.from('exercises').upsert(exercises, {
-            onConflict: 'name',
-            ignoreDuplicates: false
-          });
-
-          if (error) {
-            log(`Error: ${error.message}`, 'error');
-          } else {
-            total += exercises.length;
-            log(`Added ${exercises.length} exercises (total: ${total})`);
+          if (!response.ok) {
+            log(`Error: ${result.error || 'Unknown error'}`, 'error');
+            break;
           }
-        }
 
-        offset += files.length;
-        if (files.length < 50) break;
+          if (result.created > 0) {
+            total += result.created;
+            log(`Added ${result.created} exercises: ${result.exercises.slice(0, 3).join(', ')}${result.exercises.length > 3 ? '...' : ''}`);
+          }
+
+          if (result.errors && result.errors.length > 0) {
+            log(`Errors: ${result.errors.join(', ')}`, 'error');
+          }
+
+          hasMore = result.batch?.hasMore || false;
+          start += 15; // Match the batch size in the function
+
+          // Small delay to avoid hammering the server
+          if (hasMore) await new Promise(r => setTimeout(r, 200));
+
+        } catch (err) {
+          log(`Network error: ${err.message}`, 'error');
+          break;
+        }
       }
 
       log(`Folder complete: ${folder} - ${total} exercises`, 'success');
