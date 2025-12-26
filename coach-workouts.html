@@ -1865,9 +1865,16 @@
                 <button class="modal-close" onclick="closeExercisePreview()">&times;</button>
             </div>
             <div class="modal-body" style="padding: 0;">
-                <div id="previewVideoContainer" style="width: 100%; aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center;">
-                    <video id="previewVideo" controls autoplay loop muted style="width: 100%; height: 100%; object-fit: contain;"></video>
+                <div id="previewVideoContainer" style="width: 100%; aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <div id="videoLoader" style="position: absolute; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                        <div style="width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="color: #fff; font-size: 14px;">Loading video...</span>
+                    </div>
+                    <video id="previewVideo" controls loop muted playsinline preload="auto" style="width: 100%; height: 100%; object-fit: contain;"></video>
                 </div>
+                <style>
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                </style>
                 <div style="padding: 20px;">
                     <div id="previewExerciseMeta" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;"></div>
                     <button class="btn btn-primary" onclick="addExerciseFromPreview()" style="width: 100%;">
@@ -2730,13 +2737,37 @@
 
             const videoUrl = exercise.video_url || exercise.animation_url;
             const video = document.getElementById('previewVideo');
+            const loader = document.getElementById('videoLoader');
+
+            // Show loader, hide video initially
+            loader.style.display = 'flex';
+            video.style.opacity = '0';
 
             if (videoUrl) {
-                video.src = videoUrl;
-                video.style.display = 'block';
-                video.play().catch(() => {}); // Autoplay might be blocked
+                // Clear old event listeners by cloning
+                const newVideo = video.cloneNode(true);
+                video.parentNode.replaceChild(newVideo, video);
+
+                // Set up event handlers for loading states
+                newVideo.oncanplay = () => {
+                    loader.style.display = 'none';
+                    newVideo.style.opacity = '1';
+                    newVideo.play().catch(() => {});
+                };
+                newVideo.onwaiting = () => {
+                    loader.style.display = 'flex';
+                };
+                newVideo.onplaying = () => {
+                    loader.style.display = 'none';
+                };
+                newVideo.onerror = () => {
+                    loader.innerHTML = '<span style="color: #f66;">Failed to load video</span>';
+                };
+
+                newVideo.src = videoUrl;
+                newVideo.load();
             } else {
-                video.style.display = 'none';
+                loader.innerHTML = '<span style="color: #888;">No video available</span>';
             }
 
             const meta = [];
@@ -2752,7 +2783,13 @@
             document.getElementById('exercisePreviewModal').classList.remove('active');
             const video = document.getElementById('previewVideo');
             video.pause();
-            video.src = '';
+            video.removeAttribute('src');
+            video.load(); // Reset the video element
+            // Reset loader for next time
+            document.getElementById('videoLoader').innerHTML = `
+                <div style="width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <span style="color: #fff; font-size: 14px;">Loading video...</span>
+            `;
             currentPreviewExercise = null;
         }
 
