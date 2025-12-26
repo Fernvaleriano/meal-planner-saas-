@@ -171,7 +171,7 @@ exports.handler = async (event) => {
     }
 
     // Build exercises to upsert
-    const exercises = videoFiles.map(item => {
+    const exercisesRaw = videoFiles.map(item => {
       const itemPath = `${folderParam}/${item.name}`;
       const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(itemPath);
       const rawName = cleanExerciseName(item.name);
@@ -188,6 +188,14 @@ exports.handler = async (event) => {
         gender_variant: gender,
         source: 'video-sync'
       };
+    });
+
+    // Deduplicate by name (keep first occurrence)
+    const seenNames = new Set();
+    const exercises = exercisesRaw.filter(ex => {
+      if (seenNames.has(ex.name)) return false;
+      seenNames.add(ex.name);
+      return true;
     });
 
     // Batch upsert (insert or update by name)
