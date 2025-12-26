@@ -2269,8 +2269,27 @@
         // Load exercises
         async function loadExercises() {
             try {
-                const result = await apiCall(`/.netlify/functions/exercises?coachId=${currentCoachId}&limit=3000`);
-                exercises = result.exercises || [];
+                // Fetch exercises in batches to handle large exercise libraries
+                const batchSize = 1000;
+                let allExercises = [];
+                let offset = 0;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const result = await apiCall(`/.netlify/functions/exercises?coachId=${currentCoachId}&limit=${batchSize}&offset=${offset}`);
+                    const batch = result.exercises || [];
+                    allExercises = allExercises.concat(batch);
+
+                    // Check if there are more exercises to fetch
+                    if (batch.length < batchSize || allExercises.length >= result.total) {
+                        hasMore = false;
+                    } else {
+                        offset += batchSize;
+                    }
+                }
+
+                exercises = allExercises;
+                console.log(`Loaded ${exercises.length} exercises total`);
             } catch (err) {
                 console.error('Error loading exercises:', err);
                 // Fallback exercises
