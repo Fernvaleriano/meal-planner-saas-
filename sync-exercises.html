@@ -24,7 +24,12 @@
   <div style="margin-top: 20px;">
     <button onclick="syncFolder()">2. Sync Selected Folder</button>
     <button onclick="syncAllFolders()">3. Sync ALL Folders</button>
+    <button onclick="checkMissing()" style="background:#4a9eff;color:white">4. Check Missing</button>
     <button onclick="stopSync()" style="background:#f66">Stop</button>
+  </div>
+
+  <div style="margin-top: 10px;">
+    <input type="text" id="searchMissing" placeholder="Search missing exercises..." style="padding: 8px; width: 300px;" oninput="filterMissing(this.value)">
   </div>
 
   <div id="log"></div>
@@ -168,6 +173,113 @@
     function stopSync() {
       shouldStop = true;
       log('Stopping...', 'error');
+    }
+
+    let missingExercises = [];
+
+    async function checkMissing() {
+      log('Checking for missing exercises...', '');
+      missingExercises = [];
+
+      // Step 1: Get all exercises from database
+      log('Fetching all exercises from database...');
+      let dbExercises = [];
+      let offset = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await db
+          .from('exercises')
+          .select('name, video_url')
+          .range(offset, offset + batchSize - 1);
+
+        if (error) {
+          log(`DB Error: ${error.message}`, 'error');
+          return;
+        }
+
+        dbExercises = dbExercises.concat(data || []);
+        hasMore = data && data.length === batchSize;
+        offset += batchSize;
+      }
+
+      log(`Found ${dbExercises.length} exercises in database`);
+
+      // Create a set of normalized exercise names for fast lookup
+      const dbNames = new Set(dbExercises.map(e => e.name.toLowerCase().trim()));
+
+      // Step 2: Scan all storage folders for videos
+      log('Scanning storage folders for videos...');
+
+      if (allSubfolders.length === 0) {
+        log('Please click "Load Folders" first!', 'error');
+        return;
+      }
+
+      let storageVideos = [];
+
+      for (const folder of allSubfolders) {
+        const { data: files } = await db.storage.from(BUCKET).list(folder, { limit: 1000 });
+        const videos = (files || []).filter(f => f.id !== null && /\.(mp4|mov|webm|gif)$/i.test(f.name));
+
+        for (const video of videos) {
+          const videoName = video.name.replace(/\.(mp4|mov|webm|gif)$/i, '')
+            .replace(/[-_]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          storageVideos.push({
+            name: videoName,
+            folder: folder,
+            file: video.name,
+            path: `${folder}/${video.name}`
+          });
+        }
+      }
+
+      log(`Found ${storageVideos.length} videos in storage`);
+
+      // Step 3: Find videos not in database
+      for (const video of storageVideos) {
+        const normalizedName = video.name.toLowerCase().trim();
+        if (!dbNames.has(normalizedName)) {
+          missingExercises.push(video);
+        }
+      }
+
+      // Sort by folder then name
+      missingExercises.sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name));
+
+      log(`\n========== MISSING EXERCISES: ${missingExercises.length} ==========`, missingExercises.length > 0 ? 'error' : 'success');
+
+      if (missingExercises.length === 0) {
+        log('All storage videos are synced to database!', 'success');
+      } else {
+        log('Use the search box above to filter, or see list below:\n');
+        displayMissing(missingExercises);
+      }
+    }
+
+    function displayMissing(list) {
+      for (const ex of list) {
+        log(`❌ ${ex.name} (${ex.folder})`);
+      }
+    }
+
+    function filterMissing(term) {
+      if (!missingExercises.length) return;
+
+      const el = document.getElementById('log');
+      el.innerHTML = '';
+
+      const filtered = missingExercises.filter(ex =>
+        ex.name.toLowerCase().includes(term.toLowerCase()) ||
+        ex.folder.toLowerCase().includes(term.toLowerCase())
+      );
+
+      log(`Showing ${filtered.length} of ${missingExercises.length} missing exercises matching "${term}":`);
+      displayMissing(filtered);
     }
   </script>
 </body>
