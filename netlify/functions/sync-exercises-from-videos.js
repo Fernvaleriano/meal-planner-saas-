@@ -171,41 +171,34 @@ exports.handler = async (event) => {
       };
     }
 
-    // Step 2: List ALL video files in folder first (just names, no URLs yet)
-    const allVideoFiles = [];
-    let listOffset = 0;
+    // Step 2: List ONLY the batch we need (not all files)
+    const { data: folderFiles, error: listErr } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(folderParam, {
+        limit: batchSize,
+        offset: batchStart,
+        sortBy: { column: 'name', order: 'asc' }
+      });
 
-    while (true) {
-      const { data, error } = await supabase.storage
-        .from(BUCKET_NAME)
-        .list(folderParam, { limit: 1000, offset: listOffset });
-
-      if (error || !data || data.length === 0) break;
-
-      for (const item of data) {
-        if (item.id !== null && /\.(mp4|mov|webm|gif)$/i.test(item.name)) {
-          allVideoFiles.push(item.name);
-        }
-      }
-
-      listOffset += data.length;
-      if (data.length < 1000) break;
+    if (listErr) {
+      throw new Error('Failed to list folder: ' + listErr.message);
     }
 
-    const totalVideos = allVideoFiles.length;
-    console.log(`Found ${totalVideos} total videos in folder "${folderParam}"`);
+    // Filter to video files only
+    const videoFiles = (folderFiles || []).filter(item =>
+      item.id !== null && /\.(mp4|mov|webm|gif)$/i.test(item.name)
+    );
 
-    // Get only the batch we're processing
-    const batchFiles = allVideoFiles.slice(batchStart, batchStart + batchSize);
-    const videos = batchFiles.map(filename => {
-      const itemPath = `${folderParam}/${filename}`;
+    const videos = videoFiles.map(item => {
+      const itemPath = `${folderParam}/${item.name}`;
       const { data: urlData } = supabase.storage
         .from(BUCKET_NAME)
         .getPublicUrl(itemPath);
-      return { filename, path: itemPath, folder: folderParam, url: urlData.publicUrl };
+      return { filename: item.name, path: itemPath, folder: folderParam, url: urlData.publicUrl };
     });
 
-    console.log(`Processing batch: ${batchStart} to ${batchStart + videos.length} of ${totalVideos}`);
+    const hasMore = folderFiles && folderFiles.length === batchSize;
+    console.log(`Processing ${videos.length} videos from offset ${batchStart}`);
 
     // Step 3: Get existing exercises
     const { data: existingExercises, error: exError } = await supabase
@@ -305,7 +298,6 @@ exports.handler = async (event) => {
     }
 
     // Calculate pagination
-    const hasMoreInFolder = batchStart + batchSize < totalVideos;
     const nextStart = batchStart + batchSize;
 
     // Build response
@@ -317,8 +309,7 @@ exports.handler = async (event) => {
         start: batchStart,
         size: batchSize,
         processed: videos.length,
-        totalInFolder: totalVideos,
-        hasMore: hasMoreInFolder
+        hasMore: hasMore
       },
       summary: {
         created: results.created.length,
@@ -333,11 +324,11 @@ exports.handler = async (event) => {
       }
     };
 
-    if (hasMoreInFolder) {
+    if (hasMore) {
       response.nextBatch = `?folder=${encodeURIComponent(folderParam)}&start=${nextStart}`;
-      response.message = `Processed ${batchStart}-${batchStart + videos.length} of ${totalVideos}. Call nextBatch to continue.`;
+      response.message = `Processed ${videos.length} videos (offset ${batchStart}). More available - call nextBatch.`;
     } else {
-      response.message = `Folder "${folderParam}" complete! All ${totalVideos} videos processed.`;
+      response.message = `Folder "${folderParam}" complete! Processed ${videos.length} videos.`;
     }
 
     return {
