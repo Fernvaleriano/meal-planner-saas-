@@ -140,12 +140,11 @@ exports.handler = async (event) => {
       }
     }
 
-    // Step 2: List ONLY the batch we need (not all files)
-    const { data: folderFiles, error: listErr } = await supabase.storage
+    // Step 2: Get ALL files from folder (pagination is unreliable), then slice
+    const { data: allFiles, error: listErr } = await supabase.storage
       .from(BUCKET_NAME)
       .list(folderParam, {
-        limit: batchSize,
-        offset: batchStart,
+        limit: 1000, // Get all files at once
         sortBy: { column: 'name', order: 'asc' }
       });
 
@@ -153,12 +152,14 @@ exports.handler = async (event) => {
       throw new Error('Failed to list folder: ' + listErr.message);
     }
 
-    // Filter to video files only
-    const videoFiles = (folderFiles || []).filter(item =>
+    // Filter to video files only, then slice for this batch
+    const allVideoFiles = (allFiles || []).filter(item =>
       item.id !== null && /\.(mp4|mov|webm|gif)$/i.test(item.name)
     );
 
-    const hasMore = folderFiles && folderFiles.length === batchSize;
+    // Slice for this batch
+    const videoFiles = allVideoFiles.slice(batchStart, batchStart + batchSize);
+    const hasMore = batchStart + batchSize < allVideoFiles.length;
 
     // Detect muscle group from folder path
     const folderParts = folderParam.toLowerCase().split('/');
