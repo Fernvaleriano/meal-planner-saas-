@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sync Exercises</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; }
+    #log { background: #1e1e1e; color: #0f0; padding: 20px; height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    .error { color: #f66; }
+    .success { color: #6f6; }
+    select { padding: 10px; font-size: 16px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Exercise Sync Tool</h1>
+  <p>This runs in your browser - no timeout limits!</p>
+
+  <div>
+    <button onclick="loadFolders()">1. Load Folders</button>
+    <select id="folderSelect"><option>-- Load folders first --</option></select>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <button onclick="syncFolder()">2. Sync Selected Folder</button>
+    <button onclick="syncAllFolders()">3. Sync ALL Folders</button>
+    <button onclick="stopSync()" style="background:#f66">Stop</button>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4NTA1ODcsImV4cCI6MjA2MDQyNjU4N30.api2M4E4Ah3V2WnxPRVDMq6yoGLPzjsB8qECLO7mK8U';
+    const BUCKET = 'exercise-videos';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let shouldStop = false;
+    let allSubfolders = [];
+
+    const FOLDER_TO_MUSCLE = {
+      'chest': 'chest', 'back': 'back', 'shoulders': 'shoulders', 'legs': 'legs',
+      'arms': 'arms', 'biceps': 'arms', 'triceps': 'arms', 'forearms': 'arms',
+      'core': 'core', 'abs': 'core', 'abdominals': 'core',
+      'glutes': 'legs', 'cardio': 'cardio', 'stretching': 'flexibility',
+      'yoga': 'flexibility', 'powerlifting': 'full_body', 'calisthenics': 'full_body'
+    };
+
+    function log(msg, type = '') {
+      const el = document.getElementById('log');
+      el.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function getMuscleGroup(path) {
+      const parts = path.toLowerCase().split('/');
+      for (const part of parts) {
+        for (const [key, val] of Object.entries(FOLDER_TO_MUSCLE)) {
+          if (part.includes(key)) return val;
+        }
+      }
+      return 'full_body';
+    }
+
+    function cleanName(filename) {
+      return filename.replace(/\.(mp4|mov|webm|gif)$/i, '').replace(/[_-]/g, ' ').trim();
+    }
+
+    function detectEquipment(name) {
+      const n = name.toLowerCase();
+      if (n.includes('barbell') || n.includes(' bb')) return 'Barbell';
+      if (n.includes('dumbbell') || n.includes(' db')) return 'Dumbbell';
+      if (n.includes('cable')) return 'Cable';
+      if (n.includes('machine')) return 'Machine';
+      if (n.includes('kettlebell')) return 'Kettlebell';
+      if (n.includes('band')) return 'Resistance Band';
+      if (n.includes('smith')) return 'Smith Machine';
+      return 'Bodyweight';
+    }
+
+    async function loadFolders() {
+      log('Loading folders...');
+      allSubfolders = [];
+
+      const { data: topLevel } = await supabase.storage.from(BUCKET).list('', { limit: 100 });
+      const mainFolders = (topLevel || []).filter(f => f.id === null);
+
+      for (const folder of mainFolders) {
+        const { data: subs } = await supabase.storage.from(BUCKET).list(folder.name, { limit: 100 });
+        const subfolders = (subs || []).filter(s => s.id === null);
+
+        if (subfolders.length > 0) {
+          for (const sub of subfolders) {
+            allSubfolders.push(`${folder.name}/${sub.name}`);
+          }
+        } else {
+          allSubfolders.push(folder.name);
+        }
+      }
+
+      const select = document.getElementById('folderSelect');
+      select.innerHTML = allSubfolders.map(f => `<option value="${f}">${f}</option>`).join('');
+      log(`Found ${allSubfolders.length} folders to sync`, 'success');
+    }
+
+    async function syncFolder(folderPath) {
+      const folder = folderPath || document.getElementById('folderSelect').value;
+      log(`Syncing: ${folder}`);
+
+      let offset = 0;
+      let total = 0;
+      const muscleGroup = getMuscleGroup(folder);
+
+      while (!shouldStop) {
+        const { data: files } = await supabase.storage.from(BUCKET).list(folder, {
+          limit: 50,
+          offset,
+          sortBy: { column: 'name', order: 'asc' }
+        });
+
+        if (!files || files.length === 0) break;
+
+        const videos = files.filter(f => f.id !== null && /\.(mp4|mov|webm|gif)$/i.test(f.name));
+
+        if (videos.length > 0) {
+          const exercises = videos.map(v => {
+            const path = `${folder}/${v.name}`;
+            const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+            const name = cleanName(v.name);
+            return {
+              name,
+              muscle_group: muscleGroup,
+              equipment: detectEquipment(name),
+              exercise_type: 'strength',
+              difficulty: 'intermediate',
+              video_url: data.publicUrl,
+              animation_url: data.publicUrl,
+              source: 'browser-sync'
+            };
+          });
+
+          const { error } = await supabase.from('exercises').upsert(exercises, {
+            onConflict: 'name',
+            ignoreDuplicates: false
+          });
+
+          if (error) {
+            log(`Error: ${error.message}`, 'error');
+          } else {
+            total += exercises.length;
+            log(`Added ${exercises.length} exercises (total: ${total})`);
+          }
+        }
+
+        offset += files.length;
+        if (files.length < 50) break;
+      }
+
+      log(`Folder complete: ${folder} - ${total} exercises`, 'success');
+      return total;
+    }
+
+    async function syncAllFolders() {
+      shouldStop = false;
+      log('Starting sync of ALL folders...');
+      let grandTotal = 0;
+
+      for (let i = 0; i < allSubfolders.length; i++) {
+        if (shouldStop) {
+          log('Stopped by user', 'error');
+          break;
+        }
+        log(`[${i+1}/${allSubfolders.length}] ${allSubfolders[i]}`);
+        const count = await syncFolder(allSubfolders[i]);
+        grandTotal += count;
+      }
+
+      log(`ALL DONE! Total exercises synced: ${grandTotal}`, 'success');
+    }
+
+    function stopSync() {
+      shouldStop = true;
+      log('Stopping...', 'error');
+    }
+  </script>
+</body>
+</html>
