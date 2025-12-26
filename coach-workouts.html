@@ -2245,7 +2245,7 @@
         // Load exercises
         async function loadExercises() {
             try {
-                const result = await apiCall(`/.netlify/functions/exercises?coachId=${currentCoachId}&limit=500`);
+                const result = await apiCall(`/.netlify/functions/exercises?coachId=${currentCoachId}&limit=3000`);
                 exercises = result.exercises || [];
             } catch (err) {
                 console.error('Error loading exercises:', err);
