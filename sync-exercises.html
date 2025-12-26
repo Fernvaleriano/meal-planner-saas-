@@ -34,7 +34,7 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4NTA1ODcsImV4cCI6MjA2MDQyNjU4N30.api2M4E4Ah3V2WnxPRVDMq6yoGLPzjsB8qECLO7mK8U';
     const BUCKET = 'exercise-videos';
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let shouldStop = false;
     let allSubfolders = [];
 
@@ -82,11 +82,11 @@
       log('Loading folders...');
       allSubfolders = [];
 
-      const { data: topLevel } = await supabase.storage.from(BUCKET).list('', { limit: 100 });
+      const { data: topLevel } = await db.storage.from(BUCKET).list('', { limit: 100 });
       const mainFolders = (topLevel || []).filter(f => f.id === null);
 
       for (const folder of mainFolders) {
-        const { data: subs } = await supabase.storage.from(BUCKET).list(folder.name, { limit: 100 });
+        const { data: subs } = await db.storage.from(BUCKET).list(folder.name, { limit: 100 });
         const subfolders = (subs || []).filter(s => s.id === null);
 
         if (subfolders.length > 0) {
@@ -112,7 +112,7 @@
       const muscleGroup = getMuscleGroup(folder);
 
       while (!shouldStop) {
-        const { data: files } = await supabase.storage.from(BUCKET).list(folder, {
+        const { data: files } = await db.storage.from(BUCKET).list(folder, {
           limit: 50,
           offset,
           sortBy: { column: 'name', order: 'asc' }
@@ -125,7 +125,7 @@
         if (videos.length > 0) {
           const exercises = videos.map(v => {
             const path = `${folder}/${v.name}`;
-            const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+            const { data } = db.storage.from(BUCKET).getPublicUrl(path);
             const name = cleanName(v.name);
             return {
               name,
@@ -139,7 +139,7 @@
             };
           });
 
-          const { error } = await supabase.from('exercises').upsert(exercises, {
+          const { error } = await db.from('exercises').upsert(exercises, {
             onConflict: 'name',
             ignoreDuplicates: false
           });
