@@ -292,8 +292,9 @@ function ExerciseDetailModal({
           <h2 className="header-title">{exercise.name}</h2>
           <div className="header-actions">
             {onSwapExercise && (
-              <button className="swap-btn" onClick={() => setShowSwapModal(true)} title="Swap exercise">
-                <ArrowLeftRight size={20} />
+              <button className="swap-btn-visible" onClick={() => setShowSwapModal(true)} title="Swap exercise">
+                <ArrowLeftRight size={16} />
+                <span>Swap</span>
               </button>
             )}
             <button className="info-btn">
@@ -500,6 +501,7 @@ function ExerciseDetailModal({
       {showSwapModal && (
         <SwapExerciseModal
           exercise={exercise}
+          workoutExercises={exercises}
           onSwap={(newExercise) => {
             if (onSwapExercise) {
               onSwapExercise(exercise, newExercise);
