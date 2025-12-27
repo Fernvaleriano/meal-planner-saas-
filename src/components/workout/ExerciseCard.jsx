@@ -1,6 +1,17 @@
 import { useState, useRef } from 'react';
 import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw } from 'lucide-react';
 
+// Parse reps - if it's a range like "8-12", return just the first number
+// Defined outside component so it's available during initialization
+const parseReps = (reps) => {
+  if (typeof reps === 'number') return reps;
+  if (typeof reps === 'string') {
+    const match = reps.match(/^(\d+)/);
+    if (match) return parseInt(match[1], 10);
+  }
+  return 12;
+};
+
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted }) {
   // Check for special exercise types
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
@@ -40,16 +51,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   // Check if this is a timed/interval exercise
   const isTimedExercise = exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval';
-
-  // Parse reps - if it's a range like "8-12", return just the first number
-  const parseReps = (reps) => {
-    if (typeof reps === 'number') return reps;
-    if (typeof reps === 'string') {
-      const match = reps.match(/^(\d+)/);
-      if (match) return parseInt(match[1], 10);
-    }
-    return 12;
-  };
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
