@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { X, Clock } from 'lucide-react';
 
+// Parse reps - if it's a range like "8-12", return just the first number
+const parseReps = (reps) => {
+  if (typeof reps === 'number') return reps;
+  if (typeof reps === 'string') {
+    const match = reps.match(/^(\d+)/);
+    if (match) return parseInt(match[1], 10);
+  }
+  return 12;
+};
+
 function SetEditorModal({
   exercise,
   sets,
@@ -12,6 +22,7 @@ function SetEditorModal({
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s })));
   const [activeSetIndex, setActiveSetIndex] = useState(0);
   const [activeField, setActiveField] = useState('reps'); // 'reps' or 'weight'
+  const [isFirstInput, setIsFirstInput] = useState(true); // Track if next input should replace value
 
   // Get the current value being edited
   const getCurrentValue = (setIndex, field) => {
@@ -21,7 +32,7 @@ function SetEditorModal({
     if (editMode === 'time') {
       return localSets[setIndex]?.duration || exercise.duration || 45;
     }
-    return localSets[setIndex]?.reps || exercise.reps || 12;
+    return parseReps(localSets[setIndex]?.reps || exercise.reps);
   };
 
   // Update value for a specific set
@@ -39,14 +50,21 @@ function SetEditorModal({
 
   // Handle number pad input
   const handleNumberInput = (num) => {
-    const currentValue = getCurrentValue(activeSetIndex, activeField);
     let newValue;
 
-    if (activeField === 'weight') {
-      // For weight, allow decimals by treating as string manipulation
-      newValue = parseFloat(`${currentValue}${num}`.slice(-5)) || 0;
+    if (isFirstInput) {
+      // First input replaces the value entirely
+      newValue = num;
+      setIsFirstInput(false);
     } else {
-      newValue = parseInt(`${currentValue}${num}`.slice(-3), 10); // Max 3 digits
+      // Subsequent inputs append
+      const currentValue = getCurrentValue(activeSetIndex, activeField);
+      if (activeField === 'weight') {
+        // For weight, allow decimals by treating as string manipulation
+        newValue = parseFloat(`${currentValue}${num}`.slice(-5)) || 0;
+      } else {
+        newValue = parseInt(`${currentValue}${num}`.slice(-3), 10); // Max 3 digits
+      }
     }
     updateValue(activeSetIndex, activeField, newValue);
   };
@@ -164,17 +182,17 @@ function SetEditorModal({
                 <span className="set-number">{index + 1}</span>
                 <button
                   className={`set-value-input ${activeSetIndex === index && activeField === 'reps' ? 'active' : ''}`}
-                  onClick={() => { setActiveSetIndex(index); setActiveField('reps'); }}
+                  onClick={() => { setActiveSetIndex(index); setActiveField('reps'); setIsFirstInput(true); }}
                 >
                   {editMode === 'time'
                     ? (set.duration || exercise.duration || 45)
-                    : (set.reps || exercise.reps || 12)
+                    : parseReps(set.reps || exercise.reps)
                   }
                 </button>
                 <span className="set-multiplier">x</span>
                 <button
                   className={`set-value-input weight-input ${activeSetIndex === index && activeField === 'weight' ? 'active' : ''}`}
-                  onClick={() => { setActiveSetIndex(index); setActiveField('weight'); }}
+                  onClick={() => { setActiveSetIndex(index); setActiveField('weight'); setIsFirstInput(true); }}
                 >
                   {set.weight || 0}
                 </button>
