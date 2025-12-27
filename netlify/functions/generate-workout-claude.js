@@ -46,10 +46,12 @@ function extractKeyWords(name) {
   const normalized = normalizeExerciseName(name);
   const words = normalized.split(' ');
 
-  // Key movement words
+  // Key movement words (including core-specific)
   const movementWords = ['press', 'curl', 'row', 'fly', 'raise', 'extension', 'pulldown', 'pushdown',
     'squat', 'lunge', 'deadlift', 'pull', 'push', 'crunch', 'plank', 'dip', 'shrug',
-    'crossover', 'kickback', 'pullover', 'twist', 'rotation', 'hold', 'walk', 'step'];
+    'crossover', 'kickback', 'pullover', 'twist', 'rotation', 'hold', 'walk', 'step',
+    'bicycle', 'russian', 'woodchop', 'rollout', 'climber', 'bug', 'bird', 'dog', 'hip',
+    'bridge', 'thrust', 'flutter', 'scissor', 'hollow', 'situp', 'jackknife', 'v-up'];
 
   // Key equipment words
   const equipmentWords = ['barbell', 'dumbbell', 'cable', 'machine', 'kettlebell', 'band',
@@ -250,10 +252,29 @@ exports.handler = async (event) => {
     const [minEx, maxEx] = exerciseCount.split('-').map(n => parseInt(n));
     const exerciseCountInstruction = `Include ${minEx}-${maxEx} exercises per workout`;
 
-    // Focus areas instruction
-    const focusInstruction = focusAreas.length > 0
-      ? `Prioritize these muscle groups with extra volume: ${focusAreas.join(', ')}`
-      : '';
+    // Focus areas instruction - make it much stronger when specific areas are selected
+    let focusInstruction = '';
+    let focusExamples = '';
+    if (focusAreas.length > 0) {
+      // Create specific exercise examples based on focus areas
+      const exerciseExamples = {
+        'core': 'Plank, Dead Bug, Bicycle Crunches, Russian Twist, Cable Woodchop, Hanging Leg Raise, Ab Wheel Rollout, Mountain Climbers',
+        'chest': 'Barbell Bench Press, Dumbbell Fly, Cable Crossover, Incline Press, Push-ups, Chest Dips',
+        'back': 'Pull-ups, Barbell Row, Lat Pulldown, Seated Cable Row, Face Pulls, Dumbbell Row',
+        'shoulders': 'Overhead Press, Lateral Raise, Front Raise, Rear Delt Fly, Arnold Press, Upright Row',
+        'arms': 'Bicep Curl, Tricep Pushdown, Hammer Curl, Skull Crushers, Preacher Curl, Tricep Dips',
+        'legs': 'Squat, Leg Press, Romanian Deadlift, Lunges, Leg Curl, Leg Extension, Calf Raises',
+        'glutes': 'Hip Thrust, Glute Bridge, Romanian Deadlift, Bulgarian Split Squat, Cable Kickback'
+      };
+
+      const examples = focusAreas
+        .filter(area => exerciseExamples[area.toLowerCase()])
+        .map(area => `${area}: ${exerciseExamples[area.toLowerCase()]}`)
+        .join('\n  ');
+
+      focusInstruction = `IMPORTANT: This workout MUST focus primarily on ${focusAreas.join(' and ')}. At least 70% of the exercises should directly target ${focusAreas.join(' or ')} muscles.`;
+      focusExamples = examples ? `\n\nRECOMMENDED EXERCISES for ${focusAreas.join('/')}:\n  ${examples}` : '';
+    }
 
     const systemPrompt = `You are an expert personal trainer creating workout programs. Return ONLY valid JSON, no markdown or extra text.
 
@@ -264,7 +285,7 @@ WORKOUT STRUCTURE:
 - ${styleInstruction}
 - ${exerciseCountInstruction}
 - Target session duration: ~${sessionDuration} minutes
-${focusInstruction ? `- ${focusInstruction}` : ''}
+${focusInstruction ? `\n${focusInstruction}` : ''}${focusExamples}
 
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}

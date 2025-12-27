@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award, Heart, MoreVertical } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
@@ -105,6 +105,25 @@ function Workouts() {
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [completedExercises, setCompletedExercises] = useState(new Set());
+
+  // New states for menu, summary, and history
+  const [showMenu, setShowMenu] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [workoutHistory, setWorkoutHistory] = useState([]);
+  const [workoutStartTime, setWorkoutStartTime] = useState(null);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -266,6 +285,7 @@ function Workouts() {
   // Start workout
   const handleStartWorkout = useCallback(async () => {
     setWorkoutStarted(true);
+    setWorkoutStartTime(new Date());
 
     if (!workoutLog && clientData?.id && todayWorkout?.id) {
       try {
@@ -295,10 +315,42 @@ function Workouts() {
         status: 'completed',
         completedAt: new Date().toISOString()
       });
+      // Show summary modal
+      setShowSummary(true);
     } catch (err) {
       console.error('Error completing workout:', err);
     }
   }, [workoutLog?.id]);
+
+  // Fetch workout history
+  const fetchWorkoutHistory = useCallback(async () => {
+    if (!clientData?.id) return;
+    try {
+      const res = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&limit=20`);
+      if (res?.logs) {
+        setWorkoutHistory(res.logs);
+      }
+    } catch (err) {
+      console.error('Error fetching workout history:', err);
+    }
+  }, [clientData?.id]);
+
+  // Calculate workout duration
+  const workoutDuration = useMemo(() => {
+    if (!workoutStartTime) return 0;
+    return Math.floor((new Date() - workoutStartTime) / 60000); // in minutes
+  }, [workoutStartTime, completedExercises]); // Re-calculate when exercises complete
+
+  // Calculate total volume (sets x reps x weight estimate)
+  const totalVolume = useMemo(() => {
+    let volume = 0;
+    exercises.forEach(ex => {
+      const sets = typeof ex.sets === 'number' ? ex.sets : 3;
+      const reps = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
+      volume += sets * reps;
+    });
+    return volume;
+  }, [exercises]);
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
@@ -392,9 +444,38 @@ function Workouts() {
           <ChevronLeft size={24} />
         </button>
         <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
-        <button className="nav-menu-btn" aria-label="Menu">
-          <MoreVertical size={24} />
-        </button>
+        <div className="nav-menu-container" ref={menuRef}>
+          <button
+            className="nav-menu-btn"
+            aria-label="Menu"
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            <MoreVertical size={24} />
+          </button>
+          {showMenu && (
+            <div className="nav-dropdown-menu">
+              <button
+                className="menu-item"
+                onClick={() => {
+                  setShowMenu(false);
+                  fetchWorkoutHistory();
+                  setShowHistory(true);
+                }}
+              >
+                <History size={18} />
+                <span>Workout History</span>
+              </button>
+              <button className="menu-item">
+                <Settings size={18} />
+                <span>Settings</span>
+              </button>
+              <button className="menu-item exit">
+                <LogOut size={18} />
+                <span>Exit Workout</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Hero Section with Image */}
@@ -553,6 +634,81 @@ function Workouts() {
           workoutStarted={workoutStarted}
           completedExercises={completedExercises}
         />
+      )}
+
+      {/* Workout Summary Modal */}
+      {showSummary && (
+        <div className="workout-summary-overlay" onClick={() => setShowSummary(false)}>
+          <div className="workout-summary-modal" onClick={e => e.stopPropagation()}>
+            <button className="summary-close-btn" onClick={() => setShowSummary(false)}>
+              <X size={24} />
+            </button>
+            <div className="summary-header">
+              <Award size={48} className="summary-icon" />
+              <h2>Workout Complete!</h2>
+            </div>
+            <div className="summary-stats">
+              <div className="summary-stat">
+                <span className="stat-value">{workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45}</span>
+                <span className="stat-label">Minutes</span>
+              </div>
+              <div className="summary-stat">
+                <span className="stat-value">{completedCount}</span>
+                <span className="stat-label">Exercises</span>
+              </div>
+              <div className="summary-stat">
+                <span className="stat-value">{totalVolume}</span>
+                <span className="stat-label">Total Reps</span>
+              </div>
+            </div>
+            <div className="summary-message">
+              <p>Great job completing your workout! Keep up the momentum.</p>
+            </div>
+            <button className="summary-done-btn" onClick={() => setShowSummary(false)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Workout History Modal */}
+      {showHistory && (
+        <div className="workout-history-overlay" onClick={() => setShowHistory(false)}>
+          <div className="workout-history-modal" onClick={e => e.stopPropagation()}>
+            <div className="history-header">
+              <h2>Workout History</h2>
+              <button className="history-close-btn" onClick={() => setShowHistory(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="history-list">
+              {workoutHistory.length === 0 ? (
+                <div className="history-empty">
+                  <Calendar size={48} />
+                  <p>No workout history yet</p>
+                </div>
+              ) : (
+                workoutHistory.map((log, idx) => (
+                  <div key={log.id || idx} className={`history-item ${log.status}`}>
+                    <div className="history-date">
+                      {new Date(log.workout_date || log.created_at).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
+                    <div className="history-details">
+                      <span className="history-name">{log.workout_name || 'Workout'}</span>
+                      <span className={`history-status ${log.status}`}>
+                        {log.status === 'completed' ? '✓ Completed' : 'In Progress'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
