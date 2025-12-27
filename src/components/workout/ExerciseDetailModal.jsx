@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, Volume2, VolumeX, RotateCcw, Timer, Target, Dumbbell, Info, BarChart3, FileText, ArrowLeftRight } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import SetEditorModal from './SetEditorModal';
@@ -16,6 +16,8 @@ function ExerciseDetailModal({
   completedExercises = new Set(),
   onSwapExercise
 }) {
+  // Ref for cleanup
+  const isMountedRef = useRef(true);
   // Handle sets being a number or an array
   const initializeSets = () => {
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
@@ -57,23 +59,31 @@ function ExerciseDetailModal({
   // Calculate completed sets
   const completedSets = sets.filter(s => s.completed).length;
 
-  // Fetch exercise history
+  // Fetch exercise history with cleanup
   useEffect(() => {
+    isMountedRef.current = true;
+
     const fetchHistory = async () => {
-      if (!exercise.id) return;
+      if (!exercise?.id) return;
       try {
         const res = await apiGet(`/.netlify/functions/exercise-history?exerciseId=${exercise.id}&limit=10`);
-        if (res.history) {
+        if (!isMountedRef.current) return;
+        if (res?.history) {
           setHistory(res.history);
           const max = Math.max(...res.history.map(h => h.max_weight || 0), 0);
           setMaxWeight(max);
         }
       } catch (error) {
+        if (!isMountedRef.current) return;
         console.error('Error fetching history:', error);
       }
     };
     fetchHistory();
-  }, [exercise.id]);
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [exercise?.id]);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -217,6 +227,18 @@ function ExerciseDetailModal({
   };
 
   const muscleColor = getMuscleColor(exercise.muscle_group || exercise.muscleGroup);
+
+  // Stable handlers for swap modal
+  const handleSwapSelect = useCallback((newExercise) => {
+    if (onSwapExercise && newExercise) {
+      onSwapExercise(exercise, newExercise);
+    }
+    setShowSwapModal(false);
+  }, [onSwapExercise, exercise]);
+
+  const handleSwapClose = useCallback(() => {
+    setShowSwapModal(false);
+  }, []);
 
   // Check if this is a timed/interval exercise
   const isTimedExercise = exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval';
@@ -502,13 +524,8 @@ function ExerciseDetailModal({
         <SwapExerciseModal
           exercise={exercise}
           workoutExercises={exercises}
-          onSwap={(newExercise) => {
-            if (onSwapExercise) {
-              onSwapExercise(exercise, newExercise);
-            }
-            setShowSwapModal(false);
-          }}
-          onClose={() => setShowSwapModal(false)}
+          onSwap={handleSwapSelect}
+          onClose={handleSwapClose}
         />
       )}
     </div>

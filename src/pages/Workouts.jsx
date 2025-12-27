@@ -286,83 +286,82 @@ function Workouts() {
 
   // Handle exercise swap
   const handleSwapExercise = useCallback((oldExercise, newExercise) => {
-    if (!todayWorkout || !oldExercise || !newExercise) return;
+    if (!todayWorkout?.workout_data?.exercises || !oldExercise || !newExercise) return;
 
-    // Update the workout data with the swapped exercise
-    const updatedExercises = todayWorkout.workout_data.exercises.map(ex => {
-      if (ex.id === oldExercise.id) {
-        return {
-          ...newExercise,
-          sets: ex.sets, // Keep the same sets/reps/weight config
-          reps: ex.reps,
-          restSeconds: ex.restSeconds,
-          notes: ex.notes
-        };
-      }
-      return ex;
-    });
-
-    // Update local state
-    setTodayWorkout(prev => ({
-      ...prev,
-      workout_data: {
-        ...prev.workout_data,
-        exercises: updatedExercises
-      }
-    }));
-
-    // Update selected exercise to the new one
-    setSelectedExercise({
+    // Create the swapped exercise with preserved config
+    const swappedExercise = {
       ...newExercise,
       sets: oldExercise.sets,
       reps: oldExercise.reps,
       restSeconds: oldExercise.restSeconds,
       notes: oldExercise.notes
+    };
+
+    // Update the workout data with the swapped exercise
+    const updatedExercises = todayWorkout.workout_data.exercises.map(ex => {
+      if (ex?.id === oldExercise.id) {
+        return swappedExercise;
+      }
+      return ex;
     });
 
-    // Optionally save to backend
-    try {
-      apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+    // Close the detail modal first to prevent stale state issues
+    setSelectedExercise(null);
+
+    // Then update the workout data
+    setTodayWorkout(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
         workout_data: {
-          ...todayWorkout.workout_data,
+          ...prev.workout_data,
           exercises: updatedExercises
         }
-      });
-    } catch (err) {
+      };
+    });
+
+    // Save to backend (fire and forget, errors logged)
+    apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+      workout_data: {
+        ...todayWorkout.workout_data,
+        exercises: updatedExercises
+      }
+    }).catch(err => {
       console.error('Error saving swapped exercise:', err);
-    }
+    });
   }, [todayWorkout, selectedDate]);
 
   // Handle adding a new exercise
   const handleAddExercise = useCallback((newExercise) => {
-    if (!todayWorkout) return;
+    if (!todayWorkout?.workout_data || !newExercise) return;
 
     // Add the new exercise to the workout
     const updatedExercises = [
-      ...(todayWorkout.workout_data?.exercises || []),
+      ...(todayWorkout.workout_data.exercises || []),
       newExercise
     ];
 
     // Update local state
-    setTodayWorkout(prev => ({
-      ...prev,
-      workout_data: {
-        ...prev.workout_data,
-        exercises: updatedExercises
-      }
-    }));
-
-    // Save to backend
-    try {
-      apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+    setTodayWorkout(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
         workout_data: {
-          ...todayWorkout.workout_data,
+          ...prev.workout_data,
           exercises: updatedExercises
         }
-      });
-    } catch (err) {
+      };
+    });
+
+    // Save to backend (fire and forget, errors logged)
+    apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+      workout_data: {
+        ...todayWorkout.workout_data,
+        exercises: updatedExercises
+      }
+    }).catch(err => {
       console.error('Error adding exercise:', err);
-    }
+    });
   }, [todayWorkout, selectedDate]);
 
   // Start workout
