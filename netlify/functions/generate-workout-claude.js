@@ -212,21 +212,70 @@ exports.handler = async (event) => {
       experience = 'intermediate',
       daysPerWeek = 4,
       duration = 4,
+      split = 'auto',
+      sessionDuration = 60,
+      trainingStyle = 'straight_sets',
+      exerciseCount = '5-6',
+      focusAreas = [],
       equipment = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'],
       injuries = '',
       preferences = ''
     } = body;
 
-    console.log('Generating workout:', { clientName, goal, experience, daysPerWeek });
+    console.log('Generating workout:', { clientName, goal, experience, daysPerWeek, split, trainingStyle });
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+    // Build split instruction
+    const splitMap = {
+      'push_pull_legs': 'Use a Push/Pull/Legs split (Push: chest, shoulders, triceps; Pull: back, biceps; Legs: quads, hamstrings, glutes, calves)',
+      'upper_lower': 'Use an Upper/Lower split (Upper: chest, back, shoulders, arms; Lower: quads, hamstrings, glutes, calves)',
+      'full_body': 'Use Full Body workouts (each day hits all major muscle groups)',
+      'bro_split': 'Use a Bro Split (each day focuses on one muscle group: Chest, Back, Shoulders, Arms, Legs)',
+      'push_pull': 'Use a Push/Pull split (Push: chest, shoulders, triceps, quads; Pull: back, biceps, hamstrings)',
+      'auto': 'Choose the most appropriate split based on the number of days and goals'
+    };
+    const splitInstruction = splitMap[split] || splitMap['auto'];
+
+    // Build training style instruction
+    const styleMap = {
+      'straight_sets': 'Use straight sets (complete all sets of one exercise before moving to the next)',
+      'supersets': 'Use supersets (pair exercises back-to-back with minimal rest)',
+      'circuits': 'Use circuit training (cycle through all exercises with minimal rest)',
+      'mixed': 'Mix straight sets with occasional supersets for efficiency'
+    };
+    const styleInstruction = styleMap[trainingStyle] || styleMap['straight_sets'];
+
+    // Parse exercise count
+    const [minEx, maxEx] = exerciseCount.split('-').map(n => parseInt(n));
+    const exerciseCountInstruction = `Include ${minEx}-${maxEx} exercises per workout`;
+
+    // Focus areas instruction
+    const focusInstruction = focusAreas.length > 0
+      ? `Prioritize these muscle groups with extra volume: ${focusAreas.join(', ')}`
+      : '';
 
     const systemPrompt = `You are an expert personal trainer creating workout programs. Return ONLY valid JSON, no markdown or extra text.
 
 Create a ${daysPerWeek}-day ${goal} program for ${experience} level.
-${injuries ? `Avoid exercises that aggravate: ${injuries}` : ''}
-${preferences ? `Preferences: ${preferences}` : ''}
-Equipment: ${equipment.join(', ')}
+
+WORKOUT STRUCTURE:
+- ${splitInstruction}
+- ${styleInstruction}
+- ${exerciseCountInstruction}
+- Target session duration: ~${sessionDuration} minutes
+${focusInstruction ? `- ${focusInstruction}` : ''}
+
+CONSTRAINTS:
+${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
+- Available equipment: ${equipment.join(', ')}
+${preferences ? `- Additional preferences: ${preferences}` : ''}
+
+EXERCISE SELECTION GUIDELINES:
+- Use common, well-known exercise names (e.g., "Barbell Bench Press", "Dumbbell Row", "Cable Fly")
+- Start with compound movements, then isolation exercises
+- Include appropriate warm-up/activation exercises
+- Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 
 Return this exact JSON structure:
 {
@@ -239,15 +288,15 @@ Return this exact JSON structure:
     "weekNumber": 1,
     "workouts": [{
       "dayNumber": 1,
-      "name": "Day Name (e.g., Push Day)",
-      "targetMuscles": ["chest", "shoulders", "triceps"],
+      "name": "Day Name",
+      "targetMuscles": ["muscle1", "muscle2"],
       "exercises": [{
         "name": "Exercise Name",
-        "muscleGroup": "chest",
+        "muscleGroup": "primary_muscle",
         "sets": 4,
         "reps": "8-10",
         "restSeconds": 90,
-        "notes": "Form tips"
+        "notes": "Form tips or superset info"
       }]
     }]
   }],

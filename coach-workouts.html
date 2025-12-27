@@ -136,6 +136,41 @@
             transform: translateY(-1px);
         }
 
+        .btn-ai-generate {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-ai-generate:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            transform: translateY(-1px);
+        }
+
+        .btn-ai-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-ai-generate .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
         .btn-primary {
             background: white;
             color: var(--brand-primary);
@@ -507,6 +542,17 @@
 
         .icon-btn:hover {
             background: var(--danger);
+            color: white;
+        }
+
+        .exercise-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .swap-btn:hover {
+            background: var(--brand-primary) !important;
             color: white;
         }
 
@@ -1084,6 +1130,52 @@
             padding: 24px 28px;
         }
 
+        /* Swap Exercise List */
+        .swap-exercise-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .swap-exercise-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .swap-exercise-item:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--brand-primary);
+        }
+
+        .swap-exercise-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--bg-tertiary);
+        }
+
+        .swap-exercise-info {
+            flex: 1;
+        }
+
+        .swap-exercise-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .swap-exercise-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
         .modal-footer {
             padding: 20px 28px;
             border-top: 1px solid var(--border-color);
@@ -1602,6 +1694,13 @@
                                 <button type="button" class="btn-secondary" onclick="showHeroUrlInput()">
                                     Paste URL
                                 </button>
+                                <span class="or-divider">or</span>
+                                <button type="button" class="btn-ai-generate" id="aiCoverBtn" onclick="generateAICoverImage()">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                    AI Generate
+                                </button>
                             </div>
                             <div id="heroUrlInputContainer" style="display: none; margin-top: 12px; width: 100%;">
                                 <input type="text" id="heroUrlInput" class="form-input" placeholder="https://example.com/image.jpg" style="width: 100%;">
@@ -1734,6 +1833,33 @@
     </div>
 
     <!-- Exercise Library Modal -->
+    <!-- Swap Exercise Modal -->
+    <div class="modal-overlay" id="swapModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    Swap Exercise
+                </h3>
+                <button class="modal-close" onclick="closeSwapModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="swapCurrentExercise" style="margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <p style="margin: 0 0 4px 0; color: var(--text-muted); font-size: 12px;">Current exercise:</p>
+                    <p style="margin: 0; font-weight: 600;" id="swapCurrentName">-</p>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <input type="text" id="swapSearchInput" class="form-input" placeholder="Search for alternative exercises..." oninput="filterSwapExercises(this.value)">
+                </div>
+                <div id="swapExerciseList" class="swap-exercise-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Exercise options will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="exerciseModal">
         <div class="modal exercise-library-modal">
             <div class="modal-header">
@@ -1941,6 +2067,74 @@
                             <option value="6">6 weeks</option>
                             <option value="8">8 weeks</option>
                         </select>
+                    </div>
+                </div>
+                <div class="ai-form-row">
+                    <div class="ai-form-group">
+                        <label>Workout Split</label>
+                        <select id="aiSplit">
+                            <option value="auto" selected>Auto (AI decides)</option>
+                            <option value="push_pull_legs">Push/Pull/Legs</option>
+                            <option value="upper_lower">Upper/Lower</option>
+                            <option value="full_body">Full Body</option>
+                            <option value="bro_split">Bro Split (1 muscle/day)</option>
+                            <option value="push_pull">Push/Pull (2-day)</option>
+                        </select>
+                    </div>
+                    <div class="ai-form-group">
+                        <label>Session Duration</label>
+                        <select id="aiSessionDuration">
+                            <option value="30">~30 minutes</option>
+                            <option value="45">~45 minutes</option>
+                            <option value="60" selected>~60 minutes</option>
+                            <option value="90">~90 minutes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ai-form-row">
+                    <div class="ai-form-group">
+                        <label>Training Style</label>
+                        <select id="aiTrainingStyle">
+                            <option value="straight_sets" selected>Straight Sets</option>
+                            <option value="supersets">Supersets</option>
+                            <option value="circuits">Circuits</option>
+                            <option value="mixed">Mixed</option>
+                        </select>
+                    </div>
+                    <div class="ai-form-group">
+                        <label>Exercises Per Workout</label>
+                        <select id="aiExerciseCount">
+                            <option value="4-5">4-5 (Quick)</option>
+                            <option value="5-6" selected>5-6 (Standard)</option>
+                            <option value="6-8">6-8 (Comprehensive)</option>
+                            <option value="8-10">8-10 (High Volume)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ai-form-group">
+                    <label>Focus Areas (optional)</label>
+                    <div class="equipment-grid">
+                        <label class="equipment-item">
+                            <input type="checkbox" name="focusArea" value="chest"> Chest
+                        </label>
+                        <label class="equipment-item">
+                            <input type="checkbox" name="focusArea" value="back"> Back
+                        </label>
+                        <label class="equipment-item">
+                            <input type="checkbox" name="focusArea" value="shoulders"> Shoulders
+                        </label>
+                        <label class="equipment-item">
+                            <input type="checkbox" name="focusArea" value="arms"> Arms
+                        </label>
+                        <label class="equipment-item">
+                            <input type="checkbox" name="focusArea" value="legs"> Legs
+                        </label>
+                        <label class="equipment-item">
+                            <input type="checkbox" name="focusArea" value="core"> Core
+                        </label>
+                        <label class="equipment-item">
+                            <input type="checkbox" name="focusArea" value="glutes"> Glutes
+                        </label>
                     </div>
                 </div>
                 <div class="ai-form-group">
@@ -2167,9 +2361,8 @@
         // Add workout day
         function addWorkoutDay() {
             const dayNum = workoutDays.length + 1;
-            const dayNames = ['Push Day', 'Pull Day', 'Legs Day', 'Upper Body', 'Lower Body', 'Full Body'];
             workoutDays.push({
-                name: dayNames[workoutDays.length % dayNames.length] || `Day ${dayNum}`,
+                name: `Day ${dayNum}`,
                 exercises: []
             });
             renderWorkoutDays();
@@ -2239,11 +2432,18 @@
                             </div>
                         </div>
                     </div>
-                    <button class="icon-btn" onclick="removeExercise(${dayIndex}, ${exIndex})" title="Remove exercise">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
+                    <div class="exercise-actions">
+                        <button class="icon-btn swap-btn" onclick="openSwapModal(${dayIndex}, ${exIndex})" title="Swap exercise">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                        </button>
+                        <button class="icon-btn" onclick="removeExercise(${dayIndex}, ${exIndex})" title="Remove exercise">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             `;
         }
@@ -2271,6 +2471,98 @@
         function removeExercise(dayIndex, exIndex) {
             workoutDays[dayIndex].exercises.splice(exIndex, 1);
             renderWorkoutDays();
+        }
+
+        // ============ SWAP EXERCISE FUNCTIONS ============
+        let swapDayIndex = null;
+        let swapExIndex = null;
+        let swapExerciseCache = [];
+
+        function openSwapModal(dayIndex, exIndex) {
+            swapDayIndex = dayIndex;
+            swapExIndex = exIndex;
+
+            const currentExercise = workoutDays[dayIndex].exercises[exIndex];
+            document.getElementById('swapCurrentName').textContent = currentExercise.name;
+            document.getElementById('swapSearchInput').value = '';
+
+            // Filter exercises by same muscle group
+            const muscleGroup = currentExercise.muscle_group || currentExercise.muscleGroup || '';
+
+            // Get exercises from the same muscle group (excluding current)
+            swapExerciseCache = exercises.filter(ex => {
+                const exMuscle = ex.muscle_group || '';
+                const isMatch = exMuscle.toLowerCase() === muscleGroup.toLowerCase() ||
+                    (ex.secondary_muscles && ex.secondary_muscles.some(m =>
+                        m.toLowerCase() === muscleGroup.toLowerCase()));
+                return isMatch && ex.id !== currentExercise.id;
+            });
+
+            renderSwapExerciseList(swapExerciseCache);
+            document.getElementById('swapModal').classList.add('active');
+        }
+
+        function closeSwapModal() {
+            document.getElementById('swapModal').classList.remove('active');
+            swapDayIndex = null;
+            swapExIndex = null;
+        }
+
+        function filterSwapExercises(query) {
+            const filtered = query
+                ? swapExerciseCache.filter(ex =>
+                    ex.name.toLowerCase().includes(query.toLowerCase()))
+                : swapExerciseCache;
+            renderSwapExerciseList(filtered);
+        }
+
+        function renderSwapExerciseList(exerciseList) {
+            const container = document.getElementById('swapExerciseList');
+
+            if (exerciseList.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No alternative exercises found</div>';
+                return;
+            }
+
+            container.innerHTML = exerciseList.slice(0, 50).map(ex => {
+                const thumbSrc = ex.thumbnail_url || ex.video_url || ex.animation_url || '/img/exercise-placeholder.svg';
+                return `
+                    <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')">
+                        <img class="swap-exercise-thumb" src="${thumbSrc}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                        <div class="swap-exercise-info">
+                            <div class="swap-exercise-name">${ex.name}</div>
+                            <div class="swap-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '• ' + ex.equipment : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectSwapExercise(exerciseId) {
+            const newExercise = exercises.find(ex => String(ex.id) === String(exerciseId));
+            if (!newExercise || swapDayIndex === null || swapExIndex === null) return;
+
+            // Keep the existing sets/reps/rest config
+            const oldExercise = workoutDays[swapDayIndex].exercises[swapExIndex];
+
+            workoutDays[swapDayIndex].exercises[swapExIndex] = {
+                id: newExercise.id,
+                name: newExercise.name,
+                video_url: newExercise.video_url,
+                animation_url: newExercise.animation_url,
+                thumbnail_url: newExercise.thumbnail_url || newExercise.video_url,
+                muscle_group: newExercise.muscle_group,
+                equipment: newExercise.equipment,
+                instructions: newExercise.instructions,
+                sets: oldExercise.sets || 3,
+                reps: oldExercise.reps || '8-12',
+                restSeconds: oldExercise.restSeconds || 90,
+                notes: oldExercise.notes || ''
+            };
+
+            renderWorkoutDays();
+            closeSwapModal();
+            showToast(`Swapped to ${newExercise.name}`, 'success');
         }
 
         // Load exercises
@@ -2728,6 +3020,59 @@
             return document.getElementById('heroImageUrl').value || null;
         }
 
+        // AI Cover Image Generation
+        async function generateAICoverImage() {
+            const btn = document.getElementById('aiCoverBtn');
+            const originalHtml = btn.innerHTML;
+
+            // Get program info for context
+            const programName = document.getElementById('programName').value || 'Workout Program';
+            const programType = document.getElementById('programType').value || 'general_fitness';
+            const daysPerWeek = document.getElementById('daysPerWeek').value || '4';
+
+            // Build a descriptive prompt based on program type
+            const typeDescriptions = {
+                'strength': 'strength training with heavy weights, power, determination',
+                'hypertrophy': 'muscle building, bodybuilding, fitness model physique',
+                'fat_loss': 'high intensity workout, cardio, athletic training',
+                'general_fitness': 'general fitness, healthy lifestyle, wellness'
+            };
+            const typeDesc = typeDescriptions[programType] || typeDescriptions['general_fitness'];
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+
+            try {
+                const response = await fetch('/.netlify/functions/workout-cover-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        programName,
+                        programType,
+                        daysPerWeek,
+                        description: typeDesc
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Failed to generate cover image');
+                }
+
+                // Apply the generated image
+                setHeroImage(result.imageUrl);
+                showToast('Cover image generated!', 'success');
+
+            } catch (error) {
+                console.error('AI cover generation error:', error);
+                showToast(error.message || 'Failed to generate cover image', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
         // ============ EXERCISE PREVIEW FUNCTIONS ============
         let currentPreviewExercise = null;
 
@@ -2862,7 +3207,7 @@
             }
 
             container.innerHTML = filtered.map(client => `
-                <div class="client-select-item ${selectedClients.has(client.id) ? 'selected' : ''}" data-client-id="${client.id}">
+                <div class="client-select-item ${selectedClients.has(String(client.id)) ? 'selected' : ''}" data-client-id="${client.id}">
                     <div class="client-select-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
                     <div class="client-select-info">
                         <div class="client-select-name">${client.client_name || 'Unnamed'}</div>
@@ -2921,7 +3266,7 @@
             // Show selected clients
             const display = document.getElementById('selectedClientsDisplay');
             display.innerHTML = Array.from(selectedClients).map(clientId => {
-                const client = clients.find(c => c.id === clientId);
+                const client = clients.find(c => String(c.id) === String(clientId));
                 return `
                     <div class="selected-client-chip">
                         <div class="chip-avatar">${(client?.client_name || 'C')[0].toUpperCase()}</div>
@@ -3124,10 +3469,17 @@
             const experience = document.getElementById('aiExperience').value;
             const daysPerWeek = parseInt(document.getElementById('aiDaysPerWeek').value);
             const duration = parseInt(document.getElementById('aiDuration').value);
+            const split = document.getElementById('aiSplit').value;
+            const sessionDuration = parseInt(document.getElementById('aiSessionDuration').value);
+            const trainingStyle = document.getElementById('aiTrainingStyle').value;
+            const exerciseCount = document.getElementById('aiExerciseCount').value;
             const injuries = document.getElementById('aiInjuries').value;
             const preferences = document.getElementById('aiPreferences').value;
 
             const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
+                .map(cb => cb.value);
+
+            const focusAreas = Array.from(document.querySelectorAll('input[name="focusArea"]:checked'))
                 .map(cb => cb.value);
 
             if (equipment.length === 0) {
@@ -3149,6 +3501,11 @@
                         experience,
                         daysPerWeek,
                         duration,
+                        split,
+                        sessionDuration,
+                        trainingStyle,
+                        exerciseCount,
+                        focusAreas,
                         equipment,
                         injuries,
                         preferences
