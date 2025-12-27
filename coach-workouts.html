@@ -1176,6 +1176,64 @@
             color: var(--text-muted);
         }
 
+        /* Exercise Badges for Superset, Warm-up, Stretch */
+        .exercise-name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .exercise-badges {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .exercise-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .superset-badge {
+            background: linear-gradient(135deg, #8B5CF6, #6366F1);
+            color: white;
+        }
+
+        .warmup-badge {
+            background: linear-gradient(135deg, #F59E0B, #EF4444);
+            color: white;
+        }
+
+        .stretch-badge {
+            background: linear-gradient(135deg, #10B981, #14B8A6);
+            color: white;
+        }
+
+        /* Highlight superset exercises */
+        .superset-exercise {
+            border-left: 3px solid #8B5CF6;
+            padding-left: 12px;
+            margin-left: -15px;
+        }
+
+        .warmup-exercise {
+            border-left: 3px solid #F59E0B;
+            padding-left: 12px;
+            margin-left: -15px;
+        }
+
+        .stretch-exercise {
+            border-left: 3px solid #10B981;
+            padding-left: 12px;
+            margin-left: -15px;
+        }
+
         .modal-footer {
             padding: 20px 28px;
             border-top: 1px solid var(--border-color);
@@ -2054,6 +2112,8 @@
                     <div class="ai-form-group">
                         <label>Days Per Week</label>
                         <select id="aiDaysPerWeek">
+                            <option value="1">1 day</option>
+                            <option value="2">2 days</option>
                             <option value="3">3 days</option>
                             <option value="4" selected>4 days</option>
                             <option value="5">5 days</option>
@@ -2408,15 +2468,31 @@
             const thumbHtml = hasVideo
                 ? `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video>`
                 : `<img class="exercise-thumb" src="${exercise.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
+
+            // Build badges for superset, warmup, stretch
+            let badges = '';
+            if (exercise.isSuperset && exercise.supersetGroup) {
+                badges += `<span class="exercise-badge superset-badge">Superset ${exercise.supersetGroup}</span>`;
+            }
+            if (exercise.isWarmup) {
+                badges += `<span class="exercise-badge warmup-badge">Warm-up</span>`;
+            }
+            if (exercise.isStretch) {
+                badges += `<span class="exercise-badge stretch-badge">Stretch</span>`;
+            }
+
             return `
-                <div class="exercise-item">
+                <div class="exercise-item ${exercise.isSuperset ? 'superset-exercise' : ''} ${exercise.isWarmup ? 'warmup-exercise' : ''} ${exercise.isStretch ? 'stretch-exercise' : ''}">
                     <div class="exercise-drag">⋮⋮</div>
                     <div class="exercise-thumb-wrap">
                         ${thumbHtml}
                         ${hasVideo ? '<div class="video-badge"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>' : ''}
                     </div>
                     <div class="exercise-info">
-                        <div class="exercise-name">${exercise.name}</div>
+                        <div class="exercise-name-row">
+                            <div class="exercise-name">${exercise.name}</div>
+                            ${badges ? `<div class="exercise-badges">${badges}</div>` : ''}
+                        </div>
                         <div class="exercise-config">
                             <div class="config-group">
                                 <input type="number" class="config-input" value="${exercise.sets || 3}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'sets', this.value)">
@@ -2525,10 +2601,14 @@
             }
 
             container.innerHTML = exerciseList.slice(0, 50).map(ex => {
-                const thumbSrc = ex.thumbnail_url || ex.video_url || ex.animation_url || '/img/exercise-placeholder.svg';
+                const hasVideo = ex.video_url || ex.animation_url;
+                const videoSrc = ex.video_url || ex.animation_url;
+                const thumbHtml = hasVideo
+                    ? `<video class="swap-exercise-thumb" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video>`
+                    : `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
                 return `
                     <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')">
-                        <img class="swap-exercise-thumb" src="${thumbSrc}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                        ${thumbHtml}
                         <div class="swap-exercise-info">
                             <div class="swap-exercise-name">${ex.name}</div>
                             <div class="swap-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '• ' + ex.equipment : ''}</div>
@@ -3546,7 +3626,12 @@
                                 reps: ex.reps || '8-12',
                                 restSeconds: ex.restSeconds || 90,
                                 notes: ex.notes || '',
-                                matched: ex.matched // Track if this was matched to database
+                                matched: ex.matched, // Track if this was matched to database
+                                // Superset and warmup/stretch indicators
+                                isSuperset: ex.isSuperset || false,
+                                supersetGroup: ex.supersetGroup || null,
+                                isWarmup: ex.isWarmup || false,
+                                isStretch: ex.isStretch || false
                             }))
                         });
                     });

@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer } from 'lucide-react';
+import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf } from 'lucide-react';
 
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted }) {
+  // Check for special exercise types
+  const isSuperset = exercise.isSuperset && exercise.supersetGroup;
+  const isWarmup = exercise.isWarmup;
+  const isStretch = exercise.isStretch;
   // Handle sets being a number or an array
   const initializeSets = () => {
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
@@ -86,7 +90,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   return (
     <div
-      className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''}`}
+      className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
       onClick={onClick}
     >
       {/* Main Content - New Layout: Info on Left, Image on Right */}
@@ -94,6 +98,31 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         {/* Info Section - LEFT SIDE */}
         <div className="exercise-details">
           <h3 className="exercise-title">{exercise.name}</h3>
+
+          {/* Exercise Type Badges */}
+          {(isSuperset || isWarmup || isStretch) && (
+            <div className="exercise-badges">
+              {isSuperset && (
+                <span className="exercise-badge superset-badge">
+                  <Zap size={10} />
+                  Superset {exercise.supersetGroup}
+                </span>
+              )}
+              {isWarmup && (
+                <span className="exercise-badge warmup-badge">
+                  <Flame size={10} />
+                  Warm-up
+                </span>
+              )}
+              {isStretch && (
+                <span className="exercise-badge stretch-badge">
+                  <Leaf size={10} />
+                  Stretch
+                </span>
+              )}
+            </div>
+          )}
+
           <span className="equipment-subtitle">
             {exercise.equipment || 'No equipment'}
           </span>

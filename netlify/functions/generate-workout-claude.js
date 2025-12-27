@@ -273,9 +273,11 @@ ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 EXERCISE SELECTION GUIDELINES:
 - Use common, well-known exercise names (e.g., "Barbell Bench Press", "Dumbbell Row", "Cable Fly")
-- Start with compound movements, then isolation exercises
-- Include appropriate warm-up/activation exercises
+- ALWAYS start each workout with 1-2 quick warm-up exercises (e.g., "Jumping Jacks", "Arm Circles", "Leg Swings", "Hip Circles")
+- Then compound movements, followed by isolation exercises
+- ALWAYS end each workout with 1-2 short stretches (e.g., "Standing Quad Stretch", "Chest Doorway Stretch", "Seated Hamstring Stretch")
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
+- For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
 
 Return this exact JSON structure:
 {
@@ -296,7 +298,11 @@ Return this exact JSON structure:
         "sets": 4,
         "reps": "8-10",
         "restSeconds": 90,
-        "notes": "Form tips or superset info"
+        "notes": "Form tips",
+        "isSuperset": false,
+        "supersetGroup": null,
+        "isWarmup": false,
+        "isStretch": false
       }]
     }]
   }],
