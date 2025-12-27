@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, Volume2, VolumeX, RotateCcw, Timer, Target, Dumbbell, Info, BarChart3, FileText, ArrowLeftRight } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, Info, BarChart3, FileText, ArrowLeftRight } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -13,137 +13,146 @@ function ExerciseDetailModal({
   isCompleted,
   onToggleComplete,
   workoutStarted,
-  completedExercises = new Set(),
+  completedExercises,
   onSwapExercise
 }) {
-  // Ref for cleanup
+  // Refs for cleanup - only set true on mount
   const isMountedRef = useRef(true);
-  // Handle sets being a number or an array
-  const initializeSets = () => {
-    if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
-      // Filter out null/undefined values and ensure each set has required properties
-      const filtered = exercise.sets.filter(Boolean).map(set => ({
-        reps: set?.reps || exercise.reps || 12,
+  const timerRef = useRef(null);
+  const videoRef = useRef(null);
+
+  // Memoize exercise ID to prevent unnecessary re-renders
+  const exerciseId = exercise?.id;
+
+  // Initialize sets helper function
+  const getInitialSets = useCallback((ex) => {
+    if (!ex) return [{ reps: 12, weight: 0, completed: false, restSeconds: 60 }];
+
+    if (Array.isArray(ex.sets) && ex.sets.length > 0) {
+      const filtered = ex.sets.filter(Boolean).map(set => ({
+        reps: set?.reps || ex.reps || 12,
         weight: set?.weight || 0,
         completed: set?.completed || false,
-        restSeconds: set?.restSeconds || exercise.restSeconds || 60
+        restSeconds: set?.restSeconds || ex.restSeconds || 60
       }));
-      // Return filtered if not empty, otherwise fall through to default
       if (filtered.length > 0) return filtered;
     }
-    const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : 3;
+    const numSets = typeof ex.sets === 'number' && ex.sets > 0 ? ex.sets : 3;
     return Array(numSets).fill(null).map(() => ({
-      reps: exercise.reps || 12,
+      reps: ex.reps || 12,
       weight: 0,
       completed: false,
-      restSeconds: exercise.restSeconds || 60
+      restSeconds: ex.restSeconds || 60
     }));
-  };
+  }, []);
 
-  const [sets, setSets] = useState(initializeSets);
-  const [personalNote, setPersonalNote] = useState(exercise.notes || '');
+  // State
+  const [sets, setSets] = useState(() => getInitialSets(exercise));
+  const [personalNote, setPersonalNote] = useState(exercise?.notes || '');
   const [editingNote, setEditingNote] = useState(false);
   const [history, setHistory] = useState([]);
   const [maxWeight, setMaxWeight] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [restTimer, setRestTimer] = useState(null);
+  const [restTimer, setRestTimer] = useState(false);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
-  const [activeTab, setActiveTab] = useState('workout');
   const [showVideo, setShowVideo] = useState(false);
   const [showSetEditor, setShowSetEditor] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
-  const videoRef = useRef(null);
-  const timerRef = useRef(null);
 
-  // Calculate completed sets
-  const completedSets = sets.filter(s => s.completed).length;
+  // Reset sets when exercise changes
+  useEffect(() => {
+    if (exerciseId) {
+      setSets(getInitialSets(exercise));
+      setPersonalNote(exercise?.notes || '');
+      setEditingNote(false);
+      setShowVideo(false);
+      setShowSetEditor(false);
+    }
+  }, [exerciseId, getInitialSets, exercise]);
 
-  // Fetch exercise history with cleanup
+  // Cleanup on unmount only
   useEffect(() => {
     isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Fetch exercise history
+  useEffect(() => {
+    if (!exerciseId) return;
+
+    let cancelled = false;
 
     const fetchHistory = async () => {
-      if (!exercise?.id) return;
       try {
-        const res = await apiGet(`/.netlify/functions/exercise-history?exerciseId=${exercise.id}&limit=10`);
-        if (!isMountedRef.current) return;
+        const res = await apiGet(`/.netlify/functions/exercise-history?exerciseId=${exerciseId}&limit=10`);
+        if (cancelled || !isMountedRef.current) return;
         if (res?.history) {
           setHistory(res.history);
           const max = Math.max(...res.history.map(h => h.max_weight || 0), 0);
           setMaxWeight(max);
         }
       } catch (error) {
-        if (!isMountedRef.current) return;
-        console.error('Error fetching history:', error);
+        if (!cancelled && isMountedRef.current) {
+          console.error('Error fetching history:', error);
+        }
       }
     };
+
     fetchHistory();
 
     return () => {
-      isMountedRef.current = false;
+      cancelled = true;
     };
-  }, [exercise?.id]);
+  }, [exerciseId]);
 
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-  // Auto-play video on mount
-  useEffect(() => {
-    if (videoRef.current && (exercise.video_url || exercise.animation_url)) {
-      videoRef.current.play().catch(() => {});
-      setIsVideoPlaying(true);
-    }
-  }, [exercise.video_url, exercise.animation_url]);
+  // Calculate completed sets
+  const completedSets = useMemo(() => sets.filter(s => s?.completed).length, [sets]);
 
   // Toggle set completion
-  const toggleSet = (setIndex) => {
+  const toggleSet = useCallback((setIndex) => {
     if (!workoutStarted) return;
 
-    const newSets = [...sets];
-    newSets[setIndex] = { ...newSets[setIndex], completed: !newSets[setIndex].completed };
-    setSets(newSets);
+    setSets(prevSets => {
+      const newSets = [...prevSets];
+      if (!newSets[setIndex]) return prevSets;
 
-    // Start rest timer when set is completed
-    if (newSets[setIndex].completed && setIndex < sets.length - 1) {
-      startRestTimer(newSets[setIndex].restSeconds || 60);
-    }
+      newSets[setIndex] = { ...newSets[setIndex], completed: !newSets[setIndex].completed };
 
-    // Check if all sets complete
-    if (newSets.every(s => s.completed) && !isCompleted) {
-      onToggleComplete();
-    }
-  };
+      // Start rest timer when set is completed
+      if (newSets[setIndex].completed && setIndex < newSets.length - 1) {
+        const restSeconds = newSets[setIndex].restSeconds || 60;
+        startRestTimer(restSeconds);
+      }
 
-  // Update set values
-  const updateWeight = (setIndex, delta) => {
-    const newSets = [...sets];
-    const newWeight = Math.max(0, (newSets[setIndex].weight || 0) + delta);
-    newSets[setIndex] = { ...newSets[setIndex], weight: newWeight };
-    setSets(newSets);
-  };
+      // Check if all sets complete
+      if (newSets.every(s => s?.completed) && !isCompleted && onToggleComplete) {
+        setTimeout(() => onToggleComplete(), 0);
+      }
 
-  // Update reps
-  const updateReps = (setIndex, delta) => {
-    const newSets = [...sets];
-    const newReps = Math.max(1, (newSets[setIndex].reps || 12) + delta);
-    newSets[setIndex] = { ...newSets[setIndex], reps: newReps };
-    setSets(newSets);
-  };
+      return newSets;
+    });
+  }, [workoutStarted, isCompleted, onToggleComplete]);
 
   // Add a set
-  const addSet = () => {
-    const lastSet = sets[sets.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
-    setSets([...sets, { ...lastSet, completed: false }]);
-  };
+  const addSet = useCallback(() => {
+    setSets(prevSets => {
+      const lastSet = prevSets[prevSets.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
+      return [...prevSets, { ...lastSet, completed: false }];
+    });
+  }, []);
 
   // Rest timer
-  const startRestTimer = (seconds) => {
-    if (timerRef.current) clearInterval(timerRef.current);
+  const startRestTimer = useCallback((seconds) => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
 
     setRestTimeLeft(seconds);
     setRestTimer(true);
@@ -151,65 +160,48 @@ function ExerciseDetailModal({
     timerRef.current = setInterval(() => {
       setRestTimeLeft(prev => {
         if (prev <= 1) {
-          clearInterval(timerRef.current);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
           setRestTimer(false);
           // Play notification sound
           try {
             const audio = new Audio('/sounds/timer-done.mp3');
             audio.volume = 0.5;
             audio.play().catch(() => {});
-          } catch (e) {}
+          } catch (e) {
+            // Ignore audio errors
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-  };
+  }, []);
 
   // Skip rest timer
-  const skipRest = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+  const skipRest = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     setRestTimer(false);
     setRestTimeLeft(0);
-  };
+  }, []);
 
   // Toggle video playback
-  const toggleVideo = () => {
-    if (videoUrl) {
+  const toggleVideo = useCallback(() => {
+    if (exercise?.video_url || exercise?.animation_url) {
       setShowVideo(true);
-      // Video will auto-play via onLoadedData handler
     }
-  };
-
-  // Toggle mute
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  // Restart video
-  const restartVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play();
-      setIsVideoPlaying(true);
-    }
-  };
+  }, [exercise?.video_url, exercise?.animation_url]);
 
   // Get video/animation URL
-  const videoUrl = exercise.video_url || exercise.animation_url;
-
-  // Format timer
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const videoUrl = exercise?.video_url || exercise?.animation_url;
 
   // Get muscle group color
-  const getMuscleColor = (muscle) => {
+  const getMuscleColor = useCallback((muscle) => {
     const colors = {
       chest: '#ef4444',
       back: '#3b82f6',
@@ -224,13 +216,13 @@ function ExerciseDetailModal({
       abs: '#6366f1'
     };
     return colors[muscle?.toLowerCase()] || '#0d9488';
-  };
+  }, []);
 
-  const muscleColor = getMuscleColor(exercise.muscle_group || exercise.muscleGroup);
+  const muscleColor = getMuscleColor(exercise?.muscle_group || exercise?.muscleGroup);
 
-  // Stable handlers for swap modal
+  // Stable handlers for swap modal - use exerciseId instead of exercise object
   const handleSwapSelect = useCallback((newExercise) => {
-    if (onSwapExercise && newExercise) {
+    if (onSwapExercise && newExercise && exercise) {
       onSwapExercise(exercise, newExercise);
     }
     setShowSwapModal(false);
@@ -240,31 +232,45 @@ function ExerciseDetailModal({
     setShowSwapModal(false);
   }, []);
 
+  // Handle close - stable
+  const handleClose = useCallback(() => {
+    if (onClose) onClose();
+  }, [onClose]);
+
   // Check if this is a timed/interval exercise
-  const isTimedExercise = exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval';
+  const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'interval';
 
   // Get difficulty level
-  const difficultyLevel = exercise.difficulty || 'Novice';
+  const difficultyLevel = exercise?.difficulty || 'Novice';
 
   // Format duration for display
-  const formatDuration = (seconds) => {
+  const formatDuration = useCallback((seconds) => {
     if (!seconds) return '45s';
     return `${seconds}s`;
-  };
+  }, []);
 
   // Parse reps - if it's a range like "8-12", return just the first number
-  const parseReps = (reps) => {
+  const parseReps = useCallback((reps) => {
     if (typeof reps === 'number') return reps;
     if (typeof reps === 'string') {
-      // Handle ranges like "8-12" - take the first number
       const match = reps.match(/^(\d+)/);
       if (match) return parseInt(match[1], 10);
     }
-    return 12; // default
-  };
+    return 12;
+  }, []);
+
+  // Handle exercise selection from thumbnails
+  const handleExerciseSelect = useCallback((ex) => {
+    if (onSelectExercise && ex) {
+      onSelectExercise(ex);
+    }
+  }, [onSelectExercise]);
+
+  // Don't render if no exercise
+  if (!exercise) return null;
 
   return (
-    <div className="exercise-modal-overlay-v2" onClick={onClose}>
+    <div className="exercise-modal-overlay-v2" onClick={handleClose}>
       <div className="exercise-modal-v2 modal-v3" onClick={(e) => e.stopPropagation()}>
         {/* Rest Timer Overlay */}
         {restTimer && (
@@ -308,7 +314,7 @@ function ExerciseDetailModal({
 
         {/* Header - Exercise Name with Info Icon */}
         <div className="modal-header-v3">
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={handleClose}>
             <ChevronLeft size={24} />
           </button>
           <h2 className="header-title">{exercise.name}</h2>
@@ -328,7 +334,6 @@ function ExerciseDetailModal({
         {/* Video/Images Section */}
         <div className="exercise-images-v3">
           {showVideo && videoUrl ? (
-            /* Video Player */
             <div className="video-container-full">
               <video
                 ref={videoRef}
@@ -336,34 +341,14 @@ function ExerciseDetailModal({
                 loop
                 muted={isMuted}
                 playsInline
-                onError={(e) => {
-                  console.error('Video failed to load:', videoUrl);
-                  setShowVideo(false);
-                }}
-                onLoadedData={() => {
-                  if (videoRef.current) {
-                    videoRef.current.play().catch(() => {});
-                    setIsVideoPlaying(true);
-                  }
-                }}
-                onClick={() => {
-                  if (videoRef.current) {
-                    if (isVideoPlaying) {
-                      videoRef.current.pause();
-                      setIsVideoPlaying(false);
-                    } else {
-                      videoRef.current.play().catch(() => {});
-                      setIsVideoPlaying(true);
-                    }
-                  }
-                }}
+                autoPlay
+                onError={() => setShowVideo(false)}
               />
               <button className="close-video-btn" onClick={() => setShowVideo(false)}>
                 <X size={20} />
               </button>
             </div>
           ) : (
-            /* Two Images Side by Side */
             <>
               <div className="image-container">
                 <img
@@ -379,7 +364,6 @@ function ExerciseDetailModal({
                   onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
                 />
               </div>
-              {/* Center Play Button */}
               {videoUrl && (
                 <button className="center-play-btn" onClick={toggleVideo}>
                   <Play size={32} fill="white" />
@@ -472,13 +456,13 @@ function ExerciseDetailModal({
             <div className="activity-thumbnails">
               {exercises.slice(0, 7).map((ex, idx) => (
                 <button
-                  key={ex.id || idx}
-                  className={`activity-thumb ${idx === currentIndex ? 'active' : ''} ${completedExercises.has(ex.id) ? 'completed' : ''}`}
-                  onClick={() => onSelectExercise && onSelectExercise(ex)}
+                  key={ex?.id || idx}
+                  className={`activity-thumb ${idx === currentIndex ? 'active' : ''} ${completedExercises?.has(ex?.id) ? 'completed' : ''}`}
+                  onClick={() => handleExerciseSelect(ex)}
                 >
                   <img
-                    src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
-                    alt={ex.name}
+                    src={ex?.thumbnail_url || ex?.animation_url || '/img/exercise-placeholder.svg'}
+                    alt={ex?.name || 'Exercise'}
                     onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
                   />
                 </button>
@@ -500,7 +484,7 @@ function ExerciseDetailModal({
             {sets.map((set, idx) => (
               <div
                 key={idx}
-                className={`progress-dot ${set.completed ? 'completed' : ''}`}
+                className={`progress-dot ${set?.completed ? 'completed' : ''}`}
               />
             ))}
           </div>
