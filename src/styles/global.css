@@ -14753,6 +14753,33 @@ a.nav-left {
     color: white;
 }
 
+/* Column Headers */
+.editor-column-headers {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    margin-bottom: 12px;
+}
+
+.editor-column-headers .header-spacer {
+    width: 24px;
+    flex-shrink: 0;
+}
+
+.editor-column-headers .header-label {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 1px;
+}
+
+.editor-column-headers .header-spacer-x {
+    width: 24px;
+    flex-shrink: 0;
+}
+
 .editor-label {
     text-align: center;
     font-size: 12px;
@@ -14775,19 +14802,20 @@ a.nav-left {
 .editor-set-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
 }
 
 .editor-set-item .set-number {
-    width: 20px;
+    width: 24px;
     font-size: 14px;
     color: #6b7280;
     flex-shrink: 0;
+    text-align: center;
 }
 
 .editor-set-item .set-value-input {
     flex: 1;
-    padding: 14px 16px;
+    padding: 12px 8px;
     background: #2a2a2a;
     border: 2px solid transparent;
     border-radius: 12px;
@@ -14797,11 +14825,26 @@ a.nav-left {
     text-align: center;
     cursor: pointer;
     transition: all 0.2s;
+    min-width: 60px;
 }
 
 .editor-set-item .set-value-input.active {
     border-color: #3b82f6;
     background: #1e3a5f;
+}
+
+.editor-set-item .set-multiplier {
+    color: #6b7280;
+    font-size: 14px;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
+
+.editor-set-item .set-unit {
+    color: #6b7280;
+    font-size: 14px;
+    flex-shrink: 0;
+    min-width: 20px;
 }
 
 .editor-set-item .set-delete-btn {

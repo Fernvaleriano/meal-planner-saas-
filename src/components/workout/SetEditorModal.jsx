@@ -11,9 +11,13 @@ function SetEditorModal({
   const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s })));
   const [activeSetIndex, setActiveSetIndex] = useState(0);
+  const [activeField, setActiveField] = useState('reps'); // 'reps' or 'weight'
 
   // Get the current value being edited
-  const getCurrentValue = (setIndex) => {
+  const getCurrentValue = (setIndex, field) => {
+    if (field === 'weight') {
+      return localSets[setIndex]?.weight || 0;
+    }
     if (editMode === 'time') {
       return localSets[setIndex]?.duration || exercise.duration || 45;
     }
@@ -21,9 +25,11 @@ function SetEditorModal({
   };
 
   // Update value for a specific set
-  const updateValue = (setIndex, value) => {
+  const updateValue = (setIndex, field, value) => {
     const newSets = [...localSets];
-    if (editMode === 'time') {
+    if (field === 'weight') {
+      newSets[setIndex] = { ...newSets[setIndex], weight: value };
+    } else if (editMode === 'time') {
       newSets[setIndex] = { ...newSets[setIndex], duration: value };
     } else {
       newSets[setIndex] = { ...newSets[setIndex], reps: value };
@@ -33,29 +39,42 @@ function SetEditorModal({
 
   // Handle number pad input
   const handleNumberInput = (num) => {
-    const currentValue = getCurrentValue(activeSetIndex);
-    const newValue = parseInt(`${currentValue}${num}`.slice(-3), 10); // Max 3 digits
-    updateValue(activeSetIndex, newValue);
+    const currentValue = getCurrentValue(activeSetIndex, activeField);
+    let newValue;
+
+    if (activeField === 'weight') {
+      // For weight, allow decimals by treating as string manipulation
+      newValue = parseFloat(`${currentValue}${num}`.slice(-5)) || 0;
+    } else {
+      newValue = parseInt(`${currentValue}${num}`.slice(-3), 10); // Max 3 digits
+    }
+    updateValue(activeSetIndex, activeField, newValue);
   };
 
   // Handle backspace
   const handleBackspace = () => {
-    const currentValue = getCurrentValue(activeSetIndex);
+    const currentValue = getCurrentValue(activeSetIndex, activeField);
     const newValue = Math.floor(currentValue / 10) || 0;
-    updateValue(activeSetIndex, newValue);
+    updateValue(activeSetIndex, activeField, newValue);
   };
 
-  // Clear current value
-  const handleClear = (setIndex) => {
-    updateValue(setIndex, 0);
+  // Handle decimal for weight
+  const handleDecimal = () => {
+    if (activeField === 'weight') {
+      const currentValue = getCurrentValue(activeSetIndex, 'weight');
+      // Add .5 to the weight
+      updateValue(activeSetIndex, 'weight', currentValue + 0.5);
+    }
   };
 
   // Apply to all sets
   const applyToAllSets = () => {
-    const currentValue = getCurrentValue(activeSetIndex);
+    const currentReps = getCurrentValue(activeSetIndex, 'reps');
+    const currentWeight = getCurrentValue(activeSetIndex, 'weight');
     const newSets = localSets.map(s => ({
       ...s,
-      [editMode === 'time' ? 'duration' : 'reps']: currentValue
+      reps: currentReps,
+      weight: currentWeight
     }));
     setLocalSets(newSets);
   };
@@ -75,6 +94,12 @@ function SetEditorModal({
         setActiveSetIndex(newSets.length - 1);
       }
     }
+  };
+
+  // Add a set
+  const addSet = () => {
+    const lastSet = localSets[localSets.length - 1];
+    setLocalSets([...localSets, { ...lastSet, completed: false }]);
   };
 
   return (
@@ -122,9 +147,13 @@ function SetEditorModal({
           </button>
         </div>
 
-        {/* Label */}
-        <div className="editor-label">
-          {editMode === 'time' ? 'SECONDS' : 'REPS'}
+        {/* Column Headers */}
+        <div className="editor-column-headers">
+          <span className="header-spacer"></span>
+          <span className="header-label">{editMode === 'time' ? 'SECONDS' : 'REPS'}</span>
+          <span className="header-spacer-x"></span>
+          <span className="header-label">WEIGHT</span>
+          <span className="header-spacer"></span>
         </div>
 
         {/* Sets List */}
@@ -134,14 +163,22 @@ function SetEditorModal({
               <div className="editor-set-row">
                 <span className="set-number">{index + 1}</span>
                 <button
-                  className={`set-value-input ${activeSetIndex === index ? 'active' : ''}`}
-                  onClick={() => setActiveSetIndex(index)}
+                  className={`set-value-input ${activeSetIndex === index && activeField === 'reps' ? 'active' : ''}`}
+                  onClick={() => { setActiveSetIndex(index); setActiveField('reps'); }}
                 >
                   {editMode === 'time'
                     ? (set.duration || exercise.duration || 45)
                     : (set.reps || exercise.reps || 12)
                   }
                 </button>
+                <span className="set-multiplier">x</span>
+                <button
+                  className={`set-value-input weight-input ${activeSetIndex === index && activeField === 'weight' ? 'active' : ''}`}
+                  onClick={() => { setActiveSetIndex(index); setActiveField('weight'); }}
+                >
+                  {set.weight || 0}
+                </button>
+                <span className="set-unit">kg</span>
                 <button className="set-delete-btn" onClick={() => deleteSet(index)}>
                   <X size={14} />
                 </button>
@@ -150,7 +187,7 @@ function SetEditorModal({
               <div className="set-rest-row">
                 <div className="rest-pill">
                   <Clock size={12} />
-                  <span>{set.restSeconds || exercise.restSeconds || 30}s rest</span>
+                  <span>{set.restSeconds || exercise.restSeconds || 60}s rest</span>
                 </div>
               </div>
             </div>
