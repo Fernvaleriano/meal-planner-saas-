@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { X, Search, Loader2, Plus } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
@@ -22,28 +22,48 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
   const [selectedMuscle, setSelectedMuscle] = useState('');
   const [selecting, setSelecting] = useState(false);
 
-  // Fetch all exercises
+  // Refs for cleanup
+  const isMountedRef = useRef(true);
+
+  // Fetch all exercises with cleanup
   useEffect(() => {
+    isMountedRef.current = true;
+
     const fetchExercises = async () => {
+      if (!isMountedRef.current) return;
       setLoading(true);
+
       try {
         const res = await apiGet('/.netlify/functions/exercises?limit=500');
-        if (res.exercises) {
+
+        if (!isMountedRef.current) return;
+
+        if (res?.exercises) {
           setExercises(res.exercises);
+        } else {
+          setExercises([]);
         }
       } catch (error) {
+        if (!isMountedRef.current) return;
         console.error('Error fetching exercises:', error);
         setExercises([]);
       }
-      setLoading(false);
+
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     };
 
     fetchExercises();
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
-  // Filter exercises
+  // Filter exercises - memoized
   const filteredExercises = useMemo(() => {
-    let results = exercises.filter(ex => !existingExerciseIds.includes(ex.id));
+    let results = exercises.filter(ex => ex && !existingExerciseIds.includes(ex.id));
 
     // Filter by muscle group
     if (selectedMuscle) {
@@ -57,7 +77,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       results = results.filter(ex =>
-        ex.name.toLowerCase().includes(query) ||
+        (ex.name && ex.name.toLowerCase().includes(query)) ||
         (ex.equipment && ex.equipment.toLowerCase().includes(query)) ||
         (ex.muscle_group && ex.muscle_group.toLowerCase().includes(query))
       );
@@ -66,12 +86,15 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     return results;
   }, [exercises, selectedMuscle, searchQuery, existingExerciseIds]);
 
-  const handleSelect = (e, exercise) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Handle exercise selection
+  const handleSelect = useCallback((e, exercise) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
     // Prevent double-firing on mobile
-    if (selecting) return;
+    if (selecting || !exercise) return;
     setSelecting(true);
 
     // Add default workout configuration
@@ -82,17 +105,48 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
       restSeconds: exercise.restSeconds || 60,
       weight: 0
     };
-    onAdd(exerciseWithConfig);
-    onClose();
-  };
+
+    if (onAdd) {
+      onAdd(exerciseWithConfig);
+    }
+    if (onClose) {
+      onClose();
+    }
+  }, [selecting, onAdd, onClose]);
+
+  // Handle close
+  const handleClose = useCallback((e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (onClose) onClose();
+  }, [onClose]);
+
+  // Handle overlay click
+  const handleOverlayClick = useCallback((e) => {
+    if (e.target === e.currentTarget) {
+      handleClose(e);
+    }
+  }, [handleClose]);
+
+  // Handle search change
+  const handleSearchChange = useCallback((e) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  // Handle muscle filter change
+  const handleMuscleChange = useCallback((muscleValue) => {
+    setSelectedMuscle(muscleValue);
+  }, []);
 
   return (
-    <div className="swap-modal-overlay" onClick={onClose}>
+    <div className="swap-modal-overlay" onClick={handleOverlayClick}>
       <div className="swap-modal add-activity-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="add-activity-header">
           <h3>Add Activity</h3>
-          <button className="swap-close-btn" onClick={onClose}>
+          <button className="swap-close-btn" onClick={handleClose}>
             <X size={24} />
           </button>
         </div>
@@ -104,7 +158,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
             type="text"
             placeholder="Search exercises..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
 
@@ -114,7 +168,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
             <button
               key={muscle.value}
               className={`muscle-filter-pill ${selectedMuscle === muscle.value ? 'active' : ''}`}
-              onClick={() => setSelectedMuscle(muscle.value)}
+              onClick={() => handleMuscleChange(muscle.value)}
             >
               {muscle.label}
             </button>
@@ -138,25 +192,14 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
                 key={ex.id}
                 className="add-exercise-item"
                 onClick={(e) => handleSelect(e, ex)}
+                disabled={selecting}
               >
                 <div className="add-exercise-thumb">
-                  {ex.animation_url || ex.video_url ? (
-                    <video
-                      src={ex.animation_url || ex.video_url}
-                      muted
-                      loop
-                      playsInline
-                      onMouseEnter={(e) => e.target.play()}
-                      onMouseLeave={(e) => e.target.pause()}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <img
-                      src={ex.thumbnail_url || '/img/exercise-placeholder.svg'}
-                      alt={ex.name}
-                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-                    />
-                  )}
+                  <img
+                    src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                    alt={ex.name || 'Exercise'}
+                    onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                  />
                 </div>
                 <div className="add-exercise-info">
                   <span className="add-exercise-name">{ex.name}</span>
