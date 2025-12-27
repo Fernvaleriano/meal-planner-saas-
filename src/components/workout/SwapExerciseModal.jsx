@@ -6,6 +6,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selecting, setSelecting] = useState(false);
 
   // Get the current exercise's muscle group
   const muscleGroup = exercise.muscle_group || exercise.muscleGroup || '';
@@ -50,9 +51,16 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     fetchSuggestions();
   }, [exercise.id]);
 
-  const handleSelect = (newExercise) => {
+  const handleSelect = (e, newExercise) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Prevent double-firing on mobile
+    if (selecting) return;
+    setSelecting(true);
+
+    // onSwap already handles closing via parent's setShowSwapModal(false)
     onSwap(newExercise);
-    onClose();
   };
 
   return (
@@ -128,7 +136,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
                 <button
                   key={ex.id}
                   className="swap-suggestion-item"
-                  onClick={() => handleSelect(ex)}
+                  onClick={(e) => handleSelect(e, ex)}
                 >
                   <div className="suggestion-rank">{index + 1}</div>
                   <div className="swap-exercise-thumb">

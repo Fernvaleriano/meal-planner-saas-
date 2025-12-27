@@ -20,6 +20,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('');
+  const [selecting, setSelecting] = useState(false);
 
   // Fetch all exercises
   useEffect(() => {
@@ -65,7 +66,14 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     return results;
   }, [exercises, selectedMuscle, searchQuery, existingExerciseIds]);
 
-  const handleSelect = (exercise) => {
+  const handleSelect = (e, exercise) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Prevent double-firing on mobile
+    if (selecting) return;
+    setSelecting(true);
+
     // Add default workout configuration
     const exerciseWithConfig = {
       ...exercise,
@@ -129,7 +137,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
               <button
                 key={ex.id}
                 className="add-exercise-item"
-                onClick={() => handleSelect(ex)}
+                onClick={(e) => handleSelect(e, ex)}
               >
                 <div className="add-exercise-thumb">
                   {ex.animation_url || ex.video_url ? (
