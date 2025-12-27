@@ -282,6 +282,55 @@ function Workouts() {
     });
   }, []);
 
+  // Handle exercise swap
+  const handleSwapExercise = useCallback((oldExercise, newExercise) => {
+    if (!todayWorkout || !oldExercise || !newExercise) return;
+
+    // Update the workout data with the swapped exercise
+    const updatedExercises = todayWorkout.workout_data.exercises.map(ex => {
+      if (ex.id === oldExercise.id) {
+        return {
+          ...newExercise,
+          sets: ex.sets, // Keep the same sets/reps/weight config
+          reps: ex.reps,
+          restSeconds: ex.restSeconds,
+          notes: ex.notes
+        };
+      }
+      return ex;
+    });
+
+    // Update local state
+    setTodayWorkout(prev => ({
+      ...prev,
+      workout_data: {
+        ...prev.workout_data,
+        exercises: updatedExercises
+      }
+    }));
+
+    // Update selected exercise to the new one
+    setSelectedExercise({
+      ...newExercise,
+      sets: oldExercise.sets,
+      reps: oldExercise.reps,
+      restSeconds: oldExercise.restSeconds,
+      notes: oldExercise.notes
+    });
+
+    // Optionally save to backend
+    try {
+      apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+        workout_data: {
+          ...todayWorkout.workout_data,
+          exercises: updatedExercises
+        }
+      });
+    } catch (err) {
+      console.error('Error saving swapped exercise:', err);
+    }
+  }, [todayWorkout, selectedDate]);
+
   // Start workout
   const handleStartWorkout = useCallback(async () => {
     setWorkoutStarted(true);
@@ -652,6 +701,7 @@ function Workouts() {
           onToggleComplete={() => toggleExerciseComplete(selectedExercise?.id)}
           workoutStarted={workoutStarted}
           completedExercises={completedExercises}
+          onSwapExercise={handleSwapExercise}
         />
       )}
 

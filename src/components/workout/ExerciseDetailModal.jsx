@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, Volume2, VolumeX, RotateCcw, Timer, Target, Dumbbell, Info, BarChart3, FileText } from 'lucide-react';
+import { X, Check, Plus, Clock, Trophy, ChevronLeft, Edit2, Play, Pause, Minus, Volume2, VolumeX, RotateCcw, Timer, Target, Dumbbell, Info, BarChart3, FileText, ArrowLeftRight } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import SetEditorModal from './SetEditorModal';
+import SwapExerciseModal from './SwapExerciseModal';
 
 function ExerciseDetailModal({
   exercise,
@@ -12,7 +13,8 @@ function ExerciseDetailModal({
   isCompleted,
   onToggleComplete,
   workoutStarted,
-  completedExercises = new Set()
+  completedExercises = new Set(),
+  onSwapExercise
 }) {
   // Handle sets being a number or an array
   const initializeSets = () => {
@@ -48,6 +50,7 @@ function ExerciseDetailModal({
   const [activeTab, setActiveTab] = useState('workout');
   const [showVideo, setShowVideo] = useState(false);
   const [showSetEditor, setShowSetEditor] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -287,9 +290,16 @@ function ExerciseDetailModal({
             <ChevronLeft size={24} />
           </button>
           <h2 className="header-title">{exercise.name}</h2>
-          <button className="info-btn">
-            <Info size={20} />
-          </button>
+          <div className="header-actions">
+            {onSwapExercise && (
+              <button className="swap-btn" onClick={() => setShowSwapModal(true)} title="Swap exercise">
+                <ArrowLeftRight size={20} />
+              </button>
+            )}
+            <button className="info-btn">
+              <Info size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Video/Images Section */}
@@ -483,6 +493,20 @@ function ExerciseDetailModal({
           isTimedExercise={isTimedExercise}
           onSave={(newSets) => setSets(newSets)}
           onClose={() => setShowSetEditor(false)}
+        />
+      )}
+
+      {/* Swap Exercise Modal */}
+      {showSwapModal && (
+        <SwapExerciseModal
+          exercise={exercise}
+          onSwap={(newExercise) => {
+            if (onSwapExercise) {
+              onSwapExercise(exercise, newExercise);
+            }
+            setShowSwapModal(false);
+          }}
+          onClose={() => setShowSwapModal(false)}
         />
       )}
     </div>
