@@ -14907,12 +14907,42 @@ a.nav-left {
 }
 
 .editor-numpad {
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+    background: #2a2a2a;
+}
+
+.numpad-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #3d3d3d;
+    margin-bottom: 8px;
+}
+
+.numpad-label {
+    font-size: 14px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+.numpad-done-btn {
+    background: none;
+    border: none;
+    color: #0d9488;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 12px;
+}
+
+.numpad-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    padding: 8px 16px;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
-    background: #2a2a2a;
 }
 
 .numpad-btn {
@@ -14926,6 +14956,10 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     min-height: 44px;
+}
+
+.numpad-btn:active {
+    background: #4d4d4d;
 }
 
 .numpad-btn .num {
@@ -17136,7 +17170,7 @@ a.nav-left {
 .swap-current {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     padding: 12px 20px;
     background: var(--gray-100);
 }
@@ -17145,34 +17179,73 @@ a.nav-left {
     background: #334155;
 }
 
-.swap-current-label {
-    font-size: 13px;
-    color: var(--gray-500);
+.swap-current-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--gray-200);
+    flex-shrink: 0;
+}
+
+.swap-current-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.swap-current-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .swap-current-name {
     font-weight: 600;
     color: var(--gray-800);
+    font-size: 15px;
 }
 
 [data-theme="dark"] .swap-current-name {
     color: #f1f5f9;
 }
 
-.swap-search {
+.swap-current-meta {
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+/* Search & Filter Controls */
+.swap-controls {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 12px 20px;
     border-bottom: 1px solid var(--gray-200);
 }
 
-[data-theme="dark"] .swap-search {
+[data-theme="dark"] .swap-controls {
     border-color: #334155;
+}
+
+.swap-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    background: var(--gray-100);
+    padding: 10px 14px;
+    border-radius: 10px;
+}
+
+[data-theme="dark"] .swap-search {
+    background: #334155;
 }
 
 .swap-search svg {
     color: var(--gray-400);
+    flex-shrink: 0;
 }
 
 .swap-search input {
@@ -17190,6 +17263,95 @@ a.nav-left {
 
 .swap-search input::placeholder {
     color: var(--gray-400);
+}
+
+.swap-filter-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .swap-filter-btn {
+    background: #334155;
+}
+
+.swap-filter-btn.active {
+    background: var(--brand-primary);
+    color: white;
+}
+
+/* Equipment Filter Pills */
+.swap-equipment-filters {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .swap-equipment-filters {
+    border-color: #334155;
+}
+
+.equipment-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.equipment-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: var(--gray-100);
+    border: 1px solid transparent;
+    color: var(--gray-600);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .equipment-pill {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.equipment-pill:hover {
+    border-color: var(--brand-primary);
+}
+
+.equipment-pill.active {
+    background: var(--brand-primary);
+    color: white;
+    border-color: var(--brand-primary);
+}
+
+/* Results Count */
+.swap-results-count {
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.swap-clear-filter {
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: var(--brand-primary);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
 }
 
 .swap-alternatives-list {

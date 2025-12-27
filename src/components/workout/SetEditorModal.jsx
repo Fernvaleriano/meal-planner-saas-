@@ -20,9 +20,25 @@ function SetEditorModal({
 }) {
   const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s })));
-  const [activeSetIndex, setActiveSetIndex] = useState(0);
-  const [activeField, setActiveField] = useState('reps'); // 'reps' or 'weight'
+  const [activeSetIndex, setActiveSetIndex] = useState(null); // null = no selection
+  const [activeField, setActiveField] = useState(null); // null = no selection
   const [isFirstInput, setIsFirstInput] = useState(true); // Track if next input should replace value
+  const [showKeyboard, setShowKeyboard] = useState(false); // Hide keyboard by default
+
+  // Select a field and show keyboard
+  const selectField = (index, field) => {
+    setActiveSetIndex(index);
+    setActiveField(field);
+    setIsFirstInput(true);
+    setShowKeyboard(true);
+  };
+
+  // Hide keyboard (Done button)
+  const hideKeyboard = () => {
+    setShowKeyboard(false);
+    setActiveSetIndex(null);
+    setActiveField(null);
+  };
 
   // Get the current value being edited
   const getCurrentValue = (setIndex, field) => {
@@ -50,6 +66,8 @@ function SetEditorModal({
 
   // Handle number pad input
   const handleNumberInput = (num) => {
+    if (activeSetIndex === null || activeField === null) return;
+
     let newValue;
 
     if (isFirstInput) {
@@ -71,6 +89,7 @@ function SetEditorModal({
 
   // Handle backspace
   const handleBackspace = () => {
+    if (activeSetIndex === null || activeField === null) return;
     const currentValue = getCurrentValue(activeSetIndex, activeField);
     const newValue = Math.floor(currentValue / 10) || 0;
     updateValue(activeSetIndex, activeField, newValue);
@@ -182,7 +201,7 @@ function SetEditorModal({
                 <span className="set-number">{index + 1}</span>
                 <button
                   className={`set-value-input ${activeSetIndex === index && activeField === 'reps' ? 'active' : ''}`}
-                  onClick={() => { setActiveSetIndex(index); setActiveField('reps'); setIsFirstInput(true); }}
+                  onClick={() => selectField(index, 'reps')}
                 >
                   {editMode === 'time'
                     ? (set.duration || exercise.duration || 45)
@@ -192,7 +211,7 @@ function SetEditorModal({
                 <span className="set-multiplier">x</span>
                 <button
                   className={`set-value-input weight-input ${activeSetIndex === index && activeField === 'weight' ? 'active' : ''}`}
-                  onClick={() => { setActiveSetIndex(index); setActiveField('weight'); setIsFirstInput(true); }}
+                  onClick={() => selectField(index, 'weight')}
                 >
                   {set.weight || 0}
                 </button>
@@ -222,29 +241,33 @@ function SetEditorModal({
           </button>
         </div>
 
-        {/* Number Pad */}
-        <div className="editor-numpad">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-            <button key={num} className="numpad-btn" onClick={() => handleNumberInput(num)}>
-              <span className="num">{num}</span>
-              {num === 2 && <span className="letters">ABC</span>}
-              {num === 3 && <span className="letters">DEF</span>}
-              {num === 4 && <span className="letters">GHI</span>}
-              {num === 5 && <span className="letters">JKL</span>}
-              {num === 6 && <span className="letters">MNO</span>}
-              {num === 7 && <span className="letters">PQRS</span>}
-              {num === 8 && <span className="letters">TUV</span>}
-              {num === 9 && <span className="letters">WXYZ</span>}
-            </button>
-          ))}
-          <div className="numpad-spacer"></div>
-          <button className="numpad-btn" onClick={() => handleNumberInput(0)}>
-            <span className="num">0</span>
-          </button>
-          <button className="numpad-btn backspace" onClick={handleBackspace}>
-            <span className="num">⌫</span>
-          </button>
-        </div>
+        {/* Number Pad - Only show when a field is selected */}
+        {showKeyboard && (
+          <div className="editor-numpad">
+            <div className="numpad-header">
+              <span className="numpad-label">
+                {activeField === 'weight' ? 'Enter weight' : (editMode === 'time' ? 'Enter seconds' : 'Enter reps')}
+              </span>
+              <button className="numpad-done-btn" onClick={hideKeyboard}>
+                Done
+              </button>
+            </div>
+            <div className="numpad-grid">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                <button key={num} className="numpad-btn" onClick={() => handleNumberInput(num)}>
+                  <span className="num">{num}</span>
+                </button>
+              ))}
+              <div className="numpad-spacer"></div>
+              <button className="numpad-btn" onClick={() => handleNumberInput(0)}>
+                <span className="num">0</span>
+              </button>
+              <button className="numpad-btn backspace" onClick={handleBackspace}>
+                <span className="num">⌫</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
