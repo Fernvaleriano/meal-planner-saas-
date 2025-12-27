@@ -12401,6 +12401,54 @@ a.nav-left {
     margin-bottom: 2px;
 }
 
+/* Exercise Badges - Superset, Warmup, Stretch */
+.exercise-card-v2 .exercise-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.exercise-card-v2 .exercise-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.exercise-card-v2 .superset-badge {
+    background: linear-gradient(135deg, #8B5CF6, #6366F1);
+    color: white;
+}
+
+.exercise-card-v2 .warmup-badge {
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
+    color: white;
+}
+
+.exercise-card-v2 .stretch-badge {
+    background: linear-gradient(135deg, #10B981, #14B8A6);
+    color: white;
+}
+
+/* Special exercise type indicators on the card */
+.exercise-card-v2.superset-exercise {
+    border-left: 3px solid #8B5CF6;
+}
+
+.exercise-card-v2.warmup-exercise {
+    border-left: 3px solid #F59E0B;
+}
+
+.exercise-card-v2.stretch-exercise {
+    border-left: 3px solid #10B981;
+}
+
 /* Equipment subtitle - like "No equipment" */
 .exercise-card-v2 .equipment-subtitle {
     font-size: 13px;
