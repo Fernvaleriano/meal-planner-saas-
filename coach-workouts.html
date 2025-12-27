@@ -3176,11 +3176,20 @@
                         workoutDays.push({
                             name: workout.name,
                             exercises: (workout.exercises || []).map(ex => ({
+                                // Include database fields if exercise was matched
+                                id: ex.id,
                                 name: ex.name,
-                                muscleGroup: ex.muscleGroup,
+                                video_url: ex.video_url,
+                                animation_url: ex.animation_url,
+                                thumbnail_url: ex.thumbnail_url,
+                                muscle_group: ex.muscle_group || ex.muscleGroup,
+                                equipment: ex.equipment,
+                                instructions: ex.instructions,
                                 sets: ex.sets || 3,
                                 reps: ex.reps || '8-12',
-                                restSeconds: ex.restSeconds || 90
+                                restSeconds: ex.restSeconds || 90,
+                                notes: ex.notes || '',
+                                matched: ex.matched // Track if this was matched to database
                             }))
                         });
                     });
