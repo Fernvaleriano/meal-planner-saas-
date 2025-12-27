@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
+import AddActivityModal from '../components/workout/AddActivityModal';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Helper to get date string in LOCAL timezone (NOT UTC)
@@ -110,6 +111,7 @@ function Workouts() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAddActivity, setShowAddActivity] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const menuRef = useRef(null);
@@ -328,6 +330,38 @@ function Workouts() {
       });
     } catch (err) {
       console.error('Error saving swapped exercise:', err);
+    }
+  }, [todayWorkout, selectedDate]);
+
+  // Handle adding a new exercise
+  const handleAddExercise = useCallback((newExercise) => {
+    if (!todayWorkout) return;
+
+    // Add the new exercise to the workout
+    const updatedExercises = [
+      ...(todayWorkout.workout_data?.exercises || []),
+      newExercise
+    ];
+
+    // Update local state
+    setTodayWorkout(prev => ({
+      ...prev,
+      workout_data: {
+        ...prev.workout_data,
+        exercises: updatedExercises
+      }
+    }));
+
+    // Save to backend
+    try {
+      apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+        workout_data: {
+          ...todayWorkout.workout_data,
+          exercises: updatedExercises
+        }
+      });
+    } catch (err) {
+      console.error('Error adding exercise:', err);
     }
   }, [todayWorkout, selectedDate]);
 
@@ -637,19 +671,29 @@ function Workouts() {
               </button>
             </div>
           ) : todayWorkout ? (
-            exercises.map((exercise, index) => (
-              exercise ? (
-                <ExerciseCard
-                  key={exercise.id || `exercise-${index}`}
-                  exercise={exercise}
-                  index={index}
-                  isCompleted={completedExercises.has(exercise.id)}
-                  onToggleComplete={() => toggleExerciseComplete(exercise.id)}
-                  onClick={() => handleExerciseClick(exercise)}
-                  workoutStarted={workoutStarted}
-                />
-              ) : null
-            ))
+            <>
+              {exercises.map((exercise, index) => (
+                exercise ? (
+                  <ExerciseCard
+                    key={exercise.id || `exercise-${index}`}
+                    exercise={exercise}
+                    index={index}
+                    isCompleted={completedExercises.has(exercise.id)}
+                    onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                    onClick={() => handleExerciseClick(exercise)}
+                    workoutStarted={workoutStarted}
+                  />
+                ) : null
+              ))}
+
+              {/* Add Activity Button */}
+              <div className="add-activity-section">
+                <button className="add-activity-btn" onClick={() => setShowAddActivity(true)}>
+                  <Plus size={20} />
+                  <span>Add Activity</span>
+                </button>
+              </div>
+            </>
           ) : (
             <div className="empty-state-v2">
               <div className="empty-illustration">
@@ -778,6 +822,15 @@ function Workouts() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Activity Modal */}
+      {showAddActivity && (
+        <AddActivityModal
+          onAdd={handleAddExercise}
+          onClose={() => setShowAddActivity(false)}
+          existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
+        />
       )}
     </div>
   );
