@@ -440,7 +440,11 @@ function Workouts() {
 
       {/* Top Navigation Bar */}
       <div className="workout-top-nav">
-        <button className="nav-back-btn" aria-label="Go back">
+        <button
+          className="nav-back-btn"
+          aria-label="Go back"
+          onClick={() => window.history.back()}
+        >
           <ChevronLeft size={24} />
         </button>
         <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
@@ -465,11 +469,26 @@ function Workouts() {
                 <History size={18} />
                 <span>Workout History</span>
               </button>
-              <button className="menu-item">
+              <button
+                className="menu-item"
+                onClick={() => {
+                  setShowMenu(false);
+                  // Navigate to settings or show toast
+                  alert('Settings coming soon');
+                }}
+              >
                 <Settings size={18} />
                 <span>Settings</span>
               </button>
-              <button className="menu-item exit">
+              <button
+                className="menu-item exit"
+                onClick={() => {
+                  setShowMenu(false);
+                  setWorkoutStarted(false);
+                  setCompletedExercises(new Set());
+                  setWorkoutStartTime(null);
+                }}
+              >
                 <LogOut size={18} />
                 <span>Exit Workout</span>
               </button>
