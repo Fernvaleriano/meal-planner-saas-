@@ -341,17 +341,6 @@ function Workouts() {
     return Math.floor((new Date() - workoutStartTime) / 60000); // in minutes
   }, [workoutStartTime, completedExercises]); // Re-calculate when exercises complete
 
-  // Calculate total volume (sets x reps x weight estimate)
-  const totalVolume = useMemo(() => {
-    let volume = 0;
-    exercises.forEach(ex => {
-      const sets = typeof ex.sets === 'number' ? ex.sets : 3;
-      const reps = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
-      volume += sets * reps;
-    });
-    return volume;
-  }, [exercises]);
-
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
     try {
@@ -376,6 +365,17 @@ function Workouts() {
       return [];
     }
   }, [todayWorkout]);
+
+  // Calculate total volume (sets x reps x weight estimate) - AFTER exercises is defined
+  const totalVolume = useMemo(() => {
+    let volume = 0;
+    exercises.forEach(ex => {
+      const sets = typeof ex.sets === 'number' ? ex.sets : 3;
+      const reps = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
+      volume += sets * reps;
+    });
+    return volume;
+  }, [exercises]);
 
   // Calculate progress
   const completedCount = completedExercises.size;
