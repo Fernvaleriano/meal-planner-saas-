@@ -16,8 +16,12 @@ const headers = {
 function normalizeExerciseName(name) {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-    .replace(/\s+/g, ' ')        // Normalize whitespace
+    // Remove version numbers like (1), (2), etc.
+    .replace(/\s*\(\d+\)\s*/g, '')
+    // Remove special characters except spaces
+    .replace(/[^a-z0-9\s]/g, '')
+    // Normalize whitespace
+    .replace(/\s+/g, ' ')
     .trim()
     // Common abbreviations and variations
     .replace(/\bdb\b/g, 'dumbbell')
@@ -27,49 +31,109 @@ function normalizeExerciseName(name) {
     .replace(/\binc\b/g, 'incline')
     .replace(/\bdec\b/g, 'decline')
     .replace(/\bext\b/g, 'extension')
-    .replace(/\bpress\b/g, 'press')
-    .replace(/\blat\b/g, 'lateral');
+    .replace(/\blat\b/g, 'lateral')
+    .replace(/\bkb\b/g, 'kettlebell')
+    // Remove gender/variation indicators
+    .replace(/\b(male|female|variation|version)\b/g, '')
+    // Remove filler words
+    .replace(/\b(the|a|an|with|on|for)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-// Calculate similarity score between two strings (Levenshtein-based)
-function calculateSimilarity(str1, str2) {
-  const s1 = str1.toLowerCase();
-  const s2 = str2.toLowerCase();
+// Extract key words for matching (equipment + movement)
+function extractKeyWords(name) {
+  const normalized = normalizeExerciseName(name);
+  const words = normalized.split(' ');
 
-  // Exact match
-  if (s1 === s2) return 1;
+  // Key movement words
+  const movementWords = ['press', 'curl', 'row', 'fly', 'raise', 'extension', 'pulldown', 'pushdown',
+    'squat', 'lunge', 'deadlift', 'pull', 'push', 'crunch', 'plank', 'dip', 'shrug',
+    'crossover', 'kickback', 'pullover', 'twist', 'rotation', 'hold', 'walk', 'step'];
 
-  // Check if one contains the other
-  if (s1.includes(s2) || s2.includes(s1)) {
-    return 0.9;
-  }
+  // Key equipment words
+  const equipmentWords = ['barbell', 'dumbbell', 'cable', 'machine', 'kettlebell', 'band',
+    'bodyweight', 'smith', 'ez', 'trap', 'hex'];
 
-  // Word-based matching
-  const words1 = s1.split(' ').filter(w => w.length > 2);
-  const words2 = s2.split(' ').filter(w => w.length > 2);
+  // Key position/variation words
+  const positionWords = ['incline', 'decline', 'flat', 'seated', 'standing', 'lying',
+    'bent', 'reverse', 'close', 'wide', 'single', 'one', 'arm', 'leg'];
 
-  let matchingWords = 0;
-  for (const word of words1) {
-    if (words2.some(w => w.includes(word) || word.includes(w))) {
-      matchingWords++;
+  // Key muscle words
+  const muscleWords = ['chest', 'back', 'shoulder', 'bicep', 'tricep', 'quad', 'hamstring',
+    'glute', 'calf', 'lat', 'pec', 'delt', 'trap', 'ab', 'core'];
+
+  const keyWords = [];
+  for (const word of words) {
+    if (movementWords.some(m => word.includes(m) || m.includes(word)) ||
+        equipmentWords.some(e => word.includes(e) || e.includes(word)) ||
+        positionWords.some(p => word === p) ||
+        muscleWords.some(m => word.includes(m) || m.includes(word))) {
+      keyWords.push(word);
     }
   }
 
-  const wordScore = matchingWords / Math.max(words1.length, words2.length);
+  return keyWords;
+}
 
-  return wordScore;
+// Calculate similarity score between two strings
+function calculateSimilarity(aiName, dbName) {
+  const normalizedAi = normalizeExerciseName(aiName);
+  const normalizedDb = normalizeExerciseName(dbName);
+
+  // Exact match after normalization
+  if (normalizedAi === normalizedDb) return 1;
+
+  // Check if one contains the other
+  if (normalizedDb.includes(normalizedAi)) return 0.95;
+  if (normalizedAi.includes(normalizedDb)) return 0.9;
+
+  // Key word matching
+  const aiKeyWords = extractKeyWords(aiName);
+  const dbKeyWords = extractKeyWords(dbName);
+
+  if (aiKeyWords.length === 0 || dbKeyWords.length === 0) {
+    // Fall back to word matching
+    const aiWords = normalizedAi.split(' ').filter(w => w.length > 2);
+    const dbWords = normalizedDb.split(' ').filter(w => w.length > 2);
+
+    let matches = 0;
+    for (const word of aiWords) {
+      if (dbWords.some(w => w.includes(word) || word.includes(w))) {
+        matches++;
+      }
+    }
+    return matches / Math.max(aiWords.length, dbWords.length);
+  }
+
+  // Count matching key words
+  let matches = 0;
+  let partialMatches = 0;
+
+  for (const aiWord of aiKeyWords) {
+    for (const dbWord of dbKeyWords) {
+      if (aiWord === dbWord) {
+        matches++;
+        break;
+      } else if (aiWord.includes(dbWord) || dbWord.includes(aiWord)) {
+        partialMatches++;
+        break;
+      }
+    }
+  }
+
+  const score = (matches + partialMatches * 0.5) / Math.max(aiKeyWords.length, dbKeyWords.length);
+  return score;
 }
 
 // Find best matching exercise from database
 function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
-  const normalizedAiName = normalizeExerciseName(aiName);
-
   let bestMatch = null;
   let bestScore = 0;
-  const threshold = 0.5; // Minimum similarity threshold
+  const threshold = 0.4; // Lower threshold for more matches
 
   for (const exercise of exercises) {
-    let score = calculateSimilarity(normalizedAiName, exercise.normalizedName);
+    let score = calculateSimilarity(aiName, exercise.name);
 
     // Boost score if muscle group matches
     if (aiMuscleGroup && exercise.muscle_group) {
@@ -79,7 +143,7 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
       if (normalizedAiMuscle === normalizedDbMuscle ||
           normalizedAiMuscle.includes(normalizedDbMuscle) ||
           normalizedDbMuscle.includes(normalizedAiMuscle)) {
-        score += 0.2;
+        score += 0.15;
       }
 
       // Also check secondary muscles
@@ -94,10 +158,19 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
       }
     }
 
+    // Prefer exercises that have videos
+    if (exercise.video_url || exercise.animation_url) {
+      score += 0.05;
+    }
+
     if (score > bestScore && score >= threshold) {
       bestScore = score;
       bestMatch = exercise;
     }
+  }
+
+  if (bestMatch) {
+    console.log(`Matched "${aiName}" -> "${bestMatch.name}" (score: ${bestScore.toFixed(2)})`);
   }
 
   return bestMatch;
@@ -249,18 +322,11 @@ Return this exact JSON structure:
 
       console.log(`Fetched ${allExercises.length} exercises for matching`);
 
-      // Create a normalized name lookup map for faster matching
-      const exerciseMap = new Map();
-      const normalizedExercises = allExercises.map(ex => ({
-        ...ex,
-        normalizedName: normalizeExerciseName(ex.name)
-      }));
-
       // Match exercises in each workout
       for (const week of programData.weeks) {
         for (const workout of week.workouts || []) {
           workout.exercises = (workout.exercises || []).map(aiExercise => {
-            const match = findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, normalizedExercises);
+            const match = findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, allExercises);
 
             if (match) {
               // Return database exercise with AI-specified sets/reps/rest/notes
