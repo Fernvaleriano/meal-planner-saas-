@@ -1,52 +1,125 @@
-import { useState, useEffect } from 'react';
-import { X, Search, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Search, Loader2, Filter, Dumbbell } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
+// Equipment options
+const EQUIPMENT_OPTIONS = [
+  { value: '', label: 'All Equipment' },
+  { value: 'bodyweight', label: 'Bodyweight' },
+  { value: 'dumbbell', label: 'Dumbbells' },
+  { value: 'barbell', label: 'Barbell' },
+  { value: 'cable', label: 'Cable' },
+  { value: 'machine', label: 'Machine' },
+  { value: 'kettlebell', label: 'Kettlebell' },
+  { value: 'resistance band', label: 'Bands' },
+  { value: 'medicine ball', label: 'Med Ball' },
+  { value: 'stability ball', label: 'Stability Ball' },
+];
+
+// Calculate similarity score between two exercises
+const calculateSimilarity = (exercise, candidate) => {
+  let score = 0;
+
+  // Same primary muscle group = highest score
+  const exMuscle = (exercise.muscle_group || exercise.muscleGroup || '').toLowerCase();
+  const candMuscle = (candidate.muscle_group || candidate.muscleGroup || '').toLowerCase();
+  if (exMuscle === candMuscle) score += 50;
+
+  // Check secondary muscles overlap
+  const exSecondary = (exercise.secondary_muscles || []).map(m => m.toLowerCase());
+  const candSecondary = (candidate.secondary_muscles || []).map(m => m.toLowerCase());
+  const secondaryOverlap = exSecondary.filter(m => candSecondary.includes(m) || candMuscle.includes(m)).length;
+  score += secondaryOverlap * 10;
+
+  // Same equipment type bonus
+  const exEquip = (exercise.equipment || '').toLowerCase();
+  const candEquip = (candidate.equipment || '').toLowerCase();
+  if (exEquip && candEquip && exEquip === candEquip) score += 15;
+
+  // Similar exercise type (compound vs isolation)
+  const exType = (exercise.exercise_type || '').toLowerCase();
+  const candType = (candidate.exercise_type || '').toLowerCase();
+  if (exType && candType && exType === candType) score += 10;
+
+  // Similar difficulty
+  const exDiff = (exercise.difficulty || '').toLowerCase();
+  const candDiff = (candidate.difficulty || '').toLowerCase();
+  if (exDiff && candDiff && exDiff === candDiff) score += 5;
+
+  // Name similarity (shares key words)
+  const exWords = (exercise.name || '').toLowerCase().split(/\s+/);
+  const candWords = (candidate.name || '').toLowerCase().split(/\s+/);
+  const sharedWords = exWords.filter(w => w.length > 3 && candWords.includes(w)).length;
+  score += sharedWords * 5;
+
+  return score;
+};
+
 function SwapExerciseModal({ exercise, onSwap, onClose }) {
-  const [alternatives, setAlternatives] = useState([]);
+  const [allExercises, setAllExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredAlternatives, setFilteredAlternatives] = useState([]);
+  const [selectedEquipment, setSelectedEquipment] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch alternative exercises based on muscle group
+  // Get the current exercise's muscle group for smarter fetching
+  const muscleGroup = exercise.muscle_group || exercise.muscleGroup || '';
+  const secondaryMuscles = exercise.secondary_muscles || [];
+
+  // Fetch exercises from same muscle group + related muscles
   useEffect(() => {
     const fetchAlternatives = async () => {
       setLoading(true);
       try {
-        const muscleGroup = exercise.muscle_group || exercise.muscleGroup || '';
-        const res = await apiGet(`/.netlify/functions/get-exercises?muscle_group=${encodeURIComponent(muscleGroup)}&limit=50`);
+        // Fetch exercises from same muscle group
+        const res = await apiGet(`/.netlify/functions/get-exercises?muscle_group=${encodeURIComponent(muscleGroup)}&limit=100`);
 
         if (res.exercises) {
           // Filter out the current exercise
           const filtered = res.exercises.filter(ex => ex.id !== exercise.id);
-          setAlternatives(filtered);
-          setFilteredAlternatives(filtered);
+          setAllExercises(filtered);
         }
       } catch (error) {
         console.error('Error fetching alternatives:', error);
-        setAlternatives([]);
-        setFilteredAlternatives([]);
+        setAllExercises([]);
       }
       setLoading(false);
     };
 
     fetchAlternatives();
-  }, [exercise.id, exercise.muscle_group, exercise.muscleGroup]);
+  }, [exercise.id, muscleGroup]);
 
-  // Filter alternatives based on search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredAlternatives(alternatives);
-    } else {
+  // Filter and sort alternatives
+  const filteredAlternatives = useMemo(() => {
+    let results = [...allExercises];
+
+    // Filter by equipment if selected
+    if (selectedEquipment) {
+      results = results.filter(ex => {
+        const equip = (ex.equipment || '').toLowerCase();
+        return equip.includes(selectedEquipment.toLowerCase());
+      });
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      setFilteredAlternatives(
-        alternatives.filter(ex =>
-          ex.name.toLowerCase().includes(query) ||
-          (ex.equipment && ex.equipment.toLowerCase().includes(query))
-        )
+      results = results.filter(ex =>
+        ex.name.toLowerCase().includes(query) ||
+        (ex.equipment && ex.equipment.toLowerCase().includes(query)) ||
+        (ex.muscle_group && ex.muscle_group.toLowerCase().includes(query))
       );
     }
-  }, [searchQuery, alternatives]);
+
+    // Sort by similarity score
+    results.sort((a, b) => {
+      const scoreA = calculateSimilarity(exercise, a);
+      const scoreB = calculateSimilarity(exercise, b);
+      return scoreB - scoreA;
+    });
+
+    return results;
+  }, [allExercises, selectedEquipment, searchQuery, exercise]);
 
   const handleSelect = (newExercise) => {
     onSwap(newExercise);
@@ -66,20 +139,65 @@ function SwapExerciseModal({ exercise, onSwap, onClose }) {
 
         {/* Current Exercise */}
         <div className="swap-current">
-          <span className="swap-current-label">Current:</span>
-          <span className="swap-current-name">{exercise.name}</span>
+          <div className="swap-current-thumb">
+            <img
+              src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
+              alt={exercise.name}
+              onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+            />
+          </div>
+          <div className="swap-current-info">
+            <span className="swap-current-name">{exercise.name}</span>
+            <span className="swap-current-meta">
+              {muscleGroup}
+              {exercise.equipment && ` • ${exercise.equipment}`}
+            </span>
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="swap-search">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search alternatives..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        {/* Search & Filter Row */}
+        <div className="swap-controls">
+          <div className="swap-search">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="Search alternatives..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button
+            className={`swap-filter-btn ${showFilters ? 'active' : ''}`}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={18} />
+          </button>
         </div>
+
+        {/* Equipment Filter Pills */}
+        {showFilters && (
+          <div className="swap-equipment-filters">
+            <div className="equipment-pills">
+              {EQUIPMENT_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  className={`equipment-pill ${selectedEquipment === opt.value ? 'active' : ''}`}
+                  onClick={() => setSelectedEquipment(opt.value)}
+                >
+                  {opt.value === '' && <Dumbbell size={14} />}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Results Count */}
+        {!loading && (
+          <div className="swap-results-count">
+            {filteredAlternatives.length} similar exercise{filteredAlternatives.length !== 1 ? 's' : ''} found
+          </div>
+        )}
 
         {/* Alternatives List */}
         <div className="swap-alternatives-list">
@@ -91,6 +209,14 @@ function SwapExerciseModal({ exercise, onSwap, onClose }) {
           ) : filteredAlternatives.length === 0 ? (
             <div className="swap-empty">
               <p>No alternative exercises found</p>
+              {selectedEquipment && (
+                <button
+                  className="swap-clear-filter"
+                  onClick={() => setSelectedEquipment('')}
+                >
+                  Clear equipment filter
+                </button>
+              )}
             </div>
           ) : (
             filteredAlternatives.map(ex => (
