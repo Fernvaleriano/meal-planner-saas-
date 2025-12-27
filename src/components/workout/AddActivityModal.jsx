@@ -26,7 +26,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     const fetchExercises = async () => {
       setLoading(true);
       try {
-        const res = await apiGet('/.netlify/functions/get-exercises?limit=500');
+        const res = await apiGet('/.netlify/functions/exercises?limit=500');
         if (res.exercises) {
           setExercises(res.exercises);
         }
