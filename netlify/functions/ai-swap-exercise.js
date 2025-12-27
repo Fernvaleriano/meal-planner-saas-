@@ -6,10 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 exports.handler = async (event) => {
   // CORS headers
   const headers = {
@@ -44,23 +40,33 @@ exports.handler = async (event) => {
 
     // Get the muscle group to filter alternatives
     const muscleGroup = exercise.muscle_group || exercise.muscleGroup || "";
+    const exerciseId = exercise.id;
+
+    console.log("AI Swap - Looking for alternatives to:", exercise.name, "Muscle group:", muscleGroup);
 
     // Fetch potential alternatives from database (same muscle group)
-    const { data: alternatives, error: dbError } = await supabase
+    let query = supabase
       .from("exercises")
       .select("id, name, muscle_group, secondary_muscles, equipment, difficulty, exercise_type, description, thumbnail_url, animation_url, video_url")
-      .ilike("muscle_group", `%${muscleGroup}%`)
-      .neq("id", exercise.id)
       .limit(50);
+
+    // Filter by muscle group if provided
+    if (muscleGroup) {
+      query = query.ilike("muscle_group", `%${muscleGroup}%`);
+    }
+
+    const { data: alternatives, error: dbError } = await query;
 
     if (dbError) {
       console.error("Database error:", dbError);
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: "Failed to fetch exercises" }),
+        body: JSON.stringify({ error: "Failed to fetch exercises", details: dbError.message }),
       };
     }
+
+    console.log("AI Swap - Found", alternatives?.length || 0, "potential alternatives");
 
     if (!alternatives || alternatives.length === 0) {
       return {
@@ -76,95 +82,88 @@ exports.handler = async (event) => {
     // Get exercise IDs already in the workout to exclude them
     const workoutExerciseIds = workoutExercises.map(ex => ex.id).filter(Boolean);
 
-    // Filter out exercises already in the workout
-    const availableAlternatives = alternatives.filter(
-      alt => !workoutExerciseIds.includes(alt.id)
-    );
-
-    // Build the prompt for Claude
-    const exerciseListForAI = availableAlternatives.map(ex => ({
-      id: ex.id,
-      name: ex.name,
-      muscle_group: ex.muscle_group,
-      secondary_muscles: ex.secondary_muscles,
-      equipment: ex.equipment,
-      difficulty: ex.difficulty,
-      exercise_type: ex.exercise_type,
-      description: ex.description
-    }));
-
-    const prompt = `You are a fitness expert helping a client find alternative exercises.
-
-CURRENT EXERCISE TO REPLACE:
-- Name: ${exercise.name}
-- Muscle Group: ${muscleGroup}
-- Equipment: ${exercise.equipment || "Unknown"}
-- Secondary Muscles: ${JSON.stringify(exercise.secondary_muscles || [])}
-${reason ? `- Reason for swap: ${reason}` : ""}
-
-${userEquipment.length > 0 ? `USER'S AVAILABLE EQUIPMENT: ${userEquipment.join(", ")}` : ""}
-
-EXERCISES ALREADY IN WORKOUT (do not suggest these):
-${workoutExercises.map(ex => `- ${ex.name}`).join("\n") || "None"}
-
-AVAILABLE ALTERNATIVES FROM DATABASE:
-${JSON.stringify(exerciseListForAI, null, 2)}
-
-Please select the TOP 3-5 best alternatives from the available list. For each suggestion, explain WHY it's a good swap in 1-2 sentences. Consider:
-1. Similar muscle activation and movement pattern
-2. Equipment availability (if specified)
-3. Difficulty level appropriateness
-4. Variety (don't suggest too similar exercises)
-
-RESPOND IN THIS EXACT JSON FORMAT:
-{
-  "suggestions": [
-    {
-      "id": "exercise_id_from_list",
-      "name": "Exercise Name",
-      "reason": "Brief explanation why this is a good alternative"
-    }
-  ]
-}
-
-Only include exercises from the provided list. Return valid JSON only, no other text.`;
-
-    // Call Claude for smart suggestions
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+    // Filter out current exercise and exercises already in workout
+    const availableAlternatives = alternatives.filter(alt => {
+      // Compare as strings to handle type mismatches
+      const altId = String(alt.id);
+      const currentId = String(exerciseId);
+      const isCurrentExercise = altId === currentId;
+      const isInWorkout = workoutExerciseIds.some(id => String(id) === altId);
+      return !isCurrentExercise && !isInWorkout;
     });
 
-    // Parse Claude's response
+    console.log("AI Swap - After filtering:", availableAlternatives.length, "available");
+
+    if (availableAlternatives.length === 0) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          suggestions: [],
+          message: "No alternative exercises available"
+        }),
+      };
+    }
+
+    // Try AI-powered suggestions, fallback to simple list if AI fails
     let aiSuggestions = [];
+
     try {
+      // Check if Anthropic API key is available
+      if (!process.env.ANTHROPIC_API_KEY) {
+        throw new Error("ANTHROPIC_API_KEY not configured");
+      }
+
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      });
+
+      // Build the prompt for Claude
+      const exerciseListForAI = availableAlternatives.slice(0, 20).map(ex => ({
+        id: ex.id,
+        name: ex.name,
+        muscle_group: ex.muscle_group,
+        equipment: ex.equipment,
+        difficulty: ex.difficulty
+      }));
+
+      const prompt = `You are a fitness expert. Select the TOP 3-5 best alternative exercises from this list to replace "${exercise.name}" (${muscleGroup}, ${exercise.equipment || "bodyweight"}).
+
+AVAILABLE EXERCISES:
+${JSON.stringify(exerciseListForAI, null, 2)}
+
+For each, explain briefly why it's a good swap.
+
+RESPOND IN THIS EXACT JSON FORMAT ONLY:
+{"suggestions":[{"id":"exercise_id","name":"Name","reason":"Brief reason"}]}`;
+
+      const response = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 512,
+        messages: [{ role: "user", content: prompt }],
+      });
+
       const responseText = response.content[0].text.trim();
-      // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         aiSuggestions = parsed.suggestions || [];
       }
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError);
-      // Fall back to returning top alternatives by similarity
+    } catch (aiError) {
+      console.error("AI suggestion failed, using fallback:", aiError.message);
+      // Fallback: return top alternatives sorted by relevance
       aiSuggestions = availableAlternatives.slice(0, 5).map(ex => ({
         id: ex.id,
         name: ex.name,
-        reason: `Similar ${ex.muscle_group} exercise using ${ex.equipment || "bodyweight"}`
+        reason: `Similar ${ex.muscle_group} exercise${ex.equipment ? ` using ${ex.equipment}` : ""}`
       }));
     }
 
     // Enrich suggestions with full exercise data
     const enrichedSuggestions = aiSuggestions.map(suggestion => {
       const fullExercise = availableAlternatives.find(
-        ex => ex.id === suggestion.id || ex.name.toLowerCase() === suggestion.name.toLowerCase()
+        ex => String(ex.id) === String(suggestion.id) ||
+              ex.name.toLowerCase() === suggestion.name.toLowerCase()
       );
       if (fullExercise) {
         return {
@@ -175,14 +174,29 @@ Only include exercises from the provided list. Return valid JSON only, no other 
       return null;
     }).filter(Boolean);
 
+    // If AI matching failed, just return top alternatives
+    if (enrichedSuggestions.length === 0) {
+      const fallbackSuggestions = availableAlternatives.slice(0, 5).map(ex => ({
+        ...ex,
+        ai_reason: `Alternative ${ex.muscle_group} exercise${ex.equipment ? ` using ${ex.equipment}` : ""}`
+      }));
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          suggestions: fallbackSuggestions,
+          message: `Found ${fallbackSuggestions.length} alternatives`
+        }),
+      };
+    }
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         suggestions: enrichedSuggestions,
-        message: enrichedSuggestions.length > 0
-          ? `Found ${enrichedSuggestions.length} smart alternatives`
-          : "No suitable alternatives found"
+        message: `Found ${enrichedSuggestions.length} smart alternatives`
       }),
     };
 
@@ -191,7 +205,7 @@ Only include exercises from the provided list. Return valid JSON only, no other 
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: "Failed to generate swap suggestions" }),
+      body: JSON.stringify({ error: "Failed to generate swap suggestions", details: error.message }),
     };
   }
 };
