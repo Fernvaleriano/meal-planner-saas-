@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sync Exercise Thumbnails</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; }
+    #log { background: #1e1e1e; color: #0f0; padding: 20px; height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    .error { color: #f66; }
+    .success { color: #6f6; }
+    .info { color: #6af; }
+    select { padding: 10px; font-size: 16px; margin: 10px 0; }
+    .stats { background: #333; color: #fff; padding: 15px; margin: 10px 0; border-radius: 8px; }
+    .stats span { margin-right: 20px; }
+  </style>
+</head>
+<body>
+  <h1>🖼️ Thumbnail Sync Tool</h1>
+  <p>Syncs images from <code>exercise-thumbnails</code> bucket to exercises in database</p>
+
+  <div class="stats">
+    <span>📁 Images: <strong id="imgCount">-</strong></span>
+    <span>💪 Exercises: <strong id="exCount">-</strong></span>
+    <span>✅ Matched: <strong id="matchCount">-</strong></span>
+    <span>⏭️ Skipped: <strong id="skipCount">-</strong></span>
+  </div>
+
+  <div>
+    <button onclick="loadFolders()">1. Load Folders</button>
+    <select id="folderSelect"><option>-- Load folders first --</option></select>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <button onclick="syncFolder()">2. Sync Selected Folder</button>
+    <button onclick="syncAllFolders()" style="background:#4a9eff;color:white">3. Sync ALL Folders</button>
+    <button onclick="stopSync()" style="background:#f66;color:white">Stop</button>
+  </div>
+
+  <div style="margin-top: 10px;">
+    <label><input type="checkbox" id="overwrite"> Overwrite existing thumbnails</label>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+    const BUCKET = 'exercise-thumbnails';
+
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let shouldStop = false;
+    let allFolders = [];
+    let allExercises = [];
+    let stats = { images: 0, matched: 0, skipped: 0 };
+
+    function log(msg, type = '') {
+      const el = document.getElementById('log');
+      el.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function updateStats() {
+      document.getElementById('imgCount').textContent = stats.images;
+      document.getElementById('exCount').textContent = allExercises.length;
+      document.getElementById('matchCount').textContent = stats.matched;
+      document.getElementById('skipCount').textContent = stats.skipped;
+    }
+
+    // Normalize name for matching
+    function normalizeName(name) {
+      return name
+        .replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '')
+        .replace(/1$/, '')  // Remove trailing 1
+        .replace(/[_\s]*(female|male)$/i, '')
+        .replace(/[_-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/\(\d+\)/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    // Find matching exercise for an image
+    function findMatch(imageName) {
+      const normalizedImage = normalizeName(imageName);
+
+      for (const ex of allExercises) {
+        const normalizedEx = normalizeName(ex.name);
+        if (normalizedEx === normalizedImage) {
+          return ex;
+        }
+      }
+
+      // Try partial match
+      for (const ex of allExercises) {
+        const normalizedEx = normalizeName(ex.name);
+        if (normalizedEx.includes(normalizedImage) || normalizedImage.includes(normalizedEx)) {
+          return ex;
+        }
+      }
+
+      return null;
+    }
+
+    // Recursively find all folders with images
+    async function findFoldersWithImages(path, depth = 0) {
+      if (depth > 3) return [];
+
+      const folders = [];
+      const { data } = await db.storage.from(BUCKET).list(path, { limit: 200 });
+
+      if (!data) return [];
+
+      const images = data.filter(f => f.id !== null && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.name));
+      if (images.length > 0) {
+        folders.push({ path: path || '(root)', count: images.length });
+      }
+
+      const subfolders = data.filter(f => f.id === null);
+      for (const sub of subfolders) {
+        const subPath = path ? `${path}/${sub.name}` : sub.name;
+        const subResults = await findFoldersWithImages(subPath, depth + 1);
+        folders.push(...subResults);
+      }
+
+      return folders;
+    }
+
+    async function loadExercises() {
+      log('Loading exercises from database...');
+      allExercises = [];
+      let offset = 0;
+      const batchSize = 1000;
+
+      while (true) {
+        const { data, error } = await db
+          .from('exercises')
+          .select('id, name, thumbnail_url')
+          .range(offset, offset + batchSize - 1);
+
+        if (error) {
+          log(`DB Error: ${error.message}`, 'error');
+          return;
+        }
+
+        allExercises = allExercises.concat(data || []);
+        if (!data || data.length < batchSize) break;
+        offset += batchSize;
+      }
+
+      log(`Loaded ${allExercises.length} exercises`, 'success');
+      updateStats();
+    }
+
+    async function loadFolders() {
+      log('Scanning storage for image folders...');
+      allFolders = [];
+      stats = { images: 0, matched: 0, skipped: 0 };
+
+      // Load exercises first
+      await loadExercises();
+
+      // Get all folders
+      const { data: topLevel } = await db.storage.from(BUCKET).list('', { limit: 100 });
+
+      // Check root for images
+      const rootImages = (topLevel || []).filter(f => f.id !== null && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.name));
+      if (rootImages.length > 0) {
+        allFolders.push({ path: '', count: rootImages.length });
+      }
+
+      // Check subfolders
+      const mainFolders = (topLevel || []).filter(f => f.id === null);
+      log(`Found ${mainFolders.length} top-level folders...`);
+
+      for (const folder of mainFolders) {
+        log(`Scanning: ${folder.name}...`);
+        const foldersWithImages = await findFoldersWithImages(folder.name, 1);
+        allFolders.push(...foldersWithImages);
+      }
+
+      // Calculate total images
+      stats.images = allFolders.reduce((sum, f) => sum + f.count, 0);
+
+      const select = document.getElementById('folderSelect');
+      select.innerHTML = allFolders.map(f =>
+        `<option value="${f.path}">${f.path || '(root)'} (${f.count} images)</option>`
+      ).join('');
+
+      log(`Found ${allFolders.length} folders with ${stats.images} total images`, 'success');
+      updateStats();
+    }
+
+    async function syncFolder(folderPath) {
+      const folder = folderPath !== undefined ? folderPath : document.getElementById('folderSelect').value;
+      const overwrite = document.getElementById('overwrite').checked;
+
+      log(`Syncing folder: ${folder || '(root)'}...`);
+
+      const { data: files, error } = await db.storage.from(BUCKET).list(folder, { limit: 1000 });
+
+      if (error) {
+        log(`Error listing folder: ${error.message}`, 'error');
+        return 0;
+      }
+
+      const images = (files || []).filter(f => f.id !== null && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.name));
+      let folderMatched = 0;
+      let folderSkipped = 0;
+
+      for (const img of images) {
+        if (shouldStop) break;
+
+        const imagePath = folder ? `${folder}/${img.name}` : img.name;
+        const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(imagePath);
+        const imageUrl = urlData.publicUrl;
+
+        const match = findMatch(img.name);
+
+        if (match) {
+          if (match.thumbnail_url === imageUrl) {
+            folderSkipped++;
+            stats.skipped++;
+          } else if (match.thumbnail_url && !overwrite) {
+            folderSkipped++;
+            stats.skipped++;
+          } else {
+            // Update via Netlify function
+            try {
+              const response = await fetch('/.netlify/functions/sync-thumbnails?' + new URLSearchParams({
+                exerciseId: match.id,
+                thumbnailUrl: imageUrl
+              }));
+
+              if (response.ok) {
+                folderMatched++;
+                stats.matched++;
+                log(`✅ ${img.name} → ${match.name}`, 'success');
+              } else {
+                log(`❌ Failed to update: ${match.name}`, 'error');
+              }
+            } catch (err) {
+              log(`❌ Error: ${err.message}`, 'error');
+            }
+          }
+        }
+
+        updateStats();
+      }
+
+      log(`Folder done: ${folderMatched} matched, ${folderSkipped} skipped`, 'info');
+      return folderMatched;
+    }
+
+    async function syncAllFolders() {
+      shouldStop = false;
+      stats.matched = 0;
+      stats.skipped = 0;
+
+      log('Starting sync of ALL folders...', 'info');
+
+      for (let i = 0; i < allFolders.length; i++) {
+        if (shouldStop) {
+          log('Stopped by user', 'error');
+          break;
+        }
+        log(`[${i+1}/${allFolders.length}] ${allFolders[i].path || '(root)'}`, 'info');
+        await syncFolder(allFolders[i].path);
+      }
+
+      log(`\n========== COMPLETE ==========`, 'success');
+      log(`Total matched: ${stats.matched}`, 'success');
+      log(`Total skipped: ${stats.skipped}`, 'info');
+    }
+
+    function stopSync() {
+      shouldStop = true;
+      log('Stopping...', 'error');
+    }
+  </script>
+</body>
+</html>

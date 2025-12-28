@@ -266,6 +266,31 @@ exports.handler = async (event) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   const params = event.queryStringParameters || {};
+
+  // Single exercise update mode (called from UI)
+  if (params.exerciseId && params.thumbnailUrl) {
+    try {
+      const { error } = await supabase
+        .from('exercises')
+        .update({ thumbnail_url: params.thumbnailUrl })
+        .eq('id', params.exerciseId);
+
+      if (error) throw error;
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, exerciseId: params.exerciseId })
+      };
+    } catch (err) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: err.message })
+      };
+    }
+  }
+
   const dryRun = params.dryRun === 'true';
   const batchSize = parseInt(params.batch) || 100;
   const offset = parseInt(params.offset) || 0;
