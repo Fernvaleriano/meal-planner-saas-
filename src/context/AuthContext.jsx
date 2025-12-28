@@ -66,18 +66,24 @@ export function AuthProvider({ children }) {
   // Check if user is a coach by querying the coaches table
   const checkIsCoach = useCallback(async (userId) => {
     try {
+      // Use maybeSingle() instead of single() to avoid 406 errors when no row exists
+      // This prevents RLS/permissions errors when user is not a coach
       const { data, error } = await supabase
         .from('coaches')
         .select('id')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      // PGRST116 = no rows found, which is expected for non-coaches
+      if (error && error.code !== 'PGRST116') {
+        // Log non-expected errors but don't break the flow
+        console.warn('SPA: Coach check returned error:', error.code, error.message);
         return false;
       }
-      return true;
+      return !!data;
     } catch (err) {
-      console.error('SPA: Error checking coach status:', err);
+      // Silent fail - if we can't check coach status, assume they're not a coach
+      console.warn('SPA: Error checking coach status:', err.message);
       return false;
     }
   }, []);

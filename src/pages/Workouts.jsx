@@ -331,7 +331,9 @@ function Workouts() {
     });
 
     // Save to backend (fire and forget, errors logged)
-    apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+    apiPut('/.netlify/functions/client-workout-log', {
+      assignmentId: workout.id,
+      dayIndex: workout.day_index,
       workout_data: {
         ...workout.workout_data,
         exercises: updatedExercises
@@ -339,7 +341,7 @@ function Workouts() {
     }).catch(err => {
       console.error('Error saving swapped exercise:', err);
     });
-  }, [selectedDate]); // Removed todayWorkout - using ref instead
+  }, []); // Removed todayWorkout and selectedDate - using ref instead
 
   // Handle adding a new exercise - use ref for stable callback
   const handleAddExercise = useCallback((newExercise) => {
@@ -365,7 +367,9 @@ function Workouts() {
     });
 
     // Save to backend (fire and forget, errors logged)
-    apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
+    apiPut('/.netlify/functions/client-workout-log', {
+      assignmentId: workout.id,
+      dayIndex: workout.day_index,
       workout_data: {
         ...workout.workout_data,
         exercises: updatedExercises
@@ -373,7 +377,7 @@ function Workouts() {
     }).catch(err => {
       console.error('Error adding exercise:', err);
     });
-  }, [selectedDate]); // Removed todayWorkout - using ref instead
+  }, []); // Removed todayWorkout and selectedDate - using ref instead
 
   // Start workout
   const handleStartWorkout = useCallback(async () => {

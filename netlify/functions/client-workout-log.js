@@ -1,0 +1,212 @@
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (!SUPABASE_SERVICE_KEY) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Server configuration error' })
+    };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  try {
+    // PUT - Update workout data for a specific assignment/day
+    if (event.httpMethod === 'PUT') {
+      const body = JSON.parse(event.body || '{}');
+      const { assignmentId, dayIndex, workout_data } = body;
+
+      if (!assignmentId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'assignmentId is required' })
+        };
+      }
+
+      // Fetch the current assignment
+      const { data: assignment, error: fetchError } = await supabase
+        .from('client_workout_assignments')
+        .select('*')
+        .eq('id', assignmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching assignment:', fetchError);
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Assignment not found' })
+        };
+      }
+
+      const currentWorkoutData = assignment.workout_data || {};
+      let updatedWorkoutData;
+
+      // Handle days array structure
+      if (currentWorkoutData.days && Array.isArray(currentWorkoutData.days) && dayIndex !== undefined) {
+        // Update specific day in the days array
+        const updatedDays = [...currentWorkoutData.days];
+        const safeDayIndex = Math.abs(dayIndex) % updatedDays.length;
+
+        // Merge the new workout_data into the specific day
+        updatedDays[safeDayIndex] = {
+          ...updatedDays[safeDayIndex],
+          exercises: workout_data.exercises || updatedDays[safeDayIndex].exercises
+        };
+
+        updatedWorkoutData = {
+          ...currentWorkoutData,
+          days: updatedDays
+        };
+      } else {
+        // Flat structure - update exercises directly
+        updatedWorkoutData = {
+          ...currentWorkoutData,
+          exercises: workout_data.exercises || currentWorkoutData.exercises
+        };
+      }
+
+      // Save the updated workout_data
+      const { data: updatedAssignment, error: updateError } = await supabase
+        .from('client_workout_assignments')
+        .update({ workout_data: updatedWorkoutData })
+        .eq('id', assignmentId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating assignment:', updateError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Failed to save workout changes' })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, assignment: updatedAssignment })
+      };
+    }
+
+    // GET - Fetch workout log/data for a client for a specific date
+    if (event.httpMethod === 'GET') {
+      const { clientId, date } = event.queryStringParameters || {};
+
+      if (!clientId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'clientId is required' })
+        };
+      }
+
+      // Get the active assignment for this client
+      const { data: assignment, error: assignmentError } = await supabase
+        .from('client_workout_assignments')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('is_active', true)
+        .single();
+
+      if (assignmentError && assignmentError.code !== 'PGRST116') {
+        throw assignmentError;
+      }
+
+      if (!assignment) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ log: null })
+        };
+      }
+
+      // If date provided, calculate day index
+      if (date) {
+        const workoutData = assignment.workout_data || {};
+        const days = workoutData.days || [];
+        const schedule = workoutData.schedule || {};
+        const startDate = assignment.start_date ? new Date(assignment.start_date) : new Date(assignment.created_at);
+        const targetDate = new Date(date);
+
+        const targetDayOfWeek = targetDate.getDay();
+        const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        const targetDayName = dayNames[targetDayOfWeek];
+        const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+        let dayIndex = 0;
+        let isWorkoutDay = selectedDays.includes(targetDayName);
+
+        if (isWorkoutDay && days.length > 0) {
+          let workoutDayCount = 0;
+          const tempDate = new Date(startDate);
+
+          while (tempDate < targetDate) {
+            const tempDayName = dayNames[tempDate.getDay()];
+            if (selectedDays.includes(tempDayName)) {
+              workoutDayCount++;
+            }
+            tempDate.setDate(tempDate.getDate() + 1);
+          }
+
+          dayIndex = workoutDayCount % days.length;
+        }
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            log: {
+              assignmentId: assignment.id,
+              dayIndex,
+              isWorkoutDay,
+              workout_data: days.length > 0 ? days[dayIndex] : workoutData
+            }
+          })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          log: {
+            assignmentId: assignment.id,
+            workout_data: assignment.workout_data
+          }
+        })
+      };
+    }
+
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+
+  } catch (err) {
+    console.error('Client workout log error:', err);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+};
