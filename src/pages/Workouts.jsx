@@ -115,6 +115,10 @@ function Workouts() {
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const menuRef = useRef(null);
+  const todayWorkoutRef = useRef(null);
+
+  // Keep ref updated for stable callbacks
+  todayWorkoutRef.current = todayWorkout;
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -284,9 +288,10 @@ function Workouts() {
     });
   }, []);
 
-  // Handle exercise swap
+  // Handle exercise swap - use ref for stable callback
   const handleSwapExercise = useCallback((oldExercise, newExercise) => {
-    if (!todayWorkout?.workout_data?.exercises || !oldExercise || !newExercise) return;
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data?.exercises || !oldExercise || !newExercise) return;
 
     // Create the swapped exercise with preserved config
     const swappedExercise = {
@@ -298,7 +303,7 @@ function Workouts() {
     };
 
     // Update the workout data with the swapped exercise
-    const updatedExercises = todayWorkout.workout_data.exercises.map(ex => {
+    const updatedExercises = workout.workout_data.exercises.map(ex => {
       if (ex?.id === oldExercise.id) {
         return swappedExercise;
       }
@@ -323,21 +328,22 @@ function Workouts() {
     // Save to backend (fire and forget, errors logged)
     apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
       workout_data: {
-        ...todayWorkout.workout_data,
+        ...workout.workout_data,
         exercises: updatedExercises
       }
     }).catch(err => {
       console.error('Error saving swapped exercise:', err);
     });
-  }, [todayWorkout, selectedDate]);
+  }, [selectedDate]); // Removed todayWorkout - using ref instead
 
-  // Handle adding a new exercise
+  // Handle adding a new exercise - use ref for stable callback
   const handleAddExercise = useCallback((newExercise) => {
-    if (!todayWorkout?.workout_data || !newExercise) return;
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data || !newExercise) return;
 
     // Add the new exercise to the workout
     const updatedExercises = [
-      ...(todayWorkout.workout_data.exercises || []),
+      ...(workout.workout_data.exercises || []),
       newExercise
     ];
 
@@ -356,13 +362,13 @@ function Workouts() {
     // Save to backend (fire and forget, errors logged)
     apiPut(`/.netlify/functions/client-workout-log?date=${formatDate(selectedDate)}`, {
       workout_data: {
-        ...todayWorkout.workout_data,
+        ...workout.workout_data,
         exercises: updatedExercises
       }
     }).catch(err => {
       console.error('Error adding exercise:', err);
     });
-  }, [todayWorkout, selectedDate]);
+  }, [selectedDate]); // Removed todayWorkout - using ref instead
 
   // Start workout
   const handleStartWorkout = useCallback(async () => {
