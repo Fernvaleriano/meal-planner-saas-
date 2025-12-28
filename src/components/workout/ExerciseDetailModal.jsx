@@ -127,40 +127,7 @@ function ExerciseDetailModal({
   // Calculate completed sets
   const completedSets = useMemo(() => sets.filter(s => s?.completed).length, [sets]);
 
-  // Toggle set completion - uses ref for onToggleComplete to prevent callback recreation
-  const toggleSet = useCallback((setIndex) => {
-    if (!workoutStarted) return;
-
-    setSets(prevSets => {
-      const newSets = [...prevSets];
-      if (!newSets[setIndex]) return prevSets;
-
-      newSets[setIndex] = { ...newSets[setIndex], completed: !newSets[setIndex].completed };
-
-      // Start rest timer when set is completed
-      if (newSets[setIndex].completed && setIndex < newSets.length - 1) {
-        const restSeconds = newSets[setIndex].restSeconds || 60;
-        startRestTimer(restSeconds);
-      }
-
-      // Check if all sets complete - use ref for stable callback
-      if (newSets.every(s => s?.completed) && !isCompleted && onToggleCompleteRef.current) {
-        setTimeout(() => onToggleCompleteRef.current(), 0);
-      }
-
-      return newSets;
-    });
-  }, [workoutStarted, isCompleted, startRestTimer]); // Removed onToggleComplete - using ref
-
-  // Add a set
-  const addSet = useCallback(() => {
-    setSets(prevSets => {
-      const lastSet = prevSets[prevSets.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
-      return [...prevSets, { ...lastSet, completed: false }];
-    });
-  }, []);
-
-  // Rest timer
+  // Rest timer - MUST be defined before toggleSet since it's used there
   const startRestTimer = useCallback((seconds) => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -190,6 +157,39 @@ function ExerciseDetailModal({
         return prev - 1;
       });
     }, 1000);
+  }, []);
+
+  // Toggle set completion - uses ref for onToggleComplete to prevent callback recreation
+  const toggleSet = useCallback((setIndex) => {
+    if (!workoutStarted) return;
+
+    setSets(prevSets => {
+      const newSets = [...prevSets];
+      if (!newSets[setIndex]) return prevSets;
+
+      newSets[setIndex] = { ...newSets[setIndex], completed: !newSets[setIndex].completed };
+
+      // Start rest timer when set is completed
+      if (newSets[setIndex].completed && setIndex < newSets.length - 1) {
+        const restSeconds = newSets[setIndex].restSeconds || 60;
+        startRestTimer(restSeconds);
+      }
+
+      // Check if all sets complete - use ref for stable callback
+      if (newSets.every(s => s?.completed) && !isCompleted && onToggleCompleteRef.current) {
+        setTimeout(() => onToggleCompleteRef.current(), 0);
+      }
+
+      return newSets;
+    });
+  }, [workoutStarted, isCompleted, startRestTimer]); // startRestTimer is now defined above
+
+  // Add a set
+  const addSet = useCallback(() => {
+    setSets(prevSets => {
+      const lastSet = prevSets[prevSets.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
+      return [...prevSets, { ...lastSet, completed: false }];
+    });
   }, []);
 
   // Skip rest timer
