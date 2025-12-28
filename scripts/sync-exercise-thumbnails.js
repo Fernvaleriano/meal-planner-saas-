@@ -17,7 +17,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const BUCKET_NAME = 'thumbnail'; // Your thumbnail bucket name
+const BUCKET_NAME = 'exercise-thumbnails'; // Your thumbnail bucket name
 
 if (!SUPABASE_SERVICE_KEY) {
   console.error('Error: SUPABASE_SERVICE_KEY environment variable is required');
@@ -29,20 +29,41 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 // Clean filename to exercise name for matching
 function cleanName(filename) {
   return filename
+    // Remove file extension
     .replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '')
+    // Remove trailing 1 (second frame images like "exercise1.jpg")
+    .replace(/1$/, '')
+    // Remove _female, _male, _Female, _Male suffixes
+    .replace(/[_\s]*(female|male)$/i, '')
+    // Replace underscores and hyphens with spaces
     .replace(/[_-]/g, ' ')
+    // Normalize spaces
     .replace(/\s+/g, ' ')
-    .replace(/\(\d+\)/g, '') // Remove (1), (2) etc
+    // Remove (1), (2) etc
+    .replace(/\(\d+\)/g, '')
     .toLowerCase()
     .trim();
 }
 
-// Normalize name for matching
+// Normalize name for matching (remove all non-alphanumeric)
 function normalizeName(name) {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
     .trim();
+}
+
+// Create multiple matching variations
+function getMatchVariations(name) {
+  const variations = [normalizeName(name)];
+
+  // Also try without common suffixes
+  const withoutDegree = name.replace(/\d+\s*degree/gi, '').trim();
+  if (withoutDegree !== name) {
+    variations.push(normalizeName(withoutDegree));
+  }
+
+  return variations;
 }
 
 async function syncThumbnails() {
