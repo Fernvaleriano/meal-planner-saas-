@@ -17797,6 +17797,9 @@ a.nav-left {
 .add-activity-modal {
     max-height: 90vh;
     background: white;
+    /* Ensure children have proper flex behavior */
+    display: flex;
+    flex-direction: column;
 }
 
 [data-theme="dark"] .add-activity-modal {
@@ -17883,12 +17886,17 @@ a.nav-left {
 
 .muscle-filter-pills {
     display: flex;
-    gap: 12px;
-    padding: 16px 16px 20px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
     background: var(--gray-50);
     -webkit-overflow-scrolling: touch;
+    /* Fix for flex container scrolling */
+    flex-shrink: 0;
     /* Extra padding at bottom for separation from exercise list */
     border-bottom: 1px solid var(--gray-200);
 }
@@ -17903,14 +17911,14 @@ a.nav-left {
 }
 
 .muscle-filter-pill {
-    /* Larger touch targets - min 44px height (Apple HIG) */
-    padding: 14px 22px;
-    min-height: 48px;
+    /* Touch-friendly size */
+    padding: 10px 18px;
+    min-height: 40px;
     background: var(--gray-100);
-    border: 2px solid transparent;
-    border-radius: 25px;
-    color: var(--gray-600);
-    font-size: 15px;
+    border: 2px solid var(--gray-200);
+    border-radius: 20px;
+    color: var(--gray-700);
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -17921,8 +17929,8 @@ a.nav-left {
     -webkit-user-select: none;
     /* Prevent text selection on double-tap */
     -webkit-touch-callout: none;
-    /* Prevent pills from shrinking/being cut off */
-    flex-shrink: 0;
+    /* CRITICAL: Prevent pills from shrinking/being cut off */
+    flex: 0 0 auto;
 }
 
 .muscle-filter-pill:hover {
@@ -17936,9 +17944,9 @@ a.nav-left {
 }
 
 [data-theme="dark"] .muscle-filter-pill {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.25);
-    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #f1f5f9;
 }
 
 [data-theme="dark"] .muscle-filter-pill:hover {
