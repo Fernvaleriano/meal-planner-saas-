@@ -20,6 +20,10 @@ function ExerciseDetailModal({
   const isMountedRef = useRef(true);
   const timerRef = useRef(null);
   const videoRef = useRef(null);
+  const exerciseRef = useRef(exercise);
+
+  // Keep exercise ref updated
+  exerciseRef.current = exercise;
 
   // Memoize exercise ID to prevent unnecessary re-renders
   const exerciseId = exercise?.id;
@@ -60,16 +64,16 @@ function ExerciseDetailModal({
   const [showSetEditor, setShowSetEditor] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
 
-  // Reset sets when exercise changes
+  // Reset sets when exercise changes - use ref to avoid infinite loop
   useEffect(() => {
-    if (exerciseId) {
-      setSets(getInitialSets(exercise));
-      setPersonalNote(exercise?.notes || '');
+    if (exerciseId && exerciseRef.current) {
+      setSets(getInitialSets(exerciseRef.current));
+      setPersonalNote(exerciseRef.current?.notes || '');
       setEditingNote(false);
       setShowVideo(false);
       setShowSetEditor(false);
     }
-  }, [exerciseId, getInitialSets, exercise]);
+  }, [exerciseId, getInitialSets]);
 
   // Cleanup on unmount only
   useEffect(() => {
@@ -220,13 +224,13 @@ function ExerciseDetailModal({
 
   const muscleColor = getMuscleColor(exercise?.muscle_group || exercise?.muscleGroup);
 
-  // Stable handlers for swap modal - use exerciseId instead of exercise object
+  // Stable handlers for swap modal - use ref to avoid infinite loop
   const handleSwapSelect = useCallback((newExercise) => {
-    if (onSwapExercise && newExercise && exercise) {
-      onSwapExercise(exercise, newExercise);
+    if (onSwapExercise && newExercise && exerciseRef.current) {
+      onSwapExercise(exerciseRef.current, newExercise);
     }
     setShowSwapModal(false);
-  }, [onSwapExercise, exercise]);
+  }, [onSwapExercise]);
 
   const handleSwapClose = useCallback(() => {
     setShowSwapModal(false);
