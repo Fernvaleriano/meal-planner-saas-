@@ -51,15 +51,16 @@ exports.handler = async (event) => {
       if (clientId) {
         // If date is provided, get the specific workout for that date
         if (date) {
-          // First get the active assignment
+          // First get the active assignment - use maybeSingle to avoid errors when no assignment exists
           const { data: activeAssignment, error: assignmentError } = await supabase
             .from('client_workout_assignments')
             .select('*')
             .eq('client_id', clientId)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
 
           if (assignmentError && assignmentError.code !== 'PGRST116') {
+            console.error('Error fetching active assignment:', assignmentError);
             throw assignmentError;
           }
 
@@ -143,12 +144,17 @@ exports.handler = async (event) => {
               let workoutDayCount = 0;
               const tempDate = new Date(startDate);
 
-              while (tempDate < targetDate) {
+              // Safety limit: max 365 days to prevent infinite loops
+              let loopCount = 0;
+              const maxLoops = 365;
+
+              while (tempDate < targetDate && loopCount < maxLoops) {
                 const tempDayName = dayNames[tempDate.getDay()];
                 if (selectedDays.includes(tempDayName)) {
                   workoutDayCount++;
                 }
                 tempDate.setDate(tempDate.getDate() + 1);
+                loopCount++;
               }
 
               // Cycle through program days
