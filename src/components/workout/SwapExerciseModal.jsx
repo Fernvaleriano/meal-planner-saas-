@@ -85,6 +85,13 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     if (selecting || !newExercise) return;
     setSelecting(true);
 
+    // Safety timeout - reset selecting after 2 seconds in case something fails
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        setSelecting(false);
+      }
+    }, 2000);
+
     // Use requestAnimationFrame to ensure state updates are processed
     requestAnimationFrame(() => {
       if (onSwap) {
