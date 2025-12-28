@@ -197,8 +197,8 @@ function ExerciseDetailModal({
           </div>
         </div>
 
-        {/* Images Section */}
-        <div className="exercise-images-v3">
+        {/* Images Section - Single image */}
+        <div className="exercise-images-v3 single-image">
           {showVideo && videoUrl ? (
             <div className="video-container-full">
               <video
@@ -215,16 +215,9 @@ function ExerciseDetailModal({
             </div>
           ) : (
             <>
-              <div className="image-container">
+              <div className="image-container single">
                 <img
                   src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
-                  alt={exercise.name || 'Exercise'}
-                  onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-                />
-              </div>
-              <div className="image-container">
-                <img
-                  src={exercise.end_position_url || exercise.animation_url || exercise.thumbnail_url || '/img/exercise-placeholder.svg'}
                   alt={exercise.name || 'Exercise'}
                   onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
                 />

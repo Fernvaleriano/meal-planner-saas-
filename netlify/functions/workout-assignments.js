@@ -86,7 +86,52 @@ exports.handler = async (event) => {
           // Check if this day is in the selected days (if schedule exists)
           const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
 
+          // Check for date overrides (reschedule/duplicate/skip)
+          const dateOverrides = workoutData.date_overrides || {};
+          const dateKey = date; // Date string like "2025-12-28"
+          const override = dateOverrides[dateKey];
+
           let todayWorkout = null;
+
+          // If there's an override for this date, use it
+          if (override) {
+            if (override.isRest) {
+              // This date was marked as rest day
+              return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ assignments: [] })
+              };
+            }
+
+            if (override.dayIndex !== undefined && days.length > 0) {
+              // Use the overridden day index
+              const dayIndex = override.dayIndex % days.length;
+              todayWorkout = {
+                id: activeAssignment.id,
+                name: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                day_index: dayIndex,
+                workout_data: {
+                  ...days[dayIndex],
+                  exercises: days[dayIndex].exercises || [],
+                  estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
+                  estimatedCalories: days[dayIndex].estimatedCalories || 300,
+                  image_url: workoutData.image_url || null
+                },
+                program_id: activeAssignment.program_id,
+                client_id: activeAssignment.client_id,
+                is_override: true
+              };
+
+              return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                  assignments: [todayWorkout]
+                })
+              };
+            }
+          }
 
           if (days.length > 0) {
             // Check if this day of week is a workout day

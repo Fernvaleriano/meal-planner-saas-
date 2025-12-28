@@ -26,6 +26,99 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
+    // POST - Reschedule or duplicate a workout to another date
+    if (event.httpMethod === 'POST') {
+      const body = JSON.parse(event.body || '{}');
+      const { assignmentId, action, sourceDayIndex, targetDate, sourceDate } = body;
+
+      if (!assignmentId || !action || !targetDate) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'assignmentId, action, and targetDate are required' })
+        };
+      }
+
+      if (!['reschedule', 'duplicate', 'skip'].includes(action)) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'action must be reschedule, duplicate, or skip' })
+        };
+      }
+
+      // Fetch the current assignment
+      const { data: assignment, error: fetchError } = await supabase
+        .from('client_workout_assignments')
+        .select('*')
+        .eq('id', assignmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching assignment:', fetchError);
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Assignment not found' })
+        };
+      }
+
+      const currentWorkoutData = assignment.workout_data || {};
+      const dateOverrides = currentWorkoutData.date_overrides || {};
+
+      if (action === 'skip') {
+        // Mark target date as rest day
+        dateOverrides[targetDate] = { isRest: true };
+      } else if (action === 'reschedule') {
+        // Move workout from source date to target date
+        if (sourceDate) {
+          // Mark source date as rest
+          dateOverrides[sourceDate] = { isRest: true };
+        }
+        // Assign the workout day to target date
+        if (sourceDayIndex !== undefined) {
+          dateOverrides[targetDate] = { dayIndex: sourceDayIndex };
+        }
+      } else if (action === 'duplicate') {
+        // Copy workout to target date (source stays as-is)
+        if (sourceDayIndex !== undefined) {
+          dateOverrides[targetDate] = { dayIndex: sourceDayIndex };
+        }
+      }
+
+      // Save the updated workout_data with date overrides
+      const updatedWorkoutData = {
+        ...currentWorkoutData,
+        date_overrides: dateOverrides
+      };
+
+      const { data: updatedAssignment, error: updateError } = await supabase
+        .from('client_workout_assignments')
+        .update({ workout_data: updatedWorkoutData })
+        .eq('id', assignmentId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating assignment:', updateError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Failed to save date override' })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: `Workout ${action}d successfully`,
+          dateOverrides: updatedWorkoutData.date_overrides
+        })
+      };
+    }
+
     // PUT - Update workout data for a specific assignment/day
     if (event.httpMethod === 'PUT') {
       const body = JSON.parse(event.body || '{}');

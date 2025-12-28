@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw } from 'lucide-react';
 
 // Parse reps - if it's a range like "8-12", return just the first number
@@ -45,6 +45,22 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [restTimerActive, setRestTimerActive] = useState(null);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const restTimerRef = useRef(null);
+
+  // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
+  useEffect(() => {
+    if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
+      const newSets = exercise.sets.filter(Boolean).map(set => ({
+        reps: set?.reps || exercise.reps || 12,
+        weight: set?.weight || 0,
+        completed: set?.completed || false,
+        duration: set?.duration || exercise.duration || null,
+        restSeconds: set?.restSeconds || exercise.restSeconds || 60
+      }));
+      if (newSets.length > 0) {
+        setSets(newSets);
+      }
+    }
+  }, [exercise.sets, exercise.reps, exercise.duration, exercise.restSeconds]);
 
   // Calculate completed sets
   const completedSets = sets.filter(s => s.completed).length;

@@ -12090,6 +12090,98 @@ a.nav-left {
     color: #f59e0b;
 }
 
+/* Reschedule Modal Styles */
+.reschedule-modal {
+    max-height: 50vh;
+}
+
+.reschedule-content {
+    padding: 24px;
+}
+
+.reschedule-description {
+    color: #9ca3af;
+    font-size: 15px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.reschedule-date-picker {
+    margin-bottom: 24px;
+}
+
+.reschedule-date-picker label {
+    display: block;
+    color: #9ca3af;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.reschedule-date-picker input[type="date"] {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.reschedule-date-picker input[type="date"]:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+}
+
+.reschedule-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+.reschedule-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.reschedule-cancel-btn {
+    flex: 1;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reschedule-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.reschedule-confirm-btn {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reschedule-confirm-btn:hover {
+    transform: scale(1.02);
+}
+
+.reschedule-confirm-btn:active {
+    transform: scale(0.98);
+}
+
 /* Hero Section V3 - With Background Image */
 .workout-hero-v3 {
     position: relative;
@@ -12215,16 +12307,13 @@ a.nav-left {
     color: #3b82f6;
 }
 
-/* Finish Training Section - with safe area support */
+/* Finish Training Section - scrolls with content */
 .finish-training-section {
-    position: fixed;
-    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    padding: 0 20px;
-    width: 100%;
-    max-width: 400px;
+    display: flex;
+    justify-content: center;
+    padding: 24px 20px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    margin-top: 16px;
 }
 
 .finish-training-btn {
@@ -14107,6 +14196,18 @@ a.nav-left {
 
 .exercise-images-v3 .center-play-btn svg {
     margin-left: 4px;
+}
+
+/* Single Image Mode */
+.exercise-images-v3.single-image {
+    justify-content: center;
+}
+
+.exercise-images-v3 .image-container.single {
+    flex: none;
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 4 / 3;
 }
 
 /* Difficulty Section */
@@ -17835,14 +17936,14 @@ a.nav-left {
 }
 
 [data-theme="dark"] .muscle-filter-pill {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #e2e8f0;
 }
 
 [data-theme="dark"] .muscle-filter-pill:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
 }
 
 .muscle-filter-pill.active {
