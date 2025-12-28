@@ -97,6 +97,13 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     if (selecting || !exercise) return;
     setSelecting(true);
 
+    // Safety timeout - reset selecting after 2 seconds in case something fails
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        setSelecting(false);
+      }
+    }, 2000);
+
     // Add default workout configuration
     const exerciseWithConfig = {
       ...exercise,
@@ -138,8 +145,12 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     setSearchQuery(e.target.value);
   }, []);
 
-  // Handle muscle filter change
-  const handleMuscleChange = useCallback((muscleValue) => {
+  // Handle muscle filter change - optimized for touch
+  const handleMuscleChange = useCallback((e, muscleValue) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setSelectedMuscle(muscleValue);
   }, []);
 
@@ -165,13 +176,14 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
           />
         </div>
 
-        {/* Muscle Group Filter Pills */}
+        {/* Muscle Group Filter Pills - larger touch targets */}
         <div className="muscle-filter-pills">
           {MUSCLE_GROUPS.map(muscle => (
             <button
               key={muscle.value}
               className={`muscle-filter-pill ${selectedMuscle === muscle.value ? 'active' : ''}`}
-              onClick={() => handleMuscleChange(muscle.value)}
+              onClick={(e) => handleMuscleChange(e, muscle.value)}
+              onTouchEnd={(e) => handleMuscleChange(e, muscle.value)}
             >
               {muscle.label}
             </button>

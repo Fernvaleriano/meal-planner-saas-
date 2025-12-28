@@ -17782,16 +17782,19 @@ a.nav-left {
 
 .muscle-filter-pills {
     display: flex;
-    gap: 10px;
-    padding: 14px 16px;
+    gap: 12px;
+    padding: 16px 16px 20px;
     overflow-x: auto;
     scrollbar-width: none;
     background: var(--gray-50);
     -webkit-overflow-scrolling: touch;
+    /* Extra padding at bottom for separation from exercise list */
+    border-bottom: 1px solid var(--gray-200);
 }
 
 [data-theme="dark"] .muscle-filter-pills {
     background: #1e293b;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .muscle-filter-pills::-webkit-scrollbar {
@@ -17799,32 +17802,44 @@ a.nav-left {
 }
 
 .muscle-filter-pill {
-    padding: 10px 18px;
+    /* Larger touch targets - min 44px height (Apple HIG) */
+    padding: 14px 22px;
+    min-height: 48px;
     background: var(--gray-100);
     border: 2px solid transparent;
     border-radius: 25px;
     color: var(--gray-600);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Prevent text selection on double-tap */
+    -webkit-touch-callout: none;
 }
 
 .muscle-filter-pill:hover {
     background: var(--gray-200);
 }
 
+/* Pressed/active state for immediate feedback */
+.muscle-filter-pill:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
 [data-theme="dark"] .muscle-filter-pill {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
     color: #94a3b8;
 }
 
 [data-theme="dark"] .muscle-filter-pill:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.12);
     color: #f1f5f9;
 }
 
@@ -17833,6 +17848,11 @@ a.nav-left {
     border-color: transparent;
     color: white;
     box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.muscle-filter-pill.active:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.4);
 }
 
 .add-exercise-list {
