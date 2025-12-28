@@ -12090,6 +12090,98 @@ a.nav-left {
     color: #f59e0b;
 }
 
+/* Reschedule Modal Styles */
+.reschedule-modal {
+    max-height: 50vh;
+}
+
+.reschedule-content {
+    padding: 24px;
+}
+
+.reschedule-description {
+    color: #9ca3af;
+    font-size: 15px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.reschedule-date-picker {
+    margin-bottom: 24px;
+}
+
+.reschedule-date-picker label {
+    display: block;
+    color: #9ca3af;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.reschedule-date-picker input[type="date"] {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.reschedule-date-picker input[type="date"]:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+}
+
+.reschedule-date-picker input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+.reschedule-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.reschedule-cancel-btn {
+    flex: 1;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reschedule-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.reschedule-confirm-btn {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reschedule-confirm-btn:hover {
+    transform: scale(1.02);
+}
+
+.reschedule-confirm-btn:active {
+    transform: scale(0.98);
+}
+
 /* Hero Section V3 - With Background Image */
 .workout-hero-v3 {
     position: relative;

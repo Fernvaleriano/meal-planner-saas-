@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Zap, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
@@ -115,6 +115,11 @@ function Workouts() {
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
+
+  // States for reschedule/duplicate functionality
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleAction, setRescheduleAction] = useState(null); // 'reschedule', 'duplicate', 'skip'
+  const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
   const menuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
   const selectedExerciseRef = useRef(null);
@@ -470,6 +475,50 @@ function Workouts() {
     }
   }, [clientData?.id]);
 
+  // Handle reschedule/duplicate/skip workout
+  const handleRescheduleWorkout = useCallback(async () => {
+    if (!todayWorkout?.id || !rescheduleAction || !rescheduleTargetDate) return;
+
+    try {
+      const res = await apiPost('/.netlify/functions/client-workout-log', {
+        assignmentId: todayWorkout.id,
+        action: rescheduleAction,
+        sourceDayIndex: todayWorkout.day_index,
+        sourceDate: formatDate(selectedDate),
+        targetDate: rescheduleTargetDate
+      });
+
+      if (res?.success) {
+        // Close modal and refresh
+        setShowRescheduleModal(false);
+        setRescheduleAction(null);
+        setRescheduleTargetDate('');
+
+        // If rescheduled away, refresh to show rest day
+        if (rescheduleAction === 'reschedule' || rescheduleAction === 'skip') {
+          refreshWorkoutData();
+        }
+
+        // Show success feedback
+        alert(`Workout ${rescheduleAction === 'duplicate' ? 'duplicated' : rescheduleAction === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
+      }
+    } catch (err) {
+      console.error('Error rescheduling workout:', err);
+      alert('Failed to update workout schedule');
+    }
+  }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData]);
+
+  // Open reschedule modal with action type
+  const openRescheduleModal = useCallback((action) => {
+    setRescheduleAction(action);
+    // Default to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setRescheduleTargetDate(formatDate(tomorrow));
+    setShowRescheduleModal(true);
+    setShowMenu(false);
+  }, []);
+
   // Calculate workout duration
   const workoutDuration = useMemo(() => {
     if (!workoutStartTime) return 0;
@@ -615,6 +664,31 @@ function Workouts() {
                 <History size={18} />
                 <span>Workout History</span>
               </button>
+              {todayWorkout && (
+                <>
+                  <button
+                    className="menu-item"
+                    onClick={() => openRescheduleModal('reschedule')}
+                  >
+                    <ArrowRightLeft size={18} />
+                    <span>Reschedule Workout</span>
+                  </button>
+                  <button
+                    className="menu-item"
+                    onClick={() => openRescheduleModal('duplicate')}
+                  >
+                    <Copy size={18} />
+                    <span>Duplicate to Date</span>
+                  </button>
+                  <button
+                    className="menu-item"
+                    onClick={() => openRescheduleModal('skip')}
+                  >
+                    <SkipForward size={18} />
+                    <span>Skip Today</span>
+                  </button>
+                </>
+              )}
               <button
                 className="menu-item"
                 onClick={() => {
@@ -897,6 +971,61 @@ function Workouts() {
           onClose={() => setShowAddActivity(false)}
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
         />
+      )}
+
+      {/* Reschedule/Duplicate Modal */}
+      {showRescheduleModal && (
+        <div className="workout-history-overlay" onClick={() => setShowRescheduleModal(false)}>
+          <div className="workout-history-modal reschedule-modal" onClick={e => e.stopPropagation()}>
+            <div className="history-header">
+              <h2>
+                {rescheduleAction === 'reschedule' ? 'Reschedule Workout' :
+                 rescheduleAction === 'duplicate' ? 'Duplicate Workout' :
+                 'Skip Workout'}
+              </h2>
+              <button className="history-close-btn" onClick={() => setShowRescheduleModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="reschedule-content">
+              <p className="reschedule-description">
+                {rescheduleAction === 'reschedule' ?
+                  `Move "${todayWorkout?.name || 'Today\'s Workout'}" to another date:` :
+                 rescheduleAction === 'duplicate' ?
+                  `Copy "${todayWorkout?.name || 'Today\'s Workout'}" to another date:` :
+                  `Skip today's workout and rest instead?`}
+              </p>
+              {rescheduleAction !== 'skip' && (
+                <div className="reschedule-date-picker">
+                  <label htmlFor="targetDate">Select Date:</label>
+                  <input
+                    type="date"
+                    id="targetDate"
+                    value={rescheduleTargetDate}
+                    onChange={(e) => setRescheduleTargetDate(e.target.value)}
+                    min={formatDate(new Date())}
+                  />
+                </div>
+              )}
+              <div className="reschedule-actions">
+                <button
+                  className="reschedule-cancel-btn"
+                  onClick={() => setShowRescheduleModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="reschedule-confirm-btn"
+                  onClick={handleRescheduleWorkout}
+                >
+                  {rescheduleAction === 'reschedule' ? 'Reschedule' :
+                   rescheduleAction === 'duplicate' ? 'Duplicate' :
+                   'Skip Today'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
