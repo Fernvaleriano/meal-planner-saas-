@@ -17800,6 +17800,8 @@ a.nav-left {
     /* Ensure children have proper flex behavior */
     display: flex;
     flex-direction: column;
+    /* Prevent children from overflowing incorrectly */
+    overflow: hidden;
 }
 
 [data-theme="dark"] .add-activity-modal {
@@ -17897,6 +17899,9 @@ a.nav-left {
     -webkit-overflow-scrolling: touch;
     /* Fix for flex container scrolling */
     flex-shrink: 0;
+    /* Ensure pills stay above exercise list */
+    position: relative;
+    z-index: 10;
     /* Extra padding at bottom for separation from exercise list */
     border-bottom: 1px solid var(--gray-200);
 }
@@ -17971,6 +17976,11 @@ a.nav-left {
     overflow-y: auto;
     padding: 8px 0;
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 20px));
+    /* Ensure proper stacking below filter pills */
+    position: relative;
+    z-index: 1;
+    /* Prevent list from overlapping pills */
+    min-height: 0;
 }
 
 .add-exercise-item {
