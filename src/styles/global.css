@@ -13310,6 +13310,10 @@ a.nav-left {
     z-index: 1000;
     overflow-y: auto;
     animation: fadeIn 0.2s ease;
+    /* Mobile Safari fixes */
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 @keyframes fadeIn {
@@ -14652,6 +14656,10 @@ a.nav-left {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    /* Mobile Safari fixes */
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .set-editor-modal {
@@ -17119,6 +17127,10 @@ a.nav-left {
     align-items: flex-end;
     justify-content: center;
     animation: fadeIn 0.2s ease;
+    /* Mobile Safari fixes */
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .swap-modal {

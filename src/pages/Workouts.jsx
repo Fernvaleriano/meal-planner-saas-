@@ -292,6 +292,7 @@ function Workouts() {
   }, []);
 
   // Handle exercise swap - use ref for stable callback
+  // Uses requestAnimationFrame for mobile Safari stability
   const handleSwapExercise = useCallback((oldExercise, newExercise) => {
     const workout = todayWorkoutRef.current;
     if (!workout?.workout_data?.exercises || !oldExercise || !newExercise) return;
@@ -313,19 +314,20 @@ function Workouts() {
       return ex;
     });
 
-    // Close the detail modal first to prevent stale state issues
-    setSelectedExercise(null);
-
-    // Then update the workout data
-    setTodayWorkout(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        workout_data: {
-          ...prev.workout_data,
-          exercises: updatedExercises
-        }
-      };
+    // Use requestAnimationFrame to batch state updates for mobile Safari
+    requestAnimationFrame(() => {
+      // Close modal and update workout in same frame
+      setSelectedExercise(null);
+      setTodayWorkout(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          workout_data: {
+            ...prev.workout_data,
+            exercises: updatedExercises
+          }
+        };
+      });
     });
 
     // Save to backend (fire and forget, errors logged)
@@ -516,8 +518,11 @@ function Workouts() {
     }
   }, []);
 
+  // Close modal with requestAnimationFrame for mobile Safari stability
   const handleCloseModal = useCallback(() => {
-    setSelectedExercise(null);
+    requestAnimationFrame(() => {
+      setSelectedExercise(null);
+    });
   }, []);
 
   // Stable callback for toggling selected exercise - uses ref to avoid recreating on every render

@@ -86,7 +86,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     return results;
   }, [exercises, selectedMuscle, searchQuery, existingExerciseIds]);
 
-  // Handle exercise selection
+  // Handle exercise selection - with mobile Safari protection
   const handleSelect = useCallback((e, exercise) => {
     if (e) {
       e.preventDefault();
@@ -106,12 +106,15 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
       weight: 0
     };
 
-    if (onAdd) {
-      onAdd(exerciseWithConfig);
-    }
-    if (onClose) {
-      onClose();
-    }
+    // Use requestAnimationFrame for mobile Safari stability
+    requestAnimationFrame(() => {
+      if (onAdd) {
+        onAdd(exerciseWithConfig);
+      }
+      if (onClose) {
+        onClose();
+      }
+    });
   }, [selecting, onAdd, onClose]);
 
   // Handle close
