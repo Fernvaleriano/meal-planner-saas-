@@ -379,6 +379,44 @@ function Workouts() {
     });
   }, []); // Removed todayWorkout and selectedDate - using ref instead
 
+  // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
+  const handleUpdateExercise = useCallback((updatedExercise) => {
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data?.exercises || !updatedExercise) return;
+
+    // Update the exercise in the workout data
+    const updatedExercises = workout.workout_data.exercises.map(ex => {
+      if (ex?.id === updatedExercise.id) {
+        return updatedExercise;
+      }
+      return ex;
+    });
+
+    // Update local state
+    setTodayWorkout(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        workout_data: {
+          ...prev.workout_data,
+          exercises: updatedExercises
+        }
+      };
+    });
+
+    // Save to backend (fire and forget, errors logged)
+    apiPut('/.netlify/functions/client-workout-log', {
+      assignmentId: workout.id,
+      dayIndex: workout.day_index,
+      workout_data: {
+        ...workout.workout_data,
+        exercises: updatedExercises
+      }
+    }).catch(err => {
+      console.error('Error saving exercise update:', err);
+    });
+  }, []); // Using ref instead of dependencies
+
   // Start workout
   const handleStartWorkout = useCallback(async () => {
     setWorkoutStarted(true);
@@ -772,6 +810,7 @@ function Workouts() {
             workoutStarted={workoutStarted}
             completedExercises={completedExercises}
             onSwapExercise={handleSwapExercise}
+            onUpdateExercise={handleUpdateExercise}
           />
         </ErrorBoundary>
       )}

@@ -17820,6 +17820,8 @@ a.nav-left {
     -webkit-user-select: none;
     /* Prevent text selection on double-tap */
     -webkit-touch-callout: none;
+    /* Prevent pills from shrinking/being cut off */
+    flex-shrink: 0;
 }
 
 .muscle-filter-pill:hover {

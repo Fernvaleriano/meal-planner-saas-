@@ -16,7 +16,8 @@ function ExerciseDetailModal({
   onToggleComplete,
   workoutStarted,
   completedExercises,
-  onSwapExercise
+  onSwapExercise,
+  onUpdateExercise // New callback for saving set/rep changes
 }) {
   // Early return if no exercise - prevents crashes
   if (!exercise) return null;
@@ -26,7 +27,8 @@ function ExerciseDetailModal({
     onClose,
     onSelectExercise,
     onToggleComplete,
-    onSwapExercise
+    onSwapExercise,
+    onUpdateExercise
   });
 
   // Update refs silently
@@ -34,7 +36,8 @@ function ExerciseDetailModal({
     onClose,
     onSelectExercise,
     onToggleComplete,
-    onSwapExercise
+    onSwapExercise,
+    onUpdateExercise
   };
 
   // Simple state - minimize state variables
@@ -129,6 +132,21 @@ function ExerciseDetailModal({
       return [...prev, { ...lastSet, completed: false }];
     });
   }, []);
+
+  // Save sets handler - updates local state AND persists to backend
+  const handleSaveSets = useCallback((newSets) => {
+    // Update local state
+    setSets(newSets);
+
+    // Persist to backend via parent callback
+    if (callbackRefs.current.onUpdateExercise && exercise) {
+      const updatedExercise = {
+        ...exercise,
+        sets: newSets
+      };
+      callbackRefs.current.onUpdateExercise(updatedExercise);
+    }
+  }, [exercise]);
 
   // Stop propagation handler - memoized
   const stopPropagation = useCallback((e) => {
@@ -307,7 +325,7 @@ function ExerciseDetailModal({
             exercise={exercise}
             sets={sets}
             isTimedExercise={isTimedExercise}
-            onSave={setSets}
+            onSave={handleSaveSets}
             onClose={() => setShowSetEditor(false)}
           />
         </Portal>
