@@ -17670,8 +17670,8 @@ a.nav-left {
 }
 
 [data-theme="dark"] .add-activity-btn {
-    border-color: #475569;
-    color: #94a3b8;
+    border-color: rgba(13, 148, 136, 0.4);
+    color: #0d9488;
 }
 
 .add-activity-btn:hover {
@@ -17711,20 +17711,29 @@ a.nav-left {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--gray-200);
+    padding: 12px 16px;
+    background: white;
 }
 
 [data-theme="dark"] .add-activity-search {
-    border-color: #334155;
+    background: #1e293b;
+}
+
+.add-activity-search svg {
+    color: var(--gray-400);
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .add-activity-search svg {
+    color: #64748b;
 }
 
 .add-activity-search input {
     flex: 1;
     background: var(--gray-100);
     border: none;
-    padding: 12px 16px;
-    border-radius: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
     font-size: 15px;
     color: var(--gray-800);
     outline: none;
@@ -17738,14 +17747,17 @@ a.nav-left {
 .muscle-filter-pills {
     display: flex;
     gap: 8px;
-    padding: 12px 20px;
+    padding: 10px 16px;
     overflow-x: auto;
     scrollbar-width: none;
     border-bottom: 1px solid var(--gray-200);
+    background: white;
+    -webkit-overflow-scrolling: touch;
 }
 
 [data-theme="dark"] .muscle-filter-pills {
     border-color: #334155;
+    background: #1e293b;
 }
 
 .muscle-filter-pills::-webkit-scrollbar {
