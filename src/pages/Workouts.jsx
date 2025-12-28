@@ -5,6 +5,7 @@ import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Helper to get date string in LOCAL timezone (NOT UTC)
@@ -748,20 +749,22 @@ function Workouts() {
         </div>
       )}
 
-      {/* Exercise Detail Modal */}
+      {/* Exercise Detail Modal - Wrapped in ErrorBoundary */}
       {selectedExercise && (
-        <ExerciseDetailModal
-          exercise={selectedExercise}
-          exercises={exercises}
-          currentIndex={Math.max(0, exercises.findIndex(e => e?.id === selectedExercise?.id))}
-          onClose={handleCloseModal}
-          onSelectExercise={handleExerciseClick}
-          isCompleted={completedExercises.has(selectedExercise?.id)}
-          onToggleComplete={handleToggleSelectedExercise}
-          workoutStarted={workoutStarted}
-          completedExercises={completedExercises}
-          onSwapExercise={handleSwapExercise}
-        />
+        <ErrorBoundary>
+          <ExerciseDetailModal
+            exercise={selectedExercise}
+            exercises={exercises}
+            currentIndex={Math.max(0, exercises.findIndex(e => e?.id === selectedExercise?.id))}
+            onClose={handleCloseModal}
+            onSelectExercise={handleExerciseClick}
+            isCompleted={completedExercises.has(selectedExercise?.id)}
+            onToggleComplete={handleToggleSelectedExercise}
+            workoutStarted={workoutStarted}
+            completedExercises={completedExercises}
+            onSwapExercise={handleSwapExercise}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Workout Summary Modal */}
