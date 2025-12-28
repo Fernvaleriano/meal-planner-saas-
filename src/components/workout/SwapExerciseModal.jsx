@@ -8,22 +8,20 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
   const [error, setError] = useState(null);
   const [selecting, setSelecting] = useState(false);
 
-  // Refs for cleanup
+  // Refs for cleanup and stable references
   const isMountedRef = useRef(true);
-  const abortControllerRef = useRef(null);
+  const workoutExercisesRef = useRef(workoutExercises);
+
+  // Update ref when workoutExercises changes (but don't trigger re-render)
+  workoutExercisesRef.current = workoutExercises;
 
   // Get the current exercise's muscle group
   const muscleGroup = exercise?.muscle_group || exercise?.muscleGroup || '';
+  const exerciseId = exercise?.id;
 
-  // Fetch AI-powered suggestions with cleanup
+  // Fetch AI-powered suggestions - only depends on exerciseId
   const fetchSuggestions = useCallback(async () => {
-    // Cancel any pending request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || !exerciseId) return;
 
     setLoading(true);
     setError(null);
@@ -31,7 +29,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     try {
       const response = await apiPost('/.netlify/functions/ai-swap-exercise', {
         exercise: {
-          id: exercise?.id,
+          id: exerciseId,
           name: exercise?.name,
           muscle_group: muscleGroup,
           equipment: exercise?.equipment,
@@ -39,13 +37,12 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
           difficulty: exercise?.difficulty,
           exercise_type: exercise?.exercise_type
         },
-        workoutExercises: (workoutExercises || []).map(ex => ({
+        workoutExercises: (workoutExercisesRef.current || []).map(ex => ({
           id: ex?.id,
           name: ex?.name
         })).filter(ex => ex.id)
       });
 
-      // Only update state if still mounted
       if (!isMountedRef.current) return;
 
       if (response?.suggestions) {
@@ -55,7 +52,6 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
       }
     } catch (err) {
       if (!isMountedRef.current) return;
-      if (err.name === 'AbortError') return;
 
       console.error('Error fetching AI suggestions:', err);
       setError('Failed to get suggestions. Please try again.');
@@ -65,20 +61,19 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     if (isMountedRef.current) {
       setLoading(false);
     }
-  }, [exercise?.id, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type, workoutExercises]);
+  }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type]);
 
-  // Fetch on mount and cleanup on unmount
+  // Fetch on mount only - cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
+
+    // Only fetch once on mount
     fetchSuggestions();
 
     return () => {
       isMountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
     };
-  }, [fetchSuggestions]);
+  }, []); // Empty dependency - only run on mount
 
   // Handle exercise selection
   const handleSelect = useCallback((e, newExercise) => {
@@ -87,11 +82,9 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
       e.stopPropagation();
     }
 
-    // Prevent double-firing
     if (selecting) return;
     setSelecting(true);
 
-    // Call onSwap - parent will close the modal
     if (onSwap && newExercise) {
       onSwap(newExercise);
     }
@@ -113,7 +106,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     }
   }, [handleClose]);
 
-  // Don't render if no exercise
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    fetchSuggestions();
+  }, [fetchSuggestions]);
+
   if (!exercise) return null;
 
   return (
@@ -157,7 +154,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
               AI Recommendations
             </span>
             {!loading && (
-              <button className="swap-refresh-btn" onClick={() => fetchSuggestions()}>
+              <button className="swap-refresh-btn" onClick={handleRefresh}>
                 <RefreshCw size={16} />
               </button>
             )}
@@ -173,14 +170,14 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
             ) : error ? (
               <div className="swap-error">
                 <p>{error}</p>
-                <button className="swap-retry-btn" onClick={() => fetchSuggestions()}>
+                <button className="swap-retry-btn" onClick={handleRefresh}>
                   Try Again
                 </button>
               </div>
             ) : suggestions.length === 0 ? (
               <div className="swap-empty">
                 <p>No alternative exercises found</p>
-                <button className="swap-retry-btn" onClick={() => fetchSuggestions()}>
+                <button className="swap-retry-btn" onClick={handleRefresh}>
                   Try Again
                 </button>
               </div>
