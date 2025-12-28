@@ -12307,16 +12307,13 @@ a.nav-left {
     color: #3b82f6;
 }
 
-/* Finish Training Section - with safe area support */
+/* Finish Training Section - scrolls with content */
 .finish-training-section {
-    position: fixed;
-    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    padding: 0 20px;
-    width: 100%;
-    max-width: 400px;
+    display: flex;
+    justify-content: center;
+    padding: 24px 20px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    margin-top: 16px;
 }
 
 .finish-training-btn {
@@ -14199,6 +14196,18 @@ a.nav-left {
 
 .exercise-images-v3 .center-play-btn svg {
     margin-left: 4px;
+}
+
+/* Single Image Mode */
+.exercise-images-v3.single-image {
+    justify-content: center;
+}
+
+.exercise-images-v3 .image-container.single {
+    flex: none;
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 4 / 3;
 }
 
 /* Difficulty Section */
@@ -17927,14 +17936,14 @@ a.nav-left {
 }
 
 [data-theme="dark"] .muscle-filter-pill {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #e2e8f0;
 }
 
 [data-theme="dark"] .muscle-filter-pill:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
 }
 
 .muscle-filter-pill.active {
