@@ -116,9 +116,11 @@ function Workouts() {
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const menuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
+  const selectedExerciseRef = useRef(null);
 
-  // Keep ref updated for stable callbacks
+  // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
+  selectedExerciseRef.current = selectedExercise;
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -517,6 +519,14 @@ function Workouts() {
     setSelectedExercise(null);
   }, []);
 
+  // Stable callback for toggling selected exercise - uses ref to avoid recreating on every render
+  const handleToggleSelectedExercise = useCallback(() => {
+    const exercise = selectedExerciseRef.current;
+    if (exercise?.id) {
+      toggleExerciseComplete(exercise.id);
+    }
+  }, [toggleExerciseComplete]);
+
   return (
     <div className="workouts-page-v2" {...containerProps}>
       {/* Pull-to-refresh indicator */}
@@ -747,7 +757,7 @@ function Workouts() {
           onClose={handleCloseModal}
           onSelectExercise={handleExerciseClick}
           isCompleted={completedExercises.has(selectedExercise?.id)}
-          onToggleComplete={() => toggleExerciseComplete(selectedExercise?.id)}
+          onToggleComplete={handleToggleSelectedExercise}
           workoutStarted={workoutStarted}
           completedExercises={completedExercises}
           onSwapExercise={handleSwapExercise}
