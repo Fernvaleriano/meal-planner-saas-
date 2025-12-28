@@ -16,14 +16,22 @@ function ExerciseDetailModal({
   completedExercises,
   onSwapExercise
 }) {
-  // Refs for cleanup - only set true on mount
+  // Refs for cleanup and stable callbacks
   const isMountedRef = useRef(true);
   const timerRef = useRef(null);
   const videoRef = useRef(null);
   const exerciseRef = useRef(exercise);
+  const onToggleCompleteRef = useRef(onToggleComplete);
+  const onSwapExerciseRef = useRef(onSwapExercise);
+  const onSelectExerciseRef = useRef(onSelectExercise);
+  const onCloseRef = useRef(onClose);
 
-  // Keep exercise ref updated
+  // Keep refs updated for stable callbacks
   exerciseRef.current = exercise;
+  onToggleCompleteRef.current = onToggleComplete;
+  onSwapExerciseRef.current = onSwapExercise;
+  onSelectExerciseRef.current = onSelectExercise;
+  onCloseRef.current = onClose;
 
   // Memoize exercise ID to prevent unnecessary re-renders
   const exerciseId = exercise?.id;
@@ -119,7 +127,7 @@ function ExerciseDetailModal({
   // Calculate completed sets
   const completedSets = useMemo(() => sets.filter(s => s?.completed).length, [sets]);
 
-  // Toggle set completion
+  // Toggle set completion - uses ref for onToggleComplete to prevent callback recreation
   const toggleSet = useCallback((setIndex) => {
     if (!workoutStarted) return;
 
@@ -135,14 +143,14 @@ function ExerciseDetailModal({
         startRestTimer(restSeconds);
       }
 
-      // Check if all sets complete
-      if (newSets.every(s => s?.completed) && !isCompleted && onToggleComplete) {
-        setTimeout(() => onToggleComplete(), 0);
+      // Check if all sets complete - use ref for stable callback
+      if (newSets.every(s => s?.completed) && !isCompleted && onToggleCompleteRef.current) {
+        setTimeout(() => onToggleCompleteRef.current(), 0);
       }
 
       return newSets;
     });
-  }, [workoutStarted, isCompleted, onToggleComplete]);
+  }, [workoutStarted, isCompleted, startRestTimer]); // Removed onToggleComplete - using ref
 
   // Add a set
   const addSet = useCallback(() => {
@@ -224,22 +232,22 @@ function ExerciseDetailModal({
 
   const muscleColor = getMuscleColor(exercise?.muscle_group || exercise?.muscleGroup);
 
-  // Stable handlers for swap modal - use ref to avoid infinite loop
+  // Stable handlers for swap modal - use refs to avoid infinite loop
   const handleSwapSelect = useCallback((newExercise) => {
-    if (onSwapExercise && newExercise && exerciseRef.current) {
-      onSwapExercise(exerciseRef.current, newExercise);
+    if (onSwapExerciseRef.current && newExercise && exerciseRef.current) {
+      onSwapExerciseRef.current(exerciseRef.current, newExercise);
     }
     setShowSwapModal(false);
-  }, [onSwapExercise]);
+  }, []); // Empty deps - all values accessed via refs
 
   const handleSwapClose = useCallback(() => {
     setShowSwapModal(false);
   }, []);
 
-  // Handle close - stable
+  // Handle close - stable with ref
   const handleClose = useCallback(() => {
-    if (onClose) onClose();
-  }, [onClose]);
+    if (onCloseRef.current) onCloseRef.current();
+  }, []); // Empty deps - using ref
 
   // Check if this is a timed/interval exercise
   const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'interval';
@@ -263,12 +271,12 @@ function ExerciseDetailModal({
     return 12;
   }, []);
 
-  // Handle exercise selection from thumbnails
+  // Handle exercise selection from thumbnails - use ref for stable callback
   const handleExerciseSelect = useCallback((ex) => {
-    if (onSelectExercise && ex) {
-      onSelectExercise(ex);
+    if (onSelectExerciseRef.current && ex) {
+      onSelectExerciseRef.current(ex);
     }
-  }, [onSelectExercise]);
+  }, []); // Empty deps - using ref
 
   // Don't render if no exercise
   if (!exercise) return null;
