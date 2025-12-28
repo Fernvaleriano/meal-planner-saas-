@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, Info, BarChart3, FileText, ArrowLeftRight } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
 
@@ -78,26 +79,32 @@ function ExerciseDetailModal({
     setShowSwapModal(false);
   }, [exercise?.id, initialSets]);
 
-  // Stable close handler
+  // Stable close handler - uses requestAnimationFrame for mobile Safari
   const handleClose = useCallback(() => {
-    try {
-      callbackRefs.current.onClose?.();
-    } catch (e) {
-      console.error('Error closing modal:', e);
-    }
+    requestAnimationFrame(() => {
+      try {
+        callbackRefs.current.onClose?.();
+      } catch (e) {
+        console.error('Error closing modal:', e);
+      }
+    });
   }, []);
 
-  // Stable swap handler
+  // Stable swap handler - uses requestAnimationFrame for mobile Safari
   const handleSwapSelect = useCallback((newExercise) => {
-    try {
-      if (newExercise && exercise) {
-        callbackRefs.current.onSwapExercise?.(exercise, newExercise);
+    // Close swap modal first
+    setShowSwapModal(false);
+
+    // Then trigger swap callback in next frame
+    requestAnimationFrame(() => {
+      try {
+        if (newExercise && exercise) {
+          callbackRefs.current.onSwapExercise?.(exercise, newExercise);
+        }
+      } catch (e) {
+        console.error('Error swapping exercise:', e);
       }
-      setShowSwapModal(false);
-    } catch (e) {
-      console.error('Error swapping exercise:', e);
-      setShowSwapModal(false);
-    }
+    });
   }, [exercise]);
 
   // Stable exercise select handler
@@ -293,25 +300,29 @@ function ExerciseDetailModal({
         </div>
       </div>
 
-      {/* Set Editor Modal */}
+      {/* Set Editor Modal - Portaled to body for mobile Safari stability */}
       {showSetEditor && (
-        <SetEditorModal
-          exercise={exercise}
-          sets={sets}
-          isTimedExercise={isTimedExercise}
-          onSave={setSets}
-          onClose={() => setShowSetEditor(false)}
-        />
+        <Portal>
+          <SetEditorModal
+            exercise={exercise}
+            sets={sets}
+            isTimedExercise={isTimedExercise}
+            onSave={setSets}
+            onClose={() => setShowSetEditor(false)}
+          />
+        </Portal>
       )}
 
-      {/* Swap Modal */}
+      {/* Swap Modal - Portaled to body for mobile Safari stability */}
       {showSwapModal && (
-        <SwapExerciseModal
-          exercise={exercise}
-          workoutExercises={exercises}
-          onSwap={handleSwapSelect}
-          onClose={() => setShowSwapModal(false)}
-        />
+        <Portal>
+          <SwapExerciseModal
+            exercise={exercise}
+            workoutExercises={exercises}
+            onSwap={handleSwapSelect}
+            onClose={() => setShowSwapModal(false)}
+          />
+        </Portal>
       )}
     </div>
   );

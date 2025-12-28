@@ -75,19 +75,22 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     };
   }, []); // Empty dependency - only run on mount
 
-  // Handle exercise selection
+  // Handle exercise selection - with mobile Safari protection
   const handleSelect = useCallback((e, newExercise) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    if (selecting) return;
+    if (selecting || !newExercise) return;
     setSelecting(true);
 
-    if (onSwap && newExercise) {
-      onSwap(newExercise);
-    }
+    // Use requestAnimationFrame to ensure state updates are processed
+    requestAnimationFrame(() => {
+      if (onSwap) {
+        onSwap(newExercise);
+      }
+    });
   }, [selecting, onSwap]);
 
   // Handle close
