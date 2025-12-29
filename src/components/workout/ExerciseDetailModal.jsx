@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff } from 'lucide-react';
-import { apiGet } from '../../utils/api';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2 } from 'lucide-react';
+import { apiGet, apiPost } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
+import AskCoachChat from './AskCoachChat';
 
 // Number words to digits mapping for voice input
 const numberWords = {
@@ -137,6 +138,12 @@ function ExerciseDetailModal({
   const [showSetEditor, setShowSetEditor] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAskCoach, setShowAskCoach] = useState(false);
+
+  // AI Tips state
+  const [tips, setTips] = useState([]);
+  const [tipsLoading, setTipsLoading] = useState(false);
+  const [tipsError, setTipsError] = useState(null);
 
   // Voice input state
   const [isListening, setIsListening] = useState(false);
@@ -192,7 +199,43 @@ function ExerciseDetailModal({
     setShowVideo(false);
     setShowSetEditor(false);
     setShowSwapModal(false);
+    setTips([]);
+    setTipsError(null);
   }, [exercise?.id, initialSets]);
+
+  // Fetch AI tips when exercise changes
+  useEffect(() => {
+    if (!exercise?.name) return;
+
+    const fetchTips = async () => {
+      setTipsLoading(true);
+      setTipsError(null);
+
+      try {
+        const response = await apiPost('/.netlify/functions/exercise-coach', {
+          mode: 'tips',
+          exercise: {
+            name: exercise.name,
+            muscle_group: exercise.muscle_group || exercise.muscleGroup,
+            equipment: exercise.equipment
+          }
+        });
+
+        if (response?.success && response?.tips) {
+          setTips(response.tips);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tips:', error);
+        setTipsError('Could not load tips');
+      } finally {
+        setTipsLoading(false);
+      }
+    };
+
+    // Small delay to avoid too many requests during quick navigation
+    const timer = setTimeout(fetchTips, 300);
+    return () => clearTimeout(timer);
+  }, [exercise?.id, exercise?.name]);
 
   // Stable close handler - uses requestAnimationFrame for mobile Safari
   const handleClose = useCallback(() => {
@@ -544,6 +587,37 @@ function ExerciseDetailModal({
           </div>
         </div>
 
+        {/* AI Tips Section */}
+        <div className="ai-tips-section">
+          <div className="tips-header">
+            <Lightbulb size={16} />
+            <span>Form Tips</span>
+            {tipsLoading && <Loader2 size={14} className="spin" />}
+          </div>
+          {tips.length > 0 ? (
+            <div className="tips-list">
+              {tips.map((tip, idx) => (
+                <div key={idx} className="tip-item">
+                  <span className="tip-bullet">•</span>
+                  <span className="tip-text">{tip}</span>
+                </div>
+              ))}
+            </div>
+          ) : tipsError ? (
+            <div className="tips-error">{tipsError}</div>
+          ) : !tipsLoading ? (
+            <div className="tips-loading">Loading tips...</div>
+          ) : null}
+          <button
+            className="ask-coach-btn"
+            onClick={() => setShowAskCoach(true)}
+            type="button"
+          >
+            <MessageCircle size={16} />
+            <span>Ask Coach</span>
+          </button>
+        </div>
+
         {/* Activity Progress */}
         {exercises.length > 0 && (
           <div className="activity-progress-bar">
@@ -640,6 +714,16 @@ function ExerciseDetailModal({
               </div>
             </div>
           </div>
+        </Portal>
+      )}
+
+      {/* Ask Coach Chat Modal */}
+      {showAskCoach && (
+        <Portal>
+          <AskCoachChat
+            exercise={exercise}
+            onClose={() => setShowAskCoach(false)}
+          />
         </Portal>
       )}
     </div>
