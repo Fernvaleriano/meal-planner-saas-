@@ -182,8 +182,8 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
             <button
               key={muscle.value}
               className={`muscle-filter-pill ${selectedMuscle === muscle.value ? 'active' : ''}`}
-              onClick={(e) => handleMuscleChange(e, muscle.value)}
-              onTouchEnd={(e) => handleMuscleChange(e, muscle.value)}
+              onClick={() => setSelectedMuscle(muscle.value)}
+              type="button"
             >
               {muscle.label}
             </button>
