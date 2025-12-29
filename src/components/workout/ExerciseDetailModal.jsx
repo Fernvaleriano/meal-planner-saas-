@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, Info, BarChart3, FileText, ArrowLeftRight, Trash2 } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2 } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -219,18 +219,6 @@ function ExerciseDetailModal({
                 <span>Swap</span>
               </button>
             )}
-            {onDeleteExercise && (
-              <button
-                className="delete-btn-visible"
-                onClick={() => setShowDeleteConfirm(true)}
-                type="button"
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-            <button className="info-btn" type="button">
-              <Info size={20} />
-            </button>
           </div>
         </div>
 
