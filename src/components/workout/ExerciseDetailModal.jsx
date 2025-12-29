@@ -6,93 +6,146 @@ import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import AskCoachChat from './AskCoachChat';
 
-// Number words to digits mapping for voice input
+// Number words to digits mapping for voice input (expanded)
 const numberWords = {
-  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+  'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
   'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
   'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+  'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20,
+  'twenty-five': 25, 'thirty': 30, 'thirty-five': 35, 'forty': 40, 'forty-five': 45,
+  'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90, 'hundred': 100,
   'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5
 };
 
 // Convert number words to digits in text
 const convertNumberWords = (text) => {
   let result = text.toLowerCase();
-  for (const [word, num] of Object.entries(numberWords)) {
+  // Sort by length descending to match longer phrases first (e.g., "twenty-five" before "twenty")
+  const sortedWords = Object.entries(numberWords).sort((a, b) => b[0].length - a[0].length);
+  for (const [word, num] of sortedWords) {
     result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), num.toString());
   }
   return result;
 };
 
-// Parse a single set segment to extract reps and weight
-const parseSetSegment = (segment) => {
-  const result = { reps: null, weight: null, rest: null };
-  const text = convertNumberWords(segment);
+// Smart voice parser - very flexible, handles natural speech
+const parseVoiceInput = (transcript, currentSets) => {
+  const text = convertNumberWords(transcript.toLowerCase());
 
-  // Extract reps
-  const repsPatterns = [
-    /(\d+)\s*(?:reps?|repetitions?)/i,
-    /(?:did|do)\s*(\d+)/i,
-    /(\d+)\s*(?:at|with|@)/i,
+  const result = {
+    setNumber: null,      // Which set to update (1-indexed), null = first incomplete
+    reps: null,
+    weight: null,
+    markComplete: false,
+    understood: false
+  };
+
+  // Check for "done", "complete", "finished" commands
+  if (/\b(done|complete|finished|check)\b/i.test(text)) {
+    result.markComplete = true;
+    result.understood = true;
+  }
+
+  // Try to find set number - very flexible matching
+  const setPatterns = [
+    /set\s*(?:number\s*)?(\d+)/i,           // "set 1", "set number 1"
+    /(\d+)(?:st|nd|rd|th)\s*set/i,          // "1st set", "2nd set"
+    /(?:on|for|do)\s*set\s*(\d+)/i,         // "on set 1", "for set 2"
   ];
-  for (const pattern of repsPatterns) {
+
+  for (const pattern of setPatterns) {
     const match = text.match(pattern);
     if (match) {
-      result.reps = parseInt(match[1], 10);
+      result.setNumber = parseInt(match[1], 10);
       break;
     }
   }
 
-  // Extract weight
-  const weightPatterns = [
-    /(?:with|at|@)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms)/i,
-    /(\d+(?:\.\d+)?)\s*(?:lb|lbs|pound|pounds)/i,
-  ];
-  for (const pattern of weightPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      let weight = parseFloat(match[1]);
-      if (/lb|pound/i.test(segment)) {
-        weight = Math.round(weight * 0.453592 * 2) / 2;
-      }
-      result.weight = weight;
-      break;
+  // Extract all numbers from the text
+  const numbers = [];
+  const numberRegex = /(\d+(?:\.\d+)?)/g;
+  let match;
+  while ((match = numberRegex.exec(text)) !== null) {
+    numbers.push(parseFloat(match[1]));
+  }
+
+  // Check for explicit weight markers (kg, lbs, kilos, pounds)
+  const weightMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms|pound|pounds|lb|lbs)/i);
+  if (weightMatch) {
+    let weight = parseFloat(weightMatch[1]);
+    // Convert pounds to kg if needed
+    if (/pound|lb/i.test(weightMatch[0])) {
+      weight = Math.round(weight * 0.453592 * 2) / 2;
     }
+    result.weight = weight;
+    result.understood = true;
+  }
+
+  // Check for explicit reps markers
+  const repsMatch = text.match(/(\d+)\s*(?:reps?|repetitions?|times)/i);
+  if (repsMatch) {
+    result.reps = parseInt(repsMatch[1], 10);
+    result.understood = true;
+  }
+
+  // If we have explicit markers for both, we're done
+  if (result.reps !== null && result.weight !== null) {
+    return result;
+  }
+
+  // Smart inference when markers aren't explicit
+  // Filter out the set number from our number list
+  const dataNumbers = numbers.filter(n => n !== result.setNumber);
+
+  if (dataNumbers.length >= 2 && result.reps === null && result.weight === null) {
+    // Two numbers: smaller one is likely reps, larger is weight
+    // Unless one is very small (1-3) which is more likely reps
+    const sorted = [...dataNumbers].sort((a, b) => a - b);
+
+    // Check context clues
+    const hasWeightFirst = /(\d+)\s*(?:kg|kilo|pound|lb|at|with|for)\s*(\d+)/i.test(text);
+    const hasRepsFirst = /(\d+)\s*(?:reps?|times|at|@|with)\s*(\d+)/i.test(text);
+
+    if (hasWeightFirst) {
+      // "50 kg for 12" or "50 at 12"
+      result.weight = dataNumbers[0];
+      result.reps = dataNumbers[1];
+    } else if (hasRepsFirst || sorted[0] <= 20) {
+      // "12 reps at 50" or first number is small enough to be reps
+      result.reps = sorted[0] <= 20 ? sorted[0] : dataNumbers[0];
+      result.weight = sorted[0] <= 20 ? sorted[1] : dataNumbers[1];
+    } else {
+      // Default: first is reps, second is weight
+      result.reps = dataNumbers[0];
+      result.weight = dataNumbers[1];
+    }
+    result.understood = true;
+  } else if (dataNumbers.length === 1) {
+    // Single number - need to guess if it's reps or weight
+    const num = dataNumbers[0];
+
+    // Context clues
+    if (/(?:kg|kilo|pound|lb|weight)/i.test(text)) {
+      result.weight = num;
+    } else if (/(?:reps?|times|repetitions?)/i.test(text)) {
+      result.reps = num;
+    } else if (num <= 20) {
+      // Small number without context = probably reps
+      result.reps = num;
+    } else {
+      // Larger number without context = probably weight
+      result.weight = num;
+    }
+    result.understood = true;
+  }
+
+  // If no set specified, find the first incomplete set
+  if (result.setNumber === null && currentSets) {
+    const firstIncomplete = currentSets.findIndex(s => !s.completed);
+    result.setNumber = firstIncomplete >= 0 ? firstIncomplete + 1 : 1;
   }
 
   return result;
-};
-
-// Parse voice input for multiple sets
-const parseVoiceInputForSets = (transcript) => {
-  const text = convertNumberWords(transcript.toLowerCase());
-  const setMentions = text.match(/set\s*(?:number\s*)?\d+/gi) || [];
-
-  if (setMentions.length > 1) {
-    const results = [];
-    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)/i).filter(s => s.trim());
-
-    for (const segment of segments) {
-      const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i);
-      if (setMatch) {
-        const setNumber = parseInt(setMatch[1], 10);
-        const parsed = parseSetSegment(segment);
-        if (parsed.reps !== null || parsed.weight !== null) {
-          results.push({ setNumber, ...parsed });
-        }
-      }
-    }
-    return { multiple: true, sets: results };
-  } else {
-    const result = { multiple: false, reps: null, weight: null, setNumber: null };
-    const setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i);
-    if (setMatch) {
-      result.setNumber = parseInt(setMatch[1], 10);
-    }
-    const parsed = parseSetSegment(text);
-    result.reps = parsed.reps;
-    result.weight = parsed.weight;
-    return result;
-  }
 };
 
 // Simplified and more stable ExerciseDetailModal
@@ -293,32 +346,30 @@ function ExerciseDetailModal({
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
 
-      const parsed = parseVoiceInputForSets(transcript);
-
       setSets(prevSets => {
-        const newSets = [...prevSets];
+        // Use new smart parser with current sets context
+        const parsed = parseVoiceInput(transcript, prevSets);
 
-        if (parsed.multiple && parsed.sets.length > 0) {
-          for (const setData of parsed.sets) {
-            const targetIndex = setData.setNumber - 1;
-            if (targetIndex >= 0 && targetIndex < newSets.length) {
-              if (setData.reps !== null) {
-                newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
-              }
-              if (setData.weight !== null) {
-                newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
-              }
-            }
+        if (!parsed.understood) {
+          setVoiceError('Could not understand. Try: "12 reps 50 kg" or "done"');
+          return prevSets;
+        }
+
+        const newSets = [...prevSets];
+        const targetIndex = (parsed.setNumber || 1) - 1;
+
+        if (targetIndex >= 0 && targetIndex < newSets.length) {
+          // Update reps if provided
+          if (parsed.reps !== null) {
+            newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
           }
-        } else {
-          const targetIndex = parsed.setNumber ? parsed.setNumber - 1 : 0;
-          if (targetIndex >= 0 && targetIndex < newSets.length) {
-            if (parsed.reps !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
-            }
-            if (parsed.weight !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], weight: parsed.weight };
-            }
+          // Update weight if provided
+          if (parsed.weight !== null) {
+            newSets[targetIndex] = { ...newSets[targetIndex], weight: parsed.weight };
+          }
+          // Mark as complete if requested
+          if (parsed.markComplete) {
+            newSets[targetIndex] = { ...newSets[targetIndex], completed: true };
           }
         }
 
@@ -584,7 +635,7 @@ function ExerciseDetailModal({
             {isListening && (
               <div className="voice-listening">
                 <div className="voice-pulse"></div>
-                <span>Listening... "Set 1, 12 reps at 50 kg, set 2, 10 reps..."</span>
+                <span>Try: "12 reps 50 kg" or "10 at 45" or "done"</span>
               </div>
             )}
             {lastTranscript && !isListening && (
