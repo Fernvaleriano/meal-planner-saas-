@@ -14947,6 +14947,114 @@ a.nav-left {
     color: #1d4ed8;
 }
 
+/* Voice input for ExerciseDetailModal */
+.modal-time-boxes-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0 16px;
+}
+
+.modal-time-boxes-wrapper .modal-time-boxes {
+    flex: 1;
+    padding: 0;
+}
+
+.voice-input-btn-detail {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.15);
+    border: none;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.voice-input-btn-detail:hover {
+    background: rgba(59, 130, 246, 0.25);
+    transform: scale(1.05);
+}
+
+.voice-input-btn-detail.listening {
+    background: #ef4444;
+    color: white;
+    animation: pulse-mic 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-mic {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+.voice-feedback-detail {
+    margin: 8px 16px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.1);
+    font-size: 13px;
+    color: #60a5fa;
+}
+
+.voice-feedback-detail.listening {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.voice-feedback-detail.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+}
+
+.voice-feedback-detail .voice-listening {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.voice-feedback-detail .voice-pulse {
+    width: 10px;
+    height: 10px;
+    background: #3b82f6;
+    border-radius: 50%;
+    animation: voice-pulse 1s ease-in-out infinite;
+}
+
+.voice-feedback-detail .voice-transcript {
+    color: #a5b4fc;
+}
+
+.voice-feedback-detail .transcript-label {
+    font-weight: 600;
+    color: #818cf8;
+    margin-right: 4px;
+}
+
+[data-theme="light"] .voice-input-btn-detail {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="light"] .voice-input-btn-detail:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="light"] .voice-feedback-detail {
+    background: rgba(59, 130, 246, 0.08);
+    color: #2563eb;
+}
+
+[data-theme="light"] .voice-feedback-detail .voice-transcript {
+    color: #3b82f6;
+}
+
+[data-theme="light"] .voice-feedback-detail .transcript-label {
+    color: #1d4ed8;
+}
+
 .editor-exercise-info {
     display: flex;
     align-items: center;
