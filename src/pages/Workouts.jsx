@@ -1124,6 +1124,7 @@ function Workouts() {
                     onMoveDown={handleMoveExerciseDown}
                     isFirst={index === 0}
                     isLast={index === exercises.length - 1}
+                    onUpdateExercise={handleUpdateExercise}
                   />
                 ) : null
               ))}
