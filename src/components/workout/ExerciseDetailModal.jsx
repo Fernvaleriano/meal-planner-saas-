@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, Info, BarChart3, FileText, ArrowLeftRight } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, Info, BarChart3, FileText, ArrowLeftRight, Trash2 } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -17,7 +17,8 @@ function ExerciseDetailModal({
   workoutStarted,
   completedExercises,
   onSwapExercise,
-  onUpdateExercise // New callback for saving set/rep changes
+  onUpdateExercise, // New callback for saving set/rep changes
+  onDeleteExercise // Callback for deleting exercise from workout
 }) {
   // Early return if no exercise - prevents crashes
   if (!exercise) return null;
@@ -28,7 +29,8 @@ function ExerciseDetailModal({
     onSelectExercise,
     onToggleComplete,
     onSwapExercise,
-    onUpdateExercise
+    onUpdateExercise,
+    onDeleteExercise
   });
 
   // Update refs silently
@@ -37,13 +39,15 @@ function ExerciseDetailModal({
     onSelectExercise,
     onToggleComplete,
     onSwapExercise,
-    onUpdateExercise
+    onUpdateExercise,
+    onDeleteExercise
   };
 
   // Simple state - minimize state variables
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [showSetEditor, setShowSetEditor] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Initialize sets once
   const initialSets = useMemo(() => {
@@ -148,6 +152,20 @@ function ExerciseDetailModal({
     }
   }, [exercise]);
 
+  // Delete exercise handler - uses requestAnimationFrame for mobile Safari
+  const handleDeleteExercise = useCallback(() => {
+    setShowDeleteConfirm(false);
+    requestAnimationFrame(() => {
+      try {
+        if (exercise) {
+          callbackRefs.current.onDeleteExercise?.(exercise);
+        }
+      } catch (e) {
+        console.error('Error deleting exercise:', e);
+      }
+    });
+  }, [exercise]);
+
   // Stop propagation handler - memoized
   const stopPropagation = useCallback((e) => {
     if (e) {
@@ -189,6 +207,15 @@ function ExerciseDetailModal({
               >
                 <ArrowLeftRight size={16} />
                 <span>Swap</span>
+              </button>
+            )}
+            {onDeleteExercise && (
+              <button
+                className="delete-btn-visible"
+                onClick={() => setShowDeleteConfirm(true)}
+                type="button"
+              >
+                <Trash2 size={16} />
               </button>
             )}
             <button className="info-btn" type="button">
@@ -333,6 +360,37 @@ function ExerciseDetailModal({
             onSwap={handleSwapSelect}
             onClose={() => setShowSwapModal(false)}
           />
+        </Portal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <Portal>
+          <div className="delete-confirm-overlay" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="delete-confirm-modal" onClick={stopPropagation}>
+              <div className="delete-confirm-icon">
+                <Trash2 size={32} />
+              </div>
+              <h3>Delete Exercise?</h3>
+              <p>Remove "{exercise.name}" from this workout?</p>
+              <div className="delete-confirm-actions">
+                <button
+                  className="delete-cancel-btn"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="delete-confirm-btn"
+                  onClick={handleDeleteExercise}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
         </Portal>
       )}
     </div>
