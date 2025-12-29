@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2 } from 'lucide-react';
+import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 // Defined outside component so it's available during initialization
@@ -12,7 +12,7 @@ const parseReps = (reps) => {
   return 12;
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast }) {
   // Check for special exercise types
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
@@ -53,7 +53,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const touchStartY = useRef(0);
   const cardRef = useRef(null);
   const swipeThreshold = 60; // Minimum swipe distance to reveal actions
-  const maxSwipe = 140; // Maximum swipe distance (width of both buttons)
+  const maxSwipe = 200; // Maximum swipe distance (width of all buttons)
 
   // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
   useEffect(() => {
@@ -250,6 +250,22 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
   };
 
+  const handleMoveUpClick = (e) => {
+    e.stopPropagation();
+    closeSwipe();
+    if (onMoveUp) {
+      onMoveUp(index);
+    }
+  };
+
+  const handleMoveDownClick = (e) => {
+    e.stopPropagation();
+    closeSwipe();
+    if (onMoveDown) {
+      onMoveDown(index);
+    }
+  };
+
   return (
     <div
       className={`exercise-card-wrapper ${swipeOffset > 0 ? 'swiped' : ''}`}
@@ -257,6 +273,25 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     >
       {/* Swipe Action Buttons (behind the card) */}
       <div className="swipe-actions">
+        {/* Reorder buttons */}
+        {(onMoveUp || onMoveDown) && (
+          <div className="swipe-reorder-btns">
+            <button
+              className={`swipe-move-btn ${isFirst ? 'disabled' : ''}`}
+              onClick={handleMoveUpClick}
+              disabled={isFirst}
+            >
+              <ChevronUp size={20} />
+            </button>
+            <button
+              className={`swipe-move-btn ${isLast ? 'disabled' : ''}`}
+              onClick={handleMoveDownClick}
+              disabled={isLast}
+            >
+              <ChevronDown size={20} />
+            </button>
+          </div>
+        )}
         {onSwapExercise && (
           <button className="swipe-action-btn swap-action" onClick={handleSwapClick}>
             <ArrowLeftRight size={20} />

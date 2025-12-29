@@ -579,6 +579,118 @@ function Workouts() {
     setSwipeDeleteExercise(null);
   }, [swipeDeleteExercise, handleDeleteExercise]);
 
+  // Handle moving exercise up in the list
+  const handleMoveExerciseUp = useCallback((index) => {
+    if (index <= 0) return;
+
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data) return;
+
+    // Get exercises from either direct array or days structure
+    let currentExercises = [];
+    let isUsingDays = false;
+    let dayIndex = workout.day_index || 0;
+
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+      currentExercises = [...workout.workout_data.exercises];
+    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+      isUsingDays = true;
+      const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+      currentExercises = [...(workout.workout_data.days[safeIndex]?.exercises || [])];
+    }
+
+    if (currentExercises.length < 2) return;
+
+    // Swap with previous exercise
+    [currentExercises[index - 1], currentExercises[index]] = [currentExercises[index], currentExercises[index - 1]];
+
+    // Update state
+    setTodayWorkout(prev => {
+      if (!prev) return prev;
+
+      if (isUsingDays) {
+        const updatedDays = [...(prev.workout_data.days || [])];
+        const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+        updatedDays[safeIndex] = { ...updatedDays[safeIndex], exercises: currentExercises };
+        return { ...prev, workout_data: { ...prev.workout_data, days: updatedDays } };
+      } else {
+        return { ...prev, workout_data: { ...prev.workout_data, exercises: currentExercises } };
+      }
+    });
+
+    // Save to backend
+    const workoutDataToSave = isUsingDays ? {
+      ...workout.workout_data,
+      days: workout.workout_data.days.map((day, idx) => {
+        if (idx === (Math.abs(dayIndex) % workout.workout_data.days.length)) {
+          return { ...day, exercises: currentExercises };
+        }
+        return day;
+      })
+    } : { ...workout.workout_data, exercises: currentExercises };
+
+    apiPut('/.netlify/functions/client-workout-log', {
+      assignmentId: workout.id,
+      dayIndex: workout.day_index,
+      workout_data: workoutDataToSave
+    }).catch(err => console.error('Error moving exercise:', err));
+  }, []);
+
+  // Handle moving exercise down in the list
+  const handleMoveExerciseDown = useCallback((index) => {
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data) return;
+
+    // Get exercises from either direct array or days structure
+    let currentExercises = [];
+    let isUsingDays = false;
+    let dayIndex = workout.day_index || 0;
+
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+      currentExercises = [...workout.workout_data.exercises];
+    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+      isUsingDays = true;
+      const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+      currentExercises = [...(workout.workout_data.days[safeIndex]?.exercises || [])];
+    }
+
+    if (index >= currentExercises.length - 1) return;
+
+    // Swap with next exercise
+    [currentExercises[index], currentExercises[index + 1]] = [currentExercises[index + 1], currentExercises[index]];
+
+    // Update state
+    setTodayWorkout(prev => {
+      if (!prev) return prev;
+
+      if (isUsingDays) {
+        const updatedDays = [...(prev.workout_data.days || [])];
+        const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+        updatedDays[safeIndex] = { ...updatedDays[safeIndex], exercises: currentExercises };
+        return { ...prev, workout_data: { ...prev.workout_data, days: updatedDays } };
+      } else {
+        return { ...prev, workout_data: { ...prev.workout_data, exercises: currentExercises } };
+      }
+    });
+
+    // Save to backend
+    const workoutDataToSave = isUsingDays ? {
+      ...workout.workout_data,
+      days: workout.workout_data.days.map((day, idx) => {
+        if (idx === (Math.abs(dayIndex) % workout.workout_data.days.length)) {
+          return { ...day, exercises: currentExercises };
+        }
+        return day;
+      })
+    } : { ...workout.workout_data, exercises: currentExercises };
+
+    apiPut('/.netlify/functions/client-workout-log', {
+      assignmentId: workout.id,
+      dayIndex: workout.day_index,
+      workout_data: workoutDataToSave
+    }).catch(err => console.error('Error moving exercise:', err));
+  }, []);
+
   // Start workout
   const handleStartWorkout = useCallback(async () => {
     setWorkoutStarted(true);
@@ -978,6 +1090,10 @@ function Workouts() {
                     workoutStarted={workoutStarted}
                     onSwapExercise={handleSwipeSwap}
                     onDeleteExercise={handleSwipeDelete}
+                    onMoveUp={handleMoveExerciseUp}
+                    onMoveDown={handleMoveExerciseDown}
+                    isFirst={index === 0}
+                    isLast={index === exercises.length - 1}
                   />
                 ) : null
               ))}
