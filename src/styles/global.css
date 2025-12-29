@@ -15093,8 +15093,14 @@ a.nav-left {
     border-radius: 12px;
     overflow: hidden;
     min-width: 200px;
-    z-index: 100;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .rpe-dropdown {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .rpe-dropdown-header {

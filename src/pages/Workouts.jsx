@@ -427,25 +427,58 @@ function Workouts() {
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {
     const workout = todayWorkoutRef.current;
-    if (!workout?.workout_data?.exercises || !updatedExercise) return;
+    if (!workout?.workout_data || !updatedExercise) return;
+
+    // Get exercises from either direct array or days structure
+    let currentExercises = [];
+    let isUsingDays = false;
+    let dayIndex = workout.day_index || 0;
+
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+      currentExercises = [...workout.workout_data.exercises];
+    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+      isUsingDays = true;
+      const dayData = workout.workout_data.days[dayIndex];
+      if (dayData?.exercises && Array.isArray(dayData.exercises)) {
+        currentExercises = [...dayData.exercises];
+      }
+    }
+
+    if (currentExercises.length === 0) return;
 
     // Update the exercise in the workout data
-    const updatedExercises = workout.workout_data.exercises.map(ex => {
+    const updatedExercises = currentExercises.map(ex => {
       if (ex?.id === updatedExercise.id) {
         return updatedExercise;
       }
       return ex;
     });
 
+    // Build the updated workout data
+    let updatedWorkoutData;
+    if (isUsingDays) {
+      const updatedDays = [...workout.workout_data.days];
+      updatedDays[dayIndex] = {
+        ...updatedDays[dayIndex],
+        exercises: updatedExercises
+      };
+      updatedWorkoutData = {
+        ...workout.workout_data,
+        days: updatedDays
+      };
+    } else {
+      updatedWorkoutData = {
+        ...workout.workout_data,
+        exercises: updatedExercises
+      };
+    }
+
     // Update local state
     setTodayWorkout(prev => {
       if (!prev) return prev;
       return {
         ...prev,
-        workout_data: {
-          ...prev.workout_data,
-          exercises: updatedExercises
-        }
+        workout_data: updatedWorkoutData
       };
     });
 
@@ -453,10 +486,7 @@ function Workouts() {
     apiPut('/.netlify/functions/client-workout-log', {
       assignmentId: workout.id,
       dayIndex: workout.day_index,
-      workout_data: {
-        ...workout.workout_data,
-        exercises: updatedExercises
-      }
+      workout_data: updatedWorkoutData
     }).catch(err => {
       console.error('Error saving exercise update:', err);
     });
