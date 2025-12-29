@@ -125,7 +125,7 @@ function ExerciseDetailModal({
     }
   }, []);
 
-  // Add set handler
+  // Add set handler - updates local state AND persists to backend
   const handleAddSet = useCallback((e) => {
     if (e) {
       e.stopPropagation();
@@ -133,9 +133,20 @@ function ExerciseDetailModal({
     }
     setSets(prev => {
       const lastSet = prev[prev.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
-      return [...prev, { ...lastSet, completed: false }];
+      const newSets = [...prev, { ...lastSet, completed: false }];
+
+      // Persist to backend via parent callback
+      if (callbackRefs.current.onUpdateExercise && exercise) {
+        const updatedExercise = {
+          ...exercise,
+          sets: newSets
+        };
+        callbackRefs.current.onUpdateExercise(updatedExercise);
+      }
+
+      return newSets;
     });
-  }, []);
+  }, [exercise]);
 
   // Save sets handler - updates local state AND persists to backend
   const handleSaveSets = useCallback((newSets) => {

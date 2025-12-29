@@ -365,9 +365,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                     <span className="reps-value">{formatDuration(set?.duration || exercise.duration) || '45s'}</span>
                   </div>
                 ))}
-                <div className="time-box add-box" onClick={addSet}>
-                  <Plus size={16} />
-                </div>
               </>
             ) : (
               <>
@@ -378,9 +375,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                     <span className="weight-value">{set?.weight || 0} kg</span>
                   </div>
                 ))}
-                <div className="time-box add-box" onClick={addSet}>
-                  <Plus size={16} />
-                </div>
               </>
             )}
           </div>
