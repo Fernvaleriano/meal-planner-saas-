@@ -18266,7 +18266,36 @@ a.nav-left {
 }
 
 /* ========================================
-   SWAP MODAL - BROWSE BY EQUIPMENT SECTION
+   SWAP MODAL - EQUIPMENT FILTER (TOP)
+   ======================================== */
+.swap-equipment-filter {
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.swap-equipment-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.swap-equipment-label svg {
+    color: var(--brand-primary);
+}
+
+.swap-equipment-filter .swap-equipment-pills {
+    margin-bottom: 0;
+}
+
+/* ========================================
+   SWAP MODAL - BROWSE ALL SECTION
    ======================================== */
 .swap-browse-section {
     border-top: 1px solid rgba(255, 255, 255, 0.1);

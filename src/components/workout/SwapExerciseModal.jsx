@@ -20,9 +20,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
   const [error, setError] = useState(null);
   const [selecting, setSelecting] = useState(false);
 
-  // Browse state
-  const [showBrowse, setShowBrowse] = useState(false);
+  // Equipment filter - affects AI recommendations
   const [selectedEquipment, setSelectedEquipment] = useState('');
+
+  // Browse state (expanded section)
+  const [showBrowse, setShowBrowse] = useState(false);
   const [browseExercises, setBrowseExercises] = useState([]);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,8 +40,8 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
   const muscleGroup = exercise?.muscle_group || exercise?.muscleGroup || '';
   const exerciseId = exercise?.id;
 
-  // Fetch AI-powered suggestions - only depends on exerciseId
-  const fetchSuggestions = useCallback(async () => {
+  // Fetch AI-powered suggestions - depends on exerciseId and equipment filter
+  const fetchSuggestions = useCallback(async (equipmentFilter = '') => {
     if (!isMountedRef.current || !exerciseId) return;
 
     setLoading(true);
@@ -59,7 +61,8 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
         workoutExercises: (workoutExercisesRef.current || []).map(ex => ({
           id: ex?.id,
           name: ex?.name
-        })).filter(ex => ex.id)
+        })).filter(ex => ex.id),
+        equipment: equipmentFilter // Pass equipment filter to backend
       });
 
       if (!isMountedRef.current) return;
@@ -124,24 +127,28 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     }
   }, [muscleGroup, exerciseId]);
 
-  // Fetch on mount only - cleanup on unmount
+  // Fetch on mount and when equipment filter changes
   useEffect(() => {
     isMountedRef.current = true;
-
-    // Only fetch once on mount
-    fetchSuggestions();
+    fetchSuggestions(selectedEquipment);
 
     return () => {
       isMountedRef.current = false;
     };
-  }, []); // Empty dependency - only run on mount
+  }, [selectedEquipment]); // Refetch when equipment changes
 
-  // Fetch browse exercises when equipment changes
+  // Fetch browse exercises when browse is opened or equipment changes
   useEffect(() => {
     if (showBrowse) {
       fetchBrowseExercises(selectedEquipment);
     }
   }, [showBrowse, selectedEquipment, fetchBrowseExercises]);
+
+  // Handle equipment filter change
+  const handleEquipmentChange = useCallback((equipValue) => {
+    setSelectedEquipment(equipValue);
+    // Suggestions will be refetched by the effect above
+  }, []);
 
   // Filter browse exercises by search query
   const filteredBrowseExercises = browseExercises.filter(ex => {
@@ -196,8 +203,8 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
 
   // Handle refresh
   const handleRefresh = useCallback(() => {
-    fetchSuggestions();
-  }, [fetchSuggestions]);
+    fetchSuggestions(selectedEquipment);
+  }, [fetchSuggestions, selectedEquipment]);
 
   // Toggle browse section
   const toggleBrowse = useCallback(() => {
@@ -236,6 +243,26 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
               {muscleGroup}
               {exercise.equipment && ` • ${exercise.equipment}`}
             </span>
+          </div>
+        </div>
+
+        {/* Equipment Filter - ABOVE AI recommendations for visibility */}
+        <div className="swap-equipment-filter">
+          <span className="swap-equipment-label">
+            <Dumbbell size={14} />
+            Filter by Equipment
+          </span>
+          <div className="swap-equipment-pills">
+            {EQUIPMENT_OPTIONS.map(eq => (
+              <button
+                key={eq.value}
+                className={`equipment-pill ${selectedEquipment === eq.value ? 'active' : ''}`}
+                onClick={() => handleEquipmentChange(eq.value)}
+                type="button"
+              >
+                {eq.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -307,36 +334,22 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
           </div>
         </div>
 
-        {/* Browse by Equipment Section */}
+        {/* Browse All Section - expanded search */}
         <div className="swap-browse-section">
           <button className="swap-browse-toggle" onClick={toggleBrowse}>
-            <Dumbbell size={16} />
-            <span>Browse by Equipment</span>
+            <Search size={16} />
+            <span>Browse All Exercises</span>
             <ChevronDown size={18} className={`browse-chevron ${showBrowse ? 'open' : ''}`} />
           </button>
 
           {showBrowse && (
             <div className="swap-browse-content">
-              {/* Equipment Pills */}
-              <div className="swap-equipment-pills">
-                {EQUIPMENT_OPTIONS.map(eq => (
-                  <button
-                    key={eq.value}
-                    className={`equipment-pill ${selectedEquipment === eq.value ? 'active' : ''}`}
-                    onClick={() => setSelectedEquipment(eq.value)}
-                    type="button"
-                  >
-                    {eq.label}
-                  </button>
-                ))}
-              </div>
-
               {/* Search within browse */}
               <div className="swap-browse-search">
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Search exercises..."
+                  placeholder="Search by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
