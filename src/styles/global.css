@@ -12749,8 +12749,8 @@ a.nav-left {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 16px;
+    gap: 16px;
+    padding: 14px 16px;
     cursor: pointer;
     position: relative;
 }
@@ -12769,6 +12769,24 @@ a.nav-left {
     font-weight: 600;
     color: white;
     margin-bottom: 2px;
+}
+
+[data-theme="light"] .exercise-card-v2 .exercise-title {
+    color: #1f2937;
+}
+
+/* Calories display under exercise name */
+.exercise-card-v2 .exercise-calories {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #f97316;
+    margin-bottom: 6px;
+}
+
+[data-theme="light"] .exercise-card-v2 .exercise-calories {
+    color: #ea580c;
 }
 
 /* Exercise Badges - Superset, Warmup, Stretch */
@@ -12847,7 +12865,7 @@ a.nav-left {
     min-width: 60px;
     height: 44px;
     background: #2a2a2a;
-    border-radius: 8px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -12858,23 +12876,39 @@ a.nav-left {
     flex-shrink: 0;
 }
 
+[data-theme="light"] .exercise-card-v2 .time-box {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
 .exercise-card-v2 .time-box.with-weight {
-    height: 52px;
+    height: 54px;
     flex-direction: column;
-    gap: 1px;
-    padding: 4px 6px;
+    gap: 2px;
+    padding: 6px 10px;
+    min-width: 64px;
 }
 
 .exercise-card-v2 .time-box .reps-value {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     color: white;
+    line-height: 1.2;
+}
+
+[data-theme="light"] .exercise-card-v2 .time-box .reps-value {
+    color: #1f2937;
 }
 
 .exercise-card-v2 .time-box .weight-value {
     font-size: 12px;
-    font-weight: 400;
+    font-weight: 500;
     color: #9ca3af;
+    line-height: 1.2;
+}
+
+[data-theme="light"] .exercise-card-v2 .time-box .weight-value {
+    color: #6b7280;
 }
 
 .exercise-card-v2 .time-box.add-box {
@@ -12931,11 +12965,11 @@ a.nav-left {
     max-width: 200px;
 }
 
-/* Thumbnail on the right - smaller and positioned at top */
+/* Thumbnail on the right - positioned at top */
 .exercise-card-v2 .exercise-thumb {
-    width: 56px;
-    height: 56px;
-    border-radius: 8px;
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
     overflow: hidden;
     flex-shrink: 0;
     position: relative;
