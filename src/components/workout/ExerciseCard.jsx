@@ -324,6 +324,13 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         <div className="exercise-details">
           <h3 className="exercise-title">{exercise.name}</h3>
 
+          {/* Calories estimate */}
+          {exercise.calories_per_minute && (
+            <span className="exercise-calories">
+              {Math.round((exercise.calories_per_minute || 5) * (sets.length * 2))} kcal
+            </span>
+          )}
+
           {/* Exercise Type Badges */}
           {(isSuperset || isWarmup || isStretch) && (
             <div className="exercise-badges">
@@ -347,10 +354,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               )}
             </div>
           )}
-
-          <span className="equipment-subtitle">
-            {exercise.equipment || 'No equipment'}
-          </span>
 
           {/* Time/Reps Boxes Row */}
           <div className="time-boxes-row">

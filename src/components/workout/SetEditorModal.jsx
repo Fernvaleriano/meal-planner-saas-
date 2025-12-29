@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Clock } from 'lucide-react';
+import { X, Clock, ChevronDown } from 'lucide-react';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 const parseReps = (reps) => {
@@ -11,6 +11,16 @@ const parseReps = (reps) => {
   return 12;
 };
 
+// RPE scale with descriptions
+const RPE_OPTIONS = [
+  { value: null, label: '-', description: 'Not set' },
+  { value: 6, label: '6', description: 'Could do 4+ more reps' },
+  { value: 7, label: '7', description: 'Could do 3 more reps' },
+  { value: 8, label: '8', description: 'Could do 2 more reps' },
+  { value: 9, label: '9', description: 'Could do 1 more rep' },
+  { value: 10, label: '10', description: 'Max effort, no more reps' },
+];
+
 function SetEditorModal({
   exercise,
   sets,
@@ -19,11 +29,12 @@ function SetEditorModal({
   isTimedExercise
 }) {
   const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
-  const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s })));
+  const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s, rpe: s.rpe || null })));
   const [activeSetIndex, setActiveSetIndex] = useState(null); // null = no selection
   const [activeField, setActiveField] = useState(null); // null = no selection
   const [isFirstInput, setIsFirstInput] = useState(true); // Track if next input should replace value
   const [showKeyboard, setShowKeyboard] = useState(false); // Hide keyboard by default
+  const [rpePickerIndex, setRpePickerIndex] = useState(null); // Which set's RPE picker is open
 
   // Select a field and show keyboard
   const selectField = (index, field) => {
@@ -136,7 +147,27 @@ function SetEditorModal({
   // Add a set
   const addSet = () => {
     const lastSet = localSets[localSets.length - 1];
-    setLocalSets([...localSets, { ...lastSet, completed: false }]);
+    setLocalSets([...localSets, { ...lastSet, completed: false, rpe: null }]);
+  };
+
+  // Update RPE for a set
+  const updateRpe = (index, rpeValue) => {
+    const newSets = [...localSets];
+    newSets[index] = { ...newSets[index], rpe: rpeValue };
+    setLocalSets(newSets);
+    setRpePickerIndex(null); // Close picker after selection
+  };
+
+  // Toggle RPE picker
+  const toggleRpePicker = (index) => {
+    setRpePickerIndex(rpePickerIndex === index ? null : index);
+    setShowKeyboard(false); // Hide numpad when opening RPE picker
+  };
+
+  // Get RPE display info
+  const getRpeInfo = (rpeValue) => {
+    const option = RPE_OPTIONS.find(o => o.value === rpeValue);
+    return option || RPE_OPTIONS[0];
   };
 
   return (
@@ -220,11 +251,47 @@ function SetEditorModal({
                   <X size={14} />
                 </button>
               </div>
-              {/* Rest time below each set */}
+              {/* Rest time and RPE row */}
               <div className="set-rest-row">
                 <div className="rest-pill">
                   <Clock size={12} />
                   <span>{set.restSeconds || exercise.restSeconds || 60}s rest</span>
+                </div>
+                {/* RPE Selector */}
+                <div className="rpe-selector-wrapper">
+                  <button
+                    className={`rpe-btn ${set.rpe ? 'has-value' : ''}`}
+                    onClick={() => toggleRpePicker(index)}
+                  >
+                    <span className="rpe-label">RPE</span>
+                    <span className={`rpe-value ${set.rpe ? `rpe-${set.rpe}` : ''}`}>
+                      {set.rpe || '-'}
+                    </span>
+                    <ChevronDown size={12} className={rpePickerIndex === index ? 'open' : ''} />
+                  </button>
+                  {/* RPE Dropdown */}
+                  {rpePickerIndex === index && (
+                    <div className="rpe-dropdown">
+                      <div className="rpe-dropdown-header">How hard? (RPE)</div>
+                      {RPE_OPTIONS.slice(1).map(option => (
+                        <button
+                          key={option.value}
+                          className={`rpe-option ${set.rpe === option.value ? 'selected' : ''}`}
+                          onClick={() => updateRpe(index, option.value)}
+                        >
+                          <span className={`rpe-option-value rpe-${option.value}`}>{option.value}</span>
+                          <span className="rpe-option-desc">{option.description}</span>
+                        </button>
+                      ))}
+                      <button
+                        className={`rpe-option clear ${!set.rpe ? 'selected' : ''}`}
+                        onClick={() => updateRpe(index, null)}
+                      >
+                        <span className="rpe-option-value">-</span>
+                        <span className="rpe-option-desc">Clear</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
