@@ -30,7 +30,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { exercise, workoutExercises = [], userEquipment = [], reason = "" } = JSON.parse(event.body);
+    const { exercise, workoutExercises = [], userEquipment = [], reason = "", equipment = "" } = JSON.parse(event.body);
 
     if (!exercise) {
       return {
@@ -43,8 +43,35 @@ exports.handler = async (event) => {
     // Get the muscle group to filter alternatives
     const muscleGroup = exercise.muscle_group || exercise.muscleGroup || "";
     const exerciseId = exercise.id;
+    const exerciseName = (exercise.name || '').toLowerCase();
 
-    console.log("AI Swap - Looking for alternatives to:", exercise.name, "Muscle group:", muscleGroup);
+    // Detect specific muscle EARLY so we can pre-filter the database results
+    let specificMuscle = '';
+    let isBicepExercise = false;
+    let isTricepExercise = false;
+
+    // Biceps vs Triceps detection - CRITICAL for arms exercises
+    if (exerciseName.includes('bicep') || exerciseName.includes('curl') || exerciseName.includes('hammer')) {
+      specificMuscle = 'BICEPS';
+      isBicepExercise = true;
+    } else if (exerciseName.includes('tricep') || exerciseName.includes('pushdown') || exerciseName.includes('extension') || exerciseName.includes('skull') || exerciseName.includes('dip') || exerciseName.includes('kickback')) {
+      specificMuscle = 'TRICEPS';
+      isTricepExercise = true;
+    }
+    // Chest detection
+    else if (exerciseName.includes('bench') || exerciseName.includes('chest') || exerciseName.includes('fly') || exerciseName.includes('flye') || exerciseName.includes('pec')) {
+      specificMuscle = 'CHEST';
+    }
+    // Back detection
+    else if (exerciseName.includes('row') || exerciseName.includes('pull') || exerciseName.includes('lat')) {
+      specificMuscle = 'BACK';
+    }
+    // Shoulder detection
+    else if (exerciseName.includes('shoulder') || exerciseName.includes('lateral') || exerciseName.includes('raise') || exerciseName.includes('delt') || exerciseName.includes('overhead')) {
+      specificMuscle = 'SHOULDERS';
+    }
+
+    console.log("AI Swap - Looking for alternatives to:", exercise.name, "Muscle group:", muscleGroup, "Specific:", specificMuscle, "Equipment filter:", equipment);
 
     // Fetch potential alternatives from database (same muscle group)
     let query = supabase
@@ -86,6 +113,7 @@ exports.handler = async (event) => {
 
     // Filter out current exercise and exercises already in workout
     // Also filter out stretches and warmups for strength exercises
+    // CRITICAL: Pre-filter to remove conflicting muscle groups (biceps vs triceps)
     const availableAlternatives = alternatives.filter(alt => {
       const altId = String(alt.id);
       const currentId = String(exerciseId);
@@ -95,11 +123,38 @@ exports.handler = async (event) => {
       // Filter out stretches/warmups if original exercise is strength
       const altName = (alt.name || '').toLowerCase();
       const isStretchOrWarmup = altName.includes('stretch') || altName.includes('warmup') || altName.includes('warm up');
-      const originalName = (exercise.name || '').toLowerCase();
-      const originalIsStrength = !originalName.includes('stretch') && !originalName.includes('warmup');
+      const originalIsStrength = !exerciseName.includes('stretch') && !exerciseName.includes('warmup');
 
       if (originalIsStrength && isStretchOrWarmup) {
         return false;
+      }
+
+      // CRITICAL: If swapping a BICEP exercise, exclude ALL tricep exercises
+      if (isBicepExercise) {
+        const isTricepAlt = altName.includes('tricep') || altName.includes('pushdown') ||
+                           altName.includes('skull') || altName.includes('kickback') ||
+                           (altName.includes('extension') && !altName.includes('back') && !altName.includes('leg'));
+        if (isTricepAlt) {
+          console.log("AI Swap - Excluding tricep exercise for bicep swap:", alt.name);
+          return false;
+        }
+      }
+
+      // CRITICAL: If swapping a TRICEP exercise, exclude ALL bicep/curl exercises
+      if (isTricepExercise) {
+        const isBicepAlt = altName.includes('bicep') || altName.includes('curl') || altName.includes('hammer');
+        if (isBicepAlt) {
+          console.log("AI Swap - Excluding bicep exercise for tricep swap:", alt.name);
+          return false;
+        }
+      }
+
+      // Filter by equipment if specified
+      if (equipment) {
+        const altEquip = (alt.equipment || '').toLowerCase();
+        if (!altEquip.includes(equipment.toLowerCase())) {
+          return false;
+        }
       }
 
       return !isCurrentExercise && !isInWorkout;
@@ -127,7 +182,7 @@ exports.handler = async (event) => {
         throw new Error("GEMINI_API_KEY not configured");
       }
 
-      // Build the prompt for Gemini
+      // Build the prompt for Gemini - exercises are already pre-filtered
       const exerciseListForAI = availableAlternatives.slice(0, 25).map(ex => ({
         id: ex.id,
         name: ex.name,
@@ -137,27 +192,18 @@ exports.handler = async (event) => {
         exercise_type: ex.exercise_type
       }));
 
-      // Detect specific muscle from exercise name for better matching
-      const exerciseName = (exercise.name || '').toLowerCase();
-      let specificMuscle = '';
-
-      // Biceps vs Triceps detection
-      if (exerciseName.includes('bicep') || exerciseName.includes('curl') || exerciseName.includes('hammer')) {
-        specificMuscle = 'BICEPS (elbow flexion exercises like curls)';
-      } else if (exerciseName.includes('tricep') || exerciseName.includes('pushdown') || exerciseName.includes('extension') || exerciseName.includes('skull') || exerciseName.includes('dip')) {
-        specificMuscle = 'TRICEPS (elbow extension exercises like pushdowns, extensions)';
-      }
-      // Chest detection
-      else if (exerciseName.includes('bench') || exerciseName.includes('chest') || exerciseName.includes('press') || exerciseName.includes('fly') || exerciseName.includes('flye')) {
-        specificMuscle = 'CHEST (pressing and fly movements)';
-      }
-      // Back detection
-      else if (exerciseName.includes('row') || exerciseName.includes('pull')) {
-        specificMuscle = 'BACK (pulling movements like rows and pulldowns)';
-      }
-      // Shoulder detection
-      else if (exerciseName.includes('shoulder') || exerciseName.includes('lateral') || exerciseName.includes('raise') || exerciseName.includes('delt')) {
-        specificMuscle = 'SHOULDERS (raises and presses)';
+      // Format specific muscle for prompt (already detected earlier)
+      let specificMuscleDesc = '';
+      if (specificMuscle === 'BICEPS') {
+        specificMuscleDesc = 'BICEPS (elbow flexion exercises like curls)';
+      } else if (specificMuscle === 'TRICEPS') {
+        specificMuscleDesc = 'TRICEPS (elbow extension exercises like pushdowns, extensions)';
+      } else if (specificMuscle === 'CHEST') {
+        specificMuscleDesc = 'CHEST (pressing and fly movements)';
+      } else if (specificMuscle === 'BACK') {
+        specificMuscleDesc = 'BACK (pulling movements like rows and pulldowns)';
+      } else if (specificMuscle === 'SHOULDERS') {
+        specificMuscleDesc = 'SHOULDERS (raises and presses)';
       }
 
       const prompt = `You are an expert strength coach selecting exercise substitutions. Think like a coach - prioritize MOVEMENT PATTERN over just muscle group.
@@ -166,11 +212,11 @@ EXERCISE TO REPLACE: "${exercise.name}"
 - Muscle Group: ${muscleGroup}
 - Equipment: ${exercise.equipment || "bodyweight"}
 - Type: ${exercise.exercise_type || "strength"}
-${specificMuscle ? `- SPECIFIC TARGET: ${specificMuscle} - ONLY suggest exercises for this specific muscle!` : ''}
+${specificMuscleDesc ? `- SPECIFIC TARGET: ${specificMuscleDesc} - ONLY suggest exercises for this specific muscle!` : ''}
 
-CRITICAL RULES:
-${specificMuscle.includes('BICEPS') ? '⚠️ This is a BICEPS exercise - DO NOT suggest triceps exercises! Only suggest curls and bicep movements.' : ''}
-${specificMuscle.includes('TRICEPS') ? '⚠️ This is a TRICEPS exercise - DO NOT suggest biceps/curl exercises! Only suggest extensions, pushdowns, dips.' : ''}
+NOTE: The exercise list below has been pre-filtered to only include appropriate alternatives.
+${specificMuscle === 'BICEPS' ? 'All exercises below are BICEP exercises - select the best curl/bicep variations.' : ''}
+${specificMuscle === 'TRICEPS' ? 'All exercises below are TRICEP exercises - select the best extension/pushdown variations.' : ''}
 
 COACHING LOGIC FOR SWAPS (in order of priority):
 1. **SAME SPECIFIC MUSCLE** - Bicep curl → another bicep exercise (NOT triceps even though both are "arms"). Row → row (NOT pullover).
