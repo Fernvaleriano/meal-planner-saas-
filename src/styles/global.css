@@ -12714,6 +12714,278 @@ a.nav-left {
     color: #94a3b8;
 }
 
+/* Rest Day Action Buttons */
+.rest-day-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.rest-day-add-btn,
+.rest-day-ai-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.rest-day-add-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.rest-day-add-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.rest-day-ai-btn {
+    background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+}
+
+.rest-day-ai-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(13, 148, 136, 0.5);
+}
+
+.rest-day-ai-btn:active,
+.rest-day-add-btn:active {
+    transform: translateY(0);
+}
+
+/* AI Quick Workout Modal */
+.ai-workout-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.ai-workout-modal {
+    background: #1a1a1a;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUpFade 0.3s ease;
+}
+
+.ai-workout-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-workout-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ai-workout-header h2 svg {
+    color: #0d9488;
+}
+
+.ai-workout-content {
+    padding: 20px;
+}
+
+.ai-workout-option {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-workout-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--brand-primary);
+}
+
+.ai-workout-option.selected {
+    background: rgba(13, 148, 136, 0.15);
+    border-color: var(--brand-primary);
+}
+
+.ai-workout-option h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.ai-workout-option p {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.ai-workout-option .option-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.ai-workout-option .option-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ai-workout-generate-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    transition: all 0.2s;
+}
+
+.ai-workout-generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4);
+}
+
+.ai-workout-generate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ai-workout-loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+
+.ai-workout-loading svg {
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+}
+
+.ai-workout-section {
+    margin-bottom: 24px;
+}
+
+.ai-workout-section .section-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.workout-type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.ai-workout-option .option-icon {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.duration-options {
+    display: flex;
+    gap: 10px;
+}
+
+.duration-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.duration-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.duration-btn.selected {
+    background: rgba(13, 148, 136, 0.15);
+    border-color: var(--brand-primary);
+}
+
+.duration-btn span {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.duration-btn small {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.duration-btn svg {
+    color: #64748b;
+}
+
+.duration-btn.selected svg {
+    color: var(--brand-primary);
+}
+
+.ai-workout-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.ai-workout-error p {
+    color: #ef4444;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
 /* Exercise Card V2 */
 .exercise-card-v2 {
     background: #1a1a1a;

@@ -6,93 +6,162 @@ import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import AskCoachChat from './AskCoachChat';
 
-// Number words to digits mapping for voice input
+// Number words to digits mapping for voice input (expanded)
 const numberWords = {
-  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+  'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
   'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
   'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+  'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20,
+  'twenty-five': 25, 'thirty': 30, 'thirty-five': 35, 'forty': 40, 'forty-five': 45,
+  'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90, 'hundred': 100,
   'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5
 };
 
 // Convert number words to digits in text
 const convertNumberWords = (text) => {
   let result = text.toLowerCase();
-  for (const [word, num] of Object.entries(numberWords)) {
+  // Sort by length descending to match longer phrases first (e.g., "twenty-five" before "twenty")
+  const sortedWords = Object.entries(numberWords).sort((a, b) => b[0].length - a[0].length);
+  for (const [word, num] of sortedWords) {
     result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), num.toString());
   }
   return result;
 };
 
-// Parse a single set segment to extract reps and weight
-const parseSetSegment = (segment) => {
-  const result = { reps: null, weight: null, rest: null };
-  const text = convertNumberWords(segment);
+// Parse a single segment for reps/weight
+const parseSegment = (segment) => {
+  const result = { reps: null, weight: null, setNumber: null };
 
-  // Extract reps
-  const repsPatterns = [
-    /(\d+)\s*(?:reps?|repetitions?)/i,
-    /(?:did|do)\s*(\d+)/i,
-    /(\d+)\s*(?:at|with|@)/i,
-  ];
-  for (const pattern of repsPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      result.reps = parseInt(match[1], 10);
-      break;
-    }
+  // Check for set number in this segment
+  const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i) ||
+                   segment.match(/(\d+)(?:st|nd|rd|th)\s*set/i);
+  if (setMatch) {
+    result.setNumber = parseInt(setMatch[1], 10);
   }
 
-  // Extract weight
-  const weightPatterns = [
-    /(?:with|at|@)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms)/i,
-    /(\d+(?:\.\d+)?)\s*(?:lb|lbs|pound|pounds)/i,
-  ];
-  for (const pattern of weightPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      let weight = parseFloat(match[1]);
-      if (/lb|pound/i.test(segment)) {
-        weight = Math.round(weight * 0.453592 * 2) / 2;
+  // Check for explicit weight (kg, lbs)
+  const weightMatch = segment.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|pound|pounds|lb|lbs)/i);
+  if (weightMatch) {
+    let weight = parseFloat(weightMatch[1]);
+    if (/pound|lb/i.test(weightMatch[0])) {
+      weight = Math.round(weight * 0.453592 * 2) / 2;
+    }
+    result.weight = weight;
+  }
+
+  // Check for explicit reps
+  const repsMatch = segment.match(/(\d+)\s*(?:reps?|repetitions?|times)/i);
+  if (repsMatch) {
+    result.reps = parseInt(repsMatch[1], 10);
+  }
+
+  // If not explicit, try to infer from numbers
+  if (result.reps === null || result.weight === null) {
+    const numbers = [];
+    const numRegex = /(\d+(?:\.\d+)?)/g;
+    let m;
+    while ((m = numRegex.exec(segment)) !== null) {
+      const num = parseFloat(m[1]);
+      // Skip if this is already used as set number
+      if (num !== result.setNumber) {
+        numbers.push(num);
       }
-      result.weight = weight;
-      break;
+    }
+
+    if (numbers.length >= 2 && result.reps === null && result.weight === null) {
+      // Two numbers: smaller likely reps, larger likely weight
+      const sorted = [...numbers].sort((a, b) => a - b);
+      result.reps = sorted[0] <= 20 ? sorted[0] : numbers[0];
+      result.weight = sorted[0] <= 20 ? sorted[1] : numbers[1];
+    } else if (numbers.length === 1) {
+      const num = numbers[0];
+      if (result.weight === null && num > 20) {
+        result.weight = num;
+      } else if (result.reps === null) {
+        result.reps = num;
+      }
     }
   }
 
   return result;
 };
 
-// Parse voice input for multiple sets
-const parseVoiceInputForSets = (transcript) => {
+// Smart voice parser - supports single or bulk input
+const parseVoiceInput = (transcript, currentSets) => {
   const text = convertNumberWords(transcript.toLowerCase());
-  const setMentions = text.match(/set\s*(?:number\s*)?\d+/gi) || [];
 
-  if (setMentions.length > 1) {
-    const results = [];
-    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)/i).filter(s => s.trim());
-
-    for (const segment of segments) {
-      const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i);
-      if (setMatch) {
-        const setNumber = parseInt(setMatch[1], 10);
-        const parsed = parseSetSegment(segment);
-        if (parsed.reps !== null || parsed.weight !== null) {
-          results.push({ setNumber, ...parsed });
-        }
-      }
-    }
-    return { multiple: true, sets: results };
-  } else {
-    const result = { multiple: false, reps: null, weight: null, setNumber: null };
-    const setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i);
-    if (setMatch) {
-      result.setNumber = parseInt(setMatch[1], 10);
-    }
-    const parsed = parseSetSegment(text);
-    result.reps = parsed.reps;
-    result.weight = parsed.weight;
-    return result;
+  // Check for "done", "complete", "finished" commands (applies to first incomplete)
+  if (/^\s*(done|complete|finished|check)\s*$/i.test(text)) {
+    const firstIncomplete = currentSets?.findIndex(s => !s.completed) ?? 0;
+    return {
+      bulk: false,
+      sets: [{
+        setNumber: firstIncomplete + 1,
+        reps: null,
+        weight: null,
+        markComplete: true
+      }],
+      understood: true
+    };
   }
+
+  // Check if this looks like bulk input (multiple sets mentioned or comma/then separated)
+  const setMentions = (text.match(/set\s*(?:number\s*)?\d+/gi) || []).length;
+  const hasMultipleSeparators = /,|then|and then|next/i.test(text);
+  const isBulk = setMentions > 1 || (hasMultipleSeparators && setMentions >= 1);
+
+  // Also check for pattern like "12 at 50, 10 at 45, 8 at 40" (no set numbers but comma separated pairs)
+  const commaPairs = text.split(/,|then|and then/).filter(s => s.trim());
+  const looksLikeBulkPairs = commaPairs.length >= 2 && commaPairs.every(seg => {
+    const nums = seg.match(/\d+/g);
+    return nums && nums.length >= 2;
+  });
+
+  if (isBulk || looksLikeBulkPairs) {
+    // Bulk input mode
+    const segments = text.split(/,|then|and then|next/).filter(s => s.trim());
+    const results = [];
+
+    segments.forEach((segment, idx) => {
+      const parsed = parseSegment(segment);
+      if (parsed.reps !== null || parsed.weight !== null) {
+        results.push({
+          setNumber: parsed.setNumber || idx + 1, // Default to sequential if no set specified
+          reps: parsed.reps,
+          weight: parsed.weight,
+          markComplete: /done|complete|finished/i.test(segment)
+        });
+      }
+    });
+
+    if (results.length > 0) {
+      return { bulk: true, sets: results, understood: true };
+    }
+  }
+
+  // Single set mode
+  const parsed = parseSegment(text);
+
+  // If no set specified, find first incomplete
+  let targetSet = parsed.setNumber;
+  if (targetSet === null && currentSets) {
+    const firstIncomplete = currentSets.findIndex(s => !s.completed);
+    targetSet = firstIncomplete >= 0 ? firstIncomplete + 1 : 1;
+  }
+
+  const understood = parsed.reps !== null || parsed.weight !== null ||
+                     /done|complete|finished/i.test(text);
+
+  return {
+    bulk: false,
+    sets: [{
+      setNumber: targetSet || 1,
+      reps: parsed.reps,
+      weight: parsed.weight,
+      markComplete: /done|complete|finished/i.test(text)
+    }],
+    understood
+  };
 };
 
 // Simplified and more stable ExerciseDetailModal
@@ -293,33 +362,41 @@ function ExerciseDetailModal({
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
 
-      const parsed = parseVoiceInputForSets(transcript);
-
       setSets(prevSets => {
+        // Use new smart parser with current sets context
+        const parsed = parseVoiceInput(transcript, prevSets);
+
+        if (!parsed.understood) {
+          setVoiceError('Could not understand. Try: "12 reps 50 kg" or "done"');
+          return prevSets;
+        }
+
         const newSets = [...prevSets];
 
-        if (parsed.multiple && parsed.sets.length > 0) {
-          for (const setData of parsed.sets) {
-            const targetIndex = setData.setNumber - 1;
-            if (targetIndex >= 0 && targetIndex < newSets.length) {
-              if (setData.reps !== null) {
-                newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
-              }
-              if (setData.weight !== null) {
-                newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
-              }
-            }
-          }
-        } else {
-          const targetIndex = parsed.setNumber ? parsed.setNumber - 1 : 0;
+        // Apply all parsed sets (works for both single and bulk input)
+        for (const setData of parsed.sets) {
+          const targetIndex = (setData.setNumber || 1) - 1;
+
           if (targetIndex >= 0 && targetIndex < newSets.length) {
-            if (parsed.reps !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
+            // Update reps if provided
+            if (setData.reps !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
             }
-            if (parsed.weight !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], weight: parsed.weight };
+            // Update weight if provided
+            if (setData.weight !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
+            }
+            // Mark as complete if requested
+            if (setData.markComplete) {
+              newSets[targetIndex] = { ...newSets[targetIndex], completed: true };
             }
           }
+        }
+
+        // Show feedback for bulk updates
+        if (parsed.bulk) {
+          setVoiceError(`Updated ${parsed.sets.length} sets`);
+          setTimeout(() => setVoiceError(null), 2000);
         }
 
         // Persist to backend
@@ -584,7 +661,7 @@ function ExerciseDetailModal({
             {isListening && (
               <div className="voice-listening">
                 <div className="voice-pulse"></div>
-                <span>Listening... "Set 1, 12 reps at 50 kg, set 2, 10 reps..."</span>
+                <span>Try: "12 at 50, 10 at 45, 8 at 40" or "done"</span>
               </div>
             )}
             {lastTranscript && !isListening && (

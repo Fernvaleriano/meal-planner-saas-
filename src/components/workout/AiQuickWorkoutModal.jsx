@@ -1,0 +1,236 @@
+import { useState, useEffect } from 'react';
+import { X, Zap, Clock, Flame, Dumbbell, Loader2 } from 'lucide-react';
+import { apiGet, apiPost } from '../../utils/api';
+
+const WORKOUT_TYPES = [
+  { id: 'full_body', name: 'Full Body', description: 'Total body workout hitting all major muscle groups', icon: '💪' },
+  { id: 'upper_body', name: 'Upper Body', description: 'Chest, back, shoulders and arms', icon: '🏋️' },
+  { id: 'lower_body', name: 'Lower Body', description: 'Legs, glutes and calves', icon: '🦵' },
+  { id: 'core', name: 'Core & Abs', description: 'Strengthen your midsection', icon: '🎯' },
+  { id: 'cardio', name: 'Cardio Burn', description: 'High intensity calorie burning', icon: '🔥' },
+  { id: 'stretch', name: 'Stretch & Recover', description: 'Flexibility and mobility work', icon: '🧘' }
+];
+
+const DURATION_OPTIONS = [
+  { minutes: 15, label: '15 min', exercises: 4 },
+  { minutes: 30, label: '30 min', exercises: 6 },
+  { minutes: 45, label: '45 min', exercises: 8 }
+];
+
+// Fallback exercises by workout type when AI is unavailable
+const FALLBACK_EXERCISES = {
+  full_body: ['Squats', 'Push-ups', 'Lunges', 'Plank', 'Burpees', 'Mountain Climbers', 'Jumping Jacks', 'High Knees'],
+  upper_body: ['Push-ups', 'Diamond Push-ups', 'Pike Push-ups', 'Arm Circles', 'Tricep Dips', 'Plank Shoulder Taps', 'Superman', 'Wall Push-ups'],
+  lower_body: ['Squats', 'Lunges', 'Glute Bridges', 'Calf Raises', 'Wall Sit', 'Step-ups', 'Sumo Squats', 'Single Leg Deadlift'],
+  core: ['Plank', 'Crunches', 'Bicycle Crunches', 'Leg Raises', 'Russian Twists', 'Dead Bug', 'Bird Dog', 'Mountain Climbers'],
+  cardio: ['Jumping Jacks', 'High Knees', 'Burpees', 'Mountain Climbers', 'Jump Squats', 'Skaters', 'Butt Kicks', 'Star Jumps'],
+  stretch: ['Cat-Cow Stretch', 'Child\'s Pose', 'Downward Dog', 'Pigeon Pose', 'Hip Flexor Stretch', 'Hamstring Stretch', 'Quad Stretch', 'Shoulder Stretch']
+};
+
+function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
+  const [selectedType, setSelectedType] = useState(null);
+  const [selectedDuration, setSelectedDuration] = useState(DURATION_OPTIONS[1]); // Default 30 min
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [exerciseDatabase, setExerciseDatabase] = useState([]);
+
+  // Fetch exercise database on mount
+  useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        const res = await apiGet('/.netlify/functions/exercises?limit=100');
+        if (res?.exercises) {
+          setExerciseDatabase(res.exercises);
+        }
+      } catch (err) {
+        console.error('Error fetching exercises:', err);
+      }
+    };
+    fetchExercises();
+  }, []);
+
+  // Get muscle groups for workout type
+  const getMuscleGroupsForType = (type) => {
+    switch (type) {
+      case 'full_body': return ['chest', 'back', 'shoulders', 'legs', 'arms', 'core'];
+      case 'upper_body': return ['chest', 'back', 'shoulders', 'biceps', 'triceps'];
+      case 'lower_body': return ['quadriceps', 'hamstrings', 'glutes', 'calves', 'legs'];
+      case 'core': return ['core', 'abs', 'obliques'];
+      case 'cardio': return ['cardio', 'full body'];
+      case 'stretch': return ['stretch', 'flexibility'];
+      default: return [];
+    }
+  };
+
+  // Generate workout - tries AI first, falls back to smart selection
+  const handleGenerate = async () => {
+    if (!selectedType) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const targetExerciseCount = selectedDuration.exercises;
+      const muscleGroups = getMuscleGroupsForType(selectedType.id);
+
+      // Try to get AI-powered workout generation
+      try {
+        const res = await apiPost('/.netlify/functions/ai-generate-workout', {
+          workoutType: selectedType.id,
+          duration: selectedDuration.minutes,
+          exerciseCount: targetExerciseCount,
+          muscleGroups
+        });
+
+        if (res?.success && res?.exercises?.length > 0) {
+          // AI generated workout
+          const workoutData = {
+            name: `${selectedType.name} - Quick Workout`,
+            exercises: res.exercises,
+            estimatedMinutes: selectedDuration.minutes,
+            estimatedCalories: selectedDuration.minutes * 8
+          };
+          onGenerateWorkout(workoutData);
+          onClose();
+          return;
+        }
+      } catch (aiError) {
+        console.log('AI generation unavailable, using smart fallback');
+      }
+
+      // Fallback: Build workout from database exercises
+      let workoutExercises = [];
+
+      // Filter exercises from database by muscle group
+      const matchingExercises = exerciseDatabase.filter(ex => {
+        const exMuscle = (ex.muscle_group || '').toLowerCase();
+        return muscleGroups.some(mg => exMuscle.includes(mg.toLowerCase()));
+      });
+
+      if (matchingExercises.length >= targetExerciseCount) {
+        // Shuffle and pick required number
+        const shuffled = [...matchingExercises].sort(() => Math.random() - 0.5);
+        workoutExercises = shuffled.slice(0, targetExerciseCount).map(ex => ({
+          ...ex,
+          sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : 3,
+          reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
+          restSeconds: selectedType.id === 'stretch' ? 15 : 60
+        }));
+      } else {
+        // Use fallback exercise names
+        const fallbackNames = FALLBACK_EXERCISES[selectedType.id] || FALLBACK_EXERCISES.full_body;
+        const selectedNames = fallbackNames.slice(0, targetExerciseCount);
+
+        workoutExercises = selectedNames.map((name, idx) => ({
+          id: `quick-${Date.now()}-${idx}`,
+          name,
+          muscle_group: selectedType.name,
+          sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : 3,
+          reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
+          restSeconds: selectedType.id === 'stretch' ? 15 : 60,
+          equipment: 'Bodyweight'
+        }));
+      }
+
+      const workoutData = {
+        name: `${selectedType.name} - Quick Workout`,
+        exercises: workoutExercises,
+        estimatedMinutes: selectedDuration.minutes,
+        estimatedCalories: selectedDuration.minutes * 8
+      };
+
+      onGenerateWorkout(workoutData);
+      onClose();
+
+    } catch (err) {
+      console.error('Error generating workout:', err);
+      setError('Failed to generate workout. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="ai-workout-overlay" onClick={onClose}>
+      <div className="ai-workout-modal" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="ai-workout-header">
+          <h2>
+            <Zap size={22} />
+            AI Quick Workout
+          </h2>
+          <button className="close-btn" onClick={onClose} type="button">
+            <X size={22} />
+          </button>
+        </div>
+
+        <div className="ai-workout-content">
+          {loading ? (
+            <div className="ai-workout-loading">
+              <Loader2 size={40} />
+              <p>Generating your workout...</p>
+            </div>
+          ) : (
+            <>
+              {/* Workout Type Selection */}
+              <div className="ai-workout-section">
+                <h3 className="section-label">Choose workout type</h3>
+                <div className="workout-type-grid">
+                  {WORKOUT_TYPES.map(type => (
+                    <div
+                      key={type.id}
+                      className={`ai-workout-option ${selectedType?.id === type.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedType(type)}
+                    >
+                      <span className="option-icon">{type.icon}</span>
+                      <h3>{type.name}</h3>
+                      <p>{type.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Duration Selection */}
+              <div className="ai-workout-section">
+                <h3 className="section-label">Duration</h3>
+                <div className="duration-options">
+                  {DURATION_OPTIONS.map(opt => (
+                    <button
+                      key={opt.minutes}
+                      className={`duration-btn ${selectedDuration.minutes === opt.minutes ? 'selected' : ''}`}
+                      onClick={() => setSelectedDuration(opt)}
+                      type="button"
+                    >
+                      <Clock size={16} />
+                      <span>{opt.label}</span>
+                      <small>{opt.exercises} exercises</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {error && (
+                <div className="ai-workout-error">
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {/* Generate Button */}
+              <button
+                className="ai-workout-generate-btn"
+                onClick={handleGenerate}
+                disabled={!selectedType || loading}
+                type="button"
+              >
+                <Zap size={20} />
+                Generate Workout
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default AiQuickWorkoutModal;

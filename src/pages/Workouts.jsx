@@ -6,6 +6,7 @@ import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
+import AiQuickWorkoutModal from '../components/workout/AiQuickWorkoutModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -123,6 +124,7 @@ function Workouts() {
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
+  const [showAiWorkout, setShowAiWorkout] = useState(false); // AI Quick Workout modal
   const menuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
   const selectedExerciseRef = useRef(null);
@@ -389,11 +391,55 @@ function Workouts() {
   }, []); // Removed todayWorkout and selectedDate - using ref instead
 
   // Handle adding a new exercise - use ref for stable callback
-  const handleAddExercise = useCallback((newExercise) => {
-    const workout = todayWorkoutRef.current;
-    if (!workout?.workout_data || !newExercise) return;
+  // Now supports adding exercises on rest days by creating an ad-hoc workout
+  const handleAddExercise = useCallback(async (newExercise) => {
+    if (!newExercise) return;
 
-    // Add the new exercise to the workout
+    const workout = todayWorkoutRef.current;
+
+    // If no workout exists (rest day), create an ad-hoc workout
+    if (!workout?.workout_data) {
+      const dateStr = formatDate(selectedDate);
+      const adHocWorkout = {
+        id: `adhoc-${dateStr}`,
+        client_id: clientData?.id,
+        workout_date: dateStr,
+        name: 'Custom Workout',
+        day_index: 0,
+        workout_data: {
+          name: 'Custom Workout',
+          exercises: [newExercise],
+          estimatedMinutes: 30,
+          estimatedCalories: 150
+        }
+      };
+
+      // Update local state with new ad-hoc workout
+      setTodayWorkout(adHocWorkout);
+
+      // Create workout assignment in backend
+      try {
+        const res = await apiPost('/.netlify/functions/workout-assignments', {
+          clientId: clientData?.id,
+          workoutDate: dateStr,
+          workoutData: adHocWorkout.workout_data,
+          name: 'Custom Workout'
+        });
+
+        if (res?.assignment) {
+          // Update with real assignment ID from backend
+          setTodayWorkout(prev => ({
+            ...prev,
+            id: res.assignment.id
+          }));
+        }
+      } catch (err) {
+        console.error('Error creating ad-hoc workout:', err);
+      }
+      return;
+    }
+
+    // Normal case: workout already exists
     const updatedExercises = [
       ...(workout.workout_data.exercises || []),
       newExercise
@@ -422,7 +468,46 @@ function Workouts() {
     }).catch(err => {
       console.error('Error adding exercise:', err);
     });
-  }, []); // Removed todayWorkout and selectedDate - using ref instead
+  }, [clientData?.id, selectedDate]); // Added dependencies for ad-hoc workout creation
+
+  // Handle AI-generated quick workout
+  const handleAiGenerateWorkout = useCallback(async (workoutData) => {
+    if (!workoutData?.exercises?.length) return;
+
+    const dateStr = formatDate(selectedDate);
+    const newWorkout = {
+      id: `ai-${dateStr}-${Date.now()}`,
+      client_id: clientData?.id,
+      workout_date: dateStr,
+      name: workoutData.name || 'AI Quick Workout',
+      day_index: 0,
+      workout_data: workoutData
+    };
+
+    // Update local state with new AI-generated workout
+    setTodayWorkout(newWorkout);
+    setShowAiWorkout(false);
+
+    // Create workout assignment in backend
+    try {
+      const res = await apiPost('/.netlify/functions/workout-assignments', {
+        clientId: clientData?.id,
+        workoutDate: dateStr,
+        workoutData: workoutData,
+        name: workoutData.name || 'AI Quick Workout'
+      });
+
+      if (res?.assignment) {
+        // Update with real assignment ID from backend
+        setTodayWorkout(prev => ({
+          ...prev,
+          id: res.assignment.id
+        }));
+      }
+    } catch (err) {
+      console.error('Error saving AI workout:', err);
+    }
+  }, [clientData?.id, selectedDate]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {
@@ -1158,6 +1243,22 @@ function Workouts() {
                   <span>Get good sleep</span>
                 </div>
               </div>
+              <div className="rest-day-actions">
+                <button
+                  className="rest-day-add-btn"
+                  onClick={() => setShowAddActivity(true)}
+                >
+                  <Plus size={18} />
+                  <span>Add Activity</span>
+                </button>
+                <button
+                  className="rest-day-ai-btn"
+                  onClick={() => setShowAiWorkout(true)}
+                >
+                  <Zap size={18} />
+                  <span>AI Quick Workout</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1277,6 +1378,15 @@ function Workouts() {
           onAdd={handleAddExercise}
           onClose={() => setShowAddActivity(false)}
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
+        />
+      )}
+
+      {/* AI Quick Workout Modal */}
+      {showAiWorkout && (
+        <AiQuickWorkoutModal
+          onClose={() => setShowAiWorkout(false)}
+          onGenerateWorkout={handleAiGenerateWorkout}
+          selectedDate={selectedDate}
         />
       )}
 
