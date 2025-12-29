@@ -459,6 +459,97 @@ function Workouts() {
     });
   }, []); // Using ref instead of dependencies
 
+  // Handle deleting an exercise from workout - use ref for stable callback
+  const handleDeleteExercise = useCallback((exerciseToDelete) => {
+    try {
+      const workout = todayWorkoutRef.current;
+      if (!workout?.workout_data || !exerciseToDelete) return;
+
+      // Get exercises from either direct array or days structure
+      let currentExercises = [];
+      let isUsingDays = false;
+      let dayIndex = workout.day_index || 0;
+
+      if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+        currentExercises = workout.workout_data.exercises;
+      } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+        isUsingDays = true;
+        const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+        currentExercises = workout.workout_data.days[safeIndex]?.exercises || [];
+      }
+
+      if (currentExercises.length === 0) return;
+
+      // Remove the exercise from the list
+      const updatedExercises = currentExercises.filter(ex => ex?.id !== exerciseToDelete.id);
+
+      // Use requestAnimationFrame to batch state updates for mobile Safari
+      requestAnimationFrame(() => {
+        // Close modal and update workout in same frame
+        setSelectedExercise(null);
+        setTodayWorkout(prev => {
+          if (!prev) return prev;
+
+          if (isUsingDays) {
+            // Update within days structure
+            const updatedDays = [...(prev.workout_data.days || [])];
+            const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+            updatedDays[safeIndex] = {
+              ...updatedDays[safeIndex],
+              exercises: updatedExercises
+            };
+            return {
+              ...prev,
+              workout_data: {
+                ...prev.workout_data,
+                days: updatedDays
+              }
+            };
+          } else {
+            return {
+              ...prev,
+              workout_data: {
+                ...prev.workout_data,
+                exercises: updatedExercises
+              }
+            };
+          }
+        });
+
+        // Remove from completed set if present
+        setCompletedExercises(prev => {
+          const newCompleted = new Set(prev);
+          newCompleted.delete(exerciseToDelete.id);
+          return newCompleted;
+        });
+      });
+
+      // Save to backend
+      const workoutDataToSave = isUsingDays ? {
+        ...workout.workout_data,
+        days: workout.workout_data.days.map((day, idx) => {
+          if (idx === (Math.abs(dayIndex) % workout.workout_data.days.length)) {
+            return { ...day, exercises: updatedExercises };
+          }
+          return day;
+        })
+      } : {
+        ...workout.workout_data,
+        exercises: updatedExercises
+      };
+
+      apiPut('/.netlify/functions/client-workout-log', {
+        assignmentId: workout.id,
+        dayIndex: workout.day_index,
+        workout_data: workoutDataToSave
+      }).catch(err => {
+        console.error('Error deleting exercise:', err);
+      });
+    } catch (err) {
+      console.error('Error in handleDeleteExercise:', err);
+    }
+  }, []);
+
   // Start workout
   const handleStartWorkout = useCallback(async () => {
     setWorkoutStarted(true);
@@ -922,6 +1013,7 @@ function Workouts() {
             completedExercises={completedExercises}
             onSwapExercise={handleSwapExercise}
             onUpdateExercise={handleUpdateExercise}
+            onDeleteExercise={handleDeleteExercise}
           />
         </ErrorBoundary>
       )}

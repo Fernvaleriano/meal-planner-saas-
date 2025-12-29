@@ -1,4 +1,4 @@
-const Anthropic = require("@anthropic-ai/sdk").default;
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
@@ -105,20 +105,19 @@ exports.handler = async (event) => {
       };
     }
 
-    // Try AI-powered suggestions, fallback to simple list if AI fails
+    // Try AI-powered suggestions with Gemini, fallback to simple list if AI fails
     let aiSuggestions = [];
 
     try {
-      // Check if Anthropic API key is available
-      if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error("ANTHROPIC_API_KEY not configured");
+      // Check if Gemini API key is available
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY not configured");
       }
 
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      // Build the prompt for Claude
+      // Build the prompt for Gemini
       const exerciseListForAI = availableAlternatives.slice(0, 20).map(ex => ({
         id: ex.id,
         name: ex.name,
@@ -134,16 +133,13 @@ ${JSON.stringify(exerciseListForAI, null, 2)}
 
 For each, explain briefly why it's a good swap.
 
-RESPOND IN THIS EXACT JSON FORMAT ONLY:
+RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, just raw JSON):
 {"suggestions":[{"id":"exercise_id","name":"Name","reason":"Brief reason"}]}`;
 
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 512,
-        messages: [{ role: "user", content: prompt }],
-      });
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text().trim();
 
-      const responseText = response.content[0].text.trim();
+      // Parse JSON from response
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);

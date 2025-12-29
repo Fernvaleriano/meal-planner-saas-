@@ -11981,6 +11981,7 @@ a.nav-left {
     align-items: flex-end;
     justify-content: center;
     z-index: 1000;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 20px));
 }
 
 .workout-history-modal {
@@ -18061,3 +18062,124 @@ a.nav-left {
     justify-content: center;
     flex-shrink: 0;
 }
+
+/* ========================================
+   DELETE EXERCISE BUTTON & CONFIRMATION MODAL
+   ======================================== */
+.delete-btn-visible {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.delete-btn-visible:hover,
+.delete-btn-visible:active {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.delete-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.delete-confirm-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 320px;
+    width: 100%;
+    text-align: center;
+}
+
+[data-theme="dark"] .delete-confirm-modal {
+    background: #1e293b;
+}
+
+.delete-confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: #ef4444;
+}
+
+.delete-confirm-modal h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .delete-confirm-modal h3 {
+    color: #f1f5f9;
+}
+
+.delete-confirm-modal p {
+    font-size: 14px;
+    color: var(--gray-500);
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.delete-cancel-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--gray-100);
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .delete-cancel-btn {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+.delete-confirm-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: #ef4444;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.delete-confirm-btn:hover,
+.delete-confirm-btn:active {
+    background: #dc2626;
+}
+
