@@ -207,6 +207,23 @@ function ExerciseDetailModal({
   useEffect(() => {
     if (!exercise?.name) return;
 
+    // Fallback tips based on exercise type
+    const getFallbackTips = () => {
+      const muscleGroup = (exercise.muscle_group || exercise.muscleGroup || '').toLowerCase();
+      if (muscleGroup.includes('chest') || muscleGroup.includes('push')) {
+        return ['Keep shoulders back and down', 'Control the descent slowly', 'Full range of motion'];
+      } else if (muscleGroup.includes('back') || muscleGroup.includes('pull')) {
+        return ['Squeeze shoulder blades together', 'Pull with your elbows', 'Keep core engaged'];
+      } else if (muscleGroup.includes('leg') || muscleGroup.includes('quad') || muscleGroup.includes('glute')) {
+        return ['Keep knees tracking over toes', 'Push through your heels', 'Maintain neutral spine'];
+      } else if (muscleGroup.includes('shoulder') || muscleGroup.includes('delt')) {
+        return ['Avoid shrugging shoulders up', 'Control the weight throughout', 'Keep core tight'];
+      } else if (muscleGroup.includes('arm') || muscleGroup.includes('bicep') || muscleGroup.includes('tricep')) {
+        return ['Keep elbows stationary', 'Full extension and contraction', 'Control the negative'];
+      }
+      return ['Maintain proper form throughout', 'Control the movement', 'Breathe steadily'];
+    };
+
     const fetchTips = async () => {
       setTipsLoading(true);
       setTipsError(null);
@@ -223,10 +240,14 @@ function ExerciseDetailModal({
 
         if (response?.success && response?.tips) {
           setTips(response.tips);
+        } else {
+          // Use fallback tips if API response is invalid
+          setTips(getFallbackTips());
         }
       } catch (error) {
         console.error('Failed to fetch tips:', error);
-        setTipsError('Could not load tips');
+        // Use fallback tips on error
+        setTips(getFallbackTips());
       } finally {
         setTipsLoading(false);
       }
@@ -235,7 +256,7 @@ function ExerciseDetailModal({
     // Small delay to avoid too many requests during quick navigation
     const timer = setTimeout(fetchTips, 300);
     return () => clearTimeout(timer);
-  }, [exercise?.id, exercise?.name]);
+  }, [exercise?.id, exercise?.name, exercise?.muscle_group, exercise?.muscleGroup]);
 
   // Stable close handler - uses requestAnimationFrame for mobile Safari
   const handleClose = useCallback(() => {
@@ -603,10 +624,12 @@ function ExerciseDetailModal({
                 </div>
               ))}
             </div>
-          ) : tipsError ? (
-            <div className="tips-error">{tipsError}</div>
-          ) : !tipsLoading ? (
-            <div className="tips-loading">Loading tips...</div>
+          ) : tipsLoading ? (
+            <div className="tips-loading-placeholder">
+              <div className="tip-skeleton"></div>
+              <div className="tip-skeleton"></div>
+              <div className="tip-skeleton"></div>
+            </div>
           ) : null}
           <button
             className="ask-coach-btn"
