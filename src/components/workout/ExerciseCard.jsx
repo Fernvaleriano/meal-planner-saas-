@@ -12,7 +12,7 @@ const parseReps = (reps) => {
   return 12;
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise }) {
   // Check for special exercise types
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
@@ -46,14 +46,22 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const restTimerRef = useRef(null);
 
-  // Swipe state
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
+  // Swipe state for HEADER (swap/delete/move)
+  const [headerSwipeOffset, setHeaderSwipeOffset] = useState(0);
+  const [isHeaderSwiping, setIsHeaderSwiping] = useState(false);
+  const headerTouchStartX = useRef(0);
+  const headerTouchStartY = useRef(0);
+
+  // Swipe state for SETS ROW (add set)
+  const [setsSwipeOffset, setSetsSwipeOffset] = useState(0);
+  const [isSetsSwiping, setIsSetsSwiping] = useState(false);
+  const setsTouchStartX = useRef(0);
+  const setsTouchStartY = useRef(0);
+
   const cardRef = useRef(null);
-  const swipeThreshold = 60; // Minimum swipe distance to reveal actions
-  const maxSwipe = 200; // Maximum swipe distance (width of all buttons)
+  const swipeThreshold = 60;
+  const headerMaxSwipe = 200;
+  const setsMaxSwipe = 70; // Smaller swipe for add set button
 
   // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
   useEffect(() => {
@@ -156,11 +164,20 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     setSets(newSets);
   };
 
-  // Add a set
+  // Add a set - with persistence
   const addSet = (e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     const lastSet = sets[sets.length - 1] || { reps: 12, weight: 0, duration: exercise.duration, restSeconds: 60 };
-    setSets([...sets, { ...lastSet, completed: false }]);
+    const newSets = [...sets, { ...lastSet, completed: false }];
+    setSets(newSets);
+
+    // Persist to backend
+    if (onUpdateExercise) {
+      onUpdateExercise({ ...exercise, sets: newSets });
+    }
+
+    // Close the sets swipe
+    setSetsSwipeOffset(0);
   };
 
   // Remove a set
@@ -187,56 +204,80 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
-  // Swipe handlers
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    setIsSwiping(false);
+  // HEADER swipe handlers (for swap/delete/move)
+  const handleHeaderTouchStart = (e) => {
+    headerTouchStartX.current = e.touches[0].clientX;
+    headerTouchStartY.current = e.touches[0].clientY;
+    setIsHeaderSwiping(false);
   };
 
-  const handleTouchMove = (e) => {
+  const handleHeaderTouchMove = (e) => {
     const touchX = e.touches[0].clientX;
     const touchY = e.touches[0].clientY;
-    const diffX = touchStartX.current - touchX;
-    const diffY = Math.abs(touchStartY.current - touchY);
+    const diffX = headerTouchStartX.current - touchX;
+    const diffY = Math.abs(headerTouchStartY.current - touchY);
 
-    // If vertical scroll is dominant, don't swipe
-    if (diffY > Math.abs(diffX) && !isSwiping) {
-      return;
-    }
+    if (diffY > Math.abs(diffX) && !isHeaderSwiping) return;
 
-    // Only swipe left (positive diffX)
     if (diffX > 10) {
-      setIsSwiping(true);
-      e.preventDefault(); // Prevent scroll while swiping
-      const newOffset = Math.min(Math.max(0, diffX), maxSwipe);
-      setSwipeOffset(newOffset);
-    } else if (diffX < -10 && swipeOffset > 0) {
-      // Swiping right to close
-      setIsSwiping(true);
-      const newOffset = Math.max(0, swipeOffset + diffX);
-      setSwipeOffset(newOffset);
+      setIsHeaderSwiping(true);
+      e.preventDefault();
+      setHeaderSwipeOffset(Math.min(Math.max(0, diffX), headerMaxSwipe));
+    } else if (diffX < -10 && headerSwipeOffset > 0) {
+      setIsHeaderSwiping(true);
+      setHeaderSwipeOffset(Math.max(0, headerSwipeOffset + diffX));
     }
   };
 
-  const handleTouchEnd = () => {
-    if (swipeOffset > swipeThreshold) {
-      // Snap open
-      setSwipeOffset(maxSwipe);
-    } else {
-      // Snap closed
-      setSwipeOffset(0);
-    }
-    setIsSwiping(false);
+  const handleHeaderTouchEnd = () => {
+    setHeaderSwipeOffset(headerSwipeOffset > swipeThreshold ? headerMaxSwipe : 0);
+    setIsHeaderSwiping(false);
   };
 
-  const closeSwipe = () => {
-    setSwipeOffset(0);
+  const closeHeaderSwipe = () => {
+    setHeaderSwipeOffset(0);
+  };
+
+  // SETS ROW swipe handlers (for add set)
+  const handleSetsTouchStart = (e) => {
+    e.stopPropagation();
+    setsTouchStartX.current = e.touches[0].clientX;
+    setsTouchStartY.current = e.touches[0].clientY;
+    setIsSetsSwiping(false);
+  };
+
+  const handleSetsTouchMove = (e) => {
+    e.stopPropagation();
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+    const diffX = setsTouchStartX.current - touchX;
+    const diffY = Math.abs(setsTouchStartY.current - touchY);
+
+    if (diffY > Math.abs(diffX) && !isSetsSwiping) return;
+
+    if (diffX > 10) {
+      setIsSetsSwiping(true);
+      e.preventDefault();
+      setSetsSwipeOffset(Math.min(Math.max(0, diffX), setsMaxSwipe));
+    } else if (diffX < -10 && setsSwipeOffset > 0) {
+      setIsSetsSwiping(true);
+      setSetsSwipeOffset(Math.max(0, setsSwipeOffset + diffX));
+    }
+  };
+
+  const handleSetsTouchEnd = (e) => {
+    e.stopPropagation();
+    setSetsSwipeOffset(setsSwipeOffset > 40 ? setsMaxSwipe : 0);
+    setIsSetsSwiping(false);
+  };
+
+  const closeSetsSwipe = () => {
+    setSetsSwipeOffset(0);
   };
 
   const handleSwapClick = (e) => {
     e.stopPropagation();
-    closeSwipe();
+    closeHeaderSwipe();
     if (onSwapExercise) {
       onSwapExercise(exercise);
     }
@@ -244,7 +285,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
-    closeSwipe();
+    closeHeaderSwipe();
     if (onDeleteExercise) {
       onDeleteExercise(exercise);
     }
@@ -252,7 +293,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   const handleMoveUpClick = (e) => {
     e.stopPropagation();
-    closeSwipe();
+    closeHeaderSwipe();
     if (onMoveUp) {
       onMoveUp(index);
     }
@@ -260,7 +301,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   const handleMoveDownClick = (e) => {
     e.stopPropagation();
-    closeSwipe();
+    closeHeaderSwipe();
     if (onMoveDown) {
       onMoveDown(index);
     }
@@ -268,156 +309,178 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   return (
     <div
-      className={`exercise-card-wrapper ${swipeOffset > 0 ? 'swiped' : ''}`}
+      className={`exercise-card-wrapper ${headerSwipeOffset > 0 ? 'swiped' : ''}`}
       ref={cardRef}
     >
-      {/* Swipe Action Buttons (behind the card) */}
-      <div className="swipe-actions">
-        {/* Reorder buttons */}
-        {(onMoveUp || onMoveDown) && (
-          <div className="swipe-reorder-btns">
-            <button
-              className={`swipe-move-btn ${isFirst ? 'disabled' : ''}`}
-              onClick={handleMoveUpClick}
-              disabled={isFirst}
-            >
-              <ChevronUp size={20} />
-            </button>
-            <button
-              className={`swipe-move-btn ${isLast ? 'disabled' : ''}`}
-              onClick={handleMoveDownClick}
-              disabled={isLast}
-            >
-              <ChevronDown size={20} />
-            </button>
-          </div>
-        )}
-        {onSwapExercise && (
-          <button className="swipe-action-btn swap-action" onClick={handleSwapClick}>
-            <ArrowLeftRight size={20} />
-            <span>Swap</span>
-          </button>
-        )}
-        {onDeleteExercise && (
-          <button className="swipe-action-btn delete-action" onClick={handleDeleteClick}>
-            <Trash2 size={20} />
-            <span>Delete</span>
-          </button>
-        )}
-      </div>
-
-      {/* Main Card Content (slides left on swipe) */}
+      {/* Main Card Content */}
       <div
         className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
-        style={{
-          transform: `translateX(-${swipeOffset}px)`,
-          transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
-        }}
-        onClick={swipeOffset > 0 ? closeSwipe : onClick}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
-        {/* Main Content - New Layout: Info on Left, Image on Right */}
-        <div className="exercise-main">
-        {/* Info Section - LEFT SIDE */}
-        <div className="exercise-details">
-          <h3 className="exercise-title">{exercise.name}</h3>
-
-          {/* Calories estimate */}
-          {exercise.calories_per_minute && (
-            <span className="exercise-calories">
-              {Math.round((exercise.calories_per_minute || 5) * (sets.length * 2))} kcal
-            </span>
-          )}
-
-          {/* Exercise Type Badges */}
-          {(isSuperset || isWarmup || isStretch) && (
-            <div className="exercise-badges">
-              {isSuperset && (
-                <span className="exercise-badge superset-badge">
-                  <Zap size={10} />
-                  Superset {exercise.supersetGroup}
-                </span>
-              )}
-              {isWarmup && (
-                <span className="exercise-badge warmup-badge">
-                  <Flame size={10} />
-                  Warm-up
-                </span>
-              )}
-              {isStretch && (
-                <span className="exercise-badge stretch-badge">
-                  <Leaf size={10} />
-                  Stretch
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Time/Reps Boxes Row */}
-          <div className="time-boxes-row">
-            {isTimedExercise ? (
-              <>
-                {/* Duration boxes for timed exercises */}
-                {sets.map((set, idx) => (
-                  <div key={idx} className="time-box with-weight">
-                    <span className="reps-value">{formatDuration(set?.duration || exercise.duration) || '45s'}</span>
-                  </div>
-                ))}
-                <div className="time-box add-box" onClick={addSet}>
-                  <Plus size={16} />
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Rep boxes for strength exercises - show reps and weight */}
-                {sets.map((set, idx) => (
-                  <div key={idx} className="time-box with-weight">
-                    <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
-                    <span className="weight-value">{set?.weight || 0} kg</span>
-                  </div>
-                ))}
-                <div className="time-box add-box" onClick={addSet}>
-                  <Plus size={16} />
-                </div>
-              </>
+        {/* HEADER ZONE - Swipe for swap/delete/move */}
+        <div className="header-swipe-zone">
+          {/* Swipe Action Buttons (behind the header) */}
+          <div className="swipe-actions header-actions">
+            {(onMoveUp || onMoveDown) && (
+              <div className="swipe-reorder-btns">
+                <button
+                  className={`swipe-move-btn ${isFirst ? 'disabled' : ''}`}
+                  onClick={handleMoveUpClick}
+                  disabled={isFirst}
+                >
+                  <ChevronUp size={20} />
+                </button>
+                <button
+                  className={`swipe-move-btn ${isLast ? 'disabled' : ''}`}
+                  onClick={handleMoveDownClick}
+                  disabled={isLast}
+                >
+                  <ChevronDown size={20} />
+                </button>
+              </div>
+            )}
+            {onSwapExercise && (
+              <button className="swipe-action-btn swap-action" onClick={handleSwapClick}>
+                <ArrowLeftRight size={20} />
+                <span>Swap</span>
+              </button>
+            )}
+            {onDeleteExercise && (
+              <button className="swipe-action-btn delete-action" onClick={handleDeleteClick}>
+                <Trash2 size={20} />
+                <span>Delete</span>
+              </button>
             )}
           </div>
 
-          {/* Rest Time Row - now shows for ALL sets */}
-          <div className="rest-row">
-            {sets.map((set, idx) => (
-              <div key={idx} className={`rest-box ${restTimerActive === idx ? 'timer-active' : ''}`}>
-                <Timer size={12} />
-                <span>
-                  {restTimerActive === idx ? formatRestTime(restTimeLeft) : `${set.restSeconds || 60}s`}
+          {/* Header content that slides */}
+          <div
+            className="exercise-header-content"
+            style={{
+              transform: `translateX(-${headerSwipeOffset}px)`,
+              transition: isHeaderSwiping ? 'none' : 'transform 0.2s ease-out'
+            }}
+            onClick={headerSwipeOffset > 0 ? closeHeaderSwipe : onClick}
+            onTouchStart={handleHeaderTouchStart}
+            onTouchMove={handleHeaderTouchMove}
+            onTouchEnd={handleHeaderTouchEnd}
+          >
+            <div className="exercise-details">
+              <h3 className="exercise-title">{exercise.name}</h3>
+
+              {/* Calories estimate */}
+              {exercise.calories_per_minute && (
+                <span className="exercise-calories">
+                  {Math.round((exercise.calories_per_minute || 5) * (sets.length * 2))} kcal
                 </span>
-              </div>
-            ))}
-            <div className="rest-spacer"></div>
+              )}
+
+              {/* Exercise Type Badges */}
+              {(isSuperset || isWarmup || isStretch) && (
+                <div className="exercise-badges">
+                  {isSuperset && (
+                    <span className="exercise-badge superset-badge">
+                      <Zap size={10} />
+                      Superset {exercise.supersetGroup}
+                    </span>
+                  )}
+                  {isWarmup && (
+                    <span className="exercise-badge warmup-badge">
+                      <Flame size={10} />
+                      Warm-up
+                    </span>
+                  )}
+                  {isStretch && (
+                    <span className="exercise-badge stretch-badge">
+                      <Leaf size={10} />
+                      Stretch
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail - RIGHT SIDE */}
+            <div className="exercise-thumb">
+              <img
+                src={thumbnailUrl}
+                alt={exercise.name || 'Exercise'}
+                loading="lazy"
+                onError={(e) => {
+                  if (e.target.src !== '/img/exercise-placeholder.svg') {
+                    e.target.src = '/img/exercise-placeholder.svg';
+                  }
+                }}
+              />
+              {isCompleted && (
+                <div className="completed-overlay">
+                  <Check size={24} />
+                </div>
+              )}
+              {exercise.video_url && !isCompleted && (
+                <div className="video-indicator">
+                  <Play size={12} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Thumbnail - RIGHT SIDE */}
-        <div className="exercise-thumb">
-          <img
-            src={thumbnailUrl}
-            alt={exercise.name || 'Exercise'}
-            loading="lazy"
-            onError={(e) => {
-              if (e.target.src !== '/img/exercise-placeholder.svg') {
-                e.target.src = '/img/exercise-placeholder.svg';
-              }
+        {/* SETS ZONE - Swipe for add set */}
+        <div className="sets-swipe-zone">
+          {/* Add Set Button (behind the sets row) */}
+          <div className="swipe-actions sets-actions">
+            <button className="swipe-action-btn add-set-action" onClick={addSet}>
+              <Plus size={20} />
+            </button>
+          </div>
+
+          {/* Sets content that slides */}
+          <div
+            className="sets-row-content"
+            style={{
+              transform: `translateX(-${setsSwipeOffset}px)`,
+              transition: isSetsSwiping ? 'none' : 'transform 0.2s ease-out'
             }}
-          />
-          {exercise.video_url && (
-            <div className="video-indicator">
-              <Play size={12} />
+            onClick={(e) => { e.stopPropagation(); if (setsSwipeOffset > 0) closeSetsSwipe(); else onClick?.(); }}
+            onTouchStart={handleSetsTouchStart}
+            onTouchMove={handleSetsTouchMove}
+            onTouchEnd={handleSetsTouchEnd}
+          >
+            {/* Time/Reps Boxes Row */}
+            <div className="time-boxes-row">
+              {isTimedExercise ? (
+                <>
+                  {sets.map((set, idx) => (
+                    <div key={idx} className="time-box with-weight">
+                      <span className="reps-value">{formatDuration(set?.duration || exercise.duration) || '45s'}</span>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {sets.map((set, idx) => (
+                    <div key={idx} className="time-box with-weight">
+                      <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
+                      <span className="weight-value">{set?.weight || 0} kg</span>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
-          )}
+
+            {/* Rest Time Row */}
+            <div className="rest-row">
+              {sets.map((set, idx) => (
+                <div key={idx} className={`rest-box ${restTimerActive === idx ? 'timer-active' : ''}`}>
+                  {idx === 0 && <Timer size={12} />}
+                  <span>
+                    {restTimerActive === idx ? formatRestTime(restTimeLeft) : `${set.restSeconds || 60}s`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Expandable Sets Section (when workout started) */}
       {workoutStarted && (
