@@ -14152,7 +14152,7 @@ a.nav-left {
 /* Modal V3 overrides */
 .exercise-modal-v2.modal-v3 {
     background: #000;
-    padding-bottom: 100px;
+    padding-bottom: 220px; /* Room for activity bar + sets progress + navigation */
 }
 
 /* Modal Header V3 */
@@ -14407,7 +14407,7 @@ a.nav-left {
 /* Activity Progress Bar at Bottom */
 .activity-progress-bar {
     position: fixed;
-    bottom: 0;
+    bottom: 140px; /* Above navigation bar and sets progress */
     left: 0;
     right: 0;
     background: #1a1a1a;
@@ -14465,12 +14465,17 @@ a.nav-left {
 
 /* Sets Progress Simple */
 .sets-progress-simple {
+    position: fixed;
+    bottom: 70px; /* Above navigation bar */
+    left: 0;
+    right: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 16px;
     background: #1a1a1a;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 10;
 }
 
 .sets-progress-simple .progress-dots {
