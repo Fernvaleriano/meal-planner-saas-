@@ -179,6 +179,16 @@ function ExerciseDetailModal({
   const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio';
   const difficultyLevel = exercise?.difficulty || 'Novice';
 
+  // Debug: Log video URL when playing (helps identify mismatched videos in database)
+  const handlePlayVideo = useCallback(() => {
+    console.log(`Playing video for "${exercise?.name}":`, {
+      video_url: exercise?.video_url,
+      animation_url: exercise?.animation_url,
+      using: videoUrl
+    });
+    setShowVideo(true);
+  }, [exercise?.name, exercise?.video_url, exercise?.animation_url, videoUrl]);
+
   // Parse reps helper
   const parseReps = (reps) => {
     if (typeof reps === 'number') return reps;
@@ -250,7 +260,7 @@ function ExerciseDetailModal({
                 />
               </div>
               {videoUrl && (
-                <button className="center-play-btn" onClick={() => setShowVideo(true)} type="button">
+                <button className="center-play-btn" onClick={handlePlayVideo} type="button">
                   <Play size={32} fill="white" />
                 </button>
               )}
