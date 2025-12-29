@@ -137,35 +137,62 @@ exports.handler = async (event) => {
         exercise_type: ex.exercise_type
       }));
 
+      // Detect specific muscle from exercise name for better matching
+      const exerciseName = (exercise.name || '').toLowerCase();
+      let specificMuscle = '';
+
+      // Biceps vs Triceps detection
+      if (exerciseName.includes('bicep') || exerciseName.includes('curl') || exerciseName.includes('hammer')) {
+        specificMuscle = 'BICEPS (elbow flexion exercises like curls)';
+      } else if (exerciseName.includes('tricep') || exerciseName.includes('pushdown') || exerciseName.includes('extension') || exerciseName.includes('skull') || exerciseName.includes('dip')) {
+        specificMuscle = 'TRICEPS (elbow extension exercises like pushdowns, extensions)';
+      }
+      // Chest detection
+      else if (exerciseName.includes('bench') || exerciseName.includes('chest') || exerciseName.includes('press') || exerciseName.includes('fly') || exerciseName.includes('flye')) {
+        specificMuscle = 'CHEST (pressing and fly movements)';
+      }
+      // Back detection
+      else if (exerciseName.includes('row') || exerciseName.includes('pull')) {
+        specificMuscle = 'BACK (pulling movements like rows and pulldowns)';
+      }
+      // Shoulder detection
+      else if (exerciseName.includes('shoulder') || exerciseName.includes('lateral') || exerciseName.includes('raise') || exerciseName.includes('delt')) {
+        specificMuscle = 'SHOULDERS (raises and presses)';
+      }
+
       const prompt = `You are an expert strength coach selecting exercise substitutions. Think like a coach - prioritize MOVEMENT PATTERN over just muscle group.
 
 EXERCISE TO REPLACE: "${exercise.name}"
 - Muscle Group: ${muscleGroup}
 - Equipment: ${exercise.equipment || "bodyweight"}
 - Type: ${exercise.exercise_type || "strength"}
+${specificMuscle ? `- SPECIFIC TARGET: ${specificMuscle} - ONLY suggest exercises for this specific muscle!` : ''}
+
+CRITICAL RULES:
+${specificMuscle.includes('BICEPS') ? '⚠️ This is a BICEPS exercise - DO NOT suggest triceps exercises! Only suggest curls and bicep movements.' : ''}
+${specificMuscle.includes('TRICEPS') ? '⚠️ This is a TRICEPS exercise - DO NOT suggest biceps/curl exercises! Only suggest extensions, pushdowns, dips.' : ''}
 
 COACHING LOGIC FOR SWAPS (in order of priority):
-1. **MOVEMENT PATTERN IS KING** - A curl should be replaced with another curl variation, NOT a lat pulldown (even though both hit biceps). A row should be replaced with another row, not a pullover.
-2. **Joint Action** - Match the primary joint movement (elbow flexion, hip hinge, knee extension, shoulder press, etc.)
-3. **Muscle Emphasis/Angle** - Incline press → another incline or flat press, not cable flyes. Standing curl → seated or preacher curl, not chin-ups.
-4. **Grip/Stance Variations** - Supinated grip curl → other supinated or neutral grip curls first, pronated last.
-5. **Equipment** - Nice to match but SECONDARY to movement pattern. Barbell curl → dumbbell curl is great. Barbell curl → cable lat pulldown is BAD even if same equipment type.
+1. **SAME SPECIFIC MUSCLE** - Bicep curl → another bicep exercise (NOT triceps even though both are "arms"). Row → row (NOT pullover).
+2. **MOVEMENT PATTERN IS KING** - A curl should be replaced with another curl variation. A press with another press.
+3. **Joint Action** - Match the primary joint movement (elbow flexion for curls, elbow extension for triceps, etc.)
+4. **Muscle Emphasis/Angle** - Incline curl → another incline or standing curl, not a completely different movement.
+5. **Equipment** - Nice to match but SECONDARY to movement pattern.
 
 EXAMPLES OF GOOD SWAPS:
-- Barbell Curl → Dumbbell Curl, EZ Bar Curl, Preacher Curl, Concentration Curl
-- Barbell Row → Dumbbell Row, Cable Row, T-Bar Row, Seated Row
-- Bench Press → Dumbbell Press, Incline Press, Machine Chest Press
-- Leg Press → Squat, Hack Squat, Lunges
+- Dumbbell Bicep Curl → Barbell Curl, Preacher Curl, Hammer Curl, Cable Curl (all BICEPS)
+- Tricep Pushdown → Tricep Extension, Skull Crusher, Tricep Dip (all TRICEPS)
+- Barbell Row → Dumbbell Row, Cable Row, T-Bar Row (all ROWS)
 
-EXAMPLES OF BAD SWAPS (same muscle, wrong movement):
-- Barbell Curl → Lat Pulldown (both hit biceps, but totally different movements)
-- Bench Press → Cable Flyes (both hit chest, but press vs fly pattern)
-- Romanian Deadlift → Leg Curl (both hit hamstrings, but hip hinge vs knee flexion)
+EXAMPLES OF BAD SWAPS:
+- Bicep Curl → Tricep Extension (WRONG! Different muscle entirely!)
+- Bicep Curl → Lat Pulldown (WRONG! Different movement pattern!)
+- Bench Press → Cable Flyes (WRONG! Press vs fly pattern)
 
 AVAILABLE EXERCISES TO CHOOSE FROM:
 ${JSON.stringify(exerciseListForAI, null, 2)}
 
-Select the TOP 3-5 exercises that a knowledgeable coach would recommend. Prioritize movement pattern matches.
+Select the TOP 3-5 exercises that match the SAME SPECIFIC MUSCLE and movement pattern. A curl MUST be replaced with another curl-type bicep exercise.
 
 RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks):
 {"suggestions":[{"id":"exercise_id","name":"Exercise Name","reason":"Brief coaching reason (8 words max)"}]}`;
