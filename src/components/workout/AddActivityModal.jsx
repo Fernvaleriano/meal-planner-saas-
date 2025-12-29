@@ -1,6 +1,41 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { X, Search, Loader2, Plus } from 'lucide-react';
+import { X, Search, Loader2, Plus, Mic, MicOff } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+
+// Fuzzy search - score how well a query matches an exercise
+const fuzzyScore = (exercise, query) => {
+  if (!query || !exercise?.name) return 0;
+
+  const queryWords = query.toLowerCase().trim().split(/\s+/);
+  const name = (exercise.name || '').toLowerCase();
+  const equipment = (exercise.equipment || '').toLowerCase();
+  const muscle = (exercise.muscle_group || '').toLowerCase();
+  const fullText = `${name} ${equipment} ${muscle}`;
+
+  let score = 0;
+
+  // Check if ALL query words appear somewhere
+  const allWordsMatch = queryWords.every(word => fullText.includes(word));
+  if (allWordsMatch) score += 100;
+
+  // Check each query word
+  for (const word of queryWords) {
+    if (word.length < 2) continue;
+
+    // Exact name match
+    if (name === word) score += 50;
+    // Name starts with word
+    else if (name.startsWith(word)) score += 30;
+    // Word appears in name
+    else if (name.includes(word)) score += 20;
+    // Word appears in equipment
+    else if (equipment.includes(word)) score += 10;
+    // Word appears in muscle
+    else if (muscle.includes(word)) score += 5;
+  }
+
+  return score;
+};
 
 const MUSCLE_GROUPS = [
   { value: '', label: 'All' },
@@ -23,9 +58,58 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Voice input state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recognitionRef = useRef(null);
+
   // Refs for cleanup
   const isMountedRef = useRef(true);
   const searchInputRef = useRef(null);
+
+  // Check for voice support
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(!!SpeechRecognition);
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Voice input handler
+  const toggleVoiceInput = useCallback(() => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isListening]);
 
   // Fetch all exercises with cleanup
   useEffect(() => {
@@ -63,7 +147,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     };
   }, []);
 
-  // Filter exercises - memoized with error handling
+  // Filter exercises - memoized with fuzzy search
   const filteredExercises = useMemo(() => {
     try {
       if (!Array.isArray(exercises)) return [];
@@ -87,19 +171,19 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
         });
       }
 
-      // Filter by search query - with defensive checks
+      // Fuzzy search - smarter matching
       if (searchQuery && searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        results = results.filter(ex => {
-          try {
-            const name = (ex.name || '').toLowerCase();
-            const equipment = (ex.equipment || '').toLowerCase();
-            const muscle = (ex.muscle_group || '').toLowerCase();
-            return name.includes(query) || equipment.includes(query) || muscle.includes(query);
-          } catch {
-            return false;
-          }
-        });
+        // Score each exercise and filter those with score > 0
+        const scored = results.map(ex => ({
+          exercise: ex,
+          score: fuzzyScore(ex, searchQuery)
+        })).filter(item => item.score > 0);
+
+        // Sort by score (highest first)
+        scored.sort((a, b) => b.score - a.score);
+
+        // Return sorted exercises
+        return scored.map(item => item.exercise);
       }
 
       return results;
@@ -196,15 +280,25 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
           </button>
         </div>
 
-        {/* Search */}
+        {/* Search with voice input */}
         <div className="add-activity-search">
           <Search size={18} />
           <input
             type="text"
-            placeholder="Search exercises..."
+            placeholder="Search exercises... (e.g. bench press)"
             value={searchQuery}
             onChange={handleSearchChange}
           />
+          {voiceSupported && (
+            <button
+              className={`search-voice-btn ${isListening ? 'listening' : ''}`}
+              onClick={toggleVoiceInput}
+              type="button"
+              title="Voice search"
+            >
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+          )}
         </div>
 
         {/* Muscle Group Filter Pills - larger touch targets */}
