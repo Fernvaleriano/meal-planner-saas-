@@ -299,53 +299,90 @@ function Workouts() {
   // Handle exercise swap - use ref for stable callback
   // Uses requestAnimationFrame for mobile Safari stability
   const handleSwapExercise = useCallback((oldExercise, newExercise) => {
-    const workout = todayWorkoutRef.current;
-    if (!workout?.workout_data?.exercises || !oldExercise || !newExercise) return;
+    try {
+      const workout = todayWorkoutRef.current;
+      if (!workout?.workout_data || !oldExercise || !newExercise) return;
 
-    // Create the swapped exercise with preserved config
-    const swappedExercise = {
-      ...newExercise,
-      sets: oldExercise.sets,
-      reps: oldExercise.reps,
-      restSeconds: oldExercise.restSeconds,
-      notes: oldExercise.notes
-    };
+      // Create the swapped exercise with preserved config
+      const swappedExercise = {
+        ...newExercise,
+        sets: oldExercise.sets,
+        reps: oldExercise.reps,
+        restSeconds: oldExercise.restSeconds,
+        notes: oldExercise.notes
+      };
 
-    // Update the workout data with the swapped exercise
-    const updatedExercises = workout.workout_data.exercises.map(ex => {
-      if (ex?.id === oldExercise.id) {
-        return swappedExercise;
+      // Get exercises from either direct array or days structure
+      let currentExercises = [];
+      let isUsingDays = false;
+      let dayIndex = workout.day_index || 0;
+
+      if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+        currentExercises = workout.workout_data.exercises;
+      } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+        isUsingDays = true;
+        const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+        currentExercises = workout.workout_data.days[safeIndex]?.exercises || [];
       }
-      return ex;
-    });
 
-    // Use requestAnimationFrame to batch state updates for mobile Safari
-    requestAnimationFrame(() => {
-      // Close modal and update workout in same frame
-      setSelectedExercise(null);
-      setTodayWorkout(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          workout_data: {
-            ...prev.workout_data,
-            exercises: updatedExercises
-          }
-        };
+      if (currentExercises.length === 0) return;
+
+      // Update the workout data with the swapped exercise
+      const updatedExercises = currentExercises.map(ex => {
+        if (ex?.id === oldExercise.id) {
+          return swappedExercise;
+        }
+        return ex;
       });
-    });
 
-    // Save to backend (fire and forget, errors logged)
-    apiPut('/.netlify/functions/client-workout-log', {
-      assignmentId: workout.id,
-      dayIndex: workout.day_index,
-      workout_data: {
-        ...workout.workout_data,
-        exercises: updatedExercises
-      }
-    }).catch(err => {
-      console.error('Error saving swapped exercise:', err);
-    });
+      // Use requestAnimationFrame to batch state updates for mobile Safari
+      requestAnimationFrame(() => {
+        // Close modal and update workout in same frame
+        setSelectedExercise(null);
+        setTodayWorkout(prev => {
+          if (!prev) return prev;
+
+          if (isUsingDays) {
+            // Update within days structure
+            const updatedDays = [...(prev.workout_data.days || [])];
+            const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+            updatedDays[safeIndex] = {
+              ...updatedDays[safeIndex],
+              exercises: updatedExercises
+            };
+            return {
+              ...prev,
+              workout_data: {
+                ...prev.workout_data,
+                days: updatedDays
+              }
+            };
+          } else {
+            return {
+              ...prev,
+              workout_data: {
+                ...prev.workout_data,
+                exercises: updatedExercises
+              }
+            };
+          }
+        });
+      });
+
+      // Save to backend (fire and forget, errors logged)
+      apiPut('/.netlify/functions/client-workout-log', {
+        assignmentId: workout.id,
+        dayIndex: workout.day_index,
+        workout_data: {
+          ...workout.workout_data,
+          exercises: updatedExercises
+        }
+      }).catch(err => {
+        console.error('Error saving swapped exercise:', err);
+      });
+    } catch (err) {
+      console.error('Error in handleSwapExercise:', err);
+    }
   }, []); // Removed todayWorkout and selectedDate - using ref instead
 
   // Handle adding a new exercise - use ref for stable callback
