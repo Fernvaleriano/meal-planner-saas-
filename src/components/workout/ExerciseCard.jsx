@@ -702,11 +702,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               )}
             </div>
 
-            {/* Rest Time Row */}
+            {/* Rest Time Row - aligned with sets above */}
             <div className="rest-row">
               {sets.map((set, idx) => (
                 <div key={idx} className={`rest-box ${restTimerActive === idx ? 'timer-active' : ''}`}>
-                  {idx === 0 && <Timer size={12} />}
+                  <Timer size={12} />
                   <span>
                     {restTimerActive === idx ? formatRestTime(restTimeLeft) : `${set.restSeconds || 60}s`}
                   </span>

@@ -12926,7 +12926,7 @@ a.nav-left {
     color: white;
 }
 
-/* Rest time row */
+/* Rest time row - aligned with time-boxes-row above */
 .exercise-card-v2 .rest-row {
     display: flex;
     gap: 8px;
@@ -12943,21 +12943,21 @@ a.nav-left {
 
 .exercise-card-v2 .rest-box {
     min-width: 60px;
-    height: 32px;
-    flex-shrink: 0;
-    background: #2a2a2a;
-    border-radius: 8px;
+    height: 28px;
+    flex: 0 0 auto;
+    background: rgba(42, 42, 42, 0.8);
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
-    font-size: 13px;
+    font-size: 12px;
     color: #9ca3af;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .exercise-card-v2 .rest-box svg {
-    color: #9ca3af;
+    color: #6b7280;
+    flex-shrink: 0;
 }
 
 .exercise-card-v2 .rest-spacer {
@@ -18347,6 +18347,45 @@ a.nav-left {
 
 [data-theme="dark"] .add-activity-search input::placeholder {
     color: #64748b;
+}
+
+/* Voice search button in add activity */
+.search-voice-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(13, 148, 136, 0.1);
+    border: none;
+    color: #0d9488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.search-voice-btn:hover {
+    background: rgba(13, 148, 136, 0.2);
+}
+
+.search-voice-btn.listening {
+    background: #ef4444;
+    color: white;
+    animation: pulse-search-mic 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-search-mic {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+[data-theme="dark"] .search-voice-btn {
+    background: rgba(13, 148, 136, 0.15);
+}
+
+[data-theme="dark"] .search-voice-btn:hover {
+    background: rgba(13, 148, 136, 0.25);
 }
 
 .muscle-filter-pills {
