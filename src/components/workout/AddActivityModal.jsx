@@ -21,9 +21,11 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('');
   const [selecting, setSelecting] = useState(false);
+  const [error, setError] = useState(null);
 
   // Refs for cleanup
   const isMountedRef = useRef(true);
+  const searchInputRef = useRef(null);
 
   // Fetch all exercises with cleanup
   useEffect(() => {
@@ -61,29 +63,50 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     };
   }, []);
 
-  // Filter exercises - memoized
+  // Filter exercises - memoized with error handling
   const filteredExercises = useMemo(() => {
-    let results = exercises.filter(ex => ex && !existingExerciseIds.includes(ex.id));
+    try {
+      if (!Array.isArray(exercises)) return [];
 
-    // Filter by muscle group
-    if (selectedMuscle) {
-      results = results.filter(ex => {
-        const muscle = (ex.muscle_group || '').toLowerCase();
-        return muscle.includes(selectedMuscle.toLowerCase());
+      let results = exercises.filter(ex => {
+        // Defensive: ensure ex exists and has required fields
+        if (!ex || !ex.id) return false;
+        // Exclude exercises already in workout
+        return !existingExerciseIds.includes(ex.id);
       });
-    }
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      results = results.filter(ex =>
-        (ex.name && ex.name.toLowerCase().includes(query)) ||
-        (ex.equipment && ex.equipment.toLowerCase().includes(query)) ||
-        (ex.muscle_group && ex.muscle_group.toLowerCase().includes(query))
-      );
-    }
+      // Filter by muscle group
+      if (selectedMuscle) {
+        results = results.filter(ex => {
+          try {
+            const muscle = (ex.muscle_group || '').toLowerCase();
+            return muscle.includes(selectedMuscle.toLowerCase());
+          } catch {
+            return false;
+          }
+        });
+      }
 
-    return results;
+      // Filter by search query - with defensive checks
+      if (searchQuery && searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        results = results.filter(ex => {
+          try {
+            const name = (ex.name || '').toLowerCase();
+            const equipment = (ex.equipment || '').toLowerCase();
+            const muscle = (ex.muscle_group || '').toLowerCase();
+            return name.includes(query) || equipment.includes(query) || muscle.includes(query);
+          } catch {
+            return false;
+          }
+        });
+      }
+
+      return results;
+    } catch (err) {
+      console.error('Error filtering exercises:', err);
+      return [];
+    }
   }, [exercises, selectedMuscle, searchQuery, existingExerciseIds]);
 
   // Handle exercise selection - with mobile Safari protection
@@ -140,9 +163,17 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     }
   }, [handleClose]);
 
-  // Handle search change
+  // Handle search change - with defensive checks
   const handleSearchChange = useCallback((e) => {
-    setSearchQuery(e.target.value);
+    try {
+      const value = e?.target?.value ?? '';
+      // Limit search query length to prevent performance issues
+      if (value.length <= 100) {
+        setSearchQuery(value);
+      }
+    } catch (err) {
+      console.error('Error in search change:', err);
+    }
   }, []);
 
   // Handle muscle filter change - optimized for touch
