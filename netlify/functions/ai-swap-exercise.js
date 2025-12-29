@@ -128,28 +128,47 @@ exports.handler = async (event) => {
       }
 
       // Build the prompt for Gemini
-      const exerciseListForAI = availableAlternatives.slice(0, 20).map(ex => ({
+      const exerciseListForAI = availableAlternatives.slice(0, 25).map(ex => ({
         id: ex.id,
         name: ex.name,
         muscle_group: ex.muscle_group,
         equipment: ex.equipment,
-        difficulty: ex.difficulty
+        difficulty: ex.difficulty,
+        exercise_type: ex.exercise_type
       }));
 
-      const prompt = `You are a fitness expert. The user wants to swap out "${exercise.name}" (${muscleGroup}, ${exercise.equipment || "bodyweight"}).
+      const prompt = `You are an expert strength coach selecting exercise substitutions. Think like a coach - prioritize MOVEMENT PATTERN over just muscle group.
 
-Select the TOP 3-5 BEST alternative exercises from this list. Choose exercises that:
-1. Target the same primary muscle groups
-2. Have similar movement patterns (e.g., replace a row with another row, not a stretch)
-3. Match the difficulty level when possible
+EXERCISE TO REPLACE: "${exercise.name}"
+- Muscle Group: ${muscleGroup}
+- Equipment: ${exercise.equipment || "bodyweight"}
+- Type: ${exercise.exercise_type || "strength"}
 
-AVAILABLE EXERCISES:
+COACHING LOGIC FOR SWAPS (in order of priority):
+1. **MOVEMENT PATTERN IS KING** - A curl should be replaced with another curl variation, NOT a lat pulldown (even though both hit biceps). A row should be replaced with another row, not a pullover.
+2. **Joint Action** - Match the primary joint movement (elbow flexion, hip hinge, knee extension, shoulder press, etc.)
+3. **Muscle Emphasis/Angle** - Incline press → another incline or flat press, not cable flyes. Standing curl → seated or preacher curl, not chin-ups.
+4. **Grip/Stance Variations** - Supinated grip curl → other supinated or neutral grip curls first, pronated last.
+5. **Equipment** - Nice to match but SECONDARY to movement pattern. Barbell curl → dumbbell curl is great. Barbell curl → cable lat pulldown is BAD even if same equipment type.
+
+EXAMPLES OF GOOD SWAPS:
+- Barbell Curl → Dumbbell Curl, EZ Bar Curl, Preacher Curl, Concentration Curl
+- Barbell Row → Dumbbell Row, Cable Row, T-Bar Row, Seated Row
+- Bench Press → Dumbbell Press, Incline Press, Machine Chest Press
+- Leg Press → Squat, Hack Squat, Lunges
+
+EXAMPLES OF BAD SWAPS (same muscle, wrong movement):
+- Barbell Curl → Lat Pulldown (both hit biceps, but totally different movements)
+- Bench Press → Cable Flyes (both hit chest, but press vs fly pattern)
+- Romanian Deadlift → Leg Curl (both hit hamstrings, but hip hinge vs knee flexion)
+
+AVAILABLE EXERCISES TO CHOOSE FROM:
 ${JSON.stringify(exerciseListForAI, null, 2)}
 
-For each suggestion, explain briefly (10 words max) why it's a good swap.
+Select the TOP 3-5 exercises that a knowledgeable coach would recommend. Prioritize movement pattern matches.
 
-RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks, just raw JSON):
-{"suggestions":[{"id":"exercise_id","name":"Exercise Name","reason":"Brief reason"}]}`;
+RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks):
+{"suggestions":[{"id":"exercise_id","name":"Exercise Name","reason":"Brief coaching reason (8 words max)"}]}`;
 
       const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
         method: 'POST',
