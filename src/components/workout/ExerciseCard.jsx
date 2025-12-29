@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff } from 'lucide-react';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 // Defined outside component so it's available during initialization
@@ -10,6 +10,93 @@ const parseReps = (reps) => {
     if (match) return parseInt(match[1], 10);
   }
   return 12;
+};
+
+// Number words to digits mapping for voice input
+const numberWords = {
+  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+  'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+  'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+  'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5
+};
+
+// Convert number words to digits in text
+const convertNumberWords = (text) => {
+  let result = text.toLowerCase();
+  for (const [word, num] of Object.entries(numberWords)) {
+    result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), num.toString());
+  }
+  return result;
+};
+
+// Parse a single set segment to extract reps and weight
+const parseSetSegment = (segment) => {
+  const result = { reps: null, weight: null, rest: null };
+  const text = convertNumberWords(segment);
+
+  const repsPatterns = [
+    /(\d+)\s*(?:reps?|repetitions?)/i,
+    /(?:did|do)\s*(\d+)/i,
+    /(\d+)\s*(?:at|with|@)/i,
+  ];
+  for (const pattern of repsPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.reps = parseInt(match[1], 10);
+      break;
+    }
+  }
+
+  const weightPatterns = [
+    /(?:with|at|@)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms)/i,
+    /(\d+(?:\.\d+)?)\s*(?:lb|lbs|pound|pounds)/i,
+  ];
+  for (const pattern of weightPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      let weight = parseFloat(match[1]);
+      if (/lb|pound/i.test(segment)) {
+        weight = Math.round(weight * 0.453592 * 2) / 2;
+      }
+      result.weight = weight;
+      break;
+    }
+  }
+
+  return result;
+};
+
+// Parse voice input for multiple sets
+const parseVoiceInputForSets = (transcript) => {
+  const text = convertNumberWords(transcript.toLowerCase());
+  const setMentions = text.match(/set\s*(?:number\s*)?\d+/gi) || [];
+
+  if (setMentions.length > 1) {
+    const results = [];
+    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)/i).filter(s => s.trim());
+
+    for (const segment of segments) {
+      const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i);
+      if (setMatch) {
+        const setNumber = parseInt(setMatch[1], 10);
+        const parsed = parseSetSegment(segment);
+        if (parsed.reps !== null || parsed.weight !== null) {
+          results.push({ setNumber, ...parsed });
+        }
+      }
+    }
+    return { multiple: true, sets: results };
+  } else {
+    const result = { multiple: false, reps: null, weight: null, setNumber: null };
+    const setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i);
+    if (setMatch) {
+      result.setNumber = parseInt(setMatch[1], 10);
+    }
+    const parsed = parseSetSegment(text);
+    result.reps = parsed.reps;
+    result.weight = parsed.weight;
+    return result;
+  }
 };
 
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise }) {
@@ -62,6 +149,25 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const swipeThreshold = 60;
   const headerMaxSwipe = 200;
   const setsMaxSwipe = 70; // Smaller swipe for add set button
+
+  // Voice input state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
+  const [lastTranscript, setLastTranscript] = useState('');
+  const recognitionRef = useRef(null);
+
+  // Check for voice support on mount
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(!!SpeechRecognition);
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
   // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
   useEffect(() => {
@@ -307,6 +413,111 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
   };
 
+  // Start voice recognition
+  const startVoiceInput = (e) => {
+    if (e) e.stopPropagation();
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceError('Voice not supported');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceError(null);
+      setLastTranscript('');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setLastTranscript(transcript);
+
+      const parsed = parseVoiceInputForSets(transcript);
+
+      const newSets = [...sets];
+
+      if (parsed.multiple && parsed.sets.length > 0) {
+        for (const setData of parsed.sets) {
+          const targetIndex = setData.setNumber - 1;
+          if (targetIndex >= 0 && targetIndex < newSets.length) {
+            if (setData.reps !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
+            }
+            if (setData.weight !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
+            }
+          }
+        }
+      } else {
+        const targetIndex = parsed.setNumber ? parsed.setNumber - 1 : 0;
+        if (targetIndex >= 0 && targetIndex < newSets.length) {
+          if (parsed.reps !== null) {
+            newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
+          }
+          if (parsed.weight !== null) {
+            newSets[targetIndex] = { ...newSets[targetIndex], weight: parsed.weight };
+          }
+        }
+      }
+
+      setSets(newSets);
+
+      // Persist to backend
+      if (onUpdateExercise) {
+        onUpdateExercise({ ...exercise, sets: newSets });
+      }
+
+      // Clear transcript after 3 seconds
+      setTimeout(() => setLastTranscript(''), 3000);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        setVoiceError('Mic denied');
+      } else if (event.error === 'no-speech') {
+        setVoiceError('No speech');
+      } else {
+        setVoiceError('Error');
+      }
+      setIsListening(false);
+      setTimeout(() => setVoiceError(null), 2000);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  // Stop voice recognition
+  const stopVoiceInput = (e) => {
+    if (e) e.stopPropagation();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  };
+
+  // Toggle voice input
+  const toggleVoiceInput = (e) => {
+    if (e) e.stopPropagation();
+    if (isListening) {
+      stopVoiceInput(e);
+    } else {
+      startVoiceInput(e);
+    }
+  };
+
   return (
     <div
       className={`exercise-card-wrapper ${headerSwipeOffset > 0 ? 'swiped' : ''}`}
@@ -365,7 +576,30 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             onTouchEnd={handleHeaderTouchEnd}
           >
             <div className="exercise-details">
-              <h3 className="exercise-title">{exercise.name}</h3>
+              <div className="exercise-title-row">
+                {/* Voice Input Button */}
+                {voiceSupported && (
+                  <button
+                    className={`voice-mic-btn-card ${isListening ? 'listening' : ''}`}
+                    onClick={toggleVoiceInput}
+                    type="button"
+                    title="Voice input"
+                  >
+                    {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                  </button>
+                )}
+                <h3 className="exercise-title">{exercise.name}</h3>
+              </div>
+
+              {/* Voice feedback inline */}
+              {(isListening || lastTranscript || voiceError) && (
+                <div className={`voice-feedback-inline ${isListening ? 'listening' : ''} ${voiceError ? 'error' : ''}`}>
+                  {isListening && <span className="voice-pulse-small"></span>}
+                  {isListening && <span>Listening...</span>}
+                  {lastTranscript && !isListening && <span>"{lastTranscript}"</span>}
+                  {voiceError && <span>{voiceError}</span>}
+                </div>
+              )}
 
               {/* Calories estimate */}
               {exercise.calories_per_minute && (

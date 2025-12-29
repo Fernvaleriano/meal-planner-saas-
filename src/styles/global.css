@@ -15055,6 +15055,87 @@ a.nav-left {
     color: #1d4ed8;
 }
 
+/* Voice input for ExerciseCard */
+.exercise-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voice-mic-btn-card {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.15);
+    border: none;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.voice-mic-btn-card:hover {
+    background: rgba(59, 130, 246, 0.25);
+}
+
+.voice-mic-btn-card.listening {
+    background: #ef4444;
+    color: white;
+    animation: pulse-mic-small 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-mic-small {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.voice-feedback-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #60a5fa;
+    margin-top: 2px;
+    padding: 2px 8px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 4px;
+    width: fit-content;
+}
+
+.voice-feedback-inline.listening {
+    color: #60a5fa;
+}
+
+.voice-feedback-inline.error {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.voice-pulse-small {
+    width: 6px;
+    height: 6px;
+    background: #3b82f6;
+    border-radius: 50%;
+    animation: voice-pulse 1s ease-in-out infinite;
+}
+
+[data-theme="light"] .voice-mic-btn-card {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="light"] .voice-mic-btn-card:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="light"] .voice-feedback-inline {
+    background: rgba(59, 130, 246, 0.08);
+    color: #2563eb;
+}
+
 .editor-exercise-info {
     display: flex;
     align-items: center;
