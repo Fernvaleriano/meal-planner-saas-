@@ -1,12 +1,31 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader2, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
-import { apiPost } from '../../utils/api';
+import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search } from 'lucide-react';
+import { apiPost, apiGet } from '../../utils/api';
+
+const EQUIPMENT_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'barbell', label: 'Barbell' },
+  { value: 'dumbbell', label: 'Dumbbell' },
+  { value: 'cable', label: 'Cable' },
+  { value: 'machine', label: 'Machine' },
+  { value: 'bodyweight', label: 'Bodyweight' },
+  { value: 'kettlebell', label: 'Kettlebell' },
+  { value: 'band', label: 'Bands' },
+  { value: 'smith', label: 'Smith' },
+];
 
 function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selecting, setSelecting] = useState(false);
+
+  // Browse state
+  const [showBrowse, setShowBrowse] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState('');
+  const [browseExercises, setBrowseExercises] = useState([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Refs for cleanup and stable references
   const isMountedRef = useRef(true);
@@ -63,6 +82,48 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     }
   }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type]);
 
+  // Fetch exercises for browse mode
+  const fetchBrowseExercises = useCallback(async (equipment) => {
+    if (!isMountedRef.current) return;
+
+    setBrowseLoading(true);
+
+    try {
+      // Build query params
+      let url = '/.netlify/functions/exercises?limit=100';
+      if (muscleGroup) {
+        url += `&muscle_group=${encodeURIComponent(muscleGroup)}`;
+      }
+      if (equipment) {
+        url += `&equipment=${encodeURIComponent(equipment)}`;
+      }
+
+      const response = await apiGet(url);
+
+      if (!isMountedRef.current) return;
+
+      if (response?.exercises) {
+        // Filter out current exercise and exercises already in workout
+        const workoutIds = (workoutExercisesRef.current || []).map(ex => String(ex?.id));
+        const filtered = response.exercises.filter(ex => {
+          const exId = String(ex.id);
+          return exId !== String(exerciseId) && !workoutIds.includes(exId);
+        });
+        setBrowseExercises(filtered);
+      } else {
+        setBrowseExercises([]);
+      }
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      console.error('Error fetching browse exercises:', err);
+      setBrowseExercises([]);
+    }
+
+    if (isMountedRef.current) {
+      setBrowseLoading(false);
+    }
+  }, [muscleGroup, exerciseId]);
+
   // Fetch on mount only - cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
@@ -74,6 +135,23 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
       isMountedRef.current = false;
     };
   }, []); // Empty dependency - only run on mount
+
+  // Fetch browse exercises when equipment changes
+  useEffect(() => {
+    if (showBrowse) {
+      fetchBrowseExercises(selectedEquipment);
+    }
+  }, [showBrowse, selectedEquipment, fetchBrowseExercises]);
+
+  // Filter browse exercises by search query
+  const filteredBrowseExercises = browseExercises.filter(ex => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      (ex.name && ex.name.toLowerCase().includes(query)) ||
+      (ex.equipment && ex.equipment.toLowerCase().includes(query))
+    );
+  });
 
   // Handle exercise selection - with mobile Safari protection
   const handleSelect = useCallback((e, newExercise) => {
@@ -121,6 +199,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     fetchSuggestions();
   }, [fetchSuggestions]);
 
+  // Toggle browse section
+  const toggleBrowse = useCallback(() => {
+    setShowBrowse(prev => !prev);
+  }, []);
+
   if (!exercise) return null;
 
   return (
@@ -147,7 +230,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
             />
           </div>
           <div className="swap-current-info">
-            <span className="swap-current-label">Replacing</span>
+            <span className="swap-current-label">REPLACING</span>
             <span className="swap-current-name">{exercise.name}</span>
             <span className="swap-current-meta">
               {muscleGroup}
@@ -222,6 +305,88 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
               ))
             )}
           </div>
+        </div>
+
+        {/* Browse by Equipment Section */}
+        <div className="swap-browse-section">
+          <button className="swap-browse-toggle" onClick={toggleBrowse}>
+            <Dumbbell size={16} />
+            <span>Browse by Equipment</span>
+            <ChevronDown size={18} className={`browse-chevron ${showBrowse ? 'open' : ''}`} />
+          </button>
+
+          {showBrowse && (
+            <div className="swap-browse-content">
+              {/* Equipment Pills */}
+              <div className="swap-equipment-pills">
+                {EQUIPMENT_OPTIONS.map(eq => (
+                  <button
+                    key={eq.value}
+                    className={`equipment-pill ${selectedEquipment === eq.value ? 'active' : ''}`}
+                    onClick={() => setSelectedEquipment(eq.value)}
+                    type="button"
+                  >
+                    {eq.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search within browse */}
+              <div className="swap-browse-search">
+                <Search size={16} />
+                <input
+                  type="text"
+                  placeholder="Search exercises..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {/* Browse Results */}
+              <div className="swap-browse-list">
+                {browseLoading ? (
+                  <div className="swap-loading small">
+                    <Loader2 size={24} className="spin" />
+                    <span>Loading...</span>
+                  </div>
+                ) : filteredBrowseExercises.length === 0 ? (
+                  <div className="swap-empty small">
+                    <p>No exercises found</p>
+                  </div>
+                ) : (
+                  filteredBrowseExercises.slice(0, 20).map((ex) => (
+                    <button
+                      key={ex.id}
+                      className="swap-browse-item"
+                      onClick={(e) => handleSelect(e, ex)}
+                      disabled={selecting}
+                    >
+                      <div className="swap-exercise-thumb small">
+                        <img
+                          src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                          alt={ex.name || 'Exercise'}
+                          onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                        />
+                      </div>
+                      <div className="swap-exercise-info">
+                        <span className="swap-exercise-name">{ex.name}</span>
+                        <span className="swap-exercise-meta">
+                          {ex.muscle_group || ex.muscleGroup}
+                          {ex.equipment && ` • ${ex.equipment}`}
+                        </span>
+                      </div>
+                      <ArrowRight size={16} className="swap-arrow" />
+                    </button>
+                  ))
+                )}
+                {filteredBrowseExercises.length > 20 && (
+                  <div className="swap-browse-more">
+                    <span>{filteredBrowseExercises.length - 20} more exercises available</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -18264,3 +18264,188 @@ a.nav-left {
 .exercise-card-wrapper.show-hint .exercise-card-v2 {
     animation: swipeHint 0.5s ease-in-out;
 }
+
+/* ========================================
+   SWAP MODAL - BROWSE BY EQUIPMENT SECTION
+   ======================================== */
+.swap-browse-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 8px;
+}
+
+.swap-browse-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    color: var(--gray-400);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.swap-browse-toggle:hover,
+.swap-browse-toggle:active {
+    color: var(--gray-300);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.browse-chevron {
+    margin-left: auto;
+    transition: transform 0.2s ease;
+}
+
+.browse-chevron.open {
+    transform: rotate(180deg);
+}
+
+.swap-browse-content {
+    padding: 0 16px 16px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.swap-equipment-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.equipment-pill {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: var(--gray-400);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.equipment-pill:hover,
+.equipment-pill:active {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--gray-300);
+}
+
+.equipment-pill.active {
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
+    color: white;
+}
+
+.swap-browse-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.swap-browse-search svg {
+    color: var(--gray-500);
+    flex-shrink: 0;
+}
+
+.swap-browse-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+.swap-browse-search input::placeholder {
+    color: var(--gray-500);
+}
+
+.swap-browse-list {
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.swap-browse-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    width: 100%;
+    text-align: left;
+}
+
+.swap-browse-item:hover,
+.swap-browse-item:active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.swap-exercise-thumb.small {
+    width: 44px;
+    height: 44px;
+}
+
+.swap-browse-item .swap-exercise-name {
+    font-size: 14px;
+}
+
+.swap-browse-item .swap-exercise-meta {
+    font-size: 12px;
+}
+
+.swap-browse-item .swap-arrow {
+    color: var(--gray-500);
+}
+
+.swap-loading.small,
+.swap-empty.small {
+    padding: 24px 16px;
+}
+
+.swap-loading.small span,
+.swap-empty.small p {
+    font-size: 13px;
+}
+
+.swap-browse-more {
+    text-align: center;
+    padding: 12px;
+    color: var(--gray-500);
+    font-size: 12px;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .equipment-pill {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .equipment-pill.active {
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
