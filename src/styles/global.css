@@ -12092,14 +12092,14 @@ a.nav-left {
 
 /* Reschedule Modal Styles */
 .reschedule-modal {
-    max-height: 70vh;
-    min-height: auto;
+    max-height: 85vh;
+    min-height: 350px;
     overflow-y: auto;
 }
 
 .reschedule-content {
     padding: 24px;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom, 20px));
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 40px));
 }
 
 .reschedule-description {
