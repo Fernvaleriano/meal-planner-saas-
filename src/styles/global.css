@@ -18449,3 +18449,45 @@ a.nav-left {
     background: var(--brand-primary);
     border-color: var(--brand-primary);
 }
+
+/* ========================================
+   SWIPE REORDER BUTTONS
+   ======================================== */
+.swipe-reorder-btns {
+    display: flex;
+    flex-direction: column;
+    width: 50px;
+    height: 100%;
+}
+
+.swipe-move-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #6366f1;
+    border: none;
+    color: white;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s ease;
+}
+
+.swipe-move-btn:first-child {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.swipe-move-btn:active {
+    background: #4f46e5;
+}
+
+.swipe-move-btn.disabled {
+    background: #4b5563;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.swipe-move-btn.disabled:active {
+    background: #4b5563;
+}
