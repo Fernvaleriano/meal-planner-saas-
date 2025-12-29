@@ -18183,3 +18183,84 @@ a.nav-left {
     background: #dc2626;
 }
 
+
+/* ========================================
+   SWIPE-TO-REVEAL EXERCISE CARD ACTIONS
+   ======================================== */
+.exercise-card-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    margin-bottom: 12px;
+}
+
+.swipe-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+    z-index: 1;
+}
+
+.swipe-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 70px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.swipe-action-btn.swap-action {
+    background: #f59e0b;
+}
+
+.swipe-action-btn.swap-action:active {
+    background: #d97706;
+}
+
+.swipe-action-btn.delete-action {
+    background: #ef4444;
+}
+
+.swipe-action-btn.delete-action:active {
+    background: #dc2626;
+}
+
+.swipe-action-btn span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Make the card content slide over the actions */
+.exercise-card-wrapper .exercise-card-v2 {
+    position: relative;
+    z-index: 2;
+    background: var(--gray-100);
+    margin-bottom: 0;
+}
+
+[data-theme="dark"] .exercise-card-wrapper .exercise-card-v2 {
+    background: #1e293b;
+}
+
+/* Hint animation for first-time users */
+@keyframes swipeHint {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(-20px); }
+    100% { transform: translateX(0); }
+}
+
+.exercise-card-wrapper.show-hint .exercise-card-v2 {
+    animation: swipeHint 0.5s ease-in-out;
+}

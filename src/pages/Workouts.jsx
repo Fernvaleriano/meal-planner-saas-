@@ -5,6 +5,7 @@ import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
+import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -119,6 +120,8 @@ function Workouts() {
   // States for reschedule/duplicate functionality
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleAction, setRescheduleAction] = useState(null); // 'reschedule', 'duplicate', 'skip'
+  const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
+  const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
   const menuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
@@ -550,6 +553,32 @@ function Workouts() {
     }
   }, []);
 
+  // Handle swipe-to-swap - opens swap modal for the exercise
+  const handleSwipeSwap = useCallback((exercise) => {
+    setSwipeSwapExercise(exercise);
+  }, []);
+
+  // Handle swipe-to-delete - shows confirmation
+  const handleSwipeDelete = useCallback((exercise) => {
+    setSwipeDeleteExercise(exercise);
+  }, []);
+
+  // Handle swap from swipe modal
+  const handleSwipeSwapSelect = useCallback((newExercise) => {
+    if (swipeSwapExercise && newExercise) {
+      handleSwapExercise(swipeSwapExercise, newExercise);
+    }
+    setSwipeSwapExercise(null);
+  }, [swipeSwapExercise, handleSwapExercise]);
+
+  // Confirm delete from swipe
+  const handleConfirmSwipeDelete = useCallback(() => {
+    if (swipeDeleteExercise) {
+      handleDeleteExercise(swipeDeleteExercise);
+    }
+    setSwipeDeleteExercise(null);
+  }, [swipeDeleteExercise, handleDeleteExercise]);
+
   // Start workout
   const handleStartWorkout = useCallback(async () => {
     setWorkoutStarted(true);
@@ -947,6 +976,8 @@ function Workouts() {
                     onToggleComplete={() => toggleExerciseComplete(exercise.id)}
                     onClick={() => handleExerciseClick(exercise)}
                     workoutStarted={workoutStarted}
+                    onSwapExercise={handleSwipeSwap}
+                    onDeleteExercise={handleSwipeDelete}
                   />
                 ) : null
               ))}
@@ -1152,6 +1183,43 @@ function Workouts() {
                    'Skip Today'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Swipe Swap Modal */}
+      {swipeSwapExercise && (
+        <SwapExerciseModal
+          exercise={swipeSwapExercise}
+          workoutExercises={exercises}
+          onSwap={handleSwipeSwapSelect}
+          onClose={() => setSwipeSwapExercise(null)}
+        />
+      )}
+
+      {/* Swipe Delete Confirmation Modal */}
+      {swipeDeleteExercise && (
+        <div className="delete-confirm-overlay" onClick={() => setSwipeDeleteExercise(null)}>
+          <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="delete-confirm-icon">
+              <X size={32} />
+            </div>
+            <h3>Delete Exercise?</h3>
+            <p>Remove "{swipeDeleteExercise.name}" from this workout?</p>
+            <div className="delete-confirm-actions">
+              <button
+                className="delete-cancel-btn"
+                onClick={() => setSwipeDeleteExercise(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="delete-confirm-btn"
+                onClick={handleConfirmSwipeDelete}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

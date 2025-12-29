@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw } from 'lucide-react';
+import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2 } from 'lucide-react';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 // Defined outside component so it's available during initialization
@@ -12,7 +12,7 @@ const parseReps = (reps) => {
   return 12;
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise }) {
   // Check for special exercise types
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
@@ -45,6 +45,15 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [restTimerActive, setRestTimerActive] = useState(null);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const restTimerRef = useRef(null);
+
+  // Swipe state
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const cardRef = useRef(null);
+  const swipeThreshold = 60; // Minimum swipe distance to reveal actions
+  const maxSwipe = 140; // Maximum swipe distance (width of both buttons)
 
   // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
   useEffect(() => {
@@ -178,13 +187,104 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
+  // Swipe handlers
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    setIsSwiping(false);
+  };
+
+  const handleTouchMove = (e) => {
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+    const diffX = touchStartX.current - touchX;
+    const diffY = Math.abs(touchStartY.current - touchY);
+
+    // If vertical scroll is dominant, don't swipe
+    if (diffY > Math.abs(diffX) && !isSwiping) {
+      return;
+    }
+
+    // Only swipe left (positive diffX)
+    if (diffX > 10) {
+      setIsSwiping(true);
+      e.preventDefault(); // Prevent scroll while swiping
+      const newOffset = Math.min(Math.max(0, diffX), maxSwipe);
+      setSwipeOffset(newOffset);
+    } else if (diffX < -10 && swipeOffset > 0) {
+      // Swiping right to close
+      setIsSwiping(true);
+      const newOffset = Math.max(0, swipeOffset + diffX);
+      setSwipeOffset(newOffset);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeOffset > swipeThreshold) {
+      // Snap open
+      setSwipeOffset(maxSwipe);
+    } else {
+      // Snap closed
+      setSwipeOffset(0);
+    }
+    setIsSwiping(false);
+  };
+
+  const closeSwipe = () => {
+    setSwipeOffset(0);
+  };
+
+  const handleSwapClick = (e) => {
+    e.stopPropagation();
+    closeSwipe();
+    if (onSwapExercise) {
+      onSwapExercise(exercise);
+    }
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    closeSwipe();
+    if (onDeleteExercise) {
+      onDeleteExercise(exercise);
+    }
+  };
+
   return (
     <div
-      className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
-      onClick={onClick}
+      className={`exercise-card-wrapper ${swipeOffset > 0 ? 'swiped' : ''}`}
+      ref={cardRef}
     >
-      {/* Main Content - New Layout: Info on Left, Image on Right */}
-      <div className="exercise-main">
+      {/* Swipe Action Buttons (behind the card) */}
+      <div className="swipe-actions">
+        {onSwapExercise && (
+          <button className="swipe-action-btn swap-action" onClick={handleSwapClick}>
+            <ArrowLeftRight size={20} />
+            <span>Swap</span>
+          </button>
+        )}
+        {onDeleteExercise && (
+          <button className="swipe-action-btn delete-action" onClick={handleDeleteClick}>
+            <Trash2 size={20} />
+            <span>Delete</span>
+          </button>
+        )}
+      </div>
+
+      {/* Main Card Content (slides left on swipe) */}
+      <div
+        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
+        style={{
+          transform: `translateX(-${swipeOffset}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onClick={swipeOffset > 0 ? closeSwipe : onClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Main Content - New Layout: Info on Left, Image on Right */}
+        <div className="exercise-main">
         {/* Info Section - LEFT SIDE */}
         <div className="exercise-details">
           <h3 className="exercise-title">{exercise.name}</h3>
@@ -420,12 +520,13 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       )}
 
       {/* Coach Notes */}
-      {exercise.notes && (
-        <div className="coach-note">
-          <span className="note-label">Coach Note:</span>
-          <span className="note-text">{exercise.notes}</span>
-        </div>
-      )}
+        {exercise.notes && (
+          <div className="coach-note">
+            <span className="note-label">Coach Note:</span>
+            <span className="note-text">{exercise.notes}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
