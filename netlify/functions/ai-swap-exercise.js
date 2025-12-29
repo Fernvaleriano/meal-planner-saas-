@@ -1,5 +1,7 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { createClient } = require("@supabase/supabase-js");
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -83,12 +85,23 @@ exports.handler = async (event) => {
     const workoutExerciseIds = workoutExercises.map(ex => ex.id).filter(Boolean);
 
     // Filter out current exercise and exercises already in workout
+    // Also filter out stretches and warmups for strength exercises
     const availableAlternatives = alternatives.filter(alt => {
-      // Compare as strings to handle type mismatches
       const altId = String(alt.id);
       const currentId = String(exerciseId);
       const isCurrentExercise = altId === currentId;
       const isInWorkout = workoutExerciseIds.some(id => String(id) === altId);
+
+      // Filter out stretches/warmups if original exercise is strength
+      const altName = (alt.name || '').toLowerCase();
+      const isStretchOrWarmup = altName.includes('stretch') || altName.includes('warmup') || altName.includes('warm up');
+      const originalName = (exercise.name || '').toLowerCase();
+      const originalIsStrength = !originalName.includes('stretch') && !originalName.includes('warmup');
+
+      if (originalIsStrength && isStretchOrWarmup) {
+        return false;
+      }
+
       return !isCurrentExercise && !isInWorkout;
     });
 
@@ -110,12 +123,9 @@ exports.handler = async (event) => {
 
     try {
       // Check if Gemini API key is available
-      if (!process.env.GEMINI_API_KEY) {
+      if (!GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY not configured");
       }
-
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       // Build the prompt for Gemini
       const exerciseListForAI = availableAlternatives.slice(0, 20).map(ex => ({
@@ -126,29 +136,57 @@ exports.handler = async (event) => {
         difficulty: ex.difficulty
       }));
 
-      const prompt = `You are a fitness expert. Select the TOP 3-5 best alternative exercises from this list to replace "${exercise.name}" (${muscleGroup}, ${exercise.equipment || "bodyweight"}).
+      const prompt = `You are a fitness expert. The user wants to swap out "${exercise.name}" (${muscleGroup}, ${exercise.equipment || "bodyweight"}).
+
+Select the TOP 3-5 BEST alternative exercises from this list. Choose exercises that:
+1. Target the same primary muscle groups
+2. Have similar movement patterns (e.g., replace a row with another row, not a stretch)
+3. Match the difficulty level when possible
 
 AVAILABLE EXERCISES:
 ${JSON.stringify(exerciseListForAI, null, 2)}
 
-For each, explain briefly why it's a good swap.
+For each suggestion, explain briefly (10 words max) why it's a good swap.
 
-RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, just raw JSON):
-{"suggestions":[{"id":"exercise_id","name":"Name","reason":"Brief reason"}]}`;
+RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks, just raw JSON):
+{"suggestions":[{"id":"exercise_id","name":"Exercise Name","reason":"Brief reason"}]}`;
 
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text().trim();
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 512
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
       // Parse JSON from response
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         aiSuggestions = parsed.suggestions || [];
+        console.log("AI Swap - Got", aiSuggestions.length, "AI suggestions");
       }
     } catch (aiError) {
       console.error("AI suggestion failed, using fallback:", aiError.message);
-      // Fallback: return top alternatives sorted by relevance
-      aiSuggestions = availableAlternatives.slice(0, 5).map(ex => ({
+      // Fallback: return top alternatives sorted by relevance (prefer same equipment)
+      const sortedAlternatives = availableAlternatives.sort((a, b) => {
+        const aEquipMatch = (a.equipment || '').toLowerCase() === (exercise.equipment || '').toLowerCase() ? 1 : 0;
+        const bEquipMatch = (b.equipment || '').toLowerCase() === (exercise.equipment || '').toLowerCase() ? 1 : 0;
+        return bEquipMatch - aEquipMatch;
+      });
+
+      aiSuggestions = sortedAlternatives.slice(0, 5).map(ex => ({
         id: ex.id,
         name: ex.name,
         reason: `Similar ${ex.muscle_group} exercise${ex.equipment ? ` using ${ex.equipment}` : ""}`
