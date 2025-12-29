@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Clock, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Clock, ChevronDown, Mic, MicOff } from 'lucide-react';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 const parseReps = (reps) => {
@@ -21,6 +21,83 @@ const RPE_OPTIONS = [
   { value: 10, label: '10', description: 'Max effort, no more reps' },
 ];
 
+// Parse voice input to extract set data
+const parseVoiceInput = (transcript) => {
+  const text = transcript.toLowerCase();
+  const result = { reps: null, weight: null, rest: null, setNumber: null };
+
+  // Extract set number: "set 1", "set one", "first set", etc.
+  const setPatterns = [
+    /set\s*(\d+)/i,
+    /(\d+)(?:st|nd|rd|th)\s*set/i,
+    /(first|second|third|fourth|fifth)\s*set/i,
+  ];
+  for (const pattern of setPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const numWords = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 };
+      result.setNumber = numWords[match[1]] || parseInt(match[1], 10);
+      break;
+    }
+  }
+
+  // Extract reps: "12 reps", "15 repetitions", "did 10", "10x"
+  const repsPatterns = [
+    /(\d+)\s*(?:reps?|repetitions?)/i,
+    /did\s*(\d+)/i,
+    /(\d+)\s*x\b/i,
+    /^(\d+)\s+(?:at|with|@)/i,
+  ];
+  for (const pattern of repsPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.reps = parseInt(match[1], 10);
+      break;
+    }
+  }
+
+  // Extract weight: "50 kg", "60 kilos", "45 pounds", "100 lbs", "at 50"
+  const weightPatterns = [
+    /(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms)/i,
+    /(\d+(?:\.\d+)?)\s*(?:lb|lbs|pound|pounds)/i,
+    /(?:at|with|@)\s*(\d+(?:\.\d+)?)/i,
+    /(\d+(?:\.\d+)?)\s*(?:weight)/i,
+  ];
+  for (const pattern of weightPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      let weight = parseFloat(match[1]);
+      // Convert pounds to kg if needed
+      if (/lb|pound/i.test(text)) {
+        weight = Math.round(weight * 0.453592 * 2) / 2; // Round to nearest 0.5kg
+      }
+      result.weight = weight;
+      break;
+    }
+  }
+
+  // Extract rest time: "90 seconds rest", "2 minutes", "rest 60"
+  const restPatterns = [
+    /(\d+)\s*(?:seconds?|secs?)\s*(?:rest|break)?/i,
+    /(\d+)\s*(?:minutes?|mins?)\s*(?:rest|break)?/i,
+    /rest(?:ed)?\s*(?:for\s*)?(\d+)/i,
+  ];
+  for (const pattern of restPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      let rest = parseInt(match[1], 10);
+      // Convert minutes to seconds
+      if (/minutes?|mins?/i.test(match[0])) {
+        rest = rest * 60;
+      }
+      result.rest = rest;
+      break;
+    }
+  }
+
+  return result;
+};
+
 function SetEditorModal({
   exercise,
   sets,
@@ -30,11 +107,118 @@ function SetEditorModal({
 }) {
   const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s, rpe: s.rpe || null })));
-  const [activeSetIndex, setActiveSetIndex] = useState(null); // null = no selection
-  const [activeField, setActiveField] = useState(null); // null = no selection
-  const [isFirstInput, setIsFirstInput] = useState(true); // Track if next input should replace value
-  const [showKeyboard, setShowKeyboard] = useState(false); // Hide keyboard by default
-  const [rpePickerIndex, setRpePickerIndex] = useState(null); // Which set's RPE picker is open
+  const [activeSetIndex, setActiveSetIndex] = useState(null);
+  const [activeField, setActiveField] = useState(null);
+  const [isFirstInput, setIsFirstInput] = useState(true);
+  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [rpePickerIndex, setRpePickerIndex] = useState(null);
+
+  // Voice input state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
+  const [lastTranscript, setLastTranscript] = useState('');
+  const recognitionRef = useRef(null);
+
+  // Check for voice support on mount
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(!!SpeechRecognition);
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Start voice recognition
+  const startVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceError('Voice input not supported in this browser');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceError(null);
+      setLastTranscript('');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setLastTranscript(transcript);
+
+      // Parse the voice input
+      const parsed = parseVoiceInput(transcript);
+
+      // Determine which set to update
+      let targetSetIndex = activeSetIndex;
+      if (parsed.setNumber && parsed.setNumber <= localSets.length) {
+        targetSetIndex = parsed.setNumber - 1;
+      }
+      if (targetSetIndex === null) {
+        targetSetIndex = 0; // Default to first set
+      }
+
+      // Update the set with parsed values
+      const newSets = [...localSets];
+      if (parsed.reps !== null) {
+        newSets[targetSetIndex] = { ...newSets[targetSetIndex], reps: parsed.reps };
+      }
+      if (parsed.weight !== null) {
+        newSets[targetSetIndex] = { ...newSets[targetSetIndex], weight: parsed.weight };
+      }
+      if (parsed.rest !== null) {
+        newSets[targetSetIndex] = { ...newSets[targetSetIndex], restSeconds: parsed.rest };
+      }
+      setLocalSets(newSets);
+      setActiveSetIndex(targetSetIndex);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        setVoiceError('Microphone access denied. Please allow microphone access.');
+      } else if (event.error === 'no-speech') {
+        setVoiceError('No speech detected. Try again.');
+      } else {
+        setVoiceError(`Error: ${event.error}`);
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  // Stop voice recognition
+  const stopVoiceInput = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  };
+
+  // Toggle voice input
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      stopVoiceInput();
+    } else {
+      startVoiceInput();
+    }
+  };
 
   // Select a field and show keyboard
   const selectField = (index, field) => {
@@ -179,10 +363,41 @@ function SetEditorModal({
             <X size={24} />
           </button>
           <span className="editor-title">Editor</span>
-          <button className="editor-save-btn" onClick={handleSave}>
-            Save
-          </button>
+          <div className="editor-header-actions">
+            {voiceSupported && (
+              <button
+                className={`voice-input-btn ${isListening ? 'listening' : ''}`}
+                onClick={toggleVoiceInput}
+                title="Voice input"
+              >
+                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+              </button>
+            )}
+            <button className="editor-save-btn" onClick={handleSave}>
+              Save
+            </button>
+          </div>
         </div>
+
+        {/* Voice feedback */}
+        {(isListening || lastTranscript || voiceError) && (
+          <div className={`voice-feedback ${isListening ? 'listening' : ''} ${voiceError ? 'error' : ''}`}>
+            {isListening && (
+              <div className="voice-listening">
+                <div className="voice-pulse"></div>
+                <span>Listening... Say something like "12 reps at 50 kilos"</span>
+              </div>
+            )}
+            {lastTranscript && !isListening && (
+              <div className="voice-transcript">
+                <span className="transcript-label">Heard:</span> "{lastTranscript}"
+              </div>
+            )}
+            {voiceError && (
+              <div className="voice-error">{voiceError}</div>
+            )}
+          </div>
+        )}
 
         {/* Exercise Info */}
         <div className="editor-exercise-info">
