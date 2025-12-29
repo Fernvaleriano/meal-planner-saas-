@@ -65,6 +65,38 @@ exports.handler = async (event) => {
           }
 
           if (!activeAssignment) {
+            // Check for ad-hoc workouts created by the client on this date
+            try {
+              const { data: adhocWorkout } = await supabase
+                .from('client_adhoc_workouts')
+                .select('*')
+                .eq('client_id', clientId)
+                .eq('workout_date', date)
+                .eq('is_active', true)
+                .maybeSingle();
+
+              if (adhocWorkout) {
+                // Return the ad-hoc workout as an assignment
+                return {
+                  statusCode: 200,
+                  headers,
+                  body: JSON.stringify({
+                    assignments: [{
+                      id: adhocWorkout.id,
+                      name: adhocWorkout.name || 'Custom Workout',
+                      day_index: 0,
+                      workout_data: adhocWorkout.workout_data,
+                      client_id: clientId,
+                      is_adhoc: true
+                    }]
+                  })
+                };
+              }
+            } catch (adhocError) {
+              // Ad-hoc table might not exist, ignore
+              console.log('Adhoc lookup skipped:', adhocError.message);
+            }
+
             return {
               statusCode: 200,
               headers,

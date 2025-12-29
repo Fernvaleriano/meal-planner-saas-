@@ -400,42 +400,76 @@ function Workouts() {
     // If no workout exists (rest day), create an ad-hoc workout
     if (!workout?.workout_data) {
       const dateStr = formatDate(selectedDate);
+      const adHocWorkoutData = {
+        name: 'Custom Workout',
+        exercises: [newExercise],
+        estimatedMinutes: 30,
+        estimatedCalories: 150
+      };
+
       const adHocWorkout = {
         id: `adhoc-${dateStr}`,
         client_id: clientData?.id,
         workout_date: dateStr,
         name: 'Custom Workout',
         day_index: 0,
-        workout_data: {
-          name: 'Custom Workout',
-          exercises: [newExercise],
-          estimatedMinutes: 30,
-          estimatedCalories: 150
-        }
+        workout_data: adHocWorkoutData,
+        is_adhoc: true
       };
 
       // Update local state with new ad-hoc workout
       setTodayWorkout(adHocWorkout);
 
-      // Create workout assignment in backend
+      // Create ad-hoc workout in backend using dedicated endpoint
       try {
-        const res = await apiPost('/.netlify/functions/workout-assignments', {
+        const res = await apiPost('/.netlify/functions/adhoc-workouts', {
           clientId: clientData?.id,
           workoutDate: dateStr,
-          workoutData: adHocWorkout.workout_data,
+          workoutData: adHocWorkoutData,
           name: 'Custom Workout'
         });
 
-        if (res?.assignment) {
-          // Update with real assignment ID from backend
+        if (res?.workout) {
+          // Update with real workout ID from backend
           setTodayWorkout(prev => ({
             ...prev,
-            id: res.assignment.id
+            id: res.workout.id
           }));
         }
       } catch (err) {
         console.error('Error creating ad-hoc workout:', err);
       }
+      return;
+    }
+
+    // Check if this is an ad-hoc workout (needs different update endpoint)
+    if (workout.is_adhoc) {
+      const updatedExercises = [
+        ...(workout.workout_data.exercises || []),
+        newExercise
+      ];
+
+      const updatedWorkoutData = {
+        ...workout.workout_data,
+        exercises: updatedExercises
+      };
+
+      // Update local state
+      setTodayWorkout(prev => ({
+        ...prev,
+        workout_data: updatedWorkoutData
+      }));
+
+      // Save to backend using adhoc-workouts endpoint
+      apiPut('/.netlify/functions/adhoc-workouts', {
+        workoutId: workout.id,
+        clientId: clientData?.id,
+        workoutDate: formatDate(selectedDate),
+        workoutData: updatedWorkoutData,
+        name: workout.name
+      }).catch(err => {
+        console.error('Error updating ad-hoc workout:', err);
+      });
       return;
     }
 
@@ -475,33 +509,35 @@ function Workouts() {
     if (!workoutData?.exercises?.length) return;
 
     const dateStr = formatDate(selectedDate);
+    const workoutName = workoutData.name || 'AI Quick Workout';
     const newWorkout = {
       id: `ai-${dateStr}-${Date.now()}`,
       client_id: clientData?.id,
       workout_date: dateStr,
-      name: workoutData.name || 'AI Quick Workout',
+      name: workoutName,
       day_index: 0,
-      workout_data: workoutData
+      workout_data: workoutData,
+      is_adhoc: true
     };
 
     // Update local state with new AI-generated workout
     setTodayWorkout(newWorkout);
     setShowAiWorkout(false);
 
-    // Create workout assignment in backend
+    // Create ad-hoc workout in backend using dedicated endpoint
     try {
-      const res = await apiPost('/.netlify/functions/workout-assignments', {
+      const res = await apiPost('/.netlify/functions/adhoc-workouts', {
         clientId: clientData?.id,
         workoutDate: dateStr,
         workoutData: workoutData,
-        name: workoutData.name || 'AI Quick Workout'
+        name: workoutName
       });
 
-      if (res?.assignment) {
-        // Update with real assignment ID from backend
+      if (res?.workout) {
+        // Update with real workout ID from backend
         setTodayWorkout(prev => ({
           ...prev,
-          id: res.assignment.id
+          id: res.workout.id
         }));
       }
     } catch (err) {
