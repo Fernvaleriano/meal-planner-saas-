@@ -21,32 +21,35 @@ const RPE_OPTIONS = [
   { value: 10, label: '10', description: 'Max effort, no more reps' },
 ];
 
-// Parse voice input to extract set data
-const parseVoiceInput = (transcript) => {
-  const text = transcript.toLowerCase();
-  const result = { reps: null, weight: null, rest: null, setNumber: null };
+// Number words to digits mapping
+const numberWords = {
+  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+  'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+  'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+  'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5
+};
 
-  // Extract set number: "set 1", "set one", "first set", etc.
-  const setPatterns = [
-    /set\s*(\d+)/i,
-    /(\d+)(?:st|nd|rd|th)\s*set/i,
-    /(first|second|third|fourth|fifth)\s*set/i,
-  ];
-  for (const pattern of setPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const numWords = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 };
-      result.setNumber = numWords[match[1]] || parseInt(match[1], 10);
-      break;
-    }
+// Convert number words to digits in text
+const convertNumberWords = (text) => {
+  let result = text.toLowerCase();
+  for (const [word, num] of Object.entries(numberWords)) {
+    result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), num.toString());
   }
+  return result;
+};
 
-  // Extract reps: "12 reps", "15 repetitions", "did 10", "10x"
+// Parse a single set segment to extract reps and weight
+const parseSetSegment = (segment) => {
+  const result = { reps: null, weight: null, rest: null };
+
+  // Convert number words to digits
+  const text = convertNumberWords(segment);
+
+  // Extract reps: "12 reps", "15 repetitions", "did 10", "i did 10"
   const repsPatterns = [
     /(\d+)\s*(?:reps?|repetitions?)/i,
-    /did\s*(\d+)/i,
-    /(\d+)\s*x\b/i,
-    /^(\d+)\s+(?:at|with|@)/i,
+    /(?:did|do)\s*(\d+)/i,
+    /(\d+)\s*(?:at|with|@)/i,
   ];
   for (const pattern of repsPatterns) {
     const match = text.match(pattern);
@@ -56,27 +59,25 @@ const parseVoiceInput = (transcript) => {
     }
   }
 
-  // Extract weight: "50 kg", "60 kilos", "45 pounds", "100 lbs", "at 50"
+  // Extract weight: "50 kg", "60 kilos", "with 100 kg", "at 50 kilos"
   const weightPatterns = [
-    /(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms)/i,
+    /(?:with|at|@)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms)/i,
     /(\d+(?:\.\d+)?)\s*(?:lb|lbs|pound|pounds)/i,
-    /(?:at|with|@)\s*(\d+(?:\.\d+)?)/i,
-    /(\d+(?:\.\d+)?)\s*(?:weight)/i,
   ];
   for (const pattern of weightPatterns) {
     const match = text.match(pattern);
     if (match) {
       let weight = parseFloat(match[1]);
       // Convert pounds to kg if needed
-      if (/lb|pound/i.test(text)) {
-        weight = Math.round(weight * 0.453592 * 2) / 2; // Round to nearest 0.5kg
+      if (/lb|pound/i.test(segment)) {
+        weight = Math.round(weight * 0.453592 * 2) / 2;
       }
       result.weight = weight;
       break;
     }
   }
 
-  // Extract rest time: "90 seconds rest", "2 minutes", "rest 60"
+  // Extract rest time: "90 seconds rest", "2 minutes"
   const restPatterns = [
     /(\d+)\s*(?:seconds?|secs?)\s*(?:rest|break)?/i,
     /(\d+)\s*(?:minutes?|mins?)\s*(?:rest|break)?/i,
@@ -86,7 +87,6 @@ const parseVoiceInput = (transcript) => {
     const match = text.match(pattern);
     if (match) {
       let rest = parseInt(match[1], 10);
-      // Convert minutes to seconds
       if (/minutes?|mins?/i.test(match[0])) {
         rest = rest * 60;
       }
@@ -96,6 +96,56 @@ const parseVoiceInput = (transcript) => {
   }
 
   return result;
+};
+
+// Parse voice input to extract multiple sets data
+const parseVoiceInput = (transcript) => {
+  const text = convertNumberWords(transcript.toLowerCase());
+
+  // Check if this contains multiple sets by looking for "set number X" or "set X" patterns
+  const setMentions = text.match(/set\s*(?:number\s*)?\d+/gi) || [];
+
+  if (setMentions.length > 1) {
+    // Multiple sets detected - split by set mentions and parse each
+    const results = [];
+
+    // Split the text by set mentions
+    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)/i).filter(s => s.trim());
+
+    for (const segment of segments) {
+      // Extract set number from this segment
+      const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i);
+      if (setMatch) {
+        const setNumber = parseInt(setMatch[1], 10);
+        const parsed = parseSetSegment(segment);
+        if (parsed.reps !== null || parsed.weight !== null) {
+          results.push({
+            setNumber,
+            ...parsed
+          });
+        }
+      }
+    }
+
+    return { multiple: true, sets: results };
+  } else {
+    // Single set - use original logic
+    const result = { multiple: false, reps: null, weight: null, rest: null, setNumber: null };
+
+    // Extract set number if mentioned
+    const setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i);
+    if (setMatch) {
+      result.setNumber = parseInt(setMatch[1], 10);
+    }
+
+    // Parse the segment
+    const parsed = parseSetSegment(text);
+    result.reps = parsed.reps;
+    result.weight = parsed.weight;
+    result.rest = parsed.rest;
+
+    return result;
+  }
 };
 
 function SetEditorModal({
@@ -159,28 +209,56 @@ function SetEditorModal({
       // Parse the voice input
       const parsed = parseVoiceInput(transcript);
 
-      // Determine which set to update
-      let targetSetIndex = activeSetIndex;
-      if (parsed.setNumber && parsed.setNumber <= localSets.length) {
-        targetSetIndex = parsed.setNumber - 1;
-      }
-      if (targetSetIndex === null) {
-        targetSetIndex = 0; // Default to first set
-      }
+      // Handle multiple sets (batch input)
+      if (parsed.multiple && parsed.sets.length > 0) {
+        const newSets = [...localSets];
+        let lastUpdatedIndex = 0;
 
-      // Update the set with parsed values
-      const newSets = [...localSets];
-      if (parsed.reps !== null) {
-        newSets[targetSetIndex] = { ...newSets[targetSetIndex], reps: parsed.reps };
+        for (const setData of parsed.sets) {
+          // setNumber is 1-indexed, convert to 0-indexed
+          const targetIndex = setData.setNumber - 1;
+
+          // Only update if the set exists
+          if (targetIndex >= 0 && targetIndex < newSets.length) {
+            if (setData.reps !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
+            }
+            if (setData.weight !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
+            }
+            if (setData.rest !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], restSeconds: setData.rest };
+            }
+            lastUpdatedIndex = targetIndex;
+          }
+        }
+
+        setLocalSets(newSets);
+        setActiveSetIndex(lastUpdatedIndex);
+      } else {
+        // Single set logic
+        let targetSetIndex = activeSetIndex;
+        if (parsed.setNumber && parsed.setNumber <= localSets.length) {
+          targetSetIndex = parsed.setNumber - 1;
+        }
+        if (targetSetIndex === null) {
+          targetSetIndex = 0; // Default to first set
+        }
+
+        // Update the set with parsed values
+        const newSets = [...localSets];
+        if (parsed.reps !== null) {
+          newSets[targetSetIndex] = { ...newSets[targetSetIndex], reps: parsed.reps };
+        }
+        if (parsed.weight !== null) {
+          newSets[targetSetIndex] = { ...newSets[targetSetIndex], weight: parsed.weight };
+        }
+        if (parsed.rest !== null) {
+          newSets[targetSetIndex] = { ...newSets[targetSetIndex], restSeconds: parsed.rest };
+        }
+        setLocalSets(newSets);
+        setActiveSetIndex(targetSetIndex);
       }
-      if (parsed.weight !== null) {
-        newSets[targetSetIndex] = { ...newSets[targetSetIndex], weight: parsed.weight };
-      }
-      if (parsed.rest !== null) {
-        newSets[targetSetIndex] = { ...newSets[targetSetIndex], restSeconds: parsed.rest };
-      }
-      setLocalSets(newSets);
-      setActiveSetIndex(targetSetIndex);
     };
 
     recognition.onerror = (event) => {

@@ -1,9 +1,98 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2 } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
+
+// Number words to digits mapping for voice input
+const numberWords = {
+  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+  'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+  'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+  'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5
+};
+
+// Convert number words to digits in text
+const convertNumberWords = (text) => {
+  let result = text.toLowerCase();
+  for (const [word, num] of Object.entries(numberWords)) {
+    result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), num.toString());
+  }
+  return result;
+};
+
+// Parse a single set segment to extract reps and weight
+const parseSetSegment = (segment) => {
+  const result = { reps: null, weight: null, rest: null };
+  const text = convertNumberWords(segment);
+
+  // Extract reps
+  const repsPatterns = [
+    /(\d+)\s*(?:reps?|repetitions?)/i,
+    /(?:did|do)\s*(\d+)/i,
+    /(\d+)\s*(?:at|with|@)/i,
+  ];
+  for (const pattern of repsPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      result.reps = parseInt(match[1], 10);
+      break;
+    }
+  }
+
+  // Extract weight
+  const weightPatterns = [
+    /(?:with|at|@)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|kilogram|kilograms)/i,
+    /(\d+(?:\.\d+)?)\s*(?:lb|lbs|pound|pounds)/i,
+  ];
+  for (const pattern of weightPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      let weight = parseFloat(match[1]);
+      if (/lb|pound/i.test(segment)) {
+        weight = Math.round(weight * 0.453592 * 2) / 2;
+      }
+      result.weight = weight;
+      break;
+    }
+  }
+
+  return result;
+};
+
+// Parse voice input for multiple sets
+const parseVoiceInputForSets = (transcript) => {
+  const text = convertNumberWords(transcript.toLowerCase());
+  const setMentions = text.match(/set\s*(?:number\s*)?\d+/gi) || [];
+
+  if (setMentions.length > 1) {
+    const results = [];
+    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)/i).filter(s => s.trim());
+
+    for (const segment of segments) {
+      const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i);
+      if (setMatch) {
+        const setNumber = parseInt(setMatch[1], 10);
+        const parsed = parseSetSegment(segment);
+        if (parsed.reps !== null || parsed.weight !== null) {
+          results.push({ setNumber, ...parsed });
+        }
+      }
+    }
+    return { multiple: true, sets: results };
+  } else {
+    const result = { multiple: false, reps: null, weight: null, setNumber: null };
+    const setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i);
+    if (setMatch) {
+      result.setNumber = parseInt(setMatch[1], 10);
+    }
+    const parsed = parseSetSegment(text);
+    result.reps = parsed.reps;
+    result.weight = parsed.weight;
+    return result;
+  }
+};
 
 // Simplified and more stable ExerciseDetailModal
 function ExerciseDetailModal({
@@ -48,6 +137,25 @@ function ExerciseDetailModal({
   const [showSetEditor, setShowSetEditor] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Voice input state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
+  const [lastTranscript, setLastTranscript] = useState('');
+  const recognitionRef = useRef(null);
+
+  // Check for voice support on mount
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(!!SpeechRecognition);
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
   // Initialize sets once
   const initialSets = useMemo(() => {
@@ -96,6 +204,105 @@ function ExerciseDetailModal({
       }
     });
   }, []);
+
+  // Start voice recognition
+  const startVoiceInput = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceError('Voice input not supported in this browser');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceError(null);
+      setLastTranscript('');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setLastTranscript(transcript);
+
+      const parsed = parseVoiceInputForSets(transcript);
+
+      setSets(prevSets => {
+        const newSets = [...prevSets];
+
+        if (parsed.multiple && parsed.sets.length > 0) {
+          for (const setData of parsed.sets) {
+            const targetIndex = setData.setNumber - 1;
+            if (targetIndex >= 0 && targetIndex < newSets.length) {
+              if (setData.reps !== null) {
+                newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
+              }
+              if (setData.weight !== null) {
+                newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
+              }
+            }
+          }
+        } else {
+          const targetIndex = parsed.setNumber ? parsed.setNumber - 1 : 0;
+          if (targetIndex >= 0 && targetIndex < newSets.length) {
+            if (parsed.reps !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
+            }
+            if (parsed.weight !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], weight: parsed.weight };
+            }
+          }
+        }
+
+        // Persist to backend
+        if (callbackRefs.current.onUpdateExercise && exercise) {
+          callbackRefs.current.onUpdateExercise({ ...exercise, sets: newSets });
+        }
+
+        return newSets;
+      });
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        setVoiceError('Microphone access denied');
+      } else if (event.error === 'no-speech') {
+        setVoiceError('No speech detected');
+      } else {
+        setVoiceError(`Error: ${event.error}`);
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [exercise]);
+
+  // Stop voice recognition
+  const stopVoiceInput = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  }, []);
+
+  // Toggle voice input
+  const toggleVoiceInput = useCallback(() => {
+    if (isListening) {
+      stopVoiceInput();
+    } else {
+      startVoiceInput();
+    }
+  }, [isListening, stopVoiceInput, startVoiceInput]);
 
   // Stable swap handler - uses requestAnimationFrame for mobile Safari
   const handleSwapSelect = useCallback((newExercise) => {
@@ -274,25 +481,58 @@ function ExerciseDetailModal({
         </div>
 
         {/* Sets/Reps */}
-        <div className="modal-time-boxes" onClick={() => setShowSetEditor(true)}>
-          <div className="time-boxes-row">
-            {sets.map((set, idx) => (
-              <div key={idx} className="time-box with-weight clickable">
-                <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
-                <span className="weight-value">{set?.weight || 0} kg</span>
+        <div className="modal-time-boxes-wrapper">
+          <div className="modal-time-boxes" onClick={() => setShowSetEditor(true)}>
+            <div className="time-boxes-row">
+              {sets.map((set, idx) => (
+                <div key={idx} className="time-box with-weight clickable">
+                  <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
+                  <span className="weight-value">{set?.weight || 0} kg</span>
+                </div>
+              ))}
+              <div className="time-box add-box" onClick={handleAddSet}>
+                <Plus size={18} />
               </div>
-            ))}
-            <div className="time-box add-box" onClick={handleAddSet}>
-              <Plus size={18} />
+            </div>
+            <div className="rest-boxes-row">
+              <div className="rest-box">
+                <Timer size={14} />
+                <span>{exercise.restSeconds || 60}s</span>
+              </div>
             </div>
           </div>
-          <div className="rest-boxes-row">
-            <div className="rest-box">
-              <Timer size={14} />
-              <span>{exercise.restSeconds || 60}s</span>
-            </div>
-          </div>
+          {/* Voice Input Button */}
+          {voiceSupported && (
+            <button
+              className={`voice-input-btn-detail ${isListening ? 'listening' : ''}`}
+              onClick={(e) => { e.stopPropagation(); toggleVoiceInput(); }}
+              type="button"
+              title="Voice input"
+            >
+              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
+          )}
         </div>
+
+        {/* Voice feedback */}
+        {(isListening || lastTranscript || voiceError) && (
+          <div className={`voice-feedback-detail ${isListening ? 'listening' : ''} ${voiceError ? 'error' : ''}`}>
+            {isListening && (
+              <div className="voice-listening">
+                <div className="voice-pulse"></div>
+                <span>Listening... "Set 1, 12 reps at 50 kg, set 2, 10 reps..."</span>
+              </div>
+            )}
+            {lastTranscript && !isListening && (
+              <div className="voice-transcript">
+                <span className="transcript-label">Heard:</span> "{lastTranscript}"
+              </div>
+            )}
+            {voiceError && (
+              <div className="voice-error">{voiceError}</div>
+            )}
+          </div>
+        )}
 
         {/* Muscle Groups */}
         <div className="muscle-groups-section">
