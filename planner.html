@@ -718,6 +718,110 @@
             border-color: #0d9488;
         }
 
+        /* Quick Add Section */
+        .quick-add-section {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .quick-add-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #166534;
+        }
+
+        .quick-add-hint {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: #22c55e;
+        }
+
+        .quick-add-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bbf7d0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            resize: none;
+            box-sizing: border-box;
+            font-family: inherit;
+            color: #333 !important;
+            background: white !important;
+        }
+
+        .quick-add-textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+
+        .quick-add-textarea::placeholder {
+            color: #86efac;
+        }
+
+        .quick-add-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .quick-add-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        .quick-add-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quick-add-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .section-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 15px 0;
+            color: #9ca3af;
+            font-size: 0.85rem;
+        }
+
+        .section-divider::before,
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .section-divider span {
+            padding: 0 12px;
+        }
+
         /* Fix for food search input in custom meal modal */
         .custom-meal-modal input[type="text"],
         .custom-meal-modal input[type="number"],
@@ -2022,8 +2126,26 @@
 
         <!-- Calculate Panel -->
         <div id="calculatePanel" class="custom-meal-panel active">
-            <div class="custom-meal-hint">
-                💡 Search our food database for ingredients. Add them with quantities to calculate macros.
+            <!-- Quick Add Section -->
+            <div class="quick-add-section">
+                <div class="quick-add-header">
+                    <span>⚡ Quick Add</span>
+                    <span class="quick-add-hint">Type your meal naturally</span>
+                </div>
+                <textarea
+                    id="quickAddInput"
+                    class="quick-add-textarea"
+                    placeholder="e.g., 1 scoop whey protein, 200ml almond milk, 15g instant oats"
+                    rows="2"
+                ></textarea>
+                <button id="quickAddBtn" class="quick-add-btn" onclick="parseAndAddIngredients()">
+                    <span id="quickAddBtnText">Add Ingredients</span>
+                    <span id="quickAddSpinner" class="quick-add-spinner" style="display: none;"></span>
+                </button>
+            </div>
+
+            <div class="section-divider">
+                <span>or search individually</span>
             </div>
 
             <!-- Food Search Input -->
@@ -5554,6 +5676,131 @@ Return ONLY valid JSON. NO quotes in text - use apostrophes. Keep it brief.`;
     }
 }
 
+// Try to handle simple ingredient adjustments locally without AI
+async function tryLocalIngredientAdjustment(meal, userRequest) {
+    // Only works if meal has ingredientData
+    if (!meal.ingredientData || !Array.isArray(meal.ingredientData) || meal.ingredientData.length === 0) {
+        return null; // Can't handle locally
+    }
+
+    const request = userRequest.toLowerCase().trim();
+
+    // Pattern 1: "change/set/make [ingredient] to [amount]g" or "[ingredient] to [amount]g"
+    // Pattern 2: "reduce/lower/decrease [ingredient] to [amount]g"
+    // Pattern 3: "increase [ingredient] to [amount]g"
+    // Pattern 4: "[amount]g [ingredient]" or "[amount]g of [ingredient]"
+    const patterns = [
+        /(?:change|set|make|reduce|lower|decrease|increase)?\s*(?:the\s+)?(\w+(?:\s+\w+)?)\s+(?:to|from\s+\d+g?\s+to)\s+(\d+)\s*g/i,
+        /(\d+)\s*g\s+(?:of\s+)?(\w+(?:\s+\w+)?)/i,
+        /(?:change|set|make)?\s*(?:the\s+)?(\w+(?:\s+\w+)?)\s+(\d+)\s*g/i
+    ];
+
+    let ingredientName = null;
+    let newAmountGrams = null;
+
+    for (const pattern of patterns) {
+        const match = request.match(pattern);
+        if (match) {
+            if (pattern === patterns[1]) {
+                // Pattern 2: amount first, then ingredient
+                newAmountGrams = parseInt(match[1]);
+                ingredientName = match[2];
+            } else {
+                // Pattern 1 & 3: ingredient first, then amount
+                ingredientName = match[1];
+                newAmountGrams = parseInt(match[2]);
+            }
+            break;
+        }
+    }
+
+    if (!ingredientName || !newAmountGrams || newAmountGrams <= 0) {
+        return null;
+    }
+
+    console.log(`🔧 Attempting local adjustment: ${ingredientName} → ${newAmountGrams}g`);
+
+    // Find matching ingredient in ingredientData
+    const ingredientIndex = meal.ingredientData.findIndex(ing => {
+        const ingName = ing.name.toLowerCase();
+        const searchName = ingredientName.toLowerCase();
+        return ingName.includes(searchName) || searchName.includes(ingName.split(',')[0]);
+    });
+
+    if (ingredientIndex === -1) {
+        console.log(`❌ Ingredient "${ingredientName}" not found in meal data`);
+        return null;
+    }
+
+    const ingredient = meal.ingredientData[ingredientIndex];
+
+    // Check we have the data needed to recalculate
+    if (!ingredient.caloriesPer100g && ingredient.caloriesPer100g !== 0) {
+        console.log(`❌ Missing macro data for "${ingredient.name}"`);
+        return null;
+    }
+
+    // Create a deep copy of the meal
+    const updatedMeal = JSON.parse(JSON.stringify(meal));
+
+    // Calculate old contribution to macros
+    const oldGrams = ingredient.quantityGrams || 100;
+    const oldFactor = oldGrams / 100;
+    const oldCals = Math.round((ingredient.caloriesPer100g || 0) * oldFactor);
+    const oldProtein = Math.round((ingredient.proteinPer100g || 0) * oldFactor);
+    const oldCarbs = Math.round((ingredient.carbsPer100g || 0) * oldFactor);
+    const oldFat = Math.round((ingredient.fatPer100g || 0) * oldFactor * 10) / 10;
+
+    // Calculate new contribution
+    const newFactor = newAmountGrams / 100;
+    const newCals = Math.round((ingredient.caloriesPer100g || 0) * newFactor);
+    const newProtein = Math.round((ingredient.proteinPer100g || 0) * newFactor);
+    const newCarbs = Math.round((ingredient.carbsPer100g || 0) * newFactor);
+    const newFat = Math.round((ingredient.fatPer100g || 0) * newFactor * 10) / 10;
+
+    // Update ingredient data
+    updatedMeal.ingredientData[ingredientIndex].quantityGrams = newAmountGrams;
+    updatedMeal.ingredientData[ingredientIndex].quantity = newAmountGrams;
+    updatedMeal.ingredientData[ingredientIndex].selectedUnit = 'g';
+
+    // Update macros (remove old, add new)
+    updatedMeal.calories = Math.max(0, (meal.calories || 0) - oldCals + newCals);
+    updatedMeal.protein = Math.max(0, (meal.protein || 0) - oldProtein + newProtein);
+    updatedMeal.carbs = Math.max(0, (meal.carbs || 0) - oldCarbs + newCarbs);
+    updatedMeal.fat = Math.max(0, Math.round(((meal.fat || 0) - oldFat + newFat) * 10) / 10);
+
+    // Update ingredients array (display format)
+    if (updatedMeal.ingredients && Array.isArray(updatedMeal.ingredients)) {
+        // Try to find and update the matching ingredient string
+        const ingDisplayIndex = updatedMeal.ingredients.findIndex(ing => {
+            if (typeof ing === 'string') {
+                return ing.toLowerCase().includes(ingredientName.toLowerCase());
+            }
+            return false;
+        });
+
+        if (ingDisplayIndex !== -1) {
+            // Update the display string with new amount
+            const shortName = ingredient.name.split(',')[0].trim();
+            updatedMeal.ingredients[ingDisplayIndex] = `${shortName} (${newAmountGrams}g)`;
+        }
+    }
+
+    // Update meal name if it contains the ingredient with amount
+    if (updatedMeal.name) {
+        // Try to update amount in name (e.g., "Chicken (200g)" -> "Chicken (150g)")
+        const namePattern = new RegExp(`(${ingredientName}[^)]*?)\\s*\\(\\d+g?\\)`, 'gi');
+        if (namePattern.test(updatedMeal.name)) {
+            updatedMeal.name = updatedMeal.name.replace(namePattern, `$1 (${newAmountGrams}g)`);
+        }
+    }
+
+    console.log(`✅ Local adjustment successful: ${ingredient.name} ${oldGrams}g → ${newAmountGrams}g`);
+    console.log(`   Macros: ${oldCals}cal → ${newCals}cal, ${oldProtein}g P → ${newProtein}g P`);
+
+    return updatedMeal;
+}
+
 // REVISE MEAL - Custom user modifications
 async function reviseMeal(dayIndex, mealIndex) {
     const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
@@ -5593,7 +5840,22 @@ Enter your request:`, '');
     saveUndoStates(); // Persist to localStorage
     console.log(`💾 Saved previous state for undo (revise):`, previousMealStates[stateKey]);
 
-    // Show loading
+    // Try to handle simple ingredient adjustments locally (instant, no AI needed)
+    const localAdjustment = await tryLocalIngredientAdjustment(meal, userRequest);
+    if (localAdjustment) {
+        console.log('✅ Handled adjustment locally without AI');
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex] = localAdjustment;
+
+        // Auto-save if plan exists
+        if (lastPlanQuery.planId) {
+            saveCoachPlan();
+        }
+
+        displayDietPlan(lastPlanQuery.currentPlan);
+        return; // Done - no AI needed!
+    }
+
+    // Show loading (only if we need AI)
     displayDietPlan(lastPlanQuery.currentPlan);
     const mealCards = document.querySelectorAll('.meal-card');
     let cardIndex = 0;
@@ -6686,6 +6948,215 @@ function escapeHtmlCustomMeal(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Quick Add - Parse natural language ingredients and add them
+async function parseAndAddIngredients() {
+    const input = document.getElementById('quickAddInput');
+    const btn = document.getElementById('quickAddBtn');
+    const btnText = document.getElementById('quickAddBtnText');
+    const spinner = document.getElementById('quickAddSpinner');
+
+    const text = input.value.trim();
+    if (!text) {
+        alert('Please enter your ingredients (e.g., "1 scoop whey protein, 200ml almond milk, 15g oats")');
+        return;
+    }
+
+    // Show loading state
+    btn.disabled = true;
+    btnText.textContent = 'Parsing...';
+    spinner.style.display = 'inline-block';
+
+    try {
+        // Use AI to parse the natural language into structured ingredients
+        const parsePrompt = `Parse these food ingredients into a structured list. Extract each ingredient with its quantity and unit.
+
+INPUT: "${text}"
+
+Return ONLY a JSON array. Each item should have:
+- "name": the food name to search in USDA database (keep it simple, e.g., "whey protein" not "whey protein powder isolate")
+- "quantity": the numeric amount
+- "unit": the unit (g, ml, scoop, cup, tbsp, tsp, oz, piece, slice, etc.)
+
+Common conversions to help:
+- 1 scoop protein powder = ~30g
+- 1 cup milk/liquid = ~240ml
+- 1 tbsp = ~15g
+- 1 tsp = ~5g
+
+EXAMPLES:
+Input: "1 scoop whey protein, 200ml almond milk, 15g oats"
+Output: [{"name":"whey protein","quantity":30,"unit":"g"},{"name":"almond milk","quantity":200,"unit":"ml"},{"name":"oats","quantity":15,"unit":"g"}]
+
+Input: "2 eggs, 1 slice bread, 1 tbsp butter"
+Output: [{"name":"eggs","quantity":2,"unit":"piece"},{"name":"bread","quantity":1,"unit":"slice"},{"name":"butter","quantity":15,"unit":"g"}]
+
+Return ONLY the JSON array, no other text.`;
+
+        const response = await authenticatedFetch('/.netlify/functions/generate-meal-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: parsePrompt,
+                parseOnly: true
+            })
+        });
+
+        const data = await response.json();
+        let parsedIngredients;
+
+        if (data.parsed) {
+            parsedIngredients = data.parsed;
+        } else if (data.text) {
+            // Try to extract JSON from response
+            const jsonMatch = data.text.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                parsedIngredients = JSON.parse(jsonMatch[0]);
+            }
+        }
+
+        if (!parsedIngredients || !Array.isArray(parsedIngredients) || parsedIngredients.length === 0) {
+            throw new Error('Could not parse ingredients');
+        }
+
+        console.log('Parsed ingredients:', parsedIngredients);
+        btnText.textContent = `Searching ${parsedIngredients.length} items...`;
+
+        // Search USDA for each ingredient and add them
+        let addedCount = 0;
+        let failedItems = [];
+
+        for (const ing of parsedIngredients) {
+            try {
+                const searchResponse = await fetch(`${FOOD_SEARCH_ENDPOINT}?query=${encodeURIComponent(ing.name)}`);
+                const searchData = await searchResponse.json();
+
+                if (searchData.foods && searchData.foods.length > 0) {
+                    const food = searchData.foods[0]; // Take first match
+
+                    // Build measures array
+                    let measures = [{ label: 'g', weight: 1, isGrams: true }];
+                    if (food.measures && food.measures.length > 0) {
+                        food.measures.forEach(m => {
+                            if (m.label && m.weight && m.label.toLowerCase() !== 'gram') {
+                                measures.push({
+                                    label: m.label,
+                                    weight: m.weight,
+                                    isGrams: false
+                                });
+                            }
+                        });
+                    }
+
+                    // Convert quantity to grams based on unit
+                    let quantityGrams = ing.quantity;
+                    let selectedUnit = 'g';
+                    let displayQty = ing.quantity;
+
+                    if (ing.unit === 'ml') {
+                        // For liquids, ml roughly equals g
+                        quantityGrams = ing.quantity;
+                    } else if (ing.unit === 'piece' || ing.unit === 'slice' || ing.unit === 'whole') {
+                        // Try to find a matching measure
+                        const pieceMeasure = measures.find(m =>
+                            m.label.toLowerCase().includes('large') ||
+                            m.label.toLowerCase().includes('medium') ||
+                            m.label.toLowerCase().includes('whole') ||
+                            m.label.toLowerCase().includes('slice') ||
+                            (!m.isGrams && m.weight > 20)
+                        );
+                        if (pieceMeasure) {
+                            quantityGrams = ing.quantity * pieceMeasure.weight;
+                            selectedUnit = pieceMeasure.label;
+                            displayQty = ing.quantity;
+                        } else {
+                            quantityGrams = ing.quantity * 50; // Default piece weight
+                        }
+                    } else if (ing.unit === 'cup') {
+                        const cupMeasure = measures.find(m => m.label.toLowerCase().includes('cup'));
+                        if (cupMeasure) {
+                            quantityGrams = ing.quantity * cupMeasure.weight;
+                            selectedUnit = cupMeasure.label;
+                            displayQty = ing.quantity;
+                        } else {
+                            quantityGrams = ing.quantity * 240;
+                        }
+                    } else if (ing.unit === 'tbsp') {
+                        const tbspMeasure = measures.find(m => m.label.toLowerCase().includes('tbsp') || m.label.toLowerCase().includes('tablespoon'));
+                        if (tbspMeasure) {
+                            quantityGrams = ing.quantity * tbspMeasure.weight;
+                            selectedUnit = tbspMeasure.label;
+                            displayQty = ing.quantity;
+                        } else {
+                            quantityGrams = ing.quantity * 15;
+                        }
+                    } else if (ing.unit === 'tsp') {
+                        const tspMeasure = measures.find(m => m.label.toLowerCase().includes('tsp') || m.label.toLowerCase().includes('teaspoon'));
+                        if (tspMeasure) {
+                            quantityGrams = ing.quantity * tspMeasure.weight;
+                            selectedUnit = tspMeasure.label;
+                            displayQty = ing.quantity;
+                        } else {
+                            quantityGrams = ing.quantity * 5;
+                        }
+                    } else if (ing.unit === 'oz') {
+                        quantityGrams = ing.quantity * 28.35;
+                    } else if (ing.unit === 'scoop') {
+                        const scoopMeasure = measures.find(m => m.label.toLowerCase().includes('scoop'));
+                        if (scoopMeasure) {
+                            quantityGrams = ing.quantity * scoopMeasure.weight;
+                            selectedUnit = scoopMeasure.label;
+                            displayQty = ing.quantity;
+                        } else {
+                            quantityGrams = ing.quantity * 30; // Default scoop
+                        }
+                    }
+
+                    customMealSelectedIngredients.push({
+                        fdcId: food.fdcId,
+                        name: food.name,
+                        quantity: displayQty,
+                        quantityGrams: Math.round(quantityGrams),
+                        selectedUnit: selectedUnit,
+                        measures: measures,
+                        caloriesPer100g: food.caloriesPer100g,
+                        proteinPer100g: food.proteinPer100g,
+                        carbsPer100g: food.carbsPer100g,
+                        fatPer100g: food.fatPer100g
+                    });
+
+                    addedCount++;
+                } else {
+                    failedItems.push(ing.name);
+                }
+            } catch (err) {
+                console.error(`Failed to search for ${ing.name}:`, err);
+                failedItems.push(ing.name);
+            }
+        }
+
+        // Update UI
+        renderCustomMealIngredients();
+        updateCustomMealTotals();
+
+        // Clear input
+        input.value = '';
+
+        // Show result
+        if (failedItems.length > 0) {
+            alert(`Added ${addedCount} ingredients. Could not find: ${failedItems.join(', ')}\n\nTry searching for these manually.`);
+        }
+
+    } catch (error) {
+        console.error('Quick add error:', error);
+        alert('Failed to parse ingredients. Try using simpler descriptions or add them one by one.');
+    } finally {
+        // Reset button state
+        btn.disabled = false;
+        btnText.textContent = 'Add Ingredients';
+        spinner.style.display = 'none';
+    }
 }
 
 function selectFoodItem(index) {
