@@ -6144,7 +6144,9 @@ async function applyPortionAdjustment() {
     const mult = adjustPortionsMultiplier;
 
     // Save for undo
-    saveUndoState(dayIndex, mealIndex);
+    const stateKey = `${dayIndex}-${mealIndex}`;
+    previousMealStates[stateKey] = JSON.parse(JSON.stringify(meal));
+    saveUndoStates();
 
     closeAdjustPortionsModal();
 
