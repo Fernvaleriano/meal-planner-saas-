@@ -6950,6 +6950,127 @@ function escapeHtmlCustomMeal(text) {
     return div.innerHTML;
 }
 
+// Parse natural language ingredients locally (no AI needed)
+function parseIngredientsLocally(text) {
+    const ingredients = [];
+
+    // Split by common delimiters: comma, "and", "with", "mixed with", "plus", "+", newlines
+    const parts = text.split(/,|\band\b|\bwith\b|\bmixed with\b|\bplus\b|\+|\n/i)
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+    for (const part of parts) {
+        const parsed = parseSingleIngredient(part);
+        if (parsed) {
+            ingredients.push(parsed);
+        }
+    }
+
+    return ingredients;
+}
+
+function parseSingleIngredient(text) {
+    text = text.trim().toLowerCase();
+    if (!text) return null;
+
+    // Common patterns for ingredients:
+    // "1.5 scoops of whey protein" -> {quantity: 1.5, unit: "scoop", name: "whey protein"}
+    // "200ml almond milk" -> {quantity: 200, unit: "ml", name: "almond milk"}
+    // "15g instant oats" -> {quantity: 15, unit: "g", name: "instant oats"}
+    // "2 eggs" -> {quantity: 2, unit: "piece", name: "eggs"}
+    // "1 cup rice" -> {quantity: 1, unit: "cup", name: "rice"}
+    // "1 tbsp olive oil" -> {quantity: 1, unit: "tbsp", name: "olive oil"}
+
+    // Unit conversions to grams
+    const unitConversions = {
+        'scoop': 30, 'scoops': 30,
+        'tbsp': 15, 'tablespoon': 15, 'tablespoons': 15,
+        'tsp': 5, 'teaspoon': 5, 'teaspoons': 5,
+        'cup': 240, 'cups': 240,
+        'oz': 28, 'ounce': 28, 'ounces': 28,
+        'lb': 454, 'lbs': 454, 'pound': 454, 'pounds': 454,
+        'slice': 30, 'slices': 30,
+        'piece': 50, 'pieces': 50,
+        'whole': 50,
+        'large': 50, 'medium': 40, 'small': 30,
+        'handful': 30,
+        'serving': 100, 'servings': 100
+    };
+
+    // Pattern 1: "[number] [unit] of [ingredient]" or "[number] [unit] [ingredient]"
+    // e.g., "1.5 scoops of whey protein", "200ml almond milk", "2 cups rice"
+    const pattern1 = /^([\d.]+)\s*(g|grams?|ml|l|liters?|oz|ounces?|lb|lbs?|pounds?|cup|cups|tbsp|tablespoons?|tsp|teaspoons?|scoop|scoops?|slice|slices?|piece|pieces?|whole|large|medium|small|handful|serving|servings?)?\s*(?:of\s+)?(.+)$/i;
+
+    // Pattern 2: "[ingredient] [number][unit]" e.g., "chicken breast 200g"
+    const pattern2 = /^(.+?)\s+([\d.]+)\s*(g|grams?|ml|oz|ounces?)$/i;
+
+    // Pattern 3: Just "[number] [ingredient]" e.g., "2 eggs", "3 bananas"
+    const pattern3 = /^([\d.]+)\s+(.+)$/i;
+
+    let quantity, unit, name;
+
+    let match = text.match(pattern1);
+    if (match) {
+        quantity = parseFloat(match[1]);
+        unit = match[2] ? match[2].toLowerCase() : 'piece';
+        name = match[3].trim();
+    } else {
+        match = text.match(pattern2);
+        if (match) {
+            name = match[1].trim();
+            quantity = parseFloat(match[2]);
+            unit = match[3].toLowerCase();
+        } else {
+            match = text.match(pattern3);
+            if (match) {
+                quantity = parseFloat(match[1]);
+                name = match[2].trim();
+                unit = 'piece';
+            } else {
+                // No quantity found, assume 1 serving
+                name = text;
+                quantity = 1;
+                unit = 'serving';
+            }
+        }
+    }
+
+    // Normalize unit names
+    if (unit === 'grams' || unit === 'gram') unit = 'g';
+    if (unit === 'liters' || unit === 'liter' || unit === 'l') { unit = 'ml'; quantity *= 1000; }
+    if (unit === 'ounce') unit = 'oz';
+    if (unit === 'tablespoon') unit = 'tbsp';
+    if (unit === 'teaspoon') unit = 'tsp';
+    if (unit === 'pound') unit = 'lb';
+
+    // Calculate grams for non-gram units
+    let quantityGrams;
+    if (unit === 'g') {
+        quantityGrams = quantity;
+    } else if (unit === 'ml') {
+        quantityGrams = quantity; // Assume ml ~ g for liquids
+    } else if (unitConversions[unit]) {
+        quantityGrams = quantity * unitConversions[unit];
+    } else {
+        quantityGrams = quantity * 100; // Default assumption
+    }
+
+    // Clean up the ingredient name
+    name = name.replace(/^(of|the|some|a|an)\s+/i, '').trim();
+
+    // Remove trailing units if accidentally included
+    name = name.replace(/\s+(g|grams?|ml|oz)$/i, '').trim();
+
+    if (!name) return null;
+
+    return {
+        name: name,
+        quantity: quantity,
+        unit: unit,
+        quantityGrams: Math.round(quantityGrams)
+    };
+}
+
 // Quick Add - Parse natural language ingredients and add them
 async function parseAndAddIngredients() {
     const input = document.getElementById('quickAddInput');
@@ -6969,54 +7090,10 @@ async function parseAndAddIngredients() {
     spinner.style.display = 'inline-block';
 
     try {
-        // Use AI to parse the natural language into structured ingredients
-        const parsePrompt = `Parse these food ingredients into a structured list. Extract each ingredient with its quantity and unit.
+        // Parse ingredients locally using regex patterns
+        const parsedIngredients = parseIngredientsLocally(text);
 
-INPUT: "${text}"
-
-Return ONLY a JSON array. Each item should have:
-- "name": the food name to search in USDA database (keep it simple, e.g., "whey protein" not "whey protein powder isolate")
-- "quantity": the numeric amount
-- "unit": the unit (g, ml, scoop, cup, tbsp, tsp, oz, piece, slice, etc.)
-
-Common conversions to help:
-- 1 scoop protein powder = ~30g
-- 1 cup milk/liquid = ~240ml
-- 1 tbsp = ~15g
-- 1 tsp = ~5g
-
-EXAMPLES:
-Input: "1 scoop whey protein, 200ml almond milk, 15g oats"
-Output: [{"name":"whey protein","quantity":30,"unit":"g"},{"name":"almond milk","quantity":200,"unit":"ml"},{"name":"oats","quantity":15,"unit":"g"}]
-
-Input: "2 eggs, 1 slice bread, 1 tbsp butter"
-Output: [{"name":"eggs","quantity":2,"unit":"piece"},{"name":"bread","quantity":1,"unit":"slice"},{"name":"butter","quantity":15,"unit":"g"}]
-
-Return ONLY the JSON array, no other text.`;
-
-        const response = await authenticatedFetch('/.netlify/functions/generate-meal-plan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                prompt: parsePrompt,
-                parseOnly: true
-            })
-        });
-
-        const data = await response.json();
-        let parsedIngredients;
-
-        if (data.parsed) {
-            parsedIngredients = data.parsed;
-        } else if (data.text) {
-            // Try to extract JSON from response
-            const jsonMatch = data.text.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                parsedIngredients = JSON.parse(jsonMatch[0]);
-            }
-        }
-
-        if (!parsedIngredients || !Array.isArray(parsedIngredients) || parsedIngredients.length === 0) {
+        if (!parsedIngredients || parsedIngredients.length === 0) {
             throw new Error('Could not parse ingredients');
         }
 
@@ -7049,67 +7126,22 @@ Return ONLY the JSON array, no other text.`;
                         });
                     }
 
-                    // Convert quantity to grams based on unit
-                    let quantityGrams = ing.quantity;
+                    // Use pre-calculated quantityGrams from local parser
+                    let quantityGrams = ing.quantityGrams;
                     let selectedUnit = 'g';
-                    let displayQty = ing.quantity;
+                    let displayQty = quantityGrams;
 
-                    if (ing.unit === 'ml') {
-                        // For liquids, ml roughly equals g
-                        quantityGrams = ing.quantity;
-                    } else if (ing.unit === 'piece' || ing.unit === 'slice' || ing.unit === 'whole') {
-                        // Try to find a matching measure
-                        const pieceMeasure = measures.find(m =>
-                            m.label.toLowerCase().includes('large') ||
-                            m.label.toLowerCase().includes('medium') ||
-                            m.label.toLowerCase().includes('whole') ||
-                            m.label.toLowerCase().includes('slice') ||
-                            (!m.isGrams && m.weight > 20)
-                        );
-                        if (pieceMeasure) {
-                            quantityGrams = ing.quantity * pieceMeasure.weight;
-                            selectedUnit = pieceMeasure.label;
+                    // Try to find a matching measure from USDA for nicer display
+                    if (ing.unit !== 'g' && ing.unit !== 'ml') {
+                        const matchingMeasure = measures.find(m => {
+                            const label = m.label.toLowerCase();
+                            return label.includes(ing.unit) || ing.unit.includes(label.split(' ')[0]);
+                        });
+                        if (matchingMeasure && !matchingMeasure.isGrams) {
+                            selectedUnit = matchingMeasure.label;
                             displayQty = ing.quantity;
-                        } else {
-                            quantityGrams = ing.quantity * 50; // Default piece weight
-                        }
-                    } else if (ing.unit === 'cup') {
-                        const cupMeasure = measures.find(m => m.label.toLowerCase().includes('cup'));
-                        if (cupMeasure) {
-                            quantityGrams = ing.quantity * cupMeasure.weight;
-                            selectedUnit = cupMeasure.label;
-                            displayQty = ing.quantity;
-                        } else {
-                            quantityGrams = ing.quantity * 240;
-                        }
-                    } else if (ing.unit === 'tbsp') {
-                        const tbspMeasure = measures.find(m => m.label.toLowerCase().includes('tbsp') || m.label.toLowerCase().includes('tablespoon'));
-                        if (tbspMeasure) {
-                            quantityGrams = ing.quantity * tbspMeasure.weight;
-                            selectedUnit = tbspMeasure.label;
-                            displayQty = ing.quantity;
-                        } else {
-                            quantityGrams = ing.quantity * 15;
-                        }
-                    } else if (ing.unit === 'tsp') {
-                        const tspMeasure = measures.find(m => m.label.toLowerCase().includes('tsp') || m.label.toLowerCase().includes('teaspoon'));
-                        if (tspMeasure) {
-                            quantityGrams = ing.quantity * tspMeasure.weight;
-                            selectedUnit = tspMeasure.label;
-                            displayQty = ing.quantity;
-                        } else {
-                            quantityGrams = ing.quantity * 5;
-                        }
-                    } else if (ing.unit === 'oz') {
-                        quantityGrams = ing.quantity * 28.35;
-                    } else if (ing.unit === 'scoop') {
-                        const scoopMeasure = measures.find(m => m.label.toLowerCase().includes('scoop'));
-                        if (scoopMeasure) {
-                            quantityGrams = ing.quantity * scoopMeasure.weight;
-                            selectedUnit = scoopMeasure.label;
-                            displayQty = ing.quantity;
-                        } else {
-                            quantityGrams = ing.quantity * 30; // Default scoop
+                            // Recalculate grams using USDA measure weight for accuracy
+                            quantityGrams = Math.round(ing.quantity * matchingMeasure.weight);
                         }
                     }
 
