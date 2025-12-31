@@ -101,6 +101,15 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
     fetchExercises();
   }, []);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   // Get muscle groups for workout type - values must match database muscle_group field
   // Database stores: chest, back, shoulders, arms, legs, core, cardio, flexibility, full_body
   const getMuscleGroupsForType = (type) => {
