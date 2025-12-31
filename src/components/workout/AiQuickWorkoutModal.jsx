@@ -27,6 +27,58 @@ const FALLBACK_EXERCISES = {
   stretch: ['Cat-Cow Stretch', 'Child\'s Pose', 'Downward Dog', 'Pigeon Pose', 'Hip Flexor Stretch', 'Hamstring Stretch', 'Quad Stretch', 'Shoulder Stretch']
 };
 
+// Warm-up exercises by workout type
+const WARMUP_EXERCISES = {
+  full_body: [
+    { name: 'Jumping Jacks', duration: '60 sec', notes: 'Get your heart rate up and warm up your entire body' },
+    { name: 'Arm Circles', duration: '30 sec each direction', notes: 'Loosen up your shoulders' }
+  ],
+  upper_body: [
+    { name: 'Arm Circles', duration: '30 sec each direction', notes: 'Loosen up your shoulders and rotator cuffs' },
+    { name: 'Shoulder Rolls', duration: '30 sec', notes: 'Release tension in your upper back' }
+  ],
+  lower_body: [
+    { name: 'High Knees', duration: '45 sec', notes: 'Warm up your hip flexors and quads' },
+    { name: 'Leg Swings', duration: '30 sec each leg', notes: 'Dynamic stretch for hip mobility' }
+  ],
+  core: [
+    { name: 'Torso Twists', duration: '30 sec', notes: 'Warm up your spine and obliques' },
+    { name: 'Cat-Cow Stretch', duration: '45 sec', notes: 'Mobilize your spine' }
+  ],
+  cardio: [
+    { name: 'March in Place', duration: '60 sec', notes: 'Gradually elevate your heart rate' }
+  ],
+  stretch: [] // Stretch workouts don't need warm-up
+};
+
+// Cool-down stretches by workout type
+const COOLDOWN_EXERCISES = {
+  full_body: [
+    { name: 'Standing Quad Stretch', duration: '30 sec each leg', notes: 'Hold onto something for balance' },
+    { name: 'Standing Hamstring Stretch', duration: '30 sec each leg', notes: 'Keep your back straight' },
+    { name: 'Chest Doorway Stretch', duration: '30 sec', notes: 'Open up your chest and shoulders' }
+  ],
+  upper_body: [
+    { name: 'Chest Doorway Stretch', duration: '30 sec', notes: 'Open up your chest' },
+    { name: 'Tricep Stretch', duration: '30 sec each arm', notes: 'Reach behind your head' },
+    { name: 'Cross-Body Shoulder Stretch', duration: '30 sec each arm', notes: 'Pull your arm across your chest' }
+  ],
+  lower_body: [
+    { name: 'Standing Quad Stretch', duration: '30 sec each leg', notes: 'Hold onto something for balance' },
+    { name: 'Pigeon Pose', duration: '45 sec each side', notes: 'Deep hip opener' },
+    { name: 'Seated Hamstring Stretch', duration: '45 sec', notes: 'Reach for your toes' }
+  ],
+  core: [
+    { name: 'Child\'s Pose', duration: '45 sec', notes: 'Relax and stretch your lower back' },
+    { name: 'Cobra Stretch', duration: '30 sec', notes: 'Gentle backbend to stretch your abs' }
+  ],
+  cardio: [
+    { name: 'Walking in Place', duration: '60 sec', notes: 'Bring your heart rate down gradually' },
+    { name: 'Standing Forward Fold', duration: '45 sec', notes: 'Let your head hang heavy' }
+  ],
+  stretch: [] // Stretch workouts are already cool-down
+};
+
 function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
   const [selectedType, setSelectedType] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(DURATION_OPTIONS[1]); // Default 30 min
@@ -100,7 +152,7 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       }
 
       // Fallback: Build workout from database exercises
-      let workoutExercises = [];
+      let mainExercises = [];
 
       // Filter exercises from database by muscle group (exact match)
       const matchingExercises = exerciseDatabase.filter(ex => {
@@ -111,7 +163,7 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       if (matchingExercises.length >= targetExerciseCount) {
         // Shuffle and pick required number
         const shuffled = [...matchingExercises].sort(() => Math.random() - 0.5);
-        workoutExercises = shuffled.slice(0, targetExerciseCount).map(ex => ({
+        mainExercises = shuffled.slice(0, targetExerciseCount).map(ex => ({
           ...ex,
           sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : 3,
           reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
@@ -122,7 +174,7 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         const fallbackNames = FALLBACK_EXERCISES[selectedType.id] || FALLBACK_EXERCISES.full_body;
         const selectedNames = fallbackNames.slice(0, targetExerciseCount);
 
-        workoutExercises = selectedNames.map((name, idx) => ({
+        mainExercises = selectedNames.map((name, idx) => ({
           id: `quick-${Date.now()}-${idx}`,
           name,
           muscle_group: selectedType.name,
@@ -133,9 +185,38 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         }));
       }
 
+      // Build warm-up exercises
+      const warmups = (WARMUP_EXERCISES[selectedType.id] || []).map((wu, idx) => ({
+        id: `warmup-${Date.now()}-${idx}`,
+        name: wu.name,
+        muscle_group: 'Warm-up',
+        sets: 1,
+        reps: wu.duration,
+        restSeconds: 15,
+        equipment: 'Bodyweight',
+        notes: wu.notes,
+        isWarmup: true
+      }));
+
+      // Build cool-down exercises
+      const cooldowns = (COOLDOWN_EXERCISES[selectedType.id] || []).map((cd, idx) => ({
+        id: `cooldown-${Date.now()}-${idx}`,
+        name: cd.name,
+        muscle_group: 'Cool-down',
+        sets: 1,
+        reps: cd.duration,
+        restSeconds: 15,
+        equipment: 'Bodyweight',
+        notes: cd.notes,
+        isStretch: true
+      }));
+
+      // Combine: warm-up + main workout + cool-down
+      const allExercises = [...warmups, ...mainExercises, ...cooldowns];
+
       const workoutData = {
         name: `${selectedType.name} - Quick Workout`,
-        exercises: workoutExercises,
+        exercises: allExercises,
         estimatedMinutes: selectedDuration.minutes,
         estimatedCalories: selectedDuration.minutes * 8
       };
