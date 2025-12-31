@@ -12777,6 +12777,7 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .ai-workout-modal {
@@ -12785,9 +12786,9 @@ a.nav-left {
     width: 100%;
     max-width: 400px;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     animation: slideUpFade 0.3s ease;
-    -webkit-overflow-scrolling: touch;
 }
 
 .ai-workout-header {
@@ -12796,6 +12797,7 @@ a.nav-left {
     justify-content: space-between;
     padding: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 }
 
 .ai-workout-header h2 {
@@ -12813,7 +12815,18 @@ a.nav-left {
 
 .ai-workout-content {
     padding: 20px;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 10px;
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ai-workout-footer {
+    padding: 15px 20px;
+    padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a1a1a;
+    flex-shrink: 0;
 }
 
 .ai-workout-option {
@@ -12876,7 +12889,6 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    margin-top: 16px;
     transition: all 0.2s;
 }
 
