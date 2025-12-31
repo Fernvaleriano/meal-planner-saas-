@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30-Day Trial Review | FitForShift Wellness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.88) 100%),
+                        url('https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Fit%20For%20Shift/Untitled%20design%20-%202025-12-19T223638.621.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .form-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            height: 80px;
+            width: auto;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .progress-bar {
+            width: 120px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .questions-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .question-slide {
+            width: 100%;
+            max-width: 650px;
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .question-slide.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .question-number {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: #00d9ff;
+            margin-bottom: 16px;
+        }
+
+        .question-number span {
+            background: rgba(0, 217, 255, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .question-text {
+            font-size: 1.75rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 12px;
+        }
+
+        .question-subtitle {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 32px;
+        }
+
+        .text-input, .textarea-input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 1.125rem;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .textarea-input {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .text-input:focus, .textarea-input:focus {
+            outline: none;
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .text-input::placeholder, .textarea-input::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+
+        .choice-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .choice-option {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .choice-option:hover {
+            border-color: rgba(0, 217, 255, 0.5);
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .choice-option.selected {
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .choice-option input {
+            display: none;
+        }
+
+        .choice-letter {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            transition: all 0.3s ease;
+        }
+
+        .choice-option.selected .choice-letter {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .choice-text {
+            font-size: 1.0625rem;
+            color: #ffffff;
+        }
+
+        .choice-option.multi-select .choice-letter {
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .choice-option.multi-select.selected .choice-letter::after {
+            content: '✓';
+            position: absolute;
+            font-size: 16px;
+        }
+
+        .phone-input-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .country-select {
+            padding: 16px;
+            font-size: 1.125rem;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        .country-select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .phone-input {
+            flex: 1;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .nav-btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-back {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ffffff;
+        }
+
+        .btn-back:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #00d9ff 0%, #00ff88 100%);
+            border: none;
+            color: #1a1a2e;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.3);
+        }
+
+        .btn-next:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #00ff88 0%, #00d9ff 100%);
+        }
+
+        .btn-skip {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.6);
+        }
+
+        .btn-skip:hover {
+            background: rgba(255,255,255,0.05);
+            color: #ffffff;
+        }
+
+        .enter-hint {
+            margin-top: 16px;
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .enter-hint kbd {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        .success-screen {
+            display: none;
+            text-align: center;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .success-screen.active {
+            display: block;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 217, 255, 0.2));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-icon svg {
+            width: 50px;
+            height: 50px;
+            stroke: #00ff88;
+        }
+
+        .success-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .success-message {
+            font-size: 1.125rem;
+            color: rgba(255,255,255,0.7);
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 46, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .error-message {
+            background: rgba(255, 99, 99, 0.1);
+            border: 1px solid rgba(255, 99, 99, 0.3);
+            color: #ff6363;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .form-header {
+                padding: 16px 20px;
+            }
+
+            .questions-wrapper {
+                padding: 20px;
+            }
+
+            .question-text {
+                font-size: 1.5rem;
+            }
+
+            .phone-input-container {
+                flex-direction: column;
+            }
+
+            .country-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <header class="form-header">
+            <div class="logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Fit%20For%20Shift/Untitled%20design%20-%202025-12-19T221845.209.png" alt="FitForShift">
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span class="progress-text" id="progressText">1 of 15</span>
+            </div>
+        </header>
+
+        <main class="questions-wrapper">
+            <!-- Question 1: Usage Frequency -->
+            <div class="question-slide active" data-question="0">
+                <div class="question-number"><span>1 →</span></div>
+                <h2 class="question-text">How often did you use the Fit For Shift app during your 30-day trial?</h2>
+                <div class="choice-options" data-field="usageFrequency">
+                    <label class="choice-option" data-value="daily">
+                        <input type="radio" name="usageFrequency" value="daily">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Daily</span>
+                    </label>
+                    <label class="choice-option" data-value="few_times_week">
+                        <input type="radio" name="usageFrequency" value="few_times_week">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">A few times a week</span>
+                    </label>
+                    <label class="choice-option" data-value="once_week">
+                        <input type="radio" name="usageFrequency" value="once_week">
+                        <span class="choice-letter">C</span>
+                        <span class="choice-text">Once a week</span>
+                    </label>
+                    <label class="choice-option" data-value="less_than_once_week">
+                        <input type="radio" name="usageFrequency" value="less_than_once_week">
+                        <span class="choice-letter">D</span>
+                        <span class="choice-text">Less than once a week</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 2: Ease of Getting Started -->
+            <div class="question-slide" data-question="1">
+                <div class="question-number"><span>2 →</span></div>
+                <h2 class="question-text">How easy was it to get started with the app?</h2>
+                <div class="choice-options" data-field="easeOfStart">
+                    <label class="choice-option" data-value="very_easy">
+                        <input type="radio" name="easeOfStart" value="very_easy">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Very easy</span>
+                    </label>
+                    <label class="choice-option" data-value="somewhat_easy">
+                        <input type="radio" name="easeOfStart" value="somewhat_easy">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">Somewhat easy</span>
+                    </label>
+                    <label class="choice-option" data-value="somewhat_difficult">
+                        <input type="radio" name="easeOfStart" value="somewhat_difficult">
+                        <span class="choice-letter">C</span>
+                        <span class="choice-text">Somewhat difficult</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 3: Overall Experience -->
+            <div class="question-slide" data-question="2">
+                <div class="question-number"><span>3 →</span></div>
+                <h2 class="question-text">How would you rate your overall experience with the app?</h2>
+                <div class="choice-options" data-field="overallExperience">
+                    <label class="choice-option" data-value="excellent">
+                        <input type="radio" name="overallExperience" value="excellent">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Excellent</span>
+                    </label>
+                    <label class="choice-option" data-value="good">
+                        <input type="radio" name="overallExperience" value="good">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">Good</span>
+                    </label>
+                    <label class="choice-option" data-value="fair">
+                        <input type="radio" name="overallExperience" value="fair">
+                        <span class="choice-letter">C</span>
+                        <span class="choice-text">Fair</span>
+                    </label>
+                    <label class="choice-option" data-value="poor">
+                        <input type="radio" name="overallExperience" value="poor">
+                        <span class="choice-letter">D</span>
+                        <span class="choice-text">Poor</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 4: Features Used (Multi-select) -->
+            <div class="question-slide" data-question="3">
+                <div class="question-number"><span>4 →</span></div>
+                <h2 class="question-text">Which features did you use most often?</h2>
+                <p class="question-subtitle">Select all that apply</p>
+                <div class="choice-options" data-field="featuresUsed" data-multi="true">
+                    <label class="choice-option multi-select" data-value="fitness_programs">
+                        <input type="checkbox" name="featuresUsed" value="fitness_programs">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Fitness programs</span>
+                    </label>
+                    <label class="choice-option multi-select" data-value="nutrition_guidance">
+                        <input type="checkbox" name="featuresUsed" value="nutrition_guidance">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">Nutrition guidance</span>
+                    </label>
+                    <label class="choice-option multi-select" data-value="stress_management">
+                        <input type="checkbox" name="featuresUsed" value="stress_management">
+                        <span class="choice-letter">C</span>
+                        <span class="choice-text">Stress management tools</span>
+                    </label>
+                    <label class="choice-option multi-select" data-value="community_support">
+                        <input type="checkbox" name="featuresUsed" value="community_support">
+                        <span class="choice-letter">D</span>
+                        <span class="choice-text">Community or peer support</span>
+                    </label>
+                    <label class="choice-option multi-select" data-value="custom_workouts">
+                        <input type="checkbox" name="featuresUsed" value="custom_workouts">
+                        <span class="choice-letter">E</span>
+                        <span class="choice-text">Creating your own workouts</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 5: Confusing Features -->
+            <div class="question-slide" data-question="4">
+                <div class="question-number"><span>5 →</span></div>
+                <h2 class="question-text">Were there any features you found confusing or difficult to use?</h2>
+                <div class="choice-options" data-field="confusingFeatures">
+                    <label class="choice-option" data-value="yes">
+                        <input type="radio" name="confusingFeatures" value="yes">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Yes</span>
+                    </label>
+                    <label class="choice-option" data-value="no">
+                        <input type="radio" name="confusingFeatures" value="no">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">No</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 6: Specify Confusing Features (Conditional) -->
+            <div class="question-slide" data-question="5" data-conditional="confusingFeatures:yes">
+                <div class="question-number"><span>6 →</span></div>
+                <h2 class="question-text">If yes, please specify:</h2>
+                <textarea class="textarea-input" id="confusingDetails" placeholder="Type your answer here..."></textarea>
+                <p class="enter-hint"><kbd>Shift</kbd> + <kbd>Enter ↵</kbd> to make a line break</p>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 7: Impact on Well-being -->
+            <div class="question-slide" data-question="6">
+                <div class="question-number"><span>7 →</span></div>
+                <h2 class="question-text">Did using Fit For Shift have a positive impact on your overall well-being?</h2>
+                <div class="choice-options" data-field="wellbeingImpact">
+                    <label class="choice-option" data-value="yes_significantly">
+                        <input type="radio" name="wellbeingImpact" value="yes_significantly">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Yes, significantly</span>
+                    </label>
+                    <label class="choice-option" data-value="yes_somewhat">
+                        <input type="radio" name="wellbeingImpact" value="yes_somewhat">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">Yes, somewhat</span>
+                    </label>
+                    <label class="choice-option" data-value="no_change">
+                        <input type="radio" name="wellbeingImpact" value="no_change">
+                        <span class="choice-letter">C</span>
+                        <span class="choice-text">No noticeable change</span>
+                    </label>
+                    <label class="choice-option" data-value="negative">
+                        <input type="radio" name="wellbeingImpact" value="negative">
+                        <span class="choice-letter">D</span>
+                        <span class="choice-text">Negative impact</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 8: Likelihood to Continue -->
+            <div class="question-slide" data-question="7">
+                <div class="question-number"><span>8 →</span></div>
+                <h2 class="question-text">How likely are you to continue using Fit For Shift after the trial period?</h2>
+                <div class="choice-options" data-field="likelihoodContinue">
+                    <label class="choice-option" data-value="very_likely">
+                        <input type="radio" name="likelihoodContinue" value="very_likely">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Very likely</span>
+                    </label>
+                    <label class="choice-option" data-value="somewhat_likely">
+                        <input type="radio" name="likelihoodContinue" value="somewhat_likely">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">Somewhat likely</span>
+                    </label>
+                    <label class="choice-option" data-value="not_sure">
+                        <input type="radio" name="likelihoodContinue" value="not_sure">
+                        <span class="choice-letter">C</span>
+                        <span class="choice-text">Not sure</span>
+                    </label>
+                    <label class="choice-option" data-value="unlikely">
+                        <input type="radio" name="likelihoodContinue" value="unlikely">
+                        <span class="choice-letter">D</span>
+                        <span class="choice-text">Unlikely</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 9: Likelihood to Recommend -->
+            <div class="question-slide" data-question="8">
+                <div class="question-number"><span>9 →</span></div>
+                <h2 class="question-text">How likely are you to recommend Fit For Shift to other first responders and other agencies?</h2>
+                <div class="choice-options" data-field="likelihoodRecommend">
+                    <label class="choice-option" data-value="very_likely">
+                        <input type="radio" name="likelihoodRecommend" value="very_likely">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Very likely</span>
+                    </label>
+                    <label class="choice-option" data-value="somewhat_likely">
+                        <input type="radio" name="likelihoodRecommend" value="somewhat_likely">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">Somewhat likely</span>
+                    </label>
+                    <label class="choice-option" data-value="not_sure">
+                        <input type="radio" name="likelihoodRecommend" value="not_sure">
+                        <span class="choice-letter">C</span>
+                        <span class="choice-text">Not sure</span>
+                    </label>
+                    <label class="choice-option" data-value="unlikely">
+                        <input type="radio" name="likelihoodRecommend" value="unlikely">
+                        <span class="choice-letter">D</span>
+                        <span class="choice-text">Unlikely</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 10: What did you like most -->
+            <div class="question-slide" data-question="9">
+                <div class="question-number"><span>10 →</span></div>
+                <h2 class="question-text">What did you like most about the app?</h2>
+                <p class="question-subtitle">Optional</p>
+                <textarea class="textarea-input" id="likedMost" placeholder="Type your answer here..."></textarea>
+                <p class="enter-hint"><kbd>Shift</kbd> + <kbd>Enter ↵</kbd> to make a line break</p>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-skip" onclick="nextQuestion()">Skip</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 11: Improvements -->
+            <div class="question-slide" data-question="10">
+                <div class="question-number"><span>11 →</span></div>
+                <h2 class="question-text">What would you like to see improved or added in future updates?</h2>
+                <p class="question-subtitle">Optional</p>
+                <textarea class="textarea-input" id="improvements" placeholder="Type your answer here..."></textarea>
+                <p class="enter-hint"><kbd>Shift</kbd> + <kbd>Enter ↵</kbd> to make a line break</p>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-skip" onclick="nextQuestion()">Skip</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 12: Additional Comments -->
+            <div class="question-slide" data-question="11">
+                <div class="question-number"><span>12 →</span></div>
+                <h2 class="question-text">Any additional comments or feedback?</h2>
+                <p class="question-subtitle">Optional</p>
+                <textarea class="textarea-input" id="additionalComments" placeholder="Type your answer here..."></textarea>
+                <p class="enter-hint"><kbd>Shift</kbd> + <kbd>Enter ↵</kbd> to make a line break</p>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-skip" onclick="nextQuestion()">Skip</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 13: Phone Number -->
+            <div class="question-slide" data-question="12">
+                <div class="question-number"><span>13 →</span></div>
+                <h2 class="question-text">If you'd like, please share your phone number (optional).</h2>
+                <p class="question-subtitle">Providing your phone number helps us follow up if needed, but it's completely optional.</p>
+                <div class="phone-input-container">
+                    <select class="country-select" id="countryCode">
+                        <option value="+1">🇺🇸 +1</option>
+                        <option value="+44">🇬🇧 +44</option>
+                        <option value="+61">🇦🇺 +61</option>
+                        <option value="+1">🇨🇦 +1</option>
+                        <option value="+49">🇩🇪 +49</option>
+                        <option value="+33">🇫🇷 +33</option>
+                        <option value="+34">🇪🇸 +34</option>
+                        <option value="+39">🇮🇹 +39</option>
+                        <option value="+81">🇯🇵 +81</option>
+                        <option value="+86">🇨🇳 +86</option>
+                        <option value="+91">🇮🇳 +91</option>
+                        <option value="+52">🇲🇽 +52</option>
+                        <option value="+55">🇧🇷 +55</option>
+                    </select>
+                    <input type="tel" class="text-input phone-input" id="phoneNumber" placeholder="(555) 123-4567">
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-skip" onclick="nextQuestion()">Skip</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()">
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 14: Want Subscription -->
+            <div class="question-slide" data-question="13">
+                <div class="question-number"><span>14 →</span></div>
+                <h2 class="question-text">Would you like to continue using Fit For Shift as a monthly subscription?</h2>
+                <p class="question-subtitle">A sign up link will be sent to your email within 24-48 hours.</p>
+                <div class="choice-options" data-field="wantSubscription">
+                    <label class="choice-option" data-value="yes">
+                        <input type="radio" name="wantSubscription" value="yes">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Yes</span>
+                    </label>
+                    <label class="choice-option" data-value="no">
+                        <input type="radio" name="wantSubscription" value="no">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">No</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 15: Schedule Zoom Call -->
+            <div class="question-slide" data-question="14">
+                <div class="question-number"><span>15 →</span></div>
+                <h2 class="question-text">Would you like to schedule a Zoom call with our team to get your agency onboard with Fit For Shift?</h2>
+                <p class="question-subtitle">This is entirely optional. Let us know your availability and we'll send a calendar invite.</p>
+                <textarea class="textarea-input" id="zoomSchedule" placeholder="Type your answer here... (e.g., Monday afternoons work best for me)"></textarea>
+                <p class="enter-hint"><kbd>Shift</kbd> + <kbd>Enter ↵</kbd> to make a line break</p>
+                <div class="error-message" id="submitError"></div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next btn-submit" onclick="submitForm()">
+                        Submit Review <span>→</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success Screen -->
+            <div class="success-screen" id="successScreen">
+                <div class="success-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2 class="success-title">Thank You!</h2>
+                <p class="success-message">Your feedback has been submitted successfully. We truly appreciate you taking the time to share your experience with Fit For Shift. Your input helps us improve!</p>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div style="text-align: center;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Submitting your review...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 0;
+        const totalQuestions = 15;
+
+        const formData = {
+            usageFrequency: '',
+            easeOfStart: '',
+            overallExperience: '',
+            featuresUsed: [],
+            confusingFeatures: '',
+            confusingDetails: '',
+            wellbeingImpact: '',
+            likelihoodContinue: '',
+            likelihoodRecommend: '',
+            likedMost: '',
+            improvements: '',
+            additionalComments: '',
+            phoneNumber: '',
+            wantSubscription: '',
+            zoomSchedule: ''
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateProgress();
+            setupChoiceOptions();
+            setupKeyboardNavigation();
+        });
+
+        function updateProgress() {
+            let displayQuestion = currentQuestion + 1;
+            let displayTotal = totalQuestions;
+
+            if (formData.confusingFeatures === 'no' && currentQuestion >= 5) {
+                displayQuestion = currentQuestion;
+                displayTotal = 14;
+            }
+
+            const progress = (displayQuestion / displayTotal) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = displayQuestion + ' of ' + displayTotal;
+        }
+
+        function showQuestion(index) {
+            document.querySelectorAll('.question-slide').forEach(slide => {
+                slide.classList.remove('active');
+            });
+
+            const slide = document.querySelector('[data-question="' + index + '"]');
+            if (slide) {
+                slide.classList.add('active');
+
+                const textarea = slide.querySelector('textarea');
+                const textInput = slide.querySelector('input[type="text"], input[type="tel"]');
+                if (textarea) {
+                    setTimeout(() => textarea.focus(), 100);
+                } else if (textInput) {
+                    setTimeout(() => textInput.focus(), 100);
+                }
+            }
+        }
+
+        function getNextQuestionIndex(current) {
+            if (current === 4 && formData.confusingFeatures === 'no') {
+                return 6;
+            }
+            return current + 1;
+        }
+
+        function getPrevQuestionIndex(current) {
+            if (current === 6 && formData.confusingFeatures === 'no') {
+                return 4;
+            }
+            return current - 1;
+        }
+
+        function nextQuestion() {
+            saveCurrentAnswer();
+
+            const nextIndex = getNextQuestionIndex(currentQuestion);
+
+            if (nextIndex < totalQuestions) {
+                currentQuestion = nextIndex;
+                showQuestion(currentQuestion);
+                updateProgress();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestion > 0) {
+                const prevIndex = getPrevQuestionIndex(currentQuestion);
+                currentQuestion = prevIndex;
+                showQuestion(currentQuestion);
+                updateProgress();
+            }
+        }
+
+        function saveCurrentAnswer() {
+            const slide = document.querySelector('[data-question="' + currentQuestion + '"]');
+            if (!slide) return;
+
+            const choiceOptions = slide.querySelector('.choice-options');
+            if (choiceOptions) {
+                const fieldName = choiceOptions.dataset.field;
+                const isMulti = choiceOptions.dataset.multi === 'true';
+
+                if (isMulti) {
+                    const checked = slide.querySelectorAll('input[type="checkbox"]:checked');
+                    formData[fieldName] = Array.from(checked).map(c => c.value);
+                } else {
+                    const checked = slide.querySelector('input[type="radio"]:checked');
+                    if (checked) {
+                        formData[fieldName] = checked.value;
+                    }
+                }
+            }
+
+            const textareaIds = {
+                5: 'confusingDetails',
+                9: 'likedMost',
+                10: 'improvements',
+                11: 'additionalComments',
+                14: 'zoomSchedule'
+            };
+
+            if (textareaIds[currentQuestion]) {
+                const textarea = document.getElementById(textareaIds[currentQuestion]);
+                if (textarea) {
+                    formData[textareaIds[currentQuestion]] = textarea.value.trim();
+                }
+            }
+
+            if (currentQuestion === 12) {
+                const countryCode = document.getElementById('countryCode').value;
+                const phoneNumber = document.getElementById('phoneNumber').value.trim();
+                formData.phoneNumber = phoneNumber ? countryCode + ' ' + phoneNumber : '';
+            }
+        }
+
+        function setupChoiceOptions() {
+            document.querySelectorAll('.choice-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const input = this.querySelector('input');
+                    const isMulti = this.classList.contains('multi-select');
+                    const parent = this.closest('.choice-options');
+
+                    if (isMulti) {
+                        input.checked = !input.checked;
+                        this.classList.toggle('selected', input.checked);
+                    } else {
+                        parent.querySelectorAll('.choice-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                            opt.querySelector('input').checked = false;
+                        });
+                        input.checked = true;
+                        this.classList.add('selected');
+                    }
+
+                    const slide = this.closest('.question-slide');
+                    const nextBtn = slide.querySelector('.btn-next');
+
+                    if (isMulti) {
+                        const anyChecked = parent.querySelectorAll('input:checked').length > 0;
+                        nextBtn.disabled = !anyChecked;
+                    } else {
+                        nextBtn.disabled = false;
+                    }
+                });
+            });
+        }
+
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    const activeSlide = document.querySelector('.question-slide.active');
+                    if (activeSlide) {
+                        const textarea = activeSlide.querySelector('textarea:focus');
+                        if (textarea) return;
+
+                        const nextBtn = activeSlide.querySelector('.btn-next:not(:disabled)');
+                        if (nextBtn && currentQuestion < totalQuestions - 1) {
+                            nextQuestion();
+                        }
+                    }
+                }
+
+                const activeSlide = document.querySelector('.question-slide.active');
+                if (activeSlide) {
+                    const choiceOptions = activeSlide.querySelector('.choice-options');
+                    if (choiceOptions) {
+                        const key = e.key.toUpperCase();
+                        const letterIndex = 'ABCDE'.indexOf(key);
+                        if (letterIndex !== -1) {
+                            const options = choiceOptions.querySelectorAll('.choice-option');
+                            if (options[letterIndex]) {
+                                options[letterIndex].click();
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function submitForm() {
+            saveCurrentAnswer();
+
+            const errorEl = document.getElementById('submitError');
+            errorEl.classList.remove('show');
+
+            document.getElementById('loadingOverlay').classList.add('show');
+
+            try {
+                const response = await fetch('/.netlify/functions/submit-apply-form', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        form_slug: 'trial-review',
+                        response_data: {
+                            usage_frequency: formData.usageFrequency,
+                            ease_of_start: formData.easeOfStart,
+                            overall_experience: formData.overallExperience,
+                            features_used: formData.featuresUsed,
+                            confusing_features: formData.confusingFeatures,
+                            confusing_details: formData.confusingDetails,
+                            wellbeing_impact: formData.wellbeingImpact,
+                            likelihood_continue: formData.likelihoodContinue,
+                            likelihood_recommend: formData.likelihoodRecommend,
+                            liked_most: formData.likedMost,
+                            improvements: formData.improvements,
+                            additional_comments: formData.additionalComments,
+                            phone_number: formData.phoneNumber,
+                            want_subscription: formData.wantSubscription,
+                            zoom_schedule: formData.zoomSchedule
+                        },
+                        metadata: {
+                            submitted_at: new Date().toISOString(),
+                            form_type: 'trial_review',
+                            utm_source: new URLSearchParams(window.location.search).get('utm_source') || 'direct'
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit form');
+                }
+
+                document.getElementById('loadingOverlay').classList.remove('show');
+                document.querySelectorAll('.question-slide').forEach(slide => {
+                    slide.classList.remove('active');
+                });
+                document.getElementById('successScreen').classList.add('active');
+                document.querySelector('.progress-container').style.display = 'none';
+
+            } catch (error) {
+                console.error('Submit error:', error);
+                document.getElementById('loadingOverlay').classList.remove('show');
+                errorEl.textContent = 'Something went wrong. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+    </script>
+</body>
+</html>
