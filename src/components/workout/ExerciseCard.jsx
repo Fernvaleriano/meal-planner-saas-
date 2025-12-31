@@ -295,7 +295,18 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   };
 
   // Get thumbnail URL or placeholder
-  const thumbnailUrl = exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg';
+  // Note: animation_url is typically a video (.mp4) which can't be used as img src
+  // Only use it if it looks like an image URL (gif, png, jpg, webp)
+  const isImageUrl = (url) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
+           lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
+  };
+  const thumbnailUrl = exercise.thumbnail_url ||
+    (isImageUrl(exercise.animation_url) ? exercise.animation_url : null) ||
+    '/img/exercise-placeholder.svg';
+  const hasVideo = !!(exercise.video_url || exercise.animation_url);
 
   // Format duration for display
   const formatDuration = (seconds) => {
@@ -650,7 +661,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                   <Check size={24} />
                 </div>
               )}
-              {exercise.video_url && !isCompleted && (
+              {hasVideo && !isCompleted && (
                 <div className="video-indicator">
                   <Play size={12} />
                 </div>

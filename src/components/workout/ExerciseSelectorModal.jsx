@@ -380,6 +380,10 @@ export function ExerciseSelectorModal({
                             src={exercise.thumbnail_url}
                             alt={exercise.name}
                             loading="lazy"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.classList.add('fallback-placeholder');
+                            }}
                           />
                         ) : exercise.animation_url ? (
                           <video
@@ -387,7 +391,12 @@ export function ExerciseSelectorModal({
                             muted
                             loop
                             playsInline
-                            preload="metadata"
+                            autoPlay
+                            preload="auto"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.classList.add('fallback-placeholder');
+                            }}
                           />
                         ) : (
                           <div className="exercise-thumbnail-placeholder">
