@@ -63,7 +63,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { clientId, coachId, mealName, mealType, calories, protein, carbs, fat, notes } = body;
+            const { clientId, coachId, mealName, mealType, calories, protein, carbs, fat, notes, forceAdd } = body;
 
             if (!clientId || !mealName) {
                 return {
@@ -73,31 +73,34 @@ exports.handler = async (event, context) => {
                 };
             }
 
-            // Check if already favorited
-            const { data: existing } = await supabase
-                .from('meal_favorites')
-                .select('id')
-                .eq('client_id', clientId)
-                .eq('meal_name', mealName)
-                .single();
-
-            if (existing) {
-                // Already favorited - remove it (toggle off)
-                const { error: deleteError } = await supabase
+            // Only check for existing if not forcing add (toggle behavior)
+            if (!forceAdd) {
+                // Check if already favorited
+                const { data: existing } = await supabase
                     .from('meal_favorites')
-                    .delete()
-                    .eq('id', existing.id);
+                    .select('id')
+                    .eq('client_id', clientId)
+                    .eq('meal_name', mealName)
+                    .single();
 
-                if (deleteError) throw deleteError;
+                if (existing) {
+                    // Already favorited - remove it (toggle off)
+                    const { error: deleteError } = await supabase
+                        .from('meal_favorites')
+                        .delete()
+                        .eq('id', existing.id);
 
-                return {
-                    statusCode: 200,
-                    headers: {
-                        'Access-Control-Allow-Origin': '*',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ action: 'removed', message: 'Favorite removed' })
-                };
+                    if (deleteError) throw deleteError;
+
+                    return {
+                        statusCode: 200,
+                        headers: {
+                            'Access-Control-Allow-Origin': '*',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ action: 'removed', message: 'Favorite removed' })
+                    };
+                }
             }
 
             // Add new favorite

@@ -1531,8 +1531,11 @@ function Diary() {
         protein: Math.round(mealTotals.protein),
         carbs: Math.round(mealTotals.carbs),
         fat: Math.round(mealTotals.fat),
-        notes: mealEntries.map(e => e.food_name).join(', ')
+        notes: mealEntries.map(e => e.food_name).join(', '),
+        forceAdd: true // Always add, don't toggle
       });
+      // Clear the favorites cache so the list shows the new favorite
+      sessionStorage.removeItem(`favorites_${clientData.id}`);
       alert('Meal saved to favorites!');
       setShowSaveMealModal(false);
     } catch (err) {
