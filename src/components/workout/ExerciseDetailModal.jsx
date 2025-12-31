@@ -538,6 +538,19 @@ function ExerciseDetailModal({
   const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio';
   const difficultyLevel = exercise?.difficulty || 'Novice';
 
+  // Helper to check if URL is an image (not video)
+  const isImageUrl = (url) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
+           lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
+  };
+
+  // Get proper thumbnail (don't use video URL as img src)
+  const thumbnailUrl = exercise?.thumbnail_url ||
+    (isImageUrl(exercise?.animation_url) ? exercise?.animation_url : null) ||
+    '/img/exercise-placeholder.svg';
+
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
     console.log(`Playing video for "${exercise?.name}":`, {
@@ -600,11 +613,28 @@ function ExerciseDetailModal({
           ) : (
             <>
               <div className="image-container single">
-                <img
-                  src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
-                  alt={exercise.name || 'Exercise'}
-                  onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-                />
+                {/* If we have a proper thumbnail, show it */}
+                {exercise?.thumbnail_url || isImageUrl(exercise?.animation_url) ? (
+                  <img
+                    src={thumbnailUrl}
+                    alt={exercise.name || 'Exercise'}
+                    onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                  />
+                ) : videoUrl ? (
+                  /* If we only have video, show it as preview (first frame) */
+                  <video
+                    src={videoUrl}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <img
+                    src="/img/exercise-placeholder.svg"
+                    alt={exercise.name || 'Exercise'}
+                  />
+                )}
               </div>
               {videoUrl && (
                 <button className="center-play-btn" onClick={handlePlayVideo} type="button">
@@ -725,20 +755,25 @@ function ExerciseDetailModal({
               <span>Activity {currentIndex + 1}/{exercises.length}</span>
             </div>
             <div className="activity-thumbnails">
-              {exercises.slice(0, 7).map((ex, idx) => (
-                <button
-                  key={ex?.id || `ex-${idx}`}
-                  className={`activity-thumb ${idx === currentIndex ? 'active' : ''} ${completedExercises?.has(ex?.id) ? 'completed' : ''}`}
-                  onClick={() => handleExerciseSelect(ex)}
-                  type="button"
-                >
-                  <img
-                    src={ex?.thumbnail_url || ex?.animation_url || '/img/exercise-placeholder.svg'}
-                    alt={ex?.name || 'Exercise'}
-                    onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-                  />
-                </button>
-              ))}
+              {exercises.slice(0, 7).map((ex, idx) => {
+                const exThumb = ex?.thumbnail_url ||
+                  (isImageUrl(ex?.animation_url) ? ex?.animation_url : null) ||
+                  '/img/exercise-placeholder.svg';
+                return (
+                  <button
+                    key={ex?.id || `ex-${idx}`}
+                    className={`activity-thumb ${idx === currentIndex ? 'active' : ''} ${completedExercises?.has(ex?.id) ? 'completed' : ''}`}
+                    onClick={() => handleExerciseSelect(ex)}
+                    type="button"
+                  >
+                    <img
+                      src={exThumb}
+                      alt={ex?.name || 'Exercise'}
+                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                    />
+                  </button>
+                );
+              })}
             </div>
             <button
               className={`complete-exercise-btn ${isCompleted ? 'completed' : ''}`}
