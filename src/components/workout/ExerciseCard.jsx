@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff } from 'lucide-react';
+import SmartThumbnail from './SmartThumbnail';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 // Defined outside component so it's available during initialization
@@ -646,24 +647,14 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
             {/* Thumbnail - RIGHT SIDE */}
             <div className="exercise-thumb">
-              <img
-                src={thumbnailUrl}
-                alt={exercise.name || 'Exercise'}
-                loading="lazy"
-                onError={(e) => {
-                  if (e.target.src !== '/img/exercise-placeholder.svg') {
-                    e.target.src = '/img/exercise-placeholder.svg';
-                  }
-                }}
+              <SmartThumbnail
+                exercise={exercise}
+                size="medium"
+                showPlayIndicator={!isCompleted}
               />
               {isCompleted && (
                 <div className="completed-overlay">
                   <Check size={24} />
-                </div>
-              )}
-              {hasVideo && !isCompleted && (
-                <div className="video-indicator">
-                  <Play size={12} />
                 </div>
               )}
             </div>

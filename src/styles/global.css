@@ -16619,6 +16619,93 @@ a.nav-left {
     background-position: center;
 }
 
+/* Smart Thumbnail Component */
+.smart-thumbnail {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.smart-thumb-small {
+    width: 48px;
+    height: 48px;
+}
+
+.smart-thumb-medium {
+    width: 80px;
+    height: 80px;
+}
+
+.smart-thumb-large {
+    width: 120px;
+    height: 120px;
+}
+
+.smart-thumbnail img,
+.smart-thumbnail video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.smart-thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #475569;
+}
+
+.smart-thumb-play {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.smart-thumb-small .smart-thumb-play {
+    width: 16px;
+    height: 16px;
+    bottom: 2px;
+    right: 2px;
+}
+
+.smart-thumb-large .smart-thumb-play {
+    width: 28px;
+    height: 28px;
+    bottom: 6px;
+    right: 6px;
+}
+
+.smart-thumb-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
 .selection-indicator {
     position: absolute;
     top: 8px;
