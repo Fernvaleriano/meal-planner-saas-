@@ -77,14 +77,16 @@ exports.handler = async (event) => {
         // Determine notification email based on form type
         const isFirstResponderForm = form_slug === 'first-responder-verification' ||
                                       metadata?.form_type === 'first_responder_verification';
+        const isTrialReviewForm = form_slug === 'trial-review' ||
+                                   metadata?.form_type === 'trial_review';
 
         let notificationTo = template?.notification_email || NOTIFICATION_EMAIL;
         let formName = template?.name || 'Application Form';
 
-        // Use FitForShift email for first responder forms if configured
-        if (isFirstResponderForm && FITFORSHIFT_NOTIFICATION_EMAIL) {
+        // Use FitForShift email for first responder and trial review forms if configured
+        if ((isFirstResponderForm || isTrialReviewForm) && FITFORSHIFT_NOTIFICATION_EMAIL) {
             notificationTo = FITFORSHIFT_NOTIFICATION_EMAIL;
-            formName = 'FitForShift Wellness';
+            formName = isTrialReviewForm ? 'FitForShift 30-Day Trial Review' : 'FitForShift Wellness';
         }
 
         try {
@@ -94,7 +96,8 @@ exports.handler = async (event) => {
                 responseData: response_data,
                 metadata: metadata,
                 responseId: responseRecord.id,
-                isFirstResponder: isFirstResponderForm
+                isFirstResponder: isFirstResponderForm,
+                isTrialReview: isTrialReviewForm
             });
         } catch (emailError) {
             // Don't fail the submission if email fails
@@ -123,7 +126,7 @@ exports.handler = async (event) => {
 /**
  * Send notification email for new form submission
  */
-async function sendFormNotificationEmail({ to, formName, responseData, metadata, responseId, isFirstResponder }) {
+async function sendFormNotificationEmail({ to, formName, responseData, metadata, responseId, isFirstResponder, isTrialReview }) {
     const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
 
     // Extract key info from response
@@ -133,7 +136,11 @@ async function sendFormNotificationEmail({ to, formName, responseData, metadata,
 
     // Different fields based on form type
     let goal, commitment, subject;
-    if (isFirstResponder) {
+    if (isTrialReview) {
+        goal = responseData.overall_experience || 'Not specified';
+        commitment = responseData.want_subscription === 'yes' ? 'Wants to Subscribe' : 'Not subscribing';
+        subject = `New Trial Review: ${responseData.overall_experience || 'Feedback'} Experience - Wants Sub: ${responseData.want_subscription || 'N/A'}`;
+    } else if (isFirstResponder) {
         goal = responseData.agency_name || 'Not specified';
         commitment = 'First Responder Verification';
         subject = `New First Responder Verification: ${name}`;
@@ -199,16 +206,25 @@ ${APP_URL}/form-responses.html
         </div>`;
     }
 
-    // Different header styling for first responder vs application forms
-    const headerGradient = isFirstResponder
-        ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
-        : 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)';
+    // Different header styling for different form types
+    let headerGradient, headerTitle, summaryLabel3, summaryLabel4;
 
-    const headerTitle = isFirstResponder ? 'New First Responder Verification!' : 'New Application!';
-
-    // Different summary labels for first responder forms
-    const summaryLabel3 = isFirstResponder ? 'Agency' : 'Goal';
-    const summaryLabel4 = isFirstResponder ? 'Type' : 'Commitment';
+    if (isTrialReview) {
+        headerGradient = 'linear-gradient(135deg, #00d9ff 0%, #00ff88 100%)';
+        headerTitle = 'New 30-Day Trial Review!';
+        summaryLabel3 = 'Overall Experience';
+        summaryLabel4 = 'Subscription Interest';
+    } else if (isFirstResponder) {
+        headerGradient = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+        headerTitle = 'New First Responder Verification!';
+        summaryLabel3 = 'Agency';
+        summaryLabel4 = 'Type';
+    } else {
+        headerGradient = 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)';
+        headerTitle = 'New Application!';
+        summaryLabel3 = 'Goal';
+        summaryLabel4 = 'Commitment';
+    }
 
     const htmlBody = `
 <!DOCTYPE html>

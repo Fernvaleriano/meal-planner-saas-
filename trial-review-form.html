@@ -32,7 +32,6 @@
             flex-direction: column;
         }
 
-        /* Header */
         .form-header {
             padding: 20px 40px;
             display: flex;
@@ -78,7 +77,6 @@
             color: rgba(255,255,255,0.6);
         }
 
-        /* Questions Container */
         .questions-wrapper {
             flex: 1;
             display: flex;
@@ -137,7 +135,6 @@
             margin-bottom: 32px;
         }
 
-        /* Input Styles */
         .text-input, .textarea-input {
             width: 100%;
             padding: 16px 20px;
@@ -165,7 +162,6 @@
             color: rgba(255,255,255,0.3);
         }
 
-        /* Choice Options */
         .choice-options {
             display: flex;
             flex-direction: column;
@@ -222,7 +218,6 @@
             color: #ffffff;
         }
 
-        /* Multi-select checkbox style */
         .choice-option.multi-select .choice-letter {
             border-radius: 4px;
             position: relative;
@@ -234,7 +229,6 @@
             font-size: 16px;
         }
 
-        /* Phone Input */
         .phone-input-container {
             display: flex;
             gap: 12px;
@@ -260,7 +254,6 @@
             flex: 1;
         }
 
-        /* Navigation */
         .nav-buttons {
             display: flex;
             gap: 12px;
@@ -323,7 +316,6 @@
             color: #ffffff;
         }
 
-        /* Enter hint */
         .enter-hint {
             margin-top: 16px;
             font-size: 0.875rem;
@@ -337,7 +329,6 @@
             font-family: inherit;
         }
 
-        /* Success Screen */
         .success-screen {
             display: none;
             text-align: center;
@@ -378,7 +369,6 @@
             margin: 0 auto;
         }
 
-        /* Loading overlay */
         .loading-overlay {
             display: none;
             position: fixed;
@@ -414,7 +404,6 @@
             color: rgba(255,255,255,0.7);
         }
 
-        /* Error message */
         .error-message {
             background: rgba(255, 99, 99, 0.1);
             border: 1px solid rgba(255, 99, 99, 0.3);
@@ -429,7 +418,6 @@
             display: block;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .form-header {
                 padding: 16px 20px;
@@ -455,7 +443,6 @@
 </head>
 <body>
     <div class="form-container">
-        <!-- Header -->
         <header class="form-header">
             <div class="logo">
                 <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Fit%20For%20Shift/Untitled%20design%20-%202025-12-19T221845.209.png" alt="FitForShift">
@@ -464,11 +451,10 @@
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill"></div>
                 </div>
-                <span class="progress-text" id="progressText">1 of 14</span>
+                <span class="progress-text" id="progressText">1 of 15</span>
             </div>
         </header>
 
-        <!-- Questions -->
         <main class="questions-wrapper">
             <!-- Question 1: Usage Frequency -->
             <div class="question-slide active" data-question="0">
@@ -497,7 +483,7 @@
                     </label>
                 </div>
                 <div class="nav-buttons">
-                    <button class="nav-btn btn-next" onclick="nextQuestion()" id="btn-next-0" disabled>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
                         OK <span>✓</span>
                     </button>
                 </div>
@@ -826,11 +812,36 @@
                 </div>
             </div>
 
-            <!-- Question 14: Schedule Zoom Call -->
+            <!-- Question 14: Want Subscription -->
             <div class="question-slide" data-question="13">
                 <div class="question-number"><span>14 →</span></div>
-                <h2 class="question-text">Would you like to schedule a Zoom call with our agency team? (Optional)</h2>
-                <p class="question-subtitle">Choose a convenient date and time if you'd like to book an agency sign-up call and we will send an invite to your email address on file. This is entirely optional.</p>
+                <h2 class="question-text">Would you like to continue using Fit For Shift as a monthly subscription?</h2>
+                <p class="question-subtitle">A sign up link will be sent to your email within 24-48 hours.</p>
+                <div class="choice-options" data-field="wantSubscription">
+                    <label class="choice-option" data-value="yes">
+                        <input type="radio" name="wantSubscription" value="yes">
+                        <span class="choice-letter">A</span>
+                        <span class="choice-text">Yes</span>
+                    </label>
+                    <label class="choice-option" data-value="no">
+                        <input type="radio" name="wantSubscription" value="no">
+                        <span class="choice-letter">B</span>
+                        <span class="choice-text">No</span>
+                    </label>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn btn-back" onclick="prevQuestion()">← Back</button>
+                    <button class="nav-btn btn-next" onclick="nextQuestion()" disabled>
+                        OK <span>✓</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question 15: Schedule Zoom Call -->
+            <div class="question-slide" data-question="14">
+                <div class="question-number"><span>15 →</span></div>
+                <h2 class="question-text">Would you like to schedule a Zoom call with our team to get your agency onboard with Fit For Shift?</h2>
+                <p class="question-subtitle">This is entirely optional. Let us know your availability and we'll send a calendar invite.</p>
                 <textarea class="textarea-input" id="zoomSchedule" placeholder="Type your answer here... (e.g., Monday afternoons work best for me)"></textarea>
                 <p class="enter-hint"><kbd>Shift</kbd> + <kbd>Enter ↵</kbd> to make a line break</p>
                 <div class="error-message" id="submitError"></div>
@@ -864,14 +875,9 @@
     </div>
 
     <script>
-        // Configuration
-        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
-
         let currentQuestion = 0;
-        const totalQuestions = 14;
+        const totalQuestions = 15;
 
-        // Form data
         const formData = {
             usageFrequency: '',
             easeOfStart: '',
@@ -886,13 +892,10 @@
             improvements: '',
             additionalComments: '',
             phoneNumber: '',
+            wantSubscription: '',
             zoomSchedule: ''
         };
 
-        // Question flow mapping (handles conditional Q6)
-        const questionFlow = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-
-        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             updateProgress();
             setupChoiceOptions();
@@ -900,19 +903,17 @@
         });
 
         function updateProgress() {
-            // Calculate actual progress considering conditional
             let displayQuestion = currentQuestion + 1;
             let displayTotal = totalQuestions;
 
-            // If Q6 is skipped, adjust the display
             if (formData.confusingFeatures === 'no' && currentQuestion >= 5) {
-                displayQuestion = currentQuestion; // Since we skip Q6
-                displayTotal = 13;
+                displayQuestion = currentQuestion;
+                displayTotal = 14;
             }
 
             const progress = (displayQuestion / displayTotal) * 100;
-            document.getElementById('progressFill').style.width = `${progress}%`;
-            document.getElementById('progressText').textContent = `${displayQuestion} of ${displayTotal}`;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = displayQuestion + ' of ' + displayTotal;
         }
 
         function showQuestion(index) {
@@ -920,11 +921,10 @@
                 slide.classList.remove('active');
             });
 
-            const slide = document.querySelector(`[data-question="${index}"]`);
+            const slide = document.querySelector('[data-question="' + index + '"]');
             if (slide) {
                 slide.classList.add('active');
 
-                // Focus textarea if present
                 const textarea = slide.querySelector('textarea');
                 const textInput = slide.querySelector('input[type="text"], input[type="tel"]');
                 if (textarea) {
@@ -936,23 +936,20 @@
         }
 
         function getNextQuestionIndex(current) {
-            // Skip Q6 (index 5) if confusingFeatures is "no"
             if (current === 4 && formData.confusingFeatures === 'no') {
-                return 6; // Skip to Q7
+                return 6;
             }
             return current + 1;
         }
 
         function getPrevQuestionIndex(current) {
-            // Skip Q6 (index 5) when going back if confusingFeatures is "no"
             if (current === 6 && formData.confusingFeatures === 'no') {
-                return 4; // Go back to Q5
+                return 4;
             }
             return current - 1;
         }
 
         function nextQuestion() {
-            // Save current answer
             saveCurrentAnswer();
 
             const nextIndex = getNextQuestionIndex(currentQuestion);
@@ -974,10 +971,9 @@
         }
 
         function saveCurrentAnswer() {
-            const slide = document.querySelector(`[data-question="${currentQuestion}"]`);
+            const slide = document.querySelector('[data-question="' + currentQuestion + '"]');
             if (!slide) return;
 
-            // Save radio/checkbox selections
             const choiceOptions = slide.querySelector('.choice-options');
             if (choiceOptions) {
                 const fieldName = choiceOptions.dataset.field;
@@ -994,13 +990,12 @@
                 }
             }
 
-            // Save text inputs
             const textareaIds = {
                 5: 'confusingDetails',
                 9: 'likedMost',
                 10: 'improvements',
                 11: 'additionalComments',
-                13: 'zoomSchedule'
+                14: 'zoomSchedule'
             };
 
             if (textareaIds[currentQuestion]) {
@@ -1010,11 +1005,10 @@
                 }
             }
 
-            // Save phone number
             if (currentQuestion === 12) {
                 const countryCode = document.getElementById('countryCode').value;
                 const phoneNumber = document.getElementById('phoneNumber').value.trim();
-                formData.phoneNumber = phoneNumber ? `${countryCode} ${phoneNumber}` : '';
+                formData.phoneNumber = phoneNumber ? countryCode + ' ' + phoneNumber : '';
             }
         }
 
@@ -1026,11 +1020,9 @@
                     const parent = this.closest('.choice-options');
 
                     if (isMulti) {
-                        // Toggle checkbox
                         input.checked = !input.checked;
                         this.classList.toggle('selected', input.checked);
                     } else {
-                        // Radio behavior
                         parent.querySelectorAll('.choice-option').forEach(opt => {
                             opt.classList.remove('selected');
                             opt.querySelector('input').checked = false;
@@ -1039,7 +1031,6 @@
                         this.classList.add('selected');
                     }
 
-                    // Enable next button
                     const slide = this.closest('.question-slide');
                     const nextBtn = slide.querySelector('.btn-next');
 
@@ -1059,7 +1050,7 @@
                     const activeSlide = document.querySelector('.question-slide.active');
                     if (activeSlide) {
                         const textarea = activeSlide.querySelector('textarea:focus');
-                        if (textarea) return; // Don't advance if in textarea (allow newlines with Enter)
+                        if (textarea) return;
 
                         const nextBtn = activeSlide.querySelector('.btn-next:not(:disabled)');
                         if (nextBtn && currentQuestion < totalQuestions - 1) {
@@ -1068,7 +1059,6 @@
                     }
                 }
 
-                // Keyboard shortcuts for options (A, B, C, D, E)
                 const activeSlide = document.querySelector('.question-slide.active');
                 if (activeSlide) {
                     const choiceOptions = activeSlide.querySelector('.choice-options');
@@ -1087,17 +1077,14 @@
         }
 
         async function submitForm() {
-            // Save final answer
             saveCurrentAnswer();
 
             const errorEl = document.getElementById('submitError');
             errorEl.classList.remove('show');
 
-            // Show loading
             document.getElementById('loadingOverlay').classList.add('show');
 
             try {
-                // Submit to Netlify function
                 const response = await fetch('/.netlify/functions/submit-apply-form', {
                     method: 'POST',
                     headers: {
@@ -1119,6 +1106,7 @@
                             improvements: formData.improvements,
                             additional_comments: formData.additionalComments,
                             phone_number: formData.phoneNumber,
+                            want_subscription: formData.wantSubscription,
                             zoom_schedule: formData.zoomSchedule
                         },
                         metadata: {
@@ -1133,7 +1121,6 @@
                     throw new Error('Failed to submit form');
                 }
 
-                // Show success
                 document.getElementById('loadingOverlay').classList.remove('show');
                 document.querySelectorAll('.question-slide').forEach(slide => {
                     slide.classList.remove('active');
