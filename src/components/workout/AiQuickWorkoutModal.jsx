@@ -101,6 +101,15 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
     fetchExercises();
   }, []);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   // Get muscle groups for workout type - values must match database muscle_group field
   // Database stores: chest, back, shoulders, arms, legs, core, cardio, flexibility, full_body
   const getMuscleGroupsForType = (type) => {
@@ -155,9 +164,28 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       let mainExercises = [];
 
       // Filter exercises from database by muscle group (exact match)
+      // Also check exercise name for keywords for special workout types
+      const stretchKeywords = ['stretch', 'yoga', 'pose', 'flexibility', 'mobility'];
+      const cardioKeywords = ['cardio', 'jump', 'run', 'burpee', 'jacks', 'skip', 'hop'];
+
       const matchingExercises = exerciseDatabase.filter(ex => {
         const exMuscle = (ex.muscle_group || '').toLowerCase();
-        return muscleGroups.some(mg => exMuscle === mg.toLowerCase());
+        const exName = (ex.name || '').toLowerCase();
+
+        // Standard muscle group match
+        const muscleMatch = muscleGroups.some(mg => exMuscle === mg.toLowerCase());
+
+        // Keyword match for stretch workouts
+        if (selectedType.id === 'stretch' && !muscleMatch) {
+          return stretchKeywords.some(kw => exName.includes(kw) || exMuscle.includes(kw));
+        }
+
+        // Keyword match for cardio workouts
+        if (selectedType.id === 'cardio' && !muscleMatch) {
+          return cardioKeywords.some(kw => exName.includes(kw));
+        }
+
+        return muscleMatch;
       });
 
       if (matchingExercises.length >= targetExerciseCount) {
@@ -296,20 +324,24 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
                   <p>{error}</p>
                 </div>
               )}
-
-              {/* Generate Button */}
-              <button
-                className="ai-workout-generate-btn"
-                onClick={handleGenerate}
-                disabled={!selectedType || loading}
-                type="button"
-              >
-                <Zap size={20} />
-                Generate Workout
-              </button>
             </>
           )}
         </div>
+
+        {/* Footer with Generate Button - always visible */}
+        {!loading && (
+          <div className="ai-workout-footer">
+            <button
+              className="ai-workout-generate-btn"
+              onClick={handleGenerate}
+              disabled={!selectedType || loading}
+              type="button"
+            >
+              <Zap size={20} />
+              Generate Workout
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
