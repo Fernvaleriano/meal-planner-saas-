@@ -12784,9 +12784,10 @@ a.nav-left {
     border-radius: 20px;
     width: 100%;
     max-width: 400px;
-    max-height: 80vh;
+    max-height: 90vh;
     overflow-y: auto;
     animation: slideUpFade 0.3s ease;
+    -webkit-overflow-scrolling: touch;
 }
 
 .ai-workout-header {
@@ -12812,6 +12813,7 @@ a.nav-left {
 
 .ai-workout-content {
     padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .ai-workout-option {
@@ -12984,6 +12986,37 @@ a.nav-left {
     color: #ef4444;
     font-size: 0.9rem;
     margin: 0;
+}
+
+/* AI Workout Modal - Small screens */
+@media (max-height: 700px) {
+    .ai-workout-modal {
+        max-height: 95vh;
+    }
+
+    .ai-workout-overlay {
+        padding: 10px;
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+
+    .ai-workout-option {
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+
+    .ai-workout-option .option-icon {
+        font-size: 1.2rem;
+        margin-bottom: 4px;
+    }
+
+    .ai-workout-option h3 {
+        font-size: 0.9rem;
+    }
+
+    .ai-workout-option p {
+        font-size: 0.75rem;
+    }
 }
 
 /* Exercise Card V2 */
