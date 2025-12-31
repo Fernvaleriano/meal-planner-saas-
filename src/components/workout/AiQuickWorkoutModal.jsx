@@ -38,7 +38,7 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
   useEffect(() => {
     const fetchExercises = async () => {
       try {
-        const res = await apiGet('/.netlify/functions/exercises?limit=100');
+        const res = await apiGet('/.netlify/functions/exercises?limit=500');
         if (res?.exercises) {
           setExerciseDatabase(res.exercises);
         }
@@ -49,15 +49,16 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
     fetchExercises();
   }, []);
 
-  // Get muscle groups for workout type
+  // Get muscle groups for workout type - values must match database muscle_group field
+  // Database stores: chest, back, shoulders, arms, legs, core, cardio, flexibility, full_body
   const getMuscleGroupsForType = (type) => {
     switch (type) {
       case 'full_body': return ['chest', 'back', 'shoulders', 'legs', 'arms', 'core'];
-      case 'upper_body': return ['chest', 'back', 'shoulders', 'biceps', 'triceps'];
-      case 'lower_body': return ['quadriceps', 'hamstrings', 'glutes', 'calves', 'legs'];
-      case 'core': return ['core', 'abs', 'obliques'];
-      case 'cardio': return ['cardio', 'full body'];
-      case 'stretch': return ['stretch', 'flexibility'];
+      case 'upper_body': return ['chest', 'back', 'shoulders', 'arms'];
+      case 'lower_body': return ['legs'];
+      case 'core': return ['core'];
+      case 'cardio': return ['cardio', 'full_body'];
+      case 'stretch': return ['flexibility'];
       default: return [];
     }
   };
@@ -101,10 +102,10 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       // Fallback: Build workout from database exercises
       let workoutExercises = [];
 
-      // Filter exercises from database by muscle group
+      // Filter exercises from database by muscle group (exact match)
       const matchingExercises = exerciseDatabase.filter(ex => {
         const exMuscle = (ex.muscle_group || '').toLowerCase();
-        return muscleGroups.some(mg => exMuscle.includes(mg.toLowerCase()));
+        return muscleGroups.some(mg => exMuscle === mg.toLowerCase());
       });
 
       if (matchingExercises.length >= targetExerciseCount) {
