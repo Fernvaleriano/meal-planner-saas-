@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Search, Loader, ChevronDown, Filter, Dumbbell, Plus, Check } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import SmartThumbnail from './SmartThumbnail';
 
 // Muscle group configurations
 const MUSCLE_GROUPS = [
@@ -375,34 +376,11 @@ export function ExerciseSelectorModal({
                     >
                       {/* Thumbnail */}
                       <div className="exercise-thumbnail">
-                        {exercise.thumbnail_url ? (
-                          <img
-                            src={exercise.thumbnail_url}
-                            alt={exercise.name}
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.classList.add('fallback-placeholder');
-                            }}
-                          />
-                        ) : exercise.animation_url ? (
-                          <video
-                            src={exercise.animation_url}
-                            muted
-                            loop
-                            playsInline
-                            autoPlay
-                            preload="auto"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentElement.classList.add('fallback-placeholder');
-                            }}
-                          />
-                        ) : (
-                          <div className="exercise-thumbnail-placeholder">
-                            <Dumbbell size={24} />
-                          </div>
-                        )}
+                        <SmartThumbnail
+                          exercise={exercise}
+                          size="medium"
+                          showPlayIndicator={true}
+                        />
 
                         {/* Selection indicator */}
                         {multiSelect && (
