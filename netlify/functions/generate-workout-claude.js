@@ -352,54 +352,96 @@ exports.handler = async (event) => {
         })
         .join('\n');
 
-      // Find warmup/stretch categories that actually exist
-      const warmupCategories = ['warmup', 'warm-up', 'flexibility', 'mobility', 'cardio'];
-      const stretchCategories = ['flexibility', 'stretching', 'cooldown', 'cool-down', 'mobility'];
-
-      // Get exercises from warmup/stretch categories
-      let availableWarmups = warmupCategories
-        .filter(cat => exercisesByMuscleGroup[cat]?.length > 0)
-        .flatMap(cat => exercisesByMuscleGroup[cat].slice(0, 5));
-
-      let availableStretches = stretchCategories
-        .filter(cat => exercisesByMuscleGroup[cat]?.length > 0)
-        .flatMap(cat => exercisesByMuscleGroup[cat].slice(0, 5));
-
-      // ALSO scan ALL exercises by name for warmup/stretch keywords (they might be in other categories)
+      // Get ALL exercise names with their muscle groups for smarter warmup/stretch selection
       const allExerciseNames = Object.values(exercisesByMuscleGroup).flat();
 
-      // Find exercises with "stretch" in name (case insensitive)
-      const stretchByName = allExerciseNames.filter(name =>
-        /stretch|yoga|child.?s pose|cobra|pigeon|hamstring|quad stretch/i.test(name)
-      );
+      // WARM-UP OPTIONS: bodyweight, cardio, light movements from ANY category
+      const warmupSuitableExercises = [];
 
-      // Find exercises with warmup keywords in name
-      const warmupByName = allExerciseNames.filter(name =>
-        /warm.?up|circle|rotation|swing|march|jog|jump|jack/i.test(name)
-      );
+      // Check for cardio category
+      if (exercisesByMuscleGroup['cardio']?.length > 0) {
+        warmupSuitableExercises.push(...exercisesByMuscleGroup['cardio'].slice(0, 5));
+      }
 
-      // Combine and deduplicate
-      availableStretches = [...new Set([...availableStretches, ...stretchByName])].slice(0, 10);
-      availableWarmups = [...new Set([...availableWarmups, ...warmupByName])].slice(0, 10);
-
-      console.log(`Found warmup exercises: ${availableWarmups.length > 0 ? availableWarmups.join(', ') : 'NONE'}`);
-      console.log(`Found stretch exercises: ${availableStretches.length > 0 ? availableStretches.join(', ') : 'NONE'}`);
-
-      // Build specific warmup/stretch instructions based on what's available
-      if (availableWarmups.length > 0 || availableStretches.length > 0) {
-        warmupStretchInstructions = '\nWARMUP/STRETCH OPTIONS (use ONLY these exact names):';
-        if (availableWarmups.length > 0) {
-          warmupStretchInstructions += `\n- For warm-ups, ONLY use: ${availableWarmups.join(', ')}`;
-        } else {
-          warmupStretchInstructions += '\n- NO warmup exercises available - DO NOT include any warm-up exercises';
+      // Check for dedicated warmup/mobility categories
+      ['warmup', 'warm-up', 'mobility', 'flexibility'].forEach(cat => {
+        if (exercisesByMuscleGroup[cat]?.length > 0) {
+          warmupSuitableExercises.push(...exercisesByMuscleGroup[cat].slice(0, 5));
         }
-        if (availableStretches.length > 0) {
-          warmupStretchInstructions += `\n- For stretches, ONLY use: ${availableStretches.join(', ')}`;
+      });
+
+      // Also find bodyweight exercises from any category (good for warm-ups)
+      const bodyweightWarmups = allExerciseNames.filter(name =>
+        /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog|run in place|squat jump|lunge/i.test(name)
+      );
+      warmupSuitableExercises.push(...bodyweightWarmups);
+
+      // Deduplicate warm-ups
+      const uniqueWarmups = [...new Set(warmupSuitableExercises)].slice(0, 15);
+
+      // STRETCH OPTIONS: Organize by target muscle group
+      const stretchesByMuscle = {
+        legs: [],
+        chest: [],
+        back: [],
+        shoulders: [],
+        arms: [],
+        core: [],
+        full_body: []
+      };
+
+      // Find stretches by name pattern and categorize them
+      allExerciseNames.forEach(name => {
+        const lower = name.toLowerCase();
+        if (/stretch|yoga|pose|pigeon|cobra|cat.?cow|child/i.test(lower)) {
+          // Categorize the stretch by what body part it targets
+          if (/quad|hamstring|calf|leg|hip|glute|groin|it.?band|piriformis/i.test(lower)) {
+            stretchesByMuscle.legs.push(name);
+          } else if (/chest|pec/i.test(lower)) {
+            stretchesByMuscle.chest.push(name);
+          } else if (/back|lat|spine|lower back|upper back/i.test(lower)) {
+            stretchesByMuscle.back.push(name);
+          } else if (/shoulder|delt|rotator/i.test(lower)) {
+            stretchesByMuscle.shoulders.push(name);
+          } else if (/arm|bicep|tricep|wrist|forearm/i.test(lower)) {
+            stretchesByMuscle.arms.push(name);
+          } else if (/ab|core|oblique/i.test(lower)) {
+            stretchesByMuscle.core.push(name);
+          } else {
+            // General stretches go to full_body
+            stretchesByMuscle.full_body.push(name);
+          }
+        }
+      });
+
+      // Build all available stretches list
+      const allStretches = [...new Set(Object.values(stretchesByMuscle).flat())];
+
+      console.log(`Found ${uniqueWarmups.length} warmup-suitable exercises`);
+      console.log(`Found ${allStretches.length} stretch exercises`);
+
+      // Build warmup/stretch instructions
+      if (uniqueWarmups.length > 0 || allStretches.length > 0) {
+        warmupStretchInstructions = '\n\nWARMUP AND STRETCH EXERCISES:';
+
+        if (uniqueWarmups.length > 0) {
+          warmupStretchInstructions += `\n\nWARM-UP OPTIONS (pick 1-2 for any workout):\n${uniqueWarmups.join(', ')}`;
         } else {
-          warmupStretchInstructions += '\n- NO stretch exercises available - DO NOT include any stretch exercises';
+          warmupStretchInstructions += '\n\nWARM-UP: No dedicated warm-up exercises available. Use a light version of the first main exercise as warm-up.';
+        }
+
+        if (allStretches.length > 0) {
+          warmupStretchInstructions += '\n\nSTRETCH OPTIONS (pick stretches matching the workout\'s target muscles):';
+          Object.entries(stretchesByMuscle).forEach(([muscle, stretches]) => {
+            if (stretches.length > 0) {
+              warmupStretchInstructions += `\n- ${muscle.toUpperCase()}: ${stretches.slice(0, 5).join(', ')}`;
+            }
+          });
+        } else {
+          warmupStretchInstructions += '\n\nSTRETCH: No stretch exercises available. Skip cool-down stretches.';
         }
       } else {
-        warmupStretchInstructions = '\n\nIMPORTANT: NO warmup or stretch exercises are available in the database. DO NOT include any warm-up or stretch exercises in the workout. Start directly with the main exercises.';
+        warmupStretchInstructions = '\n\nNOTE: No dedicated warm-up or stretch exercises available. Start directly with main exercises using lighter weight for first set as warm-up.';
       }
 
       availableExercisesPrompt = `
@@ -432,10 +474,12 @@ ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 EXERCISE SELECTION GUIDELINES:
 - Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy names exactly as written)
-- Structure: compound movements first, then isolation exercises
+- Structure: warm-up (if available) -> compound movements -> isolation exercises -> stretches (if available)
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
-- CRITICAL: For warm-ups and stretches, ONLY use exercises explicitly listed in WARMUP/STRETCH OPTIONS. If that section says "NO warmup/stretch exercises available", DO NOT include ANY warm-up or stretch exercises - start directly with main exercises
+- WARM-UPS: Pick 1-2 exercises from WARM-UP OPTIONS. If none listed, skip warm-up section entirely
+- STRETCHES: Pick 1-2 stretches that match the workout's target muscles (e.g., leg day = leg stretches). If none listed, skip stretches entirely
+- CRITICAL: Only use exercises that appear in the database lists above. Do NOT invent exercise names
 
 Return this exact JSON structure:
 {
