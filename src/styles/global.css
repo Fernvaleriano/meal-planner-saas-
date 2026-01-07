@@ -5776,6 +5776,58 @@ a.nav-left {
     color: var(--brand-primary);
 }
 
+/* Coach Notes Section */
+.coach-notes-section {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #7dd3fc;
+}
+
+[data-theme="dark"] .coach-notes-section {
+    background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+    border-color: #0284c7;
+}
+
+.coach-notes-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.coach-notes-header svg {
+    color: #0369a1;
+}
+
+[data-theme="dark"] .coach-notes-header svg {
+    color: #7dd3fc;
+}
+
+.coach-notes-header h3 {
+    margin: 0;
+    color: #0369a1;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .coach-notes-header h3 {
+    color: #7dd3fc;
+}
+
+.coach-notes-content {
+    margin: 0;
+    color: #334155;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+[data-theme="dark"] .coach-notes-content {
+    color: #e2e8f0;
+}
+
 /* Day Navigator */
 .day-navigator {
     display: flex;
