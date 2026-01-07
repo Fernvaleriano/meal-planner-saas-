@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -1573,6 +1573,17 @@ Keep it practical and brief. Format with clear sections.`;
             <span>{goal}</span>
           </div>
         </div>
+
+        {/* Coach Notes */}
+        {selectedPlan.coach_notes && (
+          <div className="coach-notes-section">
+            <div className="coach-notes-header">
+              <MessageSquare size={20} />
+              <h3>Message from Your Coach</h3>
+            </div>
+            <p className="coach-notes-content">{selectedPlan.coach_notes}</p>
+          </div>
+        )}
 
         {/* Day Navigation */}
         {days.length > 1 && (

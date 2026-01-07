@@ -5910,6 +5910,23 @@
                 ? `<button class="publish-btn" onclick="publishPlan(${plan.id}, event)">📤 Submit to Client</button>`
                 : '';
 
+            // Coach notes preview (truncate if too long)
+            let coachNotesPreview = '';
+            if (plan.coach_notes) {
+                const truncatedNotes = plan.coach_notes.length > 100
+                    ? plan.coach_notes.substring(0, 100) + '...'
+                    : plan.coach_notes;
+                coachNotesPreview = `
+                    <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 10px 12px; border-radius: 8px; margin-top: 8px; border: 1px solid #7dd3fc;">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                            <span style="font-size: 12px;">📝</span>
+                            <span style="font-size: 11px; font-weight: 600; color: #0369a1;">Coach Notes</span>
+                        </div>
+                        <div style="font-size: 12px; color: #334155; line-height: 1.4;">${truncatedNotes.replace(/\n/g, ' ')}</div>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="plan-card" id="plan-card-${plan.id}" onclick="viewPlan(${plan.id})">
                     <input type="checkbox" class="plan-card-checkbox"
@@ -5925,6 +5942,7 @@
                             ${summaryDescription ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${summaryDescription}</div>` : ''}
                             ${firstMealName ? `<div style="font-size: 11px; color: #94a3b8; font-style: italic;">🍽️ ${firstMealName}</div>` : ''}
                             <div class="plan-date">${formattedDate} at ${formattedTime}</div>
+                            ${coachNotesPreview}
                         </div>
                         <div class="plan-actions">
                             <button class="icon-btn" onclick="deletePlan(${plan.id}, event)" title="Delete plan">🗑️</button>
