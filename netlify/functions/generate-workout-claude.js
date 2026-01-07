@@ -356,29 +356,50 @@ exports.handler = async (event) => {
       const warmupCategories = ['warmup', 'warm-up', 'flexibility', 'mobility', 'cardio'];
       const stretchCategories = ['flexibility', 'stretching', 'cooldown', 'cool-down', 'mobility'];
 
-      const availableWarmups = warmupCategories
+      // Get exercises from warmup/stretch categories
+      let availableWarmups = warmupCategories
         .filter(cat => exercisesByMuscleGroup[cat]?.length > 0)
         .flatMap(cat => exercisesByMuscleGroup[cat].slice(0, 5));
 
-      const availableStretches = stretchCategories
+      let availableStretches = stretchCategories
         .filter(cat => exercisesByMuscleGroup[cat]?.length > 0)
         .flatMap(cat => exercisesByMuscleGroup[cat].slice(0, 5));
+
+      // ALSO scan ALL exercises by name for warmup/stretch keywords (they might be in other categories)
+      const allExerciseNames = Object.values(exercisesByMuscleGroup).flat();
+
+      // Find exercises with "stretch" in name (case insensitive)
+      const stretchByName = allExerciseNames.filter(name =>
+        /stretch|yoga|child.?s pose|cobra|pigeon|hamstring|quad stretch/i.test(name)
+      );
+
+      // Find exercises with warmup keywords in name
+      const warmupByName = allExerciseNames.filter(name =>
+        /warm.?up|circle|rotation|swing|march|jog|jump|jack/i.test(name)
+      );
+
+      // Combine and deduplicate
+      availableStretches = [...new Set([...availableStretches, ...stretchByName])].slice(0, 10);
+      availableWarmups = [...new Set([...availableWarmups, ...warmupByName])].slice(0, 10);
+
+      console.log(`Found warmup exercises: ${availableWarmups.length > 0 ? availableWarmups.join(', ') : 'NONE'}`);
+      console.log(`Found stretch exercises: ${availableStretches.length > 0 ? availableStretches.join(', ') : 'NONE'}`);
 
       // Build specific warmup/stretch instructions based on what's available
       if (availableWarmups.length > 0 || availableStretches.length > 0) {
-        warmupStretchInstructions = '\nWARMUP/STRETCH OPTIONS:';
+        warmupStretchInstructions = '\nWARMUP/STRETCH OPTIONS (use ONLY these exact names):';
         if (availableWarmups.length > 0) {
-          warmupStretchInstructions += `\n- For warm-ups, use: ${availableWarmups.join(', ')}`;
+          warmupStretchInstructions += `\n- For warm-ups, ONLY use: ${availableWarmups.join(', ')}`;
         } else {
-          warmupStretchInstructions += '\n- No warmup exercises available - skip warm-up or use a light compound exercise';
+          warmupStretchInstructions += '\n- NO warmup exercises available - DO NOT include any warm-up exercises';
         }
         if (availableStretches.length > 0) {
-          warmupStretchInstructions += `\n- For stretches, use: ${availableStretches.join(', ')}`;
+          warmupStretchInstructions += `\n- For stretches, ONLY use: ${availableStretches.join(', ')}`;
         } else {
-          warmupStretchInstructions += '\n- No stretch exercises available - skip cool-down stretches';
+          warmupStretchInstructions += '\n- NO stretch exercises available - DO NOT include any stretch exercises';
         }
       } else {
-        warmupStretchInstructions = '\n- No dedicated warmup/stretch exercises available - skip warm-up and cool-down sections';
+        warmupStretchInstructions = '\n\nIMPORTANT: NO warmup or stretch exercises are available in the database. DO NOT include any warm-up or stretch exercises in the workout. Start directly with the main exercises.';
       }
 
       availableExercisesPrompt = `
@@ -414,7 +435,7 @@ EXERCISE SELECTION GUIDELINES:
 - Structure: compound movements first, then isolation exercises
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
-- ONLY include warm-up/stretch exercises if they are listed in the WARMUP/STRETCH OPTIONS section above
+- CRITICAL: For warm-ups and stretches, ONLY use exercises explicitly listed in WARMUP/STRETCH OPTIONS. If that section says "NO warmup/stretch exercises available", DO NOT include ANY warm-up or stretch exercises - start directly with main exercises
 
 Return this exact JSON structure:
 {
