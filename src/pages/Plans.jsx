@@ -186,9 +186,24 @@ function Plans() {
             const plan = data.plans.find(p => String(p.id) === String(planId));
             if (plan) {
               setSelectedPlan(prevPlan => {
-                // If already viewing this plan, don't overwrite (would lose loaded images)
+                // If already viewing this plan, merge fresh data but preserve loaded images
                 if (prevPlan && String(prevPlan.id) === String(plan.id)) {
-                  return prevPlan;
+                  // Preserve any loaded meal images from prevPlan while updating other fields
+                  const mergedPlanData = { ...plan.plan_data };
+                  if (prevPlan.plan_data?.currentPlan) {
+                    mergedPlanData.currentPlan = prevPlan.plan_data.currentPlan.map((day, dayIdx) => {
+                      const freshDay = plan.plan_data?.currentPlan?.[dayIdx];
+                      if (!freshDay) return day;
+                      return {
+                        ...freshDay,
+                        plan: freshDay.plan?.map((meal, mealIdx) => ({
+                          ...meal,
+                          image_url: day.plan?.[mealIdx]?.image_url || meal.image_url
+                        }))
+                      };
+                    });
+                  }
+                  return { ...plan, plan_data: mergedPlanData };
                 }
                 return plan;
               });
