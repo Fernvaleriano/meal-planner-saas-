@@ -8711,6 +8711,44 @@ a.nav-left {
     color: #64748b;
 }
 
+/* Meal Coach Note */
+.meal-coach-note {
+    background: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    padding: 8px 10px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+[data-theme="dark"] .meal-coach-note {
+    background: #422006;
+    border-left-color: #f59e0b;
+}
+
+.meal-coach-note-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #92400e;
+}
+
+[data-theme="dark"] .meal-coach-note-label {
+    color: #fbbf24;
+}
+
+.meal-coach-note-text {
+    font-size: 0.8rem;
+    color: #78350f;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+[data-theme="dark"] .meal-coach-note-text {
+    color: #fde68a;
+}
+
 /* Meal Modal Overlay */
 .meal-modal-overlay {
     position: fixed;
