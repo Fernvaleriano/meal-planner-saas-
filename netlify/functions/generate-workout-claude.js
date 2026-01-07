@@ -271,6 +271,15 @@ exports.handler = async (event) => {
       const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
       console.log(`${exercisesWithVideos.length} exercises have videos`);
 
+      // CRITICAL: If no exercises have videos, log a warning
+      if (exercisesWithVideos.length === 0) {
+        console.error('WARNING: No exercises with videos found in database!');
+        console.error('You need to run the sync-exercises-from-videos endpoint to populate video URLs.');
+        console.error('Call: /.netlify/functions/sync-exercises-from-videos to see available folders');
+      } else if (exercisesWithVideos.length < 50) {
+        console.warn(`Only ${exercisesWithVideos.length} exercises have videos - workout variety may be limited`);
+      }
+
       // Group exercises by muscle group for the prompt
       for (const ex of exercisesWithVideos) {
         const group = (ex.muscle_group || 'other').toLowerCase();
@@ -279,6 +288,25 @@ exports.handler = async (event) => {
         }
         exercisesByMuscleGroup[group].push(ex.name);
       }
+
+      // Log what muscle groups we have available
+      const groupCounts = Object.entries(exercisesByMuscleGroup).map(([g, ex]) => `${g}:${ex.length}`).join(', ');
+      console.log(`Exercise groups with videos: ${groupCounts || 'NONE'}`);
+    }
+
+    // If we have no exercises with videos, return an error with instructions
+    if (Object.keys(exercisesByMuscleGroup).length === 0) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'No exercises with videos found in database. Please run the exercise sync first.',
+          help: 'Call /.netlify/functions/sync-exercises-from-videos to sync videos from storage to database.',
+          totalExercises: allExercises.length,
+          exercisesWithVideos: 0
+        })
+      };
     }
 
     // Build split instruction
@@ -427,6 +455,8 @@ Return this exact JSON structure:
     }
 
     // Match AI-generated exercises to database exercises (using allExercises fetched earlier)
+    let matchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [] };
+
     if (allExercises.length > 0) {
       console.log(`Matching exercises against ${allExercises.length} database exercises`);
 
@@ -434,9 +464,11 @@ Return this exact JSON structure:
       for (const week of programData.weeks) {
         for (const workout of week.workouts || []) {
           workout.exercises = (workout.exercises || []).map(aiExercise => {
+            matchStats.total++;
             const match = findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, allExercises);
 
             if (match) {
+              matchStats.matched++;
               // Return database exercise with AI-specified sets/reps/rest/notes
               return {
                 id: match.id,
@@ -458,6 +490,8 @@ Return this exact JSON structure:
                 matched: true
               };
             } else {
+              matchStats.unmatched++;
+              matchStats.unmatchedNames.push(aiExercise.name);
               // No match found - return AI-generated exercise as-is
               console.log(`No match found for: ${aiExercise.name}`);
               return {
@@ -479,12 +513,26 @@ Return this exact JSON structure:
       }
     }
 
+    // Log match statistics
+    console.log(`Match stats: ${matchStats.matched}/${matchStats.total} exercises matched (${matchStats.unmatched} unmatched)`);
+    if (matchStats.unmatchedNames.length > 0) {
+      console.log(`Unmatched exercises: ${matchStats.unmatchedNames.join(', ')}`);
+    }
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        program: programData
+        program: programData,
+        matchStats: {
+          total: matchStats.total,
+          matched: matchStats.matched,
+          unmatched: matchStats.unmatched,
+          unmatchedNames: matchStats.unmatchedNames,
+          databaseExercises: allExercises.length,
+          exercisesWithVideos: Object.values(exercisesByMuscleGroup).flat().length
+        }
       })
     };
 
