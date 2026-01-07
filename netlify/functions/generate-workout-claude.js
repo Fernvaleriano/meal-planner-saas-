@@ -130,9 +130,17 @@ function calculateSimilarity(aiName, dbName) {
 
 // Find best matching exercise from database
 function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
+  // First, try exact match (case-insensitive)
+  const normalizedAiName = aiName.toLowerCase().trim();
+  const exactMatch = exercises.find(e => e.name.toLowerCase().trim() === normalizedAiName);
+  if (exactMatch) {
+    console.log(`Exact match found: "${aiName}" -> "${exactMatch.name}"`);
+    return exactMatch;
+  }
+
   let bestMatch = null;
   let bestScore = 0;
-  const threshold = 0.4; // Lower threshold for more matches
+  const threshold = 0.35; // Lower threshold for more matches
 
   for (const exercise of exercises) {
     let score = calculateSimilarity(aiName, exercise.name);
@@ -228,6 +236,51 @@ exports.handler = async (event) => {
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
+    // Fetch exercises from database FIRST so we can provide the list to Claude
+    let allExercises = [];
+    let exercisesByMuscleGroup = {};
+
+    if (SUPABASE_SERVICE_KEY) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+      // Fetch all exercises that have videos (prioritize those with media)
+      let offset = 0;
+      const pageSize = 1000;
+
+      while (true) {
+        const { data: exercises, error } = await supabase
+          .from('exercises')
+          .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, instructions, secondary_muscles')
+          .is('coach_id', null) // Global exercises only
+          .range(offset, offset + pageSize - 1);
+
+        if (error) {
+          console.error('Error fetching exercises:', error);
+          break;
+        }
+
+        if (!exercises || exercises.length === 0) break;
+        allExercises = allExercises.concat(exercises);
+        if (exercises.length < pageSize) break;
+        offset += pageSize;
+      }
+
+      console.log(`Fetched ${allExercises.length} exercises for AI selection`);
+
+      // Filter to only exercises with videos and group by muscle group
+      const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
+      console.log(`${exercisesWithVideos.length} exercises have videos`);
+
+      // Group exercises by muscle group for the prompt
+      for (const ex of exercisesWithVideos) {
+        const group = (ex.muscle_group || 'other').toLowerCase();
+        if (!exercisesByMuscleGroup[group]) {
+          exercisesByMuscleGroup[group] = [];
+        }
+        exercisesByMuscleGroup[group].push(ex.name);
+      }
+    }
+
     // Build split instruction
     const splitMap = {
       'push_pull_legs': 'Use a Push/Pull/Legs split (Push: chest, shoulders, triceps; Pull: back, biceps; Legs: quads, hamstrings, glutes, calves)',
@@ -254,38 +307,42 @@ exports.handler = async (event) => {
 
     // Focus areas instruction - make it much stronger when specific areas are selected
     let focusInstruction = '';
-    let focusExamples = '';
     if (focusAreas.length > 0) {
-      // Create specific exercise examples based on focus areas
-      const exerciseExamples = {
-        'core': 'Plank, Dead Bug, Bicycle Crunches, Russian Twist, Cable Woodchop, Hanging Leg Raise, Ab Wheel Rollout, Mountain Climbers',
-        'chest': 'Barbell Bench Press, Dumbbell Fly, Cable Crossover, Incline Press, Push-ups, Chest Dips',
-        'back': 'Pull-ups, Barbell Row, Lat Pulldown, Seated Cable Row, Face Pulls, Dumbbell Row',
-        'shoulders': 'Overhead Press, Lateral Raise, Front Raise, Rear Delt Fly, Arnold Press, Upright Row',
-        'arms': 'Bicep Curl, Tricep Pushdown, Hammer Curl, Skull Crushers, Preacher Curl, Tricep Dips',
-        'legs': 'Squat, Leg Press, Romanian Deadlift, Lunges, Leg Curl, Leg Extension, Calf Raises',
-        'glutes': 'Hip Thrust, Glute Bridge, Romanian Deadlift, Bulgarian Split Squat, Cable Kickback'
-      };
-
-      const examples = focusAreas
-        .filter(area => exerciseExamples[area.toLowerCase()])
-        .map(area => `${area}: ${exerciseExamples[area.toLowerCase()]}`)
-        .join('\n  ');
-
       focusInstruction = `IMPORTANT: This workout MUST focus primarily on ${focusAreas.join(' and ')}. At least 70% of the exercises should directly target ${focusAreas.join(' or ')} muscles.`;
-      focusExamples = examples ? `\n\nRECOMMENDED EXERCISES for ${focusAreas.join('/')}:\n  ${examples}` : '';
+    }
+
+    // Build available exercises list from database (exercises with videos)
+    let availableExercisesPrompt = '';
+    if (Object.keys(exercisesByMuscleGroup).length > 0) {
+      const exercisesList = Object.entries(exercisesByMuscleGroup)
+        .map(([group, exercises]) => {
+          // Limit to first 30 exercises per group to avoid token limits
+          const limitedExercises = exercises.slice(0, 30);
+          return `${group.toUpperCase()}: ${limitedExercises.join(', ')}`;
+        })
+        .join('\n');
+
+      availableExercisesPrompt = `
+CRITICAL - AVAILABLE EXERCISES DATABASE:
+You MUST ONLY use exercises from this list. Each exercise has a demonstration video.
+Using exercises not in this list will result in missing video demonstrations.
+
+${exercisesList}
+
+If an exercise category doesn't have enough options, select similar exercises from other categories.
+`;
     }
 
     const systemPrompt = `You are an expert personal trainer creating workout programs. Return ONLY valid JSON, no markdown or extra text.
 
 Create a ${daysPerWeek}-day ${goal} program for ${experience} level.
-
+${availableExercisesPrompt}
 WORKOUT STRUCTURE:
 - ${splitInstruction}
 - ${styleInstruction}
 - ${exerciseCountInstruction}
 - Target session duration: ~${sessionDuration} minutes
-${focusInstruction ? `\n${focusInstruction}` : ''}${focusExamples}
+${focusInstruction ? `\n${focusInstruction}` : ''}
 
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
@@ -293,10 +350,10 @@ ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury rest
 ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 EXERCISE SELECTION GUIDELINES:
-- Use common, well-known exercise names (e.g., "Barbell Bench Press", "Dumbbell Row", "Cable Fly")
-- ALWAYS start each workout with 1-2 quick warm-up exercises (e.g., "Jumping Jacks", "Arm Circles", "Leg Swings", "Hip Circles")
+- Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy names exactly as written)
+- Start each workout with 1-2 warm-up exercises from the database (flexibility/warmup category)
 - Then compound movements, followed by isolation exercises
-- ALWAYS end each workout with 1-2 short stretches (e.g., "Standing Quad Stretch", "Chest Doorway Stretch", "Seated Hamstring Stretch")
+- End each workout with 1-2 stretches from the database (flexibility/stretching category)
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
 
@@ -369,34 +426,9 @@ Return this exact JSON structure:
       throw new Error('Invalid program structure');
     }
 
-    // Match AI-generated exercises to database exercises
-    if (SUPABASE_SERVICE_KEY) {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-      // Fetch all exercises from database (with pagination to get all)
-      let allExercises = [];
-      let offset = 0;
-      const pageSize = 1000;
-
-      while (true) {
-        const { data: exercises, error } = await supabase
-          .from('exercises')
-          .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, instructions, secondary_muscles')
-          .is('coach_id', null) // Global exercises only for now
-          .range(offset, offset + pageSize - 1);
-
-        if (error) {
-          console.error('Error fetching exercises:', error);
-          break;
-        }
-
-        if (!exercises || exercises.length === 0) break;
-        allExercises = allExercises.concat(exercises);
-        if (exercises.length < pageSize) break;
-        offset += pageSize;
-      }
-
-      console.log(`Fetched ${allExercises.length} exercises for matching`);
+    // Match AI-generated exercises to database exercises (using allExercises fetched earlier)
+    if (allExercises.length > 0) {
+      console.log(`Matching exercises against ${allExercises.length} database exercises`);
 
       // Match exercises in each workout
       for (const week of programData.weeks) {
@@ -419,6 +451,10 @@ Return this exact JSON structure:
                 reps: aiExercise.reps || '8-12',
                 restSeconds: aiExercise.restSeconds || 90,
                 notes: aiExercise.notes || '',
+                isWarmup: aiExercise.isWarmup || false,
+                isStretch: aiExercise.isStretch || false,
+                isSuperset: aiExercise.isSuperset || false,
+                supersetGroup: aiExercise.supersetGroup || null,
                 matched: true
               };
             } else {
@@ -431,6 +467,10 @@ Return this exact JSON structure:
                 reps: aiExercise.reps || '8-12',
                 restSeconds: aiExercise.restSeconds || 90,
                 notes: aiExercise.notes || '',
+                isWarmup: aiExercise.isWarmup || false,
+                isStretch: aiExercise.isStretch || false,
+                isSuperset: aiExercise.isSuperset || false,
+                supersetGroup: aiExercise.supersetGroup || null,
                 matched: false
               };
             }
