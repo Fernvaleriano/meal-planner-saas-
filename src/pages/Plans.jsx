@@ -177,6 +177,7 @@ function Plans() {
     // Fetch fresh data
     apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`)
       .then(data => {
+        console.log('DEBUG: API returned plans:', data?.plans?.map(p => ({ id: p.id, coach_notes: p.coach_notes })));
         if (data?.plans) {
           setPlans(data.plans);
           setCache(`plans_full_${clientData.id}`, data.plans);
