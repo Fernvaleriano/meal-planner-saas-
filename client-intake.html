@@ -1105,7 +1105,7 @@
                 budget: document.getElementById('budget').value,
                 dietType: document.getElementById('dietType').value || null,
                 macroPreference: document.getElementById('macroPreference').value || null,
-                mealCount: document.getElementById('mealCount').value || null,
+                mealCount: document.getElementById('mealCount')?.value || null,
                 allergies: document.getElementById('allergies').value.trim(),
                 dislikedFoods: document.getElementById('dislikedFoods').value.trim(),
                 preferredFoods: document.getElementById('preferredFoods').value.trim() || null,
