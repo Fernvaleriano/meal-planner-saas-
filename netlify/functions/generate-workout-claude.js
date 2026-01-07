@@ -341,6 +341,8 @@ exports.handler = async (event) => {
 
     // Build available exercises list from database (exercises with videos)
     let availableExercisesPrompt = '';
+    let warmupStretchInstructions = '';
+
     if (Object.keys(exercisesByMuscleGroup).length > 0) {
       const exercisesList = Object.entries(exercisesByMuscleGroup)
         .map(([group, exercises]) => {
@@ -350,12 +352,42 @@ exports.handler = async (event) => {
         })
         .join('\n');
 
+      // Find warmup/stretch categories that actually exist
+      const warmupCategories = ['warmup', 'warm-up', 'flexibility', 'mobility', 'cardio'];
+      const stretchCategories = ['flexibility', 'stretching', 'cooldown', 'cool-down', 'mobility'];
+
+      const availableWarmups = warmupCategories
+        .filter(cat => exercisesByMuscleGroup[cat]?.length > 0)
+        .flatMap(cat => exercisesByMuscleGroup[cat].slice(0, 5));
+
+      const availableStretches = stretchCategories
+        .filter(cat => exercisesByMuscleGroup[cat]?.length > 0)
+        .flatMap(cat => exercisesByMuscleGroup[cat].slice(0, 5));
+
+      // Build specific warmup/stretch instructions based on what's available
+      if (availableWarmups.length > 0 || availableStretches.length > 0) {
+        warmupStretchInstructions = '\nWARMUP/STRETCH OPTIONS:';
+        if (availableWarmups.length > 0) {
+          warmupStretchInstructions += `\n- For warm-ups, use: ${availableWarmups.join(', ')}`;
+        } else {
+          warmupStretchInstructions += '\n- No warmup exercises available - skip warm-up or use a light compound exercise';
+        }
+        if (availableStretches.length > 0) {
+          warmupStretchInstructions += `\n- For stretches, use: ${availableStretches.join(', ')}`;
+        } else {
+          warmupStretchInstructions += '\n- No stretch exercises available - skip cool-down stretches';
+        }
+      } else {
+        warmupStretchInstructions = '\n- No dedicated warmup/stretch exercises available - skip warm-up and cool-down sections';
+      }
+
       availableExercisesPrompt = `
 CRITICAL - AVAILABLE EXERCISES DATABASE:
 You MUST ONLY use exercises from this list. Each exercise has a demonstration video.
 Using exercises not in this list will result in missing video demonstrations.
 
 ${exercisesList}
+${warmupStretchInstructions}
 
 If an exercise category doesn't have enough options, select similar exercises from other categories.
 `;
@@ -379,11 +411,10 @@ ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 EXERCISE SELECTION GUIDELINES:
 - Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy names exactly as written)
-- Start each workout with 1-2 warm-up exercises from the database (flexibility/warmup category)
-- Then compound movements, followed by isolation exercises
-- End each workout with 1-2 stretches from the database (flexibility/stretching category)
+- Structure: compound movements first, then isolation exercises
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
+- ONLY include warm-up/stretch exercises if they are listed in the WARMUP/STRETCH OPTIONS section above
 
 Return this exact JSON structure:
 {
