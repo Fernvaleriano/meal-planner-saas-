@@ -578,6 +578,42 @@ Return this exact JSON structure:
       console.log(`Unmatched exercises: ${matchStats.unmatchedNames.join(', ')}`);
     }
 
+    // POST-PROCESSING: Remove warmup/stretch exercises that don't have videos
+    // This guarantees all warmups/stretches in the final output have videos
+    let removedWarmups = 0;
+    let removedStretches = 0;
+
+    for (const week of programData.weeks) {
+      for (const workout of week.workouts || []) {
+        const originalCount = workout.exercises.length;
+
+        workout.exercises = workout.exercises.filter(ex => {
+          // If it's a warmup or stretch and doesn't have a video, remove it
+          const isWarmupOrStretch = ex.isWarmup || ex.isStretch;
+          const hasVideo = ex.video_url || ex.animation_url;
+
+          if (isWarmupOrStretch && !hasVideo) {
+            if (ex.isWarmup) {
+              removedWarmups++;
+              console.log(`Removing warmup without video: ${ex.name}`);
+            }
+            if (ex.isStretch) {
+              removedStretches++;
+              console.log(`Removing stretch without video: ${ex.name}`);
+            }
+            return false; // Remove from array
+          }
+
+          return true; // Keep the exercise
+        });
+
+        console.log(`Workout "${workout.name}": ${originalCount} -> ${workout.exercises.length} exercises (removed ${originalCount - workout.exercises.length} warmups/stretches without videos)`);
+      }
+    }
+
+    console.log(`Total removed: ${removedWarmups} warmups, ${removedStretches} stretches (no videos)`);
+
+
     return {
       statusCode: 200,
       headers,
