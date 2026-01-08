@@ -12,6 +12,32 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Detect if an exercise is a warmup by name
+function isWarmupExercise(name) {
+  const lower = name.toLowerCase();
+  const warmupKeywords = [
+    'warm up', 'warmup', 'warm-up',
+    'arm circle', 'arm swing', 'leg swing', 'hip circle', 'torso twist',
+    'jumping jack', 'high knee', 'butt kick', 'march', 'jog in place',
+    'jogging in place', 'jump rope', 'skip', 'light cardio',
+    'dynamic stretch', 'activation', 'mobility'
+  ];
+  return warmupKeywords.some(kw => lower.includes(kw));
+}
+
+// Detect if an exercise is a stretch by name
+function isStretchExercise(name) {
+  const lower = name.toLowerCase();
+  // Check for "stretch" in the name
+  if (lower.includes('stretch')) return true;
+  // Check for other stretch-related terms
+  const stretchKeywords = [
+    'yoga', 'cool down', 'cooldown', 'cool-down',
+    'flexibility', 'static hold', 'foam roll'
+  ];
+  return stretchKeywords.some(kw => lower.includes(kw));
+}
+
 // Normalize exercise name for matching
 function normalizeExerciseName(name) {
   return name
@@ -516,58 +542,84 @@ Return this exact JSON structure:
     // Match AI-generated exercises to database exercises (using allExercises fetched earlier)
     let matchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [] };
 
+    // Create a list of exercises WITH videos for warmup/stretch matching
+    const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
+    console.log(`Exercises with videos for warmup/stretch matching: ${exercisesWithVideos.length}`);
+
     if (allExercises.length > 0) {
       console.log(`Matching exercises against ${allExercises.length} database exercises`);
 
       // Match exercises in each workout
       for (const week of programData.weeks) {
         for (const workout of week.workouts || []) {
-          workout.exercises = (workout.exercises || []).map(aiExercise => {
-            matchStats.total++;
-            const match = findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, allExercises);
+          // Use map then filter to handle warmup/stretch removal
+          workout.exercises = (workout.exercises || [])
+            .map(aiExercise => {
+              matchStats.total++;
 
-            if (match) {
-              matchStats.matched++;
-              // Return database exercise with AI-specified sets/reps/rest/notes
-              return {
-                id: match.id,
-                name: match.name,
-                video_url: match.video_url,
-                animation_url: match.animation_url,
-                thumbnail_url: match.thumbnail_url || match.video_url,
-                muscle_group: match.muscle_group,
-                equipment: match.equipment,
-                instructions: match.instructions,
-                sets: aiExercise.sets || 3,
-                reps: aiExercise.reps || '8-12',
-                restSeconds: aiExercise.restSeconds || 90,
-                notes: aiExercise.notes || '',
-                isWarmup: aiExercise.isWarmup || false,
-                isStretch: aiExercise.isStretch || false,
-                isSuperset: aiExercise.isSuperset || false,
-                supersetGroup: aiExercise.supersetGroup || null,
-                matched: true
-              };
-            } else {
-              matchStats.unmatched++;
-              matchStats.unmatchedNames.push(aiExercise.name);
-              // No match found - return AI-generated exercise as-is
-              console.log(`No match found for: ${aiExercise.name}`);
-              return {
-                name: aiExercise.name,
-                muscle_group: aiExercise.muscleGroup,
-                sets: aiExercise.sets || 3,
-                reps: aiExercise.reps || '8-12',
-                restSeconds: aiExercise.restSeconds || 90,
-                notes: aiExercise.notes || '',
-                isWarmup: aiExercise.isWarmup || false,
-                isStretch: aiExercise.isStretch || false,
-                isSuperset: aiExercise.isSuperset || false,
-                supersetGroup: aiExercise.supersetGroup || null,
-                matched: false
-              };
-            }
-          });
+              // Detect warmup/stretch by BOTH AI flag AND exercise name (more reliable)
+              const detectedWarmup = isWarmupExercise(aiExercise.name);
+              const detectedStretch = isStretchExercise(aiExercise.name);
+              const isWarmupOrStretch = aiExercise.isWarmup || aiExercise.isStretch || detectedWarmup || detectedStretch;
+
+              if (detectedWarmup || detectedStretch) {
+                console.log(`Detected ${detectedWarmup ? 'warmup' : 'stretch'} by name: "${aiExercise.name}"`);
+              }
+
+              // For warmups/stretches, ONLY match against exercises with videos
+              // For main exercises, match against all exercises
+              const exercisesToMatch = isWarmupOrStretch ? exercisesWithVideos : allExercises;
+              const match = findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, exercisesToMatch);
+
+              if (match) {
+                matchStats.matched++;
+                return {
+                  id: match.id,
+                  name: match.name,
+                  video_url: match.video_url,
+                  animation_url: match.animation_url,
+                  thumbnail_url: match.thumbnail_url || match.video_url,
+                  muscle_group: match.muscle_group,
+                  equipment: match.equipment,
+                  instructions: match.instructions,
+                  sets: aiExercise.sets || 3,
+                  reps: aiExercise.reps || '8-12',
+                  restSeconds: aiExercise.restSeconds || 90,
+                  notes: aiExercise.notes || '',
+                  isWarmup: aiExercise.isWarmup || false,
+                  isStretch: aiExercise.isStretch || false,
+                  isSuperset: aiExercise.isSuperset || false,
+                  supersetGroup: aiExercise.supersetGroup || null,
+                  matched: true
+                };
+              } else {
+                // No match found
+                if (isWarmupOrStretch) {
+                  // For warmup/stretch without video match, SKIP entirely (return null)
+                  console.log(`Skipping warmup/stretch without video match: ${aiExercise.name}`);
+                  return null;
+                }
+
+                // For main exercises, keep them even without match
+                matchStats.unmatched++;
+                matchStats.unmatchedNames.push(aiExercise.name);
+                console.log(`No match found for: ${aiExercise.name}`);
+                return {
+                  name: aiExercise.name,
+                  muscle_group: aiExercise.muscleGroup,
+                  sets: aiExercise.sets || 3,
+                  reps: aiExercise.reps || '8-12',
+                  restSeconds: aiExercise.restSeconds || 90,
+                  notes: aiExercise.notes || '',
+                  isWarmup: false,
+                  isStretch: false,
+                  isSuperset: aiExercise.isSuperset || false,
+                  supersetGroup: aiExercise.supersetGroup || null,
+                  matched: false
+                };
+              }
+            })
+            .filter(ex => ex !== null); // Remove skipped warmups/stretches
         }
       }
     }
@@ -580,6 +632,7 @@ Return this exact JSON structure:
 
     // POST-PROCESSING: Remove warmup/stretch exercises that don't have videos
     // This guarantees all warmups/stretches in the final output have videos
+    // Uses BOTH AI flags AND name detection for comprehensive filtering
     let removedWarmups = 0;
     let removedStretches = 0;
 
@@ -588,18 +641,20 @@ Return this exact JSON structure:
         const originalCount = workout.exercises.length;
 
         workout.exercises = workout.exercises.filter(ex => {
-          // If it's a warmup or stretch and doesn't have a video, remove it
-          const isWarmupOrStretch = ex.isWarmup || ex.isStretch;
+          // Detect warmup/stretch by BOTH flag AND name (comprehensive check)
+          const detectedWarmup = isWarmupExercise(ex.name);
+          const detectedStretch = isStretchExercise(ex.name);
+          const isWarmupOrStretch = ex.isWarmup || ex.isStretch || detectedWarmup || detectedStretch;
           const hasVideo = ex.video_url || ex.animation_url;
 
           if (isWarmupOrStretch && !hasVideo) {
-            if (ex.isWarmup) {
+            if (ex.isWarmup || detectedWarmup) {
               removedWarmups++;
-              console.log(`Removing warmup without video: ${ex.name}`);
+              console.log(`POST-PROCESS: Removing warmup without video: ${ex.name}`);
             }
-            if (ex.isStretch) {
+            if (ex.isStretch || detectedStretch) {
               removedStretches++;
-              console.log(`Removing stretch without video: ${ex.name}`);
+              console.log(`POST-PROCESS: Removing stretch without video: ${ex.name}`);
             }
             return false; // Remove from array
           }
@@ -607,11 +662,13 @@ Return this exact JSON structure:
           return true; // Keep the exercise
         });
 
-        console.log(`Workout "${workout.name}": ${originalCount} -> ${workout.exercises.length} exercises (removed ${originalCount - workout.exercises.length} warmups/stretches without videos)`);
+        if (originalCount !== workout.exercises.length) {
+          console.log(`Workout "${workout.name}": ${originalCount} -> ${workout.exercises.length} exercises (removed ${originalCount - workout.exercises.length} warmups/stretches without videos)`);
+        }
       }
     }
 
-    console.log(`Total removed: ${removedWarmups} warmups, ${removedStretches} stretches (no videos)`);
+    console.log(`Total removed in post-processing: ${removedWarmups} warmups, ${removedStretches} stretches (no videos)`);
 
 
     return {
