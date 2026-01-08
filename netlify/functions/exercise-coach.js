@@ -52,23 +52,62 @@ const EXERCISE_CUES = {
 function getExerciseCues(exerciseName) {
   const nameLower = exerciseName.toLowerCase();
 
+  // Don't match stretches to strength exercise cues
+  if (nameLower.includes('stretch') || nameLower.includes('yoga') || nameLower.includes('mobility')) {
+    return null; // Let AI generate stretch-specific tips
+  }
+
   // Try exact match first
   if (EXERCISE_CUES[nameLower]) {
     return EXERCISE_CUES[nameLower];
   }
 
-  // Try partial match
+  // Try if exercise name contains a key (e.g., "Barbell Bench Press" contains "bench press")
   for (const [key, cues] of Object.entries(EXERCISE_CUES)) {
-    if (nameLower.includes(key) || key.includes(nameLower)) {
+    if (nameLower.includes(key)) {
       return cues;
     }
   }
 
-  // Try keyword matching
-  const keywords = nameLower.split(' ');
-  for (const [key, cues] of Object.entries(EXERCISE_CUES)) {
-    if (keywords.some(kw => key.includes(kw) && kw.length > 3)) {
-      return cues;
+  // IMPORTANT: Match by PRIMARY MOVEMENT first (curl, press, row, etc.)
+  // This prevents "incline curl" from matching "incline press"
+  const movementMap = {
+    'curl': 'bicep curl',
+    'press': 'bench press',  // default press
+    'overhead press': 'overhead press',
+    'military press': 'military press',
+    'shoulder press': 'overhead press',
+    'row': 'barbell row',
+    'fly': 'dumbbell fly',
+    'raise': 'lateral raise',
+    'lateral raise': 'lateral raise',
+    'front raise': 'front raise',
+    'pulldown': 'lat pulldown',
+    'pushdown': 'tricep pushdown',
+    'squat': 'squat',
+    'lunge': 'lunge',
+    'deadlift': 'deadlift',
+    'pull up': 'pull up',
+    'pullup': 'pull up',
+    'crunch': 'crunch',
+    'plank': 'plank',
+    'twist': 'russian twist',
+    'extension': 'leg extension',
+    'leg curl': 'leg curl',
+    'calf raise': 'calf raise'
+  };
+
+  // Check for each movement keyword (longer matches first)
+  const sortedMovements = Object.keys(movementMap).sort((a, b) => b.length - a.length);
+
+  for (const movement of sortedMovements) {
+    const regex = new RegExp(`\\b${movement.replace(' ', '\\s*')}\\b`, 'i');
+    if (regex.test(nameLower)) {
+      const cueKey = movementMap[movement];
+      if (EXERCISE_CUES[cueKey]) {
+        console.log(`Matched "${exerciseName}" to "${cueKey}" via movement "${movement}"`);
+        return EXERCISE_CUES[cueKey];
+      }
     }
   }
 
@@ -210,6 +249,8 @@ Respond directly and helpfully. Don't start with "Great question!" or similar fi
     }
 
     // Call Gemini API
+    console.log(`Exercise coach: Calling Gemini API for ${mode} mode, exercise: ${exerciseName}`);
+
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -225,11 +266,35 @@ Respond directly and helpfully. Don't start with "Great question!" or similar fi
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Gemini API error:', response.status, errorText);
-      throw new Error(`AI service error: ${response.status}`);
+      // Return a more helpful error with details
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: `Gemini API error: ${response.status}`,
+          debugInfo: errorText.substring(0, 200)
+        })
+      };
     }
 
     const data = await response.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    console.log(`Gemini response length: ${responseText.length} chars`);
+
+    if (!responseText) {
+      console.error('Empty response from Gemini. Full response:', JSON.stringify(data));
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Empty response from AI',
+          debugInfo: data.candidates?.[0]?.finishReason || 'unknown'
+        })
+      };
+    }
 
     if (mode === 'tips') {
       // Parse JSON response for tips
