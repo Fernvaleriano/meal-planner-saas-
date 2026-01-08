@@ -158,6 +158,10 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       const stretchKeywords = ['stretch', 'yoga', 'pose', 'flexibility', 'mobility'];
       const cardioKeywords = ['cardio', 'jump', 'run', 'burpee', 'jacks', 'skip', 'hop'];
 
+      // Keywords to EXCLUDE for push/pull workouts
+      const pullExerciseKeywords = ['curl', 'row', 'pull', 'bicep', 'rear delt', 'face pull', 'pulldown', 'pullup'];
+      const pushExerciseKeywords = ['press', 'push', 'fly', 'flye', 'dip', 'tricep', 'extension', 'raise', 'chest'];
+
       const matchingExercises = exerciseDatabase.filter(ex => {
         const exMuscle = (ex.muscle_group || '').toLowerCase();
         const exName = (ex.name || '').toLowerCase();
@@ -166,6 +170,20 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         // Check equipment match (if equipment filter is set)
         const equipmentMatch = selectedEquipment.length === 0 ||
           selectedEquipment.some(eq => exEquipment.includes(eq) || eq === 'bodyweight');
+
+        // For PUSH workouts: exclude pull exercises (curls, rows, etc.)
+        if (selectedType.id === 'push') {
+          if (pullExerciseKeywords.some(kw => exName.includes(kw))) {
+            return false; // Exclude pull exercises from push day
+          }
+        }
+
+        // For PULL workouts: exclude push exercises (press, fly, etc.)
+        if (selectedType.id === 'pull') {
+          if (pushExerciseKeywords.some(kw => exName.includes(kw))) {
+            return false; // Exclude push exercises from pull day
+          }
+        }
 
         // Standard muscle group match
         const muscleMatch = muscleGroups.some(mg => exMuscle === mg.toLowerCase());
@@ -187,10 +205,59 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       const sets = selectedDifficulty.sets;
       const restSeconds = Math.round(60 * selectedDifficulty.restMultiplier);
 
-      if (matchingExercises.length >= targetExerciseCount) {
-        // Shuffle and pick required number
-        const shuffled = [...matchingExercises].sort(() => Math.random() - 0.5);
-        mainExercises = shuffled.slice(0, targetExerciseCount).map(ex => ({
+      // Handle custom prompt for equipment preference
+      let sortedExercises = [...matchingExercises];
+      if (customPrompt) {
+        const promptLower = customPrompt.toLowerCase();
+
+        // Check for equipment preferences in custom prompt
+        const equipmentPriorities = [];
+        if (promptLower.includes('machine')) equipmentPriorities.push('machine');
+        if (promptLower.includes('dumbbell')) equipmentPriorities.push('dumbbell');
+        if (promptLower.includes('barbell')) equipmentPriorities.push('barbell');
+        if (promptLower.includes('cable')) equipmentPriorities.push('cable');
+        if (promptLower.includes('bodyweight')) equipmentPriorities.push('bodyweight');
+
+        if (equipmentPriorities.length > 0) {
+          // Sort exercises to prioritize the requested equipment
+          sortedExercises.sort((a, b) => {
+            const aEquip = (a.equipment || '').toLowerCase();
+            const bEquip = (b.equipment || '').toLowerCase();
+            const aHasPriority = equipmentPriorities.some(eq => aEquip.includes(eq));
+            const bHasPriority = equipmentPriorities.some(eq => bEquip.includes(eq));
+            if (aHasPriority && !bHasPriority) return -1;
+            if (!aHasPriority && bHasPriority) return 1;
+            return 0;
+          });
+        }
+
+        // Check for compound/isolation preference
+        if (promptLower.includes('compound')) {
+          const compoundKeywords = ['press', 'squat', 'deadlift', 'row', 'pull', 'lunge', 'dip'];
+          sortedExercises.sort((a, b) => {
+            const aName = (a.name || '').toLowerCase();
+            const bName = (b.name || '').toLowerCase();
+            const aIsCompound = compoundKeywords.some(kw => aName.includes(kw));
+            const bIsCompound = compoundKeywords.some(kw => bName.includes(kw));
+            if (aIsCompound && !bIsCompound) return -1;
+            if (!aIsCompound && bIsCompound) return 1;
+            return 0;
+          });
+        }
+      }
+
+      if (sortedExercises.length >= targetExerciseCount) {
+        // If no custom prompt, shuffle; otherwise keep sorted order and add some variety
+        if (!customPrompt) {
+          sortedExercises = sortedExercises.sort(() => Math.random() - 0.5);
+        } else {
+          // Keep first few sorted, shuffle the rest for variety
+          const prioritized = sortedExercises.slice(0, Math.ceil(targetExerciseCount / 2));
+          const rest = sortedExercises.slice(Math.ceil(targetExerciseCount / 2)).sort(() => Math.random() - 0.5);
+          sortedExercises = [...prioritized, ...rest];
+        }
+
+        mainExercises = sortedExercises.slice(0, targetExerciseCount).map(ex => ({
           ...ex,
           sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : sets,
           reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
