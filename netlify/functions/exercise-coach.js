@@ -69,19 +69,44 @@ function getExerciseCues(exerciseName) {
     }
   }
 
-  // Try matching by primary movement word (must be whole word match)
-  const primaryMovements = ['press', 'curl', 'row', 'fly', 'raise', 'pulldown', 'pushdown',
-    'squat', 'lunge', 'deadlift', 'pull up', 'pullup', 'crunch', 'plank', 'twist'];
+  // IMPORTANT: Match by PRIMARY MOVEMENT first (curl, press, row, etc.)
+  // This prevents "incline curl" from matching "incline press"
+  const movementMap = {
+    'curl': 'bicep curl',
+    'press': 'bench press',  // default press
+    'overhead press': 'overhead press',
+    'military press': 'military press',
+    'shoulder press': 'overhead press',
+    'row': 'barbell row',
+    'fly': 'dumbbell fly',
+    'raise': 'lateral raise',
+    'lateral raise': 'lateral raise',
+    'front raise': 'front raise',
+    'pulldown': 'lat pulldown',
+    'pushdown': 'tricep pushdown',
+    'squat': 'squat',
+    'lunge': 'lunge',
+    'deadlift': 'deadlift',
+    'pull up': 'pull up',
+    'pullup': 'pull up',
+    'crunch': 'crunch',
+    'plank': 'plank',
+    'twist': 'russian twist',
+    'extension': 'leg extension',
+    'leg curl': 'leg curl',
+    'calf raise': 'calf raise'
+  };
 
-  for (const movement of primaryMovements) {
-    // Check if this movement word appears as a whole word in the exercise name
-    const regex = new RegExp(`\\b${movement}\\b`, 'i');
+  // Check for each movement keyword (longer matches first)
+  const sortedMovements = Object.keys(movementMap).sort((a, b) => b.length - a.length);
+
+  for (const movement of sortedMovements) {
+    const regex = new RegExp(`\\b${movement.replace(' ', '\\s*')}\\b`, 'i');
     if (regex.test(nameLower)) {
-      // Find a matching exercise cue that also has this movement
-      for (const [key, cues] of Object.entries(EXERCISE_CUES)) {
-        if (key.includes(movement)) {
-          return cues;
-        }
+      const cueKey = movementMap[movement];
+      if (EXERCISE_CUES[cueKey]) {
+        console.log(`Matched "${exerciseName}" to "${cueKey}" via movement "${movement}"`);
+        return EXERCISE_CUES[cueKey];
       }
     }
   }
