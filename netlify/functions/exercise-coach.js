@@ -224,6 +224,8 @@ Respond directly and helpfully. Don't start with "Great question!" or similar fi
     }
 
     // Call Gemini API
+    console.log(`Exercise coach: Calling Gemini API for ${mode} mode, exercise: ${exerciseName}`);
+
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -239,11 +241,35 @@ Respond directly and helpfully. Don't start with "Great question!" or similar fi
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Gemini API error:', response.status, errorText);
-      throw new Error(`AI service error: ${response.status}`);
+      // Return a more helpful error with details
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: `Gemini API error: ${response.status}`,
+          debugInfo: errorText.substring(0, 200)
+        })
+      };
     }
 
     const data = await response.json();
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    console.log(`Gemini response length: ${responseText.length} chars`);
+
+    if (!responseText) {
+      console.error('Empty response from Gemini. Full response:', JSON.stringify(data));
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Empty response from AI',
+          debugInfo: data.candidates?.[0]?.finishReason || 'unknown'
+        })
+      };
+    }
 
     if (mode === 'tips') {
       // Parse JSON response for tips

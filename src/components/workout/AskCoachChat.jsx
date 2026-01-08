@@ -86,6 +86,10 @@ function AskCoachChat({ exercise, onClose }) {
       if (response?.success && response?.answer) {
         setMessages(prev => [...prev, { role: 'coach', text: response.answer }]);
       } else {
+        // Log any error info for debugging
+        if (response?.error) {
+          console.error('Coach API error:', response.error, response.debugInfo);
+        }
         // Use fallback response if API didn't return valid answer
         const muscleGroup = exercise?.muscle_group || exercise?.muscleGroup;
         setMessages(prev => [...prev, {
