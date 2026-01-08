@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, Zap, Clock, Flame, Dumbbell, Loader2 } from 'lucide-react';
+import { X, Zap, Clock, Dumbbell, Loader2, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
 
 const WORKOUT_TYPES = [
   { id: 'full_body', name: 'Full Body', description: 'Total body workout hitting all major muscle groups', icon: '💪' },
   { id: 'upper_body', name: 'Upper Body', description: 'Chest, back, shoulders and arms', icon: '🏋️' },
   { id: 'lower_body', name: 'Lower Body', description: 'Legs, glutes and calves', icon: '🦵' },
+  { id: 'push', name: 'Push Day', description: 'Chest, shoulders and triceps', icon: '👊' },
+  { id: 'pull', name: 'Pull Day', description: 'Back, biceps and rear delts', icon: '🦾' },
   { id: 'core', name: 'Core & Abs', description: 'Strengthen your midsection', icon: '🎯' },
   { id: 'cardio', name: 'Cardio Burn', description: 'High intensity calorie burning', icon: '🔥' },
   { id: 'stretch', name: 'Stretch & Recover', description: 'Flexibility and mobility work', icon: '🧘' }
@@ -14,23 +16,49 @@ const WORKOUT_TYPES = [
 const DURATION_OPTIONS = [
   { minutes: 15, label: '15 min', exercises: 4 },
   { minutes: 30, label: '30 min', exercises: 6 },
-  { minutes: 45, label: '45 min', exercises: 8 }
+  { minutes: 45, label: '45 min', exercises: 8 },
+  { minutes: 60, label: '60 min', exercises: 10 },
+  { minutes: 75, label: '75 min', exercises: 12 },
+  { minutes: 90, label: '90 min', exercises: 14 }
+];
+
+const DIFFICULTY_LEVELS = [
+  { id: 'beginner', name: 'Beginner', description: 'New to training', sets: 2, restMultiplier: 1.5 },
+  { id: 'intermediate', name: 'Intermediate', description: 'Some experience', sets: 3, restMultiplier: 1 },
+  { id: 'advanced', name: 'Advanced', description: 'Experienced lifter', sets: 4, restMultiplier: 0.75 }
+];
+
+const EQUIPMENT_OPTIONS = [
+  { id: 'barbell', name: 'Barbell', icon: '🏋️' },
+  { id: 'dumbbell', name: 'Dumbbells', icon: '💪' },
+  { id: 'kettlebell', name: 'Kettlebell', icon: '🔔' },
+  { id: 'cable', name: 'Cable Machine', icon: '🔗' },
+  { id: 'machine', name: 'Machines', icon: '⚙️' },
+  { id: 'bodyweight', name: 'Bodyweight', icon: '🤸' },
+  { id: 'bands', name: 'Resistance Bands', icon: '🎗️' },
+  { id: 'pullup_bar', name: 'Pull-up Bar', icon: '🪜' }
 ];
 
 // Fallback exercises by workout type when AI is unavailable
 const FALLBACK_EXERCISES = {
-  full_body: ['Squats', 'Push-ups', 'Lunges', 'Plank', 'Burpees', 'Mountain Climbers', 'Jumping Jacks', 'High Knees'],
-  upper_body: ['Push-ups', 'Diamond Push-ups', 'Pike Push-ups', 'Arm Circles', 'Tricep Dips', 'Plank Shoulder Taps', 'Superman', 'Wall Push-ups'],
-  lower_body: ['Squats', 'Lunges', 'Glute Bridges', 'Calf Raises', 'Wall Sit', 'Step-ups', 'Sumo Squats', 'Single Leg Deadlift'],
-  core: ['Plank', 'Crunches', 'Bicycle Crunches', 'Leg Raises', 'Russian Twists', 'Dead Bug', 'Bird Dog', 'Mountain Climbers'],
-  cardio: ['Jumping Jacks', 'High Knees', 'Burpees', 'Mountain Climbers', 'Jump Squats', 'Skaters', 'Butt Kicks', 'Star Jumps'],
-  stretch: ['Cat-Cow Stretch', 'Child\'s Pose', 'Downward Dog', 'Pigeon Pose', 'Hip Flexor Stretch', 'Hamstring Stretch', 'Quad Stretch', 'Shoulder Stretch']
+  full_body: ['Squats', 'Push-ups', 'Lunges', 'Plank', 'Burpees', 'Mountain Climbers', 'Jumping Jacks', 'High Knees', 'Deadlifts', 'Rows', 'Shoulder Press', 'Calf Raises'],
+  upper_body: ['Push-ups', 'Diamond Push-ups', 'Pike Push-ups', 'Tricep Dips', 'Plank Shoulder Taps', 'Superman', 'Wall Push-ups', 'Rows', 'Shoulder Press', 'Bicep Curls'],
+  lower_body: ['Squats', 'Lunges', 'Glute Bridges', 'Calf Raises', 'Wall Sit', 'Step-ups', 'Sumo Squats', 'Single Leg Deadlift', 'Hip Thrusts', 'Leg Press', 'Leg Curls', 'Leg Extensions'],
+  push: ['Bench Press', 'Incline Press', 'Shoulder Press', 'Dumbbell Flyes', 'Tricep Pushdown', 'Lateral Raises', 'Tricep Dips', 'Push-ups', 'Cable Crossover', 'Overhead Tricep Extension'],
+  pull: ['Pull-ups', 'Barbell Rows', 'Lat Pulldown', 'Face Pulls', 'Bicep Curls', 'Hammer Curls', 'Cable Rows', 'Deadlifts', 'Shrugs', 'Reverse Flyes'],
+  core: ['Plank', 'Crunches', 'Bicycle Crunches', 'Leg Raises', 'Russian Twists', 'Dead Bug', 'Bird Dog', 'Mountain Climbers', 'Ab Rollout', 'Hanging Leg Raises'],
+  cardio: ['Jumping Jacks', 'High Knees', 'Burpees', 'Mountain Climbers', 'Jump Squats', 'Skaters', 'Butt Kicks', 'Star Jumps', 'Box Jumps', 'Jump Rope'],
+  stretch: ['Cat-Cow Stretch', 'Child\'s Pose', 'Downward Dog', 'Pigeon Pose', 'Hip Flexor Stretch', 'Hamstring Stretch', 'Quad Stretch', 'Shoulder Stretch', 'Chest Stretch', 'Lat Stretch']
 };
 
 
 function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
   const [selectedType, setSelectedType] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(DURATION_OPTIONS[1]); // Default 30 min
+  const [selectedDifficulty, setSelectedDifficulty] = useState(DIFFICULTY_LEVELS[1]); // Default intermediate
+  const [selectedEquipment, setSelectedEquipment] = useState(['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight']);
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [exerciseDatabase, setExerciseDatabase] = useState([]);
@@ -59,6 +87,15 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
     };
   }, []);
 
+  // Toggle equipment selection
+  const toggleEquipment = (equipmentId) => {
+    setSelectedEquipment(prev =>
+      prev.includes(equipmentId)
+        ? prev.filter(e => e !== equipmentId)
+        : [...prev, equipmentId]
+    );
+  };
+
   // Get muscle groups for workout type - values must match database muscle_group field
   // Database stores: chest, back, shoulders, arms, legs, core, cardio, flexibility, full_body
   const getMuscleGroupsForType = (type) => {
@@ -66,6 +103,8 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       case 'full_body': return ['chest', 'back', 'shoulders', 'legs', 'arms', 'core'];
       case 'upper_body': return ['chest', 'back', 'shoulders', 'arms'];
       case 'lower_body': return ['legs'];
+      case 'push': return ['chest', 'shoulders', 'arms']; // triceps are in arms
+      case 'pull': return ['back', 'arms']; // biceps are in arms
       case 'core': return ['core'];
       case 'cardio': return ['cardio', 'full_body'];
       case 'stretch': return ['flexibility'];
@@ -90,7 +129,10 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
           workoutType: selectedType.id,
           duration: selectedDuration.minutes,
           exerciseCount: targetExerciseCount,
-          muscleGroups
+          muscleGroups,
+          difficulty: selectedDifficulty.id,
+          equipment: selectedEquipment,
+          customPrompt: customPrompt.trim() || undefined
         });
 
         if (res?.success && res?.exercises?.length > 0) {
@@ -112,39 +154,47 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       // Fallback: Build workout from database exercises
       let mainExercises = [];
 
-      // Filter exercises from database by muscle group (exact match)
-      // Also check exercise name for keywords for special workout types
+      // Filter exercises from database by muscle group and equipment
       const stretchKeywords = ['stretch', 'yoga', 'pose', 'flexibility', 'mobility'];
       const cardioKeywords = ['cardio', 'jump', 'run', 'burpee', 'jacks', 'skip', 'hop'];
 
       const matchingExercises = exerciseDatabase.filter(ex => {
         const exMuscle = (ex.muscle_group || '').toLowerCase();
         const exName = (ex.name || '').toLowerCase();
+        const exEquipment = (ex.equipment || '').toLowerCase();
+
+        // Check equipment match (if equipment filter is set)
+        const equipmentMatch = selectedEquipment.length === 0 ||
+          selectedEquipment.some(eq => exEquipment.includes(eq) || eq === 'bodyweight');
 
         // Standard muscle group match
         const muscleMatch = muscleGroups.some(mg => exMuscle === mg.toLowerCase());
 
         // Keyword match for stretch workouts
         if (selectedType.id === 'stretch' && !muscleMatch) {
-          return stretchKeywords.some(kw => exName.includes(kw) || exMuscle.includes(kw));
+          return equipmentMatch && stretchKeywords.some(kw => exName.includes(kw) || exMuscle.includes(kw));
         }
 
         // Keyword match for cardio workouts
         if (selectedType.id === 'cardio' && !muscleMatch) {
-          return cardioKeywords.some(kw => exName.includes(kw));
+          return equipmentMatch && cardioKeywords.some(kw => exName.includes(kw));
         }
 
-        return muscleMatch;
+        return muscleMatch && equipmentMatch;
       });
+
+      // Apply difficulty-based sets
+      const sets = selectedDifficulty.sets;
+      const restSeconds = Math.round(60 * selectedDifficulty.restMultiplier);
 
       if (matchingExercises.length >= targetExerciseCount) {
         // Shuffle and pick required number
         const shuffled = [...matchingExercises].sort(() => Math.random() - 0.5);
         mainExercises = shuffled.slice(0, targetExerciseCount).map(ex => ({
           ...ex,
-          sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : 3,
+          sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : sets,
           reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
-          restSeconds: selectedType.id === 'stretch' ? 15 : 60
+          restSeconds: selectedType.id === 'stretch' ? 15 : restSeconds
         }));
       } else {
         // Use fallback exercise names
@@ -155,9 +205,9 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
           id: `quick-${Date.now()}-${idx}`,
           name,
           muscle_group: selectedType.name,
-          sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : 3,
+          sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : sets,
           reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
-          restSeconds: selectedType.id === 'stretch' ? 15 : 60,
+          restSeconds: selectedType.id === 'stretch' ? 15 : restSeconds,
           equipment: 'Bodyweight'
         }));
       }
@@ -240,6 +290,71 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Difficulty Selection */}
+              <div className="ai-workout-section">
+                <h3 className="section-label">Difficulty</h3>
+                <div className="difficulty-options">
+                  {DIFFICULTY_LEVELS.map(level => (
+                    <button
+                      key={level.id}
+                      className={`difficulty-btn ${selectedDifficulty.id === level.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedDifficulty(level)}
+                      type="button"
+                    >
+                      <span className="difficulty-name">{level.name}</span>
+                      <small>{level.description}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Advanced Options (Collapsible) */}
+              <div className="ai-workout-section">
+                <button
+                  className="advanced-toggle"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  type="button"
+                >
+                  <Settings2 size={18} />
+                  <span>Advanced Options</span>
+                  {showAdvanced ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </button>
+
+                {showAdvanced && (
+                  <div className="advanced-options">
+                    {/* Equipment Selection */}
+                    <div className="equipment-section">
+                      <h4>Available Equipment</h4>
+                      <div className="equipment-grid">
+                        {EQUIPMENT_OPTIONS.map(eq => (
+                          <button
+                            key={eq.id}
+                            className={`equipment-btn ${selectedEquipment.includes(eq.id) ? 'selected' : ''}`}
+                            onClick={() => toggleEquipment(eq.id)}
+                            type="button"
+                          >
+                            <span>{eq.icon}</span>
+                            <span>{eq.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Prompt */}
+                    <div className="custom-prompt-section">
+                      <h4>Custom Instructions (Optional)</h4>
+                      <textarea
+                        className="custom-prompt-input"
+                        placeholder="E.g., Focus on compound movements, include drop sets, avoid exercises that strain lower back..."
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {error && (
