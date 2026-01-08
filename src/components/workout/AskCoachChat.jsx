@@ -31,12 +31,29 @@ function AskCoachChat({ exercise, onClose }) {
   const getFallbackResponse = (question, exerciseName, muscleGroup) => {
     const q = question.toLowerCase();
     const muscle = muscleGroup || 'target muscles';
+    const nameLower = exerciseName.toLowerCase();
+
+    // Body positioning questions - MUST come before weight questions (catches "how much/far do I bend")
+    if (q.includes('bend') || q.includes('lean') || q.includes('angle') || q.includes('far') ||
+        q.includes('position') || q.includes('degree') || q.includes('torso') || q.includes('back angle') ||
+        (q.includes('how') && (q.includes('down') || q.includes('over')))) {
+      // Check for specific exercises that have positioning requirements
+      if (nameLower.includes('row') || nameLower.includes('bent')) {
+        return `For body position on ${exerciseName}:\n\n• Hinge at hips until torso is roughly 45 degrees to the floor (closer to parallel for more lat emphasis)\n• Keep your back FLAT - no rounding\n• Slight bend in knees, weight in heels\n• Head neutral, eyes looking a few feet ahead\n• Your torso should stay still throughout - if you're bobbing up and down, the weight is too heavy\n\nThe more horizontal your torso, the more you target your lats. More upright hits upper back/traps more.`;
+      } else if (nameLower.includes('deadlift') || nameLower.includes('rdl') || nameLower.includes('romanian')) {
+        return `For body position on ${exerciseName}:\n\n• Push hips BACK (not down) - like closing a car door with your butt\n• Keep the bar/weight close to your legs throughout\n• Back stays flat/neutral - never rounded\n• Slight knee bend but this is a HIP movement\n• Go down until you feel a stretch in your hamstrings (usually around knee level)\n• Keep chest up and shoulder blades engaged`;
+      } else if (nameLower.includes('squat')) {
+        return `For body position on ${exerciseName}:\n\n• Feet shoulder-width or slightly wider, toes pointed out 15-30°\n• Break at hips AND knees together\n• Keep chest up - imagine someone's pulling you up by your shirt\n• Knees track over (or slightly outside) toes\n• Go as deep as you can while keeping back flat\n• Slight forward lean is fine, but torso stays relatively upright`;
+      }
+      return `For body position on ${exerciseName}:\n\n• Keep your core braced and spine neutral\n• Maintain proper alignment throughout the movement\n• If you're unsure about exact angles, start conservative and increase range of motion as you get comfortable\n• Film yourself from the side to check your form`;
+    }
 
     if (q.includes('grip') || q.includes('wide') || q.includes('narrow') || q.includes('hand')) {
       return `For grip width on ${exerciseName}: A shoulder-width grip is a good starting point. Wider grips typically emphasize outer muscles more, while narrower grips target inner portions and often increase tricep involvement. Experiment to find what feels strongest and most comfortable for your body structure.`;
     } else if (q.includes('form') || q.includes('proper') || q.includes('technique') || q.includes('how do i')) {
       return `For ${exerciseName}:\n\n1. Set up with proper positioning - feet planted, core braced\n2. Control the weight through the full range of motion\n3. Focus on squeezing the ${muscle} at the peak contraction\n4. Lower under control (2-3 seconds)\n5. Breathe out on the exertion phase\n\nStart lighter to master the movement before adding weight.`;
-    } else if (q.includes('weight') || q.includes('heavy') || q.includes('how much')) {
+    } else if ((q.includes('weight') || q.includes('heavy')) && !q.includes('body')) {
+      // Only match weight questions if NOT asking about body position
       return `For weight selection on ${exerciseName}:\n\n• Hypertrophy (muscle growth): Choose a weight where 8-12 reps is challenging\n• Strength: Heavier weight, 4-6 reps\n• Endurance: Lighter weight, 15-20 reps\n\nYou should be able to complete your target reps with good form, but the last 2-3 reps should feel difficult.`;
     } else if (q.includes('mistake') || q.includes('wrong') || q.includes('avoid')) {
       return `Common mistakes on ${exerciseName}:\n\n• Using momentum/swinging to lift the weight\n• Not using full range of motion\n• Going too heavy too soon\n• Rushing through reps\n• Holding your breath\n\nFocus on mind-muscle connection and controlled movement.`;

@@ -19,7 +19,10 @@ const EXERCISE_CUES = {
   // Back
   'pull up': ['Start from dead hang, shoulders engaged', 'Pull elbows down and back toward hips', 'Chin clears bar at top', 'Control the descent, no dropping'],
   'lat pulldown': ['Lean back slightly, chest up', 'Pull bar to upper chest, not behind neck', 'Squeeze shoulder blades together at bottom', 'Control the weight up, don\'t let it yank you'],
-  'barbell row': ['Hinge at hips, back at 45 degrees', 'Pull bar to lower chest/upper abs', 'Squeeze shoulder blades at top', 'Don\'t use momentum - if swinging, go lighter'],
+  'barbell row': ['Bend over until torso is at 45 degrees (closer to parallel targets lats more)', 'Keep back FLAT - if it rounds, weight is too heavy', 'Pull bar to lower chest/upper abs', 'Squeeze shoulder blades at top, hold for a beat', 'Knees slightly bent, weight in heels, torso stays STILL'],
+  'bent over row': ['Hinge at hips until torso is 45-60 degrees from floor', 'Back must stay flat throughout - no rounding', 'Pull to belly button for lats, higher for upper back', 'Torso position should not change during the rep', 'Keep knees bent, core braced, neck neutral'],
+  'dumbbell row': ['Support yourself with one hand on bench', 'Keep back flat and parallel to floor', 'Pull elbow straight back, not out to side', 'Squeeze lat at top, full stretch at bottom', 'Don\'t rotate torso - keep hips square'],
+  'cable row': ['Sit tall, chest up, slight lean forward at start', 'Pull to lower chest/upper abs', 'Squeeze shoulder blades together, hold 1 sec', 'Don\'t lean way back - torso stays mostly upright', 'Control the return, feel the stretch'],
   'deadlift': ['Bar over mid-foot, shins touch bar', 'Chest up, back flat, brace core hard', 'Push floor away, don\'t pull with back', 'Lock out with glutes, don\'t hyperextend'],
 
   // Shoulders
@@ -228,16 +231,24 @@ ${conversationContext}
 
 Client's question: "${question}"
 
-IMPORTANT GUIDELINES:
-1. Give a DETAILED, HELPFUL answer - not generic fluff
-2. If they ask about form: describe exact body positioning, common mistakes, and cues
-3. If they ask about grip width/stance: give specific measurements or relative positions
-4. If they ask about alternatives: suggest 2-3 specific exercises with brief explanations
-5. If they ask about muscles worked: explain primary AND secondary muscles
-6. If they ask about weight/reps: give guidance based on their goal (strength vs hypertrophy vs endurance)
-7. Be conversational and encouraging, but prioritize being informative
+CRITICAL GUIDELINES - READ CAREFULLY:
+1. ANSWER THE ACTUAL QUESTION - if they ask "how far do I bend over", tell them the exact angle (e.g., "45 degrees" or "until your torso is almost parallel to the floor")
+2. If they ask about BODY POSITION (bend, lean, angle, how far down, torso position):
+   - Give SPECIFIC angles in degrees
+   - Describe what it should look/feel like
+   - Example: "Bend at the hips until your torso is about 45 degrees to the floor - roughly like you're bowing to someone"
+3. If they ask about form: describe exact body positioning with specific cues
+4. If they ask about grip width/stance: give specific measurements (shoulder-width, 1.5x shoulder-width, etc.)
+5. If they ask about alternatives: suggest 2-3 specific exercises
+6. If they ask about muscles worked: name the specific muscles
+7. If they ask about weight/reps: give rep ranges for their goal
 
-Respond directly and helpfully. Don't start with "Great question!" or similar filler.`;
+DO NOT:
+- Give generic advice like "use controlled movement" when they asked a specific question
+- Ignore what they asked and talk about something else
+- Start with "Great question!" or filler phrases
+
+Respond directly to what they asked. Be specific with numbers, angles, and cues.`;
 
       maxTokens = 500;
     } else {
