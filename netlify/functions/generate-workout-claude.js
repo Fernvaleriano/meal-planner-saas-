@@ -439,7 +439,6 @@ You MUST ONLY use exercises from this list. Each exercise has a demonstration vi
 Using exercises not in this list will result in missing video demonstrations.
 
 ${exercisesList}
-${warmupStretchInstructions}
 
 If an exercise category doesn't have enough options, select similar exercises from other categories.
 `;
@@ -466,8 +465,8 @@ EXERCISE SELECTION GUIDELINES:
 - Structure: compound movements first, then isolation exercises
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
-- WARM-UPS: ONLY if AVAILABLE WARM-UPS section lists exercises. Pick from that exact list. If it says "NO WARM-UP EXERCISES AVAILABLE", do NOT include any warm-up exercises at all.
-- STRETCHES: ONLY if AVAILABLE STRETCHES section lists exercises. Pick from that exact list. If it says "NO STRETCH EXERCISES AVAILABLE", do NOT include any stretch exercises at all.
+- DO NOT include any warm-up exercises. Start directly with the main workout exercises.
+- DO NOT include any stretching exercises. End the workout with the last main exercise.
 - NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
 
 Return this exact JSON structure:
@@ -630,32 +629,23 @@ Return this exact JSON structure:
       console.log(`Unmatched exercises: ${matchStats.unmatchedNames.join(', ')}`);
     }
 
-    // POST-PROCESSING: Remove warmup/stretch exercises that don't have videos
-    // This guarantees all warmups/stretches in the final output have videos
-    // Uses BOTH AI flags AND name detection for comprehensive filtering
-    let removedWarmups = 0;
-    let removedStretches = 0;
+    // POST-PROCESSING: Remove ALL warmup/stretch exercises - we don't want them at all
+    // This is the nuclear option - no warmups/stretches = no missing videos for warmups/stretches
+    let removedCount = 0;
 
     for (const week of programData.weeks) {
       for (const workout of week.workouts || []) {
         const originalCount = workout.exercises.length;
 
         workout.exercises = workout.exercises.filter(ex => {
-          // Detect warmup/stretch by BOTH flag AND name (comprehensive check)
+          // Detect warmup/stretch by BOTH flag AND name
           const detectedWarmup = isWarmupExercise(ex.name);
           const detectedStretch = isStretchExercise(ex.name);
           const isWarmupOrStretch = ex.isWarmup || ex.isStretch || detectedWarmup || detectedStretch;
-          const hasVideo = ex.video_url || ex.animation_url;
 
-          if (isWarmupOrStretch && !hasVideo) {
-            if (ex.isWarmup || detectedWarmup) {
-              removedWarmups++;
-              console.log(`POST-PROCESS: Removing warmup without video: ${ex.name}`);
-            }
-            if (ex.isStretch || detectedStretch) {
-              removedStretches++;
-              console.log(`POST-PROCESS: Removing stretch without video: ${ex.name}`);
-            }
+          if (isWarmupOrStretch) {
+            removedCount++;
+            console.log(`Removing warmup/stretch: ${ex.name}`);
             return false; // Remove from array
           }
 
@@ -663,12 +653,14 @@ Return this exact JSON structure:
         });
 
         if (originalCount !== workout.exercises.length) {
-          console.log(`Workout "${workout.name}": ${originalCount} -> ${workout.exercises.length} exercises (removed ${originalCount - workout.exercises.length} warmups/stretches without videos)`);
+          console.log(`Workout "${workout.name}": removed ${originalCount - workout.exercises.length} warmups/stretches`);
         }
       }
     }
 
-    console.log(`Total removed in post-processing: ${removedWarmups} warmups, ${removedStretches} stretches (no videos)`);
+    if (removedCount > 0) {
+      console.log(`Total warmups/stretches removed: ${removedCount}`);
+    }
 
 
     return {
