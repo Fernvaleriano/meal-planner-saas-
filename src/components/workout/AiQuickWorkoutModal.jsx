@@ -205,8 +205,189 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       const sets = selectedDifficulty.sets;
       const restSeconds = Math.round(60 * selectedDifficulty.restMultiplier);
 
-      // Handle custom prompt for equipment preference
-      let sortedExercises = [...matchingExercises];
+      // ========== INTELLIGENT WORKOUT BUILDER ==========
+      // This creates structured workouts like a real trainer would
+
+      // Define compound vs isolation exercises
+      const compoundKeywords = ['press', 'squat', 'deadlift', 'row', 'pull up', 'pullup', 'lunge', 'dip', 'clean', 'snatch', 'thrust'];
+      const isolationKeywords = ['curl', 'extension', 'raise', 'fly', 'flye', 'kickback', 'pushdown', 'crossover', 'shrug'];
+
+      const isCompound = (name) => compoundKeywords.some(kw => name.toLowerCase().includes(kw));
+      const isIsolation = (name) => isolationKeywords.some(kw => name.toLowerCase().includes(kw));
+
+      // Categorize exercises
+      const compoundExercises = matchingExercises.filter(ex => isCompound(ex.name));
+      const isolationExercises = matchingExercises.filter(ex => isIsolation(ex.name));
+      const otherExercises = matchingExercises.filter(ex => !isCompound(ex.name) && !isIsolation(ex.name));
+
+      // For push/pull, further categorize by sub-muscle groups
+      let muscleCategories = {};
+
+      if (selectedType.id === 'push') {
+        muscleCategories = {
+          chest: matchingExercises.filter(ex => {
+            const n = ex.name.toLowerCase();
+            return n.includes('bench') || n.includes('chest') || n.includes('fly') || n.includes('flye') || n.includes('pec');
+          }),
+          shoulders: matchingExercises.filter(ex => {
+            const n = ex.name.toLowerCase();
+            return n.includes('shoulder') || n.includes('overhead') || n.includes('military') || n.includes('lateral') || n.includes('front raise') || n.includes('delt');
+          }),
+          triceps: matchingExercises.filter(ex => {
+            const n = ex.name.toLowerCase();
+            return n.includes('tricep') || n.includes('pushdown') || n.includes('skull') || n.includes('kickback') || n.includes('close grip');
+          })
+        };
+      } else if (selectedType.id === 'pull') {
+        muscleCategories = {
+          back: matchingExercises.filter(ex => {
+            const n = ex.name.toLowerCase();
+            return n.includes('row') || n.includes('pull') || n.includes('lat') || n.includes('back');
+          }),
+          biceps: matchingExercises.filter(ex => {
+            const n = ex.name.toLowerCase();
+            return n.includes('curl') || n.includes('bicep');
+          }),
+          rearDelts: matchingExercises.filter(ex => {
+            const n = ex.name.toLowerCase();
+            return n.includes('rear delt') || n.includes('face pull') || n.includes('reverse fly');
+          })
+        };
+      }
+
+      // Smart selection function - picks unique exercises
+      const selectedIds = new Set();
+      const pickExercise = (pool) => {
+        const available = pool.filter(ex => !selectedIds.has(ex.id));
+        if (available.length === 0) return null;
+        const pick = available[Math.floor(Math.random() * available.length)];
+        selectedIds.add(pick.id);
+        return pick;
+      };
+
+      // Build structured workout
+      let structuredExercises = [];
+
+      if (selectedType.id === 'push') {
+        // PUSH DAY STRUCTURE:
+        // 1-2: Chest compounds (bench variations)
+        // 3: Shoulder compound (overhead press)
+        // 4: Chest isolation (fly)
+        // 5: Shoulder isolation (lateral raise)
+        // 6+: Tricep work
+
+        const chestCompounds = muscleCategories.chest.filter(ex => isCompound(ex.name));
+        const shoulderCompounds = muscleCategories.shoulders.filter(ex => isCompound(ex.name));
+        const chestIsolation = muscleCategories.chest.filter(ex => isIsolation(ex.name));
+        const shoulderIsolation = muscleCategories.shoulders.filter(ex => isIsolation(ex.name));
+        const tricepExercises = muscleCategories.triceps;
+
+        // Pick in order
+        let ex;
+        if ((ex = pickExercise(chestCompounds))) structuredExercises.push(ex);
+        if ((ex = pickExercise(chestCompounds))) structuredExercises.push(ex);
+        if ((ex = pickExercise(shoulderCompounds))) structuredExercises.push(ex);
+        if ((ex = pickExercise(chestIsolation))) structuredExercises.push(ex);
+        if ((ex = pickExercise(shoulderIsolation))) structuredExercises.push(ex);
+        if ((ex = pickExercise(tricepExercises))) structuredExercises.push(ex);
+        if ((ex = pickExercise(tricepExercises))) structuredExercises.push(ex);
+        // Fill remaining
+        while (structuredExercises.length < targetExerciseCount) {
+          ex = pickExercise([...muscleCategories.chest, ...muscleCategories.shoulders, ...muscleCategories.triceps]);
+          if (ex) structuredExercises.push(ex);
+          else break;
+        }
+
+      } else if (selectedType.id === 'pull') {
+        // PULL DAY STRUCTURE:
+        // 1-2: Back compounds (rows, pulldowns)
+        // 3: Vertical pull (pulldown or pull-up)
+        // 4: Horizontal pull (row variation)
+        // 5: Rear delt work
+        // 6+: Bicep work
+
+        const backCompounds = muscleCategories.back.filter(ex => isCompound(ex.name));
+        const backIsolation = muscleCategories.back.filter(ex => !isCompound(ex.name));
+        const bicepExercises = muscleCategories.biceps;
+        const rearDeltExercises = muscleCategories.rearDelts;
+
+        let ex;
+        if ((ex = pickExercise(backCompounds))) structuredExercises.push(ex);
+        if ((ex = pickExercise(backCompounds))) structuredExercises.push(ex);
+        if ((ex = pickExercise(backCompounds))) structuredExercises.push(ex);
+        if ((ex = pickExercise(rearDeltExercises))) structuredExercises.push(ex);
+        if ((ex = pickExercise(bicepExercises))) structuredExercises.push(ex);
+        if ((ex = pickExercise(bicepExercises))) structuredExercises.push(ex);
+        // Fill remaining
+        while (structuredExercises.length < targetExerciseCount) {
+          ex = pickExercise([...muscleCategories.back, ...muscleCategories.biceps, ...muscleCategories.rearDelts]);
+          if (ex) structuredExercises.push(ex);
+          else break;
+        }
+
+      } else if (selectedType.id === 'lower_body') {
+        // LOWER BODY STRUCTURE:
+        // 1: Primary compound (squat variation)
+        // 2: Hip hinge (deadlift/RDL)
+        // 3: Single leg work (lunges)
+        // 4: Quad isolation (leg extension)
+        // 5: Hamstring isolation (leg curl)
+        // 6: Glute work
+        // 7: Calves
+
+        const squatVariations = matchingExercises.filter(ex => ex.name.toLowerCase().includes('squat'));
+        const hipHinge = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('deadlift') || n.includes('rdl') || n.includes('hip thrust');
+        });
+        const singleLeg = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('lunge') || n.includes('split') || n.includes('step');
+        });
+        const quadIsolation = matchingExercises.filter(ex => ex.name.toLowerCase().includes('extension'));
+        const hamstringWork = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('curl') || n.includes('hamstring');
+        });
+        const calfWork = matchingExercises.filter(ex => ex.name.toLowerCase().includes('calf'));
+
+        let ex;
+        if ((ex = pickExercise(squatVariations))) structuredExercises.push(ex);
+        if ((ex = pickExercise(hipHinge))) structuredExercises.push(ex);
+        if ((ex = pickExercise(squatVariations))) structuredExercises.push(ex);
+        if ((ex = pickExercise(singleLeg))) structuredExercises.push(ex);
+        if ((ex = pickExercise(quadIsolation))) structuredExercises.push(ex);
+        if ((ex = pickExercise(hamstringWork))) structuredExercises.push(ex);
+        if ((ex = pickExercise(calfWork))) structuredExercises.push(ex);
+        // Fill remaining
+        while (structuredExercises.length < targetExerciseCount) {
+          ex = pickExercise(matchingExercises);
+          if (ex) structuredExercises.push(ex);
+          else break;
+        }
+
+      } else {
+        // DEFAULT STRUCTURE for other workout types:
+        // Compounds first, then isolation, then others
+        // No duplicates
+
+        // Sort by compound first
+        const sorted = [
+          ...compoundExercises.sort(() => Math.random() - 0.5),
+          ...isolationExercises.sort(() => Math.random() - 0.5),
+          ...otherExercises.sort(() => Math.random() - 0.5)
+        ];
+
+        for (const ex of sorted) {
+          if (structuredExercises.length >= targetExerciseCount) break;
+          if (!selectedIds.has(ex.id)) {
+            selectedIds.add(ex.id);
+            structuredExercises.push(ex);
+          }
+        }
+      }
+
+      // Handle custom prompt for equipment preference (re-sort if needed)
       if (customPrompt) {
         const promptLower = customPrompt.toLowerCase();
 
@@ -219,51 +400,32 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         if (promptLower.includes('bodyweight')) equipmentPriorities.push('bodyweight');
 
         if (equipmentPriorities.length > 0) {
-          // Sort exercises to prioritize the requested equipment
-          sortedExercises.sort((a, b) => {
+          // Sort to prioritize requested equipment while maintaining compound-first structure
+          structuredExercises.sort((a, b) => {
             const aEquip = (a.equipment || '').toLowerCase();
             const bEquip = (b.equipment || '').toLowerCase();
             const aHasPriority = equipmentPriorities.some(eq => aEquip.includes(eq));
             const bHasPriority = equipmentPriorities.some(eq => bEquip.includes(eq));
-            if (aHasPriority && !bHasPriority) return -1;
-            if (!aHasPriority && bHasPriority) return 1;
-            return 0;
-          });
-        }
 
-        // Check for compound/isolation preference
-        if (promptLower.includes('compound')) {
-          const compoundKeywords = ['press', 'squat', 'deadlift', 'row', 'pull', 'lunge', 'dip'];
-          sortedExercises.sort((a, b) => {
-            const aName = (a.name || '').toLowerCase();
-            const bName = (b.name || '').toLowerCase();
-            const aIsCompound = compoundKeywords.some(kw => aName.includes(kw));
-            const bIsCompound = compoundKeywords.some(kw => bName.includes(kw));
-            if (aIsCompound && !bIsCompound) return -1;
-            if (!aIsCompound && bIsCompound) return 1;
-            return 0;
+            // Both have priority or neither - maintain order
+            if (aHasPriority === bHasPriority) return 0;
+            // Priority equipment comes first
+            if (aHasPriority) return -1;
+            return 1;
           });
         }
       }
 
-      if (sortedExercises.length >= targetExerciseCount) {
-        // If no custom prompt, shuffle; otherwise keep sorted order and add some variety
-        if (!customPrompt) {
-          sortedExercises = sortedExercises.sort(() => Math.random() - 0.5);
-        } else {
-          // Keep first few sorted, shuffle the rest for variety
-          const prioritized = sortedExercises.slice(0, Math.ceil(targetExerciseCount / 2));
-          const rest = sortedExercises.slice(Math.ceil(targetExerciseCount / 2)).sort(() => Math.random() - 0.5);
-          sortedExercises = [...prioritized, ...rest];
-        }
+      // Trim to target count and format
+      mainExercises = structuredExercises.slice(0, targetExerciseCount).map(ex => ({
+        ...ex,
+        sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : sets,
+        reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
+        restSeconds: selectedType.id === 'stretch' ? 15 : restSeconds
+      }));
 
-        mainExercises = sortedExercises.slice(0, targetExerciseCount).map(ex => ({
-          ...ex,
-          sets: selectedType.id === 'cardio' || selectedType.id === 'stretch' ? 1 : sets,
-          reps: selectedType.id === 'cardio' ? '30 sec' : selectedType.id === 'stretch' ? '30 sec hold' : 12,
-          restSeconds: selectedType.id === 'stretch' ? 15 : restSeconds
-        }));
-      } else {
+      // If we don't have enough exercises, use fallback
+      if (mainExercises.length < targetExerciseCount) {
         // Use fallback exercise names
         const fallbackNames = FALLBACK_EXERCISES[selectedType.id] || FALLBACK_EXERCISES.full_body;
         const selectedNames = fallbackNames.slice(0, targetExerciseCount);
