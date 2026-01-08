@@ -28,18 +28,28 @@ function AskCoachChat({ exercise, onClose }) {
   }, [exercise?.name]);
 
   // Generate a helpful fallback response based on the question
-  const getFallbackResponse = (question, exerciseName) => {
+  const getFallbackResponse = (question, exerciseName, muscleGroup) => {
     const q = question.toLowerCase();
-    if (q.includes('form') || q.includes('proper') || q.includes('technique')) {
-      return `For ${exerciseName}, focus on controlled movements and maintaining proper posture throughout. Start with lighter weight to perfect your form, and consider recording yourself or asking a trainer for feedback.`;
+    const muscle = muscleGroup || 'target muscles';
+
+    if (q.includes('grip') || q.includes('wide') || q.includes('narrow') || q.includes('hand')) {
+      return `For grip width on ${exerciseName}: A shoulder-width grip is a good starting point. Wider grips typically emphasize outer muscles more, while narrower grips target inner portions and often increase tricep involvement. Experiment to find what feels strongest and most comfortable for your body structure.`;
+    } else if (q.includes('form') || q.includes('proper') || q.includes('technique') || q.includes('how do i')) {
+      return `For ${exerciseName}:\n\n1. Set up with proper positioning - feet planted, core braced\n2. Control the weight through the full range of motion\n3. Focus on squeezing the ${muscle} at the peak contraction\n4. Lower under control (2-3 seconds)\n5. Breathe out on the exertion phase\n\nStart lighter to master the movement before adding weight.`;
+    } else if (q.includes('weight') || q.includes('heavy') || q.includes('how much')) {
+      return `For weight selection on ${exerciseName}:\n\n• Hypertrophy (muscle growth): Choose a weight where 8-12 reps is challenging\n• Strength: Heavier weight, 4-6 reps\n• Endurance: Lighter weight, 15-20 reps\n\nYou should be able to complete your target reps with good form, but the last 2-3 reps should feel difficult.`;
     } else if (q.includes('mistake') || q.includes('wrong') || q.includes('avoid')) {
-      return `Common mistakes include using momentum instead of controlled movement, not using full range of motion, and lifting too heavy too soon. Take your time and focus on quality over quantity.`;
-    } else if (q.includes('home') || q.includes('alternative') || q.includes('substitute')) {
-      return `There are often bodyweight or resistance band alternatives you can do at home. Look for exercises that target the same muscle group with equipment you have available.`;
+      return `Common mistakes on ${exerciseName}:\n\n• Using momentum/swinging to lift the weight\n• Not using full range of motion\n• Going too heavy too soon\n• Rushing through reps\n• Holding your breath\n\nFocus on mind-muscle connection and controlled movement.`;
+    } else if (q.includes('home') || q.includes('alternative') || q.includes('substitute') || q.includes('replace')) {
+      return `Alternatives to ${exerciseName}:\n\nLook for exercises that target the same muscle (${muscle}) with equipment you have. Resistance bands, dumbbells, or bodyweight variations often work well. The key is matching the movement pattern and muscle activation.`;
     } else if (q.includes('muscle') || q.includes('work') || q.includes('target')) {
-      return `This exercise primarily targets your ${exercise?.muscle_group || exercise?.muscleGroup || 'target muscles'}. Focus on feeling the contraction in those muscles during each rep.`;
+      return `${exerciseName} primarily targets your ${muscle}. Secondary muscles involved typically include stabilizers and synergists that assist the movement. Focus on feeling the ${muscle} working throughout each rep for best results.`;
+    } else if (q.includes('set') || q.includes('rep') || q.includes('how many')) {
+      return `Rep and set recommendations for ${exerciseName}:\n\n• Muscle growth: 3-4 sets of 8-12 reps\n• Strength: 4-5 sets of 4-6 reps\n• Endurance: 2-3 sets of 15-20 reps\n\nRest 60-90 seconds between sets for hypertrophy, 2-3 minutes for strength work.`;
+    } else if (q.includes('breathe') || q.includes('breathing')) {
+      return `Breathing for ${exerciseName}:\n\n• Exhale during the exertion (lifting/pushing phase)\n• Inhale during the lowering phase\n• For heavy lifts, take a breath and brace your core before the rep\n• Never hold your breath for extended periods`;
     }
-    return `Great question about ${exerciseName}! For the best results, focus on proper form, controlled movements, and progressive overload. Consider consulting with a trainer for personalized guidance.`;
+    return `For ${exerciseName}, focus on controlled movement through full range of motion. Keep the ${muscle} under tension throughout, and prioritize form over weight. If you have a specific question about grip, form, weight selection, or alternatives, I'm happy to help with more detail!`;
   };
 
   const handleSend = useCallback(async () => {
@@ -53,31 +63,43 @@ function AskCoachChat({ exercise, onClose }) {
     setLoading(true);
 
     try {
+      // Build conversation history for context (excluding welcome message)
+      const conversationHistory = messages
+        .filter(msg => msg.role !== 'coach' || !msg.text.includes("I'm your AI coach"))
+        .map(msg => ({
+          role: msg.role === 'coach' ? 'assistant' : 'user',
+          content: msg.text
+        }));
+
       const response = await apiPost('/.netlify/functions/exercise-coach', {
         mode: 'ask',
         exercise: {
           name: exercise?.name,
           muscle_group: exercise?.muscle_group || exercise?.muscleGroup,
-          equipment: exercise?.equipment
+          equipment: exercise?.equipment,
+          instructions: exercise?.instructions
         },
-        question
+        question,
+        conversationHistory
       });
 
       if (response?.success && response?.answer) {
         setMessages(prev => [...prev, { role: 'coach', text: response.answer }]);
       } else {
         // Use fallback response if API didn't return valid answer
+        const muscleGroup = exercise?.muscle_group || exercise?.muscleGroup;
         setMessages(prev => [...prev, {
           role: 'coach',
-          text: getFallbackResponse(question, exercise?.name || 'this exercise')
+          text: getFallbackResponse(question, exercise?.name || 'this exercise', muscleGroup)
         }]);
       }
     } catch (error) {
       console.error('Ask coach error:', error);
       // Use fallback response on error
+      const muscleGroup = exercise?.muscle_group || exercise?.muscleGroup;
       setMessages(prev => [...prev, {
         role: 'coach',
-        text: getFallbackResponse(question, exercise?.name || 'this exercise')
+        text: getFallbackResponse(question, exercise?.name || 'this exercise', muscleGroup)
       }]);
     } finally {
       setLoading(false);

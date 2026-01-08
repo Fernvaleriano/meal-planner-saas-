@@ -52,23 +52,37 @@ const EXERCISE_CUES = {
 function getExerciseCues(exerciseName) {
   const nameLower = exerciseName.toLowerCase();
 
+  // Don't match stretches to strength exercise cues
+  if (nameLower.includes('stretch') || nameLower.includes('yoga') || nameLower.includes('mobility')) {
+    return null; // Let AI generate stretch-specific tips
+  }
+
   // Try exact match first
   if (EXERCISE_CUES[nameLower]) {
     return EXERCISE_CUES[nameLower];
   }
 
-  // Try partial match
+  // Try if exercise name contains a key (e.g., "Barbell Bench Press" contains "bench press")
   for (const [key, cues] of Object.entries(EXERCISE_CUES)) {
-    if (nameLower.includes(key) || key.includes(nameLower)) {
+    if (nameLower.includes(key)) {
       return cues;
     }
   }
 
-  // Try keyword matching
-  const keywords = nameLower.split(' ');
-  for (const [key, cues] of Object.entries(EXERCISE_CUES)) {
-    if (keywords.some(kw => key.includes(kw) && kw.length > 3)) {
-      return cues;
+  // Try matching by primary movement word (must be whole word match)
+  const primaryMovements = ['press', 'curl', 'row', 'fly', 'raise', 'pulldown', 'pushdown',
+    'squat', 'lunge', 'deadlift', 'pull up', 'pullup', 'crunch', 'plank', 'twist'];
+
+  for (const movement of primaryMovements) {
+    // Check if this movement word appears as a whole word in the exercise name
+    const regex = new RegExp(`\\b${movement}\\b`, 'i');
+    if (regex.test(nameLower)) {
+      // Find a matching exercise cue that also has this movement
+      for (const [key, cues] of Object.entries(EXERCISE_CUES)) {
+        if (key.includes(movement)) {
+          return cues;
+        }
+      }
     }
   }
 
