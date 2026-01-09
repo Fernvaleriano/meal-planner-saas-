@@ -56,7 +56,7 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
   const [selectedType, setSelectedType] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(DURATION_OPTIONS[1]); // Default 30 min
   const [selectedDifficulty, setSelectedDifficulty] = useState(DIFFICULTY_LEVELS[1]); // Default intermediate
-  const [selectedEquipment, setSelectedEquipment] = useState(['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight']);
+  const [selectedEquipment, setSelectedEquipment] = useState(['barbell', 'dumbbell', 'cable', 'machine']);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
