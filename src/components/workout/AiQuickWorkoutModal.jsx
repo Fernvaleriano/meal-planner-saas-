@@ -205,149 +205,204 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
       const sets = selectedDifficulty.sets;
       const restSeconds = Math.round(60 * selectedDifficulty.restMultiplier);
 
-      // ========== INTELLIGENT WORKOUT BUILDER ==========
-      // This creates structured workouts like a real trainer would
+      // ========== INTELLIGENT WORKOUT BUILDER (BODYBUILDING STYLE) ==========
+      // Creates structured workouts like a real bodybuilding trainer would program
+      // - No duplicate movements (even with different grips/variations)
+      // - Equipment variety (not all barbell or all dumbbell)
+      // - Proper exercise order (compounds first, isolation last)
+      // - Balanced muscle group coverage
 
-      // Define compound vs isolation exercises
-      const compoundKeywords = ['press', 'squat', 'deadlift', 'row', 'pull up', 'pullup', 'lunge', 'dip', 'clean', 'snatch', 'thrust'];
+      // Extract base movement name to prevent near-duplicates
+      // e.g., "Barbell Bent Over Row Pronated Grip" -> "bent over row"
+      const getBaseMovement = (name) => {
+        const n = name.toLowerCase();
+        // Remove equipment prefixes
+        const noEquipment = n.replace(/^(barbell|dumbbell|cable|machine|ez bar|smith machine|kettlebell)\s*/i, '');
+        // Remove grip/stance suffixes
+        const noGrip = noEquipment.replace(/\s*(pronated|supinated|neutral|wide|narrow|close|reverse|normal)\s*grip$/i, '');
+        const noStance = noGrip.replace(/\s*(wide|narrow|sumo|close)\s*stance$/i, '');
+        // Get first 2-3 meaningful words as the base movement
+        const words = noStance.trim().split(/\s+/).slice(0, 3).join(' ');
+        return words;
+      };
+
+      // Get equipment from exercise name
+      const getEquipment = (name) => {
+        const n = name.toLowerCase();
+        if (n.includes('barbell') || n.includes('ez bar')) return 'barbell';
+        if (n.includes('dumbbell')) return 'dumbbell';
+        if (n.includes('cable')) return 'cable';
+        if (n.includes('machine') || n.includes('smith')) return 'machine';
+        if (n.includes('kettlebell')) return 'kettlebell';
+        return 'other';
+      };
+
+      // Track selected movements and equipment for variety
+      const selectedIds = new Set();
+      const selectedMovements = new Set();
+      const equipmentCount = { barbell: 0, dumbbell: 0, cable: 0, machine: 0, other: 0 };
+
+      // Smart pick function - ensures no duplicate movements and prefers equipment variety
+      const pickExercise = (pool, preferredEquipment = null) => {
+        // Filter out already selected and similar movements
+        let available = pool.filter(ex => {
+          if (selectedIds.has(ex.id)) return false;
+          const baseMove = getBaseMovement(ex.name);
+          if (selectedMovements.has(baseMove)) return false;
+          return true;
+        });
+
+        if (available.length === 0) return null;
+
+        // If we have a preference, try that first
+        if (preferredEquipment) {
+          const preferred = available.filter(ex => getEquipment(ex.name) === preferredEquipment);
+          if (preferred.length > 0) available = preferred;
+        } else {
+          // Prefer equipment we haven't used much
+          const minCount = Math.min(...Object.values(equipmentCount));
+          const underused = available.filter(ex => equipmentCount[getEquipment(ex.name)] === minCount);
+          if (underused.length > 0) available = underused;
+        }
+
+        const pick = available[Math.floor(Math.random() * available.length)];
+        selectedIds.add(pick.id);
+        selectedMovements.add(getBaseMovement(pick.name));
+        equipmentCount[getEquipment(pick.name)]++;
+        return pick;
+      };
+
+      // Define compound vs isolation
+      const compoundKeywords = ['press', 'squat', 'deadlift', 'row', 'pull up', 'pullup', 'chin up', 'lunge', 'dip', 'clean', 'snatch', 'thrust', 'pulldown'];
       const isolationKeywords = ['curl', 'extension', 'raise', 'fly', 'flye', 'kickback', 'pushdown', 'crossover', 'shrug'];
 
       const isCompound = (name) => compoundKeywords.some(kw => name.toLowerCase().includes(kw));
       const isIsolation = (name) => isolationKeywords.some(kw => name.toLowerCase().includes(kw));
 
-      // Categorize exercises
-      const compoundExercises = matchingExercises.filter(ex => isCompound(ex.name));
-      const isolationExercises = matchingExercises.filter(ex => isIsolation(ex.name));
-      const otherExercises = matchingExercises.filter(ex => !isCompound(ex.name) && !isIsolation(ex.name));
-
-      // For push/pull, further categorize by sub-muscle groups
-      let muscleCategories = {};
-
-      if (selectedType.id === 'push') {
-        muscleCategories = {
-          chest: matchingExercises.filter(ex => {
-            const n = ex.name.toLowerCase();
-            return n.includes('bench') || n.includes('chest') || n.includes('fly') || n.includes('flye') || n.includes('pec');
-          }),
-          shoulders: matchingExercises.filter(ex => {
-            const n = ex.name.toLowerCase();
-            return n.includes('shoulder') || n.includes('overhead') || n.includes('military') || n.includes('lateral') || n.includes('front raise') || n.includes('delt');
-          }),
-          triceps: matchingExercises.filter(ex => {
-            const n = ex.name.toLowerCase();
-            return n.includes('tricep') || n.includes('pushdown') || n.includes('skull') || n.includes('kickback') || n.includes('close grip');
-          })
-        };
-      } else if (selectedType.id === 'pull') {
-        muscleCategories = {
-          back: matchingExercises.filter(ex => {
-            const n = ex.name.toLowerCase();
-            return n.includes('row') || n.includes('pull') || n.includes('lat') || n.includes('back');
-          }),
-          biceps: matchingExercises.filter(ex => {
-            const n = ex.name.toLowerCase();
-            return n.includes('curl') || n.includes('bicep');
-          }),
-          rearDelts: matchingExercises.filter(ex => {
-            const n = ex.name.toLowerCase();
-            return n.includes('rear delt') || n.includes('face pull') || n.includes('reverse fly');
-          })
-        };
-      }
-
-      // Smart selection function - picks unique exercises
-      const selectedIds = new Set();
-      const pickExercise = (pool) => {
-        const available = pool.filter(ex => !selectedIds.has(ex.id));
-        if (available.length === 0) return null;
-        const pick = available[Math.floor(Math.random() * available.length)];
-        selectedIds.add(pick.id);
-        return pick;
-      };
-
       // Build structured workout
       let structuredExercises = [];
 
       if (selectedType.id === 'push') {
-        // PUSH DAY STRUCTURE:
-        // 1-2: Chest compounds (bench variations)
-        // 3: Shoulder compound (overhead press)
-        // 4: Chest isolation (fly)
-        // 5: Shoulder isolation (lateral raise)
-        // 6+: Tricep work
+        // ===== PUSH DAY (Bodybuilding Style) =====
+        // 1. Heavy chest compound (flat bench - barbell or dumbbell)
+        // 2. Incline chest compound (incline press)
+        // 3. Shoulder press (overhead)
+        // 4. Chest isolation (fly/crossover)
+        // 5. Lateral raises (side delts)
+        // 6-7. Tricep work (2 exercises)
 
-        const chestCompounds = muscleCategories.chest.filter(ex => isCompound(ex.name));
-        const shoulderCompounds = muscleCategories.shoulders.filter(ex => isCompound(ex.name));
-        const chestIsolation = muscleCategories.chest.filter(ex => isIsolation(ex.name));
-        const shoulderIsolation = muscleCategories.shoulders.filter(ex => isIsolation(ex.name));
-        const tricepExercises = muscleCategories.triceps;
+        const chestExercises = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('bench') || n.includes('chest') || n.includes('fly') || n.includes('flye') || n.includes('pec') || n.includes('press');
+        });
+        const shoulderExercises = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('shoulder') || n.includes('overhead') || n.includes('military') || n.includes('lateral') || n.includes('front raise') || n.includes('delt');
+        });
+        const tricepExercises = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('tricep') || n.includes('pushdown') || n.includes('skull') || n.includes('kickback') || n.includes('close grip') || n.includes('dip');
+        });
 
-        // Pick in order
+        // Sub-categorize
+        const flatChest = chestExercises.filter(ex => !ex.name.toLowerCase().includes('incline') && !ex.name.toLowerCase().includes('decline') && isCompound(ex.name));
+        const inclineChest = chestExercises.filter(ex => ex.name.toLowerCase().includes('incline') && isCompound(ex.name));
+        const chestIso = chestExercises.filter(ex => isIsolation(ex.name));
+        const shoulderPress = shoulderExercises.filter(ex => isCompound(ex.name));
+        const lateralRaise = shoulderExercises.filter(ex => ex.name.toLowerCase().includes('lateral') || ex.name.toLowerCase().includes('raise'));
+
         let ex;
-        if ((ex = pickExercise(chestCompounds))) structuredExercises.push(ex);
-        if ((ex = pickExercise(chestCompounds))) structuredExercises.push(ex);
-        if ((ex = pickExercise(shoulderCompounds))) structuredExercises.push(ex);
-        if ((ex = pickExercise(chestIsolation))) structuredExercises.push(ex);
-        if ((ex = pickExercise(shoulderIsolation))) structuredExercises.push(ex);
+        if ((ex = pickExercise(flatChest))) structuredExercises.push(ex);
+        if ((ex = pickExercise(inclineChest))) structuredExercises.push(ex);
+        if ((ex = pickExercise(shoulderPress))) structuredExercises.push(ex);
+        if ((ex = pickExercise(chestIso))) structuredExercises.push(ex);
+        if ((ex = pickExercise(lateralRaise))) structuredExercises.push(ex);
         if ((ex = pickExercise(tricepExercises))) structuredExercises.push(ex);
         if ((ex = pickExercise(tricepExercises))) structuredExercises.push(ex);
+
         // Fill remaining
         while (structuredExercises.length < targetExerciseCount) {
-          ex = pickExercise([...muscleCategories.chest, ...muscleCategories.shoulders, ...muscleCategories.triceps]);
+          ex = pickExercise([...chestExercises, ...shoulderExercises, ...tricepExercises]);
           if (ex) structuredExercises.push(ex);
           else break;
         }
 
       } else if (selectedType.id === 'pull') {
-        // PULL DAY STRUCTURE:
-        // 1-2: Back compounds (rows, pulldowns)
-        // 3: Vertical pull (pulldown or pull-up)
-        // 4: Horizontal pull (row variation)
-        // 5: Rear delt work
-        // 6+: Bicep work
+        // ===== PULL DAY (Bodybuilding Style) =====
+        // 1. Vertical pull (lat pulldown or pull-up) - for lat width
+        // 2. Horizontal row (barbell or cable row) - for back thickness
+        // 3. Another row variation (different equipment)
+        // 4. Rear delt work (face pull, reverse fly)
+        // 5-6. Bicep work (2 different curl variations)
 
-        const backCompounds = muscleCategories.back.filter(ex => isCompound(ex.name));
-        const backIsolation = muscleCategories.back.filter(ex => !isCompound(ex.name));
-        const bicepExercises = muscleCategories.biceps;
-        const rearDeltExercises = muscleCategories.rearDelts;
+        // Categorize back exercises properly
+        const verticalPulls = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('pulldown') || n.includes('pull-up') || n.includes('pullup') || n.includes('chin up') || n.includes('chin-up');
+        });
+        const horizontalRows = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('row') && !n.includes('upright');
+        });
+        const rearDelts = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('rear delt') || n.includes('face pull') || n.includes('reverse fly') || n.includes('rear fly');
+        });
+        const bicepExercises = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('curl') || n.includes('bicep');
+        });
 
         let ex;
-        if ((ex = pickExercise(backCompounds))) structuredExercises.push(ex);
-        if ((ex = pickExercise(backCompounds))) structuredExercises.push(ex);
-        if ((ex = pickExercise(backCompounds))) structuredExercises.push(ex);
-        if ((ex = pickExercise(rearDeltExercises))) structuredExercises.push(ex);
-        if ((ex = pickExercise(bicepExercises))) structuredExercises.push(ex);
-        if ((ex = pickExercise(bicepExercises))) structuredExercises.push(ex);
+        // 1. Vertical pull first (build that V-taper)
+        if ((ex = pickExercise(verticalPulls))) structuredExercises.push(ex);
+        // 2. Heavy horizontal row
+        if ((ex = pickExercise(horizontalRows, 'barbell'))) structuredExercises.push(ex);
+        // 3. Another row with different equipment (prefer cable or dumbbell for variety)
+        if ((ex = pickExercise(horizontalRows, 'cable')) || (ex = pickExercise(horizontalRows, 'dumbbell')) || (ex = pickExercise(horizontalRows))) {
+          structuredExercises.push(ex);
+        }
+        // 4. Rear delts (important for shoulder health & aesthetics)
+        if ((ex = pickExercise(rearDelts))) structuredExercises.push(ex);
+        // 5-6. Biceps (two different curl variations)
+        if ((ex = pickExercise(bicepExercises, 'barbell'))) structuredExercises.push(ex);
+        if ((ex = pickExercise(bicepExercises, 'dumbbell')) || (ex = pickExercise(bicepExercises, 'cable')) || (ex = pickExercise(bicepExercises))) {
+          structuredExercises.push(ex);
+        }
+
         // Fill remaining
         while (structuredExercises.length < targetExerciseCount) {
-          ex = pickExercise([...muscleCategories.back, ...muscleCategories.biceps, ...muscleCategories.rearDelts]);
+          ex = pickExercise([...verticalPulls, ...horizontalRows, ...bicepExercises, ...rearDelts]);
           if (ex) structuredExercises.push(ex);
           else break;
         }
 
       } else if (selectedType.id === 'lower_body') {
-        // LOWER BODY STRUCTURE:
-        // 1: Primary compound (squat variation)
-        // 2: Hip hinge (deadlift/RDL)
-        // 3: Single leg work (lunges)
-        // 4: Quad isolation (leg extension)
-        // 5: Hamstring isolation (leg curl)
-        // 6: Glute work
-        // 7: Calves
+        // ===== LEG DAY (Bodybuilding Style) =====
+        // 1. Primary squat variation (quads focus)
+        // 2. Hip hinge (RDL/deadlift - hamstrings & glutes)
+        // 3. Another squat or leg press
+        // 4. Single leg work (lunges, split squats)
+        // 5. Quad isolation (leg extension)
+        // 6. Hamstring isolation (leg curl)
+        // 7. Calf work
 
-        const squatVariations = matchingExercises.filter(ex => ex.name.toLowerCase().includes('squat'));
+        const squatVariations = matchingExercises.filter(ex => {
+          const n = ex.name.toLowerCase();
+          return n.includes('squat') || n.includes('leg press');
+        });
         const hipHinge = matchingExercises.filter(ex => {
           const n = ex.name.toLowerCase();
-          return n.includes('deadlift') || n.includes('rdl') || n.includes('hip thrust');
+          return n.includes('deadlift') || n.includes('rdl') || n.includes('romanian') || n.includes('hip thrust') || n.includes('good morning');
         });
         const singleLeg = matchingExercises.filter(ex => {
           const n = ex.name.toLowerCase();
-          return n.includes('lunge') || n.includes('split') || n.includes('step');
+          return n.includes('lunge') || n.includes('split squat') || n.includes('step up') || n.includes('bulgarian');
         });
-        const quadIsolation = matchingExercises.filter(ex => ex.name.toLowerCase().includes('extension'));
-        const hamstringWork = matchingExercises.filter(ex => {
+        const quadIsolation = matchingExercises.filter(ex => ex.name.toLowerCase().includes('leg extension'));
+        const hamstringIsolation = matchingExercises.filter(ex => {
           const n = ex.name.toLowerCase();
-          return n.includes('curl') || n.includes('hamstring');
+          return n.includes('leg curl') || n.includes('hamstring curl');
         });
         const calfWork = matchingExercises.filter(ex => ex.name.toLowerCase().includes('calf'));
 
@@ -357,8 +412,9 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         if ((ex = pickExercise(squatVariations))) structuredExercises.push(ex);
         if ((ex = pickExercise(singleLeg))) structuredExercises.push(ex);
         if ((ex = pickExercise(quadIsolation))) structuredExercises.push(ex);
-        if ((ex = pickExercise(hamstringWork))) structuredExercises.push(ex);
+        if ((ex = pickExercise(hamstringIsolation))) structuredExercises.push(ex);
         if ((ex = pickExercise(calfWork))) structuredExercises.push(ex);
+
         // Fill remaining
         while (structuredExercises.length < targetExerciseCount) {
           ex = pickExercise(matchingExercises);
@@ -367,21 +423,27 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         }
 
       } else {
-        // DEFAULT STRUCTURE for other workout types:
-        // Compounds first, then isolation, then others
-        // No duplicates
+        // DEFAULT STRUCTURE for other workout types (full body, upper, core, etc.)
+        // Sort: compounds first, then isolation, then others
+        // Still uses equipment variety and no duplicate movements
 
-        // Sort by compound first
-        const sorted = [
+        const compoundExercises = matchingExercises.filter(ex => isCompound(ex.name));
+        const isolationExercises = matchingExercises.filter(ex => isIsolation(ex.name));
+        const otherExercises = matchingExercises.filter(ex => !isCompound(ex.name) && !isIsolation(ex.name));
+
+        // Shuffle each category
+        const shuffled = [
           ...compoundExercises.sort(() => Math.random() - 0.5),
           ...isolationExercises.sort(() => Math.random() - 0.5),
           ...otherExercises.sort(() => Math.random() - 0.5)
         ];
 
-        for (const ex of sorted) {
+        for (const ex of shuffled) {
           if (structuredExercises.length >= targetExerciseCount) break;
-          if (!selectedIds.has(ex.id)) {
+          const baseMove = getBaseMovement(ex.name);
+          if (!selectedIds.has(ex.id) && !selectedMovements.has(baseMove)) {
             selectedIds.add(ex.id);
+            selectedMovements.add(baseMove);
             structuredExercises.push(ex);
           }
         }
