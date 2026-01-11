@@ -7212,6 +7212,23 @@ function selectFoodItem(index) {
         });
     }
 
+    // For egg foods, ensure we have proper egg serving sizes
+    const foodNameLower = food.name.toLowerCase();
+    if (foodNameLower.includes('egg') && !foodNameLower.includes('eggplant')) {
+        // Check if we already have an egg-related serving
+        const hasEggServing = measures.some(m =>
+            m.label.toLowerCase().includes('large') ||
+            m.label.toLowerCase().includes('whole') ||
+            m.label.toLowerCase().includes('egg')
+        );
+
+        if (!hasEggServing) {
+            // Add standard egg serving sizes (large egg = 50g, medium = 44g)
+            measures.push({ label: 'Large Egg', weight: 50, isGrams: false });
+            measures.push({ label: 'Medium Egg', weight: 44, isGrams: false });
+        }
+    }
+
     // Use first non-gram serving as default if available, otherwise 100g
     const defaultMeasure = measures.length > 1 ? measures[1] : measures[0];
     const defaultQty = defaultMeasure.isGrams ? 100 : 1;

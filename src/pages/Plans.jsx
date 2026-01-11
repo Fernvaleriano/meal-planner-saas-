@@ -914,6 +914,20 @@ Return ONLY valid JSON:
       });
     }
 
+    // For egg foods, ensure we have proper egg serving sizes
+    const foodNameLower = food.name.toLowerCase();
+    if (foodNameLower.includes('egg') && !foodNameLower.includes('eggplant')) {
+      const hasEggServing = measures.some(m =>
+        m.label.toLowerCase().includes('large') ||
+        m.label.toLowerCase().includes('whole') ||
+        m.label.toLowerCase().includes('egg')
+      );
+      if (!hasEggServing) {
+        measures.push({ label: 'Large Egg', weight: 50, isGrams: false });
+        measures.push({ label: 'Medium Egg', weight: 44, isGrams: false });
+      }
+    }
+
     const defaultMeasure = measures.length > 1 ? measures[1] : measures[0];
     const defaultQty = defaultMeasure.isGrams ? 100 : 1;
     const defaultGrams = defaultMeasure.isGrams ? 100 : defaultMeasure.weight;
