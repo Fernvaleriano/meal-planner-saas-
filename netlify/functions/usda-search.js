@@ -70,6 +70,44 @@ const LOCAL_FOODS = {
   'protein_powder_whey': { name: 'Whey Protein Powder (generic)', cal: 120, protein: 24, carbs: 3, fat: 1.5, per: '1 scoop (32g)', grams: 32 },
 };
 
+// Parse serving label from "per" field - e.g., "1 large egg (50g)" -> "Large"
+function parseServingLabel(perString, foodName) {
+  if (!perString) return null;
+
+  // Common patterns:
+  // "1 large egg (50g)" -> "Large"
+  // "1 bar (60g)" -> "Bar"
+  // "1 bottle (11.5 fl oz)" -> "Bottle"
+  // "1 cup (226g)" -> "Cup"
+  // "1 slice (45g)" -> "Slice"
+  // "1 scoop (32g)" -> "Scoop"
+  // "1 medium (118g)" -> "Medium"
+  // "1 tbsp (16g)" -> "Tbsp"
+  // "100g" -> null (just grams)
+
+  const lowerPer = perString.toLowerCase();
+
+  // Check for egg-specific serving
+  if (lowerPer.includes('egg') || foodName.toLowerCase().includes('egg')) {
+    if (lowerPer.includes('large')) return 'Large Egg';
+    if (lowerPer.includes('medium')) return 'Medium Egg';
+    if (lowerPer.includes('small')) return 'Small Egg';
+    return 'Egg';
+  }
+
+  // Match pattern: "1 X (Yg)" or "N X"
+  const match = perString.match(/^\d+\.?\d*\s+(\w+(?:\s+\w+)?)/i);
+  if (match) {
+    const unit = match[1].toLowerCase();
+    // Skip if it's just a unit of measure
+    if (['g', 'gram', 'grams', 'ml', 'oz'].includes(unit)) return null;
+    // Capitalize first letter
+    return unit.charAt(0).toUpperCase() + unit.slice(1);
+  }
+
+  return null;
+}
+
 // Search local database - returns actual serving sizes
 function searchLocalDatabase(query) {
   const searchTerms = query.toLowerCase().split(' ');
@@ -81,6 +119,16 @@ function searchLocalDatabase(query) {
 
     if (matches) {
       const grams = food.grams || 100;
+
+      // Build measures array with proper serving size
+      const measures = [];
+      const servingLabel = parseServingLabel(food.per, food.name);
+      if (servingLabel && grams !== 100) {
+        measures.push({
+          label: servingLabel,
+          weight: grams
+        });
+      }
 
       results.push({
         fdcId: `local_${key}`,
@@ -99,6 +147,8 @@ function searchLocalDatabase(query) {
         proteinPer100g: Math.round(food.protein * 100 / grams * 10) / 10,
         carbsPer100g: Math.round(food.carbs * 100 / grams * 10) / 10,
         fatPer100g: Math.round(food.fat * 100 / grams * 10) / 10,
+        // Include measures array for UI dropdown
+        measures: measures,
         source: 'local'
       });
     }
@@ -111,8 +161,8 @@ function searchLocalDatabase(query) {
 function getBestServing(measures) {
   if (!measures || measures.length === 0) return null;
 
-  // Priority order for serving types
-  const priority = ['serving', 'container', 'package', 'bar', 'bottle', 'cup', 'piece', 'slice', 'tablespoon', 'ounce', 'gram'];
+  // Priority order for serving types - includes egg sizes and common units
+  const priority = ['large', 'whole', 'egg', 'medium', 'small', 'serving', 'container', 'package', 'bar', 'bottle', 'cup', 'piece', 'slice', 'tablespoon', 'ounce', 'gram'];
 
   for (const type of priority) {
     const measure = measures.find(m => m.label && m.label.toLowerCase().includes(type));
