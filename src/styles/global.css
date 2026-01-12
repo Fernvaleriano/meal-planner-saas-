@@ -12710,6 +12710,12 @@ a.nav-left {
 /* Workout Content */
 .workout-content {
     padding: 0 0 20px;
+    transition: opacity 0.2s ease;
+}
+
+.workout-content.refreshing {
+    opacity: 0.7;
+    pointer-events: none;
 }
 
 .exercises-section {

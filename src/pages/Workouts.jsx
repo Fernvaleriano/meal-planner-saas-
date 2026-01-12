@@ -128,6 +128,7 @@ function Workouts() {
   const menuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
   const selectedExerciseRef = useRef(null);
+  const isRefreshingRef = useRef(false);
 
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
@@ -156,6 +157,9 @@ function Workouts() {
   // Pull-to-refresh: Refresh workout data
   const refreshWorkoutData = useCallback(async () => {
     if (!clientData?.id) return;
+
+    // Mark refresh as in progress to prevent useEffect from setting loading = true
+    isRefreshingRef.current = true;
 
     try {
       await ensureFreshSession();
@@ -192,6 +196,8 @@ function Workouts() {
     } catch (err) {
       console.error('Error refreshing workout:', err);
       setError('Failed to load workout');
+    } finally {
+      isRefreshingRef.current = false;
     }
   }, [clientData?.id, selectedDate]);
 
@@ -205,6 +211,12 @@ function Workouts() {
     const fetchWorkout = async () => {
       if (!clientData?.id) {
         setLoading(false);
+        return;
+      }
+
+      // Skip fetching if a pull-to-refresh is in progress to avoid race conditions
+      // This prevents the loading state from being set during refresh, which would hide the content
+      if (isRefreshingRef.current) {
         return;
       }
 
@@ -1213,7 +1225,7 @@ function Workouts() {
       </div>
 
       {/* Exercise List Section */}
-      <div className="workout-content">
+      <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
         <div className="exercises-list-v2">
           {loading ? (
             <div className="loading-state-v2">
