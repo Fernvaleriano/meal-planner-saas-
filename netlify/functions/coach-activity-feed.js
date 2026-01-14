@@ -40,7 +40,15 @@ exports.handler = async (event) => {
 
     // Build the query for diary entries - fetch more than limit to account for grouping
     // We'll fetch extra entries to ensure we have enough meals after grouping
-    const fetchLimit = parseInt(limit, 10) * 5; // Fetch 5x to account for multiple items per meal
+    // Use a higher multiplier (10x) to ensure we can paginate back through a week+ of history
+    const parsedLimit = parseInt(limit, 10);
+    const parsedOffset = parseInt(offset, 10);
+    const fetchMultiplier = 10; // Fetch 10x to account for multiple items per meal
+    const fetchLimit = parsedLimit * fetchMultiplier;
+
+    // Calculate database-level offset based on the meal offset
+    // Since meals group multiple entries, we estimate entries per meal offset
+    const dbOffset = parsedOffset * fetchMultiplier;
 
     let query = supabase
       .from('food_diary_entries')
@@ -62,7 +70,7 @@ exports.handler = async (event) => {
       `)
       .eq('coach_id', coachId)
       .order('created_at', { ascending: false })
-      .limit(fetchLimit);
+      .range(dbOffset, dbOffset + fetchLimit - 1);
 
     // Apply filters
     if (clientId) {
@@ -83,7 +91,7 @@ exports.handler = async (event) => {
 
     const { data: entries, error: entriesError } = await query;
 
-    console.log('coach-activity-feed: coachId=', coachId, 'entries found=', entries?.length || 0);
+    console.log('coach-activity-feed: coachId=', coachId, 'offset=', parsedOffset, 'dbOffset=', dbOffset, 'entries found=', entries?.length || 0);
 
     if (entriesError) {
       console.error('Error fetching entries:', entriesError);
@@ -232,11 +240,13 @@ exports.handler = async (event) => {
     let meals = Array.from(mealsMap.values())
       .sort((a, b) => new Date(b.latestCreatedAt) - new Date(a.latestCreatedAt));
 
-    // Apply pagination to grouped meals
-    const startIdx = parseInt(offset, 10);
-    const endIdx = startIdx + parseInt(limit, 10);
-    const paginatedMeals = meals.slice(startIdx, endIdx);
-    const hasMore = endIdx < meals.length;
+    // Since we're using database-level offset now, we just take the first 'limit' meals
+    // The database query already skipped older entries based on dbOffset
+    const paginatedMeals = meals.slice(0, parsedLimit);
+
+    // hasMore is true if we got enough entries to potentially have more meals
+    // We fetch extra entries, so if we have more than the limit, there's likely more
+    const hasMore = meals.length >= parsedLimit;
 
     // Round the totals
     paginatedMeals.forEach(meal => {
