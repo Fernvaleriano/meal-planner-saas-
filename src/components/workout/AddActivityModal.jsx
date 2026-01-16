@@ -70,6 +70,39 @@ const DIFFICULTY_OPTIONS = [
   { value: 'advanced', label: 'Advanced' },
 ];
 
+// Muscle group synonyms - maps filter values to all possible database values
+const MUSCLE_SYNONYMS = {
+  chest: ['chest', 'pec', 'pecs', 'pectoral', 'pectorals'],
+  back: ['back', 'lat', 'lats', 'latissimus', 'rhomboid', 'rhomboids', 'traps', 'trapezius'],
+  shoulders: ['shoulder', 'shoulders', 'delt', 'delts', 'deltoid', 'deltoids'],
+  biceps: ['bicep', 'biceps'],
+  triceps: ['tricep', 'triceps'],
+  legs: ['leg', 'legs', 'quad', 'quads', 'quadriceps', 'hamstring', 'hamstrings', 'calf', 'calves'],
+  glutes: ['glute', 'glutes', 'gluteus', 'gluteal'],
+  core: ['core', 'ab', 'abs', 'abdominal', 'abdominals', 'oblique', 'obliques'],
+  cardio: ['cardio', 'cardiovascular', 'aerobic'],
+};
+
+// Equipment synonyms - maps filter values to possible database values
+const EQUIPMENT_SYNONYMS = {
+  barbell: ['barbell', 'bar', 'olympic bar'],
+  dumbbell: ['dumbbell', 'dumbbells', 'db', 'dbs'],
+  cable: ['cable', 'cables', 'cable machine'],
+  machine: ['machine', 'machines'],
+  bodyweight: ['bodyweight', 'body weight', 'none', 'no equipment'],
+  kettlebell: ['kettlebell', 'kettlebells', 'kb'],
+  'resistance band': ['resistance band', 'resistance bands', 'band', 'bands'],
+  bench: ['bench'],
+};
+
+// Check if a value matches any synonym
+const matchesSynonyms = (value, filterKey, synonymMap) => {
+  if (!value || !filterKey) return false;
+  const valueLower = value.toLowerCase();
+  const synonyms = synonymMap[filterKey.toLowerCase()] || [filterKey.toLowerCase()];
+  return synonyms.some(syn => valueLower.includes(syn) || syn.includes(valueLower));
+};
+
 function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,24 +214,22 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
         return !existingExerciseIds.includes(ex.id);
       });
 
-      // Filter by muscle group
+      // Filter by muscle group (with synonym matching)
       if (selectedMuscle) {
         results = results.filter(ex => {
           try {
-            const muscle = (ex.muscle_group || '').toLowerCase();
-            return muscle.includes(selectedMuscle.toLowerCase());
+            return matchesSynonyms(ex.muscle_group, selectedMuscle, MUSCLE_SYNONYMS);
           } catch {
             return false;
           }
         });
       }
 
-      // Filter by equipment
+      // Filter by equipment (with synonym matching)
       if (selectedEquipment) {
         results = results.filter(ex => {
           try {
-            const equipment = (ex.equipment || '').toLowerCase();
-            return equipment.includes(selectedEquipment.toLowerCase());
+            return matchesSynonyms(ex.equipment, selectedEquipment, EQUIPMENT_SYNONYMS);
           } catch {
             return false;
           }
