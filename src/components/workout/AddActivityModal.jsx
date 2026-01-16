@@ -85,14 +85,14 @@ const MUSCLE_SYNONYMS = {
 
 // Equipment synonyms - maps filter values to possible database values
 const EQUIPMENT_SYNONYMS = {
-  barbell: ['barbell', 'olympic bar', 'ez bar', 'ez-bar'],
+  barbell: ['barbell', 'olympic bar', 'ez bar', 'ez-bar', 'trap bar'],
   dumbbell: ['dumbbell', 'dumbbells', 'dumb bell', 'dumb bells', 'db', 'dbs', 'd.b.', 'free weight', 'free weights'],
-  cable: ['cable', 'cables', 'cable machine'],
-  machine: ['machine', 'machines'],
-  bodyweight: ['bodyweight', 'body weight', 'none', 'no equipment', 'bw'],
+  cable: ['cable', 'cables', 'cable machine', 'cable pulley', 'cable pulley machine', 'pulley'],
+  machine: ['machine', 'machines', 'cable pulley machine', 'leg press', 'smith machine', 'chest press machine', 'lat pulldown'],
+  bodyweight: ['bodyweight', 'body weight', 'none', 'no equipment', 'bw', 'yoga mat', 'mat'],
   kettlebell: ['kettlebell', 'kettlebells', 'kettle bell', 'kb'],
-  'resistance band': ['resistance band', 'resistance bands', 'band', 'bands', 'elastic'],
-  bench: ['bench'],
+  'resistance band': ['resistance band', 'resistance bands', 'band', 'bands', 'elastic', 'tube'],
+  bench: ['bench', 'flat bench', 'incline bench', 'decline bench'],
 };
 
 // Check if a value matches any synonym - with safe error handling
