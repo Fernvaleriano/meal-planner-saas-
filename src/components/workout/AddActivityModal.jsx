@@ -51,7 +51,8 @@ const MUSCLE_GROUPS = [
   { value: 'cardio', label: 'Cardio' },
 ];
 
-const EQUIPMENT_OPTIONS = [
+// These are now just fallback options - we'll build dynamic options from the data
+const DEFAULT_EQUIPMENT_OPTIONS = [
   { value: '', label: 'All equipment' },
   { value: 'barbell', label: 'Barbell' },
   { value: 'dumbbell', label: 'Dumbbells' },
@@ -70,7 +71,7 @@ const DIFFICULTY_OPTIONS = [
   { value: 'advanced', label: 'Advanced' },
 ];
 
-// Muscle group synonyms - maps filter values to all possible database values
+// Muscle group synonyms for matching
 const MUSCLE_SYNONYMS = {
   chest: ['chest', 'pec', 'pecs', 'pectoral', 'pectorals'],
   back: ['back', 'lat', 'lats', 'latissimus', 'rhomboid', 'rhomboids', 'traps', 'trapezius'],
@@ -83,48 +84,16 @@ const MUSCLE_SYNONYMS = {
   cardio: ['cardio', 'cardiovascular', 'aerobic'],
 };
 
-// Equipment synonyms - maps filter values to possible database values
-const EQUIPMENT_SYNONYMS = {
-  barbell: ['barbell', 'olympic bar', 'ez bar', 'ez-bar', 'trap bar'],
-  dumbbell: ['dumbbell', 'dumbbells', 'dumb bell', 'dumb bells', 'db', 'dbs', 'd.b.', 'free weight', 'free weights'],
-  cable: ['cable', 'cables', 'cable machine', 'cable pulley', 'cable pulley machine', 'pulley'],
-  machine: ['machine', 'machines', 'cable pulley machine', 'leg press', 'smith machine', 'chest press machine', 'lat pulldown'],
-  bodyweight: ['bodyweight', 'body weight', 'none', 'no equipment', 'bw', 'yoga mat', 'mat'],
-  kettlebell: ['kettlebell', 'kettlebells', 'kettle bell', 'kb'],
-  'resistance band': ['resistance band', 'resistance bands', 'band', 'bands', 'elastic', 'tube'],
-  bench: ['bench', 'flat bench', 'incline bench', 'decline bench'],
-};
+// Check if a muscle value matches the filter
+const matchesMuscle = (value, filterKey) => {
+  if (!value || !filterKey) return false;
+  if (typeof value !== 'string' || typeof filterKey !== 'string') return false;
 
-// Check if a value matches any synonym - with safe error handling
-const matchesSynonyms = (value, filterKey, synonymMap) => {
-  try {
-    // Safety checks
-    if (value === null || value === undefined || value === '') return false;
-    if (filterKey === null || filterKey === undefined || filterKey === '') return false;
-    if (typeof value !== 'string' || typeof filterKey !== 'string') return false;
+  const valueLower = value.toLowerCase().trim();
+  const filterLower = filterKey.toLowerCase().trim();
+  const synonyms = MUSCLE_SYNONYMS[filterLower] || [filterLower];
 
-    const valueLower = value.toLowerCase().trim();
-    const filterLower = filterKey.toLowerCase().trim();
-    const synonyms = synonymMap[filterLower] || [filterLower];
-
-    // Check if the value matches any synonym
-    const synonymMatch = synonyms.some(syn => {
-      if (typeof syn !== 'string') return false;
-      // Check for exact match or if value contains the synonym as a word
-      return valueLower === syn ||
-             valueLower.includes(syn) ||
-             syn.includes(valueLower);
-    });
-
-    if (synonymMatch) return true;
-
-    // Fallback: simple substring match with the filter key itself
-    // This catches cases where database has values we didn't anticipate
-    return valueLower.includes(filterLower) || filterLower.includes(valueLower);
-  } catch (err) {
-    console.error('Error in matchesSynonyms:', err);
-    return false;
-  }
+  return synonyms.some(syn => valueLower.includes(syn) || syn.includes(valueLower));
 };
 
 function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
@@ -226,6 +195,31 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     };
   }, []);
 
+  // Build dynamic equipment options from the actual exercise data
+  const equipmentOptions = useMemo(() => {
+    if (!exercises || exercises.length === 0) {
+      return DEFAULT_EQUIPMENT_OPTIONS;
+    }
+
+    // Extract unique equipment values from exercises
+    const uniqueEquipment = new Set();
+    exercises.forEach(ex => {
+      if (ex.equipment && typeof ex.equipment === 'string' && ex.equipment.trim()) {
+        uniqueEquipment.add(ex.equipment.trim());
+      }
+    });
+
+    // Sort alphabetically and create options
+    const sortedEquipment = Array.from(uniqueEquipment).sort();
+    const options = [{ value: '', label: 'All equipment' }];
+
+    sortedEquipment.forEach(equip => {
+      options.push({ value: equip, label: equip });
+    });
+
+    return options.length > 1 ? options : DEFAULT_EQUIPMENT_OPTIONS;
+  }, [exercises]);
+
   // Filter exercises - memoized with fuzzy search
   const filteredExercises = useMemo(() => {
     try {
@@ -242,21 +236,19 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
       if (selectedMuscle) {
         results = results.filter(ex => {
           try {
-            return matchesSynonyms(ex.muscle_group, selectedMuscle, MUSCLE_SYNONYMS);
+            return matchesMuscle(ex.muscle_group, selectedMuscle);
           } catch {
             return false;
           }
         });
       }
 
-      // Filter by equipment (with synonym matching)
+      // Filter by equipment (direct match since we use actual values from database)
       if (selectedEquipment) {
         results = results.filter(ex => {
-          try {
-            return matchesSynonyms(ex.equipment, selectedEquipment, EQUIPMENT_SYNONYMS);
-          } catch {
-            return false;
-          }
+          if (!ex.equipment) return false;
+          // Direct case-insensitive match
+          return ex.equipment.toLowerCase().trim() === selectedEquipment.toLowerCase().trim();
         });
       }
 
@@ -420,14 +412,14 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
             <ChevronDown size={14} className="filter-chip-arrow" />
           </div>
 
-          {/* Equipment Filter */}
+          {/* Equipment Filter - uses actual values from database */}
           <div className="filter-chip-wrapper">
             <select
               className={`filter-chip ${selectedEquipment ? 'active' : ''}`}
               value={selectedEquipment}
               onChange={(e) => setSelectedEquipment(e.target.value)}
             >
-              {EQUIPMENT_OPTIONS.map(equip => (
+              {equipmentOptions.map(equip => (
                 <option key={equip.value} value={equip.value}>
                   {equip.label}
                 </option>
