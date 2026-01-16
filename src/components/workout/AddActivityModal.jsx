@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { X, Search, Loader2, Plus, Mic, MicOff } from 'lucide-react';
+import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
 // Fuzzy search - score how well a query matches an exercise
@@ -10,7 +10,8 @@ const fuzzyScore = (exercise, query) => {
   const name = (exercise.name || '').toLowerCase();
   const equipment = (exercise.equipment || '').toLowerCase();
   const muscle = (exercise.muscle_group || '').toLowerCase();
-  const fullText = `${name} ${equipment} ${muscle}`;
+  const difficulty = (exercise.difficulty || '').toLowerCase();
+  const fullText = `${name} ${equipment} ${muscle} ${difficulty}`;
 
   let score = 0;
 
@@ -38,7 +39,7 @@ const fuzzyScore = (exercise, query) => {
 };
 
 const MUSCLE_GROUPS = [
-  { value: '', label: 'All' },
+  { value: '', label: 'All muscles' },
   { value: 'chest', label: 'Chest' },
   { value: 'back', label: 'Back' },
   { value: 'shoulders', label: 'Shoulders' },
@@ -50,11 +51,32 @@ const MUSCLE_GROUPS = [
   { value: 'cardio', label: 'Cardio' },
 ];
 
+const EQUIPMENT_OPTIONS = [
+  { value: '', label: 'All equipment' },
+  { value: 'barbell', label: 'Barbell' },
+  { value: 'dumbbell', label: 'Dumbbells' },
+  { value: 'cable', label: 'Cable' },
+  { value: 'machine', label: 'Machine' },
+  { value: 'bodyweight', label: 'Bodyweight' },
+  { value: 'kettlebell', label: 'Kettlebell' },
+  { value: 'resistance band', label: 'Resistance Band' },
+  { value: 'bench', label: 'Bench' },
+];
+
+const DIFFICULTY_OPTIONS = [
+  { value: '', label: 'All levels' },
+  { value: 'beginner', label: 'Beginner' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'advanced', label: 'Advanced' },
+];
+
 function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('');
+  const [selectedEquipment, setSelectedEquipment] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -171,6 +193,30 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
         });
       }
 
+      // Filter by equipment
+      if (selectedEquipment) {
+        results = results.filter(ex => {
+          try {
+            const equipment = (ex.equipment || '').toLowerCase();
+            return equipment.includes(selectedEquipment.toLowerCase());
+          } catch {
+            return false;
+          }
+        });
+      }
+
+      // Filter by difficulty
+      if (selectedDifficulty) {
+        results = results.filter(ex => {
+          try {
+            const difficulty = (ex.difficulty || '').toLowerCase();
+            return difficulty === selectedDifficulty.toLowerCase();
+          } catch {
+            return false;
+          }
+        });
+      }
+
       // Fuzzy search - smarter matching
       if (searchQuery && searchQuery.trim()) {
         // Score each exercise and filter those with score > 0
@@ -191,7 +237,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
       console.error('Error filtering exercises:', err);
       return [];
     }
-  }, [exercises, selectedMuscle, searchQuery, existingExerciseIds]);
+  }, [exercises, selectedMuscle, selectedEquipment, selectedDifficulty, searchQuery, existingExerciseIds]);
 
   // Handle exercise selection - with mobile Safari protection
   const handleSelect = useCallback((e, exercise) => {
@@ -285,7 +331,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
           <Search size={18} />
           <input
             type="text"
-            placeholder="Search exercises... (e.g. bench press)"
+            placeholder="Search activities"
             value={searchQuery}
             onChange={handleSearchChange}
           />
@@ -301,18 +347,55 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
           )}
         </div>
 
-        {/* Muscle Group Filter Pills - larger touch targets */}
-        <div className="muscle-filter-pills">
-          {MUSCLE_GROUPS.map(muscle => (
-            <button
-              key={muscle.value}
-              className={`muscle-filter-pill ${selectedMuscle === muscle.value ? 'active' : ''}`}
-              onClick={() => setSelectedMuscle(muscle.value)}
-              type="button"
+        {/* Filter Chips Row */}
+        <div className="activity-filter-chips">
+          {/* Muscle Group Filter */}
+          <div className="filter-chip-wrapper">
+            <select
+              className={`filter-chip ${selectedMuscle ? 'active' : ''}`}
+              value={selectedMuscle}
+              onChange={(e) => setSelectedMuscle(e.target.value)}
             >
-              {muscle.label}
-            </button>
-          ))}
+              {MUSCLE_GROUPS.map(muscle => (
+                <option key={muscle.value} value={muscle.value}>
+                  {muscle.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="filter-chip-arrow" />
+          </div>
+
+          {/* Equipment Filter */}
+          <div className="filter-chip-wrapper">
+            <select
+              className={`filter-chip ${selectedEquipment ? 'active' : ''}`}
+              value={selectedEquipment}
+              onChange={(e) => setSelectedEquipment(e.target.value)}
+            >
+              {EQUIPMENT_OPTIONS.map(equip => (
+                <option key={equip.value} value={equip.value}>
+                  {equip.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="filter-chip-arrow" />
+          </div>
+
+          {/* Difficulty/Level Filter */}
+          <div className="filter-chip-wrapper">
+            <select
+              className={`filter-chip ${selectedDifficulty ? 'active' : ''}`}
+              value={selectedDifficulty}
+              onChange={(e) => setSelectedDifficulty(e.target.value)}
+            >
+              {DIFFICULTY_OPTIONS.map(diff => (
+                <option key={diff.value} value={diff.value}>
+                  {diff.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="filter-chip-arrow" />
+          </div>
         </div>
 
         {/* Exercise List */}
