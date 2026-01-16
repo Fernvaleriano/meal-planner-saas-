@@ -85,22 +85,40 @@ const MUSCLE_SYNONYMS = {
 
 // Equipment synonyms - maps filter values to possible database values
 const EQUIPMENT_SYNONYMS = {
-  barbell: ['barbell', 'bar', 'olympic bar'],
-  dumbbell: ['dumbbell', 'dumbbells', 'db', 'dbs'],
+  barbell: ['barbell', 'olympic bar', 'ez bar', 'ez-bar'],
+  dumbbell: ['dumbbell', 'dumbbells', 'dumb bell', 'dumb bells', 'db', 'dbs', 'd.b.', 'free weight', 'free weights'],
   cable: ['cable', 'cables', 'cable machine'],
   machine: ['machine', 'machines'],
-  bodyweight: ['bodyweight', 'body weight', 'none', 'no equipment'],
-  kettlebell: ['kettlebell', 'kettlebells', 'kb'],
-  'resistance band': ['resistance band', 'resistance bands', 'band', 'bands'],
+  bodyweight: ['bodyweight', 'body weight', 'none', 'no equipment', 'bw'],
+  kettlebell: ['kettlebell', 'kettlebells', 'kettle bell', 'kb'],
+  'resistance band': ['resistance band', 'resistance bands', 'band', 'bands', 'elastic'],
   bench: ['bench'],
 };
 
-// Check if a value matches any synonym
+// Check if a value matches any synonym - with safe error handling
 const matchesSynonyms = (value, filterKey, synonymMap) => {
-  if (!value || !filterKey) return false;
-  const valueLower = value.toLowerCase();
-  const synonyms = synonymMap[filterKey.toLowerCase()] || [filterKey.toLowerCase()];
-  return synonyms.some(syn => valueLower.includes(syn) || syn.includes(valueLower));
+  try {
+    // Safety checks
+    if (value === null || value === undefined || value === '') return false;
+    if (filterKey === null || filterKey === undefined || filterKey === '') return false;
+    if (typeof value !== 'string' || typeof filterKey !== 'string') return false;
+
+    const valueLower = value.toLowerCase().trim();
+    const filterLower = filterKey.toLowerCase().trim();
+    const synonyms = synonymMap[filterLower] || [filterLower];
+
+    // Check if the value matches any synonym
+    return synonyms.some(syn => {
+      if (typeof syn !== 'string') return false;
+      // Check for exact match or if value contains the synonym as a word
+      return valueLower === syn ||
+             valueLower.includes(syn) ||
+             syn.includes(valueLower);
+    });
+  } catch (err) {
+    console.error('Error in matchesSynonyms:', err);
+    return false;
+  }
 };
 
 function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
