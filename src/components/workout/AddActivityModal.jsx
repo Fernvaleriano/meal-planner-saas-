@@ -108,13 +108,19 @@ const matchesSynonyms = (value, filterKey, synonymMap) => {
     const synonyms = synonymMap[filterLower] || [filterLower];
 
     // Check if the value matches any synonym
-    return synonyms.some(syn => {
+    const synonymMatch = synonyms.some(syn => {
       if (typeof syn !== 'string') return false;
       // Check for exact match or if value contains the synonym as a word
       return valueLower === syn ||
              valueLower.includes(syn) ||
              syn.includes(valueLower);
     });
+
+    if (synonymMatch) return true;
+
+    // Fallback: simple substring match with the filter key itself
+    // This catches cases where database has values we didn't anticipate
+    return valueLower.includes(filterLower) || filterLower.includes(valueLower);
   } catch (err) {
     console.error('Error in matchesSynonyms:', err);
     return false;
