@@ -19415,6 +19415,104 @@ a.nav-left {
     box-shadow: 0 2px 8px rgba(13, 148, 136, 0.4);
 }
 
+/* Activity Filter Chips - dropdown style like reference app */
+.activity-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .activity-filter-chips {
+    background: #1e293b;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.filter-chip-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.filter-chip {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 20px;
+    padding: 8px 32px 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: fit-content;
+    white-space: nowrap;
+}
+
+.filter-chip:hover {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+}
+
+.filter-chip:focus {
+    outline: none;
+    border-color: #0d9488;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+}
+
+.filter-chip.active {
+    background: rgba(13, 148, 136, 0.2);
+    border-color: #0d9488;
+    color: #14b8a6;
+}
+
+/* Light theme filter chips */
+[data-theme="light"] .filter-chip,
+:root:not([data-theme="dark"]) .filter-chip {
+    background: white;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-700);
+}
+
+[data-theme="light"] .filter-chip:hover,
+:root:not([data-theme="dark"]) .filter-chip:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+}
+
+[data-theme="light"] .filter-chip.active,
+:root:not([data-theme="dark"]) .filter-chip.active {
+    background: rgba(13, 148, 136, 0.1);
+    border-color: #0d9488;
+    color: #0d9488;
+}
+
+.filter-chip-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #888;
+}
+
+[data-theme="light"] .filter-chip-arrow,
+:root:not([data-theme="dark"]) .filter-chip-arrow {
+    color: var(--gray-500);
+}
+
+.filter-chip.active + .filter-chip-arrow {
+    color: #14b8a6;
+}
+
+[data-theme="light"] .filter-chip.active + .filter-chip-arrow,
+:root:not([data-theme="dark"]) .filter-chip.active + .filter-chip-arrow {
+    color: #0d9488;
+}
+
 .add-exercise-list {
     flex: 1;
     overflow-y: auto;
