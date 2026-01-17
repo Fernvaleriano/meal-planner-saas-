@@ -2,7 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const BUCKET_NAME = 'exercise-thumbnails';
+const BUCKET_NAME = 'exercise-videos';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
