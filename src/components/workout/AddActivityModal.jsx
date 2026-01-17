@@ -168,7 +168,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
       setLoading(true);
 
       try {
-        const res = await apiGet('/.netlify/functions/exercises?limit=500');
+        const res = await apiGet('/.netlify/functions/exercises?limit=3000');
 
         if (!isMountedRef.current) return;
 
