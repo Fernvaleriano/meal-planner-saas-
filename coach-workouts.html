@@ -662,6 +662,30 @@
             letter-spacing: 0.05em;
         }
 
+        .exercise-notes {
+            margin-top: 8px;
+        }
+
+        .notes-input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .notes-input::placeholder {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .notes-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
         .add-exercise-btn {
             width: 100%;
             padding: 16px;
@@ -1712,6 +1736,7 @@
                     <div class="form-group">
                         <label class="form-label">Days Per Week</label>
                         <select class="form-select" id="daysPerWeek">
+                            <option value="1">1 day</option>
                             <option value="2">2 days</option>
                             <option value="3">3 days</option>
                             <option value="4" selected>4 days</option>
@@ -2506,6 +2531,9 @@
                                 <input type="number" class="config-input" value="${exercise.restSeconds || 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
                                 <span class="config-label">Rest</span>
                             </div>
+                        </div>
+                        <div class="exercise-notes">
+                            <input type="text" class="notes-input" value="${exercise.notes || ''}" placeholder="Add notes (e.g., tempo, form tips...)" onchange="updateExercise(${dayIndex}, ${exIndex}, 'notes', this.value)">
                         </div>
                     </div>
                     <div class="exercise-actions">
