@@ -72,16 +72,17 @@ const DIFFICULTY_OPTIONS = [
 ];
 
 // Muscle group synonyms for matching
+// Note: Import script maps glute/hamstring/quad/calf to 'legs', and bicep/tricep to 'arms'
 const MUSCLE_SYNONYMS = {
   chest: ['chest', 'pec', 'pecs', 'pectoral', 'pectorals'],
   back: ['back', 'lat', 'lats', 'latissimus', 'rhomboid', 'rhomboids', 'traps', 'trapezius'],
   shoulders: ['shoulder', 'shoulders', 'delt', 'delts', 'deltoid', 'deltoids'],
-  biceps: ['bicep', 'biceps'],
-  triceps: ['tricep', 'triceps'],
-  legs: ['leg', 'legs', 'quad', 'quads', 'quadriceps', 'hamstring', 'hamstrings', 'calf', 'calves'],
-  glutes: ['glute', 'glutes', 'gluteus', 'gluteal'],
+  biceps: ['bicep', 'biceps', 'arms', 'arm'],
+  triceps: ['tricep', 'triceps', 'arms', 'arm'],
+  legs: ['leg', 'legs', 'quad', 'quads', 'quadriceps', 'hamstring', 'hamstrings', 'calf', 'calves', 'glute', 'glutes', 'gluteus', 'gluteal', 'thigh', 'thighs'],
+  glutes: ['glute', 'glutes', 'gluteus', 'gluteal', 'legs', 'leg'],
   core: ['core', 'ab', 'abs', 'abdominal', 'abdominals', 'oblique', 'obliques'],
-  cardio: ['cardio', 'cardiovascular', 'aerobic'],
+  cardio: ['cardio', 'cardiovascular', 'aerobic', 'full_body', 'full body'],
 };
 
 // Check if a muscle value matches the filter
