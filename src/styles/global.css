@@ -12820,7 +12820,7 @@ a.nav-left {
 }
 
 .rest-day-add-btn,
-.rest-day-ai-btn {
+.rest-day-create-btn {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -12844,18 +12844,18 @@ a.nav-left {
     transform: translateY(-2px);
 }
 
-.rest-day-ai-btn {
+.rest-day-create-btn {
     background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
 }
 
-.rest-day-ai-btn:hover {
+.rest-day-create-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(13, 148, 136, 0.5);
 }
 
-.rest-day-ai-btn:active,
+.rest-day-create-btn:active,
 .rest-day-add-btn:active {
     transform: translateY(0);
 }
@@ -19419,6 +19419,7 @@ a.nav-left {
 .activity-filter-chips {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: 8px;
     padding: 12px 16px;
     background: var(--gray-50);
@@ -19434,6 +19435,9 @@ a.nav-left {
     position: relative;
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
+    flex-grow: 0;
+    width: fit-content;
 }
 
 .filter-chip {
@@ -20152,4 +20156,343 @@ a.nav-left {
 
 .swipe-move-btn.disabled:active {
     background: #4b5563;
+}
+
+/* ========================================
+   CREATE WORKOUT MODAL - Client Side
+   ======================================== */
+.create-workout-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px;
+    padding-top: env(safe-area-inset-top, 20px);
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+}
+
+.create-workout-modal {
+    background: #0f172a;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    animation: slideUpFade 0.3s ease;
+    max-height: calc(100vh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+
+.create-workout-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.create-workout-header h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+}
+
+.create-workout-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.create-workout-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.create-workout-save {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #64748b;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    transition: all 0.2s;
+}
+
+.create-workout-save.active {
+    background: var(--brand-primary, #14b8a6);
+    color: white;
+    cursor: pointer;
+}
+
+.create-workout-save.active:hover {
+    background: var(--brand-primary-dark, #0d9488);
+}
+
+.create-workout-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.create-workout-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.create-workout-name-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.create-workout-name-input:focus {
+    outline: none;
+    border-color: var(--brand-primary, #14b8a6);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.create-workout-name-input::placeholder {
+    color: #64748b;
+}
+
+.create-workout-exercises {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.create-workout-exercises-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.create-workout-exercises-header h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.create-workout-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #475569;
+    text-align: center;
+    gap: 12px;
+}
+
+.create-workout-empty p {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #64748b;
+    margin: 0;
+}
+
+.create-workout-empty span {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.create-workout-exercise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.create-workout-exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.exercise-drag-handle {
+    color: #475569;
+    cursor: grab;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.create-workout-exercise-item .exercise-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #1e293b;
+}
+
+.create-workout-exercise-item .exercise-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.create-workout-exercise-item .exercise-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.create-workout-exercise-item .exercise-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.create-workout-exercise-item .exercise-config {
+    display: flex;
+    gap: 12px;
+}
+
+.create-workout-exercise-item .config-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.create-workout-exercise-item .config-item label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.create-workout-exercise-item .config-item input {
+    width: 50px;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: white;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.create-workout-exercise-item .config-item input:focus {
+    outline: none;
+    border-color: var(--brand-primary, #14b8a6);
+}
+
+.exercise-remove-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    opacity: 0.6;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.exercise-remove-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    opacity: 1;
+}
+
+.create-workout-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: transparent;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: var(--brand-primary, #14b8a6);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+}
+
+.create-workout-add-btn:hover {
+    border-color: var(--brand-primary, #14b8a6);
+    background: rgba(20, 184, 166, 0.1);
+}
+
+/* Light theme */
+[data-theme="light"] .create-workout-modal {
+    background: white;
+}
+
+[data-theme="light"] .create-workout-header {
+    border-color: var(--gray-200);
+}
+
+[data-theme="light"] .create-workout-header h2 {
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .create-workout-name-input {
+    background: var(--gray-50);
+    border-color: var(--gray-200);
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .create-workout-name-input::placeholder {
+    color: var(--gray-400);
+}
+
+[data-theme="light"] .create-workout-exercise-item {
+    background: var(--gray-50);
+    border-color: var(--gray-200);
+}
+
+[data-theme="light"] .create-workout-exercise-item .exercise-name {
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .create-workout-exercise-item .exercise-thumb {
+    background: var(--gray-100);
+}
+
+[data-theme="light"] .create-workout-exercise-item .config-item input {
+    background: white;
+    border-color: var(--gray-200);
+    color: var(--gray-900);
+}
+
+[data-theme="light"] .create-workout-add-btn {
+    border-color: var(--gray-300);
 }
