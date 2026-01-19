@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
+import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -123,6 +124,7 @@ function Workouts() {
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
+  const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const menuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
   const selectedExerciseRef = useRef(null);
@@ -513,6 +515,47 @@ function Workouts() {
       console.error('Error adding exercise:', err);
     });
   }, [clientData?.id, selectedDate]); // Added dependencies for ad-hoc workout creation
+
+  // Handle creating a full workout from the CreateWorkoutModal
+  const handleCreateWorkout = useCallback(async (workoutData) => {
+    if (!workoutData?.exercises?.length) return;
+
+    const dateStr = formatDate(selectedDate);
+    const workoutName = workoutData.name || 'My Workout';
+    const newWorkout = {
+      id: `custom-${dateStr}-${Date.now()}`,
+      client_id: clientData?.id,
+      workout_date: dateStr,
+      name: workoutName,
+      day_index: 0,
+      workout_data: workoutData,
+      is_adhoc: true
+    };
+
+    // Update local state with new workout
+    setTodayWorkout(newWorkout);
+    setShowCreateWorkout(false);
+
+    // Create ad-hoc workout in backend using dedicated endpoint
+    try {
+      const res = await apiPost('/.netlify/functions/adhoc-workouts', {
+        clientId: clientData?.id,
+        workoutDate: dateStr,
+        workoutData: workoutData,
+        name: workoutName
+      });
+
+      if (res?.workout) {
+        // Update with real workout ID from backend
+        setTodayWorkout(prev => ({
+          ...prev,
+          id: res.workout.id
+        }));
+      }
+    } catch (err) {
+      console.error('Error saving workout:', err);
+    }
+  }, [clientData?.id, selectedDate]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {
@@ -1256,6 +1299,13 @@ function Workouts() {
                   <Plus size={18} />
                   <span>Add Activity</span>
                 </button>
+                <button
+                  className="rest-day-create-btn"
+                  onClick={() => setShowCreateWorkout(true)}
+                >
+                  <PenSquare size={18} />
+                  <span>Create Workout</span>
+                </button>
               </div>
             </div>
           )}
@@ -1376,6 +1426,15 @@ function Workouts() {
           onAdd={handleAddExercise}
           onClose={() => setShowAddActivity(false)}
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
+        />
+      )}
+
+      {/* Create Workout Modal */}
+      {showCreateWorkout && (
+        <CreateWorkoutModal
+          onClose={() => setShowCreateWorkout(false)}
+          onCreateWorkout={handleCreateWorkout}
+          selectedDate={selectedDate}
         />
       )}
 
