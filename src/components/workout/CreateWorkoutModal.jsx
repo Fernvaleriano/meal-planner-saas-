@@ -100,17 +100,41 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate }) {
     }
   };
 
+  // Calculate realistic workout duration based on sets and rest times
+  const calculateWorkoutTime = (exerciseList) => {
+    if (!exerciseList || exerciseList.length === 0) return 0;
+
+    let totalSeconds = 0;
+    for (const ex of exerciseList) {
+      const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
+      const restSeconds = ex.restSeconds || 60;
+      // ~40 seconds per set (including setup)
+      const setTime = numSets * 40;
+      // Rest between sets (not after last set)
+      const restTime = (numSets - 1) * restSeconds;
+      totalSeconds += setTime + restTime;
+    }
+    // Add 30 seconds buffer between exercises
+    totalSeconds += (exerciseList.length - 1) * 30;
+
+    return Math.ceil(totalSeconds / 60); // Convert to minutes
+  };
+
   // Create the workout
   const handleCreate = async () => {
     if (!workoutName.trim() || exercises.length === 0) return;
 
     setSaving(true);
     try {
+      const estimatedMinutes = calculateWorkoutTime(exercises);
+      // Rough calorie estimate: ~5 calories per minute of strength training
+      const estimatedCalories = Math.round(estimatedMinutes * 5);
+
       const workoutData = {
         name: workoutName.trim(),
         exercises: exercises,
-        estimatedMinutes: exercises.length * 5,
-        estimatedCalories: exercises.length * 40
+        estimatedMinutes: estimatedMinutes,
+        estimatedCalories: estimatedCalories
       };
 
       if (onCreateWorkout) {
