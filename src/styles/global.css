@@ -20330,6 +20330,13 @@ a.nav-left {
     gap: 8px;
 }
 
+/* Swipe wrapper for delete functionality */
+.create-workout-exercise-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
 .create-workout-exercise-item {
     display: flex;
     align-items: center;
@@ -20338,6 +20345,31 @@ a.nav-left {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 2;
+}
+
+/* Swipe delete button */
+.swipe-delete-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: #ef4444;
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1;
+    border-radius: 0 12px 12px 0;
+    transition: opacity 0.2s;
+}
+
+.swipe-delete-btn:active {
+    background: #dc2626;
 }
 
 .exercise-drag-handle {
