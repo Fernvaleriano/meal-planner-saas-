@@ -15,7 +15,7 @@ const parseReps = (reps) => {
 
 // Number words to digits mapping for voice input
 const numberWords = {
-  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+  'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
   'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
   'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
   'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5
@@ -71,7 +71,7 @@ const parseSetSegment = (segment) => {
 const parseVoiceInputForSets = (transcript) => {
   const text = convertNumberWords(transcript.toLowerCase());
 
-  // Match both "set 2" and "2 set" patterns (after number word conversion)
+  // Match set patterns: "set 2", "2 set", "2nd set", and also "1 I did" / "1," at start
   const setPatterns = [
     /set\s*(?:number\s*)?(\d+)/gi,  // "set 2", "set number 2"
     /(\d+)(?:st|nd|rd|th)?\s*set/gi, // "2nd set", "2 set", "second set" (after conversion)
@@ -83,14 +83,22 @@ const parseVoiceInputForSets = (transcript) => {
     setMentions = setMentions.concat(matches);
   }
 
-  if (setMentions.length > 1) {
+  // Also check for "first I did" pattern (number at start without "set")
+  const startMatch = text.match(/^(\d+)\s+(?:i\s+did|said|,)/i);
+  if (startMatch) {
+    setMentions.push(startMatch);
+  }
+
+  if (setMentions.length > 1 || (setMentions.length === 1 && startMatch)) {
     const results = [];
-    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)|(?=\d+(?:st|nd|rd|th)?\s*set)/i).filter(s => s.trim());
+    // Split on set patterns, but also on "first/second/third I did" patterns
+    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)|(?=\d+(?:st|nd|rd|th)?\s*set)|(?=\b[123]\s+(?:i\s+did|said|,))/i).filter(s => s.trim());
 
     for (const segment of segments) {
-      // Try both patterns
+      // Try all patterns for set number
       let setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i) ||
-                     segment.match(/(\d+)(?:st|nd|rd|th)?\s*set/i);
+                     segment.match(/(\d+)(?:st|nd|rd|th)?\s*set/i) ||
+                     segment.match(/^(\d+)\s+(?:i\s+did|said|,)/i);
       if (setMatch) {
         const setNumber = parseInt(setMatch[1], 10);
         const parsed = parseSetSegment(segment);
@@ -102,9 +110,10 @@ const parseVoiceInputForSets = (transcript) => {
     return { multiple: true, sets: results };
   } else {
     const result = { multiple: false, reps: null, weight: null, setNumber: null };
-    // Try both patterns for set number
+    // Try all patterns for set number
     let setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i) ||
-                   text.match(/(\d+)(?:st|nd|rd|th)?\s*set/i);
+                   text.match(/(\d+)(?:st|nd|rd|th)?\s*set/i) ||
+                   text.match(/^(\d+)\s+(?:i\s+did|said|,)/i);
     if (setMatch) {
       result.setNumber = parseInt(setMatch[1], 10);
     }

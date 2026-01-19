@@ -33,9 +33,10 @@ const parseSegment = (segment) => {
   const result = { reps: null, weight: null, setNumber: null };
 
   // Check for set number in this segment
-  // Patterns: "set 2", "set number 2", "2nd set", "2 set", "the 2 set"
+  // Patterns: "set 2", "set number 2", "2nd set", "2 set", "the 2 set", "first I did"
   const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i) ||
-                   segment.match(/(\d+)(?:st|nd|rd|th)?\s*set/i);
+                   segment.match(/(\d+)(?:st|nd|rd|th)?\s*set/i) ||
+                   segment.match(/^(\d+)\s+(?:i\s+did|said|,)/i);
   if (setMatch) {
     result.setNumber = parseInt(setMatch[1], 10);
   }
@@ -107,9 +108,13 @@ const parseVoiceInput = (transcript, currentSets) => {
   }
 
   // Check if this looks like bulk input (multiple sets mentioned or comma/then separated)
-  const setMentions = (text.match(/set\s*(?:number\s*)?\d+/gi) || []).length;
+  // Count both "set 2" and "2 set" patterns, plus "first I did" at start
+  const setMentions1 = (text.match(/set\s*(?:number\s*)?\d+/gi) || []).length;
+  const setMentions2 = (text.match(/\d+(?:st|nd|rd|th)?\s*set/gi) || []).length;
+  const hasStartPattern = /^(\d+)\s+(?:i\s+did|said|,)/i.test(text);
+  const totalSetMentions = setMentions1 + setMentions2 + (hasStartPattern ? 1 : 0);
   const hasMultipleSeparators = /,|then|and then|next/i.test(text);
-  const isBulk = setMentions > 1 || (hasMultipleSeparators && setMentions >= 1);
+  const isBulk = totalSetMentions > 1 || (hasMultipleSeparators && totalSetMentions >= 1);
 
   // Also check for pattern like "12 at 50, 10 at 45, 8 at 40" (no set numbers but comma separated pairs)
   const commaPairs = text.split(/,|then|and then/).filter(s => s.trim());
