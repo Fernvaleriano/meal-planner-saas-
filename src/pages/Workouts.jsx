@@ -962,20 +962,27 @@ function Workouts() {
     try {
       if (!todayWorkout?.workout_data) return [];
 
+      let rawExercises = [];
+
       // Direct exercises array
       if (Array.isArray(todayWorkout.workout_data.exercises) && todayWorkout.workout_data.exercises.length > 0) {
-        return todayWorkout.workout_data.exercises.filter(Boolean);
+        rawExercises = todayWorkout.workout_data.exercises;
       }
-
       // Days structure
-      if (todayWorkout.workout_data.days && todayWorkout.workout_data.days.length > 0) {
+      else if (todayWorkout.workout_data.days && todayWorkout.workout_data.days.length > 0) {
         const dayIndex = todayWorkout.day_index || 0;
         const safeIndex = Math.abs(dayIndex) % todayWorkout.workout_data.days.length;
         const day = todayWorkout.workout_data.days[safeIndex];
-        return (day?.exercises || []).filter(Boolean);
+        rawExercises = day?.exercises || [];
       }
 
-      return [];
+      // Filter to only valid exercises with required fields
+      return rawExercises.filter(ex =>
+        ex &&
+        typeof ex === 'object' &&
+        ex.id &&
+        (ex.name || ex.id)
+      );
     } catch (e) {
       console.error('Error getting exercises:', e);
       return [];
@@ -1242,23 +1249,24 @@ function Workouts() {
           ) : todayWorkout ? (
             <>
               {exercises.map((exercise, index) => (
-                exercise ? (
-                  <ExerciseCard
-                    key={exercise.id || `exercise-${index}`}
-                    exercise={exercise}
-                    index={index}
-                    isCompleted={completedExercises.has(exercise.id)}
-                    onToggleComplete={() => toggleExerciseComplete(exercise.id)}
-                    onClick={() => handleExerciseClick(exercise)}
-                    workoutStarted={workoutStarted}
-                    onSwapExercise={handleSwipeSwap}
-                    onDeleteExercise={handleSwipeDelete}
-                    onMoveUp={handleMoveExerciseUp}
-                    onMoveDown={handleMoveExerciseDown}
-                    isFirst={index === 0}
-                    isLast={index === exercises.length - 1}
-                    onUpdateExercise={handleUpdateExercise}
-                  />
+                exercise && exercise.id ? (
+                  <ErrorBoundary key={exercise.id || `exercise-${index}`}>
+                    <ExerciseCard
+                      exercise={exercise}
+                      index={index}
+                      isCompleted={completedExercises.has(exercise.id)}
+                      onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                      onClick={() => handleExerciseClick(exercise)}
+                      workoutStarted={workoutStarted}
+                      onSwapExercise={handleSwipeSwap}
+                      onDeleteExercise={handleSwipeDelete}
+                      onMoveUp={handleMoveExerciseUp}
+                      onMoveDown={handleMoveExerciseDown}
+                      isFirst={index === 0}
+                      isLast={index === exercises.length - 1}
+                      onUpdateExercise={handleUpdateExercise}
+                    />
+                  </ErrorBoundary>
                 ) : null
               ))}
 

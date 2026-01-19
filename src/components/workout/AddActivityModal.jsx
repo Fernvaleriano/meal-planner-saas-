@@ -87,14 +87,38 @@ const MUSCLE_SYNONYMS = {
 
 // Check if a muscle value matches the filter
 const matchesMuscle = (value, filterKey) => {
-  if (!value || !filterKey) return false;
-  if (typeof value !== 'string' || typeof filterKey !== 'string') return false;
+  if (!filterKey) return false;
+  if (typeof filterKey !== 'string') return false;
 
-  const valueLower = value.toLowerCase().trim();
   const filterLower = filterKey.toLowerCase().trim();
   const synonyms = MUSCLE_SYNONYMS[filterLower] || [filterLower];
 
-  return synonyms.some(syn => valueLower.includes(syn) || syn.includes(valueLower));
+  // If value exists, check it
+  if (value && typeof value === 'string') {
+    const valueLower = value.toLowerCase().trim();
+    if (synonyms.some(syn => valueLower.includes(syn) || syn.includes(valueLower))) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+// Check if exercise matches muscle filter (checks both muscle_group and name)
+const exerciseMatchesMuscle = (exercise, filterKey) => {
+  if (!filterKey || !exercise) return false;
+
+  const filterLower = filterKey.toLowerCase().trim();
+  const synonyms = MUSCLE_SYNONYMS[filterLower] || [filterLower];
+
+  // First try muscle_group
+  if (matchesMuscle(exercise.muscle_group, filterKey)) {
+    return true;
+  }
+
+  // Fallback: check if any synonym appears in exercise name
+  const nameLower = (exercise.name || '').toLowerCase();
+  return synonyms.some(syn => nameLower.includes(syn));
 };
 
 function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
@@ -233,11 +257,11 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
         return !existingExerciseIds.includes(ex.id);
       });
 
-      // Filter by muscle group (with synonym matching)
+      // Filter by muscle group (with synonym matching and name fallback)
       if (selectedMuscle) {
         results = results.filter(ex => {
           try {
-            return matchesMuscle(ex.muscle_group, selectedMuscle);
+            return exerciseMatchesMuscle(ex, selectedMuscle);
           } catch {
             return false;
           }

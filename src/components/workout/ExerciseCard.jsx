@@ -101,7 +101,12 @@ const parseVoiceInputForSets = (transcript) => {
 };
 
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise }) {
-  // Check for special exercise types
+  // Early return if exercise is invalid
+  if (!exercise || typeof exercise !== 'object') {
+    return null;
+  }
+
+  // Check for special exercise types - with defensive checks
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
   const isStretch = exercise.isStretch;
@@ -600,7 +605,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                     {isListening ? <MicOff size={16} /> : <Mic size={16} />}
                   </button>
                 )}
-                <h3 className="exercise-title">{exercise.name}</h3>
+                <h3 className="exercise-title">{exercise.name || 'Exercise'}</h3>
               </div>
 
               {/* Voice feedback inline */}
