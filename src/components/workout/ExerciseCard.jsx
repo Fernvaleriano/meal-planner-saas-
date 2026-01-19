@@ -70,14 +70,27 @@ const parseSetSegment = (segment) => {
 // Parse voice input for multiple sets
 const parseVoiceInputForSets = (transcript) => {
   const text = convertNumberWords(transcript.toLowerCase());
-  const setMentions = text.match(/set\s*(?:number\s*)?\d+/gi) || [];
+
+  // Match both "set 2" and "2 set" patterns (after number word conversion)
+  const setPatterns = [
+    /set\s*(?:number\s*)?(\d+)/gi,  // "set 2", "set number 2"
+    /(\d+)(?:st|nd|rd|th)?\s*set/gi, // "2nd set", "2 set", "second set" (after conversion)
+  ];
+
+  let setMentions = [];
+  for (const pattern of setPatterns) {
+    const matches = [...text.matchAll(pattern)];
+    setMentions = setMentions.concat(matches);
+  }
 
   if (setMentions.length > 1) {
     const results = [];
-    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)/i).filter(s => s.trim());
+    const segments = text.split(/(?=set\s*(?:number\s*)?\d+)|(?=\d+(?:st|nd|rd|th)?\s*set)/i).filter(s => s.trim());
 
     for (const segment of segments) {
-      const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i);
+      // Try both patterns
+      let setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i) ||
+                     segment.match(/(\d+)(?:st|nd|rd|th)?\s*set/i);
       if (setMatch) {
         const setNumber = parseInt(setMatch[1], 10);
         const parsed = parseSetSegment(segment);
@@ -89,7 +102,9 @@ const parseVoiceInputForSets = (transcript) => {
     return { multiple: true, sets: results };
   } else {
     const result = { multiple: false, reps: null, weight: null, setNumber: null };
-    const setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i);
+    // Try both patterns for set number
+    let setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i) ||
+                   text.match(/(\d+)(?:st|nd|rd|th)?\s*set/i);
     if (setMatch) {
       result.setNumber = parseInt(setMatch[1], 10);
     }

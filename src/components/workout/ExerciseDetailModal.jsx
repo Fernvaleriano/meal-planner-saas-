@@ -33,8 +33,9 @@ const parseSegment = (segment) => {
   const result = { reps: null, weight: null, setNumber: null };
 
   // Check for set number in this segment
+  // Patterns: "set 2", "set number 2", "2nd set", "2 set", "the 2 set"
   const setMatch = segment.match(/set\s*(?:number\s*)?(\d+)/i) ||
-                   segment.match(/(\d+)(?:st|nd|rd|th)\s*set/i);
+                   segment.match(/(\d+)(?:st|nd|rd|th)?\s*set/i);
   if (setMatch) {
     result.setNumber = parseInt(setMatch[1], 10);
   }
