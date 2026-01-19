@@ -14730,6 +14730,7 @@ a.nav-left {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
+    padding-top: calc(env(safe-area-inset-top, 20px) + 12px);
     background: #000;
 }
 
