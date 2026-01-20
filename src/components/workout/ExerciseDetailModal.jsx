@@ -183,7 +183,8 @@ function ExerciseDetailModal({
   completedExercises,
   onSwapExercise,
   onUpdateExercise, // New callback for saving set/rep changes
-  onDeleteExercise // Callback for deleting exercise from workout
+  onDeleteExercise, // Callback for deleting exercise from workout
+  genderPreference = 'all' // Preferred gender for exercise demonstrations
 }) {
   // Early return if no exercise - prevents crashes
   if (!exercise) return null;
@@ -823,6 +824,7 @@ function ExerciseDetailModal({
             workoutExercises={exercises}
             onSwap={handleSwapSelect}
             onClose={() => setShowSwapModal(false)}
+            genderPreference={genderPreference}
           />
         </Portal>
       )}

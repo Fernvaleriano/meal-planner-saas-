@@ -70,7 +70,8 @@ export function ExerciseSelectorModal({
   onSelectExercise,
   coachId,
   selectedExercises = [], // Array of already selected exercise IDs
-  multiSelect = false // Allow selecting multiple exercises
+  multiSelect = false, // Allow selecting multiple exercises
+  genderPreference = 'all' // Preferred gender for exercise demonstrations
 }) {
   // State
   const [exercises, setExercises] = useState([]);
@@ -105,6 +106,10 @@ export function ExerciseSelectorModal({
       if (difficulty) params.append('difficulty', difficulty);
       if (exerciseType) params.append('exerciseType', exerciseType);
       if (searchQuery.trim()) params.append('search', searchQuery.trim());
+      // Add gender variant filter based on user preference
+      if (genderPreference && genderPreference !== 'all') {
+        params.append('genderVariant', genderPreference);
+      }
       params.append('limit', LIMIT.toString());
       params.append('offset', resetList ? '0' : offset.toString());
       params.append('includeSecondary', 'true');
@@ -127,7 +132,7 @@ export function ExerciseSelectorModal({
     } finally {
       setLoading(false);
     }
-  }, [coachId, selectedMuscleGroup, equipment, difficulty, exerciseType, searchQuery, offset]);
+  }, [coachId, selectedMuscleGroup, equipment, difficulty, exerciseType, searchQuery, offset, genderPreference]);
 
   // Initial load and filter changes
   useEffect(() => {

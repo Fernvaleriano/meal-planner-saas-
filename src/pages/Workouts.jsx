@@ -1354,6 +1354,7 @@ function Workouts() {
             onSwapExercise={handleSwapExercise}
             onUpdateExercise={handleUpdateExercise}
             onDeleteExercise={handleDeleteExercise}
+            genderPreference={clientData?.preferred_exercise_gender || 'all'}
           />
         </ErrorBoundary>
       )}
@@ -1439,6 +1440,7 @@ function Workouts() {
           onAdd={handleAddExercise}
           onClose={() => setShowAddActivity(false)}
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
+          genderPreference={clientData?.preferred_exercise_gender || 'all'}
         />
       )}
 
@@ -1513,6 +1515,7 @@ function Workouts() {
           workoutExercises={exercises}
           onSwap={handleSwipeSwapSelect}
           onClose={() => setSwipeSwapExercise(null)}
+          genderPreference={clientData?.preferred_exercise_gender || 'all'}
         />
       )}
 

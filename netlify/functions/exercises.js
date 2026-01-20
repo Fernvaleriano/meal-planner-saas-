@@ -35,6 +35,7 @@ exports.handler = async (event) => {
         exerciseType,
         difficulty,
         search,
+        genderVariant, // Filter by gender variant: 'male', 'female', or 'all' (default)
         includeSecondary = 'true', // Include exercises where muscle is secondary (default: true)
         limit = 100, // Increased default for better "All" results
         offset = 0
@@ -69,6 +70,14 @@ exports.handler = async (event) => {
       }
       if (difficulty) {
         query = query.eq('difficulty', difficulty);
+      }
+      // Filter by gender variant for exercise demonstrations
+      // 'male' - show only male demonstrations
+      // 'female' - show only female demonstrations
+      // 'all' or undefined - show all exercises (no filter)
+      if (genderVariant && genderVariant !== 'all') {
+        // Show exercises that match the requested gender OR have no gender variant (unisex)
+        query = query.or(`gender_variant.eq.${genderVariant},gender_variant.is.null`);
       }
       if (search) {
         // Search by name OR by secondary_muscles containing the search term

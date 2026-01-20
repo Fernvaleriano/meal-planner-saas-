@@ -5401,6 +5401,51 @@ a.nav-left {
     color: #ef4444;
 }
 
+.settings-icon-box.blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+/* Gender Select Dropdown */
+.gender-select-wrapper {
+    flex-shrink: 0;
+    min-width: 90px;
+}
+
+.gender-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-300);
+    background: var(--gray-100);
+    color: var(--gray-800);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 32px;
+}
+
+.gender-select:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+}
+
+[data-theme="dark"] .gender-select {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] .gender-select:focus {
+    border-color: var(--brand-primary);
+}
+
 .settings-item-text {
     display: flex;
     flex-direction: column;
