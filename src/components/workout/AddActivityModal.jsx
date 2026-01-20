@@ -439,9 +439,9 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     }));
 
     requestAnimationFrame(() => {
-      // Call onAdd for each exercise
+      // Pass all exercises at once (parent handles array or single)
       if (onAdd) {
-        exercisesWithConfig.forEach(ex => onAdd(ex));
+        onAdd(exercisesWithConfig);
       }
       if (onClose) {
         onClose();

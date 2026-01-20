@@ -404,8 +404,13 @@ function Workouts() {
 
   // Handle adding a new exercise - use ref for stable callback
   // Now supports adding exercises on rest days by creating an ad-hoc workout
-  const handleAddExercise = useCallback(async (newExercise) => {
-    if (!newExercise) return;
+  // Accepts a single exercise or an array of exercises
+  const handleAddExercise = useCallback(async (newExerciseOrArray) => {
+    if (!newExerciseOrArray) return;
+
+    // Normalize to array
+    const newExercises = Array.isArray(newExerciseOrArray) ? newExerciseOrArray : [newExerciseOrArray];
+    if (newExercises.length === 0) return;
 
     const workout = todayWorkoutRef.current;
 
@@ -414,7 +419,7 @@ function Workouts() {
       const dateStr = formatDate(selectedDate);
       const adHocWorkoutData = {
         name: 'Custom Workout',
-        exercises: [newExercise],
+        exercises: newExercises,
         estimatedMinutes: 30,
         estimatedCalories: 150
       };
@@ -458,7 +463,7 @@ function Workouts() {
     if (workout.is_adhoc) {
       const updatedExercises = [
         ...(workout.workout_data.exercises || []),
-        newExercise
+        ...newExercises
       ];
 
       const updatedWorkoutData = {
@@ -488,7 +493,7 @@ function Workouts() {
     // Normal case: workout already exists
     const updatedExercises = [
       ...(workout.workout_data.exercises || []),
-      newExercise
+      ...newExercises
     ];
 
     // Update local state

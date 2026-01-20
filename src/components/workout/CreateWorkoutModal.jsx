@@ -22,19 +22,25 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate }) {
     };
   }, []);
 
-  // Handle adding an exercise from the AddActivityModal
-  const handleAddExercise = (exercise) => {
-    if (!exercise) return;
+  // Handle adding exercises from the AddActivityModal
+  // Accepts a single exercise or an array of exercises
+  const handleAddExercise = (exerciseOrArray) => {
+    if (!exerciseOrArray) return;
 
-    // Add default sets/reps to the exercise
-    const exerciseWithDefaults = {
+    // Normalize to array
+    const newExercises = Array.isArray(exerciseOrArray) ? exerciseOrArray : [exerciseOrArray];
+    if (newExercises.length === 0) return;
+
+    // Add default sets/reps to each exercise
+    const exercisesWithDefaults = newExercises.map(exercise => ({
       ...exercise,
       sets: exercise.sets || 3,
       reps: exercise.reps || '10',
       restSeconds: exercise.restSeconds || 60,
       completed: false
-    };
-    setExercises(prev => [...prev, exerciseWithDefaults]);
+    }));
+
+    setExercises(prev => [...prev, ...exercisesWithDefaults]);
     // Don't close modal here - AddActivityModal handles closing itself via onClose
   };
 
