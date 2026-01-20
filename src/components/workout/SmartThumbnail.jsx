@@ -16,7 +16,9 @@ function SmartThumbnail({
   const [thumbnail, setThumbnail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [useVideoFallback, setUseVideoFallback] = useState(false);
   const videoRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   const hasVideo = !!(exercise?.video_url || exercise?.animation_url);
   const videoUrl = exercise?.video_url || exercise?.animation_url;
@@ -32,9 +34,15 @@ function SmartThumbnail({
   useEffect(() => {
     let cancelled = false;
 
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     async function loadThumbnail() {
       setLoading(true);
       setError(false);
+      setUseVideoFallback(false);
 
       // Priority 1: Use thumbnail_url if available
       if (exercise?.thumbnail_url) {
@@ -50,17 +58,28 @@ function SmartThumbnail({
         return;
       }
 
-      // Priority 3: Generate from video
+      // Priority 3: Generate from video (with timeout)
       if (videoUrl && !isImageUrl(videoUrl)) {
+        // Set a timeout to stop loading after 3 seconds
+        timeoutRef.current = setTimeout(() => {
+          if (!cancelled) {
+            // If still loading after 3s, try video fallback
+            setUseVideoFallback(true);
+            setLoading(false);
+          }
+        }, 3000);
+
         const generated = await generateVideoThumbnail(videoUrl);
         if (!cancelled) {
+          clearTimeout(timeoutRef.current);
           if (generated) {
             setThumbnail(generated);
+            setLoading(false);
           } else {
-            // Use video element as fallback
-            setThumbnail(null);
+            // Generation failed, try video fallback
+            setUseVideoFallback(true);
+            setLoading(false);
           }
-          setLoading(false);
         }
         return;
       }
@@ -76,12 +95,24 @@ function SmartThumbnail({
 
     return () => {
       cancelled = true;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, [exercise?.id, exercise?.thumbnail_url, exercise?.video_url, exercise?.animation_url, videoUrl]);
 
   const handleImageError = () => {
     setError(true);
     setThumbnail(null);
+    // Try video fallback if image failed
+    if (videoUrl) {
+      setUseVideoFallback(true);
+    }
+  };
+
+  const handleVideoError = () => {
+    setError(true);
+    setUseVideoFallback(false);
   };
 
   const sizeClasses = {
@@ -96,14 +127,14 @@ function SmartThumbnail({
       onClick={onClick}
     >
       {/* Show generated/cached thumbnail or static image */}
-      {thumbnail && !error ? (
+      {thumbnail && !error && !useVideoFallback ? (
         <img
           src={thumbnail}
           alt={exercise?.name || 'Exercise'}
           loading="lazy"
           onError={handleImageError}
         />
-      ) : videoUrl && !error ? (
+      ) : useVideoFallback && videoUrl && !error ? (
         /* Fallback: inline video preview */
         <video
           ref={videoRef}
@@ -117,7 +148,7 @@ function SmartThumbnail({
               videoRef.current.currentTime = 0.5;
             }
           }}
-          onError={() => setError(true)}
+          onError={handleVideoError}
         />
       ) : (
         /* No media - show placeholder */
@@ -127,7 +158,7 @@ function SmartThumbnail({
       )}
 
       {/* Play indicator for videos */}
-      {showPlayIndicator && hasVideo && !loading && (
+      {showPlayIndicator && hasVideo && !loading && (thumbnail || useVideoFallback) && (
         <div className="smart-thumb-play">
           <Play size={size === 'small' ? 10 : size === 'large' ? 16 : 12} />
         </div>
