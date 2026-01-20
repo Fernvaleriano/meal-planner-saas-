@@ -1135,12 +1135,20 @@ function Workouts() {
       }
 
       // Filter to only valid exercises with required fields
-      return rawExercises.filter(ex =>
+      const filtered = rawExercises.filter(ex =>
         ex &&
         typeof ex === 'object' &&
         ex.id &&
         (ex.name || ex.id)
       );
+
+      // Debug: Log equipment presence (remove after debugging)
+      if (process.env.NODE_ENV === 'development') {
+        const equipmentInfo = filtered.map(ex => `${ex.name}: ${ex.equipment || 'NO-EQUIPMENT'}`);
+        console.log('[Workouts] exercises useMemo:', equipmentInfo);
+      }
+
+      return filtered;
     } catch (e) {
       console.error('Error getting exercises:', e);
       return [];

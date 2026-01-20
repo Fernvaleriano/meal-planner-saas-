@@ -130,6 +130,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return null;
   }
 
+  // Debug: Log equipment field on render (remove after debugging)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[ExerciseCard] ${exercise.name}: equipment="${exercise.equipment || 'MISSING'}"`);
+  }
+
   // Check for special exercise types - with defensive checks
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
