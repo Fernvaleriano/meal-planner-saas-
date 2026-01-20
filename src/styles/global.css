@@ -19627,6 +19627,42 @@ a.nav-left {
     box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
 }
 
+/* Load More Button */
+.load-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    margin: 8px 0;
+    background: transparent;
+    border: 1px dashed var(--gray-300);
+    border-radius: 12px;
+    color: var(--gray-600);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.load-more-btn:hover {
+    background: var(--gray-100);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
+[data-theme="dark"] .load-more-btn {
+    border-color: #475569;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .load-more-btn:hover {
+    background: rgba(13, 148, 136, 0.1);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+
 /* Add Selected Footer */
 .add-selected-footer {
     position: sticky;
