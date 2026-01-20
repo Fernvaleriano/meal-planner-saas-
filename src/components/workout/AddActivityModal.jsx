@@ -188,7 +188,7 @@ const exerciseMatchesMuscle = (exercise, filterKey) => {
   return namePatterns.some(pattern => nameLower.includes(pattern));
 };
 
-function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelect = true }) {
+function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelect = true, genderPreference = 'all' }) {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -269,7 +269,12 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
       setLoading(true);
 
       try {
-        const res = await apiGet('/.netlify/functions/exercises?limit=3000');
+        // Build URL with gender preference filter
+        let url = '/.netlify/functions/exercises?limit=3000';
+        if (genderPreference && genderPreference !== 'all') {
+          url += `&genderVariant=${genderPreference}`;
+        }
+        const res = await apiGet(url);
 
         if (!isMountedRef.current) return;
 
@@ -294,7 +299,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
+  }, [genderPreference]);
 
   // Build dynamic equipment options from the actual exercise data
   const equipmentOptions = useMemo(() => {

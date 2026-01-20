@@ -14,7 +14,7 @@ const EQUIPMENT_OPTIONS = [
   { value: 'smith', label: 'Smith' },
 ];
 
-function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose }) {
+function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, genderPreference = 'all' }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -100,6 +100,10 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
       if (equipment) {
         url += `&equipment=${encodeURIComponent(equipment)}`;
       }
+      // Add gender preference filter
+      if (genderPreference && genderPreference !== 'all') {
+        url += `&genderVariant=${encodeURIComponent(genderPreference)}`;
+      }
 
       const response = await apiGet(url);
 
@@ -125,7 +129,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose })
     if (isMountedRef.current) {
       setBrowseLoading(false);
     }
-  }, [muscleGroup, exerciseId]);
+  }, [muscleGroup, exerciseId, genderPreference]);
 
   // Fetch on mount and when equipment filter changes
   useEffect(() => {

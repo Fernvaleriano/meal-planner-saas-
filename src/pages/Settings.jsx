@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Dumbbell } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Dumbbell, Users } from 'lucide-react';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
 
@@ -36,10 +36,23 @@ function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
 
+  // Exercise gender preference states
+  const [exerciseGenderPref, setExerciseGenderPref] = useState(
+    clientData?.preferred_exercise_gender || 'all'
+  );
+  const [exerciseGenderLoading, setExerciseGenderLoading] = useState(false);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Sync exercise gender preference when clientData loads
+  useEffect(() => {
+    if (clientData?.preferred_exercise_gender) {
+      setExerciseGenderPref(clientData.preferred_exercise_gender);
+    }
+  }, [clientData?.preferred_exercise_gender]);
 
   // Load coach data with caching
   useEffect(() => {
@@ -186,6 +199,35 @@ function Settings() {
     }
   };
 
+  // Handle exercise gender preference change
+  const handleExerciseGenderChange = async (newValue) => {
+    if (!clientData?.id || exerciseGenderLoading) return;
+
+    setExerciseGenderLoading(true);
+    const previousValue = exerciseGenderPref;
+    setExerciseGenderPref(newValue); // Optimistic update
+
+    try {
+      const response = await apiPost('/.netlify/functions/client-workout-preferences', {
+        clientId: clientData.id,
+        preferredExerciseGender: newValue
+      });
+
+      if (response.success) {
+        // Refresh client data to update the context
+        await refreshClientData();
+      } else {
+        throw new Error(response.error || 'Failed to update preference');
+      }
+    } catch (err) {
+      console.error('Error updating exercise gender preference:', err);
+      setExerciseGenderPref(previousValue); // Revert on error
+      alert('Failed to update preference. Please try again.');
+    } finally {
+      setExerciseGenderLoading(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       {/* Hidden file input for photo upload */}
@@ -286,6 +328,37 @@ function Settings() {
           >
             <span className="toggle-knob"></span>
           </button>
+        </div>
+
+        <div className="settings-divider"></div>
+
+        {/* Exercise Demonstration Gender Preference */}
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box blue">
+              <Users size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Exercise Demos</div>
+              <div className="settings-item-subtitle">Choose demonstration style</div>
+            </div>
+          </div>
+          <div className="gender-select-wrapper">
+            {exerciseGenderLoading ? (
+              <Loader size={20} className="spin" style={{ color: 'var(--gray-400)' }} />
+            ) : (
+              <select
+                value={exerciseGenderPref}
+                onChange={(e) => handleExerciseGenderChange(e.target.value)}
+                className="gender-select"
+                disabled={exerciseGenderLoading}
+              >
+                <option value="all">All</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            )}
+          </div>
         </div>
       </div>
 
