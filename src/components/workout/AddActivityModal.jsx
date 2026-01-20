@@ -1,6 +1,10 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from 'react';
+import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+
+// Number of exercises to show initially and per "load more"
+const INITIAL_DISPLAY_COUNT = 30;
+const LOAD_MORE_COUNT = 30;
 
 // Fuzzy search - score how well a query matches an exercise
 const fuzzyScore = (exercise, query) => {
@@ -178,8 +182,14 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Display count for pagination (load more)
+  const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
+
   // Multi-select state
   const [selectedExercises, setSelectedExercises] = useState([]);
+
+  // Debounce timer ref
+  const debounceTimerRef = useRef(null);
 
   // Voice input state
   const [isListening, setIsListening] = useState(false);
@@ -455,17 +465,54 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     }
   }, [handleClose]);
 
-  // Handle search change - with defensive checks
+  // Handle search change - with defensive checks and debouncing
   const handleSearchChange = useCallback((e) => {
     try {
       const value = e?.target?.value ?? '';
       // Limit search query length to prevent performance issues
       if (value.length <= 100) {
-        setSearchQuery(value);
+        // Clear any pending debounce
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        // Debounce the search to avoid lag
+        debounceTimerRef.current = setTimeout(() => {
+          startTransition(() => {
+            setSearchQuery(value);
+            setDisplayCount(INITIAL_DISPLAY_COUNT); // Reset pagination
+          });
+        }, 150);
       }
     } catch (err) {
       console.error('Error in search change:', err);
     }
+  }, []);
+
+  // Handle filter changes with transition for smoother UI
+  const handleMuscleChange = useCallback((e) => {
+    startTransition(() => {
+      setSelectedMuscle(e.target.value);
+      setDisplayCount(INITIAL_DISPLAY_COUNT); // Reset pagination on filter change
+    });
+  }, []);
+
+  const handleEquipmentChange = useCallback((e) => {
+    startTransition(() => {
+      setSelectedEquipment(e.target.value);
+      setDisplayCount(INITIAL_DISPLAY_COUNT);
+    });
+  }, []);
+
+  const handleDifficultyChange = useCallback((e) => {
+    startTransition(() => {
+      setSelectedDifficulty(e.target.value);
+      setDisplayCount(INITIAL_DISPLAY_COUNT);
+    });
+  }, []);
+
+  // Load more exercises
+  const handleLoadMore = useCallback(() => {
+    setDisplayCount(prev => prev + LOAD_MORE_COUNT);
   }, []);
 
   // Check if exercise is selected
@@ -512,7 +559,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             <select
               className={`filter-chip ${selectedMuscle ? 'active' : ''}`}
               value={selectedMuscle}
-              onChange={(e) => setSelectedMuscle(e.target.value)}
+              onChange={handleMuscleChange}
             >
               {MUSCLE_GROUPS.map(muscle => (
                 <option key={muscle.value} value={muscle.value}>
@@ -528,7 +575,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             <select
               className={`filter-chip ${selectedEquipment ? 'active' : ''}`}
               value={selectedEquipment}
-              onChange={(e) => setSelectedEquipment(e.target.value)}
+              onChange={handleEquipmentChange}
             >
               {equipmentOptions.map(equip => (
                 <option key={equip.value} value={equip.value}>
@@ -544,7 +591,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             <select
               className={`filter-chip ${selectedDifficulty ? 'active' : ''}`}
               value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value)}
+              onChange={handleDifficultyChange}
             >
               {DIFFICULTY_OPTIONS.map(diff => (
                 <option key={diff.value} value={diff.value}>
@@ -568,35 +615,49 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
               <p>No exercises found</p>
             </div>
           ) : (
-            filteredExercises.map(ex => {
-              const isSelected = isExerciseSelected(ex.id);
-              return (
+            <>
+              {filteredExercises.slice(0, displayCount).map(ex => {
+                const isSelected = isExerciseSelected(ex.id);
+                return (
+                  <button
+                    key={ex.id}
+                    className={`add-exercise-item ${isSelected ? 'selected' : ''}`}
+                    onClick={(e) => handleSelect(e, ex)}
+                    disabled={selecting}
+                  >
+                    <div className="add-exercise-thumb">
+                      <img
+                        src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                        alt={ex.name || 'Exercise'}
+                        loading="lazy"
+                        onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                      />
+                    </div>
+                    <div className="add-exercise-info">
+                      <span className="add-exercise-name">{ex.name}</span>
+                      <span className="add-exercise-meta">
+                        {ex.muscle_group || ex.muscleGroup}
+                        {ex.equipment && ` • ${ex.equipment}`}
+                      </span>
+                    </div>
+                    <div className={`add-icon ${isSelected ? 'selected' : ''}`}>
+                      {isSelected ? <Check size={18} /> : <Plus size={18} />}
+                    </div>
+                  </button>
+                );
+              })}
+              {/* Load More Button */}
+              {filteredExercises.length > displayCount && (
                 <button
-                  key={ex.id}
-                  className={`add-exercise-item ${isSelected ? 'selected' : ''}`}
-                  onClick={(e) => handleSelect(e, ex)}
-                  disabled={selecting}
+                  className="load-more-btn"
+                  onClick={handleLoadMore}
+                  type="button"
                 >
-                  <div className="add-exercise-thumb">
-                    <img
-                      src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
-                      alt={ex.name || 'Exercise'}
-                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-                    />
-                  </div>
-                  <div className="add-exercise-info">
-                    <span className="add-exercise-name">{ex.name}</span>
-                    <span className="add-exercise-meta">
-                      {ex.muscle_group || ex.muscleGroup}
-                      {ex.equipment && ` • ${ex.equipment}`}
-                    </span>
-                  </div>
-                  <div className={`add-icon ${isSelected ? 'selected' : ''}`}>
-                    {isSelected ? <Check size={18} /> : <Plus size={18} />}
-                  </div>
+                  <span>Load more ({filteredExercises.length - displayCount} remaining)</span>
+                  <ChevronRight size={18} />
                 </button>
-              );
-            })
+              )}
+            </>
           )}
         </div>
 
