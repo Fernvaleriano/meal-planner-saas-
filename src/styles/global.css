@@ -19419,8 +19419,10 @@ a.nav-left {
 /* Activity Filter Chips - dropdown style like reference app */
 .activity-filter-chips {
     display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: flex-start;
     gap: 8px;
     padding: 12px 16px;
     background: var(--gray-50);
@@ -19436,9 +19438,8 @@ a.nav-left {
     position: relative;
     display: inline-flex;
     align-items: center;
-    flex-shrink: 0;
-    flex-grow: 0;
-    width: auto;
+    flex: 0 0 auto;
+    width: auto !important;
     max-width: 160px;
 }
 
@@ -19454,7 +19455,8 @@ a.nav-left {
     color: #e0e0e0;
     cursor: pointer;
     transition: all 0.2s ease;
-    width: 100%;
+    width: auto !important;
+    min-width: 0;
     max-width: 160px;
     white-space: nowrap;
     overflow: hidden;
