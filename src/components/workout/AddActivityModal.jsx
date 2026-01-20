@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown } from 'lucide-react';
+import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
 // Fuzzy search - score how well a query matches an exercise
@@ -71,21 +71,33 @@ const DIFFICULTY_OPTIONS = [
   { value: 'advanced', label: 'Advanced' },
 ];
 
-// Muscle group synonyms for matching
-// Note: Import script maps glute/hamstring/quad/calf to 'legs', and bicep/tricep to 'arms'
+// Muscle group synonyms for matching - STRICT synonyms only for muscle_group field
 const MUSCLE_SYNONYMS = {
   chest: ['chest', 'pec', 'pecs', 'pectoral', 'pectorals'],
   back: ['back', 'lat', 'lats', 'latissimus', 'rhomboid', 'rhomboids', 'traps', 'trapezius'],
   shoulders: ['shoulder', 'shoulders', 'delt', 'delts', 'deltoid', 'deltoids'],
-  biceps: ['bicep', 'biceps', 'arms', 'arm'],
-  triceps: ['tricep', 'triceps', 'arms', 'arm'],
-  legs: ['leg', 'legs', 'quad', 'quads', 'quadriceps', 'hamstring', 'hamstrings', 'calf', 'calves', 'glute', 'glutes', 'gluteus', 'gluteal', 'thigh', 'thighs'],
-  glutes: ['glute', 'glutes', 'gluteus', 'gluteal', 'legs', 'leg'],
+  biceps: ['bicep', 'biceps'],
+  triceps: ['tricep', 'triceps'],
+  legs: ['leg', 'legs', 'quad', 'quads', 'quadriceps', 'hamstring', 'hamstrings', 'calf', 'calves', 'thigh', 'thighs'],
+  glutes: ['glute', 'glutes', 'gluteus', 'gluteal'],
   core: ['core', 'ab', 'abs', 'abdominal', 'abdominals', 'oblique', 'obliques'],
   cardio: ['cardio', 'cardiovascular', 'aerobic', 'full_body', 'full body'],
 };
 
-// Check if a muscle value matches the filter
+// Specific name patterns for each muscle group (used for name fallback)
+const MUSCLE_NAME_PATTERNS = {
+  chest: ['chest', 'pec', 'bench press', 'fly', 'pushup', 'push-up', 'push up'],
+  back: ['back', 'lat', 'row', 'pull-up', 'pullup', 'pull up', 'pulldown', 'deadlift'],
+  shoulders: ['shoulder', 'delt', 'overhead press', 'lateral raise', 'front raise', 'shrug'],
+  biceps: ['bicep', 'curl', 'hammer curl', 'preacher'],
+  triceps: ['tricep', 'pushdown', 'push-down', 'skull crusher', 'dip', 'kickback', 'extension'],
+  legs: ['leg', 'squat', 'lunge', 'quad', 'hamstring', 'calf', 'leg press', 'leg curl', 'leg extension'],
+  glutes: ['glute', 'hip thrust', 'glute bridge', 'kickback'],
+  core: ['ab', 'core', 'crunch', 'plank', 'sit-up', 'situp', 'oblique'],
+  cardio: ['cardio', 'run', 'jog', 'jump', 'burpee', 'mountain climber'],
+};
+
+// Check if a muscle value matches the filter (strict - only checks muscle_group field)
 const matchesMuscle = (value, filterKey) => {
   if (!filterKey) return false;
   if (typeof filterKey !== 'string') return false;
@@ -104,24 +116,25 @@ const matchesMuscle = (value, filterKey) => {
   return false;
 };
 
-// Check if exercise matches muscle filter (checks both muscle_group and name)
+// Check if exercise matches muscle filter (checks muscle_group first, then name patterns)
 const exerciseMatchesMuscle = (exercise, filterKey) => {
   if (!filterKey || !exercise) return false;
 
-  const filterLower = filterKey.toLowerCase().trim();
-  const synonyms = MUSCLE_SYNONYMS[filterLower] || [filterLower];
-
-  // First try muscle_group
+  // First try muscle_group field (strict matching)
   if (matchesMuscle(exercise.muscle_group, filterKey)) {
     return true;
   }
 
-  // Fallback: check if any synonym appears in exercise name
+  // Fallback: check specific name patterns (more restrictive than generic synonyms)
+  const filterLower = filterKey.toLowerCase().trim();
+  const namePatterns = MUSCLE_NAME_PATTERNS[filterLower] || [];
   const nameLower = (exercise.name || '').toLowerCase();
-  return synonyms.some(syn => nameLower.includes(syn));
+
+  // Only match if a specific pattern is found in the name
+  return namePatterns.some(pattern => nameLower.includes(pattern));
 };
 
-function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
+function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelect = true }) {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,6 +143,9 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState(null);
+
+  // Multi-select state
+  const [selectedExercises, setSelectedExercises] = useState([]);
 
   // Voice input state
   const [isListening, setIsListening] = useState(false);
@@ -311,43 +327,83 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     }
   }, [exercises, selectedMuscle, selectedEquipment, selectedDifficulty, searchQuery, existingExerciseIds]);
 
-  // Handle exercise selection - with mobile Safari protection
+  // Toggle exercise selection
+  const toggleExerciseSelection = useCallback((exercise) => {
+    setSelectedExercises(prev => {
+      const isSelected = prev.some(ex => ex.id === exercise.id);
+      if (isSelected) {
+        return prev.filter(ex => ex.id !== exercise.id);
+      } else {
+        return [...prev, exercise];
+      }
+    });
+  }, []);
+
+  // Handle single exercise selection (legacy behavior)
   const handleSelect = useCallback((e, exercise) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    // Prevent double-firing on mobile
-    if (selecting || !exercise) return;
+    if (!multiSelect) {
+      // Legacy single-select behavior
+      if (selecting || !exercise) return;
+      setSelecting(true);
+
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          setSelecting(false);
+        }
+      }, 2000);
+
+      const exerciseWithConfig = {
+        ...exercise,
+        sets: 3,
+        reps: exercise.reps || 12,
+        restSeconds: exercise.restSeconds || 60,
+        weight: 0
+      };
+
+      requestAnimationFrame(() => {
+        if (onAdd) {
+          onAdd(exerciseWithConfig);
+        }
+        if (onClose) {
+          onClose();
+        }
+      });
+    } else {
+      // Multi-select behavior
+      toggleExerciseSelection(exercise);
+    }
+  }, [selecting, onAdd, onClose, multiSelect, toggleExerciseSelection]);
+
+  // Add all selected exercises
+  const handleAddSelected = useCallback(() => {
+    if (selectedExercises.length === 0) return;
+
     setSelecting(true);
 
-    // Safety timeout - reset selecting after 2 seconds in case something fails
-    setTimeout(() => {
-      if (isMountedRef.current) {
-        setSelecting(false);
-      }
-    }, 2000);
-
-    // Add default workout configuration
-    const exerciseWithConfig = {
+    // Add default config to each exercise
+    const exercisesWithConfig = selectedExercises.map(exercise => ({
       ...exercise,
       sets: 3,
       reps: exercise.reps || 12,
       restSeconds: exercise.restSeconds || 60,
       weight: 0
-    };
+    }));
 
-    // Use requestAnimationFrame for mobile Safari stability
     requestAnimationFrame(() => {
+      // Call onAdd for each exercise
       if (onAdd) {
-        onAdd(exerciseWithConfig);
+        exercisesWithConfig.forEach(ex => onAdd(ex));
       }
       if (onClose) {
         onClose();
       }
     });
-  }, [selecting, onAdd, onClose]);
+  }, [selectedExercises, onAdd, onClose]);
 
   // Handle close
   const handleClose = useCallback((e) => {
@@ -378,14 +434,10 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
     }
   }, []);
 
-  // Handle muscle filter change - optimized for touch
-  const handleMuscleChange = useCallback((e, muscleValue) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setSelectedMuscle(muscleValue);
-  }, []);
+  // Check if exercise is selected
+  const isExerciseSelected = useCallback((exerciseId) => {
+    return selectedExercises.some(ex => ex.id === exerciseId);
+  }, [selectedExercises]);
 
   return (
     <div className="swap-modal-overlay" onClick={handleOverlayClick}>
@@ -482,34 +534,51 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [] }) {
               <p>No exercises found</p>
             </div>
           ) : (
-            filteredExercises.map(ex => (
-              <button
-                key={ex.id}
-                className="add-exercise-item"
-                onClick={(e) => handleSelect(e, ex)}
-                disabled={selecting}
-              >
-                <div className="add-exercise-thumb">
-                  <img
-                    src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
-                    alt={ex.name || 'Exercise'}
-                    onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
-                  />
-                </div>
-                <div className="add-exercise-info">
-                  <span className="add-exercise-name">{ex.name}</span>
-                  <span className="add-exercise-meta">
-                    {ex.muscle_group || ex.muscleGroup}
-                    {ex.equipment && ` • ${ex.equipment}`}
-                  </span>
-                </div>
-                <div className="add-icon">
-                  <Plus size={18} />
-                </div>
-              </button>
-            ))
+            filteredExercises.map(ex => {
+              const isSelected = isExerciseSelected(ex.id);
+              return (
+                <button
+                  key={ex.id}
+                  className={`add-exercise-item ${isSelected ? 'selected' : ''}`}
+                  onClick={(e) => handleSelect(e, ex)}
+                  disabled={selecting}
+                >
+                  <div className="add-exercise-thumb">
+                    <img
+                      src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                      alt={ex.name || 'Exercise'}
+                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                    />
+                  </div>
+                  <div className="add-exercise-info">
+                    <span className="add-exercise-name">{ex.name}</span>
+                    <span className="add-exercise-meta">
+                      {ex.muscle_group || ex.muscleGroup}
+                      {ex.equipment && ` • ${ex.equipment}`}
+                    </span>
+                  </div>
+                  <div className={`add-icon ${isSelected ? 'selected' : ''}`}>
+                    {isSelected ? <Check size={18} /> : <Plus size={18} />}
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
+
+        {/* Add Selected Button - only show when exercises are selected */}
+        {multiSelect && selectedExercises.length > 0 && (
+          <div className="add-selected-footer">
+            <button
+              className="add-selected-btn"
+              onClick={handleAddSelected}
+              disabled={selecting}
+            >
+              <Plus size={20} />
+              <span>Add {selectedExercises.length} Exercise{selectedExercises.length > 1 ? 's' : ''}</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

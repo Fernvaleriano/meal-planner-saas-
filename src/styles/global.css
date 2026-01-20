@@ -19606,6 +19606,68 @@ a.nav-left {
     flex-shrink: 0;
 }
 
+/* Multi-select exercise item styles */
+.add-exercise-item.selected {
+    background: rgba(13, 148, 136, 0.1);
+    border-left: 3px solid var(--brand-primary);
+}
+
+[data-theme="dark"] .add-exercise-item.selected {
+    background: rgba(13, 148, 136, 0.15);
+}
+
+.add-icon.selected {
+    background: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
+}
+
+/* Add Selected Footer */
+.add-selected-footer {
+    position: sticky;
+    bottom: 0;
+    padding: 16px 20px;
+    background: linear-gradient(to top, var(--gray-50) 80%, transparent);
+    border-top: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .add-selected-footer {
+    background: linear-gradient(to top, #1e293b 80%, transparent);
+    border-top-color: #334155;
+}
+
+.add-selected-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.add-selected-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4);
+}
+
+.add-selected-btn:active {
+    transform: translateY(0);
+}
+
+.add-selected-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* ========================================
    DELETE EXERCISE BUTTON & CONFIRMATION MODAL
    ======================================== */
