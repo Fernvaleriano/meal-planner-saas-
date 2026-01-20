@@ -632,6 +632,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <h3 className="exercise-title">{exercise.name || 'Exercise'}</h3>
               </div>
 
+              {/* Equipment subtitle */}
+              {exercise.equipment && (
+                <span className="equipment-subtitle">{exercise.equipment}</span>
+              )}
+
               {/* Voice feedback inline */}
               {(isListening || lastTranscript || voiceError) && (
                 <div className={`voice-feedback-inline ${isListening ? 'listening' : ''} ${voiceError ? 'error' : ''}`}>
