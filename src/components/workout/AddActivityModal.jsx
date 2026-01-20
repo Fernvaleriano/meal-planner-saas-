@@ -71,44 +71,66 @@ const DIFFICULTY_OPTIONS = [
   { value: 'advanced', label: 'Advanced' },
 ];
 
-// Muscle group synonyms for matching - STRICT synonyms only for muscle_group field
+// Muscle group synonyms for EXACT matching (values the muscle_group field might contain)
 const MUSCLE_SYNONYMS = {
   chest: ['chest', 'pec', 'pecs', 'pectoral', 'pectorals'],
-  back: ['back', 'lat', 'lats', 'latissimus', 'rhomboid', 'rhomboids', 'traps', 'trapezius'],
+  back: ['back', 'lat', 'lats', 'latissimus', 'rhomboid', 'rhomboids', 'traps', 'trapezius', 'upper back', 'lower back'],
   shoulders: ['shoulder', 'shoulders', 'delt', 'delts', 'deltoid', 'deltoids'],
   biceps: ['bicep', 'biceps'],
   triceps: ['tricep', 'triceps'],
   legs: ['leg', 'legs', 'quad', 'quads', 'quadriceps', 'hamstring', 'hamstrings', 'calf', 'calves', 'thigh', 'thighs'],
-  glutes: ['glute', 'glutes', 'gluteus', 'gluteal'],
+  glutes: ['glute', 'glutes', 'gluteus', 'gluteal', 'hip', 'hips'],
   core: ['core', 'ab', 'abs', 'abdominal', 'abdominals', 'oblique', 'obliques'],
   cardio: ['cardio', 'cardiovascular', 'aerobic', 'full_body', 'full body'],
 };
 
-// Specific name patterns for each muscle group (used for name fallback)
+// Specific name patterns for each muscle group - more specific to avoid false positives
 const MUSCLE_NAME_PATTERNS = {
-  chest: ['chest', 'pec', 'bench press', 'fly', 'pushup', 'push-up', 'push up'],
-  back: ['back', 'lat', 'row', 'pull-up', 'pullup', 'pull up', 'pulldown', 'deadlift'],
-  shoulders: ['shoulder', 'delt', 'overhead press', 'lateral raise', 'front raise', 'shrug'],
-  biceps: ['bicep', 'curl', 'hammer curl', 'preacher'],
-  triceps: ['tricep', 'pushdown', 'push-down', 'skull crusher', 'dip', 'kickback', 'extension'],
-  legs: ['leg', 'squat', 'lunge', 'quad', 'hamstring', 'calf', 'leg press', 'leg curl', 'leg extension'],
-  glutes: ['glute', 'hip thrust', 'glute bridge', 'kickback'],
-  core: ['ab', 'core', 'crunch', 'plank', 'sit-up', 'situp', 'oblique'],
-  cardio: ['cardio', 'run', 'jog', 'jump', 'burpee', 'mountain climber'],
+  chest: ['chest press', 'bench press', 'chest fly', 'pec fly', 'push-up', 'pushup'],
+  back: ['lat pull', 'pulldown', 'pull-up', 'pullup', 'row', 'deadlift', 'back extension'],
+  shoulders: ['shoulder press', 'overhead press', 'lateral raise', 'front raise', 'delt', 'shrug'],
+  biceps: ['bicep curl', 'biceps curl', 'hammer curl', 'preacher curl', 'concentration curl'],
+  triceps: ['tricep', 'triceps', 'pushdown', 'push-down', 'skull crusher', 'tricep dip', 'tricep extension', 'close grip'],
+  legs: ['squat', 'lunge', 'leg press', 'leg curl', 'leg extension', 'calf raise'],
+  glutes: ['glute', 'hip thrust', 'glute bridge'],
+  core: ['crunch', 'plank', 'sit-up', 'situp', 'ab ', ' abs', 'core'],
+  cardio: ['cardio', 'running', 'jogging', 'burpee', 'mountain climber', 'jumping jack'],
 };
 
-// Check if a muscle value matches the filter (strict - only checks muscle_group field)
-const matchesMuscle = (value, filterKey) => {
-  if (!filterKey) return false;
-  if (typeof filterKey !== 'string') return false;
+// Words that indicate an exercise is for a DIFFERENT muscle group
+const EXCLUSIVE_MUSCLE_KEYWORDS = {
+  biceps: ['tricep', 'triceps', 'leg', 'shoulder', 'chest', 'back', 'glute', 'calf', 'ab '],
+  triceps: ['bicep', 'biceps', 'leg', 'shoulder', 'chest', 'back', 'glute', 'calf', 'ab '],
+  chest: ['bicep', 'tricep', 'leg', 'shoulder', 'back', 'glute', 'calf', 'ab '],
+  back: ['bicep', 'tricep', 'leg', 'shoulder', 'chest', 'glute', 'calf', 'ab '],
+  shoulders: ['bicep', 'tricep', 'leg', 'chest', 'back', 'glute', 'calf', 'ab '],
+  legs: ['bicep', 'tricep', 'shoulder', 'chest', 'back', 'glute', 'ab '],
+  glutes: ['bicep', 'tricep', 'shoulder', 'chest', 'back', 'calf', 'ab '],
+  core: ['bicep', 'tricep', 'leg', 'shoulder', 'chest', 'back', 'glute', 'calf'],
+};
+
+// Check if a muscle_group value matches the filter - strict matching
+const matchesMuscle = (muscleGroup, filterKey) => {
+  if (!filterKey || !muscleGroup) return false;
+  if (typeof filterKey !== 'string' || typeof muscleGroup !== 'string') return false;
 
   const filterLower = filterKey.toLowerCase().trim();
   const synonyms = MUSCLE_SYNONYMS[filterLower] || [filterLower];
+  const muscleGroupLower = muscleGroup.toLowerCase().trim();
 
-  // If value exists, check it
-  if (value && typeof value === 'string') {
-    const valueLower = value.toLowerCase().trim();
-    if (synonyms.some(syn => valueLower.includes(syn) || syn.includes(valueLower))) {
+  // Don't match generic "arms" to specific biceps/triceps filter
+  if ((filterLower === 'biceps' || filterLower === 'triceps') && muscleGroupLower === 'arms') {
+    return false;
+  }
+
+  // Check if muscle_group exactly equals one of the synonyms
+  if (synonyms.includes(muscleGroupLower)) {
+    return true;
+  }
+
+  // Check if muscle_group starts with a synonym (e.g., "chest" matches "chest press target")
+  for (const syn of synonyms) {
+    if (muscleGroupLower.startsWith(syn + ' ') || muscleGroupLower.startsWith(syn + ',')) {
       return true;
     }
   }
@@ -120,15 +142,27 @@ const matchesMuscle = (value, filterKey) => {
 const exerciseMatchesMuscle = (exercise, filterKey) => {
   if (!filterKey || !exercise) return false;
 
+  const filterLower = filterKey.toLowerCase().trim();
+
   // First try muscle_group field (strict matching)
   if (matchesMuscle(exercise.muscle_group, filterKey)) {
     return true;
   }
 
-  // Fallback: check specific name patterns (more restrictive than generic synonyms)
-  const filterLower = filterKey.toLowerCase().trim();
+  // Fallback: check specific name patterns
   const namePatterns = MUSCLE_NAME_PATTERNS[filterLower] || [];
+  if (namePatterns.length === 0) return false;
+
   const nameLower = (exercise.name || '').toLowerCase();
+
+  // Check if exercise name contains any EXCLUSIVE keywords for other muscles
+  // This prevents "Biceps curl" from matching "triceps" filter even if name contains a triceps pattern
+  const exclusiveKeywords = EXCLUSIVE_MUSCLE_KEYWORDS[filterLower] || [];
+  for (const keyword of exclusiveKeywords) {
+    if (nameLower.includes(keyword)) {
+      return false; // This exercise is for a different muscle group
+    }
+  }
 
   // Only match if a specific pattern is found in the name
   return namePatterns.some(pattern => nameLower.includes(pattern));

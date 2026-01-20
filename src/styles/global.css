@@ -19438,7 +19438,8 @@ a.nav-left {
     align-items: center;
     flex-shrink: 0;
     flex-grow: 0;
-    width: fit-content;
+    width: auto;
+    max-width: 160px;
 }
 
 .filter-chip {
@@ -19453,8 +19454,11 @@ a.nav-left {
     color: #e0e0e0;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: fit-content;
+    width: 100%;
+    max-width: 160px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .filter-chip:hover {
