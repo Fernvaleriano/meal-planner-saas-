@@ -35,7 +35,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate }) {
       completed: false
     };
     setExercises(prev => [...prev, exerciseWithDefaults]);
-    setShowAddExercise(false);
+    // Don't close modal here - AddActivityModal handles closing itself via onClose
   };
 
   // Remove an exercise
