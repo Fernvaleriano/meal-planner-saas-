@@ -194,7 +194,7 @@ exports.handler = async (event) => {
     // Filter out current exercise and exercises already in workout
     // Also filter out stretches and warmups for strength exercises
     // CRITICAL: Pre-filter to remove conflicting muscle groups (biceps vs triceps)
-    const sortedAlternatives = alternatives.filter(alt => {
+    const filteredAlternatives = alternatives.filter(alt => {
       const altId = String(alt.id);
       const currentId = String(exerciseId);
       const isCurrentExercise = altId === currentId;
@@ -276,7 +276,7 @@ exports.handler = async (event) => {
 
     // Score and sort alternatives by movement pattern similarity
     // This ensures same-movement exercises appear first
-    const scoredAlternatives = sortedAlternatives.map(alt => {
+    const scoredAlternatives = filteredAlternatives.map(alt => {
       const altName = (alt.name || '').toLowerCase();
       let score = 0;
 
@@ -442,13 +442,7 @@ RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks):
       }
     } catch (aiError) {
       console.error("AI suggestion failed, using fallback:", aiError.message);
-      // Fallback: return top alternatives sorted by relevance (prefer same equipment)
-      const sortedAlternatives = sortedAlternatives.sort((a, b) => {
-        const aEquipMatch = (a.equipment || '').toLowerCase() === (exercise.equipment || '').toLowerCase() ? 1 : 0;
-        const bEquipMatch = (b.equipment || '').toLowerCase() === (exercise.equipment || '').toLowerCase() ? 1 : 0;
-        return bEquipMatch - aEquipMatch;
-      });
-
+      // Fallback: return top alternatives (already sorted by movement pattern)
       aiSuggestions = sortedAlternatives.slice(0, 5).map(ex => ({
         id: ex.id,
         name: ex.name,
