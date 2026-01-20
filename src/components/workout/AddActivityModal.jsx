@@ -1,10 +1,26 @@
 import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from 'react';
 import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import SmartThumbnail from './SmartThumbnail';
 
 // Number of exercises to show initially and per "load more"
 const INITIAL_DISPLAY_COUNT = 30;
 const LOAD_MORE_COUNT = 30;
+
+// Check if URL is an image (not a video)
+const isImageUrl = (url) => {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
+         lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
+};
+
+// Get proper thumbnail URL for an exercise
+const getExerciseThumbnail = (exercise) => {
+  if (exercise?.thumbnail_url) return exercise.thumbnail_url;
+  if (exercise?.animation_url && isImageUrl(exercise.animation_url)) return exercise.animation_url;
+  return '/img/exercise-placeholder.svg';
+};
 
 // Fuzzy search - score how well a query matches an exercise
 const fuzzyScore = (exercise, query) => {
@@ -626,11 +642,10 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                     disabled={selecting}
                   >
                     <div className="add-exercise-thumb">
-                      <img
-                        src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
-                        alt={ex.name || 'Exercise'}
-                        loading="lazy"
-                        onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                      <SmartThumbnail
+                        exercise={ex}
+                        size="small"
+                        showPlayIndicator={false}
                       />
                     </div>
                     <div className="add-exercise-info">
