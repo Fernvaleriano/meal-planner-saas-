@@ -270,6 +270,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
 
       try {
         // Build URL with gender preference filter
+        // Use the genderPreference value at mount time
         let url = '/.netlify/functions/exercises?limit=3000';
         if (genderPreference && genderPreference !== 'all') {
           url += `&genderVariant=${genderPreference}`;
@@ -299,7 +300,8 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     return () => {
       isMountedRef.current = false;
     };
-  }, [genderPreference]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only fetch once when modal opens - genderPreference is captured at mount
 
   // Build dynamic equipment options from the actual exercise data
   const equipmentOptions = useMemo(() => {
