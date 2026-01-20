@@ -71,14 +71,7 @@ exports.handler = async (event) => {
       if (difficulty) {
         query = query.eq('difficulty', difficulty);
       }
-      // Filter by gender variant for exercise demonstrations
-      // 'male' - show only male demonstrations
-      // 'female' - show only female demonstrations
-      // 'all' or undefined - show all exercises (no filter)
-      if (genderVariant && genderVariant !== 'all') {
-        // Show exercises that match the requested gender OR have no gender variant (unisex)
-        query = query.or(`gender_variant.eq.${genderVariant},gender_variant.is.null`);
-      }
+      // Gender variant filtering is handled after the query since we need to check names too
       if (search) {
         // Search by name OR by secondary_muscles containing the search term
         // Also search in muscle_group for terms like "tricep" -> "triceps"
@@ -95,12 +88,36 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
+      // Filter by gender variant - check both the column and the exercise name
+      // This handles cases where gender_variant column is NULL but name contains "male"/"female"
+      let filteredExercises = exercises || [];
+      if (genderVariant && genderVariant !== 'all') {
+        const oppositeGender = genderVariant === 'male' ? 'female' : 'male';
+        filteredExercises = filteredExercises.filter(ex => {
+          const nameLower = (ex.name || '').toLowerCase();
+          const variant = (ex.gender_variant || '').toLowerCase();
+
+          // Exclude if explicitly marked as the opposite gender
+          if (variant === oppositeGender) return false;
+
+          // Exclude if name ends with opposite gender (e.g., "180 Jump Turns Female")
+          if (nameLower.endsWith(` ${oppositeGender}`) ||
+              nameLower.endsWith(`_${oppositeGender}`) ||
+              nameLower.includes(` ${oppositeGender} `) ||
+              nameLower.includes(`_${oppositeGender}_`)) {
+            return false;
+          }
+
+          return true;
+        });
+      }
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          exercises: exercises || [],
-          total: count,
+          exercises: filteredExercises,
+          total: genderVariant && genderVariant !== 'all' ? filteredExercises.length : count,
           limit: parseInt(limit),
           offset: parseInt(offset)
         })
