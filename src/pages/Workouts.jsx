@@ -414,16 +414,45 @@ function Workouts() {
       });
 
       // Save to backend (fire and forget, errors logged)
-      apiPut('/.netlify/functions/client-workout-log', {
-        assignmentId: workout.id,
-        dayIndex: workout.day_index,
-        workout_data: {
-          ...workout.workout_data,
-          exercises: updatedExercises
-        }
-      }).catch(err => {
-        console.error('Error saving swapped exercise:', err);
-      });
+      // Use correct endpoint based on workout type
+      if (workout.is_adhoc) {
+        // For adhoc workouts, use the adhoc-workouts endpoint
+        // Use clientId + workoutDate for reliability (temporary IDs won't work)
+        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        apiPut('/.netlify/functions/adhoc-workouts', {
+          ...(isRealId ? { workoutId: workout.id } : {}),
+          clientId: workout.client_id,
+          workoutDate: dateStr,
+          workoutData: isUsingDays ? {
+            ...workout.workout_data,
+            days: (() => {
+              const updatedDays = [...(workout.workout_data.days || [])];
+              const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+              updatedDays[safeIndex] = { ...updatedDays[safeIndex], exercises: updatedExercises };
+              return updatedDays;
+            })()
+          } : {
+            ...workout.workout_data,
+            exercises: updatedExercises
+          },
+          name: workout.name
+        }).catch(err => {
+          console.error('Error saving swapped exercise to adhoc:', err);
+        });
+      } else {
+        // For regular workouts, use client-workout-log endpoint
+        apiPut('/.netlify/functions/client-workout-log', {
+          assignmentId: workout.id,
+          dayIndex: workout.day_index,
+          workout_data: {
+            ...workout.workout_data,
+            exercises: updatedExercises
+          }
+        }).catch(err => {
+          console.error('Error saving swapped exercise:', err);
+        });
+      }
     } catch (err) {
       console.error('Error in handleSwapExercise:', err);
     }
@@ -505,8 +534,10 @@ function Workouts() {
       }));
 
       // Save to backend using adhoc-workouts endpoint
+      // Use clientId + workoutDate for reliability (temporary IDs like 'adhoc-xxx' won't work)
+      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
       apiPut('/.netlify/functions/adhoc-workouts', {
-        workoutId: workout.id,
+        ...(isRealId ? { workoutId: workout.id } : {}),
         clientId: clientData?.id,
         workoutDate: formatDate(selectedDate),
         workoutData: updatedWorkoutData,
@@ -648,13 +679,28 @@ function Workouts() {
     });
 
     // Save to backend (fire and forget, errors logged)
-    apiPut('/.netlify/functions/client-workout-log', {
-      assignmentId: workout.id,
-      dayIndex: workout.day_index,
-      workout_data: updatedWorkoutData
-    }).catch(err => {
-      console.error('Error saving exercise update:', err);
-    });
+    // Use correct endpoint based on workout type
+    if (workout.is_adhoc) {
+      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      apiPut('/.netlify/functions/adhoc-workouts', {
+        ...(isRealId ? { workoutId: workout.id } : {}),
+        clientId: workout.client_id,
+        workoutDate: dateStr,
+        workoutData: updatedWorkoutData,
+        name: workout.name
+      }).catch(err => {
+        console.error('Error saving exercise update to adhoc:', err);
+      });
+    } else {
+      apiPut('/.netlify/functions/client-workout-log', {
+        assignmentId: workout.id,
+        dayIndex: workout.day_index,
+        workout_data: updatedWorkoutData
+      }).catch(err => {
+        console.error('Error saving exercise update:', err);
+      });
+    }
   }, []); // Using ref instead of dependencies
 
   // Handle deleting an exercise from workout - use ref for stable callback
@@ -736,13 +782,29 @@ function Workouts() {
         exercises: updatedExercises
       };
 
-      apiPut('/.netlify/functions/client-workout-log', {
-        assignmentId: workout.id,
-        dayIndex: workout.day_index,
-        workout_data: workoutDataToSave
-      }).catch(err => {
-        console.error('Error deleting exercise:', err);
-      });
+      // Use correct endpoint based on workout type
+      if (workout.is_adhoc) {
+        // For adhoc workouts, use the adhoc-workouts endpoint
+        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        apiPut('/.netlify/functions/adhoc-workouts', {
+          ...(isRealId ? { workoutId: workout.id } : {}),
+          clientId: workout.client_id,
+          workoutDate: dateStr,
+          workoutData: workoutDataToSave,
+          name: workout.name
+        }).catch(err => {
+          console.error('Error deleting exercise from adhoc:', err);
+        });
+      } else {
+        apiPut('/.netlify/functions/client-workout-log', {
+          assignmentId: workout.id,
+          dayIndex: workout.day_index,
+          workout_data: workoutDataToSave
+        }).catch(err => {
+          console.error('Error deleting exercise:', err);
+        });
+      }
     } catch (err) {
       console.error('Error in handleDeleteExercise:', err);
     }
@@ -824,11 +886,24 @@ function Workouts() {
       })
     } : { ...workout.workout_data, exercises: currentExercises };
 
-    apiPut('/.netlify/functions/client-workout-log', {
-      assignmentId: workout.id,
-      dayIndex: workout.day_index,
-      workout_data: workoutDataToSave
-    }).catch(err => console.error('Error moving exercise:', err));
+    // Use correct endpoint based on workout type
+    if (workout.is_adhoc) {
+      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      apiPut('/.netlify/functions/adhoc-workouts', {
+        ...(isRealId ? { workoutId: workout.id } : {}),
+        clientId: workout.client_id,
+        workoutDate: dateStr,
+        workoutData: workoutDataToSave,
+        name: workout.name
+      }).catch(err => console.error('Error moving exercise in adhoc:', err));
+    } else {
+      apiPut('/.netlify/functions/client-workout-log', {
+        assignmentId: workout.id,
+        dayIndex: workout.day_index,
+        workout_data: workoutDataToSave
+      }).catch(err => console.error('Error moving exercise:', err));
+    }
   }, []);
 
   // Handle moving exercise down in the list
@@ -879,11 +954,24 @@ function Workouts() {
       })
     } : { ...workout.workout_data, exercises: currentExercises };
 
-    apiPut('/.netlify/functions/client-workout-log', {
-      assignmentId: workout.id,
-      dayIndex: workout.day_index,
-      workout_data: workoutDataToSave
-    }).catch(err => console.error('Error moving exercise:', err));
+    // Use correct endpoint based on workout type
+    if (workout.is_adhoc) {
+      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      apiPut('/.netlify/functions/adhoc-workouts', {
+        ...(isRealId ? { workoutId: workout.id } : {}),
+        clientId: workout.client_id,
+        workoutDate: dateStr,
+        workoutData: workoutDataToSave,
+        name: workout.name
+      }).catch(err => console.error('Error moving exercise in adhoc:', err));
+    } else {
+      apiPut('/.netlify/functions/client-workout-log', {
+        assignmentId: workout.id,
+        dayIndex: workout.day_index,
+        workout_data: workoutDataToSave
+      }).catch(err => console.error('Error moving exercise:', err));
+    }
   }, []);
 
   // Start workout
