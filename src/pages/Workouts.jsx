@@ -8,6 +8,7 @@ import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { useToast } from '../components/Toast';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Helper to get date string in LOCAL timezone (NOT UTC)
@@ -100,6 +101,7 @@ const getMonthName = (date) => {
 
 function Workouts() {
   const { clientData, user } = useAuth();
+  const { showError } = useToast();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
   const [todayWorkout, setTodayWorkout] = useState(null);
@@ -508,9 +510,13 @@ function Workouts() {
             ...prev,
             id: res.workout.id
           }));
+        } else {
+          console.error('No workout returned from POST:', res);
+          showError('Failed to save workout');
         }
       } catch (err) {
         console.error('Error creating ad-hoc workout:', err);
+        showError('Failed to save workout: ' + (err.message || 'Unknown error'));
       }
       return;
     }
@@ -538,12 +544,13 @@ function Workouts() {
       const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
       apiPut('/.netlify/functions/adhoc-workouts', {
         ...(isRealId ? { workoutId: workout.id } : {}),
-        clientId: clientData?.id,
+        clientId: workout.client_id || clientData?.id,
         workoutDate: formatDate(selectedDate),
         workoutData: updatedWorkoutData,
         name: workout.name
       }).catch(err => {
         console.error('Error updating ad-hoc workout:', err);
+        showError('Failed to save changes: ' + (err.message || 'Unknown error'));
       });
       return;
     }
@@ -577,7 +584,7 @@ function Workouts() {
     }).catch(err => {
       console.error('Error adding exercise:', err);
     });
-  }, [clientData?.id, selectedDate]); // Added dependencies for ad-hoc workout creation
+  }, [clientData?.id, selectedDate, showError]); // Added dependencies for ad-hoc workout creation
 
   // Handle creating a full workout from the CreateWorkoutModal
   const handleCreateWorkout = useCallback(async (workoutData) => {
@@ -614,11 +621,15 @@ function Workouts() {
           ...prev,
           id: res.workout.id
         }));
+      } else {
+        console.error('No workout returned from POST:', res);
+        showError('Failed to save workout');
       }
     } catch (err) {
       console.error('Error saving workout:', err);
+      showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
-  }, [clientData?.id, selectedDate]);
+  }, [clientData?.id, selectedDate, showError]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {
