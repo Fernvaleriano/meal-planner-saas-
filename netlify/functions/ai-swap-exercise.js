@@ -138,6 +138,23 @@ exports.handler = async (event) => {
           console.log("AI Swap - Excluding tricep exercise for bicep swap:", alt.name);
           return false;
         }
+        // Also exclude chest exercises (bench press, fly, etc.)
+        const isChestAlt = altName.includes('bench') || altName.includes('chest') ||
+                          altName.includes('fly') || altName.includes('flye') ||
+                          altName.includes('pec') || altName.includes('press');
+        // But allow preacher curl (has "press" pattern) - check for curl first
+        if (isChestAlt && !altName.includes('curl') && !altName.includes('bicep')) {
+          console.log("AI Swap - Excluding chest exercise for bicep swap:", alt.name);
+          return false;
+        }
+        // Only include exercises that are clearly bicep-related
+        const isBicepAlt = altName.includes('bicep') || altName.includes('curl') ||
+                          altName.includes('hammer') || altName.includes('preacher') ||
+                          altName.includes('concentration');
+        if (!isBicepAlt) {
+          console.log("AI Swap - Excluding non-bicep exercise for bicep swap:", alt.name);
+          return false;
+        }
       }
 
       // CRITICAL: If swapping a TRICEP exercise, exclude ALL bicep/curl exercises
@@ -145,6 +162,23 @@ exports.handler = async (event) => {
         const isBicepAlt = altName.includes('bicep') || altName.includes('curl') || altName.includes('hammer');
         if (isBicepAlt) {
           console.log("AI Swap - Excluding bicep exercise for tricep swap:", alt.name);
+          return false;
+        }
+        // Also exclude chest exercises that aren't tricep-focused
+        const isChestAlt = (altName.includes('bench') || altName.includes('chest') ||
+                          altName.includes('fly') || altName.includes('flye') ||
+                          altName.includes('pec')) && !altName.includes('close grip') && !altName.includes('tricep');
+        if (isChestAlt) {
+          console.log("AI Swap - Excluding chest exercise for tricep swap:", alt.name);
+          return false;
+        }
+        // Only include exercises that are clearly tricep-related
+        const isTricepAlt = altName.includes('tricep') || altName.includes('pushdown') ||
+                           altName.includes('skull') || altName.includes('kickback') ||
+                           altName.includes('close grip') || altName.includes('dip') ||
+                           (altName.includes('extension') && !altName.includes('back') && !altName.includes('leg'));
+        if (!isTricepAlt) {
+          console.log("AI Swap - Excluding non-tricep exercise for tricep swap:", alt.name);
           return false;
         }
       }
