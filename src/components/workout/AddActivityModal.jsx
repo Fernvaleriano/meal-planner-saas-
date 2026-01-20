@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from 'react';
 import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import SmartThumbnail from './SmartThumbnail';
 
 // Number of exercises to show initially and per "load more"
 const INITIAL_DISPLAY_COUNT = 30;
@@ -641,11 +642,10 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                     disabled={selecting}
                   >
                     <div className="add-exercise-thumb">
-                      <img
-                        src={getExerciseThumbnail(ex)}
-                        alt={ex.name || 'Exercise'}
-                        loading="lazy"
-                        onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                      <SmartThumbnail
+                        exercise={ex}
+                        size="small"
+                        showPlayIndicator={false}
                       />
                     </div>
                     <div className="add-exercise-info">
