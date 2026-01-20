@@ -191,8 +191,35 @@ function Workouts() {
           setWorkoutLog(null);
         }
       } else {
-        setTodayWorkout(null);
-        setWorkoutLog(null);
+        // No coach-assigned workout - check for ad-hoc (client-created) workout
+        try {
+          const adhocRes = await apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`);
+
+          if (adhocRes?.workouts && adhocRes.workouts.length > 0) {
+            const adhocWorkout = adhocRes.workouts[0];
+            // Format ad-hoc workout to match expected structure
+            setTodayWorkout({
+              id: adhocWorkout.id,
+              client_id: adhocWorkout.client_id,
+              workout_date: adhocWorkout.workout_date,
+              name: adhocWorkout.name || 'Custom Workout',
+              day_index: 0,
+              workout_data: adhocWorkout.workout_data,
+              is_adhoc: true
+            });
+            setWorkoutLog(null);
+            setCompletedExercises(new Set());
+          } else {
+            setTodayWorkout(null);
+            setWorkoutLog(null);
+            setCompletedExercises(new Set());
+          }
+        } catch (adhocErr) {
+          console.error('Error fetching adhoc workout:', adhocErr);
+          setTodayWorkout(null);
+          setWorkoutLog(null);
+          setCompletedExercises(new Set());
+        }
       }
       setError(null);
     } catch (err) {
