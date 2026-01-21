@@ -10,6 +10,41 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Helper function to enrich exercises with equipment data from the database
+// This fixes legacy workouts that may have exercises without equipment info
+async function enrichExercisesWithEquipment(exercises, supabase) {
+  if (!exercises || exercises.length === 0) return exercises;
+
+  // Collect exercise IDs that are missing equipment
+  const exerciseIds = exercises
+    .filter(ex => ex.id && !ex.equipment)
+    .map(ex => ex.id);
+
+  if (exerciseIds.length === 0) return exercises;
+
+  // Fetch equipment data for these exercises
+  const { data: exerciseData, error } = await supabase
+    .from('exercises')
+    .select('id, equipment')
+    .in('id', exerciseIds);
+
+  if (error || !exerciseData) {
+    console.error('Error fetching equipment data:', error);
+    return exercises;
+  }
+
+  // Create a map of id -> equipment
+  const equipmentMap = new Map(exerciseData.map(ex => [ex.id, ex.equipment]));
+
+  // Enrich exercises with equipment data
+  return exercises.map(ex => {
+    if (ex.id && !ex.equipment && equipmentMap.has(ex.id)) {
+      return { ...ex, equipment: equipmentMap.get(ex.id) };
+    }
+    return ex;
+  });
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -140,13 +175,19 @@ exports.handler = async (event) => {
             if (override.dayIndex !== undefined && days.length > 0) {
               // Use the overridden day index
               const dayIndex = override.dayIndex % days.length;
+              // Enrich exercises with equipment data before returning
+              const enrichedExercises = await enrichExercisesWithEquipment(
+                days[dayIndex].exercises || [],
+                supabase
+              );
+
               todayWorkout = {
                 id: activeAssignment.id,
                 name: days[dayIndex].name || `Day ${dayIndex + 1}`,
                 day_index: dayIndex,
                 workout_data: {
                   ...days[dayIndex],
-                  exercises: days[dayIndex].exercises || [],
+                  exercises: enrichedExercises,
                   estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
                   estimatedCalories: days[dayIndex].estimatedCalories || 300,
                   image_url: workoutData.image_url || null
@@ -221,6 +262,14 @@ exports.handler = async (event) => {
               program_id: activeAssignment.program_id,
               client_id: activeAssignment.client_id
             };
+          }
+
+          // Enrich exercises with equipment data if missing
+          if (todayWorkout?.workout_data?.exercises) {
+            todayWorkout.workout_data.exercises = await enrichExercisesWithEquipment(
+              todayWorkout.workout_data.exercises,
+              supabase
+            );
           }
 
           return {

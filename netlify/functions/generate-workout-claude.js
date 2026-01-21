@@ -606,6 +606,7 @@ Return this exact JSON structure:
                 return {
                   name: aiExercise.name,
                   muscle_group: aiExercise.muscleGroup,
+                  equipment: null, // No equipment info available for unmatched exercises
                   sets: aiExercise.sets || 3,
                   reps: aiExercise.reps || '8-12',
                   restSeconds: aiExercise.restSeconds || 90,
