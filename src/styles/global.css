@@ -15137,6 +15137,7 @@ a.nav-left {
     align-items: center;
     justify-content: space-between;
     padding: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
 }
@@ -15150,12 +15151,35 @@ a.nav-left {
     font-weight: 600;
 }
 
+.ask-coach-header .back-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 12px;
+    margin: -12px;
+    margin-right: 4px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
 .ask-coach-header .close-btn {
     background: none;
     border: none;
     color: #9ca3af;
     cursor: pointer;
-    padding: 4px;
+    padding: 12px;
+    margin: -12px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .ask-coach-messages {

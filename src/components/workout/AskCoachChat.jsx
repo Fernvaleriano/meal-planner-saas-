@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Send, Loader2, MessageCircle, Bot } from 'lucide-react';
+import { X, Send, Loader2, MessageCircle, Bot, ChevronLeft } from 'lucide-react';
 import { apiPost } from '../../utils/api';
 
 function AskCoachChat({ exercise, onClose }) {
@@ -294,11 +294,14 @@ function AskCoachChat({ exercise, onClose }) {
       <div className="ask-coach-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="ask-coach-header">
+          <button className="back-btn" onClick={forceClose} type="button" aria-label="Go back">
+            <ChevronLeft size={24} />
+          </button>
           <div className="coach-title">
             <Bot size={20} />
             <span>Ask Coach</span>
           </div>
-          <button className="close-btn" onClick={forceClose} type="button">
+          <button className="close-btn" onClick={forceClose} type="button" aria-label="Close">
             <X size={20} />
           </button>
         </div>
