@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Plus, Dumbbell, Trash2 } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
 
@@ -12,6 +12,41 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate }) {
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isSwipingRef = useRef(false);
+
+  // Force close handler - used for escape routes (back button, escape key)
+  const forceClose = useCallback(() => {
+    try {
+      onClose?.();
+    } catch (e) {
+      console.error('Error in forceClose:', e);
+      window.history.back();
+    }
+  }, [onClose]);
+
+  // Handle browser back button - critical for mobile "escape" functionality
+  useEffect(() => {
+    const modalState = { modal: 'create-workout', timestamp: Date.now() };
+    window.history.pushState(modalState, '');
+
+    const handlePopState = () => {
+      forceClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [forceClose]);
+
+  // Handle escape key press
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        forceClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [forceClose]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
