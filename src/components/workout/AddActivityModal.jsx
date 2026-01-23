@@ -216,6 +216,41 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
   const isMountedRef = useRef(true);
   const searchInputRef = useRef(null);
 
+  // Force close handler - used for escape routes (back button, escape key)
+  const forceClose = useCallback(() => {
+    try {
+      onClose?.();
+    } catch (e) {
+      console.error('Error in forceClose:', e);
+      window.history.back();
+    }
+  }, [onClose]);
+
+  // Handle browser back button - critical for mobile "escape" functionality
+  useEffect(() => {
+    const modalState = { modal: 'add-activity', timestamp: Date.now() };
+    window.history.pushState(modalState, '');
+
+    const handlePopState = () => {
+      forceClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [forceClose]);
+
+  // Handle escape key press
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        forceClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [forceClose]);
+
   // Check for voice support
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

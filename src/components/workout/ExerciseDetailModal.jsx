@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2 } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -186,8 +186,91 @@ function ExerciseDetailModal({
   onDeleteExercise, // Callback for deleting exercise from workout
   genderPreference = 'all' // Preferred gender for exercise demonstrations
 }) {
-  // Early return if no exercise - prevents crashes
-  if (!exercise) return null;
+  // Force close handler that always works - used for escape routes
+  const forceClose = useCallback(() => {
+    try {
+      onClose?.();
+    } catch (e) {
+      console.error('Error in forceClose:', e);
+      // Last resort: navigate back
+      window.history.back();
+    }
+  }, [onClose]);
+
+  // Handle browser back button - critical for mobile "escape" functionality
+  useEffect(() => {
+    // Push a state so back button will trigger popstate instead of leaving the page
+    const modalState = { modal: 'exercise-detail', timestamp: Date.now() };
+    window.history.pushState(modalState, '');
+
+    const handlePopState = (event) => {
+      // User pressed back button - close the modal
+      forceClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [forceClose]);
+
+  // Handle escape key press
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        forceClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [forceClose]);
+
+  // Show fallback UI if exercise data is invalid - don't just return null
+  // This prevents the black screen issue where overlay renders but content doesn't
+  if (!exercise || !exercise.id) {
+    return (
+      <div className="exercise-modal-overlay-v2" onClick={forceClose}>
+        <div className="exercise-modal-v2 modal-v3" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-v3">
+            <button className="close-btn" onClick={forceClose} type="button">
+              <ChevronLeft size={24} />
+            </button>
+            <h2 className="header-title">Exercise</h2>
+            <div className="header-actions"></div>
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '60px 20px',
+            textAlign: 'center',
+            color: '#94a3b8'
+          }}>
+            <AlertCircle size={48} style={{ marginBottom: '16px', color: '#f59e0b' }} />
+            <h3 style={{ color: 'white', marginBottom: '8px' }}>Unable to load exercise</h3>
+            <p style={{ marginBottom: '24px' }}>The exercise data could not be loaded.</p>
+            <button
+              onClick={forceClose}
+              style={{
+                padding: '12px 24px',
+                background: '#0d9488',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Use refs for callbacks to prevent recreation
   const callbackRefs = useRef({
@@ -335,15 +418,25 @@ function ExerciseDetailModal({
   }, [exercise?.id, exercise?.name, exercise?.muscle_group, exercise?.muscleGroup]);
 
   // Stable close handler - uses requestAnimationFrame for mobile Safari
+  // Falls back to forceClose if the callback fails
   const handleClose = useCallback(() => {
+    // Remove the history state we pushed when opening
+    // This prevents double back-button issues
+    if (window.history.state?.modal === 'exercise-detail') {
+      window.history.back();
+      return; // popstate handler will call forceClose
+    }
+
     requestAnimationFrame(() => {
       try {
         callbackRefs.current.onClose?.();
       } catch (e) {
         console.error('Error closing modal:', e);
+        // Fallback: force close
+        forceClose();
       }
     });
-  }, []);
+  }, [forceClose]);
 
   // Start voice recognition
   const startVoiceInput = useCallback(() => {

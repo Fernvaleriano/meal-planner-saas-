@@ -33,6 +33,41 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const isMountedRef = useRef(true);
   const workoutExercisesRef = useRef(workoutExercises);
 
+  // Force close handler - used for escape routes (back button, escape key)
+  const forceClose = useCallback(() => {
+    try {
+      onClose?.();
+    } catch (e) {
+      console.error('Error in forceClose:', e);
+      window.history.back();
+    }
+  }, [onClose]);
+
+  // Handle browser back button - critical for mobile "escape" functionality
+  useEffect(() => {
+    const modalState = { modal: 'swap-exercise', timestamp: Date.now() };
+    window.history.pushState(modalState, '');
+
+    const handlePopState = () => {
+      forceClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [forceClose]);
+
+  // Handle escape key press
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        forceClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [forceClose]);
+
   // Update ref when workoutExercises changes (but don't trigger re-render)
   workoutExercisesRef.current = workoutExercises;
 
@@ -215,7 +250,47 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     setShowBrowse(prev => !prev);
   }, []);
 
-  if (!exercise) return null;
+  // Show fallback UI if exercise data is invalid - prevent black screen
+  if (!exercise || !exercise.id) {
+    return (
+      <div className="swap-modal-overlay" onClick={forceClose}>
+        <div className="swap-modal ai-swap-modal" onClick={e => e.stopPropagation()}>
+          <div className="swap-modal-header">
+            <div className="swap-header-title">
+              <h3>Swap Exercise</h3>
+            </div>
+            <button className="swap-close-btn" onClick={forceClose}>
+              <X size={24} />
+            </button>
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px 20px',
+            textAlign: 'center',
+            color: '#94a3b8'
+          }}>
+            <p style={{ marginBottom: '16px' }}>Unable to load exercise data.</p>
+            <button
+              onClick={forceClose}
+              style={{
+                padding: '10px 20px',
+                background: '#0d9488',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="swap-modal-overlay" onClick={handleOverlayClick}>
