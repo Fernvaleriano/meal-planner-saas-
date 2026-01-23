@@ -9,6 +9,41 @@ function AskCoachChat({ exercise, onClose }) {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Force close handler - used for escape routes (back button, escape key)
+  const forceClose = useCallback(() => {
+    try {
+      onClose?.();
+    } catch (e) {
+      console.error('Error in forceClose:', e);
+      window.history.back();
+    }
+  }, [onClose]);
+
+  // Handle browser back button - critical for mobile "escape" functionality
+  useEffect(() => {
+    const modalState = { modal: 'ask-coach', timestamp: Date.now() };
+    window.history.pushState(modalState, '');
+
+    const handlePopState = () => {
+      forceClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [forceClose]);
+
+  // Handle escape key press
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        forceClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [forceClose]);
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,6 +68,24 @@ function AskCoachChat({ exercise, onClose }) {
     const muscle = muscleGroup || 'target muscles';
     const nameLower = exerciseName.toLowerCase();
 
+    // FOOT PLACEMENT questions - very specific, check first
+    if (q.includes('foot') || q.includes('feet') || q.includes('stance') ||
+        (q.includes('high') && (q.includes('up') || q.includes('low'))) ||
+        q.includes('where') && (q.includes('place') || q.includes('put'))) {
+
+      // Hack squat / leg press foot placement
+      if (nameLower.includes('hack') || nameLower.includes('leg press') || nameLower.includes('squat machine')) {
+        return `Foot placement on ${exerciseName}:\n\n**Foot Position Height:**\n• HIGHER on platform = more glutes & hamstrings, less knee stress\n• LOWER on platform = more quads, but more knee strain\n• MIDDLE = balanced quad/glute activation (start here)\n\n**How to know if feet are too HIGH:**\n• You feel it mostly in glutes, not quads\n• Heels want to lift off the platform\n• Lower back rounds at the bottom\n\n**How to know if feet are too LOW:**\n• Heels lift off the platform\n• Knees travel way past toes\n• You feel knee discomfort\n\n**Stance Width:**\n• Shoulder-width = standard quad focus\n• Wider stance = more inner thigh (adductors)\n• Toes pointed slightly out (15-30°) is normal\n\n**Key rule:** Your whole foot should stay flat throughout. If heels lift, move feet higher.`;
+      }
+
+      // Squat foot placement
+      if (nameLower.includes('squat')) {
+        return `Foot placement for ${exerciseName}:\n\n**Stance Width:**\n• Start shoulder-width apart\n• Wider = more glutes/adductors\n• Narrower = more quads (harder on knees)\n\n**Toe Angle:**\n• Point toes out 15-30 degrees\n• Knees should track over toes throughout\n\n**Weight Distribution:**\n• Weight through WHOLE foot - heels, balls, and toes\n• If heels lift, work on ankle mobility or elevate heels\n• "Grip the floor" with your feet`;
+      }
+
+      return `For foot placement on ${exerciseName}:\n\n• Start with feet shoulder-width apart\n• Toes pointed slightly outward (15-30°)\n• Weight distributed evenly across entire foot\n• Adjust based on what muscles you want to emphasize`;
+    }
+
     // Body positioning questions - MUST come before weight questions (catches "how much/far do I bend")
     if (q.includes('bend') || q.includes('lean') || q.includes('angle') || q.includes('far') ||
         q.includes('position') || q.includes('degree') || q.includes('torso') || q.includes('back angle') ||
@@ -42,8 +95,8 @@ function AskCoachChat({ exercise, onClose }) {
         return `For body position on ${exerciseName}:\n\n• Hinge at hips until torso is roughly 45 degrees to the floor (closer to parallel for more lat emphasis)\n• Keep your back FLAT - no rounding\n• Slight bend in knees, weight in heels\n• Head neutral, eyes looking a few feet ahead\n• Your torso should stay still throughout - if you're bobbing up and down, the weight is too heavy\n\nThe more horizontal your torso, the more you target your lats. More upright hits upper back/traps more.`;
       } else if (nameLower.includes('deadlift') || nameLower.includes('rdl') || nameLower.includes('romanian')) {
         return `For body position on ${exerciseName}:\n\n• Push hips BACK (not down) - like closing a car door with your butt\n• Keep the bar/weight close to your legs throughout\n• Back stays flat/neutral - never rounded\n• Slight knee bend but this is a HIP movement\n• Go down until you feel a stretch in your hamstrings (usually around knee level)\n• Keep chest up and shoulder blades engaged`;
-      } else if (nameLower.includes('squat')) {
-        return `For body position on ${exerciseName}:\n\n• Feet shoulder-width or slightly wider, toes pointed out 15-30°\n• Break at hips AND knees together\n• Keep chest up - imagine someone's pulling you up by your shirt\n• Knees track over (or slightly outside) toes\n• Go as deep as you can while keeping back flat\n• Slight forward lean is fine, but torso stays relatively upright`;
+      } else if (nameLower.includes('squat') || nameLower.includes('hack')) {
+        return `For body position on ${exerciseName}:\n\n• Feet shoulder-width or slightly wider, toes pointed out 15-30°\n• Break at hips AND knees together\n• Keep chest up - imagine someone's pulling you up by your shirt\n• Knees track over (or slightly outside) toes\n• Go as deep as you can while keeping back flat\n• Keep your back pressed firmly against the pad throughout`;
       }
       return `For body position on ${exerciseName}:\n\n• Keep your core braced and spine neutral\n• Maintain proper alignment throughout the movement\n• If you're unsure about exact angles, start conservative and increase range of motion as you get comfortable\n• Film yourself from the side to check your form`;
     }
@@ -179,8 +232,15 @@ function AskCoachChat({ exercise, onClose }) {
     inputRef.current?.focus();
   };
 
+  // Handle overlay click - close the modal
+  const handleOverlayClick = useCallback((e) => {
+    if (e.target === e.currentTarget) {
+      forceClose();
+    }
+  }, [forceClose]);
+
   return (
-    <div className="ask-coach-overlay" onClick={onClose}>
+    <div className="ask-coach-overlay" onClick={handleOverlayClick}>
       <div className="ask-coach-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="ask-coach-header">
@@ -188,7 +248,7 @@ function AskCoachChat({ exercise, onClose }) {
             <Bot size={20} />
             <span>Ask Coach</span>
           </div>
-          <button className="close-btn" onClick={onClose} type="button">
+          <button className="close-btn" onClick={forceClose} type="button">
             <X size={20} />
           </button>
         </div>

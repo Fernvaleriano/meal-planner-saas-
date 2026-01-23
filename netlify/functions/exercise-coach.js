@@ -39,7 +39,8 @@ const EXERCISE_CUES = {
 
   // Legs
   'squat': ['Feet shoulder-width, toes slightly out', 'Break at hips and knees together', 'Knees track over toes, don\'t cave in', 'Depth: hip crease below knee', 'Drive through whole foot, not just toes'],
-  'leg press': ['Feet shoulder-width on platform', 'Lower until 90 degrees at knee', 'Don\'t lock knees at top', 'Keep lower back pressed into pad'],
+  'hack squat': ['Feet middle of platform for balanced quad/glute work', 'Higher foot placement = more glutes, lower = more quads', 'Keep back flat against pad throughout', 'Don\'t lock knees at top', 'Lower until thighs are parallel or slightly below', 'Whole foot stays flat - if heels lift, move feet higher'],
+  'leg press': ['Feet middle of platform - higher for glutes, lower for quads', 'Keep whole foot flat - heels lifting means feet too low', 'Lower until 90 degrees at knee, no deeper if back rounds', 'Don\'t lock knees at top - keep slight bend', 'Keep lower back pressed firmly into pad'],
   'lunge': ['Take a big step, both knees at 90 degrees', 'Front knee stays over ankle', 'Back knee hovers just above floor', 'Push through front heel to stand'],
   'leg curl': ['Adjust pad to sit above heels', 'Curl all the way up, squeeze hamstrings', 'Control the negative slowly', 'Don\'t lift hips off the pad'],
   'leg extension': ['Adjust back pad for knee at pivot point', 'Extend fully, squeeze quads at top', 'Control descent, don\'t drop weight', 'Don\'t use momentum'],
@@ -87,6 +88,9 @@ function getExerciseCues(exerciseName) {
     'front raise': 'front raise',
     'pulldown': 'lat pulldown',
     'pushdown': 'tricep pushdown',
+    'hack squat': 'hack squat',
+    'hack': 'hack squat',
+    'leg press': 'leg press',
     'squat': 'squat',
     'lunge': 'lunge',
     'deadlift': 'deadlift',
