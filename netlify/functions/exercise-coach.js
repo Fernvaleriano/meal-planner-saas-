@@ -13,43 +13,90 @@ const EXERCISE_CUES = {
   // Chest
   'bench press': ['Drive feet into floor for leg drive', 'Retract shoulder blades and arch upper back', 'Lower bar to nipple line, not neck', 'Keep wrists straight, bar over forearms', 'Squeeze chest at top, don\'t lock elbows hard'],
   'incline press': ['Set bench to 30-45 degrees, not too steep', 'Keep elbows at 45-degree angle, not flared', 'Touch bar to upper chest below collarbone', 'Drive through heels for stability'],
+  'decline press': ['Secure legs under pads', 'Lower bar to lower chest', 'Keep shoulder blades retracted', 'Press up and slightly back'],
+  'dumbbell press': ['Start with dumbbells at shoulder level', 'Press up in slight arc, dumbbells meet at top', 'Keep elbows at 45 degrees', 'Control the descent'],
   'dumbbell fly': ['Keep slight bend in elbows throughout', 'Lower until you feel chest stretch, not shoulder pain', 'Squeeze dumbbells together at top like hugging a tree', 'Don\'t go too heavy - this is an isolation move'],
+  'cable fly': ['Set cables at chest height or higher', 'Step forward for stretch', 'Bring hands together in arc motion', 'Squeeze chest at the peak contraction'],
   'push up': ['Hands shoulder-width, fingers spread', 'Body forms straight line from head to heels', 'Lower chest to floor, not just your chin', 'Elbows at 45 degrees, not flared out'],
+  'chest press': ['Adjust seat so handles are at chest level', 'Keep back flat against pad', 'Press forward, don\'t lock elbows', 'Control the return'],
+  'pec deck': ['Adjust seat so arms are parallel to floor', 'Keep slight bend in elbows', 'Squeeze chest to bring pads together', 'Don\'t let weights slam back'],
 
   // Back
   'pull up': ['Start from dead hang, shoulders engaged', 'Pull elbows down and back toward hips', 'Chin clears bar at top', 'Control the descent, no dropping'],
+  'chin up': ['Underhand grip, shoulder-width', 'Pull chest to bar', 'Squeeze biceps and lats at top', 'Full extension at bottom'],
   'lat pulldown': ['Lean back slightly, chest up', 'Pull bar to upper chest, not behind neck', 'Squeeze shoulder blades together at bottom', 'Control the weight up, don\'t let it yank you'],
   'barbell row': ['Bend over until torso is at 45 degrees (closer to parallel targets lats more)', 'Keep back FLAT - if it rounds, weight is too heavy', 'Pull bar to lower chest/upper abs', 'Squeeze shoulder blades at top, hold for a beat', 'Knees slightly bent, weight in heels, torso stays STILL'],
   'bent over row': ['Hinge at hips until torso is 45-60 degrees from floor', 'Back must stay flat throughout - no rounding', 'Pull to belly button for lats, higher for upper back', 'Torso position should not change during the rep', 'Keep knees bent, core braced, neck neutral'],
   'dumbbell row': ['Support yourself with one hand on bench', 'Keep back flat and parallel to floor', 'Pull elbow straight back, not out to side', 'Squeeze lat at top, full stretch at bottom', 'Don\'t rotate torso - keep hips square'],
   'cable row': ['Sit tall, chest up, slight lean forward at start', 'Pull to lower chest/upper abs', 'Squeeze shoulder blades together, hold 1 sec', 'Don\'t lean way back - torso stays mostly upright', 'Control the return, feel the stretch'],
+  'seated row': ['Sit with chest against pad', 'Pull handles to sides of torso', 'Squeeze shoulder blades together', 'Keep elbows close to body'],
+  't-bar row': ['Straddle the bar or use landmine', 'Hinge at hips, back flat', 'Pull to chest, squeeze at top', 'Don\'t round lower back'],
+  'face pull': ['Set cable at face height', 'Pull to face, elbows high', 'Externally rotate at end', 'Squeeze rear delts and upper back'],
   'deadlift': ['Bar over mid-foot, shins touch bar', 'Chest up, back flat, brace core hard', 'Push floor away, don\'t pull with back', 'Lock out with glutes, don\'t hyperextend'],
+  'romanian deadlift': ['Start standing with bar at hips', 'Push hips BACK, not down', 'Keep bar close to legs throughout', 'Lower until hamstring stretch, usually knee level', 'Back stays flat, slight knee bend'],
+  'rdl': ['Start standing with bar at hips', 'Push hips BACK, not down', 'Keep bar close to legs throughout', 'Lower until hamstring stretch, usually knee level', 'Back stays flat, slight knee bend'],
 
   // Shoulders
   'overhead press': ['Grip just outside shoulder width', 'Bar starts at front delts, not chest', 'Press straight up, head moves back then forward', 'Lock out overhead, biceps by ears'],
   'military press': ['Feet together or shoulder-width for stability', 'Brace core like taking a punch', 'Press in straight line, move head out of way', 'Full lockout at top'],
+  'shoulder press': ['Dumbbells at shoulder height, palms forward', 'Press straight up, dumbbells can touch at top', 'Don\'t arch lower back', 'Control the descent'],
+  'arnold press': ['Start with palms facing you at shoulder level', 'Rotate palms outward as you press up', 'Full rotation at top, palms face forward', 'Reverse the motion on the way down'],
   'lateral raise': ['Slight bend in elbows, maintain throughout', 'Lead with elbows, not hands', 'Raise to shoulder height, not higher', 'Pinky slightly higher than thumb at top'],
   'front raise': ['Alternate arms or both together', 'Raise to eye level maximum', 'Control the descent - no swinging', 'Keep core tight, don\'t lean back'],
+  'rear delt fly': ['Bend over or use machine with chest support', 'Arms go straight out to sides', 'Squeeze shoulder blades at top', 'Don\'t use momentum'],
+  'upright row': ['Grip narrower than shoulders', 'Pull elbows up and out', 'Bring bar to chest level', 'If shoulder pain, widen grip or skip'],
+  'shrug': ['Hold weight at sides or front', 'Lift shoulders straight up to ears', 'Hold at top, squeeze traps', 'Don\'t roll shoulders'],
 
   // Arms
   'bicep curl': ['Keep elbows pinned to sides', 'Full extension at bottom, full squeeze at top', 'Don\'t swing or use momentum', 'Control the negative for growth'],
-  'tricep pushdown': ['Keep elbows locked at sides', 'Push down until arms fully straight', 'Squeeze triceps hard at bottom', 'Don\'t let shoulders roll forward'],
-  'skull crusher': ['Keep upper arms vertical throughout', 'Lower bar to forehead or just behind', 'Elbows point to ceiling, don\'t flare', 'Full extension at top'],
+  'dumbbell curl': ['Can alternate or curl both together', 'Supinate (rotate palms up) as you curl', 'Squeeze at top', 'Don\'t let elbows drift forward'],
+  'barbell curl': ['Shoulder-width grip', 'Keep upper arms stationary', 'Full range of motion', 'Don\'t use body swing'],
+  'preacher curl': ['Armpits rest at top of pad', 'Full stretch at bottom', 'Don\'t let elbows flare', 'Control the negative'],
+  'concentration curl': ['Elbow braced against inner thigh', 'Curl to shoulder', 'Twist pinky up at top', 'Pure isolation - no cheating'],
   'hammer curl': ['Palms face each other throughout', 'Curl in straight line, not across body', 'Good for brachialis and forearms', 'Keep wrists neutral'],
+  'cable curl': ['Step back for tension at bottom', 'Keep elbows at sides', 'Squeeze biceps at top', 'Control the entire range'],
+  'tricep pushdown': ['Keep elbows locked at sides', 'Push down until arms fully straight', 'Squeeze triceps hard at bottom', 'Don\'t let shoulders roll forward'],
+  'tricep extension': ['Keep upper arms vertical/still', 'Only forearms move', 'Full stretch at bottom, full squeeze at top', 'Don\'t flare elbows'],
+  'skull crusher': ['Keep upper arms vertical throughout', 'Lower bar to forehead or just behind', 'Elbows point to ceiling, don\'t flare', 'Full extension at top'],
+  'overhead tricep extension': ['Keep elbows close to head', 'Lower weight behind head', 'Extend fully, squeeze at top', 'Don\'t let elbows flare out'],
+  'tricep dip': ['Lean forward for more chest, upright for triceps', 'Lower until arms at 90 degrees', 'Don\'t go too deep if shoulder pain', 'Lock out at top'],
+  'close grip bench': ['Hands shoulder-width or narrower', 'Keep elbows tucked to sides', 'Lower to lower chest', 'Focus on tricep squeeze'],
 
   // Legs
   'squat': ['Feet shoulder-width, toes slightly out', 'Break at hips and knees together', 'Knees track over toes, don\'t cave in', 'Depth: hip crease below knee', 'Drive through whole foot, not just toes'],
+  'back squat': ['Bar on upper traps, not neck', 'Feet shoulder-width, toes out 15-30°', 'Sit back and down, chest up', 'Knees track over toes', 'Drive through whole foot'],
+  'front squat': ['Bar rests on front delts, elbows HIGH', 'More upright torso than back squat', 'Emphasizes quads more', 'Go as deep as mobility allows'],
+  'goblet squat': ['Hold dumbbell/kettlebell at chest', 'Elbows between knees at bottom', 'Great for learning squat depth', 'Keep chest up throughout'],
   'hack squat': ['Feet middle of platform for balanced quad/glute work', 'Higher foot placement = more glutes, lower = more quads', 'Keep back flat against pad throughout', 'Don\'t lock knees at top', 'Lower until thighs are parallel or slightly below', 'Whole foot stays flat - if heels lift, move feet higher'],
   'leg press': ['Feet middle of platform - higher for glutes, lower for quads', 'Keep whole foot flat - heels lifting means feet too low', 'Lower until 90 degrees at knee, no deeper if back rounds', 'Don\'t lock knees at top - keep slight bend', 'Keep lower back pressed firmly into pad'],
+  'smith machine squat': ['Feet slightly in front of body', 'Back stays against bar path', 'Adjust foot position for comfort', 'Don\'t lock knees at top'],
   'lunge': ['Take a big step, both knees at 90 degrees', 'Front knee stays over ankle', 'Back knee hovers just above floor', 'Push through front heel to stand'],
+  'walking lunge': ['Take controlled steps forward', 'Keep torso upright', 'Alternate legs each step', 'Front knee tracks over toes'],
+  'split squat': ['Rear foot elevated on bench', 'Front foot far enough forward that knee stays over ankle', 'Lower until back knee nearly touches floor', 'Push through front heel'],
+  'bulgarian split squat': ['Rear foot on bench behind you', 'Most weight on front leg', 'Lower until deep stretch', 'Keep torso upright'],
+  'step up': ['Step onto box with full foot', 'Drive through heel, don\'t push off back foot', 'Control the descent', 'Keep torso upright'],
   'leg curl': ['Adjust pad to sit above heels', 'Curl all the way up, squeeze hamstrings', 'Control the negative slowly', 'Don\'t lift hips off the pad'],
+  'seated leg curl': ['Adjust thigh pad snugly', 'Curl heels toward glutes', 'Squeeze at full contraction', 'Control the release'],
   'leg extension': ['Adjust back pad for knee at pivot point', 'Extend fully, squeeze quads at top', 'Control descent, don\'t drop weight', 'Don\'t use momentum'],
+  'hip thrust': ['Upper back on bench, feet flat on floor', 'Drive through heels, squeeze glutes at top', 'Full hip extension at top', 'Don\'t hyperextend lower back'],
+  'glute bridge': ['Lie on back, feet flat, knees bent', 'Drive through heels, lift hips', 'Squeeze glutes hard at top', 'Don\'t push through lower back'],
+  'good morning': ['Bar on upper back like squat', 'Hinge at hips, push butt back', 'Keep back flat, slight knee bend', 'Go until hamstring stretch'],
   'calf raise': ['Full stretch at bottom, pause', 'Rise onto balls of feet, not toes', 'Squeeze calves hard at top, hold 1 sec', 'Slow and controlled beats fast'],
+  'seated calf raise': ['Pad on lower thighs', 'Full stretch at bottom', 'Push through balls of feet', 'Hold at top for peak contraction'],
 
   // Core
   'plank': ['Forearms parallel, elbows under shoulders', 'Body straight line, no sagging hips', 'Squeeze glutes and brace core', 'Breathe steadily, don\'t hold breath'],
+  'side plank': ['Elbow under shoulder', 'Hips stacked, body straight', 'Don\'t let hips sag', 'Can stack feet or stagger'],
   'crunch': ['Lower back stays on floor', 'Curl shoulders up, don\'t pull neck', 'Focus on squeezing abs, not sitting up', 'Exhale on the way up'],
-  'russian twist': ['Lean back to 45 degrees, chest up', 'Rotate from core, not just arms', 'Touch floor on each side', 'Keep feet elevated for harder variation']
+  'sit up': ['Anchor feet if needed', 'Use abs to sit up, not momentum', 'Touch elbows to knees', 'Control the descent'],
+  'russian twist': ['Lean back to 45 degrees, chest up', 'Rotate from core, not just arms', 'Touch floor on each side', 'Keep feet elevated for harder variation'],
+  'leg raise': ['Lower back pressed into floor', 'Keep legs straight or slight bend', 'Lower until just before back arches', 'Exhale as you raise legs'],
+  'hanging leg raise': ['Dead hang from bar', 'Raise legs to parallel or higher', 'Don\'t swing - use control', 'Can bend knees to make easier'],
+  'cable crunch': ['Kneel facing cable machine', 'Hold rope behind head', 'Crunch down, bringing elbows to thighs', 'Don\'t pull with arms'],
+  'ab rollout': ['Start on knees, hands on wheel', 'Roll out with straight arms', 'Go as far as you can control', 'Use abs to roll back, not arms'],
+  'dead bug': ['Lower back pressed into floor', 'Opposite arm and leg extend', 'Move slowly with control', 'Don\'t let lower back arch'],
+  'mountain climber': ['Start in push-up position', 'Drive knees to chest alternating', 'Keep hips down, core tight', 'Can go fast or slow and controlled'],
+  'woodchop': ['Rotate from hips and core', 'Arms stay relatively straight', 'Power comes from core rotation', 'Control the return']
 };
 
 // Find matching exercise cues
@@ -74,34 +121,92 @@ function getExerciseCues(exerciseName) {
   }
 
   // IMPORTANT: Match by PRIMARY MOVEMENT first (curl, press, row, etc.)
-  // This prevents "incline curl" from matching "incline press"
+  // Longer/more specific patterns first to prevent incorrect matches
   const movementMap = {
-    'curl': 'bicep curl',
-    'press': 'bench press',  // default press
+    // Specific exercises first (longer matches)
+    'hack squat': 'hack squat',
+    'leg press': 'leg press',
+    'leg curl': 'leg curl',
+    'leg extension': 'leg extension',
+    'leg raise': 'leg raise',
+    'calf raise': 'calf raise',
+    'lateral raise': 'lateral raise',
+    'front raise': 'front raise',
+    'hip thrust': 'hip thrust',
+    'glute bridge': 'glute bridge',
+    'good morning': 'good morning',
+    'skull crusher': 'skull crusher',
     'overhead press': 'overhead press',
     'military press': 'military press',
-    'shoulder press': 'overhead press',
+    'shoulder press': 'shoulder press',
+    'bench press': 'bench press',
+    'chest press': 'chest press',
+    'incline press': 'incline press',
+    'decline press': 'decline press',
+    'close grip bench': 'close grip bench',
+    'romanian deadlift': 'romanian deadlift',
+    'split squat': 'split squat',
+    'bulgarian split': 'bulgarian split squat',
+    'goblet squat': 'goblet squat',
+    'front squat': 'front squat',
+    'back squat': 'back squat',
+    'walking lunge': 'walking lunge',
+    'preacher curl': 'preacher curl',
+    'hammer curl': 'hammer curl',
+    'concentration curl': 'concentration curl',
+    'cable curl': 'cable curl',
+    'bicep curl': 'bicep curl',
+    'tricep pushdown': 'tricep pushdown',
+    'tricep extension': 'tricep extension',
+    'tricep dip': 'tricep dip',
+    'cable row': 'cable row',
+    'seated row': 'seated row',
+    'dumbbell row': 'dumbbell row',
+    'barbell row': 'barbell row',
+    't-bar row': 't-bar row',
+    'face pull': 'face pull',
+    'lat pulldown': 'lat pulldown',
+    'pull up': 'pull up',
+    'chin up': 'chin up',
+    'cable fly': 'cable fly',
+    'dumbbell fly': 'dumbbell fly',
+    'pec deck': 'pec deck',
+    'rear delt': 'rear delt fly',
+    'upright row': 'upright row',
+    'arnold press': 'arnold press',
+    'ab rollout': 'ab rollout',
+    'dead bug': 'dead bug',
+    'russian twist': 'russian twist',
+    'mountain climber': 'mountain climber',
+    'hanging leg raise': 'hanging leg raise',
+    'cable crunch': 'cable crunch',
+    'side plank': 'side plank',
+
+    // Generic patterns (shorter matches - checked last)
+    'hack': 'hack squat',
+    'rdl': 'romanian deadlift',
+    'curl': 'bicep curl',
+    'press': 'bench press',
     'row': 'barbell row',
     'fly': 'dumbbell fly',
     'raise': 'lateral raise',
-    'lateral raise': 'lateral raise',
-    'front raise': 'front raise',
     'pulldown': 'lat pulldown',
     'pushdown': 'tricep pushdown',
-    'hack squat': 'hack squat',
-    'hack': 'hack squat',
-    'leg press': 'leg press',
     'squat': 'squat',
     'lunge': 'lunge',
     'deadlift': 'deadlift',
-    'pull up': 'pull up',
     'pullup': 'pull up',
+    'chinup': 'chin up',
     'crunch': 'crunch',
     'plank': 'plank',
     'twist': 'russian twist',
     'extension': 'leg extension',
-    'leg curl': 'leg curl',
-    'calf raise': 'calf raise'
+    'shrug': 'shrug',
+    'dip': 'tricep dip',
+    'thrust': 'hip thrust',
+    'bridge': 'glute bridge',
+    'step up': 'step up',
+    'woodchop': 'woodchop'
   };
 
   // Check for each movement keyword (longer matches first)
@@ -225,34 +330,46 @@ RESPOND IN THIS EXACT JSON FORMAT (no markdown, no explanation):
           ).join('\n');
       }
 
+      // Get exercise-specific cues if available - gives AI important context
+      const expertCues = getExerciseCues(exerciseName);
+      let cuesContext = '';
+      if (expertCues && expertCues.length > 0) {
+        cuesContext = `\n\nKey form cues for this exercise:\n${expertCues.map(c => `• ${c}`).join('\n')}`;
+      }
+
       prompt = `You are an expert personal trainer with 15+ years of experience, deep knowledge of exercise science, and a talent for explaining complex concepts simply. A client is asking about the "${exerciseName}" exercise.
 
 Exercise context:
 - Target muscle: ${muscleGroup}
 - Equipment: ${equipment}
-${instructions ? `- Exercise instructions: ${instructions}` : ''}
+${instructions ? `- Exercise instructions: ${instructions}` : ''}${cuesContext}
 ${conversationContext}
 
 Client's question: "${question}"
 
 CRITICAL GUIDELINES - READ CAREFULLY:
-1. ANSWER THE ACTUAL QUESTION - if they ask "how far do I bend over", tell them the exact angle (e.g., "45 degrees" or "until your torso is almost parallel to the floor")
-2. If they ask about BODY POSITION (bend, lean, angle, how far down, torso position):
-   - Give SPECIFIC angles in degrees
-   - Describe what it should look/feel like
-   - Example: "Bend at the hips until your torso is about 45 degrees to the floor - roughly like you're bowing to someone"
-3. If they ask about form: describe exact body positioning with specific cues
-4. If they ask about grip width/stance: give specific measurements (shoulder-width, 1.5x shoulder-width, etc.)
-5. If they ask about alternatives: suggest 2-3 specific exercises
-6. If they ask about muscles worked: name the specific muscles
-7. If they ask about weight/reps: give rep ranges for their goal
+1. ANSWER THE ACTUAL QUESTION DIRECTLY - don't give generic form advice if they asked something specific
+2. Use your knowledge of this SPECIFIC exercise - "${exerciseName}" - not generic advice
+3. If they ask about BODY/FOOT POSITION:
+   - Give SPECIFIC angles, heights, or placements
+   - For machines: explain how platform/seat position changes muscle emphasis
+   - Example: "Place feet in the middle of the platform. Higher = more glutes, lower = more quads"
+4. If they ask "how do I know if X is wrong":
+   - List specific signs/symptoms they would feel or see
+   - Example: "If your feet are too low, you'll feel: heels lifting, knee discomfort, knees traveling far past toes"
+5. If they ask about form: describe exact body positioning
+6. If they ask about grip/stance: give specific measurements
+7. If they ask about alternatives: suggest 2-3 specific exercises
+8. If they ask about muscles worked: name the specific muscles
+9. If they ask about weight/reps: give rep ranges for their goal
 
 DO NOT:
 - Give generic advice like "use controlled movement" when they asked a specific question
-- Ignore what they asked and talk about something else
-- Start with "Great question!" or filler phrases
+- Repeat the same answer you gave before
+- Ignore what they asked
+- Start with filler phrases
 
-Respond directly to what they asked. Be specific with numbers, angles, and cues.`;
+Be specific. Use numbers, angles, and concrete cues.`;
 
       maxTokens = 500;
     } else {
