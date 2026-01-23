@@ -1,8 +1,8 @@
-// Smart food photo analysis using Gemini 2.0 Flash (cost-effective vision model)
+// Smart food photo analysis using Gemini 2.5 Flash (cost-effective vision model)
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -102,7 +102,7 @@ exports.handler = async (event, context) => {
         // User-provided context about the food (optional)
         const userContext = details ? details.trim() : null;
 
-        console.log('🧠 Calling Gemini 2.0 Flash for smart food analysis...');
+        console.log('🧠 Calling Gemini 2.5 Flash for smart food analysis...');
 
         // Build the prompt
         const analysisPrompt = `Analyze this food image carefully and identify all food items visible. For each item, provide accurate nutritional estimates.
@@ -233,7 +233,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             headers,
             body: JSON.stringify({
                 foods,
-                model: 'gemini-2.0-flash',
+                model: 'gemini-2.5-flash',
                 smart: true
             })
         };
