@@ -74,8 +74,9 @@ exports.handler = async (event) => {
       movementPattern = 'SQUAT';
       specificMuscle = 'LEGS';
     }
-    // Lunges
-    else if (exerciseName.includes('lunge')) {
+    // Lunges / Single-leg movements
+    else if (exerciseName.includes('lunge') || exerciseName.includes('step up') || exerciseName.includes('step-up') ||
+             exerciseName.includes('split squat') || exerciseName.includes('bulgarian')) {
       movementPattern = 'LUNGE';
       specificMuscle = 'LEGS';
     }
@@ -84,8 +85,10 @@ exports.handler = async (event) => {
       movementPattern = 'LEG_PRESS';
       specificMuscle = 'LEGS';
     }
-    // Deadlifts
-    else if (exerciseName.includes('deadlift') || exerciseName.includes('rdl') || exerciseName.includes('romanian')) {
+    // Deadlifts / Hip Hinge movements
+    else if (exerciseName.includes('deadlift') || exerciseName.includes('rdl') || exerciseName.includes('romanian') ||
+             exerciseName.includes('good morning') || exerciseName.includes('rack pull') ||
+             exerciseName.includes('kettlebell swing') || exerciseName.includes('kb swing')) {
       movementPattern = 'DEADLIFT';
       specificMuscle = 'BACK'; // or could be LEGS
     }
@@ -142,8 +145,9 @@ exports.handler = async (event) => {
       specificMuscle = 'CALVES';
     }
     // Leg curls - MUST be before bicep curls check!
-    // Only match 'lying curl' or 'seated curl' if it also has 'leg' or 'hamstring'
+    // Nordic curl is also a hamstring exercise!
     else if (exerciseName.includes('leg curl') || exerciseName.includes('hamstring curl') ||
+             exerciseName.includes('nordic curl') || exerciseName.includes('nordic') ||
              ((exerciseName.includes('lying curl') || exerciseName.includes('seated curl')) &&
               (exerciseName.includes('leg') || exerciseName.includes('hamstring')))) {
       movementPattern = 'LEG_CURL';
@@ -160,7 +164,9 @@ exports.handler = async (event) => {
       specificMuscle = 'FOREARMS';
     }
     // Curls (bicep) - after leg curl and wrist curl checks
-    else if (exerciseName.includes('curl') || exerciseName.includes('bicep') || exerciseName.includes('hammer')) {
+    // Exclude "hammer strength" machines - those are equipment names, not hammer curls!
+    else if (exerciseName.includes('curl') || exerciseName.includes('bicep') ||
+             (exerciseName.includes('hammer') && !exerciseName.includes('hammer strength'))) {
       movementPattern = 'CURL';
       specificMuscle = 'BICEPS';
       isBicepExercise = true;
@@ -332,9 +338,9 @@ exports.handler = async (event) => {
         if (movementPattern === 'ROW' && altName.includes('row')) score += 100;
         else if (movementPattern === 'VERTICAL_PULL' && (altName.includes('pulldown') || altName.includes('pull-down') || altName.includes('pullup') || altName.includes('pull-up') || altName.includes('chin'))) score += 100;
         else if (movementPattern === 'SQUAT' && altName.includes('squat')) score += 100;
-        else if (movementPattern === 'LUNGE' && altName.includes('lunge')) score += 100;
+        else if (movementPattern === 'LUNGE' && (altName.includes('lunge') || altName.includes('step up') || altName.includes('step-up') || altName.includes('split squat') || altName.includes('bulgarian'))) score += 100;
         else if (movementPattern === 'LEG_PRESS' && altName.includes('leg press')) score += 100;
-        else if (movementPattern === 'DEADLIFT' && (altName.includes('deadlift') || altName.includes('rdl') || altName.includes('romanian'))) score += 100;
+        else if (movementPattern === 'DEADLIFT' && (altName.includes('deadlift') || altName.includes('rdl') || altName.includes('romanian') || altName.includes('good morning') || altName.includes('rack pull') || altName.includes('kettlebell swing') || altName.includes('kb swing'))) score += 100;
         else if (movementPattern === 'CHEST_PRESS' && (altName.includes('bench press') || altName.includes('chest press') || altName.includes('incline press') || altName.includes('decline press') || altName.includes('floor press') || altName.includes('dumbbell press'))) score += 100;
         else if (movementPattern === 'FLY' && (altName.includes('fly') || altName.includes('flye'))) score += 100;
         else if (movementPattern === 'SHOULDER_PRESS' && (altName.includes('shoulder press') || altName.includes('overhead press') || altName.includes('military') || altName.includes('arnold') || altName.includes('push press'))) score += 100;
@@ -348,7 +354,7 @@ exports.handler = async (event) => {
         else if (movementPattern === 'TRICEP_EXTENSION' && (altName.includes('tricep') || altName.includes('pushdown') || altName.includes('skull') || altName.includes('extension'))) score += 100;
         else if (movementPattern === 'DIP' && altName.includes('dip')) score += 100;
         else if (movementPattern === 'LEG_EXTENSION' && altName.includes('extension') && altName.includes('leg')) score += 100;
-        else if (movementPattern === 'LEG_CURL' && altName.includes('curl') && (altName.includes('leg') || altName.includes('hamstring'))) score += 100;
+        else if (movementPattern === 'LEG_CURL' && (altName.includes('nordic') || (altName.includes('curl') && (altName.includes('leg') || altName.includes('hamstring'))))) score += 100;
         else if (movementPattern === 'CALF_RAISE' && (altName.includes('calf raise') || altName.includes('calf press'))) score += 100;
         else if (movementPattern === 'REVERSE_FLY' && (altName.includes('reverse') || altName.includes('rear')) && (altName.includes('fly') || altName.includes('flye') || altName.includes('delt'))) score += 100;
         else if (movementPattern === 'GLUTE' && (altName.includes('glute') || altName.includes('hip thrust') || altName.includes('bridge') || altName.includes('kickback'))) score += 100;
