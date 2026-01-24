@@ -462,44 +462,105 @@ CLIENT'S QUESTION: "${question}"
 === YOUR KNOWLEDGE BASE (use this to answer) ===
 
 **MOVEMENT PATTERN IDENTIFICATION:**
-First, identify what type of movement this is:
-- HINGE (deadlift, RDL, good morning): Hip-dominant, hamstrings/glutes, back stays flat
-- SQUAT (squat, leg press, hack squat, lunge): Knee + hip flexion, quads/glutes
-- HORIZONTAL PUSH (bench, push-up, chest press): Chest/triceps/front delts
-- VERTICAL PUSH (overhead press, shoulder press): Shoulders/triceps
-- HORIZONTAL PULL (row variations): Back/biceps, pull toward torso
-- VERTICAL PULL (pulldown, pull-up): Lats/biceps, pull from overhead
-- CURL (bicep variations): Elbow flexion only, biceps
-- EXTENSION (tricep variations): Elbow extension only, triceps
-- ISOLATION (raises, flyes, curls): Single joint movement
+Look at the exercise name and identify the pattern. Keywords tell you what it is:
+
+HINGE (keywords: deadlift, RDL, romanian, good morning, hip hinge)
+→ Hip-dominant, hamstrings/glutes primary, back stays FLAT
+→ Feel it in: hamstrings (stretch), glutes (squeeze at top)
+→ NOT in lower back (if you do, form is wrong)
+
+SQUAT (keywords: squat, leg press, hack, lunge, split squat, step up)
+→ Knee + hip flexion, quads/glutes primary
+→ Depth matters: deeper = more glutes, shallower = more quads
+
+LEG CURL (keywords: leg curl, hamstring curl, lying curl, seated curl)
+→ Knee flexion ONLY, hamstrings isolated
+→ Toes pointed = more hamstring, toes up = calves assist
+→ Don't lift hips off pad
+
+LEG EXTENSION (keywords: leg extension, quad extension)
+→ Knee extension ONLY, quads isolated
+→ Full squeeze at top, control descent
+→ Don't use momentum
+
+CALF RAISE (keywords: calf, calve, raise, press with calf)
+→ Ankle plantarflexion, calves isolated
+→ Full stretch at bottom, squeeze at top
+→ Toe angle changes emphasis (out=inner, in=outer)
+
+GLUTE (keywords: hip thrust, glute bridge, kickback, abduction)
+→ Hip extension, glutes primary
+→ Squeeze glutes HARD at top, don't hyperextend spine
+
+HORIZONTAL PUSH (keywords: bench, chest press, push-up, fly, pec)
+→ Chest/triceps/front delts
+→ Shoulder blades retracted, elbows 45-75°
+
+VERTICAL PUSH (keywords: overhead press, shoulder press, military, OHP)
+→ Shoulders/triceps primary
+→ Core braced, no excessive back arch
+
+HORIZONTAL PULL (keywords: row, cable row, dumbbell row, barbell row)
+→ Back/biceps, pull toward torso
+→ Squeeze shoulder blades, don't use momentum
+
+VERTICAL PULL (keywords: pulldown, pull-up, chin-up, lat)
+→ Lats/biceps primary
+→ Full stretch at top, pull to chest not behind neck
+
+BICEP CURL (keywords: curl + arm/bicep/dumbbell/barbell/cable, NOT leg curl)
+→ Elbow flexion only, biceps isolated
+→ Elbows pinned at sides, no swinging
+
+TRICEP (keywords: pushdown, tricep extension, skull crusher, dip)
+→ Elbow extension only, triceps isolated
+→ Upper arm stationary, squeeze at lockout
+
+SHOULDER ISOLATION (keywords: lateral raise, front raise, rear delt, face pull)
+→ Single joint shoulder work
+→ Lead with elbows not hands, control the weight
+
+CORE (keywords: crunch, plank, ab, sit-up, leg raise, rollout, twist)
+→ Spinal flexion/rotation/anti-movement
+→ Breathe out on contraction, don't pull on neck
 
 **BODY POSITION PRINCIPLES:**
 
 HEAD/NECK (if asked):
-- Hinges/Rows: Neutral spine = look at floor 6-10 feet ahead, NOT up at mirror, NOT down at feet. "Pack your neck" - slight chin tuck.
-- Squats: Pick a spot on wall at eye level, maintain throughout. Head moves with spine.
-- Bench press: Head stays ON the bench, don't lift it. Eyes roughly under bar.
-- Standing exercises: Look straight ahead, chin level with floor.
+- Hinges/Rows: Neutral = look at floor 6-10 feet ahead, NOT up, NOT down. "Pack your neck" - slight chin tuck
+- Squats: Pick a spot at eye level, head moves with spine
+- Bench press: Head stays ON bench, eyes roughly under bar
+- Standing: Look straight ahead, chin level
+- Machines: Usually neutral, looking forward
 
 FOOT POSITION (if asked):
-- Squats: Shoulder-width or wider, toes 15-30° out, whole foot planted, knees track over toes
-- Deadlifts (conventional): Hip-width, toes forward or slightly out
-- Deadlifts (sumo): 1.5-2x shoulder width, toes out 45°, knees push OUT over toes
-- Leg press/hack squat: FOOT HEIGHT MATTERS - higher = more glutes/hams, lower = more quads
-- Calf raises: Toe angle changes emphasis - straight=overall, out=inner calf, in=outer calf
-- Lunges: Front foot flat, back foot on ball, hip-width apart (not tightrope)
+- Squats: Shoulder-width+, toes 15-30° out, knees track over toes
+- Conventional deadlift: Hip-width, toes forward/slightly out
+- Sumo deadlift: 1.5-2x shoulder width, toes 45° out, knees OUT
+- Leg press/hack: HEIGHT MATTERS - higher=glutes, lower=quads, middle=balanced
+- Calf raises: Straight=overall, out=inner calf, in=outer calf
+- Lunges: Hip-width apart (not tightrope), front foot flat
+- Leg curl: Feet hip-width, toes pointed down = more hamstring
 
 BACK POSITION (if asked):
-- ALWAYS flat/neutral for loaded movements (deadlifts, rows, squats)
-- Back rounding = weight too heavy OR mobility issue
-- Slight arch in upper back for bench press is GOOD (creates shelf)
-- "Proud chest" cue helps maintain flat back
+- Deadlifts/rows/squats: FLAT - if it rounds, too heavy
+- Bench press: Slight upper back arch = GOOD (shelf for pressing)
+- Seated machines: Pressed against pad
+- Leg curl/extension: Pressed into pad, don't lift hips/butt
 
 GRIP/HAND POSITION (if asked):
-- Bench: Just outside shoulder width, wrists straight (not bent back)
-- Rows: Wider = more upper back, narrower = more lats
-- Overhand vs underhand: Underhand involves more bicep
-- Neutral grip: Usually easiest on joints
+- Bench: Just outside shoulder width, wrists straight
+- Rows: Wider=upper back, narrower=lats
+- Curls: Shoulder-width or narrower, elbows pinned
+- Pulldowns: 1.5x shoulder width, pull to upper chest
+- Overhand=more back, underhand=more bicep, neutral=joint-friendly
+
+PAD/MACHINE SETUP (if asked):
+- Leg curl: Pad just above heels/Achilles, not on calves
+- Leg extension: Pad on lower shin, knee aligned with pivot
+- Lat pulldown: Thigh pad snug so you don't lift up
+- Chest press: Handles at mid-chest height
+- Shoulder press: Handles at shoulder height
 
 **HOW TO ANSWER DIFFERENT QUESTION TYPES:**
 
