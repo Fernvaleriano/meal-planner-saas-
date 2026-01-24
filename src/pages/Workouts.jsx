@@ -1297,78 +1297,7 @@ function Workouts() {
           <ChevronLeft size={24} />
         </button>
         <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
-        <div className="nav-menu-container" ref={menuRef}>
-          <button
-            className="nav-menu-btn"
-            aria-label="Menu"
-            onClick={() => setShowMenu(!showMenu)}
-          >
-            <MoreVertical size={24} />
-          </button>
-          {showMenu && (
-            <div className="nav-dropdown-menu">
-              <button
-                className="menu-item"
-                onClick={() => {
-                  setShowMenu(false);
-                  fetchWorkoutHistory();
-                  setShowHistory(true);
-                }}
-              >
-                <History size={18} />
-                <span>Workout History</span>
-              </button>
-              {todayWorkout && (
-                <>
-                  <button
-                    className="menu-item"
-                    onClick={() => openRescheduleModal('reschedule')}
-                  >
-                    <ArrowRightLeft size={18} />
-                    <span>Reschedule Workout</span>
-                  </button>
-                  <button
-                    className="menu-item"
-                    onClick={() => openRescheduleModal('duplicate')}
-                  >
-                    <Copy size={18} />
-                    <span>Duplicate to Date</span>
-                  </button>
-                  <button
-                    className="menu-item"
-                    onClick={() => openRescheduleModal('skip')}
-                  >
-                    <SkipForward size={18} />
-                    <span>Skip Today</span>
-                  </button>
-                </>
-              )}
-              <button
-                className="menu-item"
-                onClick={() => {
-                  setShowMenu(false);
-                  // Navigate to settings or show toast
-                  alert('Settings coming soon');
-                }}
-              >
-                <Settings size={18} />
-                <span>Settings</span>
-              </button>
-              <button
-                className="menu-item exit"
-                onClick={() => {
-                  setShowMenu(false);
-                  setWorkoutStarted(false);
-                  setCompletedExercises(new Set());
-                  setWorkoutStartTime(null);
-                }}
-              >
-                <LogOut size={18} />
-                <span>Exit Workout</span>
-              </button>
-            </div>
-          )}
-        </div>
+        <div className="nav-spacer" style={{ width: 40 }}></div>
       </div>
 
       {/* Hero Section with Image */}
@@ -1392,6 +1321,17 @@ function Workouts() {
               <div className="hero-dropdown-menu">
                 <button
                   className="menu-item"
+                  onClick={() => {
+                    setShowHeroMenu(false);
+                    fetchWorkoutHistory();
+                    setShowHistory(true);
+                  }}
+                >
+                  <History size={18} />
+                  <span>Workout History</span>
+                </button>
+                <button
+                  className="menu-item"
                   onClick={() => openRescheduleModal('reschedule')}
                 >
                   <MoveRight size={18} />
@@ -1411,6 +1351,20 @@ function Workouts() {
                   <Trash2 size={18} />
                   <span>Delete Day</span>
                 </button>
+                {workoutStarted && (
+                  <button
+                    className="menu-item exit"
+                    onClick={() => {
+                      setShowHeroMenu(false);
+                      setWorkoutStarted(false);
+                      setCompletedExercises(new Set());
+                      setWorkoutStartTime(null);
+                    }}
+                  >
+                    <LogOut size={18} />
+                    <span>Exit Workout</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
