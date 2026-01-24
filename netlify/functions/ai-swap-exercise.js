@@ -52,8 +52,13 @@ exports.handler = async (event) => {
     let isTricepExercise = false;
 
     // MOVEMENT PATTERN DETECTION - This is the key for smart swaps
+    // Upright row - MUST be before generic row! (shoulders/traps, not back)
+    if (exerciseName.includes('upright row')) {
+      movementPattern = 'UPRIGHT_ROW';
+      specificMuscle = 'SHOULDERS';
+    }
     // Rows (horizontal pull)
-    if (exerciseName.includes('row')) {
+    else if (exerciseName.includes('row')) {
       movementPattern = 'ROW';
       specificMuscle = 'BACK';
     }
@@ -84,8 +89,11 @@ exports.handler = async (event) => {
       movementPattern = 'DEADLIFT';
       specificMuscle = 'BACK'; // or could be LEGS
     }
-    // Bench Press / Chest Press
-    else if (exerciseName.includes('bench press') || exerciseName.includes('chest press')) {
+    // Bench Press / Chest Press (including incline, decline, floor press)
+    else if (exerciseName.includes('bench press') || exerciseName.includes('chest press') ||
+             exerciseName.includes('incline press') || exerciseName.includes('decline press') ||
+             exerciseName.includes('floor press') ||
+             (exerciseName.includes('dumbbell press') && !exerciseName.includes('shoulder'))) {
       movementPattern = 'CHEST_PRESS';
       specificMuscle = 'CHEST';
     }
@@ -102,13 +110,30 @@ exports.handler = async (event) => {
     }
     // Shoulder Press / Overhead Press
     else if (exerciseName.includes('shoulder press') || exerciseName.includes('overhead press') ||
-             exerciseName.includes('military press') || exerciseName.includes('ohp')) {
+             exerciseName.includes('military press') || exerciseName.includes('ohp') ||
+             exerciseName.includes('arnold press') || exerciseName.includes('push press') ||
+             (exerciseName.includes('dumbbell press') && exerciseName.includes('shoulder'))) {
       movementPattern = 'SHOULDER_PRESS';
+      specificMuscle = 'SHOULDERS';
+    }
+    // Front Raises
+    else if (exerciseName.includes('front raise') || exerciseName.includes('front delt')) {
+      movementPattern = 'FRONT_RAISE';
       specificMuscle = 'SHOULDERS';
     }
     // Lateral Raises
     else if (exerciseName.includes('lateral raise') || exerciseName.includes('side raise')) {
       movementPattern = 'LATERAL_RAISE';
+      specificMuscle = 'SHOULDERS';
+    }
+    // Shrugs (traps)
+    else if (exerciseName.includes('shrug')) {
+      movementPattern = 'SHRUG';
+      specificMuscle = 'TRAPS';
+    }
+    // Face pulls (rear delts/upper back)
+    else if (exerciseName.includes('face pull')) {
+      movementPattern = 'FACE_PULL';
       specificMuscle = 'SHOULDERS';
     }
     // Calf raises
@@ -129,7 +154,12 @@ exports.handler = async (event) => {
       movementPattern = 'LEG_EXTENSION';
       specificMuscle = 'LEGS';
     }
-    // Curls (bicep) - after leg curl check
+    // Wrist curls - MUST be before bicep curls! (forearms, not biceps)
+    else if (exerciseName.includes('wrist curl') || exerciseName.includes('wrist extension')) {
+      movementPattern = 'WRIST_CURL';
+      specificMuscle = 'FOREARMS';
+    }
+    // Curls (bicep) - after leg curl and wrist curl checks
     else if (exerciseName.includes('curl') || exerciseName.includes('bicep') || exerciseName.includes('hammer')) {
       movementPattern = 'CURL';
       specificMuscle = 'BICEPS';
@@ -305,9 +335,14 @@ exports.handler = async (event) => {
         else if (movementPattern === 'LUNGE' && altName.includes('lunge')) score += 100;
         else if (movementPattern === 'LEG_PRESS' && altName.includes('leg press')) score += 100;
         else if (movementPattern === 'DEADLIFT' && (altName.includes('deadlift') || altName.includes('rdl') || altName.includes('romanian'))) score += 100;
-        else if (movementPattern === 'CHEST_PRESS' && (altName.includes('bench press') || altName.includes('chest press'))) score += 100;
+        else if (movementPattern === 'CHEST_PRESS' && (altName.includes('bench press') || altName.includes('chest press') || altName.includes('incline press') || altName.includes('decline press') || altName.includes('floor press') || altName.includes('dumbbell press'))) score += 100;
         else if (movementPattern === 'FLY' && (altName.includes('fly') || altName.includes('flye'))) score += 100;
-        else if (movementPattern === 'SHOULDER_PRESS' && (altName.includes('shoulder press') || altName.includes('overhead press') || altName.includes('military'))) score += 100;
+        else if (movementPattern === 'SHOULDER_PRESS' && (altName.includes('shoulder press') || altName.includes('overhead press') || altName.includes('military') || altName.includes('arnold') || altName.includes('push press'))) score += 100;
+        else if (movementPattern === 'UPRIGHT_ROW' && altName.includes('upright row')) score += 100;
+        else if (movementPattern === 'FRONT_RAISE' && (altName.includes('front raise') || altName.includes('front delt'))) score += 100;
+        else if (movementPattern === 'SHRUG' && altName.includes('shrug')) score += 100;
+        else if (movementPattern === 'FACE_PULL' && altName.includes('face pull')) score += 100;
+        else if (movementPattern === 'WRIST_CURL' && (altName.includes('wrist curl') || altName.includes('wrist extension') || altName.includes('forearm'))) score += 100;
         else if (movementPattern === 'LATERAL_RAISE' && (altName.includes('lateral raise') || altName.includes('side raise'))) score += 100;
         else if (movementPattern === 'CURL' && (altName.includes('curl') || altName.includes('bicep') || altName.includes('hammer'))) score += 100;
         else if (movementPattern === 'TRICEP_EXTENSION' && (altName.includes('tricep') || altName.includes('pushdown') || altName.includes('skull') || altName.includes('extension'))) score += 100;
@@ -403,6 +438,11 @@ exports.handler = async (event) => {
       else if (movementPattern === 'LEG_CURL') movementDesc = 'LEG CURL (hamstring isolation)';
       else if (movementPattern === 'LEG_EXTENSION') movementDesc = 'LEG EXTENSION (quad isolation)';
       else if (movementPattern === 'CALF_RAISE') movementDesc = 'CALF RAISE (ankle plantar flexion)';
+      else if (movementPattern === 'UPRIGHT_ROW') movementDesc = 'UPRIGHT ROW (shoulder/trap pull)';
+      else if (movementPattern === 'FRONT_RAISE') movementDesc = 'FRONT RAISE (front delt isolation)';
+      else if (movementPattern === 'SHRUG') movementDesc = 'SHRUG (trap isolation)';
+      else if (movementPattern === 'FACE_PULL') movementDesc = 'FACE PULL (rear delt/external rotation)';
+      else if (movementPattern === 'WRIST_CURL') movementDesc = 'WRIST CURL (forearm isolation)';
 
       const prompt = `You are an expert strength coach selecting exercise substitutions. MOVEMENT PATTERN is the #1 priority.
 
