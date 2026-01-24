@@ -1,30 +1,5 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-
-// Helper function to call Gemini API with given prompt
-async function callGeminiAPI(prompt, safetySettings = null) {
-    const requestBody = {
-        contents: [{
-            parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 1024
-        }
-    };
-
-    if (safetySettings) {
-        requestBody.safetySettings = safetySettings;
-    }
-
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-    });
-
-    return response;
-}
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -98,17 +73,17 @@ exports.handler = async (event, context) => {
 
         const foodDescription = text.trim();
 
-        // Safety settings for Gemini API
-        const safetySettings = [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
-        ];
-
-        // Primary prompt for food analysis
-        const primaryPrompt = `You are a nutrition expert. The user is describing what they ate. Parse their description and estimate the nutritional information for each food item mentioned.
+        // Call Gemini API with text description
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        {
+                            text: `You are a nutrition expert. The user is describing what they ate. Parse their description and estimate the nutritional information for each food item mentioned.
 
 User's food description: "${foodDescription}"
 
@@ -132,38 +107,22 @@ Guidelines:
 - If the description is unclear, make reasonable assumptions based on typical meals
 - Return empty array [] if no food items can be identified
 
-Return ONLY the JSON array, nothing else.`;
-
-        // Simplified fallback prompt (less likely to trigger safety filters)
-        const fallbackPrompt = `Provide nutritional information for the following meal in JSON format.
-
-Meal: ${foodDescription}
-
-Respond with ONLY a JSON array like this:
-[{"name": "Food name", "calories": 100, "protein": 10, "carbs": 10, "fat": 5}]`;
-
-        // Helper to extract content from Gemini response
-        const extractContent = (data) => {
-            if (data.candidates?.[0]?.content?.parts) {
-                return data.candidates[0].content.parts
-                    .filter(p => p.text)
-                    .map(p => p.text)
-                    .join('');
-            }
-            return '';
-        };
-
-        // Helper to check if response was blocked by safety filters
-        const isSafetyBlocked = (data) => {
-            const finishReason = data.candidates?.[0]?.finishReason;
-            const hasBlockedReason = finishReason === 'SAFETY' || finishReason === 'BLOCKED';
-            const hasEmptyContent = !data.candidates?.[0]?.content?.parts?.length;
-            const hasPromptFeedback = data.promptFeedback?.blockReason;
-            return hasBlockedReason || (hasEmptyContent && !data.error) || hasPromptFeedback;
-        };
-
-        // Try primary prompt first
-        let response = await callGeminiAPI(primaryPrompt, safetySettings);
+Return ONLY the JSON array, nothing else.`
+                        }
+                    ]
+                }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 1024
+                },
+                safetySettings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                ]
+            })
+        });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -178,45 +137,15 @@ Respond with ONLY a JSON array like this:
             };
         }
 
-        let data = await response.json();
-        let content = extractContent(data);
+        const data = await response.json();
 
-        // Check if blocked by safety filters - retry with fallback prompt
-        if (!content || isSafetyBlocked(data)) {
-            const finishReason = data.candidates?.[0]?.finishReason || 'unknown';
-            const blockReason = data.promptFeedback?.blockReason || 'none';
-            console.log(`Primary prompt blocked or empty. finishReason: ${finishReason}, blockReason: ${blockReason}. Retrying with fallback prompt...`);
-            console.log('Original input:', foodDescription);
-
-            // Wait a moment before retry
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Try fallback prompt without safety settings (let the simpler prompt work naturally)
-            response = await callGeminiAPI(fallbackPrompt);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Gemini API fallback error:', response.status, errorText);
-                return {
-                    statusCode: 500,
-                    headers,
-                    body: JSON.stringify({
-                        error: 'AI analysis failed',
-                        details: `Gemini API returned ${response.status}`
-                    })
-                };
-            }
-
-            data = await response.json();
-            content = extractContent(data);
-
-            // If still blocked, log detailed info
-            if (!content || isSafetyBlocked(data)) {
-                console.error('Fallback also blocked. Full response:', JSON.stringify(data));
-                console.error('Input that caused block:', foodDescription);
-            } else {
-                console.log('Fallback prompt succeeded');
-            }
+        // Extract text from Gemini response
+        let content = '';
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            content = data.candidates[0].content.parts
+                .filter(p => p.text)
+                .map(p => p.text)
+                .join('');
         }
 
         console.log('Gemini response content:', content);
