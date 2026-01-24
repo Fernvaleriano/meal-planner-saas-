@@ -89,7 +89,13 @@ exports.handler = async (event) => {
       movementPattern = 'CHEST_PRESS';
       specificMuscle = 'CHEST';
     }
-    // Flys
+    // Reverse Fly / Rear Delt Fly - MUST be before regular fly check!
+    else if ((exerciseName.includes('fly') || exerciseName.includes('flye')) &&
+             (exerciseName.includes('reverse') || exerciseName.includes('rear'))) {
+      movementPattern = 'REVERSE_FLY';
+      specificMuscle = 'SHOULDERS';
+    }
+    // Flys (chest)
     else if (exerciseName.includes('fly') || exerciseName.includes('flye')) {
       movementPattern = 'FLY';
       specificMuscle = 'CHEST';
@@ -111,7 +117,10 @@ exports.handler = async (event) => {
       specificMuscle = 'CALVES';
     }
     // Leg curls - MUST be before bicep curls check!
-    else if (exerciseName.includes('leg curl') || exerciseName.includes('hamstring curl') || exerciseName.includes('lying curl') || exerciseName.includes('seated curl')) {
+    // Only match 'lying curl' or 'seated curl' if it also has 'leg' or 'hamstring'
+    else if (exerciseName.includes('leg curl') || exerciseName.includes('hamstring curl') ||
+             ((exerciseName.includes('lying curl') || exerciseName.includes('seated curl')) &&
+              (exerciseName.includes('leg') || exerciseName.includes('hamstring')))) {
       movementPattern = 'LEG_CURL';
       specificMuscle = 'LEGS';
     }
@@ -127,12 +136,20 @@ exports.handler = async (event) => {
       isBicepExercise = true;
     }
     // Tricep extensions/pushdowns
+    // Exclude 'glute kickback' from tricep - must be tricep kickback
     else if (exerciseName.includes('tricep') || exerciseName.includes('pushdown') ||
-             exerciseName.includes('skull') || exerciseName.includes('kickback') ||
-             (exerciseName.includes('extension') && !exerciseName.includes('back') && !exerciseName.includes('leg'))) {
+             exerciseName.includes('skull') ||
+             (exerciseName.includes('kickback') && !exerciseName.includes('glute')) ||
+             (exerciseName.includes('extension') && !exerciseName.includes('back') && !exerciseName.includes('leg') && !exerciseName.includes('hip'))) {
       movementPattern = 'TRICEP_EXTENSION';
       specificMuscle = 'TRICEPS';
       isTricepExercise = true;
+    }
+    // Glute exercises (kickbacks, bridges, thrusts)
+    else if (exerciseName.includes('glute') || exerciseName.includes('hip thrust') ||
+             exerciseName.includes('glute bridge') || exerciseName.includes('donkey kick')) {
+      movementPattern = 'GLUTE';
+      specificMuscle = 'GLUTES';
     }
     // Dips (can be chest or tricep)
     else if (exerciseName.includes('dip')) {
@@ -298,6 +315,8 @@ exports.handler = async (event) => {
         else if (movementPattern === 'LEG_EXTENSION' && altName.includes('extension') && altName.includes('leg')) score += 100;
         else if (movementPattern === 'LEG_CURL' && altName.includes('curl') && (altName.includes('leg') || altName.includes('hamstring'))) score += 100;
         else if (movementPattern === 'CALF_RAISE' && (altName.includes('calf raise') || altName.includes('calf press'))) score += 100;
+        else if (movementPattern === 'REVERSE_FLY' && (altName.includes('reverse') || altName.includes('rear')) && (altName.includes('fly') || altName.includes('flye') || altName.includes('delt'))) score += 100;
+        else if (movementPattern === 'GLUTE' && (altName.includes('glute') || altName.includes('hip thrust') || altName.includes('bridge') || altName.includes('kickback'))) score += 100;
       }
 
       // MEDIUM PRIORITY: Same equipment
@@ -379,6 +398,11 @@ exports.handler = async (event) => {
       else if (movementPattern === 'LATERAL_RAISE') movementDesc = 'LATERAL RAISE (shoulder isolation)';
       else if (movementPattern === 'CURL') movementDesc = 'CURL (bicep/elbow flexion)';
       else if (movementPattern === 'TRICEP_EXTENSION') movementDesc = 'TRICEP EXTENSION (elbow extension)';
+      else if (movementPattern === 'REVERSE_FLY') movementDesc = 'REVERSE FLY (rear delt isolation)';
+      else if (movementPattern === 'GLUTE') movementDesc = 'GLUTE (hip extension/kickback)';
+      else if (movementPattern === 'LEG_CURL') movementDesc = 'LEG CURL (hamstring isolation)';
+      else if (movementPattern === 'LEG_EXTENSION') movementDesc = 'LEG EXTENSION (quad isolation)';
+      else if (movementPattern === 'CALF_RAISE') movementDesc = 'CALF RAISE (ankle plantar flexion)';
 
       const prompt = `You are an expert strength coach selecting exercise substitutions. MOVEMENT PATTERN is the #1 priority.
 
