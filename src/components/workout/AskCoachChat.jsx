@@ -120,6 +120,33 @@ function AskCoachChat({ exercise, onClose }) {
       return `For foot placement on ${exerciseName}:\n\n• Start with feet shoulder-width apart\n• Toes pointed slightly outward (15-30°)\n• Weight distributed evenly across entire foot\n• Adjust based on what muscles you want to emphasize`;
     }
 
+    // HEAD/NECK/CHIN position questions
+    if (q.includes('head') || q.includes('neck') || q.includes('chin') || q.includes('look') || q.includes('eyes') ||
+        (q.includes('up') && q.includes('down') && !q.includes('weight'))) {
+
+      if (category === 'hinge') {
+        return `Head position for ${exerciseName}:\n\n**The answer: NEUTRAL (not up, not down)**\n\n• Look at the floor about 6-10 feet in front of you\n• Chin slightly tucked - like holding a tennis ball under your chin\n• Your head should be in line with your spine\n• As you hinge, your gaze naturally shifts (still looking at that same floor spot)\n\n**Why NOT look up:**\n• Cranking your neck up puts stress on cervical spine\n• Can cause neck strain, especially with heavy weight\n• Throws off spinal alignment\n\n**Why NOT look down at your feet:**\n• Can cause upper back to round\n• Shifts weight forward onto toes\n\n**Cue that helps:** "Pack your neck" - make a double chin, then relax slightly.`;
+      }
+
+      if (category === 'squat' || category === 'machine-squat') {
+        return `Head position for ${exerciseName}:\n\n**The answer: NEUTRAL, eyes forward**\n\n• Pick a spot on the wall at eye level or slightly below\n• Keep looking at that spot throughout the rep\n• Head stays in line with spine - don't crane neck up or tuck chin to chest\n\n**Why this matters:**\n• Looking up can cause you to lean forward\n• Looking down can cause upper back rounding\n• Neutral head = neutral spine = safer lifting\n\n**Cue:** Imagine a broomstick along your spine touching your head, upper back, and tailbone. All three should stay in contact.`;
+      }
+
+      if (category === 'pull-horizontal') {
+        return `Head position for ${exerciseName}:\n\n**The answer: NEUTRAL**\n\n• Look at the floor a few feet in front of you\n• Head in line with spine (not looking up at ceiling or down at feet)\n• Chin slightly tucked\n\n**During the movement:**\n• Head position stays the same - don't bob up and down\n• If you're looking up, you're probably using too much momentum\n\n**Cue:** If someone put a dowel along your spine, it should touch your head, upper back, and hips throughout the row.`;
+      }
+
+      if (category === 'push') {
+        return `Head position for ${exerciseName}:\n\n**For bench press/floor press:**\n• Head stays flat on the bench - don't lift it\n• Eyes should be roughly under the bar at start\n• Look at the ceiling or the bar - not at your chest\n\n**For overhead press:**\n• Head neutral, looking straight ahead\n• Move your head BACK slightly as bar passes face\n• Once bar is overhead, head can come forward to neutral\n\n**For push-ups:**\n• Head neutral, look at floor slightly ahead\n• Don't crane neck up or tuck chin to chest`;
+      }
+
+      if (category === 'curl' || category === 'tricep') {
+        return `Head position for ${exerciseName}:\n\n**Keep it neutral and still:**\n• Look straight ahead, not up or down\n• Head shouldn't move during the rep\n• If your head is bobbing, you're using momentum\n\n**Common mistake:** Looking up/jerking head back to help lift the weight. This means the weight is too heavy.`;
+      }
+
+      return `Head position for ${exerciseName}:\n\n**General rule: NEUTRAL**\n\n• Head in line with spine\n• Pick a spot to focus on and keep looking there\n• Don't crane neck up or tuck chin down\n• If your head is moving during the rep, you may be using momentum\n\n**"Neutral" means:**\n• Slight natural curve in neck\n• Chin not jutting forward or tucked to chest\n• Like your normal standing posture`;
+    }
+
     // GRIP/HAND placement questions
     if (q.includes('grip') || q.includes('hand') || (q.includes('wide') || q.includes('narrow')) && !q.includes('stance')) {
       if (category === 'push') {

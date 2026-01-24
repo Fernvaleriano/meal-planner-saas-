@@ -33,6 +33,7 @@ const EXERCISE_CUES = {
   't-bar row': ['Straddle the bar or use landmine', 'Hinge at hips, back flat', 'Pull to chest, squeeze at top', 'Don\'t round lower back'],
   'face pull': ['Set cable at face height', 'Pull to face, elbows high', 'Externally rotate at end', 'Squeeze rear delts and upper back'],
   'deadlift': ['Bar over mid-foot, shins touch bar', 'Chest up, back flat, brace core hard', 'Push floor away, don\'t pull with back', 'Lock out with glutes, don\'t hyperextend'],
+  'sumo deadlift': ['Wide stance (1.5-2x shoulder width), toes pointed out 45°', 'Grip inside knees, arms straight down', 'Push knees OUT over toes throughout', 'Chest up, back flat - if back rounds, stance may be too wide', 'Drive through heels, squeeze glutes at lockout', 'Head neutral - look at floor 6-10 feet ahead, not up'],
   'romanian deadlift': ['Start standing with bar at hips', 'Push hips BACK, not down', 'Keep bar close to legs throughout', 'Lower until hamstring stretch, usually knee level', 'Back stays flat, slight knee bend'],
   'rdl': ['Start standing with bar at hips', 'Push hips BACK, not down', 'Keep bar close to legs throughout', 'Lower until hamstring stretch, usually knee level', 'Back stays flat, slight knee bend'],
 
@@ -350,24 +351,31 @@ Client's question: "${question}"
 CRITICAL GUIDELINES - READ CAREFULLY:
 1. ANSWER THE ACTUAL QUESTION DIRECTLY - don't give generic form advice if they asked something specific
 2. Use your knowledge of this SPECIFIC exercise - "${exerciseName}" - not generic advice
-3. If they ask about BODY/FOOT POSITION:
+3. If they ask about HEAD/NECK/CHIN POSITION (up, down, neutral, where to look):
+   - Give SPECIFIC guidance on head position for THIS exercise
+   - For deadlifts/rows: "Keep head neutral - look at floor 6-10 feet ahead, chin slightly tucked"
+   - For squats: "Head neutral, pick a spot on the wall at eye level"
+   - For bench press: "Head stays on bench, eyes under the bar"
+   - NEVER say "keep head neutral" without explaining what that means
+4. If they ask about BODY/FOOT POSITION:
    - Give SPECIFIC angles, heights, or placements
    - For machines: explain how platform/seat position changes muscle emphasis
    - Example: "Place feet in the middle of the platform. Higher = more glutes, lower = more quads"
-4. If they ask "how do I know if X is wrong":
+5. If they ask "how do I know if X is wrong":
    - List specific signs/symptoms they would feel or see
    - Example: "If your feet are too low, you'll feel: heels lifting, knee discomfort, knees traveling far past toes"
-5. If they ask about form: describe exact body positioning
-6. If they ask about grip/stance: give specific measurements
-7. If they ask about alternatives: suggest 2-3 specific exercises
-8. If they ask about muscles worked: name the specific muscles
-9. If they ask about weight/reps: give rep ranges for their goal
+6. If they ask about form: describe exact body positioning
+7. If they ask about grip/stance: give specific measurements
+8. If they ask about alternatives: suggest 2-3 specific exercises
+9. If they ask about muscles worked: name the specific muscles
+10. If they ask about weight/reps: give rep ranges for their goal
 
 DO NOT:
 - Give generic advice like "use controlled movement" when they asked a specific question
 - Repeat the same answer you gave before
 - Ignore what they asked
 - Start with filler phrases
+- Say "maintain proper form" without explaining what that means
 
 Be specific. Use numbers, angles, and concrete cues.`;
 
