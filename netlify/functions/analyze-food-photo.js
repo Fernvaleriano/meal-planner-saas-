@@ -1,45 +1,8 @@
-// Food photo analysis using Gemini 2.5 Flash (cost-effective vision model)
+// Food photo analysis using Gemini 2.0 Flash (reliable, no safety filter issues)
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_25_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-const GEMINI_20_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-
-// Safety settings - use OFF for 2.5 Flash (BLOCK_NONE doesn't work properly)
-const safetySettings = [
-    { category: "HARM_CATEGORY_HARASSMENT", threshold: "OFF" },
-    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "OFF" },
-    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "OFF" },
-    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "OFF" }
-];
-
-// Helper to check if response was blocked by safety filters
-function isSafetyBlocked(data) {
-    const finishReason = data.candidates?.[0]?.finishReason;
-    const blocked = finishReason === 'SAFETY' || finishReason === 'BLOCKED' || finishReason === 'OTHER';
-    const noContent = !data.candidates?.[0]?.content?.parts?.length;
-    const promptBlocked = data.promptFeedback?.blockReason;
-    return blocked || (noContent && !data.error) || promptBlocked;
-}
-
-// Helper to call Gemini API
-async function callGemini(url, parts, useSafety = true) {
-    const body = {
-        contents: [{ parts }],
-        generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 1024
-        }
-    };
-    if (useSafety) {
-        body.safetySettings = safetySettings;
-    }
-    return fetch(`${url}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-}
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -175,7 +138,7 @@ ${processedImages.length > 1 ? '- Use multiple angles to better estimate portion
 
 Return ONLY the JSON array.`;
 
-        console.log('🤖 Calling Gemini 2.5 Flash for food analysis...');
+        console.log('🤖 Calling Gemini 2.0 Flash for food analysis...');
 
         // Build parts array with images and text for Gemini
         const parts = [
@@ -188,43 +151,24 @@ Return ONLY the JSON array.`;
             }))
         ];
 
-        let data;
-        let content;
-        let usedFallback = false;
-
+        let response;
         try {
-            // Try Gemini 2.5 Flash first
-            let response = await callGemini(GEMINI_25_URL, parts, true);
+            response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts }],
+                    generationConfig: {
+                        temperature: 0.3,
+                        maxOutputTokens: 1024
+                    }
+                })
+            });
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Gemini 2.5 API error:', errorText);
-                throw new Error(`Gemini 2.5 API error: ${response.status}`);
-            }
-
-            data = await response.json();
-            content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-            // Check if blocked by safety filters - fallback to 2.0 Flash
-            if (!content || isSafetyBlocked(data)) {
-                const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || 'unknown';
-                console.log(`📸 Gemini 2.5 blocked (${reason}), falling back to 2.0 Flash...`);
-
-                response = await callGemini(GEMINI_20_URL, parts, false);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Gemini 2.0 fallback error:', errorText);
-                    throw new Error(`Gemini 2.0 API error: ${response.status}`);
-                }
-
-                data = await response.json();
-                content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                usedFallback = true;
-
-                if (!content) {
-                    console.error('Fallback also failed:', JSON.stringify(data).substring(0, 500));
-                }
+                console.error('Gemini API error:', errorText);
+                throw new Error(`Gemini API error: ${response.status}`);
             }
         } catch (apiError) {
             console.error('Gemini API error:', apiError);
@@ -238,9 +182,11 @@ Return ONLY the JSON array.`;
             };
         }
 
-        console.log(`✅ Gemini response received${usedFallback ? ' (used 2.0 fallback)' : ''}`);
+        const data = await response.json();
+        console.log('✅ Gemini 2.0 response received');
 
-        // Check if we got valid content
+        // Extract response text
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         if (!content) {
             console.error('No content from Gemini:', JSON.stringify(data).substring(0, 500));
             return {
