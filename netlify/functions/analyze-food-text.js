@@ -1,5 +1,37 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_25_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_20_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+// Safety settings - use OFF for 2.5 Flash (BLOCK_NONE doesn't work properly)
+const safetySettings = [
+    { category: "HARM_CATEGORY_HARASSMENT", threshold: "OFF" },
+    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "OFF" },
+    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "OFF" },
+    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "OFF" }
+];
+
+// Helper to check if response was blocked
+function isSafetyBlocked(data) {
+    const finishReason = data.candidates?.[0]?.finishReason;
+    const blocked = finishReason === 'SAFETY' || finishReason === 'BLOCKED' || finishReason === 'OTHER';
+    const noContent = !data.candidates?.[0]?.content?.parts?.length;
+    const promptBlocked = data.promptFeedback?.blockReason;
+    return blocked || (noContent && !data.error) || promptBlocked;
+}
+
+// Helper to call Gemini API
+async function callGemini(url, prompt, useSafety = true) {
+    const body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+    };
+    if (useSafety) body.safetySettings = safetySettings;
+    return fetch(`${url}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+}
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -73,17 +105,7 @@ exports.handler = async (event, context) => {
 
         const foodDescription = text.trim();
 
-        // Call Gemini API with text description
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        {
-                            text: `You are a nutrition expert. The user is describing what they ate. Parse their description and estimate the nutritional information for each food item mentioned.
+        const prompt = `You are a nutrition expert. The user is describing what they ate. Parse their description and estimate the nutritional information for each food item mentioned.
 
 User's food description: "${foodDescription}"
 
@@ -107,26 +129,18 @@ Guidelines:
 - If the description is unclear, make reasonable assumptions based on typical meals
 - Return empty array [] if no food items can be identified
 
-Return ONLY the JSON array, nothing else.`
-                        }
-                    ]
-                }],
-                generationConfig: {
-                    temperature: 0.3,
-                    maxOutputTokens: 1024
-                },
-                safetySettings: [
-                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                ]
-            })
-        });
+Return ONLY the JSON array, nothing else.`;
+
+        let data;
+        let content = '';
+        let usedFallback = false;
+
+        // Try Gemini 2.5 Flash first
+        let response = await callGemini(GEMINI_25_URL, prompt, true);
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Gemini API error:', response.status, errorText);
+            console.error('Gemini 2.5 API error:', response.status, errorText);
             return {
                 statusCode: 500,
                 headers,
@@ -137,18 +151,39 @@ Return ONLY the JSON array, nothing else.`
             };
         }
 
-        const data = await response.json();
-
-        // Extract text from Gemini response
-        let content = '';
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            content = data.candidates[0].content.parts
-                .filter(p => p.text)
-                .map(p => p.text)
-                .join('');
+        data = await response.json();
+        if (data.candidates?.[0]?.content?.parts) {
+            content = data.candidates[0].content.parts.filter(p => p.text).map(p => p.text).join('');
         }
 
-        console.log('Gemini response content:', content);
+        // Check if blocked - fallback to 2.0 Flash
+        if (!content || isSafetyBlocked(data)) {
+            const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || 'unknown';
+            console.log(`Gemini 2.5 blocked (${reason}), falling back to 2.0 Flash...`);
+
+            response = await callGemini(GEMINI_20_URL, prompt, false);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Gemini 2.0 fallback error:', response.status, errorText);
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'AI analysis failed',
+                        details: `Gemini API returned ${response.status}`
+                    })
+                };
+            }
+
+            data = await response.json();
+            content = '';
+            if (data.candidates?.[0]?.content?.parts) {
+                content = data.candidates[0].content.parts.filter(p => p.text).map(p => p.text).join('');
+            }
+            usedFallback = true;
+        }
+
+        console.log(`Gemini response${usedFallback ? ' (2.0 fallback)' : ''}:`, content);
 
         // Parse the response
         let foods = [];
