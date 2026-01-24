@@ -12492,6 +12492,14 @@ a.nav-left {
     background: rgba(239, 68, 68, 0.15);
 }
 
+.hero-dropdown-menu .menu-item.exit {
+    color: #f97316;
+}
+
+.hero-dropdown-menu .menu-item.exit:hover {
+    background: rgba(249, 115, 22, 0.15);
+}
+
 /* Track Heart Rate Section */
 .track-heart-rate-section {
     padding: 16px 20px;
