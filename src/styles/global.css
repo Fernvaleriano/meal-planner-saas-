@@ -11925,6 +11925,7 @@ a.nav-left {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
     background: #000;
     position: sticky;
     top: 0;
@@ -12415,6 +12416,80 @@ a.nav-left {
 
 .workout-hero-v3 .hero-play-btn svg {
     margin-left: 4px;
+}
+
+/* Hero Menu - Day Options */
+.hero-menu-container {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+}
+
+.hero-menu-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.hero-menu-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.05);
+}
+
+.hero-menu-btn:active {
+    transform: scale(0.95);
+}
+
+.hero-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 160px;
+    background: rgba(26, 26, 26, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.hero-dropdown-menu .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.hero-dropdown-menu .menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.hero-dropdown-menu .menu-item.delete {
+    color: #ef4444;
+}
+
+.hero-dropdown-menu .menu-item.delete:hover {
+    background: rgba(239, 68, 68, 0.15);
 }
 
 /* Track Heart Rate Section */

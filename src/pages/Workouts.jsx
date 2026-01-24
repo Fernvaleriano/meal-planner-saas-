@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
@@ -123,11 +123,13 @@ function Workouts() {
   // States for reschedule/duplicate functionality
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleAction, setRescheduleAction] = useState(null); // 'reschedule', 'duplicate', 'skip'
+  const [showHeroMenu, setShowHeroMenu] = useState(false); // Hero section day options menu
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const menuRef = useRef(null);
+  const heroMenuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
   const selectedExerciseRef = useRef(null);
   const isRefreshingRef = useRef(false);
@@ -136,11 +138,14 @@ function Workouts() {
   todayWorkoutRef.current = todayWorkout;
   selectedExerciseRef.current = selectedExercise;
 
-  // Close menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowMenu(false);
+      }
+      if (heroMenuRef.current && !heroMenuRef.current.contains(event.target)) {
+        setShowHeroMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -1107,7 +1112,51 @@ function Workouts() {
     setRescheduleTargetDate(formatDate(tomorrow));
     setShowRescheduleModal(true);
     setShowMenu(false);
+    setShowHeroMenu(false);
   }, []);
+
+  // Handle deleting today's workout (make it a rest day)
+  const handleDeleteWorkout = useCallback(async () => {
+    if (!todayWorkout?.id) return;
+
+    const confirmed = window.confirm('Are you sure you want to delete this workout? This will make today a rest day.');
+    if (!confirmed) return;
+
+    try {
+      if (todayWorkout.is_adhoc) {
+        // Delete adhoc workout
+        const isRealId = todayWorkout.id && !String(todayWorkout.id).startsWith('adhoc-') && !String(todayWorkout.id).startsWith('custom-');
+        if (isRealId) {
+          await apiPost('/.netlify/functions/adhoc-workouts', {
+            action: 'delete',
+            workoutId: todayWorkout.id,
+            clientId: todayWorkout.client_id || clientData?.id
+          });
+        }
+      } else {
+        // Skip/delete assigned workout - mark as rest day
+        await apiPost('/.netlify/functions/client-workout-log', {
+          assignmentId: todayWorkout.id,
+          action: 'skip',
+          sourceDayIndex: todayWorkout.day_index,
+          sourceDate: formatDate(selectedDate),
+          targetDate: formatDate(selectedDate)
+        });
+      }
+
+      // Clear local state
+      setTodayWorkout(null);
+      setWorkoutLog(null);
+      setCompletedExercises(new Set());
+      setShowHeroMenu(false);
+
+      // Optionally refresh
+      refreshWorkoutData();
+    } catch (err) {
+      console.error('Error deleting workout:', err);
+      showError('Failed to delete workout');
+    }
+  }, [todayWorkout, clientData?.id, selectedDate, refreshWorkoutData, showError]);
 
   // Calculate workout duration
   const workoutDuration = useMemo(() => {
@@ -1329,6 +1378,43 @@ function Workouts() {
           style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
         >
           <div className="hero-overlay"></div>
+
+          {/* Hero Menu Button - Top Right */}
+          <div className="hero-menu-container" ref={heroMenuRef}>
+            <button
+              className="hero-menu-btn"
+              aria-label="Day options"
+              onClick={() => setShowHeroMenu(!showHeroMenu)}
+            >
+              <MoreVertical size={22} />
+            </button>
+            {showHeroMenu && (
+              <div className="hero-dropdown-menu">
+                <button
+                  className="menu-item"
+                  onClick={() => openRescheduleModal('reschedule')}
+                >
+                  <MoveRight size={18} />
+                  <span>Move Day</span>
+                </button>
+                <button
+                  className="menu-item"
+                  onClick={() => openRescheduleModal('duplicate')}
+                >
+                  <Copy size={18} />
+                  <span>Duplicate Day</span>
+                </button>
+                <button
+                  className="menu-item delete"
+                  onClick={handleDeleteWorkout}
+                >
+                  <Trash2 size={18} />
+                  <span>Delete Day</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="hero-content-v3">
             <h1 className="hero-title-v3">
               {workoutDayName || todayWorkout.name || 'Today\'s Workout'}
