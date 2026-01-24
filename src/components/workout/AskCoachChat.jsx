@@ -92,10 +92,24 @@ function AskCoachChat({ exercise, onClose }) {
     const nameLower = exerciseName.toLowerCase();
     const category = getExerciseCategory(exerciseName);
 
-    // FOOT/HAND PLACEMENT questions - very specific, check first
-    if (q.includes('foot') || q.includes('feet') || q.includes('stance') ||
-        (q.includes('high') && (q.includes('up') || q.includes('low'))) ||
-        (q.includes('where') && (q.includes('place') || q.includes('put')))) {
+    // FOOT/FEET/STANCE placement questions - check BEFORE body positioning
+    if ((q.includes('foot') || q.includes('feet') || q.includes('stance') || q.includes('apart') || q.includes('spacing')) &&
+        !q.includes('hand')) {
+
+      // Calf raises - specific foot position advice
+      if (category === 'calf' || nameLower.includes('calf')) {
+        return `Foot position for ${exerciseName}:\n\n**Stance Width:**\n• Hip-width apart is standard\n• Can vary for emphasis (see below)\n\n**Toe Direction (changes muscle emphasis):**\n• **Toes straight ahead** = overall calf development\n• **Toes pointed OUT** = more inner calf (medial head)\n• **Toes pointed IN** = more outer calf (lateral head)\n\n**On the platform:**\n• Balls of feet on edge, heels hanging off\n• Full range of motion: drop heels LOW, rise HIGH\n• Pause and squeeze at the top\n\n**Common mistake:** Not going through full range - partial reps = partial results for calves.`;
+      }
+
+      // Leg curl - foot position
+      if (category === 'leg-curl' || nameLower.includes('leg curl') || nameLower.includes('hamstring curl')) {
+        return `Foot position for ${exerciseName}:\n\n**Toes pointed UP or DOWN?**\n• **Toes pointed (plantarflexed):** More hamstring isolation - gastrocnemius (calf) is shortened so hamstrings do more work\n• **Toes neutral/up (dorsiflexed):** Calves assist more\n\n**Recommendation:** Point toes slightly DOWN for better hamstring activation.\n\n**Pad position:**\n• Pad should be just above your heels/Achilles\n• Not too high on your calves\n\n**During the curl:**\n• Don't let feet splay out to sides\n• Keep them aligned throughout the movement`;
+      }
+
+      // Sumo deadlift - specific stance
+      if (nameLower.includes('sumo')) {
+        return `Foot/stance position for ${exerciseName}:\n\n**Stance Width:**\n• 1.5-2x shoulder width\n• Wide enough that your arms hang straight down INSIDE your knees\n• Too wide = hips can't open properly, weaker off floor\n\n**Toe Angle:**\n• Point toes out 45° (or more based on hip anatomy)\n• Knees MUST track over toes\n\n**Weight Distribution:**\n• Weight in mid-foot to heels\n• "Spread the floor" with your feet\n• Push knees OUT hard throughout\n\n**How to find YOUR stance:**\n• Stand wide, point toes out, drop into a deep squat\n• Where you feel strongest/most open = your sumo stance`;
+      }
 
       // Machine leg exercises with platforms
       if (category === 'machine-squat') {
@@ -112,12 +126,23 @@ function AskCoachChat({ exercise, onClose }) {
         return `Foot placement for ${exerciseName}:\n\n**Front Foot:**\n• Far enough forward that knee stays over ankle at bottom\n• Whole foot stays flat, push through heel\n• Toes can point slightly out\n\n**Back Foot:**\n• On ball of foot (or elevated on bench for Bulgarian)\n• Far enough back to allow full depth\n\n**Stance Width:**\n• Feet hip-width apart (not on a tightrope)\n• This helps with balance`;
       }
 
-      // Hinge movements
+      // Hinge movements (conventional deadlift, RDL)
       if (category === 'hinge') {
-        return `Foot placement for ${exerciseName}:\n\n• Feet hip to shoulder-width apart\n• Toes pointing forward or slightly out\n• Weight in heels/mid-foot, NOT toes\n• "Grip the floor" - feel pressure through whole foot`;
+        return `Foot placement for ${exerciseName}:\n\n**Stance Width:**\n• Hip to shoulder-width apart (narrower than squat)\n• Conventional deadlift: feet under hips\n\n**Toe Angle:**\n• Toes pointing forward or slightly out (up to 15°)\n\n**Weight Distribution:**\n• Weight in mid-foot to heels, NOT toes\n• "Grip the floor" - feel pressure through whole foot\n• If you feel it in your toes, you're too far forward`;
       }
 
-      return `For foot placement on ${exerciseName}:\n\n• Start with feet shoulder-width apart\n• Toes pointed slightly outward (15-30°)\n• Weight distributed evenly across entire foot\n• Adjust based on what muscles you want to emphasize`;
+      return `For foot placement on ${exerciseName}:\n\n• Start with feet about shoulder-width apart\n• Toes pointed slightly outward (15-30°)\n• Weight distributed evenly across entire foot\n• Adjust based on what muscles you want to emphasize`;
+    }
+
+    // HAND/GRIP placement questions
+    if (q.includes('hand') || q.includes('grip') || ((q.includes('wide') || q.includes('narrow')) && !q.includes('stance') && !q.includes('feet'))) {
+      if (category === 'push') {
+        return `Hand/grip position for ${exerciseName}:\n\n**Width:**\n• Shoulder-width to 1.5x shoulder-width is standard\n• Wider grip = more chest emphasis, but more shoulder stress\n• Narrower grip = more tricep involvement\n\n**For bench/floor press:**\n• Hands slightly wider than shoulder-width\n• Wrists straight (not bent back) - bar over forearms\n• Thumbs wrapped around the bar\n\n**For push-ups:**\n• Hands just outside shoulder-width\n• Fingers pointing forward or slightly out\n• Hands at chest level, not up by shoulders`;
+      }
+      if (category === 'pull-horizontal' || category === 'pull-vertical') {
+        return `Grip for ${exerciseName}:\n\n**Width:**\n• Wider grip = more lat width emphasis\n• Narrower grip = more lat thickness, more bicep\n\n**Grip Type:**\n• Overhand (pronated) = more back\n• Underhand (supinated) = more bicep involvement\n• Neutral = balanced, often easiest on shoulders\n\n**Tip:** Let your lats stretch fully at the bottom, don't cut the range short.`;
+      }
+      return `For grip/hand position on ${exerciseName}:\n\n• Shoulder-width is a good starting point\n• Wider grips typically emphasize outer muscles more\n• Narrower grips target inner portions\n• Keep wrists straight, not bent back\n• Experiment to find what feels strongest for your body`;
     }
 
     // HEAD/NECK/CHIN position questions
@@ -132,55 +157,10 @@ function AskCoachChat({ exercise, onClose }) {
         return `Head position for ${exerciseName}:\n\n**The answer: NEUTRAL, eyes forward**\n\n• Pick a spot on the wall at eye level or slightly below\n• Keep looking at that spot throughout the rep\n• Head stays in line with spine - don't crane neck up or tuck chin to chest\n\n**Why this matters:**\n• Looking up can cause you to lean forward\n• Looking down can cause upper back rounding\n• Neutral head = neutral spine = safer lifting\n\n**Cue:** Imagine a broomstick along your spine touching your head, upper back, and tailbone. All three should stay in contact.`;
       }
 
-      if (category === 'pull-horizontal') {
-        return `Head position for ${exerciseName}:\n\n**The answer: NEUTRAL**\n\n• Look at the floor a few feet in front of you\n• Head in line with spine (not looking up at ceiling or down at feet)\n• Chin slightly tucked\n\n**During the movement:**\n• Head position stays the same - don't bob up and down\n• If you're looking up, you're probably using too much momentum\n\n**Cue:** If someone put a dowel along your spine, it should touch your head, upper back, and hips throughout the row.`;
-      }
-
-      if (category === 'push') {
-        return `Head position for ${exerciseName}:\n\n**For bench press/floor press:**\n• Head stays flat on the bench - don't lift it\n• Eyes should be roughly under the bar at start\n• Look at the ceiling or the bar - not at your chest\n\n**For overhead press:**\n• Head neutral, looking straight ahead\n• Move your head BACK slightly as bar passes face\n• Once bar is overhead, head can come forward to neutral\n\n**For push-ups:**\n• Head neutral, look at floor slightly ahead\n• Don't crane neck up or tuck chin to chest`;
-      }
-
-      if (category === 'curl' || category === 'tricep') {
-        return `Head position for ${exerciseName}:\n\n**Keep it neutral and still:**\n• Look straight ahead, not up or down\n• Head shouldn't move during the rep\n• If your head is bobbing, you're using momentum\n\n**Common mistake:** Looking up/jerking head back to help lift the weight. This means the weight is too heavy.`;
-      }
-
-      return `Head position for ${exerciseName}:\n\n**General rule: NEUTRAL**\n\n• Head in line with spine\n• Pick a spot to focus on and keep looking there\n• Don't crane neck up or tuck chin down\n• If your head is moving during the rep, you may be using momentum\n\n**"Neutral" means:**\n• Slight natural curve in neck\n• Chin not jutting forward or tucked to chest\n• Like your normal standing posture`;
+      return `Head position for ${exerciseName}:\n\n**General rule: NEUTRAL**\n\n• Head in line with spine\n• Pick a spot to focus on and keep looking there\n• Don't crane neck up or tuck chin down\n• If your head is moving during the rep, you may be using momentum`;
     }
 
-    // GRIP/HAND placement questions
-    if (q.includes('grip') || q.includes('hand') || (q.includes('wide') || q.includes('narrow')) && !q.includes('stance')) {
-      if (category === 'push') {
-        return `Grip for ${exerciseName}:\n\n**Width:**\n• Shoulder-width to 1.5x shoulder-width is standard\n• Wider grip = more chest emphasis, but more shoulder stress\n• Narrower grip = more tricep involvement\n\n**Wrist Position:**\n• Wrists straight, not bent back\n• Bar/dumbbells over forearms\n\n**If using bar:** Thumbs wrapped around (not thumbless)`;
-      }
-      if (category === 'pull-horizontal' || category === 'pull-vertical') {
-        return `Grip for ${exerciseName}:\n\n**Width:**\n• Wider grip = more lat width emphasis\n• Narrower grip = more lat thickness, more bicep\n\n**Grip Type:**\n• Overhand (pronated) = more back\n• Underhand (supinated) = more bicep involvement\n• Neutral = balanced, often easiest on shoulders\n\n**Tip:** Let your lats stretch fully at the bottom, don't cut the range short.`;
-      }
-      return `For grip width on ${exerciseName}:\n\n• Shoulder-width is a good starting point\n• Wider grips typically emphasize outer muscles more\n• Narrower grips target inner portions\n• Experiment to find what feels strongest for your body structure`;
-    }
-
-    // Body positioning questions - MUST come before weight questions
-    if (q.includes('bend') || q.includes('lean') || q.includes('angle') || q.includes('far') ||
-        q.includes('position') || q.includes('degree') || q.includes('torso') || q.includes('back angle') ||
-        (q.includes('how') && (q.includes('down') || q.includes('over')))) {
-
-      if (category === 'pull-horizontal') {
-        return `For body position on ${exerciseName}:\n\n• Hinge at hips until torso is roughly 45-60 degrees to the floor\n• More horizontal = more lat emphasis\n• More upright = more upper back/traps\n• Keep your back FLAT - no rounding\n• Slight bend in knees, weight in heels\n• Torso should stay STILL throughout the rep\n\n**Key:** If you're bobbing up and down, the weight is too heavy.`;
-      }
-      if (category === 'hinge') {
-        return `For body position on ${exerciseName}:\n\n• Push hips BACK (not down) - like closing a car door with your butt\n• Keep the bar/weight close to your legs throughout\n• Back stays flat/neutral - NEVER rounded\n• Slight knee bend, but this is a HIP movement\n• Lower until you feel a hamstring stretch\n• Keep chest up and shoulder blades engaged`;
-      }
-      if (category === 'squat' || category === 'machine-squat') {
-        return `For body position on ${exerciseName}:\n\n• Feet shoulder-width or slightly wider, toes pointed out 15-30°\n• Break at hips AND knees together\n• Keep chest up - imagine someone's pulling you up by your shirt\n• Knees track over (or slightly outside) toes\n• Go as deep as you can while keeping back flat\n• For machines: keep back pressed firmly against the pad`;
-      }
-      if (category === 'push') {
-        return `For body position on ${exerciseName}:\n\n• Shoulder blades retracted (pulled back and down)\n• Slight arch in upper back, lower back neutral\n• For bench: feet flat on floor, drive through heels\n• Elbows at 45-75 degrees (not flared to 90)\n• Full range of motion - touch chest on presses`;
-      }
-      return `For body position on ${exerciseName}:\n\n• Keep your core braced and spine neutral\n• Maintain proper alignment throughout the movement\n• Start conservative with range of motion\n• Film yourself from the side to check form`;
-    }
-
-    if (q.includes('grip') || q.includes('wide') || q.includes('narrow') || q.includes('hand')) {
-      return `For grip width on ${exerciseName}: A shoulder-width grip is a good starting point. Wider grips typically emphasize outer muscles more, while narrower grips target inner portions and often increase tricep involvement. Experiment to find what feels strongest and most comfortable for your body structure.`;
-    } else if (q.includes('form') || q.includes('proper') || q.includes('technique') || q.includes('how do i')) {
+    if (q.includes('form') || q.includes('proper') || q.includes('technique') || q.includes('how do i')) {
       return `For ${exerciseName}:\n\n1. Set up with proper positioning - feet planted, core braced\n2. Control the weight through the full range of motion\n3. Focus on squeezing the ${muscle} at the peak contraction\n4. Lower under control (2-3 seconds)\n5. Breathe out on the exertion phase\n\nStart lighter to master the movement before adding weight.`;
     } else if ((q.includes('weight') || q.includes('heavy')) && !q.includes('body')) {
       // Only match weight questions if NOT asking about body position
@@ -195,8 +175,14 @@ function AskCoachChat({ exercise, onClose }) {
       return `Rep and set recommendations for ${exerciseName}:\n\n• Muscle growth: 3-4 sets of 8-12 reps\n• Strength: 4-5 sets of 4-6 reps\n• Endurance: 2-3 sets of 15-20 reps\n\nRest 60-90 seconds between sets for hypertrophy, 2-3 minutes for strength work.`;
     } else if (q.includes('breathe') || q.includes('breathing')) {
       return `Breathing for ${exerciseName}:\n\n• Exhale during the exertion (lifting/pushing phase)\n• Inhale during the lowering phase\n• For heavy lifts, take a breath and brace your core before the rep\n• Never hold your breath for extended periods`;
-    } else if (q.includes('how low') || q.includes('how deep') || q.includes('depth') || q.includes('range of motion') || q.includes('full range')) {
+    } else if (q.includes('how low') || q.includes('how deep') || q.includes('depth') || q.includes('range of motion') || q.includes('full range') || q.includes('roll') || q.includes('all the way') || q.includes('how far')) {
       // Depth/range of motion questions
+
+      // Ab wheel specific
+      if (nameLower.includes('ab wheel') || nameLower.includes('ab roller') || nameLower.includes('rollout')) {
+        return `Range of motion for ${exerciseName}:\n\n**Should you roll all the way out?**\n\n**Beginners:** NO - start with partial range\n• Roll out only as far as you can control\n• Stop before your lower back starts to sag/arch\n• Build up gradually over weeks\n\n**Advanced:** Yes, full extension is the goal\n• Arms fully extended overhead\n• Body in a straight line from hands to knees/feet\n• But ONLY if you can maintain a flat/slightly rounded back\n\n**Signs you're going too far:**\n• Lower back arches/sags toward floor\n• You can't pull yourself back up\n• You feel it in your lower back, not abs\n\n**Progression:**\n1. Wall rollouts (roll to wall to limit range)\n2. Partial rollouts\n3. Full rollouts from knees\n4. Full rollouts from toes (very advanced)`;
+      }
+
       if (nameLower.includes('squat')) {
         return `For squat depth:\n\n• Ideal: Hip crease drops below the top of your knee ("parallel" or deeper)\n• At minimum: Thighs parallel to the floor\n• If you can't hit depth: work on ankle/hip mobility, or elevate heels slightly\n• Going deeper is fine IF you can keep your lower back from rounding\n\nDepth > weight. A deep squat with less weight beats a shallow squat with more.`;
       } else if (nameLower.includes('bench') || nameLower.includes('press')) {
