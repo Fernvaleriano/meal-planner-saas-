@@ -1,5 +1,5 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +33,7 @@ const EXERCISE_CUES = {
   't-bar row': ['Straddle the bar or use landmine', 'Hinge at hips, back flat', 'Pull to chest, squeeze at top', 'Don\'t round lower back'],
   'face pull': ['Set cable at face height', 'Pull to face, elbows high', 'Externally rotate at end', 'Squeeze rear delts and upper back'],
   'deadlift': ['Bar over mid-foot, shins touch bar', 'Chest up, back flat, brace core hard', 'Push floor away, don\'t pull with back', 'Lock out with glutes, don\'t hyperextend'],
+  'sumo deadlift': ['Wide stance, toes pointed out 45 degrees', 'Grip inside knees, arms hang straight down', 'Push knees OUT over toes throughout', 'Keep chest up, back flat - no rounding', 'Drive through heels, squeeze glutes at top', 'Hips and shoulders rise at same rate', 'Bar stays close to body the entire lift', 'You should feel it in glutes, inner thighs, and hamstrings - NOT lower back'],
   'romanian deadlift': ['Start standing with bar at hips', 'Push hips BACK, not down', 'Keep bar close to legs throughout', 'Lower until hamstring stretch, usually knee level', 'Back stays flat, slight knee bend'],
   'rdl': ['Start standing with bar at hips', 'Push hips BACK, not down', 'Keep bar close to legs throughout', 'Lower until hamstring stretch, usually knee level', 'Back stays flat, slight knee bend'],
 
@@ -144,6 +145,7 @@ function getExerciseCues(exerciseName) {
     'incline press': 'incline press',
     'decline press': 'decline press',
     'close grip bench': 'close grip bench',
+    'sumo deadlift': 'sumo deadlift',
     'romanian deadlift': 'romanian deadlift',
     'split squat': 'split squat',
     'bulgarian split': 'bulgarian split squat',
@@ -391,7 +393,13 @@ Be specific. Use numbers, angles, and concrete cues.`;
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: maxTokens
-        }
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
       })
     });
 
