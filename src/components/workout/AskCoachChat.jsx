@@ -85,10 +85,44 @@ function AskCoachChat({ exercise, onClose }) {
     return 'general';
   };
 
+  // Smart muscle group detection from exercise name
+  const getMuscleFromName = (name) => {
+    const n = name.toLowerCase();
+
+    // Leg exercises
+    if (n.includes('leg curl') || n.includes('hamstring')) return 'hamstrings';
+    if (n.includes('leg extension') || n.includes('quad')) return 'quadriceps';
+    if (n.includes('leg press') || n.includes('squat') || n.includes('lunge')) return 'quadriceps and glutes';
+    if (n.includes('calf') || n.includes('calve')) return 'calves';
+    if (n.includes('hip thrust') || n.includes('glute')) return 'glutes';
+    if (n.includes('deadlift') || n.includes('rdl') || n.includes('romanian')) return 'hamstrings, glutes, and lower back';
+
+    // Chest
+    if (n.includes('bench') || n.includes('chest') || n.includes('pec') || n.includes('fly') || n.includes('push up') || n.includes('pushup')) return 'chest';
+
+    // Back
+    if (n.includes('row') || n.includes('pull up') || n.includes('pullup') || n.includes('chin up') || n.includes('pulldown') || n.includes('lat')) return 'back (lats)';
+
+    // Shoulders
+    if (n.includes('shoulder') || n.includes('overhead press') || n.includes('military') || n.includes('lateral raise') || n.includes('front raise') || n.includes('rear delt')) return 'shoulders';
+    if (n.includes('shrug')) return 'traps';
+
+    // Arms
+    if (n.includes('curl') && !n.includes('leg')) return 'biceps';
+    if (n.includes('tricep') || n.includes('pushdown') || n.includes('skull') || n.includes('dip')) return 'triceps';
+
+    // Core
+    if (n.includes('crunch') || n.includes('ab') || n.includes('plank') || n.includes('sit up') || n.includes('core')) return 'abs/core';
+
+    return null;
+  };
+
   // Generate a helpful fallback response based on the question
   const getFallbackResponse = (question, exerciseName, muscleGroup) => {
     const q = question.toLowerCase();
-    const muscle = muscleGroup || 'target muscles';
+    // Use smart detection first, fall back to passed value, then generic
+    const detectedMuscle = getMuscleFromName(exerciseName);
+    const muscle = detectedMuscle || muscleGroup || 'target muscles';
     const nameLower = exerciseName.toLowerCase();
     const category = getExerciseCategory(exerciseName);
 
@@ -170,7 +204,26 @@ function AskCoachChat({ exercise, onClose }) {
     } else if (q.includes('home') || q.includes('alternative') || q.includes('substitute') || q.includes('replace')) {
       return `Alternatives to ${exerciseName}:\n\nLook for exercises that target the same muscle (${muscle}) with equipment you have. Resistance bands, dumbbells, or bodyweight variations often work well. The key is matching the movement pattern and muscle activation.`;
     } else if (q.includes('muscle') || q.includes('work') || q.includes('target')) {
-      return `${exerciseName} primarily targets your ${muscle}. Secondary muscles involved typically include stabilizers and synergists that assist the movement. Focus on feeling the ${muscle} working throughout each rep for best results.`;
+      // Give category-specific muscle info
+      if (category === 'leg-curl') {
+        return `${exerciseName} primarily targets your **hamstrings** (back of thigh).\n\n**Muscles worked:**\n• Primary: Biceps femoris, semitendinosus, semimembranosus (hamstrings)\n• Secondary: Gastrocnemius (calves assist slightly)\n\n**You should feel it:** In the back of your thighs, from just above the knee to your glutes.`;
+      }
+      if (category === 'leg-extension') {
+        return `${exerciseName} primarily targets your **quadriceps** (front of thigh).\n\n**Muscles worked:**\n• Primary: Rectus femoris, vastus lateralis, vastus medialis, vastus intermedius (quads)\n\n**You should feel it:** In the front of your thighs, especially just above the knee.`;
+      }
+      if (category === 'calf') {
+        return `${exerciseName} primarily targets your **calves**.\n\n**Muscles worked:**\n• Primary: Gastrocnemius (the bigger, visible calf muscle)\n• Secondary: Soleus (deeper calf muscle)\n\n**Standing vs seated:** Standing hits gastrocnemius more. Seated hits soleus more (knee bent shortens gastrocnemius).`;
+      }
+      if (category === 'hinge') {
+        return `${exerciseName} primarily targets your **posterior chain** (back of body).\n\n**Muscles worked:**\n• Primary: Hamstrings, glutes\n• Secondary: Erector spinae (lower back), core\n\n**You should feel it:** Hamstring stretch on the way down, glute squeeze at the top. NOT in your lower back.`;
+      }
+      if (category === 'push') {
+        return `${exerciseName} primarily targets your **chest, shoulders, and triceps**.\n\n**Muscles worked:**\n• Primary: Pectoralis major (chest)\n• Secondary: Anterior deltoid (front shoulder), triceps\n\n**Incline = more upper chest. Decline/flat = more mid/lower chest.**`;
+      }
+      if (category === 'pull-horizontal' || category === 'pull-vertical') {
+        return `${exerciseName} primarily targets your **back and biceps**.\n\n**Muscles worked:**\n• Primary: Latissimus dorsi (lats), rhomboids, traps\n• Secondary: Biceps, rear delts, forearms\n\n**You should feel it:** In your lats (sides of back) and between your shoulder blades.`;
+      }
+      return `${exerciseName} primarily targets your ${muscle}. Focus on feeling the ${muscle} working throughout each rep - if you don't feel it there, check your form or reduce the weight.`;
     } else if (q.includes('set') || q.includes('rep') || q.includes('how many')) {
       return `Rep and set recommendations for ${exerciseName}:\n\n• Muscle growth: 3-4 sets of 8-12 reps\n• Strength: 4-5 sets of 4-6 reps\n• Endurance: 2-3 sets of 15-20 reps\n\nRest 60-90 seconds between sets for hypertrophy, 2-3 minutes for strength work.`;
     } else if (q.includes('breathe') || q.includes('breathing')) {
