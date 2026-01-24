@@ -87,8 +87,9 @@ exports.handler = async (event) => {
     }
     // Deadlifts / Hip Hinge movements
     else if (exerciseName.includes('deadlift') || exerciseName.includes('rdl') || exerciseName.includes('romanian') ||
-             exerciseName.includes('good morning') || exerciseName.includes('rack pull') ||
-             exerciseName.includes('kettlebell swing') || exerciseName.includes('kb swing')) {
+             exerciseName.includes('good morning') || exerciseName.includes('rack pull') || exerciseName.includes('block pull') ||
+             exerciseName.includes('kettlebell swing') || exerciseName.includes('kb swing') ||
+             exerciseName.includes('pull through') || exerciseName.includes('pull-through')) {
       movementPattern = 'DEADLIFT';
       specificMuscle = 'BACK'; // or could be LEGS
     }
@@ -139,8 +140,9 @@ exports.handler = async (event) => {
       movementPattern = 'FACE_PULL';
       specificMuscle = 'SHOULDERS';
     }
-    // Calf raises
-    else if (exerciseName.includes('calf raise') || exerciseName.includes('calf press')) {
+    // Calf raises (also match just "calf" for exercises like "Standing Calf", "Seated Calf")
+    else if (exerciseName.includes('calf raise') || exerciseName.includes('calf press') ||
+             exerciseName.includes('calf') || exerciseName.includes('calves')) {
       movementPattern = 'CALF_RAISE';
       specificMuscle = 'CALVES';
     }
@@ -343,7 +345,7 @@ exports.handler = async (event) => {
         else if (movementPattern === 'SQUAT' && altName.includes('squat')) score += 100;
         else if (movementPattern === 'LUNGE' && (altName.includes('lunge') || altName.includes('step up') || altName.includes('step-up') || altName.includes('split squat') || altName.includes('bulgarian'))) score += 100;
         else if (movementPattern === 'LEG_PRESS' && altName.includes('leg press')) score += 100;
-        else if (movementPattern === 'DEADLIFT' && (altName.includes('deadlift') || altName.includes('rdl') || altName.includes('romanian') || altName.includes('good morning') || altName.includes('rack pull') || altName.includes('kettlebell swing') || altName.includes('kb swing'))) score += 100;
+        else if (movementPattern === 'DEADLIFT' && (altName.includes('deadlift') || altName.includes('rdl') || altName.includes('romanian') || altName.includes('good morning') || altName.includes('rack pull') || altName.includes('block pull') || altName.includes('kettlebell swing') || altName.includes('kb swing') || altName.includes('pull through') || altName.includes('pull-through'))) score += 100;
         else if (movementPattern === 'CHEST_PRESS' && (altName.includes('bench press') || altName.includes('chest press') || altName.includes('incline press') || altName.includes('decline press') || altName.includes('floor press') || altName.includes('dumbbell press'))) score += 100;
         else if (movementPattern === 'FLY' && (altName.includes('fly') || altName.includes('flye'))) score += 100;
         else if (movementPattern === 'SHOULDER_PRESS' && (altName.includes('shoulder press') || altName.includes('overhead press') || altName.includes('military') || altName.includes('arnold') || altName.includes('push press'))) score += 100;
@@ -358,7 +360,7 @@ exports.handler = async (event) => {
         else if (movementPattern === 'DIP' && altName.includes('dip')) score += 100;
         else if (movementPattern === 'LEG_EXTENSION' && altName.includes('extension') && altName.includes('leg')) score += 100;
         else if (movementPattern === 'LEG_CURL' && (altName.includes('nordic') || (altName.includes('curl') && (altName.includes('leg') || altName.includes('hamstring'))))) score += 100;
-        else if (movementPattern === 'CALF_RAISE' && (altName.includes('calf raise') || altName.includes('calf press'))) score += 100;
+        else if (movementPattern === 'CALF_RAISE' && (altName.includes('calf') || altName.includes('calves'))) score += 100;
         else if (movementPattern === 'REVERSE_FLY' && (altName.includes('reverse') || altName.includes('rear')) && (altName.includes('fly') || altName.includes('flye') || altName.includes('delt'))) score += 100;
         else if (movementPattern === 'GLUTE' && (altName.includes('glute') || altName.includes('hip thrust') || altName.includes('bridge') || altName.includes('kickback'))) score += 100;
       }
