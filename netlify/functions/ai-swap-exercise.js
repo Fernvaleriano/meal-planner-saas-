@@ -281,9 +281,10 @@ exports.handler = async (event) => {
           return false;
         }
         // Only include exercises that are clearly bicep-related
+        // Exclude "hammer strength" machines - those are equipment names, not hammer curls!
         const isBicepAlt = altName.includes('bicep') || altName.includes('curl') ||
-                          altName.includes('hammer') || altName.includes('preacher') ||
-                          altName.includes('concentration');
+                          (altName.includes('hammer') && !altName.includes('hammer strength')) ||
+                          altName.includes('preacher') || altName.includes('concentration');
         if (!isBicepAlt) {
           console.log("AI Swap - Excluding non-bicep exercise for bicep swap:", alt.name);
           return false;
@@ -292,7 +293,9 @@ exports.handler = async (event) => {
 
       // CRITICAL: If swapping a TRICEP exercise, exclude ALL bicep/curl exercises
       if (isTricepExercise) {
-        const isBicepAlt = altName.includes('bicep') || altName.includes('curl') || altName.includes('hammer');
+        // Exclude "hammer strength" machines - those are equipment names, not hammer curls!
+        const isBicepAlt = altName.includes('bicep') || altName.includes('curl') ||
+                          (altName.includes('hammer') && !altName.includes('hammer strength'));
         if (isBicepAlt) {
           console.log("AI Swap - Excluding bicep exercise for tricep swap:", alt.name);
           return false;
@@ -350,7 +353,7 @@ exports.handler = async (event) => {
         else if (movementPattern === 'FACE_PULL' && altName.includes('face pull')) score += 100;
         else if (movementPattern === 'WRIST_CURL' && (altName.includes('wrist curl') || altName.includes('wrist extension') || altName.includes('forearm'))) score += 100;
         else if (movementPattern === 'LATERAL_RAISE' && (altName.includes('lateral raise') || altName.includes('side raise'))) score += 100;
-        else if (movementPattern === 'CURL' && (altName.includes('curl') || altName.includes('bicep') || altName.includes('hammer'))) score += 100;
+        else if (movementPattern === 'CURL' && (altName.includes('curl') || altName.includes('bicep') || (altName.includes('hammer') && !altName.includes('hammer strength')))) score += 100;
         else if (movementPattern === 'TRICEP_EXTENSION' && (altName.includes('tricep') || altName.includes('pushdown') || altName.includes('skull') || altName.includes('extension'))) score += 100;
         else if (movementPattern === 'DIP' && altName.includes('dip')) score += 100;
         else if (movementPattern === 'LEG_EXTENSION' && altName.includes('extension') && altName.includes('leg')) score += 100;
