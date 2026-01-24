@@ -105,7 +105,22 @@ exports.handler = async (event) => {
       movementPattern = 'LATERAL_RAISE';
       specificMuscle = 'SHOULDERS';
     }
-    // Curls (bicep)
+    // Calf raises
+    else if (exerciseName.includes('calf raise') || exerciseName.includes('calf press')) {
+      movementPattern = 'CALF_RAISE';
+      specificMuscle = 'CALVES';
+    }
+    // Leg curls - MUST be before bicep curls check!
+    else if (exerciseName.includes('leg curl') || exerciseName.includes('hamstring curl') || exerciseName.includes('lying curl') || exerciseName.includes('seated curl')) {
+      movementPattern = 'LEG_CURL';
+      specificMuscle = 'LEGS';
+    }
+    // Leg extensions
+    else if (exerciseName.includes('leg extension') || exerciseName.includes('quad extension')) {
+      movementPattern = 'LEG_EXTENSION';
+      specificMuscle = 'LEGS';
+    }
+    // Curls (bicep) - after leg curl check
     else if (exerciseName.includes('curl') || exerciseName.includes('bicep') || exerciseName.includes('hammer')) {
       movementPattern = 'CURL';
       specificMuscle = 'BICEPS';
@@ -124,21 +139,6 @@ exports.handler = async (event) => {
       movementPattern = 'DIP';
       specificMuscle = exerciseName.includes('tricep') ? 'TRICEPS' : 'CHEST';
       if (exerciseName.includes('tricep')) isTricepExercise = true;
-    }
-    // Leg extensions
-    else if (exerciseName.includes('leg extension') || exerciseName.includes('quad extension')) {
-      movementPattern = 'LEG_EXTENSION';
-      specificMuscle = 'LEGS';
-    }
-    // Leg curls
-    else if (exerciseName.includes('leg curl') || exerciseName.includes('hamstring curl')) {
-      movementPattern = 'LEG_CURL';
-      specificMuscle = 'LEGS';
-    }
-    // Calf raises
-    else if (exerciseName.includes('calf raise') || exerciseName.includes('calf press')) {
-      movementPattern = 'CALF_RAISE';
-      specificMuscle = 'CALVES';
     }
     // Generic fallbacks for muscle detection
     else if (exerciseName.includes('chest') || exerciseName.includes('pec')) {
