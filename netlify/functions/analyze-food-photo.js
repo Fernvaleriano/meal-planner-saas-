@@ -4,6 +4,50 @@ const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, cors
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
+// Safety settings for Gemini API
+const safetySettings = [
+    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
+];
+
+// Helper function to call Gemini API with image parts
+async function callGeminiWithImages(parts, useSafetySettings = true) {
+    const requestBody = {
+        contents: [{ parts }],
+        generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 1024
+        }
+    };
+
+    if (useSafetySettings) {
+        requestBody.safetySettings = safetySettings;
+    }
+
+    return fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+    });
+}
+
+// Helper to check if response was blocked by safety filters
+function isSafetyBlocked(data) {
+    const finishReason = data.candidates?.[0]?.finishReason;
+    const hasBlockedReason = finishReason === 'SAFETY' || finishReason === 'BLOCKED';
+    const hasEmptyContent = !data.candidates?.[0]?.content?.parts?.length;
+    const hasPromptFeedback = data.promptFeedback?.blockReason;
+    return hasBlockedReason || (hasEmptyContent && !data.error) || hasPromptFeedback;
+}
+
+// Helper to extract text content from Gemini response
+function extractContent(data) {
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
     if (!text) return text;
@@ -140,42 +184,68 @@ Return ONLY the JSON array.`;
 
         console.log('🤖 Calling Gemini for food analysis...');
 
-        // Build parts array with images and text for Gemini
-        const parts = [
-            { text: analysisPrompt },
-            ...processedImages.map((img) => ({
-                inline_data: {
-                    mime_type: img.mimeType,
-                    data: img.base64Data
-                }
-            }))
-        ];
+        // Build image parts for Gemini
+        const imageParts = processedImages.map((img) => ({
+            inline_data: {
+                mime_type: img.mimeType,
+                data: img.base64Data
+            }
+        }));
+
+        // Primary prompt parts
+        const primaryParts = [{ text: analysisPrompt }, ...imageParts];
+
+        // Simplified fallback prompt (less likely to trigger safety filters)
+        const fallbackPrompt = `List the food items in this image with nutritional estimates.
+${userContext ? `Context: ${userContext}` : ''}
+Return JSON array: [{"name": "Food", "calories": 100, "protein": 10, "carbs": 10, "fat": 5}]`;
+        const fallbackParts = [{ text: fallbackPrompt }, ...imageParts];
 
         let response;
+        let data;
+        let content;
+
         try {
-            response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: 1024
-                    },
-                    safetySettings: [
-                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                    ]
-                })
-            });
+            // Try primary prompt first
+            response = await callGeminiWithImages(primaryParts, true);
 
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Gemini API error:', errorText);
                 throw new Error(`Gemini API error: ${response.status}`);
             }
+
+            data = await response.json();
+            content = extractContent(data);
+
+            // Check if blocked by safety filters - retry with fallback prompt
+            if (!content || isSafetyBlocked(data)) {
+                const finishReason = data.candidates?.[0]?.finishReason || 'unknown';
+                const blockReason = data.promptFeedback?.blockReason || 'none';
+                console.log(`📸 Primary prompt blocked. finishReason: ${finishReason}, blockReason: ${blockReason}. Retrying...`);
+
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Try fallback prompt
+                response = await callGeminiWithImages(fallbackParts, false);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Gemini API fallback error:', errorText);
+                    throw new Error(`Gemini API error: ${response.status}`);
+                }
+
+                data = await response.json();
+                content = extractContent(data);
+
+                if (!content || isSafetyBlocked(data)) {
+                    console.error('📸 Fallback also blocked. Full response:', JSON.stringify(data).substring(0, 500));
+                } else {
+                    console.log('📸 Fallback prompt succeeded');
+                }
+            }
+
         } catch (apiError) {
             console.error('Gemini API error:', apiError);
             return {
@@ -188,20 +258,18 @@ Return ONLY the JSON array.`;
             };
         }
 
-        const data = await response.json();
         console.log('✅ Gemini response received');
 
-        // Extract response text
-        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-            console.error('Invalid Gemini response structure:', JSON.stringify(data).substring(0, 500));
+        // Check if we got valid content
+        if (!content) {
+            console.error('No content in Gemini response:', JSON.stringify(data).substring(0, 500));
             return {
-                statusCode: 500,
+                statusCode: 200,
                 headers,
-                body: JSON.stringify({ error: 'Invalid AI response structure' })
+                body: JSON.stringify({ foods: [] })
             };
         }
 
-        const content = data.candidates[0].content.parts[0].text;
         console.log('Response preview:', content.substring(0, 200));
 
         // Parse the response
