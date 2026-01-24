@@ -1,8 +1,8 @@
-// Food photo analysis using Gemini 2.0 Flash (cost-effective vision model)
+// Food photo analysis using Gemini 2.5 Flash (cost-effective vision model)
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
