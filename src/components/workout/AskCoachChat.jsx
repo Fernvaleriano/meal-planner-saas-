@@ -226,6 +226,90 @@ function AskCoachChat({ exercise, onClose }) {
     } else if (q.includes('warm up') || q.includes('warmup') || q.includes('before')) {
       // Warm up questions
       return `Warming up for ${exerciseName}:\n\n1. General warm-up (5 min): Light cardio to raise body temp\n2. Dynamic stretches for the muscles you'll use\n3. Warm-up sets:\n   • Set 1: Empty bar or very light, 10-15 reps\n   • Set 2: ~50% working weight, 8 reps\n   • Set 3: ~75% working weight, 5 reps\n   • Then start your working sets\n\nDon't static stretch before lifting - save that for after.`;
+    } else if (q.includes('back') && (q.includes('arch') || q.includes('flat') || q.includes('round') || q.includes('straight') || q.includes('neutral'))) {
+      // Back position questions
+      if (category === 'push') {
+        return `Back position for ${exerciseName}:\n\n**For bench press:**\n• SLIGHT arch in upper back is good - creates stable base\n• Shoulder blades squeezed together and DOWN\n• Lower back can have natural curve, but butt stays on bench\n• "Arch" doesn't mean extreme - just engaged upper back\n\n**For overhead press:**\n• Keep back NEUTRAL - no excessive arch\n• Brace core tight to protect lower back\n• If you're arching a lot, weight is too heavy`;
+      }
+      if (category === 'hinge') {
+        return `Back position for ${exerciseName}:\n\n**FLAT/NEUTRAL - this is critical**\n\n• Back should stay flat throughout the entire movement\n• If your back rounds, the weight is TOO HEAVY\n• Slight natural curve in lower back is fine\n• Think "proud chest" - this helps keep back flat\n\n**Signs your back is rounding:**\n• Upper back curves forward\n• Shoulders roll forward\n• You feel it in your lower back instead of hamstrings/glutes\n\n**Fix:** Reduce weight, focus on hip hinge pattern, strengthen core.`;
+      }
+      if (category === 'squat') {
+        return `Back position for ${exerciseName}:\n\n• Keep back FLAT/NEUTRAL throughout\n• Slight forward lean is normal (more lean = more glute/hamstring)\n• "Butt wink" at bottom (lower back rounding) = go less deep or work mobility\n• Chest stays "proud" - imagine someone pulling you up by your shirt\n\n**If back rounds:**\n• Reduce depth until you can maintain flat back\n• Work on ankle and hip mobility\n• Strengthen core`;
+      }
+      return `Back position for ${exerciseName}:\n\n• Generally: Keep a neutral spine (natural curves intact)\n• Avoid rounding (flexion) under load\n• Avoid excessive arching (hyperextension)\n• Brace your core to stabilize your spine\n\n**Cue:** If you had a broomstick on your back, it should touch your head, upper back, and tailbone.`;
+    } else if (q.includes('elbow') && (q.includes('in') || q.includes('out') || q.includes('flare') || q.includes('tuck') || q.includes('angle') || q.includes('position'))) {
+      // Elbow position questions
+      if (category === 'push') {
+        return `Elbow position for ${exerciseName}:\n\n**The sweet spot: 45-75 degrees from your body**\n\n• Elbows at 90° (flared out) = more shoulder stress, injury risk\n• Elbows tight to sides = more tricep, less chest\n• 45° angle = good balance of chest activation and shoulder safety\n\n**Cue:** Think "arrow, not T" - your body and arms should look like an arrow (→) from above, not a T.\n\n**For dips:** Lean forward = more chest. Upright = more tricep. Elbows track back, not out.`;
+      }
+      if (category === 'pull-horizontal') {
+        return `Elbow position for ${exerciseName}:\n\n• Pull elbows BACK, not out to the sides\n• Elbows close to body = more lats\n• Elbows flared out = more upper back/rear delts\n• At the top, elbows should be behind your torso\n\n**Cue:** Imagine you're elbowing someone behind you.`;
+      }
+      if (category === 'curl' || category === 'tricep') {
+        return `Elbow position for ${exerciseName}:\n\n**Keep elbows STATIONARY**\n\n• Elbows pinned at your sides (for curls)\n• Elbows pointing straight ahead or up (for tricep work)\n• If elbows drift forward during curls = weight too heavy\n• If elbows flare during pushdowns = weight too heavy\n\n**The elbow is the hinge - nothing else should move.**`;
+      }
+      return `Elbow position for ${exerciseName}:\n\n• Keep elbows in a fixed position throughout the movement\n• Avoid flaring elbows out unless the exercise calls for it\n• Elbow movement usually means you're compensating - reduce weight\n• Think of your elbow as a hinge that doesn't move side to side`;
+    } else if (q.includes('shoulder') && (q.includes('blade') || q.includes('retract') || q.includes('squeeze') || q.includes('back') || q.includes('position') || q.includes('shrug'))) {
+      // Shoulder/scapula position questions
+      if (category === 'push') {
+        return `Shoulder position for ${exerciseName}:\n\n**RETRACT AND DEPRESS (pull back and down)**\n\n• Squeeze shoulder blades together like you're pinching a pencil\n• Pull them DOWN away from your ears\n• This creates a stable "shelf" to press from\n• Shoulders should NOT roll forward at the top\n\n**Why this matters:**\n• Protects your shoulder joint\n• Creates a stable base for more strength\n• Keeps tension on chest, not front delts`;
+      }
+      if (category === 'pull-horizontal' || category === 'pull-vertical') {
+        return `Shoulder position for ${exerciseName}:\n\n**INITIATE with shoulder blades**\n\n• Before you pull with your arms, squeeze shoulder blades together\n• Think "chest to the bar" not "arms pulling"\n• At full contraction: shoulder blades fully squeezed\n• At the stretch: let shoulders protract (reach forward) to fully stretch lats\n\n**Cue:** "Shoulders in your back pockets" - pull them down and back.`;
+      }
+      return `Shoulder position for ${exerciseName}:\n\n• Keep shoulders "packed" - down and back\n• Don't let shoulders shrug up toward ears\n• Don't let them roll forward\n• Engage your lats to stabilize (imagine squeezing oranges in your armpits)`;
+    } else if (q.includes('core') || q.includes('brace') || q.includes('tight') || q.includes('abs') && (q.includes('engage') || q.includes('flex') || q.includes('squeeze'))) {
+      // Core bracing questions
+      return `How to brace your core for ${exerciseName}:\n\n**The Valsalva Maneuver (for heavy lifts):**\n1. Take a deep breath into your belly (not chest)\n2. Brace like someone's about to punch you in the gut\n3. Hold that brace throughout the rep\n4. Exhale after completing the rep\n\n**For lighter weights:**\n• Keep abs engaged (not sucked in, just tight)\n• Breathe normally but maintain tension\n• Think "stiff torso"\n\n**Why it matters:**\n• Protects your spine\n• Creates stability for more force production\n• Prevents energy leaks\n\n**Practice:** Try to brace and have someone push your stomach - you shouldn't fold.`;
+    } else if (q.includes('knee') && (q.includes('over') || q.includes('past') || q.includes('toes') || q.includes('track') || q.includes('cave') || q.includes('in') || q.includes('out'))) {
+      // Knee position questions
+      if (category === 'squat' || category === 'machine-squat' || category === 'lunge') {
+        return `Knee position for ${exerciseName}:\n\n**Knees CAN go past toes - that's okay!**\n\nThe old "knees behind toes" rule is outdated. What matters:\n\n**DO:**\n• Knees track over your toes (same direction toes point)\n• Push knees OUT slightly - they shouldn't cave inward\n• Keep weight in whole foot, not just toes\n\n**DON'T:**\n• Let knees collapse inward ("knee valgus") - this is the real injury risk\n• Shift all weight to toes\n• Bounce at the bottom\n\n**If knees cave in:**\n• Reduce weight\n• Focus on "spreading the floor" with your feet\n• Strengthen glutes with banded work`;
+      }
+      return `Knee position for ${exerciseName}:\n\n• Knees should track in line with your toes\n• Slight outward pressure is good (don't let them cave in)\n• A slight bend protects the joint - don't hyperextend\n• If you feel knee pain, check your form and reduce weight`;
+    } else if (q.includes('bar') && (q.includes('path') || q.includes('touch') || q.includes('where') || q.includes('chest') || q.includes('close'))) {
+      // Bar path / touch point questions
+      if (nameLower.includes('bench') || (category === 'push' && nameLower.includes('press'))) {
+        return `Bar path for ${exerciseName}:\n\n**Touch point:** Lower chest / nipple line\n• NOT your neck (dangerous)\n• NOT your belly (inefficient)\n\n**Bar path is NOT straight up and down:**\n• Lower the bar in a slight arc toward your lower chest\n• Press back up toward your face/over shoulders\n• The bar travels in a slight "J" curve\n\n**Cue:** Bar starts over shoulders at lockout, touches lower chest, presses back to over shoulders.`;
+      }
+      if (category === 'hinge') {
+        return `Bar path for ${exerciseName}:\n\n**Keep the bar CLOSE to your body**\n\n• The bar should drag up your shins/thighs\n• If the bar drifts forward, it puts more stress on your lower back\n• At lockout, bar is at hip crease\n\n**Cue:** "Paint your legs with the bar" - it should stay in contact or very close throughout.`;
+      }
+      return `Bar path for ${exerciseName}:\n\n• Generally keep the bar/weight close to your body\n• Straighter bar path = more efficient lift\n• If the weight drifts away from you, your leverage gets worse`;
+    } else if (q.includes('rest') && (q.includes('between') || q.includes('long') || q.includes('set') || q.includes('minute') || q.includes('second'))) {
+      // Rest between sets
+      return `Rest periods for ${exerciseName}:\n\n**By goal:**\n• Strength (1-5 reps): 2-5 minutes\n• Hypertrophy (6-12 reps): 60-90 seconds\n• Endurance (15+ reps): 30-60 seconds\n\n**Why it matters:**\n• Shorter rest = more metabolic stress (pump, burn)\n• Longer rest = full ATP recovery = more strength\n\n**Practical tips:**\n• If you can't hit your target reps, rest longer\n• Compound lifts (squat, deadlift, bench) need more rest\n• Isolation moves can use shorter rest\n• Don't rush - quality reps > fast workout`;
+    } else if (q.includes('easier') || q.includes('modify') || q.includes('beginner') || q.includes('can\'t do') || q.includes('too hard') || q.includes('regression')) {
+      // Easier modifications
+      if (category === 'push' && nameLower.includes('push up')) {
+        return `Easier modifications for push-ups:\n\n**Progression (easiest to hardest):**\n1. Wall push-ups (standing, hands on wall)\n2. Incline push-ups (hands on bench/stairs)\n3. Knee push-ups (on knees, not toes)\n4. Negative push-ups (lower slowly, reset at bottom)\n5. Full push-ups\n\n**Key:** Don't let form break down. Better to do 10 good incline push-ups than 3 ugly floor ones.`;
+      }
+      if (category === 'pull-vertical' && (nameLower.includes('pull up') || nameLower.includes('chin up'))) {
+        return `Easier modifications for ${exerciseName}:\n\n**Progression (easiest to hardest):**\n1. Lat pulldowns (machine, similar movement)\n2. Band-assisted pull-ups (band under knees/feet)\n3. Negative pull-ups (jump up, lower slowly)\n4. Jumping pull-ups (jump to assist, control down)\n5. Full pull-ups\n\n**Other options:**\n• Use an assisted pull-up machine\n• Do inverted rows instead (similar muscles, easier)`;
+      }
+      return `Making ${exerciseName} easier:\n\n• Reduce the weight/resistance\n• Reduce range of motion (temporarily)\n• Use a machine version if available\n• Use bands for assistance\n• Do the eccentric (lowering) only\n• Break it into partial movements\n\nStart where you can do 8-12 reps with good form, then progress from there.`;
+    } else if (q.includes('harder') || q.includes('advanced') || q.includes('progress') || q.includes('too easy') || q.includes('challenge') || q.includes('variation')) {
+      // Harder variations
+      return `Making ${exerciseName} harder:\n\n**Load progression:**\n• Add more weight\n• Add more reps\n• Add more sets\n• Reduce rest time\n\n**Technique progression:**\n• Slow down the tempo (4 sec negative)\n• Add a pause at the hardest point\n• Increase range of motion\n• Use unilateral (single arm/leg) version\n\n**Advanced techniques:**\n• Drop sets (reduce weight, keep going)\n• Rest-pause (short rest, more reps)\n• Pre-exhaust (isolation before compound)\n• 1.5 reps (full rep + half rep = 1)`;
+    } else if (q.includes('belt') || q.includes('strap') || q.includes('wrap') || q.includes('gear') || q.includes('equipment')) {
+      // Equipment questions
+      return `Using belts, straps, and wraps:\n\n**Lifting Belt:**\n• Helps brace core on heavy compounds (squat, deadlift, OHP)\n• Use for sets above 80-85% of max\n• Don't rely on it for every set - train without it too\n• Belt doesn't replace proper bracing - it enhances it\n\n**Lifting Straps:**\n• For pulling exercises when grip gives out before target muscles\n• Use sparingly - train grip strength too\n• Good for high-rep back work, heavy deadlifts/rows\n\n**Wrist Wraps:**\n• Support for heavy pressing\n• If wrists bend back under load, wraps can help\n• Don't wrap so tight you cut circulation\n\n**Knee Wraps/Sleeves:**\n• Sleeves: warmth and mild support (fine for regular training)\n• Wraps: significant support, usually for heavy squats`;
+    } else if (q.includes('one side') || q.includes('imbalance') || q.includes('weaker') || q.includes('stronger') || q.includes('uneven') || q.includes('asymmetr')) {
+      // Muscle imbalance questions
+      return `Fixing muscle imbalances:\n\n**If one side is weaker:**\n\n1. **Start with your weak side** on unilateral exercises\n2. **Match reps** - don't do more on the strong side\n3. **Add extra volume** for the weak side (1-2 extra sets)\n4. **Use dumbbells/cables** instead of barbells (barbells let the strong side compensate)\n5. **Be patient** - imbalances take weeks/months to fix\n\n**Common causes:**\n• Dominant hand/leg doing more work\n• Previous injury\n• Poor form letting one side take over\n\n**Don't stress too much:** Minor imbalances are normal and often invisible.`;
+    } else if (q.includes('stuck') || q.includes('sticking point') || q.includes('hardest') || q.includes('fail') || q.includes('can\'t finish') || q.includes('weak point')) {
+      // Sticking point / failure questions
+      return `Dealing with sticking points:\n\n**Where you get stuck tells you what's weak:**\n\n• **Stuck at the bottom** = need more strength out of the hole (pause reps, tempo work)\n• **Stuck in the middle** = weak point in the primary muscles (target that range)\n• **Stuck at lockout** = triceps/quads weak (add isolation work)\n\n**Techniques to strengthen weak points:**\n• Pause reps at your sticking point\n• Pin presses/squats from the sticking point\n• Chains or bands (accommodate resistance)\n• More volume for lagging muscles\n\n**If you fail a rep:**\n• Learn to bail safely (squat: dump the bar back; bench: roll of shame or use safeties)\n• Don't train to failure every set - leave 1-2 reps in reserve\n• Get a spotter for heavy work`;
+    } else if (q.includes('spotter') || q.includes('alone') || q.includes('by myself') || q.includes('solo') || q.includes('no partner')) {
+      // Training alone / spotter questions
+      return `Training without a spotter:\n\n**Safer alternatives:**\n• Use a power rack with safety pins/arms\n• Use machines instead of free weights for heavy work\n• Don't train to absolute failure\n• Learn to bail/dump the weight safely\n• Use dumbbells (easier to drop safely than barbell)\n\n**For bench press specifically:**\n• Use a power rack with safeties just above chest\n• Don't use clips (can dump plates if stuck)\n• Learn the "roll of shame"\n• Do dumbbell press instead\n\n**When you NEED a spotter:**\n• Testing true 1 rep max\n• Any heavy set where failure is likely\n• New exercises where you're unsure of your limits`;
+    } else if (q.includes('superset') || q.includes('circuit') || q.includes('pair') || q.includes('back to back') || q.includes('combine')) {
+      // Superset questions
+      return `Supersets with ${exerciseName}:\n\n**Good superset pairings:**\n\n• **Antagonist pairs** (opposite muscles): Bicep curl + tricep pushdown, chest press + row\n• **Same muscle** (for intensity): Two exercises for the same muscle, no rest\n• **Upper/Lower**: Alternate to keep heart rate up\n\n**Benefits:**\n• Save time\n• Increase workout density\n• Great for hypertrophy\n\n**When to avoid:**\n• Heavy strength work (need full recovery)\n• If form breaks down due to fatigue\n• If both exercises use the same stabilizers (both might suffer)`;
+    } else if (q.includes('squeeze') || q.includes('contract') || q.includes('flex') || q.includes('peak') || q.includes('top')) {
+      // Squeezing/contraction questions
+      return `The squeeze/contraction on ${exerciseName}:\n\n**When to squeeze:**\n• At the "peak" of the movement where the ${muscle} is shortest\n• Hold for 1-2 seconds while actively flexing the muscle\n\n**Why it matters:**\n• Ensures you're actually using the target muscle\n• Increases time under tension\n• Improves mind-muscle connection\n\n**Cue:** At the top of the rep, try to make the ${muscle} cramp. If you can't feel a squeeze, the weight might be too heavy or form is off.\n\n**Common mistake:** Just moving the weight without actually contracting the muscle.`;
     }
     return `For ${exerciseName}, focus on controlled movement through full range of motion. Keep the ${muscle} under tension throughout, and prioritize form over weight. If you have a specific question about grip, form, weight selection, or alternatives, I'm happy to help with more detail!`;
   };
