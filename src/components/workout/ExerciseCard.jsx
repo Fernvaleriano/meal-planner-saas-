@@ -902,6 +902,22 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             <span className="note-text">{exercise.notes}</span>
           </div>
         )}
+
+        {/* Coach Voice Note */}
+        {exercise.voiceNoteUrl && (
+          <div className="coach-voice-note">
+            <span className="note-label">
+              <Mic size={14} />
+              Coach Tip:
+            </span>
+            <audio
+              controls
+              src={exercise.voiceNoteUrl}
+              className="voice-note-audio"
+              preload="metadata"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
