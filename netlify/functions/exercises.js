@@ -37,6 +37,7 @@ exports.handler = async (event) => {
         search,
         genderVariant, // Filter by gender variant: 'male', 'female', or 'all' (default)
         includeSecondary = 'true', // Include exercises where muscle is secondary (default: true)
+        isCustom, // Filter to show only custom exercises ('true') or only library ('false')
         limit = 100, // Increased default for better "All" results
         offset = 0
       } = event.queryStringParameters || {};
@@ -50,6 +51,13 @@ exports.handler = async (event) => {
         query = query.or(`coach_id.is.null,coach_id.eq.${coachId}`);
       } else {
         query = query.is('coach_id', null);
+      }
+
+      // Filter by custom/library exercises
+      if (isCustom === 'true') {
+        query = query.eq('is_custom', true);
+      } else if (isCustom === 'false') {
+        query = query.or('is_custom.is.null,is_custom.eq.false');
       }
 
       // Apply filters

@@ -14,7 +14,7 @@ const EQUIPMENT_OPTIONS = [
   { value: 'smith', label: 'Smith' },
 ];
 
-function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, genderPreference = 'all' }) {
+function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, genderPreference = 'all', coachId = null }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -152,6 +152,10 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     try {
       // Build query params
       let url = '/.netlify/functions/exercises?limit=100';
+      // Include coachId to show coach's custom exercises alongside global exercises
+      if (coachId) {
+        url += `&coachId=${coachId}`;
+      }
       if (muscleGroup) {
         url += `&muscle_group=${encodeURIComponent(muscleGroup)}`;
       }
@@ -187,7 +191,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     if (isMountedRef.current) {
       setBrowseLoading(false);
     }
-  }, [muscleGroup, exerciseId, genderPreference]);
+  }, [muscleGroup, exerciseId, genderPreference, coachId]);
 
   // Fetch on mount and when equipment filter changes
   useEffect(() => {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Plus, Dumbbell, Trash2 } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
 
-function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate }) {
+function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null }) {
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises] = useState([]);
   const [showAddExercise, setShowAddExercise] = useState(false);
@@ -319,6 +319,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate }) {
           onAdd={handleAddExercise}
           onClose={() => setShowAddExercise(false)}
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
+          coachId={coachId}
         />
       )}
     </>

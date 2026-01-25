@@ -183,7 +183,8 @@ function ExerciseDetailModal({
   onSwapExercise,
   onUpdateExercise, // New callback for saving set/rep changes
   onDeleteExercise, // Callback for deleting exercise from workout
-  genderPreference = 'all' // Preferred gender for exercise demonstrations
+  genderPreference = 'all', // Preferred gender for exercise demonstrations
+  coachId = null // Coach ID for loading custom exercises
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -2112,6 +2113,7 @@ function ExerciseDetailModal({
             onSwap={handleSwapSelect}
             onClose={() => setShowSwapModal(false)}
             genderPreference={genderPreference}
+            coachId={coachId}
           />
         </Portal>
       )}

@@ -1556,6 +1556,7 @@ function Workouts() {
             onUpdateExercise={handleUpdateExercise}
             onDeleteExercise={handleDeleteExercise}
             genderPreference={clientData?.preferred_exercise_gender || 'all'}
+            coachId={clientData?.coach_id}
           />
         </ErrorBoundary>
       )}
@@ -1642,6 +1643,7 @@ function Workouts() {
           onClose={() => setShowAddActivity(false)}
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
           genderPreference={clientData?.preferred_exercise_gender || 'all'}
+          coachId={clientData?.coach_id}
         />
       )}
 
@@ -1651,6 +1653,7 @@ function Workouts() {
           onClose={() => setShowCreateWorkout(false)}
           onCreateWorkout={handleCreateWorkout}
           selectedDate={selectedDate}
+          coachId={clientData?.coach_id}
         />
       )}
 
@@ -1717,6 +1720,7 @@ function Workouts() {
           onSwap={handleSwipeSwapSelect}
           onClose={() => setSwipeSwapExercise(null)}
           genderPreference={clientData?.preferred_exercise_gender || 'all'}
+          coachId={clientData?.coach_id}
         />
       )}
 
