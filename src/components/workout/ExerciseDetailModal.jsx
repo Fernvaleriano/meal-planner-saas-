@@ -226,6 +226,26 @@ function ExerciseDetailModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [forceClose]);
 
+  // Lock body scroll when modal is open to prevent background scrolling issues
+  useEffect(() => {
+    const scrollY = window.scrollY;
+
+    // Lock the body scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      // Restore body scroll
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
   // Show fallback UI if exercise data is invalid - don't just return null
   // This prevents the black screen issue where overlay renders but content doesn't
   if (!exercise || !exercise.id) {

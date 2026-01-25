@@ -14179,8 +14179,10 @@ a.nav-left {
     animation: fadeIn 0.2s ease;
     /* Mobile Safari fixes */
     -webkit-overflow-scrolling: touch;
-    touch-action: manipulation;
+    touch-action: pan-y;
     -webkit-tap-highlight-color: transparent;
+    /* Prevent scroll chaining */
+    overscroll-behavior: contain;
 }
 
 @keyframes fadeIn {
@@ -15669,6 +15671,9 @@ a.nav-left {
     width: 100%;
     position: relative;
     background: #000;
+    /* Ensure touch events work properly */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .video-container-full video {
@@ -15676,15 +15681,18 @@ a.nav-left {
     height: auto;
     max-height: 400px;
     object-fit: contain;
+    /* Prevent video from capturing all touch events */
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 .close-video-btn {
     position: absolute;
     top: 12px;
     right: 12px;
-    width: 36px;
-    height: 36px;
-    background: rgba(0, 0, 0, 0.7);
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.8);
     border: none;
     border-radius: 50%;
     color: white;
@@ -15692,6 +15700,10 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    /* Ensure button is always tappable */
+    z-index: 10;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Sets Tracking Section V3 */
