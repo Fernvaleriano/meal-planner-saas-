@@ -2392,8 +2392,11 @@
                 <!-- Add More Section -->
                 <div class="add-recommended-section">
                     <h4>Add Recommended Swaps</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                        Search any exercise by name, muscle group, or equipment (e.g., "adduction", "dumbbell", "chest")
+                    </p>
                     <div style="margin-bottom: 12px;">
-                        <input type="text" id="recommendedSearchInput" class="form-input" placeholder="Search exercises to recommend..." oninput="filterRecommendedExercises(this.value)">
+                        <input type="text" id="recommendedSearchInput" class="form-input" placeholder="Search all exercises..." oninput="filterRecommendedExercises(this.value)">
                     </div>
                     <div id="recommendedExerciseOptions" style="max-height: 250px; overflow-y: auto;">
                         <!-- Exercise options will be loaded here -->
@@ -4334,18 +4337,21 @@
             document.getElementById('recommendedCurrentName').textContent = currentExercise.name;
             document.getElementById('recommendedSearchInput').value = '';
 
-            // Filter exercises by same muscle group (excluding current)
+            // Use ALL exercises (excluding current) - coaches can recommend any exercise
+            recommendedSwapsCache = exercises.filter(ex => ex.id !== currentExercise.id);
+
+            // Initially show same muscle group exercises as suggestions, but search will access all
             const muscleGroup = currentExercise.muscle_group || currentExercise.muscleGroup || '';
-            recommendedSwapsCache = exercises.filter(ex => {
+            const sameMuscleExercises = recommendedSwapsCache.filter(ex => {
                 const exMuscle = ex.muscle_group || '';
-                const isMatch = exMuscle.toLowerCase() === muscleGroup.toLowerCase() ||
+                return exMuscle.toLowerCase() === muscleGroup.toLowerCase() ||
                     (ex.secondary_muscles && ex.secondary_muscles.some(m =>
                         m.toLowerCase() === muscleGroup.toLowerCase()));
-                return isMatch && ex.id !== currentExercise.id;
             });
 
             renderCurrentRecommendedSwaps();
-            renderRecommendedExerciseOptions(recommendedSwapsCache);
+            // Show same muscle group by default, but all are available via search
+            renderRecommendedExerciseOptions(sameMuscleExercises.length > 0 ? sameMuscleExercises : recommendedSwapsCache.slice(0, 20));
             document.getElementById('recommendedSwapsModal').classList.add('active');
         }
 
@@ -4412,12 +4418,25 @@
         }
 
         function filterRecommendedExercises(query) {
-            const filtered = query
-                ? recommendedSwapsCache.filter(ex =>
-                    ex.name.toLowerCase().includes(query.toLowerCase()) ||
-                    (ex.equipment && ex.equipment.toLowerCase().includes(query.toLowerCase()))
-                )
-                : recommendedSwapsCache;
+            const currentExercise = workoutDays[recommendedSwapsDayIndex].exercises[recommendedSwapsExIndex];
+            const muscleGroup = currentExercise.muscle_group || currentExercise.muscleGroup || '';
+
+            if (!query) {
+                // No search - show same muscle group exercises as default
+                const sameMuscle = recommendedSwapsCache.filter(ex => {
+                    const exMuscle = ex.muscle_group || '';
+                    return exMuscle.toLowerCase() === muscleGroup.toLowerCase();
+                });
+                renderRecommendedExerciseOptions(sameMuscle.length > 0 ? sameMuscle : recommendedSwapsCache.slice(0, 20));
+                return;
+            }
+
+            // Search through ALL exercises by name, equipment, or muscle group
+            const filtered = recommendedSwapsCache.filter(ex =>
+                ex.name.toLowerCase().includes(query.toLowerCase()) ||
+                (ex.equipment && ex.equipment.toLowerCase().includes(query.toLowerCase())) ||
+                (ex.muscle_group && ex.muscle_group.toLowerCase().includes(query.toLowerCase()))
+            );
             renderRecommendedExerciseOptions(filtered);
         }
 
