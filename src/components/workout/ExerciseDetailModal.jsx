@@ -369,209 +369,1143 @@ function ExerciseDetailModal({
   useEffect(() => {
     if (!exercise?.name) return;
 
-    // Comprehensive static fallbacks by muscle group - covers ALL exercises without AI
+    // Comprehensive static coaching data - NAME-FIRST matching for safety-critical exercises
+    // This ensures proper form cues even if database muscle_group is wrong
     const getStaticCoachingData = () => {
-      const muscleGroup = (exercise.muscle_group || exercise.muscleGroup || '').toLowerCase();
       const name = (exercise.name || '').toLowerCase();
+      const muscleGroup = (exercise.muscle_group || exercise.muscleGroup || '').toLowerCase();
 
-      // Chest exercises
-      if (muscleGroup.includes('chest') || muscleGroup.includes('pec')) {
-        if (name.includes('fly') || name.includes('flye')) {
+      // ============================================
+      // DEADLIFT VARIATIONS - Check name first (high injury risk)
+      // ============================================
+      if (name.includes('deadlift')) {
+        if (name.includes('sumo')) {
           return {
-            tips: ['Keep slight bend in elbows throughout', 'Lower until chest stretch', 'Squeeze chest to bring weights together', 'Control the negative'],
-            mistakes: ['Bending elbows too much', 'Going too heavy', 'Rushing the movement'],
-            cues: ['Hug a tree', 'Chest stretch', 'Squeeze together']
+            tips: [
+              'Wide stance with toes pointed out 45 degrees',
+              'Push knees out over toes throughout lift',
+              'Keep chest up and back flat - never round',
+              'Drive through the floor, not pull with back',
+              'Lock out by squeezing glutes, not hyperextending'
+            ],
+            mistakes: [
+              'Knees caving inward',
+              'Rounding lower back',
+              'Hips shooting up before chest',
+              'Bar drifting away from body'
+            ],
+            cues: ['Spread the floor', 'Chest proud', 'Push knees out', 'Squeeze glutes']
+          };
+        }
+        if (name.includes('romanian') || name.includes('rdl') || name.includes('stiff')) {
+          return {
+            tips: [
+              'Start standing, push hips back while keeping legs nearly straight',
+              'Lower until you feel hamstring stretch, not to the floor',
+              'Keep bar dragging against thighs entire movement',
+              'Maintain flat back - stop descent if back rounds',
+              'Drive hips forward to stand, squeeze glutes at top'
+            ],
+            mistakes: [
+              'Rounding lower back to reach lower',
+              'Bending knees too much (becomes regular deadlift)',
+              'Bar drifting away from legs',
+              'Not feeling hamstring stretch'
+            ],
+            cues: ['Hips back', 'Bar on thighs', 'Hamstring stretch', 'Squeeze glutes']
+          };
+        }
+        // Conventional/standard deadlift
+        return {
+          tips: [
+            'Bar over mid-foot, shins nearly touching bar',
+            'Hip hinge to grip bar, chest up, back flat',
+            'Take slack out of bar before lifting',
+            'Push floor away - don\'t pull with your back',
+            'Keep bar against legs entire lift',
+            'Lock out by driving hips forward, squeeze glutes'
+          ],
+          mistakes: [
+            'Rounding lower back (injury risk)',
+            'Jerking the bar off the floor',
+            'Bar drifting away from body',
+            'Hips shooting up first',
+            'Hyperextending at lockout'
+          ],
+          cues: ['Push floor away', 'Chest up', 'Bar close', 'Hips through']
+        };
+      }
+
+      // ============================================
+      // SQUAT VARIATIONS - Check name first (high injury risk)
+      // ============================================
+      if (name.includes('squat')) {
+        if (name.includes('front')) {
+          return {
+            tips: [
+              'Bar in front rack on shoulders, elbows HIGH',
+              'Keep elbows up throughout - if they drop, bar rolls',
+              'More upright torso than back squat',
+              'Sit down between your legs, knees forward',
+              'Drive up keeping elbows high'
+            ],
+            mistakes: [
+              'Elbows dropping (bar rolls forward)',
+              'Leaning too far forward',
+              'Wrist pain from poor rack position',
+              'Knees caving inward'
+            ],
+            cues: ['Elbows UP', 'Chest tall', 'Sit between legs', 'Drive up']
+          };
+        }
+        if (name.includes('goblet')) {
+          return {
+            tips: [
+              'Hold dumbbell/kettlebell at chest like a goblet',
+              'Elbows should go inside knees at bottom',
+              'Keep torso upright throughout',
+              'Great for learning proper squat depth'
+            ],
+            mistakes: [
+              'Leaning forward with weight',
+              'Knees caving inward',
+              'Not going deep enough',
+              'Elbows outside knees'
+            ],
+            cues: ['Chest up', 'Elbows inside knees', 'Sit deep', 'Drive up']
+          };
+        }
+        if (name.includes('bulgarian') || name.includes('split')) {
+          return {
+            tips: [
+              'Rear foot on bench, laces down',
+              'Front foot far enough forward (not too close)',
+              'Lower straight down until back knee near floor',
+              'Keep torso upright, core braced'
+            ],
+            mistakes: [
+              'Front foot too close to bench',
+              'Leaning too far forward',
+              'Knee going way past toes',
+              'Rushing the movement'
+            ],
+            cues: ['Straight down', 'Upright torso', 'Control', 'Drive through heel']
+          };
+        }
+        if (name.includes('hack')) {
+          return {
+            tips: [
+              'Shoulders under pads, back flat against pad',
+              'Feet shoulder width on platform',
+              'Lower with control to at least parallel',
+              'Drive through whole foot, not just toes'
+            ],
+            mistakes: [
+              'Heels coming up',
+              'Knees caving inward',
+              'Back coming off pad',
+              'Partial range of motion'
+            ],
+            cues: ['Back on pad', 'Knees out', 'Full depth', 'Drive up']
+          };
+        }
+        // Back squat / general squat
+        return {
+          tips: [
+            'Bar on upper traps (high bar) or rear delts (low bar)',
+            'Feet shoulder width, toes slightly pointed out',
+            'Brace core hard before descending',
+            'Break at hips and knees together',
+            'Push knees out, don\'t let them cave',
+            'Hit at least parallel depth',
+            'Drive through whole foot to stand'
+          ],
+          mistakes: [
+            'Knees caving inward (injury risk)',
+            'Heels coming off floor',
+            'Rounding lower back at bottom',
+            'Not hitting depth',
+            'Good morning the weight up'
+          ],
+          cues: ['Brace core', 'Knees out', 'Chest up', 'Drive through floor']
+        };
+      }
+
+      // ============================================
+      // BENCH PRESS VARIATIONS - Check name first
+      // ============================================
+      if (name.includes('bench') && name.includes('press')) {
+        if (name.includes('incline')) {
+          return {
+            tips: [
+              'Set bench to 30-45 degrees (not too steep)',
+              'Retract shoulder blades into bench',
+              'Lower bar to upper chest/collarbone area',
+              'Keep feet flat on floor for stability',
+              'Press up and slightly back'
+            ],
+            mistakes: [
+              'Bench angle too steep (becomes shoulder press)',
+              'Flaring elbows out to 90 degrees',
+              'Losing shoulder blade retraction',
+              'Bouncing bar off chest'
+            ],
+            cues: ['Pinch shoulders back', 'Upper chest', 'Control down', 'Drive up']
+          };
+        }
+        if (name.includes('decline')) {
+          return {
+            tips: [
+              'Secure legs under pads firmly before unracking',
+              'Lower bar to lower chest',
+              'Keep shoulder blades retracted',
+              'Control the weight throughout'
+            ],
+            mistakes: [
+              'Not securing legs properly',
+              'Bar path too high on chest',
+              'Excessive back arch',
+              'Bouncing weight'
+            ],
+            cues: ['Lock legs in', 'Lower chest', 'Squeeze pecs', 'Control']
+          };
+        }
+        if (name.includes('close') || name.includes('narrow')) {
+          return {
+            tips: [
+              'Hands about shoulder width apart',
+              'Keep elbows tucked close to body',
+              'Lower to lower chest',
+              'Focus on tricep engagement'
+            ],
+            mistakes: [
+              'Grip too narrow (wrist strain)',
+              'Flaring elbows out',
+              'Bouncing off chest'
+            ],
+            cues: ['Elbows in', 'Lower chest', 'Lock out', 'Squeeze triceps']
+          };
+        }
+        // Flat bench press
+        return {
+          tips: [
+            'Plant feet firmly on floor',
+            'Retract and depress shoulder blades - keep them pinched',
+            'Slight arch in lower back (maintain throughout)',
+            'Grip bar with wrists straight, stacked over elbows',
+            'Lower bar to mid-chest with control',
+            'Press up and slightly back toward face'
+          ],
+          mistakes: [
+            'Flaring elbows to 90 degrees (shoulder injury risk)',
+            'Bouncing bar off chest',
+            'Lifting hips off bench',
+            'Losing shoulder blade retraction',
+            'Uneven bar path'
+          ],
+          cues: ['Squeeze the bar', 'Leg drive', 'Chest up', 'Control down', 'Lock out']
+        };
+      }
+
+      // ============================================
+      // OVERHEAD PRESS VARIATIONS
+      // ============================================
+      if (name.includes('overhead press') || name.includes('ohp') || name.includes('military press') || name.includes('shoulder press')) {
+        if (name.includes('seated')) {
+          return {
+            tips: [
+              'Keep back firmly against pad',
+              'Press straight up, not forward',
+              'Lower to ear level with control',
+              'Don\'t arch excessively'
+            ],
+            mistakes: [
+              'Back coming off pad',
+              'Excessive arch in lower back',
+              'Partial range of motion',
+              'Pressing forward instead of up'
+            ],
+            cues: ['Back on pad', 'Straight up', 'Control down', 'Lock out']
+          };
+        }
+        return {
+          tips: [
+            'Start with bar at collarbone, elbows in front',
+            'Brace core hard before pressing',
+            'Press straight up, moving head back then forward',
+            'Lock out with bar over mid-foot',
+            'Keep glutes squeezed to prevent back arch'
+          ],
+          mistakes: [
+            'Excessive lower back arch (injury risk)',
+            'Pressing bar forward instead of straight up',
+            'Not locking out fully',
+            'Losing core brace'
+          ],
+          cues: ['Brace core', 'Head through', 'Lock out', 'Squeeze glutes']
+        };
+      }
+
+      // ============================================
+      // ROW VARIATIONS
+      // ============================================
+      if (name.includes('row')) {
+        if (name.includes('bent over') || name.includes('barbell row')) {
+          return {
+            tips: [
+              'Hinge forward to roughly 45-degree torso angle',
+              'Keep back flat - never round',
+              'Pull bar to lower chest/upper abs',
+              'Squeeze shoulder blades together at top',
+              'Control the lowering'
+            ],
+            mistakes: [
+              'Rounding upper back',
+              'Standing too upright (reduces ROM)',
+              'Using momentum/jerking weight',
+              'Not squeezing at top'
+            ],
+            cues: ['Flat back', 'Elbows back', 'Squeeze blades', 'Control']
+          };
+        }
+        if (name.includes('dumbbell') || name.includes('single arm') || name.includes('one arm')) {
+          return {
+            tips: [
+              'Support yourself on bench with one hand',
+              'Keep back flat and parallel to floor',
+              'Pull dumbbell to hip, not chest',
+              'Squeeze lat hard at top',
+              'Full stretch at bottom'
+            ],
+            mistakes: [
+              'Rotating torso during pull',
+              'Pulling to chest instead of hip',
+              'Cutting range short',
+              'Using momentum'
+            ],
+            cues: ['Stay square', 'Elbow to ceiling', 'Squeeze lat', 'Full stretch']
+          };
+        }
+        if (name.includes('cable') || name.includes('seated')) {
+          return {
+            tips: [
+              'Sit tall with slight knee bend',
+              'Pull handle to lower chest/upper abs',
+              'Squeeze shoulder blades together',
+              'Control the return, feel the stretch'
+            ],
+            mistakes: [
+              'Excessive forward lean at start',
+              'Using lower back to pull',
+              'Not squeezing at contraction',
+              'Momentum swinging'
+            ],
+            cues: ['Sit tall', 'Elbows back', 'Squeeze blades', 'Control stretch']
+          };
+        }
+        if (name.includes('t-bar') || name.includes('t bar')) {
+          return {
+            tips: [
+              'Keep chest supported on pad if available',
+              'Maintain flat back throughout',
+              'Pull to lower chest',
+              'Squeeze back at top'
+            ],
+            mistakes: [
+              'Rounding upper back',
+              'Using too much momentum',
+              'Standing too upright'
+            ],
+            cues: ['Chest up', 'Elbows back', 'Squeeze', 'Control']
+          };
+        }
+        return {
+          tips: [
+            'Keep back flat throughout movement',
+            'Pull with elbows, not hands',
+            'Squeeze shoulder blades at contraction',
+            'Control the lowering phase'
+          ],
+          mistakes: [
+            'Rounding back',
+            'Using momentum',
+            'Not squeezing at top',
+            'Partial range of motion'
+          ],
+          cues: ['Flat back', 'Elbows back', 'Squeeze', 'Control']
+        };
+      }
+
+      // ============================================
+      // PULL-UP / CHIN-UP VARIATIONS
+      // ============================================
+      if (name.includes('pull up') || name.includes('pullup') || name.includes('chin up') || name.includes('chinup')) {
+        if (name.includes('chin')) {
+          return {
+            tips: [
+              'Underhand (supinated) grip, shoulder width',
+              'Start from complete dead hang',
+              'Pull until chin clearly over bar',
+              'Lead with chest, not just chin',
+              'Control the descent fully'
+            ],
+            mistakes: [
+              'Kipping or swinging',
+              'Half reps (not full hang)',
+              'Craning neck to get chin over',
+              'Dropping down uncontrolled'
+            ],
+            cues: ['Dead hang', 'Chest to bar', 'Full extension', 'Control down']
+          };
+        }
+        if (name.includes('wide')) {
+          return {
+            tips: [
+              'Grip wider than shoulder width',
+              'Focus on driving elbows down and back',
+              'Pull until chin over bar',
+              'Full stretch at bottom'
+            ],
+            mistakes: [
+              'Grip too wide (shoulder strain)',
+              'Swinging for momentum',
+              'Not reaching full hang',
+              'Partial reps'
+            ],
+            cues: ['Elbows down', 'Chest up', 'Full hang', 'Control']
+          };
+        }
+        if (name.includes('archer')) {
+          return {
+            tips: [
+              'One arm does most of work, other assists',
+              'Start from dead hang',
+              'Pull toward working arm side',
+              'Control descent on both sides'
+            ],
+            mistakes: [
+              'Using assist arm too much',
+              'Not going to full hang',
+              'Swinging between sides'
+            ],
+            cues: ['Dead hang', 'Pull to side', 'Control', 'Alternate evenly']
+          };
+        }
+        return {
+          tips: [
+            'Start from complete dead hang, arms fully extended',
+            'Pull until chin clearly clears bar',
+            'Lead with chest, not just your chin',
+            'Control the descent - no dropping',
+            'Full stretch at bottom before next rep'
+          ],
+          mistakes: [
+            'Kipping or swinging for momentum',
+            'Partial range of motion',
+            'Not going to full dead hang',
+            'Craning neck to get chin over'
+          ],
+          cues: ['Dead hang start', 'Chest to bar', 'Control down', 'Full stretch']
+        };
+      }
+
+      // ============================================
+      // LUNGE VARIATIONS
+      // ============================================
+      if (name.includes('lunge')) {
+        if (name.includes('walking')) {
+          return {
+            tips: [
+              'Take long enough stride for 90-degree angles',
+              'Lower until back knee nearly touches floor',
+              'Keep torso upright, core braced',
+              'Drive through front heel to step forward'
+            ],
+            mistakes: [
+              'Steps too short',
+              'Knee going too far past toe',
+              'Leaning forward',
+              'Rushing through reps'
+            ],
+            cues: ['Long stride', 'Chest up', 'Drive through heel', 'Control']
+          };
+        }
+        if (name.includes('reverse')) {
+          return {
+            tips: [
+              'Step backward into lunge',
+              'Lower until back knee nearly touches',
+              'Keep front shin relatively vertical',
+              'Push through front foot to return'
+            ],
+            mistakes: [
+              'Stepping too far back',
+              'Leaning forward',
+              'Front knee caving in'
+            ],
+            cues: ['Step back', 'Vertical shin', 'Chest up', 'Drive forward']
+          };
+        }
+        return {
+          tips: [
+            'Take long enough stride for proper depth',
+            'Lower until back knee nearly touches floor',
+            'Keep torso upright throughout',
+            'Drive through front heel to stand'
+          ],
+          mistakes: [
+            'Steps too short',
+            'Knee going excessively past toe',
+            'Leaning forward',
+            'Losing balance'
+          ],
+          cues: ['Long stride', 'Chest up', '90-90 position', 'Drive through heel']
+        };
+      }
+
+      // ============================================
+      // CURL VARIATIONS (Biceps)
+      // ============================================
+      if (name.includes('curl') && !name.includes('leg curl') && !name.includes('hamstring')) {
+        if (name.includes('hammer')) {
+          return {
+            tips: [
+              'Neutral grip throughout (palms facing each other)',
+              'Keep elbows pinned at sides',
+              'Curl to shoulder height',
+              'Works brachialis and forearms too'
+            ],
+            mistakes: [
+              'Swinging weights up',
+              'Elbows drifting forward',
+              'Rotating wrists during movement'
+            ],
+            cues: ['Thumbs up', 'Elbows pinned', 'Control', 'Squeeze']
+          };
+        }
+        if (name.includes('preacher')) {
+          return {
+            tips: [
+              'Armpits snug against top of pad',
+              'Lower until arms nearly straight (don\'t hyperextend)',
+              'Curl up and squeeze biceps hard',
+              'Keep upper arms on pad entire time'
+            ],
+            mistakes: [
+              'Lifting elbows off pad',
+              'Not going low enough',
+              'Hyperextending at bottom',
+              'Using momentum'
+            ],
+            cues: ['Armpits on pad', 'Full range', 'Squeeze', 'Control']
+          };
+        }
+        if (name.includes('incline')) {
+          return {
+            tips: [
+              'Set bench to 45-60 degrees',
+              'Let arms hang straight down behind you',
+              'Curl without moving upper arms forward',
+              'Great stretch at bottom position'
+            ],
+            mistakes: [
+              'Bench too upright',
+              'Bringing elbows forward',
+              'Rushing through stretch',
+              'Swinging'
+            ],
+            cues: ['Arms back', 'Full stretch', 'Elbows still', 'Squeeze']
+          };
+        }
+        return {
+          tips: [
+            'Stand tall, keep elbows pinned at sides',
+            'Full extension at bottom of each rep',
+            'Squeeze biceps hard at top',
+            'Control the negative - don\'t drop'
+          ],
+          mistakes: [
+            'Swinging body for momentum',
+            'Elbows drifting forward or back',
+            'Partial range of motion',
+            'Going too fast'
+          ],
+          cues: ['Elbows pinned', 'Full stretch', 'Squeeze at top', 'Control down']
+        };
+      }
+
+      // ============================================
+      // LEG CURL VARIATIONS (Hamstrings)
+      // ============================================
+      if (name.includes('leg curl') || name.includes('hamstring curl')) {
+        if (name.includes('lying') || name.includes('prone')) {
+          return {
+            tips: [
+              'Lie flat with pad just above heels',
+              'Keep hips pressed firmly into bench',
+              'Curl heels toward glutes',
+              'Squeeze hamstrings at top'
+            ],
+            mistakes: [
+              'Hips lifting off bench',
+              'Partial range of motion',
+              'Using momentum',
+              'Going too fast'
+            ],
+            cues: ['Hips down', 'Full curl', 'Squeeze hams', 'Control']
+          };
+        }
+        if (name.includes('seated')) {
+          return {
+            tips: [
+              'Adjust thigh pad to secure quads',
+              'Curl heels under the seat',
+              'Squeeze hamstrings fully',
+              'Control the return'
+            ],
+            mistakes: [
+              'Machine not adjusted properly',
+              'Using momentum',
+              'Cutting range short'
+            ],
+            cues: ['Squeeze under', 'Full range', 'Control', 'Pause at bottom']
+          };
+        }
+        return {
+          tips: [
+            'Curl heels toward glutes with control',
+            'Squeeze hamstrings at peak contraction',
+            'Keep hips pressed into pad',
+            'Control the lowering phase'
+          ],
+          mistakes: [
+            'Hips lifting up',
+            'Partial range of motion',
+            'Going too fast',
+            'Using momentum'
+          ],
+          cues: ['Squeeze hams', 'Hips down', 'Full curl', 'Control']
+        };
+      }
+
+      // ============================================
+      // TRICEP VARIATIONS
+      // ============================================
+      if (name.includes('tricep') || name.includes('pushdown') || name.includes('skull') || name.includes('dip')) {
+        if (name.includes('pushdown') || name.includes('push down') || name.includes('pressdown')) {
+          return {
+            tips: [
+              'Keep elbows pinned at sides throughout',
+              'Extend arms fully at bottom',
+              'Squeeze triceps at contraction',
+              'Control the return - don\'t let it fly up'
+            ],
+            mistakes: [
+              'Elbows moving forward or flaring',
+              'Leaning over the weight',
+              'Partial extension',
+              'Using body momentum'
+            ],
+            cues: ['Pin elbows', 'Full lockout', 'Squeeze', 'Control up']
+          };
+        }
+        if (name.includes('skull') || name.includes('lying extension')) {
+          return {
+            tips: [
+              'Keep upper arms vertical throughout',
+              'Lower bar to forehead or just behind head',
+              'Extend arms fully without locking joints',
+              'Control the descent'
+            ],
+            mistakes: [
+              'Upper arms moving during rep',
+              'Elbows flaring out',
+              'Lowering to chest instead of head',
+              'Going too heavy'
+            ],
+            cues: ['Elbows in', 'To forehead', 'Lock out', 'Control']
+          };
+        }
+        if (name.includes('overhead') || name.includes('french press')) {
+          return {
+            tips: [
+              'Keep elbows close to head pointing up',
+              'Lower weight behind head until stretch',
+              'Extend fully overhead',
+              'Control the negative'
+            ],
+            mistakes: [
+              'Elbows flaring out wide',
+              'Arching back excessively',
+              'Partial range of motion',
+              'Using momentum'
+            ],
+            cues: ['Elbows by ears', 'Full stretch', 'Lock out', 'Control']
           };
         }
         if (name.includes('dip')) {
           return {
-            tips: ['Lean torso forward to target chest', 'Lower until upper arms parallel', 'Control the descent'],
-            mistakes: ['Staying too upright', 'Not going deep enough', 'Using momentum'],
-            cues: ['Lean forward', 'Deep stretch', 'Squeeze chest']
+            tips: [
+              'Keep torso upright (lean forward = more chest)',
+              'Lower until upper arms parallel to floor',
+              'Press up to full lockout',
+              'Keep elbows close to body'
+            ],
+            mistakes: [
+              'Leaning too far forward',
+              'Partial range of motion',
+              'Elbows flaring wide',
+              'Using momentum'
+            ],
+            cues: ['Stay upright', 'Elbows back', 'Full depth', 'Lock out']
           };
         }
         return {
-          tips: ['Retract shoulder blades and keep them pinched', 'Control the descent slowly', 'Full range of motion', 'Keep wrists straight'],
-          mistakes: ['Flaring elbows to 90 degrees', 'Bouncing weight', 'Lifting hips'],
-          cues: ['Squeeze the bar', 'Chest up', 'Control down']
+          tips: [
+            'Keep upper arms stationary',
+            'Extend to full lockout',
+            'Squeeze triceps at contraction',
+            'Control the negative portion'
+          ],
+          mistakes: [
+            'Elbows moving or flaring',
+            'Using momentum',
+            'Partial range of motion'
+          ],
+          cues: ['Elbows still', 'Full extension', 'Squeeze', 'Control']
         };
       }
 
-      // Back exercises
+      // ============================================
+      // HIP THRUST / GLUTE BRIDGE
+      // ============================================
+      if (name.includes('hip thrust') || name.includes('glute bridge')) {
+        return {
+          tips: [
+            'Upper back on bench, feet flat on floor',
+            'Drive through heels to lift hips',
+            'Squeeze glutes HARD at the top',
+            'Keep chin tucked (look at your knees)',
+            'Control the descent'
+          ],
+          mistakes: [
+            'Hyperextending lower back at top',
+            'Not squeezing glutes at top',
+            'Pushing through toes instead of heels',
+            'Looking up at ceiling (back overarch)'
+          ],
+          cues: ['Drive hips up', 'Squeeze glutes', 'Chin down', 'Heels down']
+        };
+      }
+
+      // ============================================
+      // LAT PULLDOWN VARIATIONS
+      // ============================================
+      if (name.includes('pulldown') || name.includes('pull down')) {
+        if (name.includes('close') || name.includes('narrow')) {
+          return {
+            tips: [
+              'Use V-bar or close grip attachment',
+              'Lean back slightly, chest up',
+              'Pull to upper chest',
+              'Full stretch at top'
+            ],
+            mistakes: [
+              'Pulling with arms only',
+              'Leaning too far back',
+              'Cutting range short'
+            ],
+            cues: ['Chest up', 'Elbows to ribs', 'Full stretch', 'Squeeze']
+          };
+        }
+        if (name.includes('wide')) {
+          return {
+            tips: [
+              'Grip 1.5x shoulder width',
+              'Drive elbows down and back',
+              'Pull to upper chest',
+              'Full stretch at top'
+            ],
+            mistakes: [
+              'Grip too wide (shoulder strain)',
+              'Not getting full stretch',
+              'Pulling behind neck'
+            ],
+            cues: ['Elbows to ribs', 'Chest up', 'Full stretch', 'Squeeze lats']
+          };
+        }
+        return {
+          tips: [
+            'Grip slightly wider than shoulders',
+            'Lean back slightly, keep chest up',
+            'Pull bar to upper chest, not behind neck',
+            'Squeeze lats at bottom, stretch at top'
+          ],
+          mistakes: [
+            'Leaning too far back',
+            'Pulling behind neck (shoulder injury risk)',
+            'Using momentum/swinging',
+            'Not getting full stretch'
+          ],
+          cues: ['Chest to bar', 'Elbows down', 'Squeeze lats', 'Full stretch']
+        };
+      }
+
+      // ============================================
+      // FLY VARIATIONS (Chest)
+      // ============================================
+      if (name.includes('fly') || name.includes('flye')) {
+        if (name.includes('cable')) {
+          return {
+            tips: [
+              'Set pulleys to appropriate height for target',
+              'Step forward for constant tension',
+              'Keep slight bend in elbows',
+              'Squeeze hands together at contraction'
+            ],
+            mistakes: [
+              'Using too much weight',
+              'Bending elbows too much (becomes press)',
+              'Not stepping forward enough',
+              'Rushing the movement'
+            ],
+            cues: ['Constant tension', 'Hug a tree', 'Squeeze', 'Control']
+          };
+        }
+        return {
+          tips: [
+            'Keep slight bend in elbows throughout',
+            'Lower in wide arc until deep chest stretch',
+            'Squeeze chest to bring weights together',
+            'Control the negative - don\'t drop'
+          ],
+          mistakes: [
+            'Bending elbows too much (turns into press)',
+            'Going too heavy and losing form',
+            'Not feeling chest stretch at bottom',
+            'Bouncing at bottom'
+          ],
+          cues: ['Hug a tree', 'Deep stretch', 'Squeeze together', 'Control']
+        };
+      }
+
+      // ============================================
+      // LATERAL RAISE VARIATIONS
+      // ============================================
+      if (name.includes('lateral') || name.includes('side raise') || name.includes('side delt')) {
+        return {
+          tips: [
+            'Slight bend in elbows, maintain throughout',
+            'Lead with elbows, not hands',
+            'Raise only to shoulder height',
+            'Control the lowering - no dropping'
+          ],
+          mistakes: [
+            'Using momentum/swinging',
+            'Raising above shoulder height',
+            'Shrugging shoulders up',
+            'Going too heavy'
+          ],
+          cues: ['Lead with elbows', 'Shoulder height', 'No shrug', 'Control down']
+        };
+      }
+
+      // ============================================
+      // PUSH-UP VARIATIONS
+      // ============================================
+      if (name.includes('push up') || name.includes('pushup') || name.includes('press up')) {
+        if (name.includes('diamond') || name.includes('close')) {
+          return {
+            tips: [
+              'Hands together forming diamond/triangle',
+              'Lower chest to hands',
+              'Keep elbows close to body',
+              'Full extension at top'
+            ],
+            mistakes: [
+              'Elbows flaring wide',
+              'Hips sagging',
+              'Partial range of motion'
+            ],
+            cues: ['Elbows in', 'Chest to hands', 'Core tight', 'Lock out']
+          };
+        }
+        if (name.includes('wide')) {
+          return {
+            tips: [
+              'Hands wider than shoulder width',
+              'Lower chest to floor',
+              'More chest focus than standard',
+              'Control throughout'
+            ],
+            mistakes: [
+              'Hands too wide (shoulder strain)',
+              'Hips sagging',
+              'Partial reps'
+            ],
+            cues: ['Chest to floor', 'Core tight', 'Control', 'Full range']
+          };
+        }
+        return {
+          tips: [
+            'Hands slightly wider than shoulder width',
+            'Body in straight line from head to heels',
+            'Lower chest to just above ground',
+            'Keep core tight - don\'t let hips sag or pike'
+          ],
+          mistakes: [
+            'Hips sagging or piking up',
+            'Flaring elbows to 90 degrees',
+            'Partial range of motion',
+            'Head dropping forward'
+          ],
+          cues: ['Plank position', 'Chest to floor', 'Core tight', 'Elbows 45°']
+        };
+      }
+
+      // ============================================
+      // LEG PRESS
+      // ============================================
+      if (name.includes('leg press')) {
+        return {
+          tips: [
+            'Feet shoulder width on platform',
+            'Keep lower back pressed into pad',
+            'Lower until knees at 90 degrees',
+            'Don\'t lock knees completely at top',
+            'Push through whole foot'
+          ],
+          mistakes: [
+            'Going too deep (back rounds off pad)',
+            'Locking knees at top (joint stress)',
+            'Feet too high or low on platform',
+            'Letting knees cave in'
+          ],
+          cues: ['Back on pad', '90 degrees', 'Knees out', 'Don\'t lock']
+        };
+      }
+
+      // ============================================
+      // LEG EXTENSION
+      // ============================================
+      if (name.includes('leg extension')) {
+        return {
+          tips: [
+            'Adjust pad to sit on lower shin',
+            'Extend legs fully and squeeze quads',
+            'Control the lowering - no dropping',
+            'Keep back against pad'
+          ],
+          mistakes: [
+            'Using momentum to swing',
+            'Not extending fully',
+            'Dropping the weight down',
+            'Lifting hips off seat'
+          ],
+          cues: ['Full extension', 'Squeeze quad', 'Control down', 'Stay seated']
+        };
+      }
+
+      // ============================================
+      // CALF RAISES
+      // ============================================
+      if (name.includes('calf') || name.includes('calves')) {
+        return {
+          tips: [
+            'Full stretch at bottom - heels below platform',
+            'Rise onto balls of feet as high as possible',
+            'Squeeze calves hard at top',
+            'Control the lowering'
+          ],
+          mistakes: [
+            'Bouncing at bottom',
+            'Partial range of motion',
+            'Going too fast',
+            'Bending knees'
+          ],
+          cues: ['Deep stretch', 'All the way up', 'Squeeze at top', 'Slow down']
+        };
+      }
+
+      // ============================================
+      // PLANK VARIATIONS
+      // ============================================
+      if (name.includes('plank')) {
+        return {
+          tips: [
+            'Straight line from head to heels',
+            'Engage core and squeeze glutes',
+            'Don\'t let hips sag or pike up',
+            'Keep breathing normally'
+          ],
+          mistakes: [
+            'Hips sagging (lower back strain)',
+            'Hips piked up too high',
+            'Looking up (neck strain)',
+            'Holding breath'
+          ],
+          cues: ['Flat back', 'Squeeze everything', 'Breathe', 'Hold position']
+        };
+      }
+
+      // ============================================
+      // FACE PULL
+      // ============================================
+      if (name.includes('face pull')) {
+        return {
+          tips: [
+            'Set cable at face height',
+            'Pull toward face while separating hands',
+            'External rotate at end (thumbs back)',
+            'Squeeze rear delts and upper back'
+          ],
+          mistakes: [
+            'Pulling too low (becomes a row)',
+            'Not externally rotating',
+            'Using too much weight',
+            'Shrugging shoulders'
+          ],
+          cues: ['Pull apart', 'Thumbs back', 'Squeeze back', 'High elbows']
+        };
+      }
+
+      // ============================================
+      // SHRUG VARIATIONS
+      // ============================================
+      if (name.includes('shrug')) {
+        return {
+          tips: [
+            'Stand tall with weight at sides or front',
+            'Shrug straight up toward ears',
+            'Hold at top and squeeze traps',
+            'Lower with control'
+          ],
+          mistakes: [
+            'Rolling shoulders (unnecessary, injury risk)',
+            'Using momentum',
+            'Not pausing at top',
+            'Bending elbows'
+          ],
+          cues: ['Straight up', 'Ears to shoulders', 'Hold and squeeze', 'Control down']
+        };
+      }
+
+      // ============================================
+      // MUSCLE GROUP FALLBACKS (if name didn't match)
+      // ============================================
+
+      // Chest
+      if (muscleGroup.includes('chest') || muscleGroup.includes('pec')) {
+        return {
+          tips: [
+            'Retract shoulder blades and keep them pinched',
+            'Control the descent slowly',
+            'Full range of motion',
+            'Feel the chest stretch at bottom'
+          ],
+          mistakes: ['Flaring elbows to 90 degrees', 'Bouncing weight', 'Losing shoulder position'],
+          cues: ['Shoulders back', 'Chest up', 'Control', 'Squeeze']
+        };
+      }
+
+      // Back
       if (muscleGroup.includes('back') || muscleGroup.includes('lat')) {
-        if (name.includes('pull up') || name.includes('pullup') || name.includes('chin up') || name.includes('chinup')) {
-          return {
-            tips: ['Start from dead hang', 'Pull until chin clears bar', 'Lead with chest, not chin', 'Control the descent'],
-            mistakes: ['Kipping or swinging', 'Partial range of motion', 'Not going to full hang'],
-            cues: ['Dead hang start', 'Chest to bar', 'Control down']
-          };
-        }
-        if (name.includes('row')) {
-          return {
-            tips: ['Keep back flat throughout', 'Pull to lower chest or hip', 'Squeeze shoulder blades together', 'Control the lowering'],
-            mistakes: ['Rounding upper back', 'Using momentum', 'Not squeezing at top'],
-            cues: ['Elbows back', 'Squeeze blades', 'Control']
-          };
-        }
-        if (name.includes('pulldown') || name.includes('pull down')) {
-          return {
-            tips: ['Lean back slightly, chest up', 'Pull bar to upper chest', 'Squeeze lats at bottom', 'Full stretch at top'],
-            mistakes: ['Leaning too far back', 'Pulling behind neck', 'Using momentum'],
-            cues: ['Chest to bar', 'Elbows down', 'Squeeze lats']
-          };
-        }
-        if (name.includes('deadlift')) {
-          return {
-            tips: ['Push floor away, don\'t pull with back', 'Keep bar close to body', 'Chest up, back flat', 'Lock out by squeezing glutes'],
-            mistakes: ['Rounding lower back', 'Bar drifting away', 'Jerking the weight'],
-            cues: ['Push floor away', 'Bar close', 'Chest up']
-          };
-        }
         return {
-          tips: ['Squeeze shoulder blades together', 'Pull with your elbows', 'Keep core engaged', 'Control the movement'],
+          tips: [
+            'Squeeze shoulder blades together',
+            'Pull with your elbows, not hands',
+            'Keep core engaged',
+            'Full stretch and contraction'
+          ],
           mistakes: ['Using momentum', 'Rounding back', 'Not squeezing at contraction'],
-          cues: ['Elbows back', 'Squeeze', 'Control']
+          cues: ['Elbows back', 'Squeeze blades', 'Control', 'Full range']
         };
       }
 
-      // Shoulder exercises
+      // Shoulders
       if (muscleGroup.includes('shoulder') || muscleGroup.includes('delt')) {
-        if (name.includes('lateral') || name.includes('side raise')) {
-          return {
-            tips: ['Lead with elbows, not hands', 'Raise to shoulder height', 'Slight bend in elbows', 'Control the lowering'],
-            mistakes: ['Using momentum', 'Going above shoulder height', 'Shrugging shoulders'],
-            cues: ['Lead with elbows', 'Shoulder height', 'Slow down']
-          };
-        }
-        if (name.includes('press')) {
-          return {
-            tips: ['Brace core before pressing', 'Press straight up', 'Full lockout overhead', 'Control descent'],
-            mistakes: ['Excessive back arch', 'Not locking out', 'Flaring elbows too wide'],
-            cues: ['Head through', 'Lock out', 'Core tight']
-          };
-        }
-        if (name.includes('rear') || name.includes('reverse')) {
-          return {
-            tips: ['Bend over or use incline bench', 'Lead with elbows out to sides', 'Squeeze rear delts at top'],
-            mistakes: ['Using too much weight', 'Not bending over enough', 'Pulling with arms only'],
-            cues: ['Elbows out', 'Squeeze back', 'Light weight']
-          };
-        }
         return {
-          tips: ['Avoid shrugging shoulders up', 'Control the weight throughout', 'Keep core tight', 'Full range of motion'],
-          mistakes: ['Using momentum', 'Partial range of motion', 'Excessive back arch'],
-          cues: ['Control', 'Full range', 'Core tight']
+          tips: [
+            'Control the weight throughout',
+            'Don\'t use momentum',
+            'Keep core tight',
+            'Full range of motion'
+          ],
+          mistakes: ['Using momentum', 'Excessive back arch', 'Partial range'],
+          cues: ['Control', 'Core tight', 'Full range']
         };
       }
 
-      // Biceps
-      if (muscleGroup.includes('bicep') || (muscleGroup.includes('arm') && name.includes('curl'))) {
+      // Arms
+      if (muscleGroup.includes('arm') || muscleGroup.includes('bicep') || muscleGroup.includes('tricep')) {
         return {
-          tips: ['Keep elbows pinned at sides', 'Full extension at bottom', 'Squeeze biceps at top', 'Control the negative'],
-          mistakes: ['Swinging body for momentum', 'Elbows drifting forward', 'Partial range of motion'],
-          cues: ['Elbows pinned', 'Full stretch', 'Squeeze at top']
+          tips: [
+            'Keep upper arms/elbows stationary',
+            'Full extension and contraction',
+            'Control the negative',
+            'Don\'t swing or use momentum'
+          ],
+          mistakes: ['Using momentum', 'Moving elbows', 'Partial range of motion'],
+          cues: ['Elbows still', 'Full range', 'Squeeze', 'Control']
         };
       }
 
-      // Triceps
-      if (muscleGroup.includes('tricep') || (muscleGroup.includes('arm') && (name.includes('push') || name.includes('extension') || name.includes('skull')))) {
-        if (name.includes('pushdown') || name.includes('push down')) {
-          return {
-            tips: ['Keep elbows pinned at sides', 'Extend fully at bottom', 'Squeeze triceps at contraction', 'Control the return'],
-            mistakes: ['Elbows moving forward', 'Leaning over weight', 'Partial range'],
-            cues: ['Pin elbows', 'Lock out', 'Squeeze']
-          };
-        }
+      // Legs/Quads
+      if (muscleGroup.includes('quad') || muscleGroup.includes('leg')) {
         return {
-          tips: ['Keep upper arms stationary', 'Full extension', 'Control the negative', 'Squeeze triceps at contraction'],
-          mistakes: ['Elbows flaring or moving', 'Using momentum', 'Partial range of motion'],
-          cues: ['Elbows still', 'Full extension', 'Squeeze']
+          tips: [
+            'Keep knees tracking over toes',
+            'Control the movement',
+            'Full range of motion',
+            'Keep core braced'
+          ],
+          mistakes: ['Knees caving inward', 'Partial range', 'Using momentum'],
+          cues: ['Knees out', 'Control', 'Full depth']
         };
       }
 
-      // Legs - Quads
-      if (muscleGroup.includes('quad') || muscleGroup.includes('leg') || name.includes('squat') || name.includes('lunge') || name.includes('leg press')) {
-        if (name.includes('squat')) {
-          return {
-            tips: ['Keep chest up, core braced', 'Knees track over toes', 'Push through whole foot', 'Hit at least parallel depth'],
-            mistakes: ['Knees caving inward', 'Rising on toes', 'Rounding lower back', 'Not hitting depth'],
-            cues: ['Chest up', 'Knees out', 'Brace core']
-          };
-        }
-        if (name.includes('lunge')) {
-          return {
-            tips: ['Take long enough stride', 'Lower until back knee nearly touches', 'Keep torso upright', 'Drive through front heel'],
-            mistakes: ['Steps too short', 'Knee going past toe', 'Leaning forward'],
-            cues: ['Long stride', 'Chest up', 'Drive through heel']
-          };
-        }
-        if (name.includes('extension')) {
-          return {
-            tips: ['Extend fully and squeeze quad', 'Control the lowering', 'Adjust pad to lower shin'],
-            mistakes: ['Using momentum', 'Not extending fully', 'Coming down too fast'],
-            cues: ['Full extension', 'Squeeze quad', 'Control down']
-          };
-        }
+      // Glutes/Hamstrings
+      if (muscleGroup.includes('glute') || muscleGroup.includes('hamstring')) {
         return {
-          tips: ['Keep knees tracking over toes', 'Push through your heels', 'Maintain neutral spine', 'Control the movement'],
-          mistakes: ['Knees caving', 'Rounding back', 'Using momentum'],
-          cues: ['Knees out', 'Chest up', 'Control']
+          tips: [
+            'Focus on mind-muscle connection',
+            'Squeeze target muscle at contraction',
+            'Control the movement',
+            'Full range of motion'
+          ],
+          mistakes: ['Using lower back', 'Rushing through reps', 'Partial range'],
+          cues: ['Squeeze', 'Control', 'Full range']
         };
       }
 
-      // Legs - Hamstrings/Glutes
-      if (muscleGroup.includes('hamstring') || muscleGroup.includes('glute') || name.includes('curl') || name.includes('hip thrust') || name.includes('rdl') || name.includes('romanian')) {
-        if (name.includes('curl')) {
-          return {
-            tips: ['Curl heels toward glutes', 'Squeeze hamstrings at top', 'Keep hips pressed into pad', 'Control the lowering'],
-            mistakes: ['Hips lifting up', 'Partial range of motion', 'Going too fast'],
-            cues: ['Squeeze hams', 'Hips down', 'Full curl']
-          };
-        }
-        if (name.includes('thrust') || name.includes('bridge')) {
-          return {
-            tips: ['Drive through heels to lift hips', 'Squeeze glutes hard at top', 'Keep chin tucked', 'Control descent'],
-            mistakes: ['Hyperextending lower back', 'Not squeezing at top', 'Pushing through toes'],
-            cues: ['Drive hips up', 'Squeeze glutes', 'Chin down']
-          };
-        }
+      // Core/Abs
+      if (muscleGroup.includes('core') || muscleGroup.includes('ab')) {
         return {
-          tips: ['Push hips back', 'Keep back flat', 'Feel the hamstring stretch', 'Squeeze glutes at top'],
-          mistakes: ['Rounding back', 'Bending knees too much', 'Not hinging at hips'],
-          cues: ['Hips back', 'Flat back', 'Squeeze glutes']
+          tips: [
+            'Keep lower back pressed into floor (if applicable)',
+            'Control the movement',
+            'Exhale on exertion',
+            'Maintain tension throughout'
+          ],
+          mistakes: ['Using momentum', 'Pulling on neck', 'Holding breath'],
+          cues: ['Core tight', 'Control', 'Breathe']
         };
       }
 
-      // Core
-      if (muscleGroup.includes('core') || muscleGroup.includes('ab') || name.includes('plank') || name.includes('crunch')) {
-        if (name.includes('plank')) {
-          return {
-            tips: ['Straight line from head to heels', 'Engage core, squeeze glutes', 'Don\'t let hips sag or pike', 'Breathe normally'],
-            mistakes: ['Hips too high or sagging', 'Looking up', 'Holding breath'],
-            cues: ['Flat back', 'Squeeze everything', 'Breathe']
-          };
-        }
-        return {
-          tips: ['Keep lower back pressed into floor', 'Control the movement', 'Exhale on exertion', 'Maintain tension throughout'],
-          mistakes: ['Using momentum', 'Pulling on neck', 'Arching back'],
-          cues: ['Core tight', 'Control', 'Exhale']
-        };
-      }
-
-      // Calves
-      if (muscleGroup.includes('calf') || muscleGroup.includes('calves')) {
-        return {
-          tips: ['Full stretch at bottom', 'Rise onto balls of feet', 'Squeeze calves at top', 'Control the lowering'],
-          mistakes: ['Bouncing at bottom', 'Partial range of motion', 'Going too fast'],
-          cues: ['Full stretch', 'Squeeze at top', 'Slow down']
-        };
-      }
-
-      // Default fallback for any unmatched exercises
+      // Default - still provide useful general tips
       return {
-        tips: ['Maintain proper form throughout', 'Control the movement', 'Full range of motion', 'Breathe steadily'],
-        mistakes: ['Using momentum', 'Partial range of motion', 'Rushing reps'],
-        cues: ['Control', 'Full range', 'Breathe']
+        tips: [
+          'Control the weight through full range of motion',
+          'Focus on the target muscle',
+          'Don\'t use momentum or swing',
+          'Breathe steadily - exhale on exertion'
+        ],
+        mistakes: [
+          'Using momentum instead of muscle',
+          'Partial range of motion',
+          'Going too heavy with poor form'
+        ],
+        cues: ['Control', 'Full range', 'Focus', 'Breathe']
       };
     };
 
