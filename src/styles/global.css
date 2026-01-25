@@ -18939,9 +18939,10 @@ a.nav-left {
     justify-content: center;
     animation: fadeIn 0.2s ease;
     /* Mobile Safari fixes */
-    -webkit-overflow-scrolling: touch;
-    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    /* Prevent scroll on overlay itself */
+    overflow: hidden;
+    touch-action: none;
 }
 
 .swap-modal {
@@ -18954,6 +18955,8 @@ a.nav-left {
     flex-direction: column;
     overflow: hidden;
     animation: slideUp 0.3s ease;
+    /* Re-enable touch interaction inside modal */
+    touch-action: pan-y;
 }
 
 [data-theme="dark"] .swap-modal {
@@ -19184,6 +19187,9 @@ a.nav-left {
     overflow-y: auto;
     padding: 8px 0;
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 20px));
+    /* Prevent scroll chaining to background */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .swap-loading,
@@ -19299,6 +19305,7 @@ a.nav-left {
 /* AI Swap Modal Styles */
 .ai-swap-modal {
     max-height: 85vh;
+    min-height: 0; /* Allow flex item to shrink below content size */
 }
 
 .swap-header-title {
@@ -19451,6 +19458,7 @@ a.nav-left {
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-height: 0; /* Allow flex item to shrink below content size */
     overflow: hidden;
 }
 
@@ -20574,6 +20582,9 @@ a.nav-left {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    /* Prevent scroll chaining to background */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .swap-browse-item {
