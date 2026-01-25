@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle } from 'lucide-react';
-import { apiGet, apiPost } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -366,25 +365,214 @@ function ExerciseDetailModal({
   const [commonMistakes, setCommonMistakes] = useState([]);
   const [coachingCues, setCoachingCues] = useState([]);
 
-  // Load coaching data when exercise changes - prefer database data, fallback to AI
+  // Load coaching data when exercise changes - use database data or static fallbacks (no AI)
   useEffect(() => {
     if (!exercise?.name) return;
 
-    // Fallback tips based on exercise type
-    const getFallbackTips = () => {
+    // Comprehensive static fallbacks by muscle group - covers ALL exercises without AI
+    const getStaticCoachingData = () => {
       const muscleGroup = (exercise.muscle_group || exercise.muscleGroup || '').toLowerCase();
-      if (muscleGroup.includes('chest') || muscleGroup.includes('push')) {
-        return ['Keep shoulders back and down', 'Control the descent slowly', 'Full range of motion'];
-      } else if (muscleGroup.includes('back') || muscleGroup.includes('pull')) {
-        return ['Squeeze shoulder blades together', 'Pull with your elbows', 'Keep core engaged'];
-      } else if (muscleGroup.includes('leg') || muscleGroup.includes('quad') || muscleGroup.includes('glute')) {
-        return ['Keep knees tracking over toes', 'Push through your heels', 'Maintain neutral spine'];
-      } else if (muscleGroup.includes('shoulder') || muscleGroup.includes('delt')) {
-        return ['Avoid shrugging shoulders up', 'Control the weight throughout', 'Keep core tight'];
-      } else if (muscleGroup.includes('arm') || muscleGroup.includes('bicep') || muscleGroup.includes('tricep')) {
-        return ['Keep elbows stationary', 'Full extension and contraction', 'Control the negative'];
+      const name = (exercise.name || '').toLowerCase();
+
+      // Chest exercises
+      if (muscleGroup.includes('chest') || muscleGroup.includes('pec')) {
+        if (name.includes('fly') || name.includes('flye')) {
+          return {
+            tips: ['Keep slight bend in elbows throughout', 'Lower until chest stretch', 'Squeeze chest to bring weights together', 'Control the negative'],
+            mistakes: ['Bending elbows too much', 'Going too heavy', 'Rushing the movement'],
+            cues: ['Hug a tree', 'Chest stretch', 'Squeeze together']
+          };
+        }
+        if (name.includes('dip')) {
+          return {
+            tips: ['Lean torso forward to target chest', 'Lower until upper arms parallel', 'Control the descent'],
+            mistakes: ['Staying too upright', 'Not going deep enough', 'Using momentum'],
+            cues: ['Lean forward', 'Deep stretch', 'Squeeze chest']
+          };
+        }
+        return {
+          tips: ['Retract shoulder blades and keep them pinched', 'Control the descent slowly', 'Full range of motion', 'Keep wrists straight'],
+          mistakes: ['Flaring elbows to 90 degrees', 'Bouncing weight', 'Lifting hips'],
+          cues: ['Squeeze the bar', 'Chest up', 'Control down']
+        };
       }
-      return ['Maintain proper form throughout', 'Control the movement', 'Breathe steadily'];
+
+      // Back exercises
+      if (muscleGroup.includes('back') || muscleGroup.includes('lat')) {
+        if (name.includes('pull up') || name.includes('pullup') || name.includes('chin up') || name.includes('chinup')) {
+          return {
+            tips: ['Start from dead hang', 'Pull until chin clears bar', 'Lead with chest, not chin', 'Control the descent'],
+            mistakes: ['Kipping or swinging', 'Partial range of motion', 'Not going to full hang'],
+            cues: ['Dead hang start', 'Chest to bar', 'Control down']
+          };
+        }
+        if (name.includes('row')) {
+          return {
+            tips: ['Keep back flat throughout', 'Pull to lower chest or hip', 'Squeeze shoulder blades together', 'Control the lowering'],
+            mistakes: ['Rounding upper back', 'Using momentum', 'Not squeezing at top'],
+            cues: ['Elbows back', 'Squeeze blades', 'Control']
+          };
+        }
+        if (name.includes('pulldown') || name.includes('pull down')) {
+          return {
+            tips: ['Lean back slightly, chest up', 'Pull bar to upper chest', 'Squeeze lats at bottom', 'Full stretch at top'],
+            mistakes: ['Leaning too far back', 'Pulling behind neck', 'Using momentum'],
+            cues: ['Chest to bar', 'Elbows down', 'Squeeze lats']
+          };
+        }
+        if (name.includes('deadlift')) {
+          return {
+            tips: ['Push floor away, don\'t pull with back', 'Keep bar close to body', 'Chest up, back flat', 'Lock out by squeezing glutes'],
+            mistakes: ['Rounding lower back', 'Bar drifting away', 'Jerking the weight'],
+            cues: ['Push floor away', 'Bar close', 'Chest up']
+          };
+        }
+        return {
+          tips: ['Squeeze shoulder blades together', 'Pull with your elbows', 'Keep core engaged', 'Control the movement'],
+          mistakes: ['Using momentum', 'Rounding back', 'Not squeezing at contraction'],
+          cues: ['Elbows back', 'Squeeze', 'Control']
+        };
+      }
+
+      // Shoulder exercises
+      if (muscleGroup.includes('shoulder') || muscleGroup.includes('delt')) {
+        if (name.includes('lateral') || name.includes('side raise')) {
+          return {
+            tips: ['Lead with elbows, not hands', 'Raise to shoulder height', 'Slight bend in elbows', 'Control the lowering'],
+            mistakes: ['Using momentum', 'Going above shoulder height', 'Shrugging shoulders'],
+            cues: ['Lead with elbows', 'Shoulder height', 'Slow down']
+          };
+        }
+        if (name.includes('press')) {
+          return {
+            tips: ['Brace core before pressing', 'Press straight up', 'Full lockout overhead', 'Control descent'],
+            mistakes: ['Excessive back arch', 'Not locking out', 'Flaring elbows too wide'],
+            cues: ['Head through', 'Lock out', 'Core tight']
+          };
+        }
+        if (name.includes('rear') || name.includes('reverse')) {
+          return {
+            tips: ['Bend over or use incline bench', 'Lead with elbows out to sides', 'Squeeze rear delts at top'],
+            mistakes: ['Using too much weight', 'Not bending over enough', 'Pulling with arms only'],
+            cues: ['Elbows out', 'Squeeze back', 'Light weight']
+          };
+        }
+        return {
+          tips: ['Avoid shrugging shoulders up', 'Control the weight throughout', 'Keep core tight', 'Full range of motion'],
+          mistakes: ['Using momentum', 'Partial range of motion', 'Excessive back arch'],
+          cues: ['Control', 'Full range', 'Core tight']
+        };
+      }
+
+      // Biceps
+      if (muscleGroup.includes('bicep') || (muscleGroup.includes('arm') && name.includes('curl'))) {
+        return {
+          tips: ['Keep elbows pinned at sides', 'Full extension at bottom', 'Squeeze biceps at top', 'Control the negative'],
+          mistakes: ['Swinging body for momentum', 'Elbows drifting forward', 'Partial range of motion'],
+          cues: ['Elbows pinned', 'Full stretch', 'Squeeze at top']
+        };
+      }
+
+      // Triceps
+      if (muscleGroup.includes('tricep') || (muscleGroup.includes('arm') && (name.includes('push') || name.includes('extension') || name.includes('skull')))) {
+        if (name.includes('pushdown') || name.includes('push down')) {
+          return {
+            tips: ['Keep elbows pinned at sides', 'Extend fully at bottom', 'Squeeze triceps at contraction', 'Control the return'],
+            mistakes: ['Elbows moving forward', 'Leaning over weight', 'Partial range'],
+            cues: ['Pin elbows', 'Lock out', 'Squeeze']
+          };
+        }
+        return {
+          tips: ['Keep upper arms stationary', 'Full extension', 'Control the negative', 'Squeeze triceps at contraction'],
+          mistakes: ['Elbows flaring or moving', 'Using momentum', 'Partial range of motion'],
+          cues: ['Elbows still', 'Full extension', 'Squeeze']
+        };
+      }
+
+      // Legs - Quads
+      if (muscleGroup.includes('quad') || muscleGroup.includes('leg') || name.includes('squat') || name.includes('lunge') || name.includes('leg press')) {
+        if (name.includes('squat')) {
+          return {
+            tips: ['Keep chest up, core braced', 'Knees track over toes', 'Push through whole foot', 'Hit at least parallel depth'],
+            mistakes: ['Knees caving inward', 'Rising on toes', 'Rounding lower back', 'Not hitting depth'],
+            cues: ['Chest up', 'Knees out', 'Brace core']
+          };
+        }
+        if (name.includes('lunge')) {
+          return {
+            tips: ['Take long enough stride', 'Lower until back knee nearly touches', 'Keep torso upright', 'Drive through front heel'],
+            mistakes: ['Steps too short', 'Knee going past toe', 'Leaning forward'],
+            cues: ['Long stride', 'Chest up', 'Drive through heel']
+          };
+        }
+        if (name.includes('extension')) {
+          return {
+            tips: ['Extend fully and squeeze quad', 'Control the lowering', 'Adjust pad to lower shin'],
+            mistakes: ['Using momentum', 'Not extending fully', 'Coming down too fast'],
+            cues: ['Full extension', 'Squeeze quad', 'Control down']
+          };
+        }
+        return {
+          tips: ['Keep knees tracking over toes', 'Push through your heels', 'Maintain neutral spine', 'Control the movement'],
+          mistakes: ['Knees caving', 'Rounding back', 'Using momentum'],
+          cues: ['Knees out', 'Chest up', 'Control']
+        };
+      }
+
+      // Legs - Hamstrings/Glutes
+      if (muscleGroup.includes('hamstring') || muscleGroup.includes('glute') || name.includes('curl') || name.includes('hip thrust') || name.includes('rdl') || name.includes('romanian')) {
+        if (name.includes('curl')) {
+          return {
+            tips: ['Curl heels toward glutes', 'Squeeze hamstrings at top', 'Keep hips pressed into pad', 'Control the lowering'],
+            mistakes: ['Hips lifting up', 'Partial range of motion', 'Going too fast'],
+            cues: ['Squeeze hams', 'Hips down', 'Full curl']
+          };
+        }
+        if (name.includes('thrust') || name.includes('bridge')) {
+          return {
+            tips: ['Drive through heels to lift hips', 'Squeeze glutes hard at top', 'Keep chin tucked', 'Control descent'],
+            mistakes: ['Hyperextending lower back', 'Not squeezing at top', 'Pushing through toes'],
+            cues: ['Drive hips up', 'Squeeze glutes', 'Chin down']
+          };
+        }
+        return {
+          tips: ['Push hips back', 'Keep back flat', 'Feel the hamstring stretch', 'Squeeze glutes at top'],
+          mistakes: ['Rounding back', 'Bending knees too much', 'Not hinging at hips'],
+          cues: ['Hips back', 'Flat back', 'Squeeze glutes']
+        };
+      }
+
+      // Core
+      if (muscleGroup.includes('core') || muscleGroup.includes('ab') || name.includes('plank') || name.includes('crunch')) {
+        if (name.includes('plank')) {
+          return {
+            tips: ['Straight line from head to heels', 'Engage core, squeeze glutes', 'Don\'t let hips sag or pike', 'Breathe normally'],
+            mistakes: ['Hips too high or sagging', 'Looking up', 'Holding breath'],
+            cues: ['Flat back', 'Squeeze everything', 'Breathe']
+          };
+        }
+        return {
+          tips: ['Keep lower back pressed into floor', 'Control the movement', 'Exhale on exertion', 'Maintain tension throughout'],
+          mistakes: ['Using momentum', 'Pulling on neck', 'Arching back'],
+          cues: ['Core tight', 'Control', 'Exhale']
+        };
+      }
+
+      // Calves
+      if (muscleGroup.includes('calf') || muscleGroup.includes('calves')) {
+        return {
+          tips: ['Full stretch at bottom', 'Rise onto balls of feet', 'Squeeze calves at top', 'Control the lowering'],
+          mistakes: ['Bouncing at bottom', 'Partial range of motion', 'Going too fast'],
+          cues: ['Full stretch', 'Squeeze at top', 'Slow down']
+        };
+      }
+
+      // Default fallback for any unmatched exercises
+      return {
+        tips: ['Maintain proper form throughout', 'Control the movement', 'Full range of motion', 'Breathe steadily'],
+        mistakes: ['Using momentum', 'Partial range of motion', 'Rushing reps'],
+        cues: ['Control', 'Full range', 'Breathe']
+      };
     };
 
     // Check if exercise has curated coaching data from database
@@ -392,50 +580,19 @@ function ExerciseDetailModal({
     const hasDbMistakes = exercise.common_mistakes && Array.isArray(exercise.common_mistakes) && exercise.common_mistakes.length > 0;
     const hasDbCues = exercise.coaching_cues && Array.isArray(exercise.coaching_cues) && exercise.coaching_cues.length > 0;
 
-    // If we have database coaching data, use it directly (no API call needed)
+    // Use database data if available, otherwise use comprehensive static fallbacks (no AI)
     if (hasDbFormTips) {
       setTips(exercise.form_tips);
       setCommonMistakes(hasDbMistakes ? exercise.common_mistakes : []);
       setCoachingCues(hasDbCues ? exercise.coaching_cues : []);
-      setTipsLoading(false);
-      return;
+    } else {
+      // Use static fallbacks - instant, no loading, no API dependency
+      const staticData = getStaticCoachingData();
+      setTips(staticData.tips);
+      setCommonMistakes(staticData.mistakes);
+      setCoachingCues(staticData.cues);
     }
-
-    // No database data - fetch from AI API as fallback
-    const fetchTips = async () => {
-      setTipsLoading(true);
-      setTipsError(null);
-      setCommonMistakes([]);
-      setCoachingCues([]);
-
-      try {
-        const response = await apiPost('/.netlify/functions/exercise-coach', {
-          mode: 'tips',
-          exercise: {
-            name: exercise.name,
-            muscle_group: exercise.muscle_group || exercise.muscleGroup,
-            equipment: exercise.equipment
-          }
-        });
-
-        if (response?.success && response?.tips) {
-          setTips(response.tips);
-        } else {
-          // Use fallback tips if API response is invalid
-          setTips(getFallbackTips());
-        }
-      } catch (error) {
-        console.error('Failed to fetch tips:', error);
-        // Use fallback tips on error
-        setTips(getFallbackTips());
-      } finally {
-        setTipsLoading(false);
-      }
-    };
-
-    // Small delay to avoid too many requests during quick navigation
-    const timer = setTimeout(fetchTips, 300);
-    return () => clearTimeout(timer);
+    setTipsLoading(false);
   }, [exercise?.id, exercise?.name, exercise?.muscle_group, exercise?.muscleGroup, exercise?.form_tips, exercise?.common_mistakes, exercise?.coaching_cues]);
 
   // Stable close handler - uses requestAnimationFrame for mobile Safari
