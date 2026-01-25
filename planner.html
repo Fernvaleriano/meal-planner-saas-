@@ -2375,7 +2375,7 @@ function goBackToClient() {
     const backBtn = document.getElementById('backToClientBtn');
     const clientId = backBtn?.dataset.clientId;
     if (clientId) {
-        window.location.href = `/clients.html?id=${clientId}`;
+        window.location.href = `/client-profile.html?clientId=${clientId}`;
     } else {
         window.location.href = '/clients.html';
     }
