@@ -1927,6 +1927,33 @@ function ExerciseDetailModal({
           </div>
         </div>
 
+        {/* Coach Voice Note */}
+        {exercise.voiceNoteUrl && (
+          <div className="coach-voice-note-section">
+            <div className="voice-note-header">
+              <Mic size={16} />
+              <span>Coach's Tip</span>
+            </div>
+            <audio
+              controls
+              src={exercise.voiceNoteUrl}
+              className="voice-note-audio-player"
+              preload="metadata"
+            />
+          </div>
+        )}
+
+        {/* Coach Text Notes */}
+        {exercise.notes && (
+          <div className="coach-text-note-section">
+            <div className="text-note-header">
+              <MessageCircle size={16} />
+              <span>Coach Note</span>
+            </div>
+            <p className="coach-note-text">{exercise.notes}</p>
+          </div>
+        )}
+
         {/* Coaching Tips Section */}
         <div className="ai-tips-section">
           {/* Form Tips */}
