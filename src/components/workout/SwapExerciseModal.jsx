@@ -32,6 +32,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   // Refs for cleanup and stable references
   const isMountedRef = useRef(true);
   const workoutExercisesRef = useRef(workoutExercises);
+  const modalContentRef = useRef(null);
 
   // Force close handler - used for escape routes (back button, escape key)
   const forceClose = useCallback(() => {
@@ -55,6 +56,28 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [forceClose]);
+
+  // Lock body scroll when modal is open to prevent background scrolling
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    const originalPosition = window.getComputedStyle(document.body).position;
+    const scrollY = window.scrollY;
+
+    // Lock the body scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      // Restore body scroll
+      document.body.style.overflow = originalStyle;
+      document.body.style.position = originalPosition;
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
 
   // Handle escape key press
   useEffect(() => {
@@ -240,6 +263,14 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     }
   }, [handleClose]);
 
+  // Prevent touch move on overlay (background) from scrolling
+  const handleOverlayTouchMove = useCallback((e) => {
+    // Only prevent if the touch is directly on the overlay, not on the modal content
+    if (e.target === e.currentTarget) {
+      e.preventDefault();
+    }
+  }, []);
+
   // Handle refresh
   const handleRefresh = useCallback(() => {
     fetchSuggestions(selectedEquipment);
@@ -293,8 +324,16 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   }
 
   return (
-    <div className="swap-modal-overlay" onClick={handleOverlayClick}>
-      <div className="swap-modal ai-swap-modal" onClick={e => e.stopPropagation()}>
+    <div
+      className="swap-modal-overlay"
+      onClick={handleOverlayClick}
+      onTouchMove={handleOverlayTouchMove}
+    >
+      <div
+        className="swap-modal ai-swap-modal"
+        ref={modalContentRef}
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="swap-modal-header">
           <div className="swap-header-title">
