@@ -19329,6 +19329,124 @@ a.nav-left {
     font-weight: 500;
 }
 
+/* Coach Recommended Swaps Section */
+.swap-coach-section {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="dark"] .swap-coach-section {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.swap-coach-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.swap-coach-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8b5cf6;
+}
+
+.swap-coach-label svg {
+    fill: #fbbf24;
+    stroke: #fbbf24;
+}
+
+.swap-coach-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.swap-coach-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+}
+
+[data-theme="dark"] .swap-coach-item {
+    background: #1e293b;
+    border-color: rgba(139, 92, 246, 0.4);
+}
+
+.swap-coach-item:hover {
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.05);
+    transform: translateX(4px);
+}
+
+[data-theme="dark"] .swap-coach-item:hover {
+    background: rgba(139, 92, 246, 0.2);
+}
+
+.swap-coach-item .swap-exercise-thumb {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+.swap-coach-item .swap-exercise-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.swap-coach-item .swap-exercise-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.swap-coach-item .swap-exercise-name {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1e293b;
+    margin-bottom: 2px;
+}
+
+[data-theme="dark"] .swap-coach-item .swap-exercise-name {
+    color: #f1f5f9;
+}
+
+.swap-coach-item .swap-exercise-meta {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.swap-coach-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #8b5cf6;
+    font-weight: 500;
+}
+
+.swap-coach-item .swap-arrow {
+    color: #8b5cf6;
+    flex-shrink: 0;
+}
+
 .swap-ai-section {
     display: flex;
     flex-direction: column;
