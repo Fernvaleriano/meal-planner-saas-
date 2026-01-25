@@ -5711,9 +5711,9 @@ exports.handler = async (event, context) => {
     console.error('Error stack:', error.stack);
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({
-        error: 'Internal server error',
-        message: error.message,
+        error: error.message || 'Internal server error',
         details: error.stack,
         apiKeys: {
           anthropic: ANTHROPIC_API_KEY ? 'configured' : 'missing',

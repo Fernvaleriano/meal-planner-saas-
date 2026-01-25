@@ -1720,7 +1720,11 @@
                 </svg>
             </button>
             <h1 class="main-header-title" style="color: white;">🍽️ AI Meal Planner</h1>
-            <div class="main-header-actions"></div>
+            <div class="main-header-actions">
+                <button id="backToClientBtn" onclick="goBackToClient()" style="display: none; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;">
+                    ← Back to Client
+                </button>
+            </div>
         </header>
 
         <div class="app-container">
@@ -2366,6 +2370,17 @@ function toggleSidebarSection(label) {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
 }
 
+// Navigate back to client's dashboard
+function goBackToClient() {
+    const backBtn = document.getElementById('backToClientBtn');
+    const clientId = backBtn?.dataset.clientId;
+    if (clientId) {
+        window.location.href = `/clients.html?id=${clientId}`;
+    } else {
+        window.location.href = '/clients.html';
+    }
+}
+
 // Collapsible form sections toggle
 function toggleSection(sectionId) {
     const content = document.getElementById(sectionId + '-content');
@@ -2560,6 +2575,13 @@ async function loadClients() {
             // Trigger change event to auto-populate fields
             clientSelector.dispatchEvent(new Event('change'));
             console.log(`✅ Auto-selected client from URL: ${clientId}`);
+
+            // Show back button when viewing a specific client
+            const backBtn = document.getElementById('backToClientBtn');
+            if (backBtn) {
+                backBtn.style.display = 'block';
+                backBtn.dataset.clientId = clientId;
+            }
         }
 
     } catch (error) {
@@ -2945,7 +2967,17 @@ async function callGemini(prompt, isJson = true, targets = null, previousAttempt
         });
 
         if (!response.ok) {
-            throw new Error('API request failed');
+            // Try to get error details from response
+            let errorMsg = `API request failed (${response.status})`;
+            try {
+                const errorData = await response.json();
+                if (errorData.error) {
+                    errorMsg = errorData.error;
+                }
+            } catch (e) {
+                // Response wasn't JSON
+            }
+            throw new Error(errorMsg);
         }
 
         const data = await response.json();
