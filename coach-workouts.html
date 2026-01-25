@@ -2111,6 +2111,195 @@
             }
         }
 
+        /* Custom Exercise Modal Styles */
+        .custom-exercise-modal {
+            max-width: 600px;
+            max-height: 90vh;
+        }
+
+        .custom-exercise-modal .modal-body {
+            max-height: calc(90vh - 140px);
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .custom-exercise-form-group {
+            margin-bottom: 20px;
+        }
+
+        .custom-exercise-form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .custom-exercise-form-group label .required {
+            color: var(--danger);
+        }
+
+        .custom-exercise-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .video-upload-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .video-upload-section h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .video-upload-options {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .video-upload-option {
+            flex: 1;
+            padding: 16px;
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .video-upload-option:hover {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        .video-upload-option.active {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .video-upload-option svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .video-upload-option:hover svg,
+        .video-upload-option.active svg {
+            color: var(--brand-primary);
+        }
+
+        .video-upload-option span {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .custom-video-preview-container {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            display: none;
+        }
+
+        .custom-video-preview-container.visible {
+            display: block;
+        }
+
+        .custom-video-preview-container video {
+            width: 100%;
+            max-height: 200px;
+            border-radius: var(--radius-sm);
+            background: #000;
+        }
+
+        .custom-video-preview-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        .custom-video-preview-info span {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .create-exercise-header-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(13, 148, 136, 0.15);
+            color: var(--brand-primary);
+            border: 1px solid var(--brand-primary);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .create-exercise-header-btn:hover {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        .custom-exercise-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(139, 92, 246, 0.2);
+            color: #8b5cf6;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Recording indicator for custom exercise */
+        .ce-recording-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: var(--radius-md);
+            color: var(--danger);
+            margin-top: 12px;
+        }
+
+        .ce-recording-indicator .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--danger);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .ce-recording-indicator .recording-timer {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .ce-recording-indicator .recording-text {
+            font-size: 0.85rem;
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .main-content {
@@ -2136,6 +2325,14 @@
 
             .ai-form-row {
                 grid-template-columns: 1fr;
+            }
+
+            .custom-exercise-form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .video-upload-options {
+                flex-direction: column;
             }
         }
     </style>
@@ -2519,7 +2716,15 @@
                     </svg>
                     Add Exercise
                 </h3>
-                <button class="modal-close" onclick="closeExerciseModal()">&times;</button>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="create-exercise-header-btn" onclick="openCustomExerciseModal()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Create Custom
+                    </button>
+                    <button class="modal-close" onclick="closeExerciseModal()">&times;</button>
+                </div>
             </div>
             <div class="modal-body">
                 <input type="text" class="form-input" id="exerciseSearchInput" placeholder="Search exercises (e.g., tricep, bench press...)" oninput="searchExercises(this.value)" style="margin-bottom: 16px;">
@@ -2847,6 +3052,142 @@
         </div>
     </div>
 
+    <!-- Create Custom Exercise Modal -->
+    <div class="modal-overlay" id="customExerciseModal">
+        <div class="modal custom-exercise-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Create Custom Exercise
+                </h3>
+                <button class="modal-close" onclick="closeCustomExerciseModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="custom-exercise-form-group">
+                    <label>Exercise Name <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="ceExerciseName" placeholder="e.g., Single Arm Cable Row">
+                </div>
+
+                <div class="custom-exercise-form-row">
+                    <div class="custom-exercise-form-group">
+                        <label>Muscle Group <span class="required">*</span></label>
+                        <select class="form-input" id="ceMuscleGroup">
+                            <option value="">Select muscle group</option>
+                            <option value="chest">Chest</option>
+                            <option value="back">Back</option>
+                            <option value="shoulders">Shoulders</option>
+                            <option value="biceps">Biceps</option>
+                            <option value="triceps">Triceps</option>
+                            <option value="forearms">Forearms</option>
+                            <option value="core">Core</option>
+                            <option value="quadriceps">Quadriceps</option>
+                            <option value="hamstrings">Hamstrings</option>
+                            <option value="glutes">Glutes</option>
+                            <option value="calves">Calves</option>
+                            <option value="full body">Full Body</option>
+                        </select>
+                    </div>
+                    <div class="custom-exercise-form-group">
+                        <label>Equipment</label>
+                        <select class="form-input" id="ceEquipment">
+                            <option value="">Select equipment</option>
+                            <option value="barbell">Barbell</option>
+                            <option value="dumbbell">Dumbbell</option>
+                            <option value="cable">Cable</option>
+                            <option value="machine">Machine</option>
+                            <option value="bodyweight">Bodyweight</option>
+                            <option value="kettlebell">Kettlebell</option>
+                            <option value="resistance band">Resistance Band</option>
+                            <option value="smith machine">Smith Machine</option>
+                            <option value="ez bar">EZ Bar</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="custom-exercise-form-row">
+                    <div class="custom-exercise-form-group">
+                        <label>Difficulty</label>
+                        <select class="form-input" id="ceDifficulty">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate" selected>Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div class="custom-exercise-form-group">
+                        <label>Exercise Type</label>
+                        <select class="form-input" id="ceExerciseType">
+                            <option value="strength" selected>Strength</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="flexibility">Flexibility</option>
+                            <option value="plyometric">Plyometric</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="custom-exercise-form-group">
+                    <label>Instructions (optional)</label>
+                    <textarea class="form-textarea" id="ceInstructions" placeholder="Describe how to perform this exercise correctly..." rows="3"></textarea>
+                </div>
+
+                <!-- Video Upload Section -->
+                <div class="video-upload-section">
+                    <h4>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Demo Video (optional)
+                    </h4>
+                    <div class="video-upload-options">
+                        <div class="video-upload-option" onclick="triggerCEVideoUpload()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            <span>Upload Video</span>
+                        </div>
+                        <div class="video-upload-option" onclick="startCEVideoRecording()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Record Video</span>
+                        </div>
+                    </div>
+                    <input type="file" id="ceVideoFileInput" accept="video/*" onchange="handleCEVideoUpload(event)" style="display: none;">
+
+                    <!-- Recording indicator -->
+                    <div class="ce-recording-indicator" id="ceRecordingIndicator" style="display: none;">
+                        <div class="recording-dot"></div>
+                        <span class="recording-timer" id="ceRecordingTimer">0:00</span>
+                        <span class="recording-text">Recording... (max 20 sec)</span>
+                        <button class="btn btn-secondary" onclick="stopCEVideoRecording()" style="margin-left: auto; padding: 6px 12px; font-size: 12px;">Stop</button>
+                    </div>
+
+                    <!-- Video Preview -->
+                    <div class="custom-video-preview-container" id="ceVideoPreview">
+                        <video id="cePreviewVideo" controls muted playsinline></video>
+                        <div class="custom-video-preview-info">
+                            <span id="ceVideoSize">Video ready</span>
+                            <button class="btn btn-secondary" onclick="removeCEVideo()" style="padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                                Remove Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-secondary" onclick="closeCustomExerciseModal()" style="background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-primary" id="saveCustomExerciseBtn" onclick="saveCustomExercise()" style="background: var(--brand-gradient); color: white;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Create Exercise
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase (for auth only)
@@ -2879,6 +3220,12 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let currentRecordingExercise = null;
+
+        // Custom exercise state
+        let ceVideoRecorder = null;
+        let ceVideoChunks = [];
+        let ceVideoData = null;
+        let ceRecordingInterval = null;
 
         // Helper for authenticated API calls
         async function apiCall(url, options = {}) {
@@ -3557,7 +3904,10 @@
                             </svg>
                         </button>
                     </div>
-                    <div class="exercise-card-name">${ex.name}</div>
+                    <div class="exercise-card-name">
+                        ${ex.name}
+                        ${ex.is_custom ? '<span class="custom-exercise-badge">Custom</span>' : ''}
+                    </div>
                     <div class="exercise-card-meta">${ex.muscle_group || ex.primary_muscles || 'General'}${ex.equipment ? ' • ' + ex.equipment : ''}</div>
                     ${secondaryMuscles ? `<div class="exercise-card-secondary">Also: ${secondaryMuscles}</div>` : ''}
                 </div>
@@ -4894,6 +5244,239 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Generate Program';
+            }
+        }
+
+        // ============================================
+        // Custom Exercise Functions
+        // ============================================
+
+        function openCustomExerciseModal() {
+            // Reset form
+            document.getElementById('ceExerciseName').value = '';
+            document.getElementById('ceMuscleGroup').value = '';
+            document.getElementById('ceEquipment').value = '';
+            document.getElementById('ceDifficulty').value = 'intermediate';
+            document.getElementById('ceExerciseType').value = 'strength';
+            document.getElementById('ceInstructions').value = '';
+
+            // Reset video state
+            ceVideoData = null;
+            document.getElementById('ceVideoPreview').classList.remove('visible');
+            document.getElementById('cePreviewVideo').src = '';
+            document.getElementById('ceRecordingIndicator').style.display = 'none';
+
+            document.getElementById('customExerciseModal').classList.add('active');
+        }
+
+        function closeCustomExerciseModal() {
+            // Stop any active recording
+            if (ceVideoRecorder && ceVideoRecorder.state === 'recording') {
+                ceVideoRecorder.stop();
+            }
+            if (ceRecordingInterval) {
+                clearInterval(ceRecordingInterval);
+                ceRecordingInterval = null;
+            }
+
+            document.getElementById('customExerciseModal').classList.remove('active');
+        }
+
+        function triggerCEVideoUpload() {
+            document.getElementById('ceVideoFileInput').click();
+        }
+
+        async function handleCEVideoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file size (max 50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                showToast('Video too large. Max 50MB', 'error');
+                return;
+            }
+
+            // Convert to base64
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                ceVideoData = e.target.result;
+
+                // Show preview
+                document.getElementById('cePreviewVideo').src = ceVideoData;
+                document.getElementById('ceVideoSize').textContent = `Video ready (${(file.size / 1024 / 1024).toFixed(1)}MB)`;
+                document.getElementById('ceVideoPreview').classList.add('visible');
+            };
+            reader.readAsDataURL(file);
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        async function startCEVideoRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' },
+                    audio: false
+                });
+
+                ceVideoChunks = [];
+                ceVideoRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+                ceVideoRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        ceVideoChunks.push(e.data);
+                    }
+                };
+
+                ceVideoRecorder.onstop = async () => {
+                    stream.getTracks().forEach(track => track.stop());
+
+                    const blob = new Blob(ceVideoChunks, { type: 'video/webm' });
+
+                    // Convert to base64
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        ceVideoData = reader.result;
+
+                        // Show preview
+                        document.getElementById('cePreviewVideo').src = ceVideoData;
+                        document.getElementById('ceVideoSize').textContent = `Video ready (${(blob.size / 1024 / 1024).toFixed(1)}MB)`;
+                        document.getElementById('ceVideoPreview').classList.add('visible');
+                    };
+                    reader.readAsDataURL(blob);
+
+                    document.getElementById('ceRecordingIndicator').style.display = 'none';
+                };
+
+                ceVideoRecorder.start();
+
+                // Show recording indicator
+                document.getElementById('ceRecordingIndicator').style.display = 'flex';
+
+                // Timer (max 20 seconds)
+                let seconds = 0;
+                ceRecordingInterval = setInterval(() => {
+                    seconds++;
+                    document.getElementById('ceRecordingTimer').textContent = `0:${seconds.toString().padStart(2, '0')}`;
+
+                    if (seconds >= 20) {
+                        stopCEVideoRecording();
+                    }
+                }, 1000);
+
+            } catch (err) {
+                console.error('Error starting video recording:', err);
+                showToast('Could not access camera. Please allow camera permissions.', 'error');
+            }
+        }
+
+        function stopCEVideoRecording() {
+            if (ceVideoRecorder && ceVideoRecorder.state === 'recording') {
+                ceVideoRecorder.stop();
+            }
+            if (ceRecordingInterval) {
+                clearInterval(ceRecordingInterval);
+                ceRecordingInterval = null;
+            }
+        }
+
+        function removeCEVideo() {
+            ceVideoData = null;
+            document.getElementById('ceVideoPreview').classList.remove('visible');
+            document.getElementById('cePreviewVideo').src = '';
+        }
+
+        async function saveCustomExercise() {
+            const name = document.getElementById('ceExerciseName').value.trim();
+            const muscleGroup = document.getElementById('ceMuscleGroup').value;
+            const equipment = document.getElementById('ceEquipment').value;
+            const difficulty = document.getElementById('ceDifficulty').value;
+            const exerciseType = document.getElementById('ceExerciseType').value;
+            const instructions = document.getElementById('ceInstructions').value.trim();
+
+            // Validation
+            if (!name) {
+                showToast('Please enter an exercise name', 'error');
+                return;
+            }
+            if (!muscleGroup) {
+                showToast('Please select a muscle group', 'error');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveCustomExerciseBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner"></span> Creating...';
+
+            try {
+                let videoUrl = null;
+                let videoFilePath = null;
+
+                // Upload video if provided
+                if (ceVideoData) {
+                    const fileName = `custom-${Date.now()}.webm`;
+                    const uploadResult = await apiCall('/.netlify/functions/upload-exercise-video', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            coachId: currentCoachId,
+                            videoData: ceVideoData,
+                            fileName
+                        })
+                    });
+
+                    if (uploadResult.success) {
+                        videoUrl = uploadResult.url;
+                        videoFilePath = uploadResult.filePath;
+                    }
+                }
+
+                // Create the exercise
+                const result = await apiCall('/.netlify/functions/exercises', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        name,
+                        muscleGroup,
+                        equipment: equipment || null,
+                        difficulty,
+                        exerciseType,
+                        instructions: instructions || null,
+                        animationUrl: videoUrl,
+                        thumbnailUrl: null // Could add thumbnail support later
+                    })
+                });
+
+                if (result.success && result.exercise) {
+                    // Add to local exercises array
+                    exercises.push({
+                        ...result.exercise,
+                        is_custom: true,
+                        // Store video file path for signed URL refresh
+                        video_file_path: videoFilePath
+                    });
+
+                    showToast(`Custom exercise "${name}" created!`);
+                    closeCustomExerciseModal();
+
+                    // Refresh exercise grid if the modal is open
+                    if (document.getElementById('exerciseModal').classList.contains('active')) {
+                        renderExerciseGrid();
+                    }
+                } else {
+                    throw new Error('Failed to create exercise');
+                }
+
+            } catch (err) {
+                console.error('Error creating custom exercise:', err);
+                showToast(err.message || 'Failed to create exercise', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Create Exercise
+                `;
             }
         }
 
