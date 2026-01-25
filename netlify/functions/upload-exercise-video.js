@@ -10,6 +10,9 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Max file size: 50MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
 // Signed URL expiry: 7 days (in seconds)
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60;
 
@@ -37,40 +40,58 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    const { coachId, audioData, fileName } = JSON.parse(event.body || '{}');
+    const { coachId, videoData, fileName } = JSON.parse(event.body || '{}');
 
-    if (!coachId || !audioData || !fileName) {
+    if (!coachId || !videoData || !fileName) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'coachId, audioData, and fileName are required' })
+        body: JSON.stringify({ error: 'coachId, videoData, and fileName are required' })
       };
     }
 
     // Extract base64 data from data URL
-    const base64Data = audioData.split(',')[1];
+    const matches = videoData.match(/^data:(.+);base64,(.+)$/);
+    if (!matches) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid video data format' })
+      };
+    }
+
+    const contentType = matches[1];
+    const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, 'base64');
 
+    // Check file size
+    if (buffer.length > MAX_FILE_SIZE) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: `Video too large. Max ${MAX_FILE_SIZE / 1024 / 1024}MB` })
+      };
+    }
+
     // Upload to Supabase storage (PRIVATE bucket)
-    const filePath = `voice-notes/${coachId}/${fileName}`;
+    const filePath = `exercise-videos/${coachId}/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from('workout-assets')
       .upload(filePath, buffer, {
-        contentType: 'audio/webm',
+        contentType: contentType || 'video/webm',
         upsert: true
       });
 
     if (error) {
       if (error.message.includes('bucket') || error.statusCode === 404) {
-        console.log('Storage bucket not configured, returning null URL');
+        console.log('Storage bucket may not exist:', error.message);
         return {
-          statusCode: 200,
+          statusCode: 500,
           headers,
           body: JSON.stringify({
-            success: true,
-            url: null,
-            message: 'Storage not configured, voice note stored locally'
+            error: 'Storage not configured. Please create the workout-assets bucket in Supabase (keep it PRIVATE).',
+            details: error.message
           })
         };
       }
@@ -78,12 +99,26 @@ exports.handler = async (event) => {
     }
 
     // Generate a signed URL (private, expires in 7 days)
+    // We store the file path, and generate fresh signed URLs when needed
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('workout-assets')
       .createSignedUrl(filePath, SIGNED_URL_EXPIRY);
 
     if (signedUrlError) {
       console.error('Error creating signed URL:', signedUrlError);
+      // Fall back to storing the path - we'll generate signed URLs on retrieval
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          // Store the path, not a public URL - client will need to request signed URL
+          url: signedUrlData?.signedUrl || null,
+          filePath: filePath,
+          size: buffer.length,
+          isPrivate: true
+        })
+      };
     }
 
     return {
@@ -91,14 +126,16 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         success: true,
-        url: signedUrlData?.signedUrl || null,
+        url: signedUrlData.signedUrl,
         filePath: filePath,
+        size: buffer.length,
+        expiresIn: SIGNED_URL_EXPIRY,
         isPrivate: true
       })
     };
 
   } catch (err) {
-    console.error('Upload voice note error:', err);
+    console.error('Upload exercise video error:', err);
     return {
       statusCode: 500,
       headers,

@@ -1746,7 +1746,9 @@ function ExerciseDetailModal({
 
   // Calculate values
   const completedSets = sets.filter(s => s?.completed).length;
-  const videoUrl = exercise?.video_url || exercise?.animation_url;
+  // Prioritize custom video from coach over default video
+  const hasCustomVideo = !!exercise?.customVideoUrl;
+  const videoUrl = exercise?.customVideoUrl || exercise?.video_url || exercise?.animation_url;
   const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio';
   const difficultyLevel = exercise?.difficulty || 'Novice';
 

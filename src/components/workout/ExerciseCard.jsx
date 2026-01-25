@@ -341,7 +341,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const thumbnailUrl = exercise.thumbnail_url ||
     (isImageUrl(exercise.animation_url) ? exercise.animation_url : null) ||
     '/img/exercise-placeholder.svg';
-  const hasVideo = !!(exercise.video_url || exercise.animation_url);
+  // Prioritize custom video from coach over default video
+  const hasCustomVideo = !!exercise.customVideoUrl;
+  const videoUrl = exercise.customVideoUrl || exercise.video_url || exercise.animation_url;
+  const hasVideo = !!videoUrl;
 
   // Format duration for display
   const formatDuration = (seconds) => {
