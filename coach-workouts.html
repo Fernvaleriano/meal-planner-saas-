@@ -524,6 +524,160 @@
             background: #dc2626;
         }
 
+        /* Recommended Swaps Styles */
+        .recommended-swaps-btn {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            position: relative;
+        }
+
+        .recommended-swaps-btn:hover {
+            background: rgba(139, 92, 246, 0.25);
+            color: #c4b5fd;
+        }
+
+        .recommended-swaps-btn .swap-count {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 16px;
+            height: 16px;
+            background: #8b5cf6;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recommended-swaps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .recommended-swap-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .recommended-swap-item .swap-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--bg-secondary);
+        }
+
+        .recommended-swap-item .swap-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .recommended-swap-item .swap-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .recommended-swap-item .swap-muscle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .recommended-swap-item .remove-swap-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recommended-swap-item .remove-swap-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .add-recommended-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+        }
+
+        .add-recommended-section h4 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .recommended-exercise-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .recommended-exercise-option:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .recommended-exercise-option.selected {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid #8b5cf6;
+        }
+
+        .recommended-exercise-option .option-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .recommended-exercise-option .option-info {
+            flex: 1;
+        }
+
+        .recommended-exercise-option .option-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .recommended-exercise-option .option-equipment {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .exercise-has-swaps {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #a78bfa;
+            margin-top: 4px;
+        }
+
+        .exercise-has-swaps svg {
+            width: 12px;
+            height: 12px;
+        }
+
         .sidebar-actions {
             padding: 16px;
             border-top: 1px solid var(--border-color);
@@ -2208,6 +2362,50 @@
         </div>
     </div>
 
+    <!-- Recommended Swaps Modal -->
+    <div class="modal-overlay" id="recommendedSwapsModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                    </svg>
+                    Recommended Swaps
+                </h3>
+                <button class="modal-close" onclick="closeRecommendedSwapsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <p style="margin: 0 0 4px 0; color: var(--text-muted); font-size: 12px;">Configure swaps for:</p>
+                    <p style="margin: 0; font-weight: 600;" id="recommendedCurrentName">-</p>
+                </div>
+
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    Select exercises you recommend as alternatives. These will appear first when your client tries to swap this exercise.
+                </p>
+
+                <!-- Current Recommended Swaps -->
+                <div id="currentRecommendedSwaps" class="recommended-swaps-list">
+                    <!-- Will be populated dynamically -->
+                </div>
+
+                <!-- Add More Section -->
+                <div class="add-recommended-section">
+                    <h4>Add Recommended Swaps</h4>
+                    <div style="margin-bottom: 12px;">
+                        <input type="text" id="recommendedSearchInput" class="form-input" placeholder="Search exercises to recommend..." oninput="filterRecommendedExercises(this.value)">
+                    </div>
+                    <div id="recommendedExerciseOptions" style="max-height: 250px; overflow-y: auto;">
+                        <!-- Exercise options will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRecommendedSwapsModal()" style="background: var(--bg-tertiary); color: var(--text-primary);">Done</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="exerciseModal">
         <div class="modal exercise-library-modal">
             <div class="modal-header">
@@ -2853,8 +3051,20 @@
                                 <span style="font-size: 11px; color: var(--text-muted);">Add voice tip for client</span>
                             `}
                         </div>
+                        ${exercise.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? `
+                            <div class="exercise-has-swaps">
+                                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                                ${exercise.recommendedSwaps.length} recommended swap${exercise.recommendedSwaps.length > 1 ? 's' : ''}
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="exercise-actions">
+                        <button class="icon-btn recommended-swaps-btn" onclick="openRecommendedSwapsModal(${dayIndex}, ${exIndex})" title="Manage recommended swaps">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                            ${exercise.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? `<span class="swap-count">${exercise.recommendedSwaps.length}</span>` : ''}
+                        </button>
                         <button class="icon-btn swap-btn" onclick="openSwapModal(${dayIndex}, ${exIndex})" title="Swap exercise">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -4109,6 +4319,146 @@
                 renderWorkoutDays();
                 showToast('Voice note deleted', 'success');
             }
+        }
+
+        // ============ RECOMMENDED SWAPS FUNCTIONS ============
+        let recommendedSwapsDayIndex = null;
+        let recommendedSwapsExIndex = null;
+        let recommendedSwapsCache = [];
+
+        function openRecommendedSwapsModal(dayIndex, exIndex) {
+            recommendedSwapsDayIndex = dayIndex;
+            recommendedSwapsExIndex = exIndex;
+
+            const currentExercise = workoutDays[dayIndex].exercises[exIndex];
+            document.getElementById('recommendedCurrentName').textContent = currentExercise.name;
+            document.getElementById('recommendedSearchInput').value = '';
+
+            // Filter exercises by same muscle group (excluding current)
+            const muscleGroup = currentExercise.muscle_group || currentExercise.muscleGroup || '';
+            recommendedSwapsCache = exercises.filter(ex => {
+                const exMuscle = ex.muscle_group || '';
+                const isMatch = exMuscle.toLowerCase() === muscleGroup.toLowerCase() ||
+                    (ex.secondary_muscles && ex.secondary_muscles.some(m =>
+                        m.toLowerCase() === muscleGroup.toLowerCase()));
+                return isMatch && ex.id !== currentExercise.id;
+            });
+
+            renderCurrentRecommendedSwaps();
+            renderRecommendedExerciseOptions(recommendedSwapsCache);
+            document.getElementById('recommendedSwapsModal').classList.add('active');
+        }
+
+        function closeRecommendedSwapsModal() {
+            document.getElementById('recommendedSwapsModal').classList.remove('active');
+            recommendedSwapsDayIndex = null;
+            recommendedSwapsExIndex = null;
+            renderWorkoutDays(); // Re-render to show updated swap counts
+        }
+
+        function renderCurrentRecommendedSwaps() {
+            const container = document.getElementById('currentRecommendedSwaps');
+            const exercise = workoutDays[recommendedSwapsDayIndex].exercises[recommendedSwapsExIndex];
+            const swaps = exercise.recommendedSwaps || [];
+
+            if (swaps.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;">No recommended swaps yet. Add some below!</p>';
+                return;
+            }
+
+            container.innerHTML = swaps.map((swap, idx) => `
+                <div class="recommended-swap-item">
+                    <img class="swap-thumb" src="${swap.thumbnail_url || swap.animation_url || '/img/exercise-placeholder.svg'}"
+                         alt="${swap.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                    <div class="swap-info">
+                        <div class="swap-name">${swap.name}</div>
+                        <div class="swap-muscle">${swap.equipment || swap.muscle_group || ''}</div>
+                    </div>
+                    <button class="remove-swap-btn" onclick="removeRecommendedSwap(${idx})" title="Remove">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderRecommendedExerciseOptions(exerciseList) {
+            const container = document.getElementById('recommendedExerciseOptions');
+            const exercise = workoutDays[recommendedSwapsDayIndex].exercises[recommendedSwapsExIndex];
+            const currentSwapIds = (exercise.recommendedSwaps || []).map(s => s.id);
+
+            // Filter out already recommended exercises
+            const available = exerciseList.filter(ex => !currentSwapIds.includes(ex.id));
+
+            if (available.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;">No more exercises available for this muscle group.</p>';
+                return;
+            }
+
+            container.innerHTML = available.slice(0, 20).map(ex => `
+                <div class="recommended-exercise-option" onclick="addRecommendedSwap(${ex.id})">
+                    <img class="option-thumb" src="${ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}"
+                         alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                    <div class="option-info">
+                        <div class="option-name">${ex.name}</div>
+                        <div class="option-equipment">${ex.equipment || ex.muscle_group || ''}</div>
+                    </div>
+                    <svg width="20" height="20" fill="none" stroke="var(--brand-primary)" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </div>
+            `).join('');
+        }
+
+        function filterRecommendedExercises(query) {
+            const filtered = query
+                ? recommendedSwapsCache.filter(ex =>
+                    ex.name.toLowerCase().includes(query.toLowerCase()) ||
+                    (ex.equipment && ex.equipment.toLowerCase().includes(query.toLowerCase()))
+                )
+                : recommendedSwapsCache;
+            renderRecommendedExerciseOptions(filtered);
+        }
+
+        function addRecommendedSwap(exerciseId) {
+            const exerciseToAdd = exercises.find(ex => ex.id === exerciseId);
+            if (!exerciseToAdd) return;
+
+            const currentExercise = workoutDays[recommendedSwapsDayIndex].exercises[recommendedSwapsExIndex];
+
+            // Initialize array if needed
+            if (!currentExercise.recommendedSwaps) {
+                currentExercise.recommendedSwaps = [];
+            }
+
+            // Check if already added
+            if (currentExercise.recommendedSwaps.some(s => s.id === exerciseId)) {
+                showToast('This exercise is already recommended', 'error');
+                return;
+            }
+
+            // Add the swap recommendation
+            currentExercise.recommendedSwaps.push({
+                id: exerciseToAdd.id,
+                name: exerciseToAdd.name,
+                thumbnail_url: exerciseToAdd.thumbnail_url,
+                animation_url: exerciseToAdd.animation_url,
+                muscle_group: exerciseToAdd.muscle_group,
+                equipment: exerciseToAdd.equipment
+            });
+
+            showToast(`Added "${exerciseToAdd.name}" as recommended swap`, 'success');
+            renderCurrentRecommendedSwaps();
+            renderRecommendedExerciseOptions(recommendedSwapsCache);
+        }
+
+        function removeRecommendedSwap(swapIndex) {
+            const currentExercise = workoutDays[recommendedSwapsDayIndex].exercises[recommendedSwapsExIndex];
+            const removed = currentExercise.recommendedSwaps.splice(swapIndex, 1);
+            showToast(`Removed "${removed[0].name}" from recommendations`, 'success');
+            renderCurrentRecommendedSwaps();
+            renderRecommendedExerciseOptions(recommendedSwapsCache);
         }
 
         // AI Modal

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search } from 'lucide-react';
+import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search, Star } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
 
 const EQUIPMENT_OPTIONS = [
@@ -345,12 +345,51 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
           </div>
         </div>
 
+        {/* Coach Recommended Swaps - Show first if available */}
+        {exercise?.recommendedSwaps && exercise.recommendedSwaps.length > 0 && (
+          <div className="swap-coach-section">
+            <div className="swap-coach-header">
+              <span className="swap-coach-label">
+                <Star size={14} />
+                Coach Recommended
+              </span>
+            </div>
+            <div className="swap-coach-list">
+              {exercise.recommendedSwaps.map((ex, index) => (
+                <button
+                  key={ex.id || index}
+                  className="swap-coach-item"
+                  onClick={(e) => handleSelect(e, ex)}
+                  disabled={selecting}
+                >
+                  <div className="swap-exercise-thumb">
+                    <img
+                      src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                      alt={ex.name || 'Exercise'}
+                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                    />
+                  </div>
+                  <div className="swap-exercise-info">
+                    <span className="swap-exercise-name">{ex.name}</span>
+                    <span className="swap-exercise-meta">
+                      {ex.muscle_group || ex.muscleGroup}
+                      {ex.equipment && ` • ${ex.equipment}`}
+                    </span>
+                    <span className="swap-coach-badge">Your coach picked this for you</span>
+                  </div>
+                  <ArrowRight size={18} className="swap-arrow" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* AI Suggestions */}
         <div className="swap-ai-section">
           <div className="swap-ai-header">
             <span className="swap-ai-label">
               <Sparkles size={14} />
-              AI Recommendations
+              {exercise?.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? 'More Suggestions' : 'AI Recommendations'}
             </span>
             {!loading && (
               <button className="swap-refresh-btn" onClick={handleRefresh}>
