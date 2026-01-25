@@ -4757,41 +4757,57 @@
             try {
                 showToast('Saving voice note...', 'success');
 
-                // Convert blob to base64
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
+                const contentType = 'audio/webm';
+                const fileName = `voice-note-${Date.now()}.webm`;
 
-                reader.onloadend = async () => {
-                    const base64Audio = reader.result;
+                // Step 1: Get a signed upload URL
+                const uploadUrlResult = await apiCall('/.netlify/functions/get-video-upload-url', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        fileName,
+                        contentType,
+                        folder: 'voice-notes'
+                    })
+                });
 
-                    // Upload to Supabase storage via function
-                    const response = await fetch('/.netlify/functions/upload-voice-note', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coachId: currentCoachId,
-                            audioData: base64Audio,
-                            fileName: `voice-note-${Date.now()}.webm`
-                        })
-                    });
+                if (!uploadUrlResult.success) {
+                    throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
+                }
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        // Store both URL and file path (path used to refresh signed URLs)
-                        workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = result.url;
-                        workoutDays[dayIndex].exercises[exIndex].voiceNotePath = result.filePath;
-                        renderWorkoutDays();
-                        showToast('Voice note saved!', 'success');
-                    } else {
-                        // Fallback: store as data URL (works but increases save size)
-                        workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = base64Audio;
-                        renderWorkoutDays();
-                        showToast('Voice note saved locally', 'success');
-                    }
-                };
+                // Step 2: Upload directly to Supabase
+                const uploadResponse = await fetch(uploadUrlResult.uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': contentType
+                    },
+                    body: audioBlob
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload voice note to storage');
+                }
+
+                // Step 3: Get a signed view URL
+                const signedUrlResult = await apiCall('/.netlify/functions/get-signed-video-url', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        filePath: uploadUrlResult.filePath
+                    })
+                });
+
+                if (signedUrlResult.success) {
+                    // Store both URL and file path (path used to refresh signed URLs)
+                    workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = signedUrlResult.url;
+                    workoutDays[dayIndex].exercises[exIndex].voiceNotePath = uploadUrlResult.filePath;
+                    renderWorkoutDays();
+                    showToast('Voice note saved!', 'success');
+                } else {
+                    throw new Error('Failed to get voice note URL');
+                }
             } catch (err) {
                 console.error('Error uploading voice note:', err);
-                showToast('Error saving voice note', 'error');
+                showToast(err.message || 'Error saving voice note', 'error');
             }
         }
 
@@ -4922,44 +4938,60 @@
             try {
                 showToast('Uploading video...', 'success');
 
-                // Convert to base64
-                const reader = new FileReader();
-                reader.readAsDataURL(videoBlob);
+                // Determine content type
+                const isWebm = videoBlob.type.includes('webm');
+                const contentType = isWebm ? 'video/webm' : 'video/mp4';
+                const extension = isWebm ? 'webm' : 'mp4';
+                const fileName = `custom-video-${Date.now()}.${extension}`;
 
-                reader.onloadend = async () => {
-                    const base64Video = reader.result;
+                // Step 1: Get a signed upload URL
+                const uploadUrlResult = await apiCall('/.netlify/functions/get-video-upload-url', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        fileName,
+                        contentType,
+                        folder: 'exercise-videos'
+                    })
+                });
 
-                    const response = await fetch('/.netlify/functions/upload-exercise-video', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coachId: currentCoachId,
-                            videoData: base64Video,
-                            fileName: `custom-video-${Date.now()}.webm`
-                        })
-                    });
+                if (!uploadUrlResult.success) {
+                    throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
+                }
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        // Store both URL and file path (path used to refresh signed URLs)
-                        workoutDays[dayIndex].exercises[exIndex].customVideoUrl = result.url;
-                        workoutDays[dayIndex].exercises[exIndex].customVideoPath = result.filePath;
-                        renderWorkoutDays();
-                        showToast('Custom video saved!', 'success');
-                    } else {
-                        // Fallback for smaller videos: store as data URL
-                        if (videoBlob.size < 5 * 1024 * 1024) {
-                            workoutDays[dayIndex].exercises[exIndex].customVideoUrl = base64Video;
-                            renderWorkoutDays();
-                            showToast('Video saved locally (large file)', 'success');
-                        } else {
-                            showToast('Video too large to save locally', 'error');
-                        }
-                    }
-                };
+                // Step 2: Upload directly to Supabase
+                const uploadResponse = await fetch(uploadUrlResult.uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': contentType
+                    },
+                    body: videoBlob
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload video to storage');
+                }
+
+                // Step 3: Get a signed view URL
+                const signedUrlResult = await apiCall('/.netlify/functions/get-signed-video-url', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        filePath: uploadUrlResult.filePath
+                    })
+                });
+
+                if (signedUrlResult.success) {
+                    // Store both URL and file path (path used to refresh signed URLs)
+                    workoutDays[dayIndex].exercises[exIndex].customVideoUrl = signedUrlResult.url;
+                    workoutDays[dayIndex].exercises[exIndex].customVideoPath = uploadUrlResult.filePath;
+                    renderWorkoutDays();
+                    showToast('Custom video saved!', 'success');
+                } else {
+                    throw new Error('Failed to get video URL');
+                }
             } catch (err) {
                 console.error('Error uploading video:', err);
-                showToast('Error saving video', 'error');
+                showToast(err.message || 'Error saving video', 'error');
             }
         }
 
@@ -5412,22 +5444,68 @@
                 let videoUrl = null;
                 let videoFilePath = null;
 
-                // Upload video if provided
+                // Upload video if provided (using direct upload to Supabase)
                 if (ceVideoData) {
-                    const fileName = `custom-${Date.now()}.webm`;
-                    const uploadResult = await apiCall('/.netlify/functions/upload-exercise-video', {
+                    saveBtn.innerHTML = '<span class="spinner"></span> Uploading video...';
+
+                    // Determine file extension and content type
+                    const isWebm = ceVideoData.includes('video/webm');
+                    const contentType = isWebm ? 'video/webm' : 'video/mp4';
+                    const extension = isWebm ? 'webm' : 'mp4';
+                    const fileName = `custom-${Date.now()}.${extension}`;
+
+                    // Step 1: Get a signed upload URL
+                    const uploadUrlResult = await apiCall('/.netlify/functions/get-video-upload-url', {
                         method: 'POST',
                         body: JSON.stringify({
                             coachId: currentCoachId,
-                            videoData: ceVideoData,
-                            fileName
+                            fileName,
+                            contentType,
+                            folder: 'exercise-videos'
                         })
                     });
 
-                    if (uploadResult.success) {
-                        videoUrl = uploadResult.url;
-                        videoFilePath = uploadResult.filePath;
+                    if (!uploadUrlResult.success) {
+                        throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
                     }
+
+                    // Step 2: Convert base64 to blob
+                    const base64Data = ceVideoData.split(',')[1];
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: contentType });
+
+                    // Step 3: Upload directly to Supabase
+                    const uploadResponse = await fetch(uploadUrlResult.uploadUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': contentType
+                        },
+                        body: blob
+                    });
+
+                    if (!uploadResponse.ok) {
+                        throw new Error('Failed to upload video to storage');
+                    }
+
+                    // Step 4: Get a signed view URL
+                    const signedUrlResult = await apiCall('/.netlify/functions/get-signed-video-url', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            filePath: uploadUrlResult.filePath
+                        })
+                    });
+
+                    if (signedUrlResult.success) {
+                        videoUrl = signedUrlResult.url;
+                        videoFilePath = uploadUrlResult.filePath;
+                    }
+
+                    saveBtn.innerHTML = '<span class="spinner"></span> Creating exercise...';
                 }
 
                 // Create the exercise
