@@ -15193,6 +15193,48 @@ a.nav-left {
     transform: scale(0.98);
 }
 
+/* Common Mistakes Section */
+.ai-tips-section .mistakes-header {
+    color: #f59e0b;
+    margin-top: 16px;
+}
+
+.ai-tips-section .mistakes-list {
+    margin-bottom: 12px;
+}
+
+.ai-tips-section .mistake-item {
+    color: #fbbf24;
+}
+
+.ai-tips-section .mistake-bullet {
+    color: #f59e0b;
+}
+
+/* Coaching Cues Section */
+.ai-tips-section .cues-header {
+    color: #8b5cf6;
+    margin-top: 16px;
+}
+
+.ai-tips-section .coaching-cues-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.ai-tips-section .coaching-cue-tag {
+    display: inline-block;
+    padding: 6px 12px;
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 20px;
+    color: #a78bfa;
+    font-size: 12px;
+    font-weight: 500;
+}
+
 /* Ask Coach Chat Modal */
 .ask-coach-overlay {
     position: fixed;
