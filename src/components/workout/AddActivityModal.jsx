@@ -188,7 +188,7 @@ const exerciseMatchesMuscle = (exercise, filterKey) => {
   return namePatterns.some(pattern => nameLower.includes(pattern));
 };
 
-function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelect = true, genderPreference = 'all' }) {
+function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelect = true, genderPreference = 'all', coachId = null, isCoach = false }) {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inputValue, setInputValue] = useState(''); // Immediate input display
@@ -196,6 +196,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
   const [selectedMuscle, setSelectedMuscle] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
+  const [showCustomOnly, setShowCustomOnly] = useState(false); // Filter for custom exercises only
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -306,9 +307,12 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
       setLoading(true);
 
       try {
-        // Build URL with gender preference filter
-        // Use the genderPreference value at mount time
+        // Build URL with gender preference filter and coachId for custom exercises
         let url = '/.netlify/functions/exercises?limit=3000';
+        // Include coachId to show coach's custom exercises alongside global exercises
+        if (coachId) {
+          url += `&coachId=${coachId}`;
+        }
         if (genderPreference && genderPreference !== 'all') {
           url += `&genderVariant=${genderPreference}`;
         }
@@ -413,6 +417,11 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
         });
       }
 
+      // Filter for custom exercises only (coach-created)
+      if (showCustomOnly) {
+        results = results.filter(ex => ex.is_custom === true);
+      }
+
       // Fuzzy search - smarter matching
       if (searchQuery && searchQuery.trim()) {
         // Score each exercise and filter those with score > 0
@@ -433,7 +442,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
       console.error('Error filtering exercises:', err);
       return [];
     }
-  }, [exercises, selectedMuscle, selectedEquipment, selectedDifficulty, searchQuery, existingExerciseIds]);
+  }, [exercises, selectedMuscle, selectedEquipment, selectedDifficulty, showCustomOnly, searchQuery, existingExerciseIds]);
 
   // Toggle exercise selection
   const toggleExerciseSelection = useCallback((exercise) => {
@@ -577,6 +586,14 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     });
   }, []);
 
+  // Toggle custom filter
+  const handleCustomToggle = useCallback(() => {
+    startTransition(() => {
+      setShowCustomOnly(prev => !prev);
+      setDisplayCount(INITIAL_DISPLAY_COUNT);
+    });
+  }, []);
+
   // Load more exercises
   const handleLoadMore = useCallback(() => {
     setDisplayCount(prev => prev + LOAD_MORE_COUNT);
@@ -668,6 +685,17 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             </select>
             <ChevronDown size={14} className="filter-chip-arrow" />
           </div>
+
+          {/* Custom Exercises Filter - only show for coaches */}
+          {isCoach && (
+            <button
+              className={`filter-chip custom-filter ${showCustomOnly ? 'active' : ''}`}
+              onClick={handleCustomToggle}
+              type="button"
+            >
+              Custom
+            </button>
+          )}
         </div>
 
         {/* Exercise List */}
