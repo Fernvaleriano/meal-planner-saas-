@@ -5735,14 +5735,46 @@ function extractJSON(text) {
     cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
 
+  // Clean common JSON issues from AI responses
+  cleaned = cleaned
+    .replace(/:\s*NaN/g, ': null')           // Replace NaN with null
+    .replace(/,\s*}/g, '}')                   // Remove trailing commas before }
+    .replace(/,\s*]/g, ']')                   // Remove trailing commas before ]
+    .replace(/,\s*,/g, ',')                   // Remove double commas
+    .replace(/"\s*:\s*,/g, '": null,')        // Handle missing values
+    .replace(/"\s*:\s*}/g, '": null}')        // Handle missing values at end
+    .replace(/\n/g, ' ')                      // Remove newlines that might break parsing
+    .replace(/\t/g, ' ');                     // Remove tabs
+
   // Try to parse
   try {
     return JSON.parse(cleaned);
   } catch (error) {
-    // Try to extract JSON from text
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    console.log('First JSON parse failed, attempting recovery...');
+    console.log('Parse error:', error.message);
+
+    // Try to extract JSON object or array from text
+    let jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+    }
+
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      let extracted = jsonMatch[0];
+      // Apply same cleaning to extracted content
+      extracted = extracted
+        .replace(/:\s*NaN/g, ': null')
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']')
+        .replace(/,\s*,/g, ',');
+
+      try {
+        return JSON.parse(extracted);
+      } catch (e2) {
+        console.error('JSON recovery also failed:', e2.message);
+        console.error('Problematic JSON (first 500 chars):', extracted.substring(0, 500));
+        throw new Error(`Could not parse JSON from Gemini response: ${e2.message}`);
+      }
     }
     throw new Error('Could not extract valid JSON from response');
   }
