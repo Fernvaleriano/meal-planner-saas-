@@ -362,7 +362,11 @@ function ExerciseDetailModal({
     setTipsError(null);
   }, [exercise?.id, initialSets]);
 
-  // Fetch AI tips when exercise changes
+  // Coaching data state (from database)
+  const [commonMistakes, setCommonMistakes] = useState([]);
+  const [coachingCues, setCoachingCues] = useState([]);
+
+  // Load coaching data when exercise changes - prefer database data, fallback to AI
   useEffect(() => {
     if (!exercise?.name) return;
 
@@ -383,9 +387,26 @@ function ExerciseDetailModal({
       return ['Maintain proper form throughout', 'Control the movement', 'Breathe steadily'];
     };
 
+    // Check if exercise has curated coaching data from database
+    const hasDbFormTips = exercise.form_tips && Array.isArray(exercise.form_tips) && exercise.form_tips.length > 0;
+    const hasDbMistakes = exercise.common_mistakes && Array.isArray(exercise.common_mistakes) && exercise.common_mistakes.length > 0;
+    const hasDbCues = exercise.coaching_cues && Array.isArray(exercise.coaching_cues) && exercise.coaching_cues.length > 0;
+
+    // If we have database coaching data, use it directly (no API call needed)
+    if (hasDbFormTips) {
+      setTips(exercise.form_tips);
+      setCommonMistakes(hasDbMistakes ? exercise.common_mistakes : []);
+      setCoachingCues(hasDbCues ? exercise.coaching_cues : []);
+      setTipsLoading(false);
+      return;
+    }
+
+    // No database data - fetch from AI API as fallback
     const fetchTips = async () => {
       setTipsLoading(true);
       setTipsError(null);
+      setCommonMistakes([]);
+      setCoachingCues([]);
 
       try {
         const response = await apiPost('/.netlify/functions/exercise-coach', {
@@ -415,7 +436,7 @@ function ExerciseDetailModal({
     // Small delay to avoid too many requests during quick navigation
     const timer = setTimeout(fetchTips, 300);
     return () => clearTimeout(timer);
-  }, [exercise?.id, exercise?.name, exercise?.muscle_group, exercise?.muscleGroup]);
+  }, [exercise?.id, exercise?.name, exercise?.muscle_group, exercise?.muscleGroup, exercise?.form_tips, exercise?.common_mistakes, exercise?.coaching_cues]);
 
   // Stable close handler - uses requestAnimationFrame for mobile Safari
   // Falls back to forceClose if the callback fails
@@ -815,8 +836,9 @@ function ExerciseDetailModal({
           </div>
         </div>
 
-        {/* AI Tips Section */}
+        {/* Coaching Tips Section */}
         <div className="ai-tips-section">
+          {/* Form Tips */}
           <div className="tips-header">
             <Lightbulb size={16} />
             <span>Form Tips</span>
@@ -838,6 +860,40 @@ function ExerciseDetailModal({
               <div className="tip-skeleton"></div>
             </div>
           ) : null}
+
+          {/* Common Mistakes */}
+          {commonMistakes.length > 0 && (
+            <>
+              <div className="tips-header mistakes-header">
+                <AlertCircle size={16} />
+                <span>Common Mistakes</span>
+              </div>
+              <div className="tips-list mistakes-list">
+                {commonMistakes.map((mistake, idx) => (
+                  <div key={idx} className="tip-item mistake-item">
+                    <span className="tip-bullet mistake-bullet">✗</span>
+                    <span className="tip-text">{mistake}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Coaching Cues */}
+          {coachingCues.length > 0 && (
+            <>
+              <div className="tips-header cues-header">
+                <MessageCircle size={16} />
+                <span>Coaching Cues</span>
+              </div>
+              <div className="coaching-cues-tags">
+                {coachingCues.map((cue, idx) => (
+                  <span key={idx} className="coaching-cue-tag">{cue}</span>
+                ))}
+              </div>
+            </>
+          )}
+
           <button
             className="ask-coach-btn"
             onClick={() => setShowAskCoach(true)}
