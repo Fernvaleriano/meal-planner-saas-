@@ -39,6 +39,54 @@ const formatDisplayDate = (date) => {
   }
 };
 
+// Helper to refresh signed URLs for private videos/audio
+const refreshSignedUrls = async (workoutData, coachId) => {
+  if (!workoutData?.days) return workoutData;
+
+  // Collect all file paths that need signed URLs
+  const filePaths = [];
+  workoutData.days.forEach(day => {
+    (day.exercises || []).forEach(ex => {
+      if (ex.customVideoPath) filePaths.push(ex.customVideoPath);
+      if (ex.voiceNotePath) filePaths.push(ex.voiceNotePath);
+    });
+  });
+
+  if (filePaths.length === 0) return workoutData;
+
+  try {
+    const response = await fetch('/.netlify/functions/get-signed-urls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePaths, coachId })
+    });
+
+    if (!response.ok) return workoutData;
+
+    const { signedUrls } = await response.json();
+
+    // Update workout data with fresh signed URLs
+    const updatedDays = workoutData.days.map(day => ({
+      ...day,
+      exercises: (day.exercises || []).map(ex => {
+        const updated = { ...ex };
+        if (ex.customVideoPath && signedUrls[ex.customVideoPath]) {
+          updated.customVideoUrl = signedUrls[ex.customVideoPath];
+        }
+        if (ex.voiceNotePath && signedUrls[ex.voiceNotePath]) {
+          updated.voiceNoteUrl = signedUrls[ex.voiceNotePath];
+        }
+        return updated;
+      })
+    }));
+
+    return { ...workoutData, days: updatedDays };
+  } catch (err) {
+    console.error('Error refreshing signed URLs:', err);
+    return workoutData;
+  }
+};
+
 // Helper to get day name
 const getDayName = (date) => {
   try {
@@ -176,6 +224,13 @@ function Workouts() {
 
       if (assignmentRes?.assignments && assignmentRes.assignments.length > 0) {
         const assignment = assignmentRes.assignments[0];
+
+        // Refresh signed URLs for private coach videos/audio
+        if (assignment.workout_data) {
+          const refreshedData = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
+          assignment.workout_data = refreshedData;
+        }
+
         setTodayWorkout(assignment);
 
         try {

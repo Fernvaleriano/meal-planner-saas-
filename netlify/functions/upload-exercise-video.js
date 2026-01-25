@@ -13,6 +13,9 @@ const headers = {
 // Max file size: 50MB
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
+// Signed URL expiry: 7 days (in seconds)
+const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60;
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -70,7 +73,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // Upload to Supabase storage
+    // Upload to Supabase storage (PRIVATE bucket)
     const filePath = `exercise-videos/${coachId}/${fileName}`;
 
     const { data, error } = await supabase.storage
@@ -81,14 +84,13 @@ exports.handler = async (event) => {
       });
 
     if (error) {
-      // If bucket doesn't exist, try to create it
       if (error.message.includes('bucket') || error.statusCode === 404) {
         console.log('Storage bucket may not exist:', error.message);
         return {
           statusCode: 500,
           headers,
           body: JSON.stringify({
-            error: 'Storage not configured. Please create the workout-assets bucket in Supabase.',
+            error: 'Storage not configured. Please create the workout-assets bucket in Supabase (keep it PRIVATE).',
             details: error.message
           })
         };
@@ -96,18 +98,39 @@ exports.handler = async (event) => {
       throw error;
     }
 
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage
+    // Generate a signed URL (private, expires in 7 days)
+    // We store the file path, and generate fresh signed URLs when needed
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('workout-assets')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, SIGNED_URL_EXPIRY);
+
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
+      // Fall back to storing the path - we'll generate signed URLs on retrieval
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          // Store the path, not a public URL - client will need to request signed URL
+          url: signedUrlData?.signedUrl || null,
+          filePath: filePath,
+          size: buffer.length,
+          isPrivate: true
+        })
+      };
+    }
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        url: publicUrlData.publicUrl,
-        size: buffer.length
+        url: signedUrlData.signedUrl,
+        filePath: filePath,
+        size: buffer.length,
+        expiresIn: SIGNED_URL_EXPIRY,
+        isPrivate: true
       })
     };
 

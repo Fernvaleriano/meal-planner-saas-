@@ -10,6 +10,9 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Signed URL expiry: 7 days (in seconds)
+const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60;
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -48,7 +51,7 @@ exports.handler = async (event) => {
     const base64Data = audioData.split(',')[1];
     const buffer = Buffer.from(base64Data, 'base64');
 
-    // Upload to Supabase storage
+    // Upload to Supabase storage (PRIVATE bucket)
     const filePath = `voice-notes/${coachId}/${fileName}`;
 
     const { data, error } = await supabase.storage
@@ -59,7 +62,6 @@ exports.handler = async (event) => {
       });
 
     if (error) {
-      // If bucket doesn't exist, return graceful error
       if (error.message.includes('bucket') || error.statusCode === 404) {
         console.log('Storage bucket not configured, returning null URL');
         return {
@@ -75,17 +77,23 @@ exports.handler = async (event) => {
       throw error;
     }
 
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage
+    // Generate a signed URL (private, expires in 7 days)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('workout-assets')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, SIGNED_URL_EXPIRY);
+
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
+    }
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        url: publicUrlData.publicUrl
+        url: signedUrlData?.signedUrl || null,
+        filePath: filePath,
+        isPrivate: true
       })
     };
 
