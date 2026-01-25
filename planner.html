@@ -2131,12 +2131,12 @@
             <div class="quick-add-section">
                 <div class="quick-add-header">
                     <span>⚡ Quick Add</span>
-                    <span class="quick-add-hint">Type your meal naturally</span>
+                    <span class="quick-add-hint">AI-powered - describe your meal</span>
                 </div>
                 <textarea
                     id="quickAddInput"
                     class="quick-add-textarea"
-                    placeholder="e.g., 1 scoop whey protein, 200ml almond milk, 15g instant oats"
+                    placeholder="e.g., grilled chicken breast with rice and steamed broccoli"
                     rows="2"
                 ></textarea>
                 <button id="quickAddBtn" class="quick-add-btn" onclick="parseAndAddIngredients()">
@@ -7072,7 +7072,7 @@ function parseSingleIngredient(text) {
     };
 }
 
-// Quick Add - Parse natural language ingredients and add them
+// Quick Add - Use AI to analyze natural language food descriptions
 async function parseAndAddIngredients() {
     const input = document.getElementById('quickAddInput');
     const btn = document.getElementById('quickAddBtn');
@@ -7081,92 +7081,58 @@ async function parseAndAddIngredients() {
 
     const text = input.value.trim();
     if (!text) {
-        alert('Please enter your ingredients (e.g., "1 scoop whey protein, 200ml almond milk, 15g oats")');
+        alert('Please describe your meal naturally (e.g., "chicken breast with rice and broccoli")');
         return;
     }
 
     // Show loading state
     btn.disabled = true;
-    btnText.textContent = 'Parsing...';
+    btnText.textContent = 'Analyzing...';
     spinner.style.display = 'inline-block';
 
     try {
-        // Parse ingredients locally using regex patterns
-        const parsedIngredients = parseIngredientsLocally(text);
+        // Use AI to analyze the food description (same as client-side voice tracking)
+        const response = await fetch('/.netlify/functions/analyze-food-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        });
 
-        if (!parsedIngredients || parsedIngredients.length === 0) {
-            throw new Error('Could not parse ingredients');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'AI analysis failed');
         }
 
-        console.log('Parsed ingredients:', parsedIngredients);
-        btnText.textContent = `Searching ${parsedIngredients.length} items...`;
+        const data = await response.json();
+        const foods = data.foods || [];
 
-        // Search USDA for each ingredient and add them
-        let addedCount = 0;
-        let failedItems = [];
+        if (foods.length === 0) {
+            throw new Error('Could not identify any foods in your description');
+        }
 
-        for (const ing of parsedIngredients) {
-            try {
-                const searchResponse = await fetch(`${FOOD_SEARCH_ENDPOINT}?query=${encodeURIComponent(ing.name)}`);
-                const searchData = await searchResponse.json();
+        console.log('AI analyzed foods:', foods);
 
-                if (searchData.foods && searchData.foods.length > 0) {
-                    const food = searchData.foods[0]; // Take first match
-
-                    // Build measures array
-                    let measures = [{ label: 'g', weight: 1, isGrams: true }];
-                    if (food.measures && food.measures.length > 0) {
-                        food.measures.forEach(m => {
-                            if (m.label && m.weight && m.label.toLowerCase() !== 'gram') {
-                                measures.push({
-                                    label: m.label,
-                                    weight: m.weight,
-                                    isGrams: false
-                                });
-                            }
-                        });
-                    }
-
-                    // Use pre-calculated quantityGrams from local parser
-                    let quantityGrams = ing.quantityGrams;
-                    let selectedUnit = 'g';
-                    let displayQty = quantityGrams;
-
-                    // Try to find a matching measure from USDA for nicer display
-                    if (ing.unit !== 'g' && ing.unit !== 'ml') {
-                        const matchingMeasure = measures.find(m => {
-                            const label = m.label.toLowerCase();
-                            return label.includes(ing.unit) || ing.unit.includes(label.split(' ')[0]);
-                        });
-                        if (matchingMeasure && !matchingMeasure.isGrams) {
-                            selectedUnit = matchingMeasure.label;
-                            displayQty = ing.quantity;
-                            // Recalculate grams using USDA measure weight for accuracy
-                            quantityGrams = Math.round(ing.quantity * matchingMeasure.weight);
-                        }
-                    }
-
-                    customMealSelectedIngredients.push({
-                        fdcId: food.fdcId,
-                        name: food.name,
-                        quantity: displayQty,
-                        quantityGrams: Math.round(quantityGrams),
-                        selectedUnit: selectedUnit,
-                        measures: measures,
-                        caloriesPer100g: food.caloriesPer100g,
-                        proteinPer100g: food.proteinPer100g,
-                        carbsPer100g: food.carbsPer100g,
-                        fatPer100g: food.fatPer100g
-                    });
-
-                    addedCount++;
-                } else {
-                    failedItems.push(ing.name);
-                }
-            } catch (err) {
-                console.error(`Failed to search for ${ing.name}:`, err);
-                failedItems.push(ing.name);
-            }
+        // Add each AI-analyzed food to the ingredients list
+        for (const food of foods) {
+            // AI returns total nutrition for the described portion
+            // We'll treat this as a single "serving" that can be scaled
+            customMealSelectedIngredients.push({
+                fdcId: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name: food.name,
+                quantity: 1,
+                quantityGrams: 100, // Base unit for calculation
+                selectedUnit: 'serving',
+                measures: [
+                    { label: 'serving', weight: 100, isGrams: false },
+                    { label: 'g', weight: 1, isGrams: true }
+                ],
+                // Store AI-estimated values as per-100g (1 serving = 100g = AI estimate)
+                caloriesPer100g: food.calories,
+                proteinPer100g: food.protein,
+                carbsPer100g: food.carbs,
+                fatPer100g: food.fat,
+                isAiEstimate: true // Flag to indicate this is an AI estimate
+            });
         }
 
         // Update UI
@@ -7176,14 +7142,9 @@ async function parseAndAddIngredients() {
         // Clear input
         input.value = '';
 
-        // Show result
-        if (failedItems.length > 0) {
-            alert(`Added ${addedCount} ingredients. Could not find: ${failedItems.join(', ')}\n\nTry searching for these manually.`);
-        }
-
     } catch (error) {
         console.error('Quick add error:', error);
-        alert('Failed to parse ingredients. Try using simpler descriptions or add them one by one.');
+        alert(error.message || 'Failed to analyze food description. Please try again.');
     } finally {
         // Reset button state
         btn.disabled = false;
