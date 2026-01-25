@@ -191,7 +191,8 @@ const exerciseMatchesMuscle = (exercise, filterKey) => {
 function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelect = true, genderPreference = 'all' }) {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState(''); // Immediate input display
+  const [searchQuery, setSearchQuery] = useState(''); // Debounced search filter
   const [selectedMuscle, setSelectedMuscle] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
@@ -285,6 +286,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
+      setInputValue(transcript);
       setSearchQuery(transcript);
     };
 
@@ -334,6 +336,10 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
 
     return () => {
       isMountedRef.current = false;
+      // Clean up debounce timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only fetch once when modal opens - genderPreference is captured at mount
@@ -523,23 +529,26 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     }
   }, [handleClose]);
 
-  // Handle search change - with defensive checks and debouncing
+  // Handle search change - immediate display update, debounced filtering
   const handleSearchChange = useCallback((e) => {
     try {
       const value = e?.target?.value ?? '';
       // Limit search query length to prevent performance issues
       if (value.length <= 100) {
+        // Immediately update input display (no lag)
+        setInputValue(value);
+
         // Clear any pending debounce
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
         }
-        // Debounce the search to avoid lag
+        // Debounce only the search/filter operation
         debounceTimerRef.current = setTimeout(() => {
           startTransition(() => {
             setSearchQuery(value);
             setDisplayCount(INITIAL_DISPLAY_COUNT); // Reset pagination
           });
-        }, 150);
+        }, 200);
       }
     } catch (err) {
       console.error('Error in search change:', err);
@@ -595,7 +604,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
           <input
             type="text"
             placeholder="Search activities"
-            value={searchQuery}
+            value={inputValue}
             onChange={handleSearchChange}
           />
           {voiceSupported && (
