@@ -678,6 +678,107 @@
             height: 12px;
         }
 
+        /* Custom Video Upload Styles */
+        .custom-video-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .custom-video-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .custom-video-btn:hover {
+            background: var(--brand-primary);
+            color: white;
+            border-color: var(--brand-primary);
+        }
+
+        .custom-video-btn.recording {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+            animation: pulse 1.5s infinite;
+        }
+
+        .custom-video-btn.has-video {
+            background: rgba(13, 148, 136, 0.15);
+            color: var(--brand-primary);
+            border-color: var(--brand-primary);
+        }
+
+        .custom-video-preview {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .custom-video-preview video {
+            width: 60px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .custom-video-preview .video-info {
+            flex: 1;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .custom-video-preview .video-label {
+            color: var(--brand-primary);
+            font-weight: 500;
+        }
+
+        .custom-video-delete {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .custom-video-delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .video-upload-input {
+            display: none;
+        }
+
+        .video-recording-timer {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--danger);
+            min-width: 40px;
+        }
+
         .sidebar-actions {
             padding: 16px;
             border-top: 1px solid var(--border-color);
@@ -3054,6 +3155,33 @@
                                 <span style="font-size: 11px; color: var(--text-muted);">Add voice tip for client</span>
                             `}
                         </div>
+                        <div class="custom-video-container" id="customVideo-${dayIndex}-${exIndex}">
+                            ${exercise.customVideoUrl ? `
+                                <div class="custom-video-preview">
+                                    <video src="${exercise.customVideoUrl}" muted></video>
+                                    <div class="video-info">
+                                        <span class="video-label">Custom Demo</span><br>
+                                        Your video will show to client
+                                    </div>
+                                    <button class="custom-video-delete" onclick="deleteCustomVideo(${dayIndex}, ${exIndex})" title="Delete video">×</button>
+                                </div>
+                            ` : `
+                                <button class="custom-video-btn" id="videoRecordBtn-${dayIndex}-${exIndex}" onclick="startVideoRecording(${dayIndex}, ${exIndex})" title="Record custom demo">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    Record Demo
+                                </button>
+                                <span style="font-size: 11px; color: var(--text-muted);">or</span>
+                                <label class="custom-video-btn" style="margin: 0;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                    Upload
+                                    <input type="file" class="video-upload-input" accept="video/*" onchange="handleVideoUpload(event, ${dayIndex}, ${exIndex})">
+                                </label>
+                            `}
+                        </div>
                         ${exercise.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? `
                             <div class="exercise-has-swaps">
                                 <svg fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
@@ -4321,6 +4449,172 @@
                 workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = null;
                 renderWorkoutDays();
                 showToast('Voice note deleted', 'success');
+            }
+        }
+
+        // ============ CUSTOM VIDEO FUNCTIONS ============
+        let videoMediaRecorder = null;
+        let videoChunks = [];
+        let videoRecordingExercise = null;
+        let videoRecordingTimer = null;
+        let videoRecordingSeconds = 0;
+        const MAX_VIDEO_SECONDS = 20;
+
+        async function startVideoRecording(dayIndex, exIndex) {
+            const btn = document.getElementById(`videoRecordBtn-${dayIndex}-${exIndex}`);
+
+            // If already recording, stop
+            if (videoMediaRecorder && videoMediaRecorder.state === 'recording') {
+                stopVideoRecording();
+                return;
+            }
+
+            try {
+                // Request camera access
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } },
+                    audio: false
+                });
+
+                videoMediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                videoChunks = [];
+                videoRecordingExercise = { dayIndex, exIndex };
+                videoRecordingSeconds = 0;
+
+                videoMediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        videoChunks.push(e.data);
+                    }
+                };
+
+                videoMediaRecorder.onstop = async () => {
+                    clearInterval(videoRecordingTimer);
+                    stream.getTracks().forEach(track => track.stop());
+
+                    const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+                    await uploadCustomVideo(dayIndex, exIndex, videoBlob);
+
+                    videoMediaRecorder = null;
+                    videoChunks = [];
+                    videoRecordingExercise = null;
+                };
+
+                videoMediaRecorder.start(100);
+                btn.classList.add('recording');
+                btn.innerHTML = `
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                        <rect x="6" y="6" width="12" height="12" rx="2"/>
+                    </svg>
+                    <span class="video-recording-timer">0:00</span>
+                    Stop
+                `;
+
+                // Start timer - auto-stop at MAX_VIDEO_SECONDS
+                videoRecordingTimer = setInterval(() => {
+                    videoRecordingSeconds++;
+                    const mins = Math.floor(videoRecordingSeconds / 60);
+                    const secs = videoRecordingSeconds % 60;
+                    const timerEl = btn.querySelector('.video-recording-timer');
+                    if (timerEl) {
+                        timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    }
+
+                    if (videoRecordingSeconds >= MAX_VIDEO_SECONDS) {
+                        showToast(`Max ${MAX_VIDEO_SECONDS} seconds reached`, 'success');
+                        stopVideoRecording();
+                    }
+                }, 1000);
+
+                showToast(`Recording... (max ${MAX_VIDEO_SECONDS}s)`, 'success');
+
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                showToast('Could not access camera. Please check permissions.', 'error');
+            }
+        }
+
+        function stopVideoRecording() {
+            if (videoMediaRecorder && videoMediaRecorder.state === 'recording') {
+                videoMediaRecorder.stop();
+            }
+        }
+
+        async function handleVideoUpload(event, dayIndex, exIndex) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file size (max 50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                showToast('Video too large. Max 50MB.', 'error');
+                return;
+            }
+
+            // Check video duration
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+
+            video.onloadedmetadata = async () => {
+                window.URL.revokeObjectURL(video.src);
+
+                if (video.duration > MAX_VIDEO_SECONDS) {
+                    showToast(`Video too long. Max ${MAX_VIDEO_SECONDS} seconds.`, 'error');
+                    return;
+                }
+
+                await uploadCustomVideo(dayIndex, exIndex, file);
+            };
+
+            video.src = URL.createObjectURL(file);
+        }
+
+        async function uploadCustomVideo(dayIndex, exIndex, videoBlob) {
+            try {
+                showToast('Uploading video...', 'success');
+
+                // Convert to base64
+                const reader = new FileReader();
+                reader.readAsDataURL(videoBlob);
+
+                reader.onloadend = async () => {
+                    const base64Video = reader.result;
+
+                    const response = await fetch('/.netlify/functions/upload-exercise-video', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: currentCoachId,
+                            videoData: base64Video,
+                            fileName: `custom-video-${Date.now()}.webm`
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        workoutDays[dayIndex].exercises[exIndex].customVideoUrl = result.url;
+                        renderWorkoutDays();
+                        showToast('Custom video saved!', 'success');
+                    } else {
+                        // Fallback for smaller videos: store as data URL
+                        if (videoBlob.size < 5 * 1024 * 1024) {
+                            workoutDays[dayIndex].exercises[exIndex].customVideoUrl = base64Video;
+                            renderWorkoutDays();
+                            showToast('Video saved locally (large file)', 'success');
+                        } else {
+                            showToast('Video too large to save locally', 'error');
+                        }
+                    }
+                };
+            } catch (err) {
+                console.error('Error uploading video:', err);
+                showToast('Error saving video', 'error');
+            }
+        }
+
+        function deleteCustomVideo(dayIndex, exIndex) {
+            if (confirm('Delete this custom video?')) {
+                workoutDays[dayIndex].exercises[exIndex].customVideoUrl = null;
+                renderWorkoutDays();
+                showToast('Custom video deleted', 'success');
             }
         }
 
