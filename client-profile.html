@@ -5927,6 +5927,9 @@
                 `;
             }
 
+            // Use plan_name if available, otherwise use planSummary
+            const displayName = plan.plan_name || planSummary;
+
             return `
                 <div class="plan-card" id="plan-card-${plan.id}" onclick="viewPlan(${plan.id})">
                     <input type="checkbox" class="plan-card-checkbox"
@@ -5936,9 +5939,10 @@
                     <div class="plan-card-header">
                         <div>
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                <span style="font-weight: 600; color: #0d9488;">${planSummary}</span>
+                                <span style="font-weight: 600; color: #0d9488;">${displayName}</span>
                                 ${statusBadge}
                             </div>
+                            ${plan.plan_name ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${planSummary}</div>` : ''}
                             ${summaryDescription ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${summaryDescription}</div>` : ''}
                             ${firstMealName ? `<div style="font-size: 11px; color: #94a3b8; font-style: italic;">🍽️ ${firstMealName}</div>` : ''}
                             <div class="plan-date">${formattedDate} at ${formattedTime}</div>
