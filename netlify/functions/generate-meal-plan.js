@@ -5078,56 +5078,98 @@ Provide helpful, detailed meal prep guidance.`;
 /**
  * Generate meal plan using Gemini API (fallback)
  */
-async function generateWithGemini(prompt) {
+async function generateWithGemini(prompt, maxRetries = 2) {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  console.log('🤖 Calling Gemini API for meal generation...');
+  // Add JSON formatting instructions to the prompt
+  const jsonPrompt = `IMPORTANT: You MUST respond with valid JSON only. No markdown code blocks, no explanations, no text before or after the JSON.
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.85,
-        maxOutputTokens: 2048,
-        topP: 0.95,
-        topK: 40,
-        responseMimeType: "application/json"
+Your response must be a valid JSON object or array that can be parsed with JSON.parse().
+
+CRITICAL JSON RULES:
+- Use double quotes for all strings and property names
+- No trailing commas
+- No comments
+- Escape special characters in strings (use \\" for quotes inside strings)
+- Numbers should not be quoted
+
+${prompt}`;
+
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    console.log(`🤖 Calling Gemini API for meal generation (attempt ${attempt}/${maxRetries})...`);
+
+    try {
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: jsonPrompt
+            }]
+          }],
+          generationConfig: {
+            temperature: attempt === 1 ? 0.7 : 0.5, // Lower temperature on retry
+            maxOutputTokens: 2048,
+            topP: 0.95,
+            topK: 40,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Gemini API Error:', errorText);
+        throw new Error(`Gemini API request failed: ${errorText}`);
       }
-    })
-  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('❌ Gemini API Error:', errorText);
-    throw new Error(`Gemini API request failed: ${errorText}`);
+      const data = await response.json();
+      console.log('✅ Gemini API Response received');
+
+      // Validate response structure
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error('Invalid response structure from Gemini API');
+      }
+
+      if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+        throw new Error('Missing parts in Gemini response');
+      }
+
+      const responseText = data.candidates[0].content.parts[0].text;
+      console.log('🤖 Gemini Response preview:', responseText.substring(0, 500));
+
+      // Pre-validate JSON before returning
+      try {
+        JSON.parse(responseText);
+        return responseText; // Valid JSON, return it
+      } catch (parseErr) {
+        console.log(`⚠️ Gemini returned invalid JSON on attempt ${attempt}: ${parseErr.message}`);
+        lastError = parseErr;
+        if (attempt < maxRetries) {
+          console.log('🔄 Retrying with lower temperature...');
+          continue;
+        }
+        // On last attempt, return anyway and let extractJSON try to fix it
+        return responseText;
+      }
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries) {
+        console.log(`⚠️ Attempt ${attempt} failed: ${error.message}, retrying...`);
+        continue;
+      }
+      throw error;
+    }
   }
 
-  const data = await response.json();
-  console.log('✅ Gemini API Response received');
-
-  // Validate response structure
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-    throw new Error('Invalid response structure from Gemini API');
-  }
-
-  if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-    throw new Error('Missing parts in Gemini response');
-  }
-
-  const responseText = data.candidates[0].content.parts[0].text;
-  console.log('🤖 Gemini Response preview:', responseText.substring(0, 500));
-
-  return responseText;
+  throw lastError || new Error('Gemini generation failed after all retries');
 }
 
 // Import auth utilities
