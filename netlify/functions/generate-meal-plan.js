@@ -5100,7 +5100,8 @@ async function generateWithGemini(prompt) {
         temperature: 0.85,
         maxOutputTokens: 2048,
         topP: 0.95,
-        topK: 40
+        topK: 40,
+        responseMimeType: "application/json"
       }
     })
   });
@@ -5735,16 +5736,66 @@ function extractJSON(text) {
     cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
 
-  // Clean common JSON issues from AI responses
-  cleaned = cleaned
-    .replace(/:\s*NaN/g, ': null')           // Replace NaN with null
-    .replace(/,\s*}/g, '}')                   // Remove trailing commas before }
-    .replace(/,\s*]/g, ']')                   // Remove trailing commas before ]
-    .replace(/,\s*,/g, ',')                   // Remove double commas
-    .replace(/"\s*:\s*,/g, '": null,')        // Handle missing values
-    .replace(/"\s*:\s*}/g, '": null}')        // Handle missing values at end
-    .replace(/\n/g, ' ')                      // Remove newlines that might break parsing
-    .replace(/\t/g, ' ');                     // Remove tabs
+  // Helper function to clean common JSON issues
+  function cleanJSON(str) {
+    return str
+      .replace(/:\s*NaN/g, ': null')           // Replace NaN with null
+      .replace(/:\s*undefined/g, ': null')     // Replace undefined with null
+      .replace(/,\s*}/g, '}')                   // Remove trailing commas before }
+      .replace(/,\s*]/g, ']')                   // Remove trailing commas before ]
+      .replace(/,\s*,/g, ',')                   // Remove double commas
+      .replace(/"\s*:\s*,/g, '": null,')        // Handle missing values
+      .replace(/"\s*:\s*}/g, '": null}')        // Handle missing values at end
+      .replace(/\n/g, ' ')                      // Remove newlines that might break parsing
+      .replace(/\t/g, ' ')                      // Remove tabs
+      .replace(/[\x00-\x1F\x7F]/g, ' ')         // Remove control characters
+      .replace(/\s+/g, ' ');                    // Normalize whitespace
+  }
+
+  // Advanced JSON repair for common AI issues
+  function repairJSON(str) {
+    let repaired = str;
+
+    // Fix unquoted property names (common AI mistake)
+    // Match property names that aren't quoted: { name: "value" } -> { "name": "value" }
+    repaired = repaired.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+
+    // Fix single quotes to double quotes (but not inside strings)
+    // This is a simplified approach - replace single-quoted strings
+    repaired = repaired.replace(/'([^'\\]*(\\.[^'\\]*)*)'/g, '"$1"');
+
+    // Fix missing commas between properties: "key": "value" "key2" -> "key": "value", "key2"
+    repaired = repaired.replace(/"\s+"/g, '", "');
+    repaired = repaired.replace(/(\d)\s+"([a-zA-Z])/g, '$1, "$2');
+    repaired = repaired.replace(/(true|false|null)\s+"([a-zA-Z])/g, '$1, "$2');
+    repaired = repaired.replace(/}\s+"/g, '}, "');
+    repaired = repaired.replace(/]\s+"/g, '], "');
+
+    // Fix missing commas in arrays: [1 2 3] -> [1, 2, 3]
+    repaired = repaired.replace(/(\d)\s+(\d)/g, '$1, $2');
+
+    // Remove any text before the first { or [
+    const firstBrace = repaired.indexOf('{');
+    const firstBracket = repaired.indexOf('[');
+    if (firstBrace !== -1 || firstBracket !== -1) {
+      const startIndex = firstBrace === -1 ? firstBracket :
+                         firstBracket === -1 ? firstBrace :
+                         Math.min(firstBrace, firstBracket);
+      repaired = repaired.substring(startIndex);
+    }
+
+    // Remove any text after the last } or ]
+    const lastBrace = repaired.lastIndexOf('}');
+    const lastBracket = repaired.lastIndexOf(']');
+    if (lastBrace !== -1 || lastBracket !== -1) {
+      const endIndex = Math.max(lastBrace, lastBracket);
+      repaired = repaired.substring(0, endIndex + 1);
+    }
+
+    return repaired;
+  }
+
+  cleaned = cleanJSON(cleaned);
 
   // Try to parse
   try {
@@ -5761,19 +5812,25 @@ function extractJSON(text) {
 
     if (jsonMatch) {
       let extracted = jsonMatch[0];
-      // Apply same cleaning to extracted content
-      extracted = extracted
-        .replace(/:\s*NaN/g, ': null')
-        .replace(/,\s*}/g, '}')
-        .replace(/,\s*]/g, ']')
-        .replace(/,\s*,/g, ',');
+      // Apply cleaning to extracted content
+      extracted = cleanJSON(extracted);
 
       try {
         return JSON.parse(extracted);
       } catch (e2) {
-        console.error('JSON recovery also failed:', e2.message);
-        console.error('Problematic JSON (first 500 chars):', extracted.substring(0, 500));
-        throw new Error(`Could not parse JSON from Gemini response: ${e2.message}`);
+        console.log('Second parse failed, attempting JSON repair...');
+
+        // Try advanced repair
+        let repaired = repairJSON(extracted);
+        repaired = cleanJSON(repaired);
+
+        try {
+          return JSON.parse(repaired);
+        } catch (e3) {
+          console.error('JSON recovery also failed:', e3.message);
+          console.error('Problematic JSON (first 500 chars):', repaired.substring(0, 500));
+          throw new Error(`Could not parse JSON from Gemini response: ${e3.message}`);
+        }
       }
     }
     throw new Error('Could not extract valid JSON from response');
