@@ -9453,6 +9453,23 @@ function updateImageElement(container, imageUrl, mealName) {
     container.classList.remove('loading');
     container.classList.remove('meal-card-image-placeholder');
 
+    // Also update the meal data in lastPlanQuery so image_url is saved with the plan
+    if (container.id && lastPlanQuery && lastPlanQuery.currentPlan) {
+        // Parse container ID like "meal-img-0-2" to get dayIndex and mealIndex
+        const idParts = container.id.match(/meal-img-(\d+)-(\d+)/);
+        if (idParts) {
+            const dayIndex = parseInt(idParts[1], 10);
+            const mealIndex = parseInt(idParts[2], 10);
+
+            if (lastPlanQuery.currentPlan[dayIndex] &&
+                lastPlanQuery.currentPlan[dayIndex].plan &&
+                lastPlanQuery.currentPlan[dayIndex].plan[mealIndex]) {
+                lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].image_url = imageUrl;
+                console.log(`📸 Updated meal image_url in plan data: Day ${dayIndex}, Meal ${mealIndex}`);
+            }
+        }
+    }
+
     // Create wrapper container
     const wrapper = document.createElement('div');
     wrapper.className = 'meal-image-container';
