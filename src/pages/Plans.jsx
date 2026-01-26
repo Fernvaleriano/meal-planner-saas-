@@ -147,11 +147,41 @@ function Plans() {
         setPlans(data.plans);
         setCache(`plans_full_${clientData.id}`, data.plans);
 
-        // Update selected plan if viewing one
+        // Update selected plan if viewing one (preserve loaded images)
         if (selectedPlan) {
           const updatedPlan = data.plans.find(p => String(p.id) === String(selectedPlan.id));
           if (updatedPlan) {
-            setSelectedPlan(updatedPlan);
+            setSelectedPlan(prevPlan => {
+              if (!prevPlan) return updatedPlan;
+              // Preserve loaded images from prevPlan
+              const mergedPlanData = { ...updatedPlan.plan_data };
+              if (prevPlan.plan_data?.currentPlan) {
+                mergedPlanData.currentPlan = prevPlan.plan_data.currentPlan.map((day, dayIdx) => {
+                  const freshDay = updatedPlan.plan_data?.currentPlan?.[dayIdx];
+                  if (!freshDay) return day;
+                  return {
+                    ...freshDay,
+                    plan: freshDay.plan?.map((meal, mealIdx) => ({
+                      ...meal,
+                      image_url: day.plan?.[mealIdx]?.image_url || meal.image_url
+                    }))
+                  };
+                });
+              } else if (prevPlan.plan_data?.days) {
+                mergedPlanData.days = prevPlan.plan_data.days.map((day, dayIdx) => {
+                  const freshDay = updatedPlan.plan_data?.days?.[dayIdx];
+                  if (!freshDay) return day;
+                  return {
+                    ...freshDay,
+                    plan: freshDay.plan?.map((meal, mealIdx) => ({
+                      ...meal,
+                      image_url: day.plan?.[mealIdx]?.image_url || meal.image_url
+                    }))
+                  };
+                });
+              }
+              return { ...updatedPlan, plan_data: mergedPlanData };
+            });
           }
         }
       }
@@ -193,6 +223,19 @@ function Plans() {
                   if (prevPlan.plan_data?.currentPlan) {
                     mergedPlanData.currentPlan = prevPlan.plan_data.currentPlan.map((day, dayIdx) => {
                       const freshDay = plan.plan_data?.currentPlan?.[dayIdx];
+                      if (!freshDay) return day;
+                      return {
+                        ...freshDay,
+                        plan: freshDay.plan?.map((meal, mealIdx) => ({
+                          ...meal,
+                          image_url: day.plan?.[mealIdx]?.image_url || meal.image_url
+                        }))
+                      };
+                    });
+                  } else if (prevPlan.plan_data?.days) {
+                    // Also handle plans with days structure
+                    mergedPlanData.days = prevPlan.plan_data.days.map((day, dayIdx) => {
+                      const freshDay = plan.plan_data?.days?.[dayIdx];
                       if (!freshDay) return day;
                       return {
                         ...freshDay,
