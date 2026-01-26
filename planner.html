@@ -5358,7 +5358,7 @@ async function uploadMealVoiceNote(dayIndex, mealIndex, audioBlob) {
             }
 
             // Re-render to show the audio player
-            displayMealPlan(lastPlanQuery.currentPlan);
+            displayDietPlan(lastPlanQuery.currentPlan);
             showToast('Voice note saved!', 'success');
         } else {
             throw new Error('Failed to get voice note URL');
@@ -5385,7 +5385,7 @@ async function deleteMealVoiceNote(dayIndex, mealIndex) {
             });
         }
 
-        displayMealPlan(lastPlanQuery.currentPlan);
+        displayDietPlan(lastPlanQuery.currentPlan);
         showToast('Voice note deleted', 'success');
     }
 }
