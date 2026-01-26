@@ -1739,6 +1739,17 @@
             background: #334155;
             color: #f1f5f9;
         }
+
+        /* Voice recording button styles */
+        button.recording {
+            background: #dc2626 !important;
+            animation: pulse-recording 1s infinite;
+        }
+
+        @keyframes pulse-recording {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
@@ -2075,6 +2086,11 @@
             canCustomMeals: true,
             canRequestNewPlan: true
         };
+
+        // Voice note recording variables
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let currentRecordingMeal = null;
 
         // Store previous meal states for undo functionality - persisted to localStorage
         // Use same key as planner.html so undo states are shared between pages
@@ -3901,21 +3917,39 @@
 
             // Get existing note for this meal
             const mealNote = meal.coach_note || '';
+            const voiceNoteUrl = meal.voice_note_url || '';
 
             // Build notes section based on view type
             let notesSection = '';
             if (isClientView) {
-                // Client view: show note if exists (read-only)
-                if (mealNote) {
+                // Client view: show note and voice note if exists (read-only)
+                let hasNotes = mealNote || voiceNoteUrl;
+                if (hasNotes) {
                     notesSection = `
                         <div class="meal-note-display" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 15px; margin-top: 15px; border-radius: 0 8px 8px 0;">
                             <div style="font-weight: 600; color: #92400e; font-size: 0.85em; margin-bottom: 6px;">📝 Coach Note:</div>
-                            <div style="color: #78350f; font-size: 0.95em; line-height: 1.5; white-space: pre-wrap;">${linkifyText(mealNote)}</div>
+                            ${mealNote ? `<div style="color: #78350f; font-size: 0.95em; line-height: 1.5; white-space: pre-wrap;">${linkifyText(mealNote)}</div>` : ''}
+                            ${voiceNoteUrl ? `
+                                <div style="margin-top: 10px;">
+                                    <div style="font-weight: 600; color: #92400e; font-size: 0.85em; margin-bottom: 6px;">🎤 Voice Message:</div>
+                                    <audio controls src="${voiceNoteUrl}" style="width: 100%; max-width: 300px;"></audio>
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 }
             } else {
-                // Coach view: show editable note field
+                // Coach view: show editable note field and voice recording
+                const voiceNoteSection = voiceNoteUrl ? `
+                    <div style="margin-top: 10px; padding: 10px; background: #ecfdf5; border-radius: 6px; border: 1px solid #6ee7b7;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 600; color: #047857; font-size: 0.85em;">🎤 Voice Message:</span>
+                            <button onclick="deleteMealVoiceNote('${index}', ${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 0.75em; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
+                        </div>
+                        <audio controls src="${voiceNoteUrl}" style="width: 100%; max-width: 300px;"></audio>
+                    </div>
+                ` : '';
+
                 notesSection = `
                     <div class="meal-note-section" style="margin-top: 15px; background: #f0f9ff; padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -3923,6 +3957,15 @@
                             <button class="btn" onclick="saveMealNote('${index}', ${dayIndex}, ${mealIndex})" style="background: #0284c7; color: white; padding: 4px 12px; font-size: 0.8em; border-radius: 4px;">Save Note</button>
                         </div>
                         <textarea id="meal-note-${index}" style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid #7dd3fc; border-radius: 6px; font-size: 0.9em; resize: vertical;" placeholder="Add a note for your client about this meal...">${mealNote}</textarea>
+
+                        <!-- Voice Note Section -->
+                        <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                            <button id="voice-btn-${index}" onclick="toggleMealVoiceRecording('${index}', ${dayIndex}, ${mealIndex})" style="background: #7c3aed; color: white; padding: 6px 12px; font-size: 0.8em; border-radius: 4px; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                🎤 Record Voice Note
+                            </button>
+                            <span style="color: #6b7280; font-size: 0.75em;">Record a voice message for your client</span>
+                        </div>
+                        ${voiceNoteSection}
                     </div>
                 `;
             }
@@ -4424,6 +4467,177 @@
                     saveBtn.style.background = '#0284c7';
                     saveBtn.disabled = false;
                 }, 2000);
+            }
+        }
+
+        // Voice note recording for meal notes
+        async function toggleMealVoiceRecording(index, dayIndex = null, mealIndex = null) {
+            const btn = document.getElementById(`voice-btn-${index}`);
+
+            // If already recording, stop
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                btn.classList.remove('recording');
+                btn.innerHTML = '🎤 Record';
+                return;
+            }
+
+            // Start recording
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                currentRecordingMeal = { index, dayIndex, mealIndex };
+
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await uploadMealVoiceNote(index, dayIndex, mealIndex, audioBlob);
+                    mediaRecorder = null;
+                    audioChunks = [];
+                    currentRecordingMeal = null;
+                };
+
+                mediaRecorder.start();
+                btn.classList.add('recording');
+                btn.innerHTML = '⏹️ Stop';
+                showToast('Recording... Click again to stop', 'success');
+
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                showToast('Could not access microphone. Please check permissions.', 'error');
+            }
+        }
+
+        async function uploadMealVoiceNote(index, dayIndex, mealIndex, audioBlob) {
+            try {
+                showToast('Saving voice note...', 'success');
+
+                const contentType = 'audio/webm';
+                const fileName = `meal-voice-note-${Date.now()}.webm`;
+
+                // Step 1: Get a signed upload URL
+                const response = await authenticatedFetch('/.netlify/functions/get-video-upload-url', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        fileName,
+                        contentType,
+                        folder: 'meal-voice-notes'
+                    })
+                });
+
+                const uploadUrlResult = await response.json();
+
+                if (!uploadUrlResult.success) {
+                    throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
+                }
+
+                // Step 2: Upload directly to Supabase
+                const uploadResponse = await fetch(uploadUrlResult.uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': contentType
+                    },
+                    body: audioBlob
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload voice note to storage');
+                }
+
+                // Step 3: Get a signed view URL
+                const signedResponse = await authenticatedFetch('/.netlify/functions/get-signed-video-url', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        filePath: uploadUrlResult.filePath
+                    })
+                });
+
+                const signedUrlResult = await signedResponse.json();
+
+                if (signedUrlResult.success) {
+                    // Get the meal and store voice note URL
+                    let meal;
+                    if (dayIndex !== null && mealIndex !== null) {
+                        meal = currentPlan.days[dayIndex].plan[mealIndex];
+                    } else if (currentPlan.meals) {
+                        meal = currentPlan.meals[index];
+                    } else if (currentPlan.days) {
+                        const parts = index.split('-');
+                        if (parts.length === 2) {
+                            meal = currentPlan.days[parseInt(parts[0])].plan[parseInt(parts[1])];
+                        }
+                    }
+
+                    if (meal) {
+                        meal.voice_note_url = signedUrlResult.url;
+                        meal.voice_note_path = uploadUrlResult.filePath;
+
+                        // Save to database
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const planId = urlParams.get('planId');
+
+                        if (planId) {
+                            await supabaseClient
+                                .from('coach_meal_plans')
+                                .update({ plan_data: currentPlan })
+                                .eq('id', planId);
+                        }
+
+                        localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+                        displayMealPlan();
+                        showToast('Voice note saved!', 'success');
+                    }
+                } else {
+                    throw new Error('Failed to get voice note URL');
+                }
+            } catch (err) {
+                console.error('Error uploading voice note:', err);
+                showToast(err.message || 'Error saving voice note', 'error');
+            }
+        }
+
+        async function deleteMealVoiceNote(index, dayIndex = null, mealIndex = null) {
+            if (!confirm('Delete this voice note?')) return;
+
+            // Get the meal
+            let meal;
+            if (dayIndex !== null && mealIndex !== null) {
+                meal = currentPlan.days[dayIndex].plan[mealIndex];
+            } else if (currentPlan.meals) {
+                meal = currentPlan.meals[index];
+            } else if (currentPlan.days) {
+                const parts = index.split('-');
+                if (parts.length === 2) {
+                    meal = currentPlan.days[parseInt(parts[0])].plan[parseInt(parts[1])];
+                }
+            }
+
+            if (meal) {
+                meal.voice_note_url = null;
+                meal.voice_note_path = null;
+
+                // Save to database
+                const urlParams = new URLSearchParams(window.location.search);
+                const planId = urlParams.get('planId');
+
+                if (planId) {
+                    await supabaseClient
+                        .from('coach_meal_plans')
+                        .update({ plan_data: currentPlan })
+                        .eq('id', planId);
+                }
+
+                localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
+                displayMealPlan();
+                showToast('Voice note deleted', 'success');
             }
         }
 
