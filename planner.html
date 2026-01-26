@@ -1632,6 +1632,17 @@
         [data-theme="dark"] .coach-nav-item.active .coach-nav-icon {
             background: rgba(45, 212, 191, 0.1);
         }
+
+        /* Voice recording button styles */
+        button.recording {
+            background: #dc2626 !important;
+            animation: pulse-recording 1s infinite;
+        }
+
+        @keyframes pulse-recording {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
@@ -2473,6 +2484,11 @@ let clientsList = [];
 // Store previous meal states for undo functionality - persisted to localStorage
 const UNDO_STATES_KEY = 'plannerUndoStates';
 let previousMealStates = {};
+
+// Voice note recording variables
+let mediaRecorder = null;
+let audioChunks = [];
+let currentRecordingMeal = null;
 
 // Load undo states from localStorage
 function loadUndoStates() {
@@ -4565,6 +4581,7 @@ function displayDietPlan(multiDayData) {
         dayData.plan.forEach((meal, mealIndex) => {
             const mealNoteId = `meal-note-${dayIndex}-${mealIndex}`;
             const existingNote = meal.coach_note || '';
+            const voiceNoteUrl = meal.voice_note_url || '';
             const isSupplement = meal.type === 'supplement';
 
             if (isSupplement) {
@@ -4654,10 +4671,22 @@ function displayDietPlan(multiDayData) {
 
                         <!-- Note for Client - Collapsible -->
                         <details style="margin-top: 10px;">
-                            <summary style="font-size: 11px; color: #92400e; cursor: pointer; padding: 6px; background: #fef3c7; border-radius: 6px;">📝 Add Note for Client</summary>
+                            <summary style="font-size: 11px; color: #92400e; cursor: pointer; padding: 6px; background: #fef3c7; border-radius: 6px;">📝 Add Note for Client ${voiceNoteUrl ? '🎤' : ''}</summary>
                             <div style="background: #fef3c7; padding: 10px; border-radius: 0 0 6px 6px; border: 1px solid #fcd34d; border-top: none;">
                                 <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical; color: #333; background: white;" placeholder="Add a note about this meal...">${existingNote}</textarea>
-                                <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px; margin-top: 6px;">Save Note</button>
+                                <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
+                                    <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px;">Save Note</button>
+                                    <button id="voice-btn-${dayIndex}-${mealIndex}" onclick="toggleMealVoiceRecording(${dayIndex}, ${mealIndex})" style="background: #7c3aed; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer;">🎤 Record Voice</button>
+                                </div>
+                                ${voiceNoteUrl ? `
+                                <div style="margin-top: 10px; padding: 8px; background: #ecfdf5; border-radius: 6px; border: 1px solid #6ee7b7;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <span style="font-weight: 600; color: #047857; font-size: 11px;">🎤 Voice Message:</span>
+                                        <button onclick="deleteMealVoiceNote(${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 10px; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
+                                    </div>
+                                    <audio controls src="${voiceNoteUrl}" style="width: 100%; height: 32px;"></audio>
+                                </div>
+                                ` : ''}
                             </div>
                         </details>
                     </div>
@@ -5209,6 +5238,133 @@ async function saveMealNote(dayIndex, mealIndex) {
         alert('Failed to save note: ' + error.message);
         saveBtn.textContent = originalText;
         saveBtn.disabled = false;
+    }
+}
+
+// VOICE NOTE RECORDING FOR MEALS
+async function toggleMealVoiceRecording(dayIndex, mealIndex) {
+    const btn = document.getElementById(`voice-btn-${dayIndex}-${mealIndex}`);
+
+    // If already recording, stop
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        btn.classList.remove('recording');
+        btn.innerHTML = '🎤 Record';
+        return;
+    }
+
+    // Start recording
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        currentRecordingMeal = { dayIndex, mealIndex };
+
+        mediaRecorder.ondataavailable = (e) => {
+            audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            stream.getTracks().forEach(track => track.stop());
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            await uploadMealVoiceNote(dayIndex, mealIndex, audioBlob);
+            mediaRecorder = null;
+            audioChunks = [];
+            currentRecordingMeal = null;
+        };
+
+        mediaRecorder.start();
+        btn.classList.add('recording');
+        btn.innerHTML = '⏹️ Stop';
+        showToast('Recording... Click again to stop', 'success');
+
+    } catch (err) {
+        console.error('Error accessing microphone:', err);
+        showToast('Could not access microphone. Please check permissions.', 'error');
+    }
+}
+
+async function uploadMealVoiceNote(dayIndex, mealIndex, audioBlob) {
+    try {
+        showToast('Saving voice note...', 'success');
+
+        const contentType = 'audio/webm';
+        const fileName = `meal-voice-note-${Date.now()}.webm`;
+
+        // Step 1: Get a signed upload URL
+        const uploadUrlResult = await apiPost('/.netlify/functions/get-video-upload-url', {
+            coachId: currentCoach.id,
+            fileName,
+            contentType,
+            folder: 'meal-voice-notes'
+        });
+
+        if (!uploadUrlResult.success) {
+            throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
+        }
+
+        // Step 2: Upload directly to Supabase
+        const uploadResponse = await fetch(uploadUrlResult.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': contentType },
+            body: audioBlob
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error('Failed to upload voice note to storage');
+        }
+
+        // Step 3: Get a signed view URL
+        const signedUrlResult = await apiPost('/.netlify/functions/get-signed-video-url', {
+            filePath: uploadUrlResult.filePath
+        });
+
+        if (signedUrlResult.success) {
+            // Store voice note URL in meal data
+            if (lastPlanQuery.currentPlan && lastPlanQuery.currentPlan[dayIndex] && lastPlanQuery.currentPlan[dayIndex].plan[mealIndex]) {
+                lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].voice_note_url = signedUrlResult.url;
+                lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].voice_note_path = uploadUrlResult.filePath;
+            }
+
+            // Save to database if plan exists
+            if (lastPlanQuery.planId) {
+                await apiPost(UPDATE_PLAN_NOTES_ENDPOINT, {
+                    planId: lastPlanQuery.planId,
+                    coachId: currentCoach.id,
+                    planData: lastPlanQuery
+                });
+            }
+
+            // Re-render to show the audio player
+            displayMealPlan(lastPlanQuery.currentPlan);
+            showToast('Voice note saved!', 'success');
+        } else {
+            throw new Error('Failed to get voice note URL');
+        }
+    } catch (err) {
+        console.error('Error uploading voice note:', err);
+        showToast(err.message || 'Error saving voice note', 'error');
+    }
+}
+
+async function deleteMealVoiceNote(dayIndex, mealIndex) {
+    if (!confirm('Delete this voice note?')) return;
+
+    if (lastPlanQuery.currentPlan && lastPlanQuery.currentPlan[dayIndex] && lastPlanQuery.currentPlan[dayIndex].plan[mealIndex]) {
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].voice_note_url = null;
+        lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].voice_note_path = null;
+
+        // Save to database if plan exists
+        if (lastPlanQuery.planId) {
+            await apiPost(UPDATE_PLAN_NOTES_ENDPOINT, {
+                planId: lastPlanQuery.planId,
+                coachId: currentCoach.id,
+                planData: lastPlanQuery
+            });
+        }
+
+        displayMealPlan(lastPlanQuery.currentPlan);
+        showToast('Voice note deleted', 'success');
     }
 }
 
