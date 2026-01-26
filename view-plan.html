@@ -4507,17 +4507,17 @@
                 mediaRecorder.start();
                 btn.classList.add('recording');
                 btn.innerHTML = '⏹️ Stop';
-                showToast('Recording... Click again to stop', 'success');
+                showNotification('Recording... Click again to stop', 'success');
 
             } catch (err) {
                 console.error('Error accessing microphone:', err);
-                showToast('Could not access microphone. Please check permissions.', 'error');
+                showNotification('Could not access microphone. Please check permissions.', 'error');
             }
         }
 
         async function uploadMealVoiceNote(index, dayIndex, mealIndex, audioBlob) {
             try {
-                showToast('Saving voice note...', 'success');
+                showNotification('Saving voice note...', 'success');
 
                 const contentType = 'audio/webm';
                 const fileName = `meal-voice-note-${Date.now()}.webm`;
@@ -4593,14 +4593,14 @@
 
                         localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
                         displayMealPlan();
-                        showToast('Voice note saved!', 'success');
+                        showNotification('Voice note saved!', 'success');
                     }
                 } else {
                     throw new Error('Failed to get voice note URL');
                 }
             } catch (err) {
                 console.error('Error uploading voice note:', err);
-                showToast(err.message || 'Error saving voice note', 'error');
+                showNotification(err.message || 'Error saving voice note', 'error');
             }
         }
 
@@ -4637,7 +4637,7 @@
 
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
                 displayMealPlan();
-                showToast('Voice note deleted', 'success');
+                showNotification('Voice note deleted', 'success');
             }
         }
 
