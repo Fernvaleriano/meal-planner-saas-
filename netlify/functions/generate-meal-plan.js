@@ -7,8 +7,8 @@ const AnthropicModule = require('@anthropic-ai/sdk');
 const Anthropic = AnthropicModule.default || AnthropicModule;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-// Use Gemini as primary generator (faster and more cost-effective)
-const USE_CLAUDE_FOR_GENERATION = false;
+// Use Claude as primary generator (more reliable JSON output)
+const USE_CLAUDE_FOR_GENERATION = true;
 
 // Spoonacular API for accurate nutrition data
 const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
