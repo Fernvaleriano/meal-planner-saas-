@@ -1712,6 +1712,22 @@ Keep it practical and brief. Format with clear sections.`;
                         </div>
                       )}
 
+                      {/* Coach Voice Note */}
+                      {meal.voice_note_url && (
+                        <div
+                          className="meal-voice-note"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="meal-voice-note-label">🎤 Voice Note:</span>
+                          <audio
+                            controls
+                            src={meal.voice_note_url}
+                            onClick={(e) => e.stopPropagation()}
+                            onPlay={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      )}
+
                       <p className="meal-card-tap-hint">Tap to see options</p>
                     </div>
                   </div>

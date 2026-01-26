@@ -8794,6 +8794,29 @@ a.nav-left {
     color: #fde68a;
 }
 
+/* Meal Voice Note */
+.meal-voice-note {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.meal-voice-note-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.meal-voice-note audio {
+    width: 100%;
+    height: 32px;
+    border-radius: 4px;
+}
+
 /* Meal Modal Overlay */
 .meal-modal-overlay {
     position: fixed;
