@@ -4630,18 +4630,21 @@ function displayDietPlan(multiDayData) {
 
                 // Generate unique ID for this meal's image
                 const mealImageId = `meal-img-${dayIndex}-${mealIndex}`;
-                const escapedMealName = meal.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                // Escape meal name for use in onclick handlers (JS string context)
+                const escapedMealName = meal.name.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                // Escape meal name for use in HTML data attributes (only need to escape double quotes)
+                const htmlAttrMealName = meal.name.replace(/"/g, '&quot;');
 
                 planHTML += `
                 <div class="meal-card">
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                        <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${escapedMealName}" onclick="showMealImageLarge(this)">
+                        <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${htmlAttrMealName}" onclick="showMealImageLarge(this)">
                             🍽️
                         </div>
                         <!-- Generate Image button under image -->
                         ${isCustomMeal
-                            ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;">📷 Image</button>`
-                            : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${escapedMealName}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;">📷 Image</button>`
+                            ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;">📷 Image</button>`
+                            : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;">📷 Image</button>`
                         }
                     </div>
                     <div class="meal-card-content">
