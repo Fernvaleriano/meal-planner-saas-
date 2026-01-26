@@ -147,11 +147,41 @@ function Plans() {
         setPlans(data.plans);
         setCache(`plans_full_${clientData.id}`, data.plans);
 
-        // Update selected plan if viewing one
+        // Update selected plan if viewing one (preserve loaded images)
         if (selectedPlan) {
           const updatedPlan = data.plans.find(p => String(p.id) === String(selectedPlan.id));
           if (updatedPlan) {
-            setSelectedPlan(updatedPlan);
+            setSelectedPlan(prevPlan => {
+              if (!prevPlan) return updatedPlan;
+              // Preserve loaded images from prevPlan
+              const mergedPlanData = { ...updatedPlan.plan_data };
+              if (prevPlan.plan_data?.currentPlan) {
+                mergedPlanData.currentPlan = prevPlan.plan_data.currentPlan.map((day, dayIdx) => {
+                  const freshDay = updatedPlan.plan_data?.currentPlan?.[dayIdx];
+                  if (!freshDay) return day;
+                  return {
+                    ...freshDay,
+                    plan: freshDay.plan?.map((meal, mealIdx) => ({
+                      ...meal,
+                      image_url: day.plan?.[mealIdx]?.image_url || meal.image_url
+                    }))
+                  };
+                });
+              } else if (prevPlan.plan_data?.days) {
+                mergedPlanData.days = prevPlan.plan_data.days.map((day, dayIdx) => {
+                  const freshDay = updatedPlan.plan_data?.days?.[dayIdx];
+                  if (!freshDay) return day;
+                  return {
+                    ...freshDay,
+                    plan: freshDay.plan?.map((meal, mealIdx) => ({
+                      ...meal,
+                      image_url: day.plan?.[mealIdx]?.image_url || meal.image_url
+                    }))
+                  };
+                });
+              }
+              return { ...updatedPlan, plan_data: mergedPlanData };
+            });
           }
         }
       }
@@ -193,6 +223,19 @@ function Plans() {
                   if (prevPlan.plan_data?.currentPlan) {
                     mergedPlanData.currentPlan = prevPlan.plan_data.currentPlan.map((day, dayIdx) => {
                       const freshDay = plan.plan_data?.currentPlan?.[dayIdx];
+                      if (!freshDay) return day;
+                      return {
+                        ...freshDay,
+                        plan: freshDay.plan?.map((meal, mealIdx) => ({
+                          ...meal,
+                          image_url: day.plan?.[mealIdx]?.image_url || meal.image_url
+                        }))
+                      };
+                    });
+                  } else if (prevPlan.plan_data?.days) {
+                    // Also handle plans with days structure
+                    mergedPlanData.days = prevPlan.plan_data.days.map((day, dayIdx) => {
+                      const freshDay = plan.plan_data?.days?.[dayIdx];
                       if (!freshDay) return day;
                       return {
                         ...freshDay,
@@ -307,10 +350,81 @@ function Plans() {
     }
   };
 
-  // Load meal images when plan is selected
+  // Refresh voice note URLs (signed URLs expire, so we need fresh ones)
+  const refreshVoiceNoteUrls = async (planToLoad) => {
+    if (!planToLoad) return;
+
+    const days = getPlanDays(planToLoad);
+    const voiceNotePaths = [];
+
+    // Collect all meals with voice_note_path
+    days.forEach((day, dayIdx) => {
+      (day.plan || []).forEach((meal, mealIdx) => {
+        if (meal.voice_note_path) {
+          voiceNotePaths.push({
+            dayIdx,
+            mealIdx,
+            path: meal.voice_note_path
+          });
+        }
+      });
+    });
+
+    if (voiceNotePaths.length === 0) return;
+
+    // Fetch fresh signed URLs for each voice note
+    const urlUpdates = await Promise.all(
+      voiceNotePaths.map(async ({ dayIdx, mealIdx, path }) => {
+        try {
+          const response = await apiPost('/.netlify/functions/get-signed-video-url', {
+            filePath: path
+          });
+          if (response.success && response.url) {
+            return { dayIdx, mealIdx, url: response.url };
+          }
+        } catch (err) {
+          console.error('Error refreshing voice note URL:', err);
+        }
+        return null;
+      })
+    );
+
+    // Filter out failed requests
+    const validUpdates = urlUpdates.filter(u => u !== null);
+    if (validUpdates.length === 0) return;
+
+    // Update plan with fresh URLs
+    setSelectedPlan(prevPlan => {
+      if (!prevPlan) return prevPlan;
+
+      const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
+      const prevDays = getPlanDays(prevPlan);
+
+      const updatedDays = prevDays.map((day, dayIdx) => ({
+        ...day,
+        plan: (day.plan || []).map((meal, mealIdx) => {
+          const update = validUpdates.find(u => u.dayIdx === dayIdx && u.mealIdx === mealIdx);
+          if (update) {
+            return { ...meal, voice_note_url: update.url };
+          }
+          return meal;
+        })
+      }));
+
+      if (updatedPlan.plan_data.currentPlan) {
+        updatedPlan.plan_data.currentPlan = updatedDays;
+      } else if (updatedPlan.plan_data.days) {
+        updatedPlan.plan_data.days = updatedDays;
+      }
+      return updatedPlan;
+    });
+  };
+
+  // Load meal images and refresh voice note URLs when plan is selected
   useEffect(() => {
     if (!selectedPlan) return;
     loadMealImagesForPlan(selectedPlan);
+    refreshVoiceNoteUrls(selectedPlan);
   }, [selectedPlan?.id]);
 
   // Save undo states to localStorage
@@ -1712,16 +1826,18 @@ Keep it practical and brief. Format with clear sections.`;
                         </div>
                       )}
 
-                      {/* Coach Voice Note */}
+                      {/* Voice Note */}
                       {meal.voice_note_url && (
                         <div
                           className="meal-voice-note"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <span className="meal-voice-note-label">🎤 Voice Note:</span>
+                          <span className="meal-voice-note-label">🎙️ Voice Note:</span>
                           <audio
                             controls
                             src={meal.voice_note_url}
+                            className="meal-voice-audio"
+                            preload="none"
                             onClick={(e) => e.stopPropagation()}
                             onPlay={(e) => e.stopPropagation()}
                           />
