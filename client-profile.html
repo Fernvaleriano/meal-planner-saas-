@@ -5927,8 +5927,8 @@
                 `;
             }
 
-            // Use plan_name if available, otherwise use planSummary
-            const displayName = plan.plan_name || planSummary;
+            // Use plan_name if available (check both top-level column and inside plan_data), otherwise use planSummary
+            const displayName = plan.plan_name || planData.planName || planSummary;
 
             return `
                 <div class="plan-card" id="plan-card-${plan.id}" onclick="viewPlan(${plan.id})">
@@ -5942,7 +5942,7 @@
                                 <span style="font-weight: 600; color: #0d9488;">${displayName}</span>
                                 ${statusBadge}
                             </div>
-                            ${plan.plan_name ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${planSummary}</div>` : ''}
+                            ${(plan.plan_name || planData.planName) ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${planSummary}</div>` : ''}
                             ${summaryDescription ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">${summaryDescription}</div>` : ''}
                             ${firstMealName ? `<div style="font-size: 11px; color: #94a3b8; font-style: italic;">🍽️ ${firstMealName}</div>` : ''}
                             <div class="plan-date">${formattedDate} at ${formattedTime}</div>
