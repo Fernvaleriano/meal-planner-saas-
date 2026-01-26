@@ -4525,8 +4525,9 @@
                 const fileName = `meal-voice-note-${Date.now()}.webm`;
 
                 // Step 1: Get a signed upload URL
-                const response = await authenticatedFetch('/.netlify/functions/get-video-upload-url', {
+                const response = await fetch('/.netlify/functions/get-video-upload-url', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         coachId: currentCoachId,
                         fileName,
@@ -4555,8 +4556,9 @@
                 }
 
                 // Step 3: Get a signed view URL
-                const signedResponse = await authenticatedFetch('/.netlify/functions/get-signed-video-url', {
+                const signedResponse = await fetch('/.netlify/functions/get-signed-video-url', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         filePath: uploadUrlResult.filePath
                     })

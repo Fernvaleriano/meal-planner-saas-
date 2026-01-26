@@ -1828,13 +1828,18 @@ Keep it practical and brief. Format with clear sections.`;
 
                       {/* Voice Note */}
                       {meal.voice_note_url && (
-                        <div className="meal-voice-note">
+                        <div
+                          className="meal-voice-note"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <span className="meal-voice-note-label">🎙️ Voice Note:</span>
                           <audio
                             controls
                             src={meal.voice_note_url}
                             className="meal-voice-audio"
                             preload="none"
+                            onClick={(e) => e.stopPropagation()}
+                            onPlay={(e) => e.stopPropagation()}
                           />
                         </div>
                       )}
