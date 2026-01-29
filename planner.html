@@ -4572,6 +4572,34 @@ function displayDietPlan(multiDayData) {
                 <span>Day ${dayData.day}</span>
                 <button data-action="regenerate-day" data-day-index="${dayIndex}" class="btn btn-secondary text-xs" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem;">🔄 Regenerate Day</button>
             </div>
+            ${dayIndex === 0 ? (() => {
+                const dietType = lastPlanQuery?.preference || '';
+                const allergies = lastPlanQuery?.allergies || '';
+                const dislikedFoods = lastPlanQuery?.dislikedFoods || '';
+                const hasAllergies = allergies && allergies !== 'none';
+                const hasDisliked = dislikedFoods && dislikedFoods !== 'none';
+                const isSpecialDiet = dietType && dietType !== 'omnivore';
+                if (!hasAllergies && !hasDisliked && !isSpecialDiet) return '';
+                let tags = '';
+                if (isSpecialDiet) {
+                    const dietLabels = { vegetarian: '🥬 Vegetarian', vegan: '🌱 Vegan', keto: '🥑 Keto' };
+                    tags += '<span style="background: #065f46; color: #a7f3d0; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">' + (dietLabels[dietType] || dietType) + '</span> ';
+                }
+                if (hasAllergies) {
+                    allergies.split(',').map(a => a.trim()).filter(Boolean).forEach(a => {
+                        tags += '<span style="background: #7f1d1d; color: #fca5a5; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">⚠️ ' + a + '</span> ';
+                    });
+                }
+                if (hasDisliked) {
+                    dislikedFoods.split(',').map(f => f.trim()).filter(Boolean).forEach(f => {
+                        tags += '<span style="background: #78350f; color: #fcd34d; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">👎 ' + f + '</span> ';
+                    });
+                }
+                return '<div style="background: linear-gradient(135deg, #1e293b, #334155); border: 1px solid #475569; border-radius: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 0.5rem;">' +
+                    '<p style="font-size: 0.7rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">⚡ Dietary Reminders</p>' +
+                    '<div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">' + tags + '</div>' +
+                '</div>';
+            })() : ''}
             <div class="mb-3 p-3 bg-gray-50 rounded-lg">
                 <p class="text-xs font-semibold text-gray-600 mb-2">Day ${dayData.day} Totals:</p>
                 <div class="grid grid-cols-4 gap-2 text-center">
