@@ -99,12 +99,38 @@ const CATEGORY_OPTIONS = [
   { value: 'cardio', label: 'Cardio' },
 ];
 
-// Keywords for detecting warm-up exercises by name
+// Keywords for detecting warm-up exercises by name (comprehensive list from exercise library)
 const WARMUP_KEYWORDS = [
-  'warm up', 'warmup', 'warm-up', 'arm circle', 'arm swing', 'leg swing',
-  'hip circle', 'torso twist', 'jumping jack', 'high knee', 'butt kick',
-  'march', 'jog in place', 'jogging in place', 'jump rope', 'skip',
-  'light cardio', 'dynamic stretch', 'activation', 'mobility'
+  'warm up', 'warmup', 'warm-up',
+  'dynamic stretch', 'activation', 'mobility', 'light cardio',
+  // Cardio machines
+  'elliptical', 'treadmill', 'rowing machine', 'stationary bike',
+  'exercise bike', 'assault airbike', 'air bike', 'recumbent',
+  'stair climb', 'spin bike',
+  // Jump rope
+  'jump rope', 'skipping rope',
+  // Classic warm-up movements
+  'jumping jack', 'high knee', 'butt kick', 'butt kicks',
+  'mountain climber', 'bear crawl', 'inchworm',
+  'burpee', 'half burpee',
+  'arm circle', 'arm swing', 'leg swing', 'hip circle', 'torso twist',
+  'march', 'air punches march',
+  'jogging', 'jog in place', 'running in place',
+  // Jumps / plyo
+  'box jump', 'squat jump', 'tuck jump', 'broad jump',
+  'star jump', 'seal jack', 'jump squat', 'plyo',
+  'lateral box jump', 'kneeling squat jump',
+  // Agility
+  'agility ladder', 'lateral shuffle', 'carioca',
+  'a skip', 'b skip', 'power skip',
+  // Battle ropes
+  'battle rope',
+  // Rebounder
+  'rebounder',
+  // Sprint drills
+  'sprinter lunge', 'downward dog sprint',
+  // Step ups (bodyweight)
+  'step up'
 ];
 
 // Keywords for detecting stretch exercises by name (comprehensive list from exercise library)

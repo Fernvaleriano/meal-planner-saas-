@@ -17,10 +17,25 @@ function isWarmupExercise(name) {
   const lower = name.toLowerCase();
   const warmupKeywords = [
     'warm up', 'warmup', 'warm-up',
+    'dynamic stretch', 'activation', 'mobility', 'light cardio',
+    'elliptical', 'treadmill', 'rowing machine', 'stationary bike',
+    'exercise bike', 'assault airbike', 'air bike', 'recumbent',
+    'stair climb', 'spin bike',
+    'jump rope', 'skipping rope',
+    'jumping jack', 'high knee', 'butt kick', 'butt kicks',
+    'mountain climber', 'bear crawl', 'inchworm',
+    'burpee', 'half burpee',
     'arm circle', 'arm swing', 'leg swing', 'hip circle', 'torso twist',
-    'jumping jack', 'high knee', 'butt kick', 'march', 'jog in place',
-    'jogging in place', 'jump rope', 'skip', 'light cardio',
-    'dynamic stretch', 'activation', 'mobility'
+    'march', 'air punches march',
+    'jogging', 'jog in place', 'running in place',
+    'box jump', 'squat jump', 'tuck jump', 'broad jump',
+    'star jump', 'seal jack', 'jump squat', 'plyo',
+    'lateral box jump', 'kneeling squat jump',
+    'agility ladder', 'lateral shuffle', 'carioca',
+    'a skip', 'b skip', 'power skip',
+    'battle rope', 'rebounder',
+    'sprinter lunge', 'downward dog sprint',
+    'step up'
   ];
   return warmupKeywords.some(kw => lower.includes(kw));
 }
@@ -28,12 +43,43 @@ function isWarmupExercise(name) {
 // Detect if an exercise is a stretch by name
 function isStretchExercise(name) {
   const lower = name.toLowerCase();
-  // Check for "stretch" in the name
-  if (lower.includes('stretch')) return true;
-  // Check for other stretch-related terms
   const stretchKeywords = [
-    'yoga', 'cool down', 'cooldown', 'cool-down',
-    'flexibility', 'static hold', 'foam roll'
+    'stretch', 'yoga', 'cool down', 'cooldown', 'cool-down',
+    'flexibility', 'static hold', 'foam roll', 'foam roller',
+    'fist against chin', '90 to 90', '90/90',
+    'child pose', 'childs pose', "child's pose",
+    'pigeon glute', 'double pigeon',
+    'downward dog', 'cobra', 'spinal twist',
+    'hip flexor', 'cat cow', 'cat stretch',
+    'prayer', 'scorpion', 'pretzel',
+    'butterfly yoga', 'crescent moon pose',
+    'dead hang', 'iron cross',
+    'figure four', 'side bend', 'side lying floor',
+    'toe touch', 'knee to chest', 'knee hug',
+    'ceiling look', 'neck tilt', 'neck turn', 'neck rotation',
+    'middle back rotation', 'easy pose',
+    'back slaps wrap', 'arms wide chest', 'arms behind back',
+    'bent arm chest', 'cross body', 'cross over shoulder',
+    'elbow back', 'elbows back',
+    'overhead triceps', 'overhand tricep',
+    'reaching up shoulder', 'rear deltoid', 'reverse shoulder',
+    'front rack', 'lat floor', 'lats stretch',
+    'wrist flexor', 'forearms stretch', 'forearms pull',
+    'hands clapped forearms', 'extension of arms in vertical',
+    'back pec', 'back stretch', 'bodyweight standing back',
+    'corner wall', 'exercise ball back', 'exercise ball hip flexor',
+    'exercise ball lat', 'exercise ball lower back', 'exercise ball lying side',
+    'exercise ball seated hamstring', 'exercise ball seated quad',
+    'lying bent knee cross', 'lying knee pull', 'lying knee hugs',
+    'lying knees to floor', 'lying single leg extended on wall',
+    'lying bench internal rotation', 'lying crossover',
+    'lying glute', 'lying hip flexor', 'lying quadriceps',
+    'seated calf', 'seated cross leg glute', 'seated shoulder flexor',
+    'standing bow hamstring', 'standing gastrocnemius',
+    'standing quadriceps', 'standing adductor', 'adductor dynamic',
+    'abdominal stretch', 'above head chest', 'across chest shoulder',
+    'cable lat prayer', 'alternating leg downward',
+    'all fours quad', 'dynamic back'
   ];
   return stretchKeywords.some(kw => lower.includes(kw));
 }
