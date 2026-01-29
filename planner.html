@@ -2416,6 +2416,8 @@ function setPlannerMode(mode) {
     const planNameLabel = document.querySelector('label[for="dp_plan_name"], #dp_plan_name')?.closest('div')?.querySelector('label');
     const generateBtn = document.getElementById('generate-plan-btn');
 
+    const planNameSection = document.getElementById('dp_plan_name')?.closest('.p-4');
+
     if (mode === 'template') {
         // Highlight template button
         templateBtn.style.background = '#8b5cf6';
@@ -2425,17 +2427,17 @@ function setPlannerMode(mode) {
         clientBtn.style.color = '#94a3b8';
         clientBtn.style.borderColor = '#475569';
 
-        // Hide client selector
+        // Hide client selector and plan name (template is named on save)
         if (clientSection) clientSection.style.display = 'none';
+        if (planNameSection) planNameSection.style.display = 'none';
 
-        // Open client details for manual entry
+        // Open client details for manual entry (optional)
         const clientDetailsContent = document.getElementById('client-details-content');
         const clientDetailsArrow = document.getElementById('client-details-arrow');
         if (clientDetailsContent) clientDetailsContent.classList.remove('hidden');
         if (clientDetailsArrow) clientDetailsArrow.style.transform = 'rotate(0deg)';
 
-        // Update label and button
-        if (planNameLabel) planNameLabel.innerHTML = '📋 Template Name <span class="text-red-500">*</span>';
+        // Update button
         if (generateBtn) generateBtn.innerHTML = '📋 Create Template';
     } else {
         // Highlight client button
@@ -2446,11 +2448,11 @@ function setPlannerMode(mode) {
         templateBtn.style.color = '#94a3b8';
         templateBtn.style.borderColor = '#475569';
 
-        // Show client selector
+        // Show client selector and plan name
         if (clientSection) clientSection.style.display = 'block';
+        if (planNameSection) planNameSection.style.display = 'block';
 
-        // Restore label and button
-        if (planNameLabel) planNameLabel.innerHTML = '📝 Plan Name <span class="text-red-500">*</span>';
+        // Restore button
         if (generateBtn) generateBtn.innerHTML = '✨ Create Diet Plan';
     }
 }
@@ -3381,7 +3383,9 @@ async function generateDietPlan() {
     const heightFt = document.getElementById('dp_height_ft').value;
     const heightIn = document.getElementById('dp_height_in').value;
 
-    if (!age || !weight || !heightFt) {
+    // In template mode, client details are optional — use defaults if empty
+    const isTemplateMode = plannerMode === 'template';
+    if (!isTemplateMode && (!age || !weight || !heightFt)) {
         alert('Please fill in all required fields');
         return;
     }
@@ -3469,13 +3473,11 @@ async function generateDietPlan() {
         clientName = 'Template';
     }
 
-    // Validate plan/template name is provided
+    // Validate plan name (not required in template mode — named on save)
     const planNameInput = document.getElementById('dp_plan_name');
     const planName = planNameInput ? planNameInput.value.trim() : '';
-    if (!planName) {
-        const nameType = isTemplateMode ? 'template' : 'meal plan';
-        const example = isTemplateMode ? '"High Protein Cutting Template"' : '"' + clientName + '\'s Cutting Plan"';
-        alert('⚠️ Please enter a name for this ' + nameType + ' (e.g., ' + example + ').');
+    if (!isTemplateMode && !planName) {
+        alert('⚠️ Please enter a name for this meal plan (e.g., "' + clientName + '\'s Cutting Plan").');
         planNameInput?.focus();
         button.disabled = false;
         resultDiv.innerHTML = '';
@@ -3524,20 +3526,26 @@ async function generateDietPlan() {
     console.log('🏋️ Branded foods preference:', useBrandedFoods);
 
     // Calculate nutrition (Mifflin-St Jeor)
+    // In template mode, use defaults if client details are empty
+    const effectiveAge = parseInt(age) || 30;
+    const effectiveWeight = parseFloat(weight) || (currentUnitSystem === 'imperial' ? 155 : 70);
+    const effectiveHeightFt = parseInt(heightFt) || (currentUnitSystem === 'imperial' ? 5 : 170);
+    const effectiveHeightIn = parseInt(heightIn || 0);
+
     let weightKg, heightCm;
     if (currentUnitSystem === 'imperial') {
-        weightKg = parseFloat(weight) * 0.453592;
-        heightCm = (parseInt(heightFt) * 30.48) + (parseInt(heightIn || 0) * 2.54);
+        weightKg = effectiveWeight * 0.453592;
+        heightCm = (effectiveHeightFt * 30.48) + (effectiveHeightIn * 2.54);
     } else {
-        weightKg = parseFloat(weight);
-        heightCm = parseFloat(heightFt);
+        weightKg = effectiveWeight;
+        heightCm = effectiveHeightFt;
     }
 
     let bmr;
     if (gender === 'male') {
-        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * parseInt(age)) + 5;
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * effectiveAge) + 5;
     } else {
-        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * parseInt(age)) - 161;
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * effectiveAge) - 161;
     }
 
     let tdee = bmr * activity;
@@ -3904,7 +3912,7 @@ Protein Shake + Sides: ["Whey Protein (1 scoop)", "Water (250ml)", "Banana (1 me
 
         const dayPrompt = `Create 1-day meal plan for Day ${day} of ${numDays}.
 [Variation: ${variationSeed}] - Generate UNIQUE meals different from any previous generation.
-Stats: ${age}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
+Stats: ${effectiveAge}yo ${gender}, ${weightKg.toFixed(0)}kg, ${heightCm.toFixed(0)}cm
 Goal: ${goal}, Diet: ${preference}
 Macro Preference: ${macroPreference}
 Avoid: ${allergies}
