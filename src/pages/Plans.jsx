@@ -815,7 +815,9 @@ Return ONLY valid JSON:
       newMeal.type = newMeal.type || meal.type || meal.meal_type || 'meal';
       newMeal.meal_type = newMeal.type;
       newMeal.name = newMeal.name || 'New Meal';
-      // Don't copy old image - it's a different meal now. Will fetch new image below.
+      // Strip duplicate "Instructions:" prefix the AI sometimes includes
+      if (newMeal.instructions) newMeal.instructions = newMeal.instructions.replace(/^Instructions:\s*/i, '');
+      // Don't copy old image - it's a different meal now.
       newMeal.image_url = null;
 
       // Update the plan with proper immutable updates
@@ -940,8 +942,8 @@ Return ONLY valid JSON:
       revisedMeal.type = revisedMeal.type || meal.type || meal.meal_type || 'meal';
       revisedMeal.meal_type = revisedMeal.type;
       revisedMeal.name = revisedMeal.name || 'Revised Meal';
-      revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
-      // Don't copy old image - meal name may have changed. Will fetch new image below.
+      revisedMeal.instructions = (revisedMeal.instructions || meal.instructions || '').replace(/^Instructions:\s*/i, '');
+      // Don't copy old image - meal name may have changed.
       revisedMeal.image_url = null;
 
       // Use calculated macros from backend, fallback to original if not provided
