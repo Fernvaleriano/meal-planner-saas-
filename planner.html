@@ -3440,7 +3440,6 @@ async function generateDietPlan() {
     // Get client from selector (skip in template mode)
     let clientName = 'Client';
     let clientId = null;
-    const isTemplateMode = plannerMode === 'template';
     const clientSelector = document.getElementById('dp_client_selector');
     const selectedValue = clientSelector.value;
 
