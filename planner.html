@@ -1755,9 +1755,21 @@
                 </div>
             </div>
 
+            <!-- Planner Mode Toggle -->
+            <div class="flex justify-center items-center gap-3 mb-6 p-4 rounded-lg" style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 2px solid #334155;">
+                <div class="flex gap-3 w-full">
+                    <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: #0d9488; color: white; border: 2px solid #14b8a6;" onclick="setPlannerMode('client')">
+                        👤 Build for Client
+                    </button>
+                    <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: transparent; color: #94a3b8; border: 2px solid #475569;" onclick="setPlannerMode('template')">
+                        📋 Create Template
+                    </button>
+                </div>
+            </div>
+
             <div class="space-y-4">
-                <!-- Client Selector Section -->
-                <div class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
+                <!-- Client Selector Section (hidden in template mode) -->
+                <div id="client-selector-section" class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
                     <label class="font-bold text-teal-900 block mb-2">👤 Select Client</label>
                     <div class="grid grid-cols-1 gap-3">
                         <select id="dp_client_selector" class="input-field border-2 border-teal-500" required>
@@ -2393,6 +2405,56 @@ function goBackToClient() {
 }
 
 // Collapsible form sections toggle
+// Planner mode: 'client' or 'template'
+let plannerMode = 'client';
+
+function setPlannerMode(mode) {
+    plannerMode = mode;
+    const clientBtn = document.getElementById('mode-client');
+    const templateBtn = document.getElementById('mode-template');
+    const clientSection = document.getElementById('client-selector-section');
+    const planNameLabel = document.querySelector('label[for="dp_plan_name"], #dp_plan_name')?.closest('div')?.querySelector('label');
+    const generateBtn = document.getElementById('generate-plan-btn');
+
+    if (mode === 'template') {
+        // Highlight template button
+        templateBtn.style.background = '#8b5cf6';
+        templateBtn.style.color = 'white';
+        templateBtn.style.borderColor = '#a78bfa';
+        clientBtn.style.background = 'transparent';
+        clientBtn.style.color = '#94a3b8';
+        clientBtn.style.borderColor = '#475569';
+
+        // Hide client selector
+        if (clientSection) clientSection.style.display = 'none';
+
+        // Open client details for manual entry
+        const clientDetailsContent = document.getElementById('client-details-content');
+        const clientDetailsArrow = document.getElementById('client-details-arrow');
+        if (clientDetailsContent) clientDetailsContent.classList.remove('hidden');
+        if (clientDetailsArrow) clientDetailsArrow.style.transform = 'rotate(0deg)';
+
+        // Update label and button
+        if (planNameLabel) planNameLabel.innerHTML = '📋 Template Name <span class="text-red-500">*</span>';
+        if (generateBtn) generateBtn.innerHTML = '📋 Create Template';
+    } else {
+        // Highlight client button
+        clientBtn.style.background = '#0d9488';
+        clientBtn.style.color = 'white';
+        clientBtn.style.borderColor = '#14b8a6';
+        templateBtn.style.background = 'transparent';
+        templateBtn.style.color = '#94a3b8';
+        templateBtn.style.borderColor = '#475569';
+
+        // Show client selector
+        if (clientSection) clientSection.style.display = 'block';
+
+        // Restore label and button
+        if (planNameLabel) planNameLabel.innerHTML = '📝 Plan Name <span class="text-red-500">*</span>';
+        if (generateBtn) generateBtn.innerHTML = '✨ Create Diet Plan';
+    }
+}
+
 function toggleSection(sectionId) {
     const content = document.getElementById(sectionId + '-content');
     const arrow = document.getElementById(sectionId + '-arrow');
@@ -3371,45 +3433,49 @@ async function generateDietPlan() {
     // Clear undo states from previous plan
     clearUndoStates();
 
-    // Get client from selector
+    // Get client from selector (skip in template mode)
     let clientName = 'Client';
     let clientId = null;
+    const isTemplateMode = plannerMode === 'template';
     const clientSelector = document.getElementById('dp_client_selector');
     const selectedValue = clientSelector.value;
 
-    if (!selectedValue || selectedValue === "") {
-        // No client selected
-        alert('⚠️ Please select a client from the dropdown before generating a plan.');
-        button.disabled = false;
-        resultDiv.innerHTML = '';
-        return;
+    if (!isTemplateMode) {
+        if (!selectedValue || selectedValue === "") {
+            alert('⚠️ Please select a client from the dropdown before generating a plan.');
+            button.disabled = false;
+            resultDiv.innerHTML = '';
+            return;
+        }
+
+        clientId = parseInt(selectedValue);
+        if (isNaN(clientId) || clientId <= 0) {
+            alert('⚠️ Invalid client selection. Please select a valid client from the dropdown.');
+            button.disabled = false;
+            resultDiv.innerHTML = '';
+            return;
+        }
+
+        const client = clientsList.find(c => c.id === clientId);
+        if (!client) {
+            alert('⚠️ Selected client not found. Please refresh the page and try again.');
+            button.disabled = false;
+            resultDiv.innerHTML = '';
+            return;
+        }
+
+        clientName = client.client_name;
+    } else {
+        clientName = 'Template';
     }
 
-    // Parse and validate client ID
-    clientId = parseInt(selectedValue);
-    if (isNaN(clientId) || clientId <= 0) {
-        alert('⚠️ Invalid client selection. Please select a valid client from the dropdown.');
-        button.disabled = false;
-        resultDiv.innerHTML = '';
-        return;
-    }
-
-    // Ensure client exists in the list
-    const client = clientsList.find(c => c.id === clientId);
-    if (!client) {
-        alert('⚠️ Selected client not found. Please refresh the page and try again.');
-        button.disabled = false;
-        resultDiv.innerHTML = '';
-        return;
-    }
-
-    clientName = client.client_name;
-
-    // Validate plan name is provided
+    // Validate plan/template name is provided
     const planNameInput = document.getElementById('dp_plan_name');
     const planName = planNameInput ? planNameInput.value.trim() : '';
     if (!planName) {
-        alert('⚠️ Please enter a name for this meal plan (e.g., "' + clientName + '\'s Cutting Plan").');
+        const nameType = isTemplateMode ? 'template' : 'meal plan';
+        const example = isTemplateMode ? '"High Protein Cutting Template"' : '"' + clientName + '\'s Cutting Plan"';
+        alert('⚠️ Please enter a name for this ' + nameType + ' (e.g., ' + example + ').');
         planNameInput?.focus();
         button.disabled = false;
         resultDiv.innerHTML = '';
@@ -3417,15 +3483,17 @@ async function generateDietPlan() {
         return;
     }
 
-    // Fetch client's favorite meals
-    const clientFavorites = await getClientFavorites(clientId);
+    // Fetch client's favorite meals (skip in template mode)
     let favoriteMealsText = '';
-    if (clientFavorites.length > 0) {
-        const favoriteMealsList = clientFavorites.slice(0, 10).map(f => {
-            return `- ${f.meal_name} (${f.meal_type || 'meal'}: ${f.calories || '?'} cal, ${f.protein || '?'}g protein)`;
-        }).join('\n');
-        favoriteMealsText = `\n\nCLIENT'S FAVORITE MEALS (try to include 1-2 of these or similar variations):\n${favoriteMealsList}`;
-        console.log(`Loaded ${clientFavorites.length} favorites for client ${clientId}`);
+    if (!isTemplateMode && clientId) {
+        const clientFavorites = await getClientFavorites(clientId);
+        if (clientFavorites.length > 0) {
+            const favoriteMealsList = clientFavorites.slice(0, 10).map(f => {
+                return `- ${f.meal_name} (${f.meal_type || 'meal'}: ${f.calories || '?'} cal, ${f.protein || '?'}g protein)`;
+            }).join('\n');
+            favoriteMealsText = `\n\nCLIENT'S FAVORITE MEALS (try to include 1-2 of these or similar variations):\n${favoriteMealsList}`;
+            console.log(`Loaded ${clientFavorites.length} favorites for client ${clientId}`);
+        }
     }
 
     const gender = document.getElementById('dp_gender').value;
@@ -3601,9 +3669,13 @@ async function generateDietPlan() {
 
         displayDietPlan(allDays);
 
-        const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
-        if (!saveSuccess) {
-            showSaveRetryButton();
+        if (isTemplateMode) {
+            await autoSaveAsTemplate(lastPlanQuery, planName);
+        } else {
+            const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+            if (!saveSuccess) {
+                showSaveRetryButton();
+            }
         }
 
         button.disabled = false;
@@ -3648,9 +3720,13 @@ async function generateDietPlan() {
 
             displayDietPlan(allDays);
 
-            const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
-            if (!saveSuccess) {
-                showSaveRetryButton();
+            if (isTemplateMode) {
+                await autoSaveAsTemplate(lastPlanQuery, planName);
+            } else {
+                const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+                if (!saveSuccess) {
+                    showSaveRetryButton();
+                }
             }
 
             button.disabled = false;
@@ -4496,12 +4572,14 @@ Return JSON: {"type":"${meal.type}","name":"Meal Name with portions","ingredient
     displayDietPlan(allDays);
 
     // Save plan to coach's history (only if valid)
-    // Must await to ensure planId is set before user can interact with Submit button
-    const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
-
-    // Show save status to user
-    if (!saveSuccess) {
-        showSaveRetryButton();
+    if (isTemplateMode) {
+        await autoSaveAsTemplate(lastPlanQuery, planName);
+    } else {
+        // Must await to ensure planId is set before user can interact with Submit button
+        const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+        if (!saveSuccess) {
+            showSaveRetryButton();
+        }
     }
 
     button.disabled = false;
@@ -4754,19 +4832,32 @@ function displayDietPlan(multiDayData) {
     `;
 
     // Plan Status Banner and Submit Button
-    planHTML += `
-        <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <span style="font-size: 14px; font-weight: 600; color: #92400e;">📝 Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
+    if (plannerMode === 'template') {
+        planHTML += `
+            <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #ede9fe; border-radius: 8px; border: 2px solid #8b5cf6;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: 14px; font-weight: 600; color: #5b21b6;">📋 Template Mode</span>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #5b21b6;">This plan has been saved as a template. You can edit meals below, then use "Save as Template" to update.</p>
+                    </div>
                 </div>
-                <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                    ✅ Submit to Client
-                </button>
             </div>
-        </div>
-    `;
+        `;
+    } else {
+        planHTML += `
+            <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: 14px; font-weight: 600; color: #92400e;">📝 Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
+                    </div>
+                    <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                        ✅ Submit to Client
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 
     planHTML += `
         <div class="flex gap-2 mt-4 flex-wrap">
@@ -5026,8 +5117,12 @@ async function saveCoachPlan(planData, clientName) {
         return false;
     }
 
-    // Validate that clientId exists and is valid
+    // Validate that clientId exists and is valid (skip in template mode)
     if (!planData.clientId || isNaN(planData.clientId) || planData.clientId <= 0) {
+        if (plannerMode === 'template') {
+            console.log(`📋 [Save #${attemptId}] Template mode - skipping client save (no clientId needed)`);
+            return true; // Not an error in template mode
+        }
         console.error(`❌ [Save #${attemptId}] Cannot save plan: Invalid or missing clientId`, planData.clientId);
         console.warn(`⚠️ [Save #${attemptId}] Plan not saved: No valid client ID. Select a client to enable saving.`);
         return false;
@@ -9201,6 +9296,53 @@ async function loadTemplatesList() {
     } catch (error) {
         console.error('Error loading templates:', error);
         select.innerHTML = '<option value="">Error loading templates</option>';
+    }
+}
+
+// Auto-save as template (called automatically in template mode after plan generation)
+async function autoSaveAsTemplate(planQuery, templateName) {
+    if (!planQuery.currentPlan || planQuery.currentPlan.length === 0) {
+        console.warn('No plan data to save as template');
+        return;
+    }
+
+    if (!currentCoach || !currentCoach.id) {
+        alert('Please log in to save templates.');
+        return;
+    }
+
+    const planData = planQuery.currentPlan.map(day => ({
+        day: day.day,
+        plan: day.plan.map(meal => ({
+            type: meal.type,
+            name: meal.name,
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fat: meal.fat,
+            ingredients: meal.ingredients,
+            ingredientData: meal.ingredientData || null,
+            instructions: meal.instructions,
+            isCustom: meal.isCustom || false
+        }))
+    }));
+
+    try {
+        const data = await apiPost(TEMPLATES_ENDPOINT, {
+            coachId: currentCoach.id,
+            name: templateName,
+            description: '',
+            mealsStructure: planQuery.meals,
+            macroPreference: planQuery.macroPreference,
+            preference: planQuery.preference,
+            planData: planData
+        });
+        console.log('Template auto-saved:', data);
+        alert(`Template "${templateName}" saved successfully!`);
+        await loadTemplatesList();
+    } catch (error) {
+        console.error('Error auto-saving template:', error);
+        alert('Failed to save template. Please try again.');
     }
 }
 
