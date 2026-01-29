@@ -345,15 +345,17 @@ function Recipes() {
           </ul>
         ` : ''}
 
-        ${selectedRecipe.instructions ? `
+        ${selectedRecipe.instructions ? (() => {
+          const cleanInstr = selectedRecipe.instructions.replace(/^Instructions:\s*/i, '');
+          return `
           <h2>Instructions</h2>
           <div class="instructions">
-            ${(selectedRecipe.instructions.includes('\n')
-              ? selectedRecipe.instructions.split('\n').filter(i => i.trim()).map(step => `<p>${step}</p>`).join('')
-              : `<p>${selectedRecipe.instructions}</p>`
+            ${(cleanInstr.includes('\n')
+              ? cleanInstr.split('\n').filter(i => i.trim()).map(step => `<p>${step}</p>`).join('')
+              : `<p>${cleanInstr}</p>`
             )}
           </div>
-        ` : ''}
+        `;})() : ''}
 
         <div class="footer">
           ${selectedRecipe.source_url ? `Source: ${selectedRecipe.source_url}<br>` : ''}
@@ -607,12 +609,14 @@ function Recipes() {
                 <div className="recipe-section">
                   <h4 className="recipe-section-title">Instructions</h4>
                   <div className="recipe-instructions">
-                    {selectedRecipe.instructions.includes('\n')
-                      ? selectedRecipe.instructions.split('\n').filter(i => i.trim()).map((step, idx) => (
-                          <p key={idx} className="recipe-step">{step}</p>
-                        ))
-                      : <p>{selectedRecipe.instructions}</p>
-                    }
+                    {(() => {
+                      const cleanInstructions = selectedRecipe.instructions.replace(/^Instructions:\s*/i, '');
+                      return cleanInstructions.includes('\n')
+                        ? cleanInstructions.split('\n').filter(i => i.trim()).map((step, idx) => (
+                            <p key={idx} className="recipe-step">{step}</p>
+                          ))
+                        : <p>{cleanInstructions}</p>;
+                    })()}
                   </div>
                 </div>
               )}
