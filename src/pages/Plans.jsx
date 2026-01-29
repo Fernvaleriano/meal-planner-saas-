@@ -1297,15 +1297,19 @@ Return ONLY valid JSON:
   };
 
   const handleViewRecipe = (meal) => {
-    // For now show ingredients and instructions in an alert
-    // Later this could be a proper modal
-    const recipe = `📖 ${meal.name}\n\n`;
+    // Detect if the meal name is just raw ingredients (e.g. "50g Oats, 200ml Water, ...")
+    // If so, skip showing it as a header to avoid displaying ingredients twice
+    const nameIsIngredients = /^\d+\s*(g|oz|ml|cups?|tbsp|tsp|scoop|whole|medium|large|small|slice)/i.test((meal.name || '').trim());
+    const header = (!nameIsIngredients && meal.name) ? `📖 ${meal.name}\n\n` : '';
+
     const ingredients = meal.ingredients?.length
       ? `Ingredients:\n${meal.ingredients.map(i => `• ${typeof i === 'string' ? i : `${i.amount || ''} ${i.name || i}`}`).join('\n')}\n\n`
       : '';
-    const instructions = meal.instructions ? `Instructions:\n${meal.instructions}` : 'No recipe available for this meal.';
+    const rawInstructions = meal.instructions || '';
+    const cleanedInstructions = rawInstructions.replace(/^Instructions:\s*/i, '');
+    const instructions = cleanedInstructions ? `Instructions:\n${cleanedInstructions}` : 'No recipe available for this meal.';
 
-    alert(recipe + ingredients + instructions);
+    alert(header + ingredients + instructions);
   };
 
   // Undo last meal change
