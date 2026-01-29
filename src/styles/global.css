@@ -16155,6 +16155,8 @@ a.nav-left {
 
 .modal-time-boxes-wrapper .modal-time-boxes {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
     padding: 0;
 }
 
