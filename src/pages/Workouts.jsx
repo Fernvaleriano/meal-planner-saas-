@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
 import ExerciseCard from '../components/workout/ExerciseCard';
@@ -149,6 +150,7 @@ const getMonthName = (date) => {
 
 function Workouts() {
   const { clientData, user } = useAuth();
+  const navigate = useNavigate();
   const { showError } = useToast();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
@@ -1086,7 +1088,9 @@ function Workouts() {
           workoutName: todayWorkout?.name || 'Workout',
           status: 'in_progress'
         });
-        if (res?.log) {
+        if (res?.workout) {
+          setWorkoutLog(res.workout);
+        } else if (res?.log) {
           setWorkoutLog(res.log);
         }
       } catch (err) {
@@ -1095,29 +1099,74 @@ function Workouts() {
     }
   }, [workoutLog, clientData?.id, todayWorkout, selectedDate]);
 
-  // Complete workout
+  // Complete workout - saves exercise_logs with all sets/reps/weight data
   const handleCompleteWorkout = useCallback(async () => {
     if (!workoutLog?.id) return;
 
     try {
+      // Gather current exercises with their set data from todayWorkout
+      const workout = todayWorkoutRef.current;
+      let currentExercises = [];
+      if (workout?.workout_data) {
+        if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+          currentExercises = workout.workout_data.exercises;
+        } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+          const dayIndex = workout.day_index || 0;
+          const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+          currentExercises = workout.workout_data.days[safeIndex]?.exercises || [];
+        }
+      }
+
+      // Build exercise logs with set data for history tracking
+      const exerciseData = currentExercises
+        .filter(ex => ex && ex.id && ex.name)
+        .map((ex, index) => {
+          // Get sets array - could be array of objects or a number
+          const setsArray = Array.isArray(ex.sets) ? ex.sets : [];
+          return {
+            exerciseId: ex.id,
+            exerciseName: ex.name,
+            order: index + 1,
+            sets: setsArray.map((s, sIdx) => ({
+              setNumber: sIdx + 1,
+              reps: s?.reps || 0,
+              weight: s?.weight || 0,
+              weightUnit: s?.weightUnit || 'kg',
+              rpe: s?.rpe || null,
+              restSeconds: s?.restSeconds || 60,
+              completed: s?.completed || false
+            })),
+            notes: ex.notes || null
+          };
+        });
+
+      // Calculate duration
+      const durationMinutes = workoutStartTime
+        ? Math.round((new Date() - new Date(workoutStartTime)) / 60000)
+        : null;
+
       await apiPut('/.netlify/functions/workout-logs', {
-        logId: workoutLog.id,
+        workoutId: workoutLog.id,
         status: 'completed',
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
+        durationMinutes,
+        exercises: exerciseData
       });
       // Show summary modal
       setShowSummary(true);
     } catch (err) {
       console.error('Error completing workout:', err);
     }
-  }, [workoutLog?.id]);
+  }, [workoutLog?.id, workoutStartTime]);
 
   // Fetch workout history
   const fetchWorkoutHistory = useCallback(async () => {
     if (!clientData?.id) return;
     try {
       const res = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&limit=20`);
-      if (res?.logs) {
+      if (res?.workouts) {
+        setWorkoutHistory(res.workouts);
+      } else if (res?.logs) {
         setWorkoutHistory(res.logs);
       }
     } catch (err) {
@@ -1378,8 +1427,7 @@ function Workouts() {
                   className="menu-item"
                   onClick={() => {
                     setShowHeroMenu(false);
-                    fetchWorkoutHistory();
-                    setShowHistory(true);
+                    navigate('/workout-history');
                   }}
                 >
                   <History size={18} />

@@ -10,6 +10,7 @@ import Recipes from './pages/Recipes';
 import CheckIn from './pages/CheckIn';
 import Progress from './pages/Progress';
 import Feed from './pages/Feed';
+import WorkoutHistory from './pages/WorkoutHistory';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
@@ -58,6 +59,7 @@ function App() {
         <Route path="check-in" element={<CheckIn />} />
         <Route path="progress" element={<Progress />} />
         <Route path="feed" element={<Feed />} />
+        <Route path="workout-history" element={<WorkoutHistory />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

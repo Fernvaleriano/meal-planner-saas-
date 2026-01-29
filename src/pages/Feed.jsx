@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send } from 'lucide-react';
+import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send, Dumbbell, TrendingUp, Award, Clock, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -268,10 +268,285 @@ function MealCard({ meal, coachId, onUpdate }) {
   );
 }
 
+// Workout feed card component - shows workout completions
+function WorkoutFeedCard({ workout, coachId, onUpdate }) {
+  const [showComments, setShowComments] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
+  const [exercisesExpanded, setExercisesExpanded] = useState(false);
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const [localReaction, setLocalReaction] = useState(
+    workout.reactions?.length > 0 ? workout.reactions[0].reaction : null
+  );
+  const [localComments, setLocalComments] = useState(workout.comments || []);
+
+  const workoutId = workout.id || workout.workoutId;
+
+  const handleReaction = async (reaction) => {
+    if (loading || !workoutId) return;
+    setLoading(true);
+
+    try {
+      if (localReaction === reaction) {
+        await apiDelete('/.netlify/functions/react-to-diary-entry', {
+          entryId: workoutId,
+          coachId,
+          entryType: 'workout'
+        });
+        setLocalReaction(null);
+      } else {
+        await apiPost('/.netlify/functions/react-to-diary-entry', {
+          entryId: workoutId,
+          coachId,
+          clientId: workout.clientId,
+          reaction,
+          entryType: 'workout'
+        });
+        setLocalReaction(reaction);
+      }
+    } catch (err) {
+      console.error('Error saving reaction:', err);
+    } finally {
+      setLoading(false);
+      setShowReactions(false);
+    }
+  };
+
+  const handleComment = async (e) => {
+    e.preventDefault();
+    if (!comment.trim() || loading || !workoutId) return;
+
+    setLoading(true);
+    try {
+      const result = await apiPost('/.netlify/functions/comment-on-diary-entry', {
+        entryId: workoutId,
+        clientId: workout.clientId,
+        coachId,
+        comment: comment.trim(),
+        authorType: 'coach',
+        entryType: 'workout'
+      });
+
+      if (result.success) {
+        setLocalComments([...localComments, {
+          ...result.comment,
+          authorType: 'coach',
+          authorName: 'You'
+        }]);
+        setComment('');
+      }
+    } catch (err) {
+      console.error('Error adding comment:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const volumeChange = workout.volumeChangePercent;
+  const newPRs = workout.newPRs || 0;
+
+  return (
+    <div className="workout-feed-card">
+      {/* Header with client info */}
+      <div className="workout-feed-header">
+        <div className="feed-client-info">
+          {workout.clientPhoto ? (
+            <img src={workout.clientPhoto} alt="" className="feed-client-avatar" />
+          ) : (
+            <div className="feed-client-avatar-placeholder">
+              <User size={20} />
+            </div>
+          )}
+          <div className="feed-client-details">
+            <span className="feed-client-name">{workout.clientName}</span>
+            <div className="feed-meal-meta">
+              <span
+                className="feed-meal-type-badge"
+                style={{ backgroundColor: '#6366f120', color: '#6366f1' }}
+              >
+                <Dumbbell size={14} />
+                Workout
+              </span>
+              <span className="feed-meal-time">{formatRelativeTime(workout.completedAt || workout.date)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Workout name and date */}
+      <div className="feed-meal-content">
+        <h3 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 600 }}>
+          {workout.workoutName || 'Workout'}
+        </h3>
+
+        {/* Stats row */}
+        <div className="workout-feed-stats">
+          {workout.duration != null && (
+            <div className="workout-feed-stat">
+              <Clock size={14} />
+              <span>{workout.duration} min</span>
+            </div>
+          )}
+          {workout.totalVolume != null && (
+            <div className="workout-feed-stat">
+              <Zap size={14} />
+              <span>{workout.totalVolume.toLocaleString()} lbs volume</span>
+            </div>
+          )}
+          {workout.totalSets != null && (
+            <div className="workout-feed-stat">
+              <Dumbbell size={14} />
+              <span>{workout.totalSets} sets</span>
+            </div>
+          )}
+        </div>
+
+        {/* Improvement indicators */}
+        {(volumeChange != null || newPRs > 0) && (
+          <div className="workout-feed-improvements">
+            {volumeChange != null && (
+              <span className={volumeChange >= 0 ? 'improvement-positive' : 'improvement-negative'}>
+                <TrendingUp size={14} />
+                {volumeChange >= 0 ? '+' : ''}{volumeChange.toFixed(1)}% volume
+              </span>
+            )}
+            {newPRs > 0 && (
+              <span className="improvement-positive">
+                <Award size={14} />
+                {newPRs} new PR{newPRs !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Exercises list (collapsible) */}
+        {workout.exercises && workout.exercises.length > 0 && (
+          <>
+            <button
+              className="feed-meal-toggle"
+              onClick={() => setExercisesExpanded(!exercisesExpanded)}
+              aria-expanded={exercisesExpanded}
+            >
+              <span className="feed-meal-item-count">
+                {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+              </span>
+              {exercisesExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+
+            {exercisesExpanded && (
+              <div className="workout-feed-exercises">
+                {workout.exercises.map((exercise, idx) => (
+                  <div key={exercise.id || idx} className="workout-feed-exercise">
+                    <span className="feed-item-name">{exercise.name}</span>
+                    {exercise.maxWeight != null && (
+                      <span className="feed-item-calories">{exercise.maxWeight} lbs max</span>
+                    )}
+                    {exercise.isPR && (
+                      <span className="improvement-positive" style={{ fontSize: '0.75rem', marginLeft: 4 }}>
+                        <Award size={12} /> PR
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Interaction buttons - same as MealCard */}
+      <div className="feed-entry-actions">
+        <div className="feed-reactions-container">
+          {localReaction ? (
+            <button
+              className="feed-reaction-btn active"
+              onClick={() => setShowReactions(!showReactions)}
+            >
+              <span className="reaction-emoji">{localReaction}</span>
+            </button>
+          ) : (
+            <button
+              className="feed-reaction-btn"
+              onClick={() => setShowReactions(!showReactions)}
+            >
+              <span className="reaction-add">+</span>
+              React
+            </button>
+          )}
+
+          {showReactions && (
+            <div className="feed-reactions-picker">
+              {REACTIONS.map(emoji => (
+                <button
+                  key={emoji}
+                  className={`feed-reaction-option ${localReaction === emoji ? 'selected' : ''}`}
+                  onClick={() => handleReaction(emoji)}
+                  disabled={loading}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          className={`feed-comment-btn ${localComments.length > 0 ? 'has-comments' : ''}`}
+          onClick={() => setShowComments(!showComments)}
+        >
+          <MessageCircle size={18} />
+          {localComments.length > 0 && (
+            <span className="comment-count">{localComments.length}</span>
+          )}
+          Comment
+        </button>
+      </div>
+
+      {/* Comments section */}
+      {showComments && (
+        <div className="feed-comments-section">
+          {localComments.length > 0 && (
+            <div className="feed-comments-list">
+              {localComments.map((c, idx) => (
+                <div key={c.id || idx} className={`feed-comment ${c.authorType}`}>
+                  <span className="feed-comment-author">
+                    {c.authorType === 'coach' ? 'You' : workout.clientName}
+                  </span>
+                  <span className="feed-comment-text">{c.comment}</span>
+                  <span className="feed-comment-time">
+                    {formatRelativeTime(c.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <form className="feed-comment-input" onSubmit={handleComment}>
+            <input
+              type="text"
+              placeholder="Write a comment..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              disabled={loading}
+              maxLength={500}
+            />
+            <button type="submit" disabled={!comment.trim() || loading}>
+              <Send size={18} />
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Feed() {
   const { user, clientData } = useAuth();
   const navigate = useNavigate();
   const [meals, setMeals] = useState([]);
+  const [workoutFeed, setWorkoutFeed] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(false);
@@ -355,15 +630,58 @@ function Feed() {
     }
   }, [coachId, offset, filterClient, filterMealType, filterDate]);
 
+  // Fetch workout feed data
+  const fetchWorkoutFeed = useCallback(async (reset = false) => {
+    if (!coachId) return;
+
+    if (reset) {
+      setLoading(true);
+      setError(null);
+    }
+
+    try {
+      await ensureFreshSession();
+
+      let url = `/.netlify/functions/coach-workout-feed?coachId=${coachId}&limit=20`;
+      if (filterClient) url += `&clientId=${filterClient}`;
+      if (filterDate) url += `&date=${filterDate}`;
+
+      const result = await apiGet(url);
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setWorkoutFeed(result.workouts || []);
+    } catch (err) {
+      console.error('Feed: Error fetching workout feed:', err);
+      setError(err.message || 'Failed to load workout feed');
+    } finally {
+      setLoading(false);
+    }
+  }, [coachId, filterClient, filterDate]);
+
+  // Fetch all data based on active tab
+  const fetchAll = useCallback(async (reset = true) => {
+    if (activeTab === 'meals') {
+      await fetchFeed(reset);
+    } else if (activeTab === 'workouts') {
+      await fetchWorkoutFeed(reset);
+    } else {
+      // 'all' tab - fetch both in parallel
+      await Promise.all([fetchFeed(reset), fetchWorkoutFeed(reset)]);
+    }
+  }, [activeTab, fetchFeed, fetchWorkoutFeed]);
+
   // Initial fetch
   useEffect(() => {
-    console.log('Feed: useEffect triggered, calling fetchFeed');
-    fetchFeed(true);
+    console.log('Feed: useEffect triggered, calling fetchAll');
+    fetchAll(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coachId, filterClient, filterMealType, filterDate]);
+  }, [coachId, filterClient, filterMealType, filterDate, activeTab]);
 
   // Pull to refresh
-  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(() => fetchFeed(true));
+  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(() => fetchAll(true));
 
   // Load more
   const handleLoadMore = () => {
@@ -388,7 +706,24 @@ function Feed() {
     setShowFilters(false);
   };
 
-  if (loading && meals.length === 0) {
+  // Build merged feed for "all" tab, sorted chronologically
+  const getMergedFeed = () => {
+    const mealItems = meals.map(m => ({
+      type: 'meal',
+      data: m,
+      key: `meal-${m.mealKey}`,
+      date: new Date(m.latestCreatedAt)
+    }));
+    const workoutItems = workoutFeed.map(w => ({
+      type: 'workout',
+      data: w,
+      key: `workout-${w.id || w.workoutId}`,
+      date: new Date(w.completedAt || w.date)
+    }));
+    return [...mealItems, ...workoutItems].sort((a, b) => b.date - a.date);
+  };
+
+  if (loading && meals.length === 0 && workoutFeed.length === 0) {
     return (
       <div className="feed-page">
         <div className="feed-loading">
@@ -415,6 +750,28 @@ function Feed() {
           onClick={() => setShowFilters(!showFilters)}
         >
           <Filter size={20} />
+        </button>
+      </div>
+
+      {/* Tab buttons */}
+      <div className="feed-tabs">
+        <button
+          className={`feed-tab ${activeTab === 'all' ? 'active' : ''}`}
+          onClick={() => setActiveTab('all')}
+        >
+          All
+        </button>
+        <button
+          className={`feed-tab ${activeTab === 'meals' ? 'active' : ''}`}
+          onClick={() => setActiveTab('meals')}
+        >
+          Meals
+        </button>
+        <button
+          className={`feed-tab ${activeTab === 'workouts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('workouts')}
+        >
+          Workouts
         </button>
       </div>
 
@@ -472,26 +829,65 @@ function Feed() {
       {error ? (
         <div className="feed-error">
           <p>Error loading feed: {error}</p>
-          <button onClick={() => fetchFeed(true)}>Try Again</button>
+          <button onClick={() => fetchAll(true)}>Try Again</button>
         </div>
-      ) : meals.length === 0 ? (
+      ) : activeTab === 'meals' && meals.length === 0 ? (
+        <div className="feed-empty">
+          <Calendar size={48} />
+          <h3>No meal activity yet</h3>
+          <p>When your clients log their meals, they'll appear here.</p>
+        </div>
+      ) : activeTab === 'workouts' && workoutFeed.length === 0 ? (
+        <div className="feed-empty">
+          <Dumbbell size={48} />
+          <h3>No workout activity yet</h3>
+          <p>When your clients complete workouts, they'll appear here.</p>
+        </div>
+      ) : activeTab === 'all' && meals.length === 0 && workoutFeed.length === 0 ? (
         <div className="feed-empty">
           <Calendar size={48} />
           <h3>No activity yet</h3>
-          <p>When your clients log their meals, they'll appear here.</p>
+          <p>When your clients log meals or complete workouts, they'll appear here.</p>
         </div>
       ) : (
         <div className="feed-entries">
-          {meals.map(meal => (
+          {activeTab === 'meals' && meals.map(meal => (
             <MealCard
               key={meal.mealKey}
               meal={meal}
               coachId={coachId}
-              onUpdate={() => fetchFeed(true)}
+              onUpdate={() => fetchAll(true)}
             />
           ))}
 
-          {hasMore && (
+          {activeTab === 'workouts' && workoutFeed.map(workout => (
+            <WorkoutFeedCard
+              key={workout.id || workout.workoutId}
+              workout={workout}
+              coachId={coachId}
+              onUpdate={() => fetchAll(true)}
+            />
+          ))}
+
+          {activeTab === 'all' && getMergedFeed().map(item => (
+            item.type === 'meal' ? (
+              <MealCard
+                key={item.key}
+                meal={item.data}
+                coachId={coachId}
+                onUpdate={() => fetchAll(true)}
+              />
+            ) : (
+              <WorkoutFeedCard
+                key={item.key}
+                workout={item.data}
+                coachId={coachId}
+                onUpdate={() => fetchAll(true)}
+              />
+            )
+          ))}
+
+          {hasMore && activeTab !== 'workouts' && (
             <button
               className="feed-load-more"
               onClick={handleLoadMore}
