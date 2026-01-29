@@ -4572,6 +4572,27 @@ function displayDietPlan(multiDayData) {
                 <span>Day ${dayData.day}</span>
                 <button data-action="regenerate-day" data-day-index="${dayIndex}" class="btn btn-secondary text-xs" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem;">🔄 Regenerate Day</button>
             </div>
+            ${(() => {
+                const reminders = [];
+                if (lastPlanQuery.preference && lastPlanQuery.preference.toLowerCase() !== 'omnivore') {
+                    const icon = lastPlanQuery.preference.toLowerCase() === 'vegan' ? '🌱' : lastPlanQuery.preference.toLowerCase() === 'vegetarian' ? '🥬' : lastPlanQuery.preference.toLowerCase() === 'keto' ? '🥑' : '🍽️';
+                    reminders.push('<span style="background:#065f46;color:#d1fae5;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">' + icon + ' ' + lastPlanQuery.preference + '</span>');
+                }
+                if (lastPlanQuery.allergies) {
+                    lastPlanQuery.allergies.split(',').map(a => a.trim()).filter(Boolean).forEach(a => {
+                        reminders.push('<span style="background:#991b1b;color:#fecaca;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">⚠️ ' + a + '</span>');
+                    });
+                }
+                if (lastPlanQuery.dislikedFoods) {
+                    lastPlanQuery.dislikedFoods.split(',').map(d => d.trim()).filter(Boolean).forEach(d => {
+                        reminders.push('<span style="background:#78350f;color:#fde68a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">👎 ' + d + '</span>');
+                    });
+                }
+                if (reminders.length === 0) return '';
+                return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 12px;background:linear-gradient(135deg,#1e293b,#334155);border-radius:8px;margin:4px 8px 8px;">' +
+                    '<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:4px;">⚡ Dietary Reminders</span>' +
+                    reminders.join('') + '</div>';
+            })()}
             <div class="mb-3 p-3 bg-gray-50 rounded-lg">
                 <p class="text-xs font-semibold text-gray-600 mb-2">Day ${dayData.day} Totals:</p>
                 <div class="grid grid-cols-4 gap-2 text-center">
