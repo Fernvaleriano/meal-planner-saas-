@@ -6948,6 +6948,47 @@ function applyPortionAdjustment() {
                 return `${ing.name} (${Math.round(ing.currentGrams)}g)`;
             });
         }
+
+        // Auto-update instructions text with new gram amounts
+        if (updatedMeal.instructions) {
+            let instructions = updatedMeal.instructions;
+            adjustPortionsIngredients.forEach(ing => {
+                const oldG = Math.round(ing.originalGrams);
+                const newG = Math.round(ing.currentGrams);
+                if (oldG === newG || oldG === 0) return;
+
+                // Match patterns: "200g", "200 g", "200 grams", "200g of"
+                const amountPattern = new RegExp(`\\b${oldG}\\s*(g|grams?)\\b`, 'gi');
+                instructions = instructions.replace(amountPattern, `${newG}$1`);
+
+                // Also match ingredient name with amount in parentheses: "chicken breast (200g)"
+                const parenPattern = new RegExp(`(\\(\\s*)${oldG}(\\s*g\\s*\\))`, 'gi');
+                instructions = instructions.replace(parenPattern, `$1${newG}$2`);
+
+                // Match "200 ml" or "200ml" for liquid ingredients
+                const mlPattern = new RegExp(`\\b${oldG}\\s*(ml|milliliters?)\\b`, 'gi');
+                instructions = instructions.replace(mlPattern, `${newG}$1`);
+
+                // Match "200 oz" or "200oz"
+                const ozPattern = new RegExp(`\\b${oldG}\\s*(oz|ounces?)\\b`, 'gi');
+                instructions = instructions.replace(ozPattern, `${newG}$1`);
+            });
+            updatedMeal.instructions = instructions;
+        }
+
+        // Also update the meal name if it contains gram amounts
+        if (updatedMeal.name) {
+            let name = updatedMeal.name;
+            adjustPortionsIngredients.forEach(ing => {
+                const oldG = Math.round(ing.originalGrams);
+                const newG = Math.round(ing.currentGrams);
+                if (oldG === newG || oldG === 0) return;
+                // Match "200g" or "(200g)" in meal name
+                const namePattern = new RegExp(`\\b${oldG}(\\s*g)\\b`, 'gi');
+                name = name.replace(namePattern, `${newG}$1`);
+            });
+            updatedMeal.name = name;
+        }
     } else {
         // Whole-meal scale fallback (no ingredientData)
         const mult = adjustPortionsMultiplier;
