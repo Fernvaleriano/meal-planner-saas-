@@ -223,8 +223,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   // Calculate completed sets
   const completedSets = sets.filter(s => s.completed).length;
 
-  // Check if this is a timed/interval exercise
-  const isTimedExercise = exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval';
+  // Check if this is a timed/interval exercise - respect explicit trackingType from workout builder
+  const isTimedExercise = exercise.trackingType === 'time' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval'));
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
