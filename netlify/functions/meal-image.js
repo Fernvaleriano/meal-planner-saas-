@@ -197,12 +197,31 @@ exports.handler = async (event, context) => {
       const imageKey = normalizeMealName(mealName);
       console.log(`Looking up image for "${mealName}" with key: ${imageKey}`);
 
-      // Check if image exists in database
+      // Check if image exists in database by normalized name
       let { data: existingImage, error } = await supabase
         .from('meal_images')
         .select('*')
         .eq('normalized_name', imageKey)
         .single();
+
+      // Fallback: search by original meal_name for images stored with old key format
+      if (!existingImage) {
+        const { data: fallbackImage } = await supabase
+          .from('meal_images')
+          .select('*')
+          .eq('meal_name', mealName)
+          .limit(1)
+          .single();
+
+        if (fallbackImage) {
+          existingImage = fallbackImage;
+          // Self-heal: update the record to use the new normalized key
+          await supabase
+            .from('meal_images')
+            .update({ normalized_name: imageKey })
+            .eq('id', fallbackImage.id);
+        }
+      }
 
       if (existingImage) {
         return {
@@ -254,6 +273,25 @@ exports.handler = async (event, context) => {
         .select('*')
         .eq('normalized_name', imageKey)
         .single();
+
+      // Fallback: search by original meal_name for images stored with old key format
+      if (!existingImage) {
+        const { data: fallbackImage } = await supabase
+          .from('meal_images')
+          .select('*')
+          .eq('meal_name', mealName)
+          .limit(1)
+          .single();
+
+        if (fallbackImage) {
+          existingImage = fallbackImage;
+          // Self-heal: update the record to use the new normalized key
+          await supabase
+            .from('meal_images')
+            .update({ normalized_name: imageKey })
+            .eq('id', fallbackImage.id);
+        }
+      }
 
       if (existingImage) {
         // If regenerate flag is set, delete the old image first

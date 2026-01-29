@@ -82,11 +82,11 @@ exports.handler = async (event, context) => {
       uniqueKeys.add(key);
     });
 
-    // Fetch all matching images in one query
+    // Fetch all matching images in one query by normalized name
     const allKeys = [...uniqueKeys];
     const { data: images, error } = await supabase
       .from('meal_images')
-      .select('normalized_name, image_url, meal_name')
+      .select('id, normalized_name, image_url, meal_name')
       .in('normalized_name', allKeys);
 
     if (error) {
@@ -99,6 +99,34 @@ exports.handler = async (event, context) => {
     (images || []).forEach(img => {
       imageMap[img.normalized_name] = img.image_url;
     });
+
+    // Fallback: for any meals not found by normalized key, try by original meal_name
+    const missingMealNames = mealNames.filter(name => !imageMap[mealKeyMap[name]]);
+    if (missingMealNames.length > 0) {
+      const { data: fallbackImages } = await supabase
+        .from('meal_images')
+        .select('id, normalized_name, image_url, meal_name')
+        .in('meal_name', missingMealNames);
+
+      if (fallbackImages && fallbackImages.length > 0) {
+        // Map fallback results and self-heal their normalized_name
+        const updates = [];
+        fallbackImages.forEach(img => {
+          const newKey = normalizeMealName(img.meal_name);
+          if (!imageMap[newKey]) {
+            imageMap[newKey] = img.image_url;
+          }
+          // Queue self-heal update if the key changed
+          if (img.normalized_name !== newKey) {
+            updates.push({ id: img.id, normalized_name: newKey });
+          }
+        });
+        // Self-heal records in background (don't await)
+        updates.forEach(u => {
+          supabase.from('meal_images').update({ normalized_name: u.normalized_name }).eq('id', u.id).then(() => {});
+        });
+      }
+    }
 
     // Build response mapping meal names to image URLs
     const results = {};
