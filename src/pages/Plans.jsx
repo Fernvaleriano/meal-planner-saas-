@@ -1165,11 +1165,12 @@ Return ONLY valid JSON:
   // Generate auto meal name from ingredients
   const getAutoMealName = () => {
     if (selectedIngredients.length === 0) return '';
-    return selectedIngredients.map(ing => {
-      const grams = Math.round(ing.quantityGrams || ing.quantity);
-      const shortName = ing.name.split(',')[0].trim();
-      return ing.selectedUnit === 'g' ? `${grams}g ${shortName}` : `${ing.quantity} ${ing.selectedUnit} ${shortName}`;
-    }).join(', ');
+    // Build a readable meal name from the main ingredients (names only, no quantities)
+    const names = selectedIngredients
+      .map(ing => ing.name.split(',')[0].trim())
+      .filter(Boolean);
+    if (names.length <= 2) return names.join(' & ');
+    return names.slice(0, 2).join(', ') + ' + more';
   };
 
   // Load saved meals from database (coach-level library)
@@ -1350,16 +1351,23 @@ Return ONLY valid JSON:
   };
 
   const handleViewRecipe = (meal) => {
-    // For now show ingredients and instructions in an alert
-    // Later this could be a proper modal
-    const recipe = `📖 ${meal.name}\n\n`;
-    const ingredients = meal.ingredients?.length
+    // Detect if the meal name is just raw ingredients (e.g. "50g Oats, 200ml Water, ...")
+    // by checking if it starts with a quantity pattern
+    const nameIsIngredients = /^\d+\s*(g|oz|ml|cups?|tbsp|tsp|scoop|whole|medium|large|small|slice)/i.test((meal.name || '').trim());
+
+    const hasIngredientsList = Array.isArray(meal.ingredients) && meal.ingredients.length > 0;
+
+    // Only show name as header if it's a real meal name, not a raw ingredient dump
+    const header = (!nameIsIngredients && meal.name) ? `📖 ${meal.name}\n\n` : '';
+
+    const ingredients = hasIngredientsList
       ? `Ingredients:\n${meal.ingredients.map(i => `• ${typeof i === 'string' ? i : `${i.amount || ''} ${i.name || i}`}`).join('\n')}\n\n`
       : '';
+
     const rawInstructions = meal.instructions ? meal.instructions.replace(/^Instructions:\s*/i, '') : '';
     const instructions = rawInstructions ? `Instructions:\n${rawInstructions}` : 'No recipe available for this meal.';
 
-    alert(recipe + ingredients + instructions);
+    alert(header + ingredients + instructions);
   };
 
   // Undo last meal change
