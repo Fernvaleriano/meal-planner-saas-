@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Camera, Upload, ImageOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -88,8 +88,6 @@ function Plans() {
   // Meal image loading state
   const [mealImageLoading, setMealImageLoading] = useState(false);
   const [mealImageUrl, setMealImageUrl] = useState(null);
-  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
-  const photoInputRef = useRef(null);
 
   // Undo state management
   const [previousMealStates, setPreviousMealStates] = useState(() => {
@@ -108,15 +106,9 @@ function Plans() {
     } catch (e) { return {}; }
   });
 
-  // Meal images cache for cards — only coach-selected images
+  // Meal images cache for cards
   const [mealImages, setMealImages] = useState(() => {
     try {
-      // Clear legacy auto-assigned image cache (one-time migration)
-      if (!localStorage.getItem('mealImageCacheCleared')) {
-        localStorage.removeItem('mealImageCache');
-        localStorage.setItem('mealImageCacheCleared', '1');
-        return {};
-      }
       const stored = localStorage.getItem('mealImageCache');
       return stored ? JSON.parse(stored) : {};
     } catch (e) { return {}; }
@@ -271,25 +263,37 @@ function Plans() {
     if (!planToLoad) return;
 
     const days = getPlanDays(planToLoad);
+    const mealNames = [];
     const cachedImageUrls = {};
     let needsUpdate = false;
 
-    // Apply any locally cached images to meals that already had one set by the coach
+    // Collect meal names that need fetching AND apply cached images
     days.forEach(day => {
       (day.plan || []).forEach(meal => {
-        if (meal.name && !meal.image_url && mealImages[meal.name]) {
-          cachedImageUrls[meal.name] = mealImages[meal.name];
-          needsUpdate = true;
+        if (meal.name) {
+          // Check if we have a cached image for this meal
+          if (mealImages[meal.name]) {
+            // Apply cached image if meal doesn't have one
+            if (!meal.image_url) {
+              cachedImageUrls[meal.name] = mealImages[meal.name];
+              needsUpdate = true;
+            }
+          } else {
+            // Need to fetch this image
+            mealNames.push(meal.name);
+          }
         }
       });
     });
 
+    // First, apply any cached images immediately (with proper immutable update)
     if (needsUpdate) {
       setSelectedPlan(prevPlan => {
         if (!prevPlan) return prevPlan;
         const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
         const prevDays = getPlanDays(prevPlan);
 
+        // Deep clone and update each day/meal
         const updatedDays = prevDays.map(day => ({
           ...day,
           plan: (day.plan || []).map(meal => ({
@@ -306,7 +310,44 @@ function Plans() {
         return updatedPlan;
       });
     }
-    // Images are no longer auto-fetched/generated — coaches choose photos via the meal modal
+
+    // Then fetch any missing images
+    if (mealNames.length === 0) return;
+
+    try {
+      const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames });
+      if (response.images) {
+        const newImages = { ...mealImages, ...response.images };
+        setMealImages(newImages);
+        localStorage.setItem('mealImageCache', JSON.stringify(newImages));
+
+        // Update the meals with their new image URLs (with proper immutable update)
+        setSelectedPlan(prevPlan => {
+          if (!prevPlan) return prevPlan;
+
+          const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
+          const prevDays = getPlanDays(prevPlan);
+
+          // Deep clone and update each day/meal
+          const updatedDays = prevDays.map(day => ({
+            ...day,
+            plan: (day.plan || []).map(meal => ({
+              ...meal,
+              image_url: response.images[meal.name] || meal.image_url
+            }))
+          }));
+
+          if (updatedPlan.plan_data.currentPlan) {
+            updatedPlan.plan_data.currentPlan = updatedDays;
+          } else if (updatedPlan.plan_data.days) {
+            updatedPlan.plan_data.days = updatedDays;
+          }
+          return updatedPlan;
+        });
+      }
+    } catch (err) {
+      console.error('Error loading meal images:', err);
+    }
   };
 
   // Refresh voice note URLs (signed URLs expire, so we need fresh ones)
@@ -379,31 +420,9 @@ function Plans() {
     });
   };
 
-  // Strip old auto-assigned images (one-time) and refresh voice note URLs when plan is selected
+  // Load meal images and refresh voice note URLs when plan is selected
   useEffect(() => {
     if (!selectedPlan) return;
-
-    // One-time migration: clear auto-assigned image_url from all meals
-    // (coaches now choose photos manually via the meal modal)
-    const migrationKey = `imagesCleared_${selectedPlan.id}`;
-    if (!localStorage.getItem(migrationKey)) {
-      const days = getPlanDays(selectedPlan);
-      let hadImages = false;
-      days.forEach(day => {
-        (day.plan || []).forEach(meal => {
-          if (meal.image_url) {
-            hadImages = true;
-            delete meal.image_url;
-          }
-        });
-      });
-      localStorage.setItem(migrationKey, '1');
-      if (hadImages) {
-        setSelectedPlan({ ...selectedPlan });
-        savePlanToDatabase(selectedPlan);
-      }
-    }
-
     loadMealImagesForPlan(selectedPlan);
     refreshVoiceNoteUrls(selectedPlan);
   }, [selectedPlan?.id]);
@@ -515,11 +534,32 @@ function Plans() {
   };
 
   // Open meal detail modal
-  const openMealModal = (meal, dayIdx, mealIdx) => {
+  const openMealModal = async (meal, dayIdx, mealIdx) => {
     setSelectedMeal({ ...meal, dayIdx, mealIdx });
     setShowMealModal(true);
+
+    // Reset image state and fetch new image
     setMealImageUrl(meal.image_url || null);
-    setMealImageLoading(false);
+
+    // If no image_url, try to fetch/generate one
+    if (!meal.image_url) {
+      setMealImageLoading(true);
+      try {
+        const response = await apiPost('/.netlify/functions/meal-image', {
+          mealName: meal.name
+        });
+        if (response?.imageUrl) {
+          setMealImageUrl(response.imageUrl);
+          // Update the meal object in the plan data for caching
+          meal.image_url = response.imageUrl;
+        }
+      } catch (err) {
+        console.error('Error fetching meal image:', err);
+        // Fail silently - image is optional
+      } finally {
+        setMealImageLoading(false);
+      }
+    }
   };
 
   // Close meal modal
@@ -528,104 +568,6 @@ function Plans() {
     setSelectedMeal(null);
     setMealImageUrl(null);
     setMealImageLoading(false);
-    setShowPhotoMenu(false);
-  };
-
-  // Update a meal's image_url in the plan and save
-  const updateMealImage = async (imageUrl) => {
-    if (!selectedMeal || !selectedPlan) return;
-    const { dayIdx, mealIdx } = selectedMeal;
-
-    setMealImageUrl(imageUrl);
-
-    // Cache locally
-    if (imageUrl && selectedMeal.name) {
-      const newImages = { ...mealImages, [selectedMeal.name]: imageUrl };
-      setMealImages(newImages);
-      localStorage.setItem('mealImageCache', JSON.stringify(newImages));
-    }
-
-    // Update the plan data
-    setSelectedPlan(prevPlan => {
-      if (!prevPlan) return prevPlan;
-      const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
-      const days = [...getPlanDays(updatedPlan)];
-      if (days[dayIdx]?.plan?.[mealIdx]) {
-        days[dayIdx] = { ...days[dayIdx], plan: [...days[dayIdx].plan] };
-        days[dayIdx].plan[mealIdx] = { ...days[dayIdx].plan[mealIdx], image_url: imageUrl };
-      }
-      if (updatedPlan.plan_data.currentPlan) {
-        updatedPlan.plan_data.currentPlan = days;
-      } else {
-        updatedPlan.plan_data.days = days;
-      }
-      savePlanToDatabase(updatedPlan);
-      return updatedPlan;
-    });
-
-    setSelectedMeal(prev => prev ? { ...prev, image_url: imageUrl } : prev);
-  };
-
-  // Handle photo file upload
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedMeal) return;
-    setShowPhotoMenu(false);
-
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be under 5 MB.');
-      return;
-    }
-
-    setMealImageLoading(true);
-    try {
-      // Compress and convert to base64
-      const imageData = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const maxW = 1200;
-            const scale = img.width > maxW ? maxW / img.width : 1;
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8));
-          };
-          img.src = ev.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-
-      const response = await apiPost('/.netlify/functions/upload-meal-photo', {
-        mealName: selectedMeal.name,
-        imageData
-      });
-
-      if (response?.imageUrl) {
-        await updateMealImage(response.imageUrl);
-      }
-    } catch (err) {
-      console.error('Error uploading meal photo:', err);
-      alert('Failed to upload photo. Please try again.');
-    } finally {
-      setMealImageLoading(false);
-      // Reset file input
-      if (photoInputRef.current) photoInputRef.current.value = '';
-    }
-  };
-
-  // Remove the current meal image
-  const handleRemoveImage = async () => {
-    setShowPhotoMenu(false);
-    await updateMealImage(null);
   };
 
   // Toggle favorite - optimistic update for instant response
@@ -822,9 +764,7 @@ Return ONLY valid JSON:
       newMeal.type = newMeal.type || meal.type || meal.meal_type || 'meal';
       newMeal.meal_type = newMeal.type;
       newMeal.name = newMeal.name || 'New Meal';
-      // Strip duplicate "Instructions:" prefix the AI sometimes includes
-      if (newMeal.instructions) newMeal.instructions = newMeal.instructions.replace(/^Instructions:\s*/i, '');
-      // Don't copy old image - it's a different meal now.
+      // Don't copy old image - it's a different meal now. Will fetch new image below.
       newMeal.image_url = null;
 
       // Update the plan with proper immutable updates
@@ -949,8 +889,8 @@ Return ONLY valid JSON:
       revisedMeal.type = revisedMeal.type || meal.type || meal.meal_type || 'meal';
       revisedMeal.meal_type = revisedMeal.type;
       revisedMeal.name = revisedMeal.name || 'Revised Meal';
-      revisedMeal.instructions = (revisedMeal.instructions || meal.instructions || '').replace(/^Instructions:\s*/i, '');
-      // Don't copy old image - meal name may have changed.
+      revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
+      // Don't copy old image - meal name may have changed. Will fetch new image below.
       revisedMeal.image_url = null;
 
       // Use calculated macros from backend, fallback to original if not provided
@@ -1172,12 +1112,11 @@ Return ONLY valid JSON:
   // Generate auto meal name from ingredients
   const getAutoMealName = () => {
     if (selectedIngredients.length === 0) return '';
-    // Build a readable meal name from the main ingredients (names only, no quantities)
-    const names = selectedIngredients
-      .map(ing => ing.name.split(',')[0].trim())
-      .filter(Boolean);
-    if (names.length <= 2) return names.join(' & ');
-    return names.slice(0, 2).join(', ') + ' + more';
+    return selectedIngredients.map(ing => {
+      const grams = Math.round(ing.quantityGrams || ing.quantity);
+      const shortName = ing.name.split(',')[0].trim();
+      return ing.selectedUnit === 'g' ? `${grams}g ${shortName}` : `${ing.quantity} ${ing.selectedUnit} ${shortName}`;
+    }).join(', ');
   };
 
   // Load saved meals from database (coach-level library)
@@ -1358,23 +1297,15 @@ Return ONLY valid JSON:
   };
 
   const handleViewRecipe = (meal) => {
-    // Detect if the meal name is just raw ingredients (e.g. "50g Oats, 200ml Water, ...")
-    // by checking if it starts with a quantity pattern
-    const nameIsIngredients = /^\d+\s*(g|oz|ml|cups?|tbsp|tsp|scoop|whole|medium|large|small|slice)/i.test((meal.name || '').trim());
-
-    const hasIngredientsList = Array.isArray(meal.ingredients) && meal.ingredients.length > 0;
-
-    // Only show name as header if it's a real meal name, not a raw ingredient dump
-    const header = (!nameIsIngredients && meal.name) ? `📖 ${meal.name}\n\n` : '';
-
-    const ingredients = hasIngredientsList
+    // For now show ingredients and instructions in an alert
+    // Later this could be a proper modal
+    const recipe = `📖 ${meal.name}\n\n`;
+    const ingredients = meal.ingredients?.length
       ? `Ingredients:\n${meal.ingredients.map(i => `• ${typeof i === 'string' ? i : `${i.amount || ''} ${i.name || i}`}`).join('\n')}\n\n`
       : '';
+    const instructions = meal.instructions ? `Instructions:\n${meal.instructions}` : 'No recipe available for this meal.';
 
-    const rawInstructions = meal.instructions ? meal.instructions.replace(/^Instructions:\s*/i, '') : '';
-    const instructions = rawInstructions ? `Instructions:\n${rawInstructions}` : 'No recipe available for this meal.';
-
-    alert(header + ingredients + instructions);
+    alert(recipe + ingredients + instructions);
   };
 
   // Undo last meal change
@@ -1646,7 +1577,7 @@ Keep it practical and brief. Format with clear sections.`;
                 </ul>
               </div>
             ` : ''}
-            ${meal.instructions ? `<p><strong>Instructions:</strong> ${meal.instructions.replace(/^Instructions:\s*/i, '')}</p>` : ''}
+            ${meal.instructions ? `<p><strong>Instructions:</strong> ${meal.instructions}</p>` : ''}
           </div>
         `;
       });
@@ -1948,7 +1879,7 @@ Keep it practical and brief. Format with clear sections.`;
                     {meal.instructions && (
                       <div className="meal-instructions">
                         <h4>Instructions</h4>
-                        <p>{meal.instructions.replace(/^Instructions:\s*/i, '')}</p>
+                        <p>{meal.instructions}</p>
                       </div>
                     )}
                     {meal.macros && (
@@ -2155,7 +2086,7 @@ Keep it practical and brief. Format with clear sections.`;
         {showMealModal && selectedMeal && (
           <div className="meal-modal-overlay" onClick={closeMealModal}>
             <div className="meal-modal" onClick={e => e.stopPropagation()}>
-              {/* Meal Image */}
+              {/* Meal Image - only show if we have one */}
               {mealImageLoading ? (
                 <div className="meal-modal-image">
                   <div className="meal-image-loading">
@@ -2164,39 +2095,14 @@ Keep it practical and brief. Format with clear sections.`;
                   </div>
                 </div>
               ) : mealImageUrl ? (
-                <div className="meal-modal-image" onClick={() => setShowPhotoMenu(!showPhotoMenu)}>
+                <div className="meal-modal-image">
                   <img
                     src={mealImageUrl}
                     alt={selectedMeal.name}
                     onError={(e) => { e.target.parentElement.style.display = 'none'; }}
                   />
                 </div>
-              ) : (
-                <div className="meal-modal-image meal-image-placeholder-area" onClick={() => setShowPhotoMenu(!showPhotoMenu)}>
-                  <Camera size={32} />
-                  <span>Tap to add photo</span>
-                </div>
-              )}
-              {/* Photo options menu */}
-              {showPhotoMenu && (
-                <div className="meal-photo-menu">
-                  <button onClick={() => photoInputRef.current?.click()}>
-                    <Upload size={16} /> Upload Photo
-                  </button>
-                  {mealImageUrl && (
-                    <button onClick={handleRemoveImage} className="remove-photo-btn">
-                      <ImageOff size={16} /> Remove Photo
-                    </button>
-                  )}
-                </div>
-              )}
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handlePhotoUpload}
-              />
+              ) : null}
 
               {/* Meal Name */}
               <h2 className="meal-modal-name">{selectedMeal.name}</h2>
