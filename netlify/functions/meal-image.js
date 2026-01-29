@@ -48,73 +48,8 @@ async function ensureBucketExists(supabase) {
   }
 }
 
-// Known proteins for extraction
-const PROTEINS = [
-  'chicken breast', 'chicken', 'ground turkey', 'turkey breast', 'turkey',
-  'ground beef', 'beef', 'sirloin steak', 'sirloin', 'flank steak', 'steak',
-  'salmon', 'cod', 'tilapia', 'tuna', 'shrimp', 'halibut', 'fish',
-  'pork tenderloin', 'pork chop', 'pork',
-  'eggs', 'egg',
-  'greek yogurt', 'cottage cheese', 'whey protein',
-  'lamb chops', 'lamb', 'bison',
-  'tofu', 'tempeh'
-];
-
-// Known carbs for extraction
-const CARBS = [
-  'brown rice', 'white rice', 'rice', 'wild rice',
-  'quinoa', 'oats', 'oatmeal',
-  'sweet potato', 'russet potato', 'potato',
-  'pasta', 'whole wheat pasta', 'whole wheat noodles', 'noodles',
-  'whole wheat bread', 'ezekiel bread', 'bread', 'whole wheat tortilla', 'tortilla',
-  'pearl barley', 'barley',
-  'banana', 'apple', 'strawberries', 'blueberries', 'mixed berries'
-];
-
-// Extract protein + carb key for image matching
-// This allows meals with same protein and carb to share images
-function extractProteinCarbKey(mealName) {
-  const lowerName = mealName
-    .toLowerCase()
-    // Remove portion info in parentheses
-    .replace(/\([^)]*\)/g, '')
-    // Remove numbers and measurements
-    .replace(/\d+\s*(g|oz|ml|cups?|tbsp|tsp|whole|slices?|pieces?|medium|large|small|scoop|scoops)\b/gi, '')
-    .trim();
-
-  // Find the protein (check longer matches first)
-  let foundProtein = null;
-  const sortedProteins = [...PROTEINS].sort((a, b) => b.length - a.length);
-  for (const protein of sortedProteins) {
-    if (lowerName.includes(protein)) {
-      foundProtein = protein.replace(/\s+/g, '_');
-      break;
-    }
-  }
-
-  // Find the carb (check longer matches first)
-  let foundCarb = null;
-  const sortedCarbs = [...CARBS].sort((a, b) => b.length - a.length);
-  for (const carb of sortedCarbs) {
-    if (lowerName.includes(carb)) {
-      foundCarb = carb.replace(/\s+/g, '_');
-      break;
-    }
-  }
-
-  // Build the key
-  if (foundProtein && foundCarb) {
-    return `${foundProtein}_with_${foundCarb}`;
-  } else if (foundProtein) {
-    return foundProtein;
-  } else {
-    // Fallback to full normalization if no protein found
-    return normalizeMealName(mealName);
-  }
-}
-
-// Normalize meal name for consistent lookups (full version, used as fallback)
-// Strips out portion sizes, gram amounts, and numbers to match similar meals
+// Normalize meal name for consistent lookups
+// Strips out portion sizes, gram amounts, and numbers
 function normalizeMealName(mealName) {
   return mealName
     .toLowerCase()
@@ -259,32 +194,15 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Use protein+carb key for matching (allows similar meals to share images)
-      const imageKey = extractProteinCarbKey(mealName);
+      const imageKey = normalizeMealName(mealName);
       console.log(`Looking up image for "${mealName}" with key: ${imageKey}`);
 
-      // Check if image exists in database using the protein+carb key
+      // Check if image exists in database
       let { data: existingImage, error } = await supabase
         .from('meal_images')
         .select('*')
         .eq('normalized_name', imageKey)
         .single();
-
-      // If no match with protein+carb key, try partial match on the key
-      if (!existingImage && imageKey.includes('_with_')) {
-        const proteinOnly = imageKey.split('_with_')[0];
-        const { data: proteinMatch } = await supabase
-          .from('meal_images')
-          .select('*')
-          .like('normalized_name', `${proteinOnly}_with_%`)
-          .limit(1)
-          .single();
-
-        if (proteinMatch) {
-          existingImage = proteinMatch;
-          console.log(`Found protein match: ${proteinMatch.normalized_name}`);
-        }
-      }
 
       if (existingImage) {
         return {
@@ -327,43 +245,15 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Use protein+carb key for matching (allows similar meals to share images)
-      const imageKey = extractProteinCarbKey(mealName);
+      const imageKey = normalizeMealName(mealName);
       console.log(`POST: Looking up image for "${mealName}" with key: ${imageKey}`);
 
-      // Check if image already exists with this protein+carb combination
+      // Check if image already exists for this meal
       let { data: existingImage } = await supabase
         .from('meal_images')
         .select('*')
         .eq('normalized_name', imageKey)
         .single();
-
-      // If no exact match, try to find a similar protein+carb image
-      if (!existingImage && imageKey.includes('_with_')) {
-        const proteinOnly = imageKey.split('_with_')[0];
-        const { data: proteinMatch } = await supabase
-          .from('meal_images')
-          .select('*')
-          .like('normalized_name', `${proteinOnly}_with_%`)
-          .limit(1)
-          .single();
-
-        if (proteinMatch && !regenerate) {
-          // Found a similar image, return it
-          console.log(`Found similar image: ${proteinMatch.normalized_name}`);
-          return {
-            statusCode: 200,
-            headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({
-              success: true,
-              imageUrl: getOptimizedImageUrl(proteinMatch.image_url, 280, 75),
-              mealName: proteinMatch.meal_name,
-              cached: true,
-              matchedKey: proteinMatch.normalized_name
-            })
-          };
-        }
-      }
 
       if (existingImage) {
         // If regenerate flag is set, delete the old image first
@@ -442,13 +332,13 @@ exports.handler = async (event, context) => {
 
       const permanentImageUrl = urlData.publicUrl;
 
-      // Save to database for future lookups (use protein+carb key for matching)
+      // Save to database for future lookups
       const { data: savedImage, error: saveError } = await supabase
         .from('meal_images')
         .insert([
           {
             meal_name: mealName,
-            normalized_name: imageKey,  // Use protein+carb key for future matching
+            normalized_name: imageKey,
             image_url: permanentImageUrl,
             storage_path: filename
           }
