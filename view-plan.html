@@ -4051,7 +4051,7 @@
                     </div>
                     <div class="instructions">
                         <span class="instructions-label">📝 Instructions:</span>
-                        ${meal.instructions}
+                        ${meal.instructions ? meal.instructions.replace(/^Instructions:\s*/i, '') : ''}
                     </div>
                     ${notesSection}
                 </div>
