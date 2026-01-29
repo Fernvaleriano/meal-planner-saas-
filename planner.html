@@ -3669,9 +3669,7 @@ async function generateDietPlan() {
 
         displayDietPlan(allDays);
 
-        if (isTemplateMode) {
-            await autoSaveAsTemplate(lastPlanQuery, planName);
-        } else {
+        if (!isTemplateMode) {
             const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
             if (!saveSuccess) {
                 showSaveRetryButton();
@@ -3720,9 +3718,7 @@ async function generateDietPlan() {
 
             displayDietPlan(allDays);
 
-            if (isTemplateMode) {
-                await autoSaveAsTemplate(lastPlanQuery, planName);
-            } else {
+            if (!isTemplateMode) {
                 const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
                 if (!saveSuccess) {
                     showSaveRetryButton();
@@ -4571,11 +4567,8 @@ Return JSON: {"type":"${meal.type}","name":"Meal Name with portions","ingredient
 
     displayDietPlan(allDays);
 
-    // Save plan to coach's history (only if valid)
-    if (isTemplateMode) {
-        await autoSaveAsTemplate(lastPlanQuery, planName);
-    } else {
-        // Must await to ensure planId is set before user can interact with Submit button
+    // Save plan to coach's history (skip in template mode — coach saves manually)
+    if (!isTemplateMode) {
         const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
         if (!saveSuccess) {
             showSaveRetryButton();
@@ -4838,7 +4831,7 @@ function displayDietPlan(multiDayData) {
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <span style="font-size: 14px; font-weight: 600; color: #5b21b6;">📋 Template Mode</span>
-                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #5b21b6;">This plan has been saved as a template. You can edit meals below, then use "Save as Template" to update.</p>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #5b21b6;">Edit meals as needed, then scroll down and hit "Save as Template" when you're ready.</p>
                     </div>
                 </div>
             </div>
