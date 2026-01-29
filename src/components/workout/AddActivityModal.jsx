@@ -91,6 +91,28 @@ const DIFFICULTY_OPTIONS = [
   { value: 'advanced', label: 'Advanced' },
 ];
 
+const CATEGORY_OPTIONS = [
+  { value: '', label: 'All categories' },
+  { value: 'warmup', label: 'Warm-up' },
+  { value: 'stretch', label: 'Stretches' },
+  { value: 'strength', label: 'Strength' },
+  { value: 'cardio', label: 'Cardio' },
+];
+
+// Keywords for detecting warm-up exercises by name
+const WARMUP_KEYWORDS = [
+  'warm up', 'warmup', 'warm-up', 'arm circle', 'arm swing', 'leg swing',
+  'hip circle', 'torso twist', 'jumping jack', 'high knee', 'butt kick',
+  'march', 'jog in place', 'jogging in place', 'jump rope', 'skip',
+  'light cardio', 'dynamic stretch', 'activation', 'mobility'
+];
+
+// Keywords for detecting stretch exercises by name
+const STRETCH_KEYWORDS = [
+  'stretch', 'yoga', 'cool down', 'cooldown', 'cool-down',
+  'flexibility', 'static hold', 'foam roll'
+];
+
 // Muscle group synonyms for EXACT matching (values the muscle_group field might contain)
 const MUSCLE_SYNONYMS = {
   chest: ['chest', 'pec', 'pecs', 'pectoral', 'pectorals'],
@@ -196,6 +218,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
   const [selectedMuscle, setSelectedMuscle] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [showCustomOnly, setShowCustomOnly] = useState(false); // Filter for custom exercises only
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState(null);
@@ -417,6 +440,31 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
         });
       }
 
+      // Filter by category (warm-up, stretches, strength, cardio)
+      if (selectedCategory) {
+        results = results.filter(ex => {
+          const nameLower = (ex.name || '').toLowerCase();
+          const typeLower = (ex.exercise_type || '').toLowerCase();
+
+          if (selectedCategory === 'warmup') {
+            return ex.isWarmup || WARMUP_KEYWORDS.some(kw => nameLower.includes(kw));
+          }
+          if (selectedCategory === 'stretch') {
+            return ex.isStretch || typeLower === 'flexibility' ||
+              STRETCH_KEYWORDS.some(kw => nameLower.includes(kw));
+          }
+          if (selectedCategory === 'strength') {
+            return typeLower === 'strength' || typeLower === '' || (!typeLower &&
+              !WARMUP_KEYWORDS.some(kw => nameLower.includes(kw)) &&
+              !STRETCH_KEYWORDS.some(kw => nameLower.includes(kw)));
+          }
+          if (selectedCategory === 'cardio') {
+            return typeLower === 'cardio' || typeLower === 'interval' || typeLower === 'plyometric';
+          }
+          return true;
+        });
+      }
+
       // Filter for custom exercises only (coach-created)
       if (showCustomOnly) {
         results = results.filter(ex => ex.is_custom === true);
@@ -442,7 +490,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
       console.error('Error filtering exercises:', err);
       return [];
     }
-  }, [exercises, selectedMuscle, selectedEquipment, selectedDifficulty, showCustomOnly, searchQuery, existingExerciseIds]);
+  }, [exercises, selectedMuscle, selectedEquipment, selectedDifficulty, selectedCategory, showCustomOnly, searchQuery, existingExerciseIds]);
 
   // Toggle exercise selection
   const toggleExerciseSelection = useCallback((exercise) => {
@@ -586,6 +634,13 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     });
   }, []);
 
+  const handleCategoryChange = useCallback((e) => {
+    startTransition(() => {
+      setSelectedCategory(e.target.value);
+      setDisplayCount(INITIAL_DISPLAY_COUNT);
+    });
+  }, []);
+
   // Toggle custom filter
   const handleCustomToggle = useCallback(() => {
     startTransition(() => {
@@ -680,6 +735,22 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
               {DIFFICULTY_OPTIONS.map(diff => (
                 <option key={diff.value} value={diff.value}>
                   {diff.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="filter-chip-arrow" />
+          </div>
+
+          {/* Category Filter (Warm-up, Stretches, Strength, Cardio) */}
+          <div className="filter-chip-wrapper">
+            <select
+              className={`filter-chip ${selectedCategory ? 'active' : ''}`}
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+            >
+              {CATEGORY_OPTIONS.map(cat => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
                 </option>
               ))}
             </select>

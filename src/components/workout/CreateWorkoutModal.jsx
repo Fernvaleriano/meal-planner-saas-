@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, Dumbbell, Trash2 } from 'lucide-react';
+import { X, Plus, Dumbbell, Trash2, Clock, Hash } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
 
 function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null }) {
@@ -67,13 +67,20 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     if (newExercises.length === 0) return;
 
     // Add default sets/reps to each exercise
-    const exercisesWithDefaults = newExercises.map(exercise => ({
-      ...exercise,
-      sets: exercise.sets || 3,
-      reps: exercise.reps || '10',
-      restSeconds: exercise.restSeconds || 60,
-      completed: false
-    }));
+    // Auto-detect timed exercises (cardio, flexibility, interval) and set trackingType
+    const exercisesWithDefaults = newExercises.map(exercise => {
+      const isTimedByDefault = exercise.duration || exercise.exercise_type === 'cardio' ||
+        exercise.exercise_type === 'interval' || exercise.exercise_type === 'flexibility';
+      return {
+        ...exercise,
+        sets: exercise.sets || 3,
+        reps: exercise.reps || '10',
+        duration: exercise.duration || 30,
+        trackingType: isTimedByDefault ? 'time' : 'reps',
+        restSeconds: exercise.restSeconds || 60,
+        completed: false
+      };
+    });
 
     setExercises(prev => [...prev, ...exercisesWithDefaults]);
     // Don't close modal here - AddActivityModal handles closing itself via onClose
@@ -272,15 +279,38 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                                 onChange={(e) => handleUpdateExercise(index, 'sets', parseInt(e.target.value) || 1)}
                               />
                             </div>
-                            <div className="config-item">
-                              <label>REPS</label>
-                              <input
-                                type="text"
-                                value={exercise.reps || '10'}
-                                onChange={(e) => handleUpdateExercise(index, 'reps', e.target.value)}
-                                placeholder="10"
-                              />
-                            </div>
+                            {exercise.trackingType === 'time' ? (
+                              <div className="config-item">
+                                <label>SECS</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="600"
+                                  value={exercise.duration || 30}
+                                  onChange={(e) => handleUpdateExercise(index, 'duration', parseInt(e.target.value) || 30)}
+                                />
+                              </div>
+                            ) : (
+                              <div className="config-item">
+                                <label>REPS</label>
+                                <input
+                                  type="text"
+                                  value={exercise.reps || '10'}
+                                  onChange={(e) => handleUpdateExercise(index, 'reps', e.target.value)}
+                                  placeholder="10"
+                                />
+                              </div>
+                            )}
+                            <button
+                              className={`tracking-type-toggle ${exercise.trackingType === 'time' ? 'time-mode' : 'reps-mode'}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateExercise(index, 'trackingType', exercise.trackingType === 'time' ? 'reps' : 'time');
+                              }}
+                              title={exercise.trackingType === 'time' ? 'Switch to reps' : 'Switch to seconds'}
+                            >
+                              {exercise.trackingType === 'time' ? <Clock size={14} /> : <Hash size={14} />}
+                            </button>
                           </div>
                         </div>
                       </div>

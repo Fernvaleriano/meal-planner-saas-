@@ -21035,6 +21035,63 @@ a.nav-left {
     border-color: var(--brand-primary, #14b8a6);
 }
 
+.tracking-type-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    align-self: center;
+    margin-top: 4px;
+}
+
+.tracking-type-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.tracking-type-toggle.time-mode {
+    background: rgba(20, 184, 166, 0.15);
+    border-color: rgba(20, 184, 166, 0.3);
+    color: #14b8a6;
+}
+
+.tracking-type-toggle.reps-mode {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #6366f1;
+}
+
+[data-theme="light"] .tracking-type-toggle {
+    border-color: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .tracking-type-toggle:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="light"] .tracking-type-toggle.time-mode {
+    background: rgba(20, 184, 166, 0.1);
+    border-color: rgba(20, 184, 166, 0.3);
+    color: #0d9488;
+}
+
+[data-theme="light"] .tracking-type-toggle.reps-mode {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #4f46e5;
+}
+
 .exercise-remove-btn {
     background: none;
     border: none;
