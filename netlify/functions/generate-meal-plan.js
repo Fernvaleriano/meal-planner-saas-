@@ -1303,10 +1303,11 @@ function sanitizeIngredient(ingredient) {
  */
 function validateAndFixInstructions(instructions, ingredients) {
   if (!instructions || !ingredients || !Array.isArray(ingredients)) {
-    return instructions || '';
+    return (instructions || '').replace(/^Instructions:\s*/i, '');
   }
 
-  let fixed = instructions;
+  // Strip "Instructions:" prefix the AI sometimes includes
+  let fixed = instructions.replace(/^Instructions:\s*/i, '');
 
   // Parse all ingredients first
   const parsedIngredients = ingredients.map(ing => {
