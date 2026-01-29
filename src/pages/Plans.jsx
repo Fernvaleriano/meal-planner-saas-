@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Camera, Upload, Sparkles, ImageOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Camera, Upload, ImageOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -564,27 +564,6 @@ function Plans() {
     });
 
     setSelectedMeal(prev => prev ? { ...prev, image_url: imageUrl } : prev);
-  };
-
-  // Generate AI image for the selected meal
-  const handleGenerateImage = async () => {
-    if (!selectedMeal) return;
-    setShowPhotoMenu(false);
-    setMealImageLoading(true);
-    try {
-      const response = await apiPost('/.netlify/functions/meal-image', {
-        mealName: selectedMeal.name,
-        regenerate: true
-      });
-      if (response?.imageUrl) {
-        await updateMealImage(response.imageUrl);
-      }
-    } catch (err) {
-      console.error('Error generating meal image:', err);
-      alert('Failed to generate image. Please try again.');
-    } finally {
-      setMealImageLoading(false);
-    }
   };
 
   // Handle photo file upload
@@ -2203,9 +2182,6 @@ Keep it practical and brief. Format with clear sections.`;
                 <div className="meal-photo-menu">
                   <button onClick={() => photoInputRef.current?.click()}>
                     <Upload size={16} /> Upload Photo
-                  </button>
-                  <button onClick={handleGenerateImage}>
-                    <Sparkles size={16} /> Generate with AI
                   </button>
                   {mealImageUrl && (
                     <button onClick={handleRemoveImage} className="remove-photo-btn">
