@@ -8906,6 +8906,7 @@ a.nav-left {
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 
 [data-theme="dark"] .meal-modal-image {
@@ -8956,6 +8957,74 @@ a.nav-left {
 
 [data-theme="dark"] .meal-image-placeholder {
     color: #475569;
+}
+
+/* Tappable placeholder area for adding a photo */
+.meal-image-placeholder-area {
+    cursor: pointer;
+    flex-direction: column;
+    gap: 8px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .meal-image-placeholder-area {
+    color: #64748b;
+}
+
+.meal-image-placeholder-area:active {
+    opacity: 0.7;
+}
+
+/* Photo options menu */
+.meal-photo-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    margin: 0 16px;
+    background: #f1f5f9;
+    border-radius: 12px;
+}
+
+[data-theme="dark"] .meal-photo-menu {
+    background: #1e293b;
+}
+
+.meal-photo-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+[data-theme="dark"] .meal-photo-menu button {
+    color: #e2e8f0;
+}
+
+.meal-photo-menu button:hover {
+    background: #e2e8f0;
+}
+
+[data-theme="dark"] .meal-photo-menu button:hover {
+    background: #334155;
+}
+
+.meal-photo-menu .remove-photo-btn {
+    color: #ef4444;
+}
+
+[data-theme="dark"] .meal-photo-menu .remove-photo-btn {
+    color: #f87171;
 }
 
 /* Meal Modal Name */
