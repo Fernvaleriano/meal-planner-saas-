@@ -9947,14 +9947,10 @@ async function loadCachedMealImages() {
     console.log('🖼️ Finished loading cached images');
 }
 
-// Load cached images after plan is displayed
+// Auto-image loading disabled — coaches choose photos via the Image button
 const originalDisplayDietPlan = displayDietPlan;
 displayDietPlan = function(multiDayData) {
     originalDisplayDietPlan(multiDayData);
-    // Delay to allow DOM to update, then load cached images
-    setTimeout(() => {
-        loadCachedMealImages();
-    }, 800);
 };
 
 // ============================================
