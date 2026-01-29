@@ -815,9 +815,7 @@ Return ONLY valid JSON:
       newMeal.type = newMeal.type || meal.type || meal.meal_type || 'meal';
       newMeal.meal_type = newMeal.type;
       newMeal.name = newMeal.name || 'New Meal';
-      // Strip duplicate "Instructions:" prefix the AI sometimes includes
-      if (newMeal.instructions) newMeal.instructions = newMeal.instructions.replace(/^Instructions:\s*/i, '');
-      // Don't copy old image - it's a different meal now.
+      // Don't copy old image - it's a different meal now. Will fetch new image below.
       newMeal.image_url = null;
 
       // Update the plan with proper immutable updates
@@ -942,8 +940,8 @@ Return ONLY valid JSON:
       revisedMeal.type = revisedMeal.type || meal.type || meal.meal_type || 'meal';
       revisedMeal.meal_type = revisedMeal.type;
       revisedMeal.name = revisedMeal.name || 'Revised Meal';
-      revisedMeal.instructions = (revisedMeal.instructions || meal.instructions || '').replace(/^Instructions:\s*/i, '');
-      // Don't copy old image - meal name may have changed.
+      revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
+      // Don't copy old image - meal name may have changed. Will fetch new image below.
       revisedMeal.image_url = null;
 
       // Use calculated macros from backend, fallback to original if not provided
@@ -1165,12 +1163,11 @@ Return ONLY valid JSON:
   // Generate auto meal name from ingredients
   const getAutoMealName = () => {
     if (selectedIngredients.length === 0) return '';
-    // Build a readable meal name from the main ingredients (names only, no quantities)
-    const names = selectedIngredients
-      .map(ing => ing.name.split(',')[0].trim())
-      .filter(Boolean);
-    if (names.length <= 2) return names.join(' & ');
-    return names.slice(0, 2).join(', ') + ' + more';
+    return selectedIngredients.map(ing => {
+      const grams = Math.round(ing.quantityGrams || ing.quantity);
+      const shortName = ing.name.split(',')[0].trim();
+      return ing.selectedUnit === 'g' ? `${grams}g ${shortName}` : `${ing.quantity} ${ing.selectedUnit} ${shortName}`;
+    }).join(', ');
   };
 
   // Load saved meals from database (coach-level library)
@@ -1351,23 +1348,16 @@ Return ONLY valid JSON:
   };
 
   const handleViewRecipe = (meal) => {
-    // Detect if the meal name is just raw ingredients (e.g. "50g Oats, 200ml Water, ...")
-    // by checking if it starts with a quantity pattern
-    const nameIsIngredients = /^\d+\s*(g|oz|ml|cups?|tbsp|tsp|scoop|whole|medium|large|small|slice)/i.test((meal.name || '').trim());
-
-    const hasIngredientsList = Array.isArray(meal.ingredients) && meal.ingredients.length > 0;
-
-    // Only show name as header if it's a real meal name, not a raw ingredient dump
-    const header = (!nameIsIngredients && meal.name) ? `📖 ${meal.name}\n\n` : '';
-
-    const ingredients = hasIngredientsList
+    // For now show ingredients and instructions in an alert
+    // Later this could be a proper modal
+    const recipe = `📖 ${meal.name}\n\n`;
+    const ingredients = meal.ingredients?.length
       ? `Ingredients:\n${meal.ingredients.map(i => `• ${typeof i === 'string' ? i : `${i.amount || ''} ${i.name || i}`}`).join('\n')}\n\n`
       : '';
-
     const rawInstructions = meal.instructions ? meal.instructions.replace(/^Instructions:\s*/i, '') : '';
     const instructions = rawInstructions ? `Instructions:\n${rawInstructions}` : 'No recipe available for this meal.';
 
-    alert(header + ingredients + instructions);
+    alert(recipe + ingredients + instructions);
   };
 
   // Undo last meal change
