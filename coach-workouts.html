@@ -2780,6 +2780,8 @@
                     <button class="filter-chip" onclick="filterExercises('legs', this)">Legs</button>
                     <button class="filter-chip" onclick="filterExercises('arms', this)">Arms</button>
                     <button class="filter-chip" onclick="filterExercises('core', this)">Core</button>
+                    <button class="filter-chip" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #10b981;" onclick="filterExercises('warmup', this)">Warm-up</button>
+                    <button class="filter-chip" style="background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); color: #8b5cf6;" onclick="filterExercises('stretches', this)">Stretches</button>
                 </div>
 
                 <!-- Advanced Filters Row -->
@@ -3814,11 +3816,54 @@
             renderExerciseGrid();
         }
 
+        // Keywords for category-based filtering
+        const STRETCH_KEYWORDS = [
+            'stretch', 'yoga', 'cool down', 'cooldown', 'cool-down',
+            'flexibility', 'static hold', 'foam roll', 'fist against chin',
+            'seated twist', 'standing twist', 'neck tilt', 'neck turn', 'neck rotation',
+            'cat cow', 'child pose', 'childs pose', "child's pose", 'pigeon pose',
+            'downward dog', 'cobra stretch', 'spinal twist', 'hip flexor',
+            'quad stretch', 'hamstring stretch', 'calf stretch', 'chest stretch',
+            'shoulder stretch', 'tricep stretch', 'bicep stretch', 'side bend',
+            'toe touch', 'figure four', 'butterfly', 'frog stretch',
+            'glute bridge hold', 'wall slide', 'doorway stretch', 'lat stretch',
+            'prayer stretch', 'scorpion stretch', 'pretzel stretch',
+            '90 to 90', '90/90', 'world greatest stretch', 'worlds greatest stretch',
+            'adductor stretch', 'abdominal stretch', 'chest opener'
+        ];
+
+        const WARMUP_KEYWORDS = [
+            'warm up', 'warmup', 'warm-up', 'arm circle', 'arm swing', 'leg swing',
+            'hip circle', 'torso twist', 'jumping jack', 'high knee', 'butt kick',
+            'march', 'jog in place', 'jogging in place', 'jump rope', 'skip',
+            'light cardio', 'dynamic stretch', 'activation', 'mobility'
+        ];
+
+        function isStretchExercise(e) {
+            const nameLower = (e.name || '').toLowerCase();
+            const typeLower = (e.exercise_type || '').toLowerCase();
+            const catLower = (e.category || '').toLowerCase();
+            return typeLower === 'flexibility' ||
+                catLower === 'stretching' || catLower === 'flexibility' || catLower === 'stretch' ||
+                STRETCH_KEYWORDS.some(kw => nameLower.includes(kw));
+        }
+
+        function isWarmupExercise(e) {
+            const nameLower = (e.name || '').toLowerCase();
+            return WARMUP_KEYWORDS.some(kw => nameLower.includes(kw));
+        }
+
         function getFilteredExercises() {
             let filtered = exercises;
 
-            // Filter by muscle group (including secondary muscles)
+            // Filter by muscle group (including secondary muscles) or category
             if (currentExerciseFilter !== 'all') {
+                // Handle special category filters
+                if (currentExerciseFilter === 'stretches') {
+                    filtered = filtered.filter(e => isStretchExercise(e));
+                } else if (currentExerciseFilter === 'warmup') {
+                    filtered = filtered.filter(e => isWarmupExercise(e));
+                } else {
                 filtered = filtered.filter(e => {
                     const primaryMatch = e.muscle_group?.toLowerCase() === currentExerciseFilter ||
                         e.primary_muscles?.toLowerCase().includes(currentExerciseFilter);
@@ -3852,6 +3897,7 @@
 
                     return primaryMatch || secondaryMatch;
                 });
+                }
             }
 
             // Filter by equipment

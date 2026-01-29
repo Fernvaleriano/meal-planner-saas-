@@ -110,7 +110,16 @@ const WARMUP_KEYWORDS = [
 // Keywords for detecting stretch exercises by name
 const STRETCH_KEYWORDS = [
   'stretch', 'yoga', 'cool down', 'cooldown', 'cool-down',
-  'flexibility', 'static hold', 'foam roll'
+  'flexibility', 'static hold', 'foam roll', 'fist against chin',
+  'seated twist', 'standing twist', 'neck tilt', 'neck turn', 'neck rotation',
+  'cat cow', 'child pose', 'childs pose', "child's pose", 'pigeon pose',
+  'downward dog', 'cobra stretch', 'spinal twist', 'hip flexor',
+  'quad stretch', 'hamstring stretch', 'calf stretch', 'chest stretch',
+  'shoulder stretch', 'tricep stretch', 'bicep stretch', 'side bend',
+  'toe touch', 'figure four', 'butterfly stretch', 'frog stretch',
+  'glute bridge hold', 'wall slide', 'doorway stretch', 'lat stretch',
+  'prayer stretch', 'scorpion stretch', 'pretzel stretch',
+  '90 to 90', '90/90', 'world greatest stretch', 'worlds greatest stretch'
 ];
 
 // Muscle group synonyms for EXACT matching (values the muscle_group field might contain)
@@ -450,7 +459,9 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             return ex.isWarmup || WARMUP_KEYWORDS.some(kw => nameLower.includes(kw));
           }
           if (selectedCategory === 'stretch') {
+            const catLower = (ex.category || '').toLowerCase();
             return ex.isStretch || typeLower === 'flexibility' ||
+              catLower === 'stretching' || catLower === 'flexibility' || catLower === 'stretch' ||
               STRETCH_KEYWORDS.some(kw => nameLower.includes(kw));
           }
           if (selectedCategory === 'strength') {
