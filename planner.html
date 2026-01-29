@@ -9350,10 +9350,32 @@ async function saveAsTemplate() {
         return;
     }
 
-    const templateName = prompt('Enter a name for this template:', `Template - ${new Date().toLocaleDateString()}`);
+    // Auto-generate template name from calories and macros
+    const cals = lastPlanQuery.calories || 0;
+    const protein = lastPlanQuery.protein || 0;
+    const carbs = lastPlanQuery.carbs || 0;
+    const fat = lastPlanQuery.fat || 0;
+    const autoName = `${cals} cal | ${protein}P / ${carbs}C / ${fat}F`;
+
+    // Auto-generate description from meal names in the plan
+    const allMealNames = [];
+    lastPlanQuery.currentPlan.forEach(day => {
+        (day.plan || []).forEach(meal => {
+            if (meal.name && !meal.isPlaceholder) {
+                // Get short name (first part before parentheses)
+                const shortName = meal.name.split('(')[0].trim();
+                if (!allMealNames.includes(shortName)) {
+                    allMealNames.push(shortName);
+                }
+            }
+        });
+    });
+    const autoDesc = allMealNames.slice(0, 8).join(', ') + (allMealNames.length > 8 ? '...' : '');
+
+    const templateName = prompt('Template name:', autoName);
     if (!templateName) return;
 
-    const templateDesc = prompt('Enter a brief description (optional):', '');
+    const templateDesc = prompt('Description:', autoDesc);
 
     const planData = lastPlanQuery.currentPlan.map(day => ({
         day: day.day,
