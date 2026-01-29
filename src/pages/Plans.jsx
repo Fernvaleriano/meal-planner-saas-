@@ -1303,8 +1303,7 @@ Return ONLY valid JSON:
     const ingredients = meal.ingredients?.length
       ? `Ingredients:\n${meal.ingredients.map(i => `• ${typeof i === 'string' ? i : `${i.amount || ''} ${i.name || i}`}`).join('\n')}\n\n`
       : '';
-    const rawInstructions = meal.instructions ? meal.instructions.replace(/^Instructions:\s*/i, '') : '';
-    const instructions = rawInstructions ? `Instructions:\n${rawInstructions}` : 'No recipe available for this meal.';
+    const instructions = meal.instructions ? `Instructions:\n${meal.instructions}` : 'No recipe available for this meal.';
 
     alert(recipe + ingredients + instructions);
   };
@@ -1578,7 +1577,7 @@ Keep it practical and brief. Format with clear sections.`;
                 </ul>
               </div>
             ` : ''}
-            ${meal.instructions ? `<p><strong>Instructions:</strong> ${meal.instructions.replace(/^Instructions:\s*/i, '')}</p>` : ''}
+            ${meal.instructions ? `<p><strong>Instructions:</strong> ${meal.instructions}</p>` : ''}
           </div>
         `;
       });
@@ -1880,7 +1879,7 @@ Keep it practical and brief. Format with clear sections.`;
                     {meal.instructions && (
                       <div className="meal-instructions">
                         <h4>Instructions</h4>
-                        <p>{meal.instructions.replace(/^Instructions:\s*/i, '')}</p>
+                        <p>{meal.instructions}</p>
                       </div>
                     )}
                     {meal.macros && (
