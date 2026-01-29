@@ -108,9 +108,15 @@ function Plans() {
     } catch (e) { return {}; }
   });
 
-  // Meal images cache for cards
+  // Meal images cache for cards — only coach-selected images
   const [mealImages, setMealImages] = useState(() => {
     try {
+      // Clear legacy auto-assigned image cache (one-time migration)
+      if (!localStorage.getItem('mealImageCacheCleared')) {
+        localStorage.removeItem('mealImageCache');
+        localStorage.setItem('mealImageCacheCleared', '1');
+        return {};
+      }
       const stored = localStorage.getItem('mealImageCache');
       return stored ? JSON.parse(stored) : {};
     } catch (e) { return {}; }
@@ -373,9 +379,31 @@ function Plans() {
     });
   };
 
-  // Load meal images and refresh voice note URLs when plan is selected
+  // Strip old auto-assigned images (one-time) and refresh voice note URLs when plan is selected
   useEffect(() => {
     if (!selectedPlan) return;
+
+    // One-time migration: clear auto-assigned image_url from all meals
+    // (coaches now choose photos manually via the meal modal)
+    const migrationKey = `imagesCleared_${selectedPlan.id}`;
+    if (!localStorage.getItem(migrationKey)) {
+      const days = getPlanDays(selectedPlan);
+      let hadImages = false;
+      days.forEach(day => {
+        (day.plan || []).forEach(meal => {
+          if (meal.image_url) {
+            hadImages = true;
+            delete meal.image_url;
+          }
+        });
+      });
+      localStorage.setItem(migrationKey, '1');
+      if (hadImages) {
+        setSelectedPlan({ ...selectedPlan });
+        savePlanToDatabase(selectedPlan);
+      }
+    }
+
     loadMealImagesForPlan(selectedPlan);
     refreshVoiceNoteUrls(selectedPlan);
   }, [selectedPlan?.id]);
