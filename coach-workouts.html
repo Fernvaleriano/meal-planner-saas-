@@ -1157,6 +1157,48 @@
             letter-spacing: 0.05em;
         }
 
+        .config-label.clickable {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .config-label.clickable:hover {
+            color: var(--brand-primary);
+        }
+
+        .tracking-toggle-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+            transition: all 0.2s;
+        }
+
+        .tracking-toggle-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .tracking-toggle-btn.time-active {
+            background: rgba(20, 184, 166, 0.15);
+            border-color: rgba(20, 184, 166, 0.4);
+            color: var(--brand-primary);
+        }
+
+        .tracking-toggle-btn .toggle-icon {
+            font-size: 10px;
+        }
+
         .exercise-notes {
             margin-top: 8px;
         }
@@ -3475,8 +3517,14 @@
                                 <span class="config-label">Sets</span>
                             </div>
                             <div class="config-group">
-                                <input type="text" class="config-input" value="${exercise.reps || '10'}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'reps', this.value)" style="width:70px">
-                                <span class="config-label">Reps</span>
+                                ${exercise.trackingType === 'time'
+                                    ? `<input type="number" class="config-input" value="${exercise.duration || 30}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'duration', this.value)" style="width:70px">`
+                                    : `<input type="text" class="config-input" value="${exercise.reps || '10'}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'reps', this.value)" style="width:70px">`
+                                }
+                                <button class="tracking-toggle-btn ${exercise.trackingType === 'time' ? 'time-active' : ''}" onclick="toggleTrackingType(${dayIndex}, ${exIndex})" title="Toggle between reps and time">
+                                    <span class="toggle-icon">${exercise.trackingType === 'time' ? '⏱' : '#'}</span>
+                                    ${exercise.trackingType === 'time' ? 'Secs' : 'Reps'}
+                                </button>
                             </div>
                             <div class="config-group">
                                 <input type="number" class="config-input" value="${exercise.restSeconds || 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
@@ -3564,11 +3612,24 @@
         }
 
         function updateExercise(dayIndex, exIndex, field, value) {
-            if (field === 'sets' || field === 'restSeconds') {
+            if (field === 'sets' || field === 'restSeconds' || field === 'duration') {
                 workoutDays[dayIndex].exercises[exIndex][field] = parseInt(value) || 0;
             } else {
                 workoutDays[dayIndex].exercises[exIndex][field] = value;
             }
+        }
+
+        function toggleTrackingType(dayIndex, exIndex) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            if (exercise.trackingType === 'time') {
+                exercise.trackingType = 'reps';
+            } else {
+                exercise.trackingType = 'time';
+                if (!exercise.duration) {
+                    exercise.duration = 30;
+                }
+            }
+            renderWorkoutDays();
         }
 
         function removeWorkoutDay(dayIndex) {
