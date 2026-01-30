@@ -2149,110 +2149,146 @@ function ExerciseDetailModal({
                   <p>No history yet for this exercise</p>
                   <span>Complete a workout to start tracking</span>
                 </div>
-              ) : (
-                <>
-                  {/* Stats Summary */}
-                  <div className="exercise-history-stats">
-                    {historyStats?.allTimeMaxWeight > 0 && (
-                      <div className="exercise-history-stat-card">
-                        <Award size={16} />
-                        <div>
-                          <span className="stat-value">{historyStats.allTimeMaxWeight} kg</span>
-                          <span className="stat-label">Max Weight</span>
-                        </div>
-                      </div>
-                    )}
-                    {best1RM && (
-                      <div className="exercise-history-stat-card">
-                        <TrendingUp size={16} />
-                        <div>
-                          <span className="stat-value">{best1RM} kg</span>
-                          <span className="stat-label">Est. 1RM</span>
-                        </div>
-                      </div>
-                    )}
-                    {historyStats?.totalWorkouts > 0 && (
-                      <div className="exercise-history-stat-card">
-                        <BarChart3 size={16} />
-                        <div>
-                          <span className="stat-value">{historyStats.totalWorkouts}</span>
-                          <span className="stat-label">Sessions</span>
-                        </div>
-                      </div>
-                    )}
-                    {historyStats?.prCount > 0 && (
-                      <div className="exercise-history-stat-card highlight">
-                        <Award size={16} />
-                        <div>
-                          <span className="stat-value">{historyStats.prCount}</span>
-                          <span className="stat-label">PRs</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              ) : (() => {
+                // Pre-process history data for chart and grouping
+                const processedEntries = historyData.map(entry => {
+                  const setsData = typeof entry.setsData === 'string'
+                    ? JSON.parse(entry.setsData) : (entry.setsData || []);
+                  const maxW = Math.max(...setsData.map(s => s.weight || 0), 0);
+                  const dateObj = entry.workoutDate ? new Date(entry.workoutDate + 'T12:00:00') : null;
+                  return { ...entry, setsData, maxW, dateObj };
+                });
 
-                  {/* History Entries */}
-                  <div className="exercise-history-entries">
-                    {historyData.map((entry, idx) => {
-                      const setsData = typeof entry.setsData === 'string'
-                        ? JSON.parse(entry.setsData) : (entry.setsData || []);
-                      const entryDate = entry.workoutDate
-                        ? new Date(entry.workoutDate).toLocaleDateString('en-US', {
-                            weekday: 'short', month: 'short', day: 'numeric'
-                          })
-                        : 'Unknown date';
-                      const maxW = Math.max(...setsData.map(s => s.weight || 0), 0);
-                      const entry1RM = maxW > 0 ? Math.max(
-                        ...setsData.filter(s => s.weight > 0 && s.reps > 0)
-                          .map(s => calculate1RM(s.weight, s.reps))
-                      ) : null;
+                // Build bar chart data (last 8 sessions, chronological)
+                const chartEntries = [...processedEntries]
+                  .filter(e => e.maxW > 0 && e.dateObj)
+                  .slice(0, 8)
+                  .reverse();
+                const chartMax = chartEntries.length > 0
+                  ? Math.max(...chartEntries.map(e => e.maxW)) : 0;
 
-                      return (
-                        <div key={entry.id || idx} className={`exercise-history-entry ${entry.isPr ? 'is-pr' : ''}`}>
-                          <div className="exercise-history-entry-header">
-                            <span className="entry-date">{entryDate}</span>
-                            <div className="entry-badges">
-                              {entry.isPr && (
-                                <span className="entry-pr-badge">
-                                  <Award size={10} /> PR
-                                </span>
-                              )}
-                              {entry1RM && (
-                                <span className="entry-1rm">1RM: {entry1RM} kg</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="exercise-history-sets">
-                            {setsData.map((s, sIdx) => (
-                              <div key={sIdx} className="history-set-row">
-                                <span className="history-set-num">Set {sIdx + 1}</span>
-                                <span className="history-set-detail">
-                                  {s.reps || 0} reps
-                                </span>
-                                {s.weight > 0 && (
-                                  <span className="history-set-weight">
-                                    {s.weight} kg
-                                  </span>
-                                )}
-                                {s.rpe && (
-                                  <span className="history-set-rpe">RPE {s.rpe}</span>
-                                )}
+                // Find all-time PR
+                const allTimeMax = historyStats?.allTimeMaxWeight || 0;
+                const prEntry = allTimeMax > 0 ? processedEntries.find(e => e.maxW === allTimeMax) : null;
+                const prDate = prEntry?.dateObj
+                  ? prEntry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : null;
+
+                // Group entries by month
+                const monthGroups = [];
+                let currentMonth = '';
+                for (const entry of processedEntries) {
+                  const monthLabel = entry.dateObj
+                    ? entry.dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()
+                    : 'UNKNOWN';
+                  if (monthLabel !== currentMonth) {
+                    currentMonth = monthLabel;
+                    monthGroups.push({ label: monthLabel, entries: [] });
+                  }
+                  monthGroups[monthGroups.length - 1].entries.push(entry);
+                }
+
+                return (
+                  <>
+                    {/* PR Banner */}
+                    {allTimeMax > 0 && (
+                      <div className="history-pr-banner">
+                        <Award size={18} />
+                        <span className="history-pr-value">{allTimeMax} kg</span>
+                        {prDate && <span className="history-pr-date">{prDate}</span>}
+                      </div>
+                    )}
+
+                    {/* Bar Chart */}
+                    {chartEntries.length > 1 && (
+                      <div className="history-bar-chart">
+                        {chartEntries.map((entry, i) => {
+                          const heightPct = chartMax > 0 ? (entry.maxW / chartMax) * 100 : 0;
+                          const dateLabel = entry.dateObj
+                            ? `${entry.dateObj.getDate()} ${entry.dateObj.toLocaleDateString('en-US', { month: 'short' })}`
+                            : '';
+                          return (
+                            <div key={i} className="history-bar-col">
+                              <div className="history-bar-wrapper">
+                                <div
+                                  className={`history-bar ${entry.maxW === allTimeMax ? 'is-pr' : ''}`}
+                                  style={{ height: `${Math.max(heightPct, 8)}%` }}
+                                />
                               </div>
-                            ))}
-                          </div>
-                          <div className="exercise-history-entry-summary">
-                            <span>{entry.totalSets || setsData.length} sets</span>
-                            <span>{entry.totalReps || setsData.reduce((sum, s) => sum + (s.reps || 0), 0)} reps</span>
-                            {(entry.totalVolume > 0) && (
-                              <span>{entry.totalVolume.toLocaleString()} kg vol</span>
-                            )}
-                          </div>
+                              <span className="history-bar-weight">{entry.maxW}</span>
+                              <span className="history-bar-date">{dateLabel}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Stats Row */}
+                    <div className="history-stats-row">
+                      {best1RM && (
+                        <div className="history-stat-pill">
+                          <TrendingUp size={14} />
+                          <span>Est. 1RM: {best1RM} kg</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+                      )}
+                      {historyStats?.totalWorkouts > 0 && (
+                        <div className="history-stat-pill">
+                          <BarChart3 size={14} />
+                          <span>{historyStats.totalWorkouts} sessions</span>
+                        </div>
+                      )}
+                      {historyStats?.prCount > 0 && (
+                        <div className="history-stat-pill highlight">
+                          <Award size={14} />
+                          <span>{historyStats.prCount} PRs</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Monthly Grouped Entries */}
+                    <div className="history-month-groups">
+                      {monthGroups.map((group, gIdx) => (
+                        <div key={gIdx} className="history-month-group">
+                          <div className="history-month-divider">
+                            <span>{group.label}</span>
+                          </div>
+                          {group.entries.map((entry, idx) => {
+                            const dayOfWeek = entry.dateObj
+                              ? entry.dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+                              : '';
+                            const dayNum = entry.dateObj ? entry.dateObj.getDate() : '';
+
+                            return (
+                              <div key={entry.id || idx} className={`history-date-entry ${entry.isPr ? 'is-pr' : ''}`}>
+                                <div className="history-date-side">
+                                  <span className="history-day-name">{dayOfWeek}</span>
+                                  <span className="history-day-num">{dayNum}</span>
+                                </div>
+                                <div className="history-sets-card">
+                                  {entry.isPr && (
+                                    <span className="history-card-pr-badge">
+                                      <Award size={10} /> PR
+                                    </span>
+                                  )}
+                                  {entry.setsData.map((s, sIdx) => (
+                                    <div key={sIdx} className="history-set-row">
+                                      <span className="history-set-num">Set {sIdx + 1}</span>
+                                      <span className="history-set-reps">{s.reps || 0} x</span>
+                                      {s.weight > 0 && (
+                                        <span className="history-set-weight">{s.weight} kg</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
