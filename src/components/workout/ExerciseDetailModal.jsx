@@ -342,6 +342,8 @@ function ExerciseDetailModal({
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const clientNoteTimerRef = useRef(null);
+  const clientNoteRef = useRef('');
+  const voiceNotePathRef = useRef(null);
 
   // AI Tips state
   const [tips, setTips] = useState([]);
@@ -639,14 +641,19 @@ function ExerciseDetailModal({
           isTimeBased: s.isTimeBased || false
         }));
 
+        const exercisePayload = {
+          exerciseId: exercise.id,
+          exerciseName: exercise.name || 'Unknown',
+          order: 1,
+          sets: setsData
+        };
+        // Preserve client notes and voice note path during auto-save
+        if (clientNoteRef.current) exercisePayload.clientNotes = clientNoteRef.current;
+        if (voiceNotePathRef.current) exercisePayload.clientVoiceNotePath = voiceNotePathRef.current;
+
         await apiPut('/.netlify/functions/workout-logs', {
           workoutId: logId,
-          exercises: [{
-            exerciseId: exercise.id,
-            exerciseName: exercise.name || 'Unknown',
-            order: 1,
-            sets: setsData
-          }]
+          exercises: [exercisePayload]
         });
       } catch (err) {
         console.error('Error auto-saving exercise log:', err);
@@ -663,17 +670,37 @@ function ExerciseDetailModal({
     setsChangedRef.current = true;
   }, []);
 
-  // Reset client note state when exercise changes
+  // Load client note/voice note state from exercise data when exercise changes
   useEffect(() => {
-    setClientNote('');
-    setClientNoteSaved(false);
-    setShowNoteInput(false);
-    setVoiceNoteUrl(null);
+    // Restore saved notes from exercise data (merged from exercise_logs)
+    const savedNote = exercise?.clientNotes || '';
+    const savedVoicePath = exercise?.clientVoiceNotePath || null;
+    setClientNote(savedNote);
+    setClientNoteSaved(!!savedNote);
+    setShowNoteInput(!!savedNote || !!savedVoicePath);
     setIsRecordingVoiceNote(false);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
-  }, [exercise?.id]);
+
+    // Resolve voice note storage path to a signed URL for playback
+    if (savedVoicePath && !savedVoicePath.startsWith('blob:') && !savedVoicePath.startsWith('http')) {
+      setVoiceNoteUrl(null); // clear while loading
+      voiceNotePathRef.current = savedVoicePath;
+      apiPost('/.netlify/functions/get-signed-urls', { filePaths: [savedVoicePath] })
+        .then(res => {
+          const urls = res?.signedUrls || {};
+          setVoiceNoteUrl(urls[savedVoicePath] || savedVoicePath);
+        })
+        .catch(() => setVoiceNoteUrl(savedVoicePath));
+    } else {
+      setVoiceNoteUrl(savedVoicePath);
+    }
+  }, [exercise?.id, exercise?.clientNotes, exercise?.clientVoiceNotePath]);
+
+  // Keep refs in sync so auto-save can access current values without extra deps
+  // Note: voiceNotePathRef stores the STORAGE PATH (not signed URL) for saving to DB
+  useEffect(() => { clientNoteRef.current = clientNote; }, [clientNote]);
 
   // Save client text note (debounced auto-save alongside sets)
   const saveClientNote = useCallback(async (noteText) => {
@@ -805,6 +832,7 @@ function ExerciseDetailModal({
             }
             // Also save the path to the exercise log
             if (res?.filePath) {
+              voiceNotePathRef.current = res.filePath;
               let logId = workoutLogIdRef.current;
               const dateStr = getWorkoutDateStr();
               if (!logId) {

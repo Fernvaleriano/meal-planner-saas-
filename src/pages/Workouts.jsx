@@ -1295,18 +1295,26 @@ function Workouts() {
         (ex.name || ex.id)
       );
 
-      // Debug: Log equipment presence (remove after debugging)
-      if (process.env.NODE_ENV === 'development') {
-        const equipmentInfo = filtered.map(ex => `${ex.name}: ${ex.equipment || 'NO-EQUIPMENT'}`);
-        console.log('[Workouts] exercises useMemo:', equipmentInfo);
-      }
+      // Merge exercise_logs data (client notes, voice notes) from workoutLog
+      const loggedExercises = workoutLog?.exercises || [];
+      const merged = filtered.map(ex => {
+        const logged = loggedExercises.find(le => le.exercise_id === ex.id);
+        if (logged) {
+          return {
+            ...ex,
+            clientNotes: logged.client_notes || null,
+            clientVoiceNotePath: logged.client_voice_note_path || null
+          };
+        }
+        return ex;
+      });
 
-      return filtered;
+      return merged;
     } catch (e) {
       console.error('Error getting exercises:', e);
       return [];
     }
-  }, [todayWorkout]);
+  }, [todayWorkout, workoutLog]);
 
   // Calculate total volume (sets x reps x weight estimate) - AFTER exercises is defined
   const totalVolume = useMemo(() => {

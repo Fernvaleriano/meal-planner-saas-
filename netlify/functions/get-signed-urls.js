@@ -68,13 +68,14 @@ exports.handler = async (event) => {
     const signedUrls = {};
 
     for (const filePath of filePaths) {
-      // Security: Only allow access to exercise-videos and voice-notes folders
-      if (!filePath.startsWith('exercise-videos/') && !filePath.startsWith('voice-notes/')) {
+      // Security: Only allow access to exercise-videos, voice-notes, and client-voice-notes folders
+      if (!filePath.startsWith('exercise-videos/') && !filePath.startsWith('voice-notes/') && !filePath.startsWith('client-voice-notes/')) {
         continue;
       }
 
       // If coachId is provided, verify the file belongs to that coach
-      if (coachId) {
+      // (skip ownership check for client-voice-notes which are organized by clientId)
+      if (coachId && !filePath.startsWith('client-voice-notes/')) {
         const pathCoachId = filePath.split('/')[1];
         if (pathCoachId !== coachId) {
           continue; // Skip files not belonging to this coach
