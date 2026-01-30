@@ -1012,6 +1012,319 @@
             }
         }
 
+        /* Workout Progress Section */
+        .workout-progress-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+
+        .workout-subsection-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+
+        .workout-ai-section {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .workout-ai-quick-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .workout-date-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .workout-date-label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #334155;
+            min-width: 160px;
+            text-align: center;
+        }
+
+        .workout-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            gap: 8px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Workout Cards */
+        .wp-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .wp-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .wp-card-date {
+            font-weight: 700;
+            font-size: 15px;
+            color: #1e293b;
+        }
+
+        .wp-card-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .wp-has-notes {
+            color: #7c3aed;
+            font-weight: 600;
+        }
+
+        .wp-improvements {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .improvement-positive {
+            background: #dcfce7;
+            color: #166534;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .improvement-negative {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .wp-exercises {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .wp-exercise {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .wp-exercise-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .wp-exercise-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .wp-exercise-badges {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .wp-max-weight {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .wp-pr-badge {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .wp-sets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .wp-set-pill {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            padding: 3px 10px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .wp-rpe {
+            color: #6366f1;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .wp-client-note {
+            background: #f5f3ff;
+            border-left: 3px solid #7c3aed;
+            padding: 8px 12px;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            color: #4c1d95;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .wp-voice-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        #workoutAiQuestion {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: none;
+            font-family: inherit;
+        }
+
+        #workoutAiQuestion:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        /* Dark Mode - Workout Progress */
+        [data-theme="dark"] .workout-progress-section {
+            background: #1e293b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] .workout-subsection-title {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .workout-ai-section {
+            border-bottom-color: #334155;
+        }
+
+        [data-theme="dark"] .workout-date-label {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .wp-card {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .wp-card-date {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .wp-card-stats {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .wp-exercise {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .wp-exercise-name {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .wp-max-weight {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .wp-set-pill {
+            background: #1e3a5f;
+            border-color: #3b82f6;
+            color: #93c5fd;
+        }
+
+        [data-theme="dark"] .wp-client-note {
+            background: #2e1065;
+            border-left-color: #a78bfa;
+            color: #c4b5fd;
+        }
+
+        [data-theme="dark"] .improvement-positive {
+            background: #14532d;
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .improvement-negative {
+            background: #450a0a;
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] #workoutAiQuestion {
+            background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+
+        @media (max-width: 600px) {
+            .workout-progress-section {
+                padding: 16px;
+            }
+            .wp-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .wp-exercise-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
         /* Progress Photos Section */
         .photos-section {
             background: white;
@@ -4413,6 +4726,66 @@
             </div>
         </div>
 
+        <!-- Workout Progress Section -->
+        <div class="workout-progress-section">
+            <div class="section-header collapsible-header" onclick="toggleSection('workouts')" style="cursor: pointer;">
+                <h2 class="section-title">🏋️ Workout Progress</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="workoutsToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="workoutsContent" class="collapsible-content">
+                <!-- AI Workout Insights -->
+                <div class="workout-ai-section">
+                    <h3 class="workout-subsection-title">⚡ AI Workout Insights</h3>
+                    <div class="workout-ai-quick-btns">
+                        <button class="ai-quick-btn" onclick="askWorkoutQuickQuestion('How is this client progressing overall? Any PRs, plateaus, or concerns?')">Overall Progress</button>
+                        <button class="ai-quick-btn" onclick="askWorkoutQuickQuestion('Where is this client plateauing and what changes would you recommend?')">Plateaus</button>
+                        <button class="ai-quick-btn" onclick="askWorkoutQuickQuestion('Did this client leave any notes? What are they saying about their training?')">Client Notes</button>
+                        <button class="ai-quick-btn" onclick="askWorkoutQuickQuestion('Is this client training consistently? How is their workout frequency and volume trending?')">Consistency</button>
+                    </div>
+                    <div class="ai-input-container">
+                        <textarea id="workoutAiQuestion"
+                            placeholder="Ask about this client's workout progress, plateaus, volume trends..."
+                            rows="2"></textarea>
+                        <button class="btn btn-primary ai-ask-btn" onclick="askWorkoutAI()" id="workoutAiAskBtn">
+                            Ask AI
+                        </button>
+                    </div>
+                    <div id="workoutAiResponseContainer" class="ai-response-container" style="display: none;">
+                        <div class="ai-response-header"><span>⚡ Workout Insights</span></div>
+                        <div id="workoutAiResponseText" class="ai-response-text"></div>
+                    </div>
+                    <div id="workoutAiLoading" class="ai-loading" style="display: none;">
+                        <div class="ai-loading-spinner"></div>
+                        <span>Analyzing workout data...</span>
+                    </div>
+                </div>
+
+                <!-- Workout Date Navigation -->
+                <div class="workout-date-nav">
+                    <button class="diary-nav-btn" onclick="changeWorkoutDateRange(-7)">‹ Prev Week</button>
+                    <span id="workoutDateRange" class="workout-date-label">Last 7 Days</span>
+                    <button class="diary-nav-btn" onclick="changeWorkoutDateRange(7)">Next Week ›</button>
+                </div>
+
+                <!-- Workout Logs Container -->
+                <div id="workoutLogsContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton" style="height: 80px; margin-bottom: 12px; border-radius: 10px;"></div>
+                        <div class="skeleton" style="height: 80px; margin-bottom: 12px; border-radius: 10px;"></div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="workoutEmptyState" class="workout-empty" style="display: none;">
+                    <span style="font-size: 32px;">🏋️</span>
+                    <p>No workout logs for this period</p>
+                    <span style="color: #6b7280; font-size: 13px;">When your client logs sets and reps, they'll appear here.</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Food Diary Section -->
         <div class="diary-section">
             <div class="diary-header">
@@ -4889,7 +5262,7 @@
         // Restore collapsed states on load
         // Default collapsed sections: plans, protocols, favorites, photos, measurements, checkins
         (function restoreCollapsedStates() {
-            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins'];
+            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins', 'workouts'];
             const savedStates = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
 
             defaultCollapsed.forEach(section => {
@@ -5130,6 +5503,9 @@
             // Force a fresh fetch by adding a timestamp to bypass cache
             const timestamp = new Date().getTime();
 
+            // Set coachUserId for workout feed API calls
+            window.coachUserId = currentUser?.id || '';
+
             // Load all data in parallel for faster refresh
             await Promise.all([
                 loadClient(clientId),
@@ -5139,7 +5515,8 @@
                 loadMeasurements(clientId),
                 loadCheckins(clientId),
                 loadFavorites(clientId),
-                loadFoodDiary(clientId)
+                loadFoodDiary(clientId),
+                loadWorkoutLogs(clientId)
             ]);
 
             console.log('Data refreshed successfully');
@@ -7371,6 +7748,219 @@
                 askAICoach();
             }
         });
+
+        // ============ WORKOUT PROGRESS FUNCTIONS ============
+
+        let workoutDateOffset = 0; // 0 = current week, -7 = prev week, etc.
+
+        function changeWorkoutDateRange(days) {
+            workoutDateOffset += days;
+            loadWorkoutLogs(clientId);
+        }
+
+        async function loadWorkoutLogs(clientId) {
+            if (!clientId) return;
+            const container = document.getElementById('workoutLogsContainer');
+            const emptyState = document.getElementById('workoutEmptyState');
+            const dateLabel = document.getElementById('workoutDateRange');
+
+            // Calculate date range
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + workoutDateOffset);
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 6);
+
+            const startStr = startDate.toISOString().split('T')[0];
+            const endStr = endDate.toISOString().split('T')[0];
+
+            dateLabel.textContent = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+
+            container.innerHTML = '<div class="loading skeleton-loading"><div class="skeleton" style="height: 80px; margin-bottom: 12px; border-radius: 10px;"></div></div>';
+            emptyState.style.display = 'none';
+
+            try {
+                const res = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${clientId}&limit=50`);
+                const data = await res.json();
+
+                if (!data.workouts || data.workouts.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'flex';
+                    return;
+                }
+
+                // Filter to date range
+                const workouts = data.workouts.filter(w => {
+                    const d = w.workoutDate;
+                    return d >= startStr && d <= endStr;
+                });
+
+                if (workouts.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'flex';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                // Resolve voice note signed URLs
+                const voicePaths = [];
+                workouts.forEach(w => {
+                    (w.exercises || []).forEach(ex => {
+                        if (ex.clientVoiceNotePath) voicePaths.push(ex.clientVoiceNotePath);
+                    });
+                });
+                let voiceUrls = {};
+                if (voicePaths.length > 0) {
+                    try {
+                        const urlRes = await fetch('/.netlify/functions/get-signed-urls', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ filePaths: voicePaths, coachId: window.coachUserId || '' })
+                        });
+                        const urlData = await urlRes.json();
+                        voiceUrls = urlData.signedUrls || {};
+                    } catch (e) {
+                        console.error('Error fetching voice URLs:', e);
+                    }
+                }
+
+                container.innerHTML = workouts.map(w => renderWorkoutCard(w, voiceUrls)).join('');
+
+            } catch (err) {
+                console.error('Error loading workout logs:', err);
+                container.innerHTML = '<p style="color: #ef4444; padding: 12px;">Failed to load workout data</p>';
+            }
+        }
+
+        function renderWorkoutCard(workout, voiceUrls) {
+            const dateObj = new Date(workout.workoutDate + 'T12:00:00');
+            const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const vol = workout.totalVolume ? Number(workout.totalVolume).toLocaleString() : '0';
+            const improvements = workout.improvements || {};
+
+            let improvementHtml = '';
+            if (improvements.volumeChange != null && improvements.volumeChange !== 0) {
+                const cls = improvements.volumeChange > 0 ? 'improvement-positive' : 'improvement-negative';
+                const sign = improvements.volumeChange > 0 ? '+' : '';
+                improvementHtml += `<span class="${cls}">${sign}${improvements.volumeChange}% volume</span>`;
+            }
+            if (improvements.newPRs > 0) {
+                improvementHtml += `<span class="improvement-positive">🏆 ${improvements.newPRs} PR${improvements.newPRs > 1 ? 's' : ''}</span>`;
+            }
+
+            const hasNotes = workout.hasClientNotes;
+
+            const exercisesHtml = (workout.exercises || []).map(ex => {
+                let setsHtml = '';
+                const setsData = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.setsData || []);
+                if (setsData.length > 0) {
+                    setsHtml = '<div class="wp-sets">' + setsData.map(s => {
+                        const label = s.isTimeBased
+                            ? `${s.reps || 0}s`
+                            : `${s.reps || 0}x${s.weight || 0}${s.weightUnit || 'kg'}`;
+                        const rpe = s.rpe ? `<span class="wp-rpe">RPE ${s.rpe}</span>` : '';
+                        return `<span class="wp-set-pill">${label}${rpe}</span>`;
+                    }).join('') + '</div>';
+                }
+
+                let noteHtml = '';
+                if (ex.clientNotes) {
+                    noteHtml = `<div class="wp-client-note">💬 ${escapeHtml(ex.clientNotes)}</div>`;
+                }
+
+                let voiceHtml = '';
+                if (ex.clientVoiceNotePath) {
+                    const url = voiceUrls[ex.clientVoiceNotePath];
+                    voiceHtml = url
+                        ? `<div class="wp-voice-note">🎙️ <audio controls src="${url}" preload="metadata" style="height: 32px; width: 100%; max-width: 250px;"></audio></div>`
+                        : `<div class="wp-voice-note">🎙️ <em style="color: #6b7280;">Voice note</em></div>`;
+                }
+
+                const prBadge = ex.isPr ? '<span class="wp-pr-badge">PR</span>' : '';
+                const maxW = ex.maxWeight > 0 ? `<span class="wp-max-weight">${ex.maxWeight} kg max</span>` : '';
+
+                return `
+                    <div class="wp-exercise">
+                        <div class="wp-exercise-header">
+                            <span class="wp-exercise-name">${escapeHtml(ex.exerciseName || '')}</span>
+                            <div class="wp-exercise-badges">${maxW}${prBadge}</div>
+                        </div>
+                        ${setsHtml}
+                        ${noteHtml}
+                        ${voiceHtml}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="wp-card">
+                    <div class="wp-card-header">
+                        <div class="wp-card-date">${dateStr}</div>
+                        <div class="wp-card-stats">
+                            <span>${vol} kg vol</span>
+                            <span>${workout.totalSets || 0} sets</span>
+                            ${hasNotes ? '<span class="wp-has-notes">💬 Notes</span>' : ''}
+                        </div>
+                    </div>
+                    ${improvementHtml ? `<div class="wp-improvements">${improvementHtml}</div>` : ''}
+                    <div class="wp-exercises">${exercisesHtml}</div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // AI Workout Insights
+        function askWorkoutQuickQuestion(question) {
+            document.getElementById('workoutAiQuestion').value = question;
+            askWorkoutAI();
+        }
+
+        async function askWorkoutAI() {
+            const questionInput = document.getElementById('workoutAiQuestion');
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            const responseContainer = document.getElementById('workoutAiResponseContainer');
+            const responseText = document.getElementById('workoutAiResponseText');
+            const loadingEl = document.getElementById('workoutAiLoading');
+            const askBtn = document.getElementById('workoutAiAskBtn');
+
+            responseContainer.style.display = 'none';
+            loadingEl.style.display = 'flex';
+            askBtn.disabled = true;
+            askBtn.textContent = 'Analyzing...';
+
+            try {
+                const response = await fetch('/.netlify/functions/coach-workout-ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        question: question,
+                        clientName: currentClientName
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to get AI response');
+
+                responseText.textContent = data.response;
+                responseContainer.style.display = 'block';
+            } catch (error) {
+                console.error('Workout AI error:', error);
+                responseText.textContent = 'Sorry, I encountered an error analyzing the workout data. Please try again.';
+                responseContainer.style.display = 'block';
+            } finally {
+                loadingEl.style.display = 'none';
+                askBtn.disabled = false;
+                askBtn.textContent = 'Ask AI';
+            }
+        }
 
         // ============ SUPPLEMENT PROTOCOL FUNCTIONS ============
 
