@@ -2150,10 +2150,11 @@ function ExerciseDetailModal({
                 ) : videoUrl ? (
                   /* If we only have video, show it as preview (first frame) */
                   <video
-                    src={videoUrl}
+                    src={`${videoUrl}#t=0.1`}
                     muted
                     playsInline
                     preload="metadata"
+                    poster="/img/exercise-placeholder.svg"
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 ) : (
@@ -2208,16 +2209,6 @@ function ExerciseDetailModal({
               </div>
             </div>
           </div>
-          {/* Progressive Overload Tip */}
-          {progressTip && (
-            <div className={`progress-tip-banner progress-tip-${progressTip.type}`}>
-              <div className="progress-tip-header">
-                <span className="progress-tip-icon">{progressTip.icon}</span>
-                <span className="progress-tip-title">{progressTip.title}</span>
-              </div>
-              <p className="progress-tip-message">{progressTip.message}</p>
-            </div>
-          )}
           {/* Voice Input Button */}
           {voiceSupported && (
             <button
@@ -2230,6 +2221,17 @@ function ExerciseDetailModal({
             </button>
           )}
         </div>
+
+        {/* Progressive Overload Tip */}
+        {progressTip && (
+          <div className={`progress-tip-banner progress-tip-${progressTip.type}`}>
+            <div className="progress-tip-header">
+              <span className="progress-tip-icon">{progressTip.icon}</span>
+              <span className="progress-tip-title">{progressTip.title}</span>
+            </div>
+            <p className="progress-tip-message">{progressTip.message}</p>
+          </div>
+        )}
 
         {/* Voice feedback */}
         {(isListening || lastTranscript || voiceError) && (
