@@ -409,9 +409,16 @@ function ExerciseDetailModal({
 
     const generateTip = async () => {
       try {
-        const res = await apiGet(
+        // First try by exercise ID
+        let res = await apiGet(
           `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=5`
         );
+        // If no history by ID, fall back to exercise name (handles gender variants with different IDs)
+        if ((!res?.history || res.history.length === 0) && exercise.name) {
+          res = await apiGet(
+            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=5`
+          );
+        }
         if (cancelled || !res?.history || res.history.length === 0) return;
 
         const sessions = res.history; // most recent first
@@ -544,7 +551,7 @@ function ExerciseDetailModal({
 
     generateTip();
     return () => { cancelled = true; };
-  }, [clientId, exercise?.id]);
+  }, [clientId, exercise?.id, exercise?.name]);
 
   // Auto-save exercise_log to database when sets change (debounced)
   // Uses workoutLogId prop if available, otherwise checks for existing log for selectedDate, then creates one
@@ -2033,9 +2040,15 @@ function ExerciseDetailModal({
     setHistoryLoading(true);
     try {
       const exerciseId = exercise.id;
-      const res = await apiGet(
+      let res = await apiGet(
         `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exerciseId}&limit=30`
       );
+      // Fall back to exercise name if no history by ID (handles gender variants with different IDs)
+      if ((!res?.history || res.history.length === 0) && exercise.name) {
+        res = await apiGet(
+          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=30`
+        );
+      }
       if (res?.history) {
         setHistoryData(res.history);
         setHistoryStats(res.stats || null);
@@ -2045,7 +2058,7 @@ function ExerciseDetailModal({
     } finally {
       setHistoryLoading(false);
     }
-  }, [clientId, exercise?.id]);
+  }, [clientId, exercise?.id, exercise?.name]);
 
   // Toggle history section - fetch on first open
   const toggleHistory = useCallback(() => {
