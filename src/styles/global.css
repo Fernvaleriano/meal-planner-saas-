@@ -15631,6 +15631,166 @@ a.nav-left {
     margin: 0;
 }
 
+/* Client Note for Coach Section */
+.client-note-for-coach-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.client-note-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    color: #d1d5db;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.client-note-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.client-note-toggle-left svg {
+    color: #8b5cf6;
+}
+
+.note-saved-badge {
+    font-size: 11px;
+    color: #10b981;
+    font-weight: 600;
+    padding: 2px 8px;
+    background: rgba(16, 185, 129, 0.15);
+    border-radius: 10px;
+}
+
+.client-note-input-area {
+    padding: 0 16px 16px;
+}
+
+.client-note-textarea {
+    width: 100%;
+    min-height: 72px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #f3f4f6;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+}
+
+.client-note-textarea:focus {
+    border-color: #8b5cf6;
+}
+
+.client-note-textarea::placeholder {
+    color: #6b7280;
+}
+
+[data-theme="light"] .client-note-textarea {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .client-note-textarea::placeholder {
+    color: #94a3b8;
+}
+
+.client-note-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.client-note-actions-left {
+    display: flex;
+    gap: 8px;
+}
+
+.voice-note-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    color: #a78bfa;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.voice-note-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.voice-note-btn.recording {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #f87171;
+    animation: pulse-recording 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.client-note-char-count {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.client-voice-note-preview {
+    margin-top: 10px;
+}
+
+.client-voice-note-preview audio {
+    width: 100%;
+    height: 36px;
+    border-radius: 8px;
+}
+
+.client-note-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background: #8b5cf6;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.client-note-send-btn:active {
+    opacity: 0.85;
+}
+
+[data-theme="light"] .client-note-for-coach-section {
+    border-top-color: #e2e8f0;
+}
+
+[data-theme="light"] .client-note-toggle {
+    color: #334155;
+}
+
 /* AI Tips Section */
 .ai-tips-section {
     padding: 16px;
@@ -22401,8 +22561,122 @@ a.nav-left {
 }
 
 .workout-feed-exercise-detail {
-    color: #6b7280;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.workout-feed-exercise-detail:last-child {
+    border-bottom: none;
+}
+
+.workout-feed-exercise-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.workout-feed-exercise-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.workout-feed-sets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.workout-feed-set-pill {
+    padding: 3px 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+[data-theme="light"] .workout-feed-set-pill {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.set-rpe-mini {
+    color: #f59e0b;
+    margin-left: 2px;
+    font-size: 10px;
+}
+
+.workout-feed-client-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(139, 92, 246, 0.08);
+    border-left: 3px solid #8b5cf6;
+    border-radius: 0 8px 8px 0;
     font-size: 12px;
+    color: #c4b5fd;
+    line-height: 1.4;
+}
+
+.workout-feed-client-note svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #8b5cf6;
+}
+
+[data-theme="light"] .workout-feed-client-note {
+    background: rgba(139, 92, 246, 0.06);
+    color: #6d28d9;
+}
+
+.workout-feed-client-voice-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #a78bfa;
+}
+
+.workout-feed-client-voice-note svg {
+    flex-shrink: 0;
+    color: #8b5cf6;
+}
+
+.feed-voice-note-player {
+    width: 100%;
+    max-width: 250px;
+    height: 32px;
+    border-radius: 6px;
+}
+
+.voice-note-loading {
+    font-size: 11px;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.client-note-badge-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: rgba(139, 92, 246, 0.15);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #a78bfa;
+    font-weight: 600;
+}
+
+[data-theme="light"] .client-note-badge-inline {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
 }
 
 .workout-feed-exercise-pr {
@@ -22413,6 +22687,211 @@ a.nav-left {
     padding: 2px 5px;
     border-radius: 3px;
     margin-left: 6px;
+}
+
+/* AI Workout Insights Panel */
+.ai-workout-insights-section {
+    margin: 0 16px 12px;
+    background: rgba(139, 92, 246, 0.04);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.ai-insights-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: #a78bfa;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ai-insights-toggle.active {
+    border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.ai-insights-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-insights-panel {
+    padding: 12px 16px 16px;
+}
+
+.ai-insights-client-select {
+    margin-bottom: 12px;
+}
+
+.ai-insights-client-select label {
+    display: block;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 6px;
+}
+
+.ai-insights-client-select select {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #f3f4f6;
+    font-size: 14px;
+    appearance: auto;
+}
+
+[data-theme="light"] .ai-insights-client-select select {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+.ai-quick-questions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.ai-quick-btn {
+    padding: 6px 12px;
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 20px;
+    color: #c4b5fd;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ai-quick-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ai-quick-btn:active:not(:disabled) {
+    background: rgba(139, 92, 246, 0.25);
+}
+
+[data-theme="light"] .ai-quick-btn {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.2);
+    color: #7c3aed;
+}
+
+.ai-custom-question {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.ai-custom-question textarea {
+    flex: 1;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: #f3f4f6;
+    font-size: 13px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+}
+
+.ai-custom-question textarea:focus {
+    border-color: #8b5cf6;
+}
+
+.ai-custom-question textarea::placeholder {
+    color: #6b7280;
+}
+
+[data-theme="light"] .ai-custom-question textarea {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+.ai-ask-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #8b5cf6;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.ai-ask-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ai-insights-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: #a78bfa;
+    font-size: 13px;
+}
+
+.ai-insights-response {
+    margin-top: 12px;
+    padding: 14px;
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.12);
+    border-radius: 10px;
+}
+
+.ai-insights-response .ai-response-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #a78bfa;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.ai-insights-response .ai-response-text {
+    color: #d1d5db;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+[data-theme="light"] .ai-workout-insights-section {
+    background: rgba(139, 92, 246, 0.03);
+    border-color: rgba(139, 92, 246, 0.12);
+}
+
+[data-theme="light"] .ai-insights-toggle {
+    color: #7c3aed;
+}
+
+[data-theme="light"] .ai-insights-response {
+    background: rgba(139, 92, 246, 0.04);
+    border-color: rgba(139, 92, 246, 0.1);
+}
+
+[data-theme="light"] .ai-insights-response .ai-response-text {
+    color: #374151;
 }
 
 /* Feed entry actions for workout cards */

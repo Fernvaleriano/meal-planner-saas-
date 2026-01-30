@@ -244,36 +244,42 @@ exports.handler = async (event) => {
 
           if (existingId) {
             // Update existing exercise log
+            const updateObj = {
+              sets_data: setsData,
+              total_sets: exTotalSets,
+              total_reps: exTotalReps,
+              total_volume: exTotalVolume,
+              max_weight: exMaxWeight,
+              exercise_name: ex.exerciseName || undefined,
+              exercise_order: ex.order || undefined,
+              notes: ex.notes,
+              is_pr: ex.isPr || false
+            };
+            if (ex.clientNotes !== undefined) updateObj.client_notes = ex.clientNotes;
+            if (ex.clientVoiceNotePath !== undefined) updateObj.client_voice_note_path = ex.clientVoiceNotePath;
             await supabase
               .from('exercise_logs')
-              .update({
-                sets_data: setsData,
-                total_sets: exTotalSets,
-                total_reps: exTotalReps,
-                total_volume: exTotalVolume,
-                max_weight: exMaxWeight,
-                exercise_name: ex.exerciseName || undefined,
-                exercise_order: ex.order || undefined,
-                notes: ex.notes,
-                is_pr: ex.isPr || false
-              })
+              .update(updateObj)
               .eq('id', existingId);
           } else {
             // Insert new exercise log
+            const insertObj = {
+              workout_log_id: workoutId,
+              exercise_id: ex.exerciseId,
+              exercise_name: ex.exerciseName,
+              exercise_order: ex.order || 0,
+              sets_data: setsData,
+              total_sets: exTotalSets,
+              total_reps: exTotalReps,
+              total_volume: exTotalVolume,
+              max_weight: exMaxWeight,
+              notes: ex.notes
+            };
+            if (ex.clientNotes) insertObj.client_notes = ex.clientNotes;
+            if (ex.clientVoiceNotePath) insertObj.client_voice_note_path = ex.clientVoiceNotePath;
             await supabase
               .from('exercise_logs')
-              .insert([{
-                workout_log_id: workoutId,
-                exercise_id: ex.exerciseId,
-                exercise_name: ex.exerciseName,
-                exercise_order: ex.order || 0,
-                sets_data: setsData,
-                total_sets: exTotalSets,
-                total_reps: exTotalReps,
-                total_volume: exTotalVolume,
-                max_weight: exMaxWeight,
-                notes: ex.notes
-              }]);
+              .insert([insertObj]);
           }
         }
 

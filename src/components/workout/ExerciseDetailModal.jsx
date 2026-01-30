@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -332,6 +332,17 @@ function ExerciseDetailModal({
   // Progressive overload tip state
   const [progressTip, setProgressTip] = useState(null);
 
+  // Client note for coach state
+  const [clientNote, setClientNote] = useState('');
+  const [clientNoteSaved, setClientNoteSaved] = useState(false);
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
+  const [voiceNoteUrl, setVoiceNoteUrl] = useState(null);
+  const [voiceNoteUploading, setVoiceNoteUploading] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const clientNoteTimerRef = useRef(null);
+
   // AI Tips state
   const [tips, setTips] = useState([]);
   const [tipsLoading, setTipsLoading] = useState(false);
@@ -650,6 +661,239 @@ function ExerciseDetailModal({
   // Mark sets as user-changed when handleSaveSets fires (not initial load)
   const markSetsChanged = useCallback(() => {
     setsChangedRef.current = true;
+  }, []);
+
+  // Reset client note state when exercise changes
+  useEffect(() => {
+    setClientNote('');
+    setClientNoteSaved(false);
+    setShowNoteInput(false);
+    setVoiceNoteUrl(null);
+    setIsRecordingVoiceNote(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  }, [exercise?.id]);
+
+  // Save client text note (debounced auto-save alongside sets)
+  const saveClientNote = useCallback(async (noteText) => {
+    if (!clientId || !exercise?.id) return;
+    try {
+      let logId = workoutLogIdRef.current;
+      const dateStr = getWorkoutDateStr();
+
+      if (!logId) {
+        const existing = await apiGet(
+          `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        );
+        if (existing?.workouts && existing.workouts.length > 0) {
+          logId = existing.workouts[0].id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+
+      if (!logId) {
+        const res = await apiPost('/.netlify/functions/workout-logs', {
+          clientId,
+          workoutDate: dateStr,
+          workoutName: exercise?.workoutName || 'Workout',
+          status: 'in_progress'
+        });
+        if (res?.workout?.id) {
+          logId = res.workout.id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+
+      if (!logId) return;
+
+      // Save note to exercise_logs via the workout-logs PUT
+      const setsData = sets.map((s, i) => ({
+        setNumber: i + 1,
+        reps: s.reps || 0,
+        weight: s.weight || 0,
+        weightUnit: s.weightUnit || 'kg',
+        rpe: s.rpe || null,
+        restSeconds: s.restSeconds || null,
+        isTimeBased: s.isTimeBased || false
+      }));
+
+      await apiPut('/.netlify/functions/workout-logs', {
+        workoutId: logId,
+        exercises: [{
+          exerciseId: exercise.id,
+          exerciseName: exercise.name || 'Unknown',
+          order: 1,
+          sets: setsData,
+          clientNotes: noteText
+        }]
+      });
+
+      setClientNoteSaved(true);
+      setTimeout(() => setClientNoteSaved(false), 3000);
+
+      // Create notification for coach
+      if (noteText && noteText.trim() && coachId) {
+        try {
+          await apiPost('/.netlify/functions/notifications', {
+            coachId,
+            clientId,
+            type: 'client_exercise_note',
+            title: 'Client Note',
+            message: `Left a note on ${exercise.name || 'an exercise'}: "${noteText.trim().substring(0, 100)}${noteText.trim().length > 100 ? '...' : ''}"`,
+            metadata: {
+              exerciseName: exercise.name,
+              exerciseId: exercise.id,
+              workoutDate: dateStr
+            }
+          });
+        } catch (notifErr) {
+          console.error('Error creating note notification:', notifErr);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving client note:', err);
+    }
+  }, [clientId, exercise?.id, exercise?.name, coachId, sets, getWorkoutDateStr]);
+
+  // Handle client note text change with debounce
+  const handleClientNoteChange = useCallback((text) => {
+    setClientNote(text);
+    setClientNoteSaved(false);
+    if (clientNoteTimerRef.current) clearTimeout(clientNoteTimerRef.current);
+    clientNoteTimerRef.current = setTimeout(() => {
+      if (text.trim()) saveClientNote(text);
+    }, 2000);
+  }, [saveClientNote]);
+
+  // Voice note recording
+  const startVoiceNoteRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mediaRecorder.mimeType || 'audio/webm'
+        });
+
+        // Convert to base64 data URL for upload
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const audioData = reader.result;
+          setVoiceNoteUploading(true);
+          try {
+            const fileName = `note_${exercise.id}_${Date.now()}.webm`;
+            const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
+              clientId,
+              audioData,
+              fileName
+            });
+            if (res?.url) {
+              setVoiceNoteUrl(res.url);
+            }
+            // Also save the path to the exercise log
+            if (res?.filePath) {
+              let logId = workoutLogIdRef.current;
+              const dateStr = getWorkoutDateStr();
+              if (!logId) {
+                const existing = await apiGet(
+                  `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+                );
+                if (existing?.workouts && existing.workouts.length > 0) {
+                  logId = existing.workouts[0].id;
+                  workoutLogIdRef.current = logId;
+                }
+              }
+              if (!logId) {
+                const logRes = await apiPost('/.netlify/functions/workout-logs', {
+                  clientId,
+                  workoutDate: dateStr,
+                  workoutName: exercise?.workoutName || 'Workout',
+                  status: 'in_progress'
+                });
+                if (logRes?.workout?.id) {
+                  logId = logRes.workout.id;
+                  workoutLogIdRef.current = logId;
+                }
+              }
+              // Save voice note path alongside exercise data
+              if (logId) {
+                const setsData = sets.map((s, i) => ({
+                  setNumber: i + 1,
+                  reps: s.reps || 0,
+                  weight: s.weight || 0,
+                  weightUnit: s.weightUnit || 'kg',
+                  rpe: s.rpe || null,
+                  restSeconds: s.restSeconds || null,
+                  isTimeBased: s.isTimeBased || false
+                }));
+                await apiPut('/.netlify/functions/workout-logs', {
+                  workoutId: logId,
+                  exercises: [{
+                    exerciseId: exercise.id,
+                    exerciseName: exercise.name || 'Unknown',
+                    order: 1,
+                    sets: setsData,
+                    clientVoiceNotePath: res.filePath,
+                    clientNotes: clientNote || undefined
+                  }]
+                });
+              }
+
+              // Notify coach about voice note
+              if (coachId) {
+                try {
+                  await apiPost('/.netlify/functions/notifications', {
+                    coachId,
+                    clientId,
+                    type: 'client_exercise_voice_note',
+                    title: 'Client Voice Note',
+                    message: `Left a voice note on ${exercise.name || 'an exercise'}`,
+                    metadata: {
+                      exerciseName: exercise.name,
+                      exerciseId: exercise.id,
+                      workoutDate: dateStr,
+                      voiceNotePath: res.filePath
+                    }
+                  });
+                } catch (notifErr) {
+                  console.error('Error creating voice note notification:', notifErr);
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Error uploading voice note:', err);
+          } finally {
+            setVoiceNoteUploading(false);
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecordingVoiceNote(true);
+    } catch (err) {
+      console.error('Error starting voice recording:', err);
+    }
+  }, [clientId, exercise?.id, exercise?.name, coachId, sets, clientNote, getWorkoutDateStr]);
+
+  const stopVoiceNoteRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecordingVoiceNote(false);
   }, []);
 
   // Coaching data state (from database)
@@ -2337,6 +2581,79 @@ function ExerciseDetailModal({
             <p className="coach-note-text">{exercise.notes}</p>
           </div>
         )}
+
+        {/* Client Note for Coach */}
+        <div className="client-note-for-coach-section">
+          <button
+            className="client-note-toggle"
+            onClick={() => setShowNoteInput(!showNoteInput)}
+            type="button"
+          >
+            <div className="client-note-toggle-left">
+              <MessageCircle size={16} />
+              <span>Note for Coach</span>
+            </div>
+            {clientNoteSaved && <span className="note-saved-badge">Saved</span>}
+            {showNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showNoteInput && (
+            <div className="client-note-input-area">
+              <textarea
+                className="client-note-textarea"
+                placeholder="Leave a note for your coach about this exercise..."
+                value={clientNote}
+                onChange={(e) => handleClientNoteChange(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+              <div className="client-note-actions">
+                <div className="client-note-actions-left">
+                  {isRecordingVoiceNote ? (
+                    <button
+                      className="voice-note-btn recording"
+                      onClick={stopVoiceNoteRecording}
+                      type="button"
+                    >
+                      <Square size={16} />
+                      <span>Stop</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="voice-note-btn"
+                      onClick={startVoiceNoteRecording}
+                      disabled={voiceNoteUploading}
+                      type="button"
+                    >
+                      <Mic size={16} />
+                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="client-note-char-count">
+                  {clientNote.length}/500
+                </div>
+              </div>
+
+              {voiceNoteUrl && (
+                <div className="client-voice-note-preview">
+                  <audio controls src={voiceNoteUrl} preload="metadata" />
+                </div>
+              )}
+
+              {clientNote.trim() && (
+                <button
+                  className="client-note-send-btn"
+                  onClick={() => saveClientNote(clientNote)}
+                  type="button"
+                >
+                  <Send size={14} />
+                  <span>Send Note</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Coaching Tips Section */}
         <div className="ai-tips-section">
