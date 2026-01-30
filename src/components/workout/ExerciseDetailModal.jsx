@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import { apiGet } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -184,7 +185,8 @@ function ExerciseDetailModal({
   onUpdateExercise, // New callback for saving set/rep changes
   onDeleteExercise, // Callback for deleting exercise from workout
   genderPreference = 'all', // Preferred gender for exercise demonstrations
-  coachId = null // Coach ID for loading custom exercises
+  coachId = null, // Coach ID for loading custom exercises
+  clientId = null // Client ID for fetching exercise history
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -318,6 +320,12 @@ function ExerciseDetailModal({
   const [showVideo, setShowVideo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAskCoach, setShowAskCoach] = useState(false);
+
+  // Exercise history state
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyData, setHistoryData] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyStats, setHistoryStats] = useState(null);
 
   // AI Tips state
   const [tips, setTips] = useState([]);
@@ -1760,6 +1768,64 @@ function ExerciseDetailModal({
     });
   }, [exercise]);
 
+  // Fetch exercise history
+  const fetchExerciseHistory = useCallback(async () => {
+    if (!clientId || !exercise?.id) return;
+    setHistoryLoading(true);
+    try {
+      const exerciseId = exercise.id;
+      const res = await apiGet(
+        `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exerciseId}&limit=30`
+      );
+      if (res?.history) {
+        setHistoryData(res.history);
+        setHistoryStats(res.stats || null);
+      }
+    } catch (err) {
+      console.error('Error fetching exercise history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [clientId, exercise?.id]);
+
+  // Toggle history section - fetch on first open
+  const toggleHistory = useCallback(() => {
+    const willShow = !showHistory;
+    setShowHistory(willShow);
+    if (willShow && !historyData) {
+      fetchExerciseHistory();
+    }
+  }, [showHistory, historyData, fetchExerciseHistory]);
+
+  // Reset history when exercise changes
+  useEffect(() => {
+    setHistoryData(null);
+    setHistoryStats(null);
+    setShowHistory(false);
+  }, [exercise?.id]);
+
+  // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
+  const calculate1RM = (weight, reps) => {
+    if (!weight || weight <= 0 || !reps || reps <= 0) return 0;
+    if (reps === 1) return weight;
+    return Math.round(weight * (1 + reps / 30));
+  };
+
+  // Get best estimated 1RM from history
+  const best1RM = useMemo(() => {
+    if (!historyData || historyData.length === 0) return null;
+    let best = 0;
+    for (const entry of historyData) {
+      const setsData = typeof entry.setsData === 'string'
+        ? JSON.parse(entry.setsData) : (entry.setsData || []);
+      for (const s of setsData) {
+        const est = calculate1RM(s.weight || 0, s.reps || 0);
+        if (est > best) best = est;
+      }
+    }
+    return best > 0 ? best : null;
+  }, [historyData]);
+
   // Stop propagation handler - memoized
   const stopPropagation = useCallback((e) => {
     if (e) {
@@ -2054,6 +2120,141 @@ function ExerciseDetailModal({
             <MessageCircle size={16} />
             <span>Ask Coach</span>
           </button>
+        </div>
+
+        {/* Exercise History Section */}
+        <div className="exercise-history-section">
+          <button className="exercise-history-toggle" onClick={toggleHistory} type="button">
+            <div className="exercise-history-toggle-left">
+              <History size={18} />
+              <span>Exercise History</span>
+            </div>
+            {historyLoading ? (
+              <Loader2 size={16} className="spin" />
+            ) : (
+              showHistory ? <ChevronUp size={18} /> : <ChevronDown size={18} />
+            )}
+          </button>
+
+          {showHistory && (
+            <div className="exercise-history-content">
+              {historyLoading ? (
+                <div className="exercise-history-loading">
+                  <Loader2 size={20} className="spin" />
+                  <span>Loading history...</span>
+                </div>
+              ) : !historyData || historyData.length === 0 ? (
+                <div className="exercise-history-empty">
+                  <History size={32} />
+                  <p>No history yet for this exercise</p>
+                  <span>Complete a workout to start tracking</span>
+                </div>
+              ) : (
+                <>
+                  {/* Stats Summary */}
+                  <div className="exercise-history-stats">
+                    {historyStats?.allTimeMaxWeight > 0 && (
+                      <div className="exercise-history-stat-card">
+                        <Award size={16} />
+                        <div>
+                          <span className="stat-value">{historyStats.allTimeMaxWeight} kg</span>
+                          <span className="stat-label">Max Weight</span>
+                        </div>
+                      </div>
+                    )}
+                    {best1RM && (
+                      <div className="exercise-history-stat-card">
+                        <TrendingUp size={16} />
+                        <div>
+                          <span className="stat-value">{best1RM} kg</span>
+                          <span className="stat-label">Est. 1RM</span>
+                        </div>
+                      </div>
+                    )}
+                    {historyStats?.totalWorkouts > 0 && (
+                      <div className="exercise-history-stat-card">
+                        <BarChart3 size={16} />
+                        <div>
+                          <span className="stat-value">{historyStats.totalWorkouts}</span>
+                          <span className="stat-label">Sessions</span>
+                        </div>
+                      </div>
+                    )}
+                    {historyStats?.prCount > 0 && (
+                      <div className="exercise-history-stat-card highlight">
+                        <Award size={16} />
+                        <div>
+                          <span className="stat-value">{historyStats.prCount}</span>
+                          <span className="stat-label">PRs</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* History Entries */}
+                  <div className="exercise-history-entries">
+                    {historyData.map((entry, idx) => {
+                      const setsData = typeof entry.setsData === 'string'
+                        ? JSON.parse(entry.setsData) : (entry.setsData || []);
+                      const entryDate = entry.workoutDate
+                        ? new Date(entry.workoutDate).toLocaleDateString('en-US', {
+                            weekday: 'short', month: 'short', day: 'numeric'
+                          })
+                        : 'Unknown date';
+                      const maxW = Math.max(...setsData.map(s => s.weight || 0), 0);
+                      const entry1RM = maxW > 0 ? Math.max(
+                        ...setsData.filter(s => s.weight > 0 && s.reps > 0)
+                          .map(s => calculate1RM(s.weight, s.reps))
+                      ) : null;
+
+                      return (
+                        <div key={entry.id || idx} className={`exercise-history-entry ${entry.isPr ? 'is-pr' : ''}`}>
+                          <div className="exercise-history-entry-header">
+                            <span className="entry-date">{entryDate}</span>
+                            <div className="entry-badges">
+                              {entry.isPr && (
+                                <span className="entry-pr-badge">
+                                  <Award size={10} /> PR
+                                </span>
+                              )}
+                              {entry1RM && (
+                                <span className="entry-1rm">1RM: {entry1RM} kg</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="exercise-history-sets">
+                            {setsData.map((s, sIdx) => (
+                              <div key={sIdx} className="history-set-row">
+                                <span className="history-set-num">Set {sIdx + 1}</span>
+                                <span className="history-set-detail">
+                                  {s.reps || 0} reps
+                                </span>
+                                {s.weight > 0 && (
+                                  <span className="history-set-weight">
+                                    {s.weight} kg
+                                  </span>
+                                )}
+                                {s.rpe && (
+                                  <span className="history-set-rpe">RPE {s.rpe}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="exercise-history-entry-summary">
+                            <span>{entry.totalSets || setsData.length} sets</span>
+                            <span>{entry.totalReps || setsData.reduce((sum, s) => sum + (s.reps || 0), 0)} reps</span>
+                            {(entry.totalVolume > 0) && (
+                              <span>{entry.totalVolume.toLocaleString()} kg vol</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Activity Progress */}

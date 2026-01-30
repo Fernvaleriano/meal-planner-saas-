@@ -1660,6 +1660,7 @@ function Workouts() {
             onDeleteExercise={handleDeleteExercise}
             genderPreference={clientData?.preferred_exercise_gender || 'all'}
             coachId={clientData?.coach_id}
+            clientId={clientData?.id}
           />
         </ErrorBoundary>
       )}

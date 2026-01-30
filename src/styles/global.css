@@ -15124,6 +15124,283 @@ a.nav-left {
     flex: 1;
 }
 
+/* ============================================
+   Exercise History Section (in ExerciseDetailModal)
+   ============================================ */
+
+.exercise-history-section {
+    margin: 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.exercise-history-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    color: #60a5fa;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.exercise-history-toggle:active {
+    background: rgba(255,255,255,0.04);
+}
+
+.exercise-history-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+[data-theme="light"] .exercise-history-toggle {
+    color: #3b82f6;
+}
+
+[data-theme="light"] .exercise-history-section {
+    border-top-color: #e2e8f0;
+}
+
+/* History content container */
+.exercise-history-content {
+    padding: 0 16px 16px;
+}
+
+.exercise-history-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 0;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.exercise-history-empty {
+    text-align: center;
+    padding: 24px 0;
+    color: #6b7280;
+}
+
+.exercise-history-empty svg {
+    color: #4b5563;
+    margin-bottom: 8px;
+}
+
+.exercise-history-empty p {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #9ca3af;
+}
+
+.exercise-history-empty span {
+    font-size: 13px;
+}
+
+/* Stats cards */
+.exercise-history-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.exercise-history-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.exercise-history-stat-card svg {
+    color: #6366f1;
+    flex-shrink: 0;
+}
+
+.exercise-history-stat-card.highlight svg {
+    color: #f59e0b;
+}
+
+.exercise-history-stat-card div {
+    display: flex;
+    flex-direction: column;
+}
+
+.exercise-history-stat-card .stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.2;
+}
+
+.exercise-history-stat-card .stat-label {
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+[data-theme="light"] .exercise-history-stat-card {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .exercise-history-stat-card .stat-value {
+    color: #0f172a;
+}
+
+[data-theme="light"] .exercise-history-stat-card .stat-label {
+    color: #64748b;
+}
+
+/* History entries list */
+.exercise-history-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.exercise-history-entry {
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.exercise-history-entry.is-pr {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.06);
+}
+
+[data-theme="light"] .exercise-history-entry {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .exercise-history-entry.is-pr {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.exercise-history-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.entry-date {
+    font-size: 13px;
+    font-weight: 600;
+    color: #d1d5db;
+}
+
+[data-theme="light"] .entry-date {
+    color: #334155;
+}
+
+.entry-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.entry-pr-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #f59e0b;
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.entry-1rm {
+    font-size: 11px;
+    color: #818cf8;
+    font-weight: 600;
+}
+
+/* Individual sets within a history entry */
+.exercise-history-sets {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.history-set-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.history-set-row:last-child {
+    border-bottom: none;
+}
+
+[data-theme="light"] .history-set-row {
+    border-bottom-color: #f1f5f9;
+}
+
+.history-set-num {
+    color: #6b7280;
+    font-weight: 500;
+    min-width: 42px;
+}
+
+.history-set-detail {
+    color: #d1d5db;
+    font-weight: 600;
+    min-width: 55px;
+}
+
+[data-theme="light"] .history-set-detail {
+    color: #0f172a;
+}
+
+.history-set-weight {
+    color: #60a5fa;
+    font-weight: 600;
+    min-width: 55px;
+}
+
+.history-set-rpe {
+    color: #9ca3af;
+    font-size: 11px;
+    margin-left: auto;
+}
+
+/* Entry summary row */
+.exercise-history-entry-summary {
+    display: flex;
+    gap: 12px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+[data-theme="light"] .exercise-history-entry-summary {
+    border-top-color: #e2e8f0;
+    color: #64748b;
+}
+
 /* Add Note Section */
 .add-note-section {
     padding: 0 16px 16px;
