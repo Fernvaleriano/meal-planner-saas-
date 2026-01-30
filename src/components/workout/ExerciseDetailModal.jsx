@@ -1730,7 +1730,7 @@ function ExerciseDetailModal({
   }, [exercise]);
 
   // Save sets handler - updates local state AND persists to backend
-  const handleSaveSets = useCallback((newSets) => {
+  const handleSaveSets = useCallback((newSets, editMode) => {
     // Update local state
     setSets(newSets);
 
@@ -1738,7 +1738,9 @@ function ExerciseDetailModal({
     if (callbackRefs.current.onUpdateExercise && exercise) {
       const updatedExercise = {
         ...exercise,
-        sets: newSets
+        sets: newSets,
+        // Persist the exercise type so time-based mode is remembered
+        exercise_type: editMode === 'time' ? 'timed' : (exercise.exercise_type || 'strength')
       };
       callbackRefs.current.onUpdateExercise(updatedExercise);
     }
@@ -1770,7 +1772,7 @@ function ExerciseDetailModal({
   // Prioritize custom video from coach over default video
   const hasCustomVideo = !!exercise?.customVideoUrl;
   const videoUrl = exercise?.customVideoUrl || exercise?.video_url || exercise?.animation_url;
-  const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio';
+  const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased);
   const difficultyLevel = exercise?.difficulty || 'Novice';
 
   // Helper to check if URL is an image (not video)
@@ -1892,8 +1894,17 @@ function ExerciseDetailModal({
             <div className="time-boxes-row">
               {sets.map((set, idx) => (
                 <div key={idx} className="time-box with-weight clickable">
-                  <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
-                  <span className="weight-value">{set?.weight || 0} kg</span>
+                  {isTimedExercise ? (
+                    <>
+                      <span className="reps-value">{set?.duration || exercise.duration || 45}s</span>
+                      <span className="weight-value">{set?.weight || 0} kg</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
+                      <span className="weight-value">{set?.weight || 0} kg</span>
+                    </>
+                  )}
                 </div>
               ))}
               <div className="time-box add-box" onClick={handleAddSet}>
