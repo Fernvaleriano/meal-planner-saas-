@@ -721,7 +721,7 @@ function Workouts() {
   }, [clientData?.id, selectedDate, showError]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
-  const handleUpdateExercise = useCallback(async (updatedExercise) => {
+  const handleUpdateExercise = useCallback((updatedExercise) => {
     const workout = todayWorkoutRef.current;
     if (!workout?.workout_data || !updatedExercise) return;
 
@@ -741,9 +741,6 @@ function Workouts() {
     }
 
     if (currentExercises.length === 0) return;
-
-    // Find the exercise index for order
-    const exerciseIndex = currentExercises.findIndex(ex => ex?.id === updatedExercise.id);
 
     // Update the exercise in the workout data
     const updatedExercises = currentExercises.map(ex => {
@@ -804,58 +801,7 @@ function Workouts() {
         console.error('Error saving exercise update:', err);
       });
     }
-
-    // Auto-create workout log if it doesn't exist, then save exercise_log immediately
-    if (updatedExercise.sets && updatedExercise.sets.length > 0 && clientData?.id) {
-      try {
-        let logId = workoutLog?.id;
-
-        // Auto-create workout log if needed
-        if (!logId) {
-          const res = await apiPost('/.netlify/functions/workout-logs', {
-            clientId: clientData.id,
-            coachId: clientData.coach_id,
-            assignmentId: workout.id,
-            workoutDate: formatDate(selectedDate),
-            workoutName: workout.name || 'Workout',
-            status: 'in_progress'
-          });
-          if (res?.workout) {
-            setWorkoutLog(res.workout);
-            logId = res.workout.id;
-          } else if (res?.log) {
-            setWorkoutLog(res.log);
-            logId = res.log.id;
-          }
-        }
-
-        // Save exercise_log immediately
-        if (logId) {
-          const setsData = updatedExercise.sets.map((s, i) => ({
-            setNumber: i + 1,
-            reps: s.reps || 0,
-            weight: s.weight || 0,
-            weightUnit: s.weightUnit || 'kg',
-            rpe: s.rpe || null,
-            restSeconds: s.restSeconds || null,
-            isTimeBased: s.isTimeBased || false
-          }));
-
-          await apiPut('/.netlify/functions/workout-logs', {
-            workoutId: logId,
-            exercises: [{
-              exerciseId: updatedExercise.id,
-              exerciseName: updatedExercise.name || 'Unknown',
-              order: exerciseIndex >= 0 ? exerciseIndex + 1 : 1,
-              sets: setsData
-            }]
-          });
-        }
-      } catch (err) {
-        console.error('Error saving exercise log:', err);
-      }
-    }
-  }, [clientData?.id, clientData?.coach_id, selectedDate]); // Using ref for workout data
+  }, []); // Using ref instead of dependencies
 
   // Handle deleting an exercise from workout - use ref for stable callback
   const handleDeleteExercise = useCallback((exerciseToDelete) => {
