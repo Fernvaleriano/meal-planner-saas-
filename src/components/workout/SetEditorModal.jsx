@@ -567,28 +567,31 @@ function SetEditorModal({
                     </span>
                     <ChevronDown size={12} className={rpePickerIndex === index ? 'open' : ''} />
                   </button>
-                  {/* RPE Dropdown */}
+                  {/* RPE Dropdown - fixed position overlay */}
                   {rpePickerIndex === index && (
-                    <div className="rpe-dropdown">
-                      <div className="rpe-dropdown-header">How hard? (RPE)</div>
-                      {RPE_OPTIONS.slice(1).map(option => (
+                    <>
+                      <div className="rpe-backdrop" onClick={() => setRpePickerIndex(null)} />
+                      <div className="rpe-dropdown">
+                        <div className="rpe-dropdown-header">How hard was this set? (RPE)</div>
+                        {RPE_OPTIONS.slice(1).map(option => (
+                          <button
+                            key={option.value}
+                            className={`rpe-option ${set.rpe === option.value ? 'selected' : ''}`}
+                            onClick={() => updateRpe(index, option.value)}
+                          >
+                            <span className={`rpe-option-value rpe-${option.value}`}>{option.value}</span>
+                            <span className="rpe-option-desc">{option.description}</span>
+                          </button>
+                        ))}
                         <button
-                          key={option.value}
-                          className={`rpe-option ${set.rpe === option.value ? 'selected' : ''}`}
-                          onClick={() => updateRpe(index, option.value)}
+                          className={`rpe-option clear ${!set.rpe ? 'selected' : ''}`}
+                          onClick={() => updateRpe(index, null)}
                         >
-                          <span className={`rpe-option-value rpe-${option.value}`}>{option.value}</span>
-                          <span className="rpe-option-desc">{option.description}</span>
+                          <span className="rpe-option-value">-</span>
+                          <span className="rpe-option-desc">Clear</span>
                         </button>
-                      ))}
-                      <button
-                        className={`rpe-option clear ${!set.rpe ? 'selected' : ''}`}
-                        onClick={() => updateRpe(index, null)}
-                      >
-                        <span className="rpe-option-value">-</span>
-                        <span className="rpe-option-desc">Clear</span>
-                      </button>
-                    </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

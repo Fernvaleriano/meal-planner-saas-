@@ -17029,17 +17029,25 @@ a.nav-left {
     transform: rotate(180deg);
 }
 
+.rpe-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 99998;
+}
+
 .rpe-dropdown {
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    margin-bottom: 8px;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 60px;
     background: #1e1e1e;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
     overflow: hidden;
-    min-width: 200px;
-    z-index: 9999;
+    width: calc(100% - 40px);
+    max-width: 340px;
+    z-index: 99999;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
 }
 

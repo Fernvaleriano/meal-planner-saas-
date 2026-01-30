@@ -425,6 +425,11 @@ function ExerciseDetailModal({
         const lastTotalSets = lastSets.length;
         const lastDate = last.workoutDate;
 
+        // RPE analysis — average RPE from sets that have it logged
+        const rpeValues = lastSets.map(s => s.rpe).filter(r => r != null && r >= 6);
+        const hasRpe = rpeValues.length > 0;
+        const avgRpe = hasRpe ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10 : null;
+
         // Format the date for display
         const dateObj = lastDate ? new Date(lastDate + 'T00:00:00') : null;
         const dateLabel = dateObj
@@ -448,7 +453,28 @@ function ExerciseDetailModal({
 
         let tip = null;
 
-        if (isPlateaued && !struggling) {
+        // RPE-based tips take priority when RPE data is available
+        if (hasRpe && avgRpe >= 9.5) {
+          // Near max effort — suggest backing off or holding steady
+          tip = {
+            type: 'build_reps',
+            icon: '🛡️',
+            title: 'Near your limit',
+            message: `RPE ${avgRpe} on ${dateLabel} — you were grinding. Stay at ${lastMaxWeight} kg and focus on clean reps.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets @ ${lastMaxWeight} kg, avg RPE ${avgRpe}`
+          };
+        } else if (hasRpe && avgRpe <= 6.5 && lastMaxWeight > 0) {
+          // Low effort — room to push harder
+          const increment = lastMaxWeight >= 80 ? 5 : 2.5;
+          const suggestedWeight = lastMaxWeight + increment;
+          tip = {
+            type: 'increase_weight',
+            icon: '🔥',
+            title: 'You had more in the tank',
+            message: `RPE ${avgRpe} on ${dateLabel} — felt easy. Bump to ${suggestedWeight} kg this session.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets @ ${lastMaxWeight} kg, avg RPE ${avgRpe}`
+          };
+        } else if (isPlateaued && !struggling) {
           // Plateaued for 3+ sessions — suggest changing approach
           const suggestedWeight = lastMaxWeight + 2.5;
           tip = {
@@ -457,6 +483,15 @@ function ExerciseDetailModal({
             title: 'Break the plateau',
             message: `You've hit ${lastMaxWeight} kg for 3 sessions. Try ${suggestedWeight} kg for fewer reps, or add an extra set.`,
             lastSession: `${dateLabel}: ${lastTotalSets} sets, best ${lastMaxReps} reps @ ${lastMaxWeight} kg`
+          };
+        } else if (hasRpe && avgRpe >= 8.5 && allSetsHitTarget && lastMaxWeight > 0) {
+          // High effort but hit all reps — ready for a small bump
+          tip = {
+            type: 'increase_weight',
+            icon: '🔥',
+            title: 'Ready to go heavier',
+            message: `RPE ${avgRpe} and ${lastMaxReps} reps on ${dateLabel}. Try ${lastMaxWeight + 2.5} kg — you earned it.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets @ ${lastMaxWeight} kg, avg RPE ${avgRpe}`
           };
         } else if (allSetsHitTarget && lastMaxWeight > 0) {
           // All sets hit 12+ reps — ready to increase weight
