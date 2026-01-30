@@ -329,6 +329,9 @@ function ExerciseDetailModal({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyStats, setHistoryStats] = useState(null);
 
+  // Progressive overload tip state
+  const [progressTip, setProgressTip] = useState(null);
+
   // AI Tips state
   const [tips, setTips] = useState([]);
   const [tipsLoading, setTipsLoading] = useState(false);
@@ -390,9 +393,123 @@ function ExerciseDetailModal({
     setShowSwapModal(false);
     setTips([]);
     setTipsError(null);
+    setProgressTip(null);
     // Reset auto-save flag so switching exercises doesn't trigger a stale save
     setsChangedRef.current = false;
   }, [exercise?.id, initialSets]);
+
+  // Fetch last session and generate progressive overload tip
+  useEffect(() => {
+    if (!clientId || !exercise?.id) {
+      setProgressTip(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const generateTip = async () => {
+      try {
+        const res = await apiGet(
+          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=5`
+        );
+        if (cancelled || !res?.history || res.history.length === 0) return;
+
+        const sessions = res.history; // most recent first
+        const last = sessions[0];
+        const lastSets = last.setsData || [];
+        if (lastSets.length === 0) return;
+
+        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
+        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+        const lastTotalReps = lastSets.reduce((sum, s) => sum + (s.reps || 0), 0);
+        const lastTotalSets = lastSets.length;
+        const lastDate = last.workoutDate;
+
+        // Format the date for display
+        const dateObj = lastDate ? new Date(lastDate + 'T00:00:00') : null;
+        const dateLabel = dateObj
+          ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : 'last session';
+
+        // Check if all sets hit target reps (12+ reps = hit target for hypertrophy)
+        const allSetsHitTarget = lastSets.every(s => (s.reps || 0) >= 12);
+        // Check if any sets were low reps (struggling)
+        const struggling = lastSets.some(s => (s.reps || 0) > 0 && (s.reps || 0) < 8);
+
+        // Check for plateau — same max weight across last 3+ sessions
+        let isPlateaued = false;
+        if (sessions.length >= 3) {
+          const recentMaxes = sessions.slice(0, 3).map(s => {
+            const sd = s.setsData || [];
+            return Math.max(...sd.map(set => set.weight || 0), 0);
+          });
+          isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
+        }
+
+        let tip = null;
+
+        if (isPlateaued && !struggling) {
+          // Plateaued for 3+ sessions — suggest changing approach
+          const suggestedWeight = lastMaxWeight + 2.5;
+          tip = {
+            type: 'plateau',
+            icon: '⚡',
+            title: 'Break the plateau',
+            message: `You've hit ${lastMaxWeight} kg for 3 sessions. Try ${suggestedWeight} kg for fewer reps, or add an extra set.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets, best ${lastMaxReps} reps @ ${lastMaxWeight} kg`
+          };
+        } else if (allSetsHitTarget && lastMaxWeight > 0) {
+          // All sets hit 12+ reps — ready to increase weight
+          const increment = lastMaxWeight >= 80 ? 5 : 2.5;
+          const suggestedWeight = lastMaxWeight + increment;
+          tip = {
+            type: 'increase_weight',
+            icon: '🔥',
+            title: 'Ready to go heavier',
+            message: `You hit ${lastMaxReps} reps @ ${lastMaxWeight} kg on ${dateLabel}. Try ${suggestedWeight} kg this session.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps @ ${lastMaxWeight} kg`
+          };
+        } else if (struggling) {
+          // Some sets under 8 reps — keep same weight, focus on reps
+          tip = {
+            type: 'build_reps',
+            icon: '💪',
+            title: 'Build your reps up',
+            message: `On ${dateLabel} you got ${lastMaxReps} reps @ ${lastMaxWeight} kg. Aim for ${Math.min(lastMaxReps + 2, 12)} reps at the same weight.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps @ ${lastMaxWeight} kg`
+          };
+        } else if (lastMaxWeight > 0) {
+          // Normal progress — encourage adding a rep or small weight bump
+          const targetReps = Math.min(lastMaxReps + 1, 15);
+          tip = {
+            type: 'add_reps',
+            icon: '📈',
+            title: 'Keep progressing',
+            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} kg. Aim for ${targetReps} reps this session.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps`
+          };
+        } else if (lastTotalReps > 0) {
+          // Bodyweight exercise — no weight tracked
+          tip = {
+            type: 'add_reps',
+            icon: '📈',
+            title: 'Keep progressing',
+            message: `On ${dateLabel}: ${lastMaxReps} reps. Try ${lastMaxReps + 1}-${lastMaxReps + 3} reps this session.`,
+            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps`
+          };
+        }
+
+        if (!cancelled && tip) {
+          setProgressTip(tip);
+        }
+      } catch (err) {
+        console.error('Error generating progress tip:', err);
+      }
+    };
+
+    generateTip();
+    return () => { cancelled = true; };
+  }, [clientId, exercise?.id]);
 
   // Auto-save exercise_log to database when sets change (debounced)
   // Uses workoutLogId prop if available, otherwise checks for existing log for selectedDate, then creates one
@@ -2091,6 +2208,16 @@ function ExerciseDetailModal({
               </div>
             </div>
           </div>
+          {/* Progressive Overload Tip */}
+          {progressTip && (
+            <div className={`progress-tip-banner progress-tip-${progressTip.type}`}>
+              <div className="progress-tip-header">
+                <span className="progress-tip-icon">{progressTip.icon}</span>
+                <span className="progress-tip-title">{progressTip.title}</span>
+              </div>
+              <p className="progress-tip-message">{progressTip.message}</p>
+            </div>
+          )}
           {/* Voice Input Button */}
           {voiceSupported && (
             <button
