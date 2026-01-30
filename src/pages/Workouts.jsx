@@ -1662,6 +1662,7 @@ function Workouts() {
             coachId={clientData?.coach_id}
             clientId={clientData?.id}
             workoutLogId={workoutLog?.id || null}
+            selectedDate={selectedDate}
           />
         </ErrorBoundary>
       )}
