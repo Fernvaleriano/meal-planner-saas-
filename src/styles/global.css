@@ -16535,6 +16535,55 @@ a.nav-left {
     padding: 0;
 }
 
+/* Progressive Overload Tip Banner */
+.progress-tip-banner {
+    margin: 12px 0 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.05));
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.progress-tip-banner.progress-tip-plateau {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(234, 179, 8, 0.05));
+    border-color: rgba(234, 179, 8, 0.25);
+}
+
+.progress-tip-banner.progress-tip-increase_weight {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.05));
+    border-color: rgba(249, 115, 22, 0.25);
+}
+
+.progress-tip-banner.progress-tip-build_reps {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.05));
+    border-color: rgba(59, 130, 246, 0.25);
+}
+
+.progress-tip-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.progress-tip-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.progress-tip-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.progress-tip-message {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #9ca3af;
+}
+
 .voice-input-btn-detail {
     width: 48px;
     height: 48px;
