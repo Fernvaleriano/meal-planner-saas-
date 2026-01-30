@@ -187,7 +187,8 @@ function ExerciseDetailModal({
   genderPreference = 'all', // Preferred gender for exercise demonstrations
   coachId = null, // Coach ID for loading custom exercises
   clientId = null, // Client ID for fetching exercise history
-  workoutLogId = null // Existing workout log ID for auto-saving exercise logs
+  workoutLogId = null, // Existing workout log ID for auto-saving exercise logs
+  selectedDate = null // Date the client is viewing (may be a past date)
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -394,7 +395,7 @@ function ExerciseDetailModal({
   }, [exercise?.id, initialSets]);
 
   // Auto-save exercise_log to database when sets change (debounced)
-  // Uses workoutLogId prop if available, otherwise checks for existing log today, then creates one
+  // Uses workoutLogId prop if available, otherwise checks for existing log for selectedDate, then creates one
   const workoutLogIdRef = useRef(workoutLogId);
   const saveTimerRef = useRef(null);
   const setsChangedRef = useRef(false);
@@ -405,6 +406,17 @@ function ExerciseDetailModal({
       workoutLogIdRef.current = workoutLogId;
     }
   }, [workoutLogId]);
+
+  // Helper to get the date string for the date the client is viewing
+  const getWorkoutDateStr = useCallback(() => {
+    if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
+      const y = selectedDate.getFullYear();
+      const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const d = String(selectedDate.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return new Date().toISOString().split('T')[0];
+  }, [selectedDate]);
 
   useEffect(() => {
     // Skip the initial render (sets haven't been edited by user yet)
@@ -418,10 +430,10 @@ function ExerciseDetailModal({
     saveTimerRef.current = setTimeout(async () => {
       try {
         let logId = workoutLogIdRef.current;
+        const dateStr = getWorkoutDateStr();
 
-        // If no log ID yet, check if one already exists for today
+        // If no log ID yet, check if one already exists for this date
         if (!logId) {
-          const dateStr = new Date().toISOString().split('T')[0];
           const existing = await apiGet(
             `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
           );
@@ -431,9 +443,8 @@ function ExerciseDetailModal({
           }
         }
 
-        // Still no log — create one
+        // Still no log — create one for the selected date
         if (!logId) {
-          const dateStr = new Date().toISOString().split('T')[0];
           const res = await apiPost('/.netlify/functions/workout-logs', {
             clientId,
             workoutDate: dateStr,
@@ -475,7 +486,7 @@ function ExerciseDetailModal({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [sets, clientId, exercise?.id, exercise?.name]);
+  }, [sets, clientId, exercise?.id, exercise?.name, getWorkoutDateStr]);
 
   // Mark sets as user-changed when handleSaveSets fires (not initial load)
   const markSetsChanged = useCallback(() => {
