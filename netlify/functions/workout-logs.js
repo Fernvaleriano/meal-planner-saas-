@@ -210,7 +210,20 @@ exports.handler = async (event) => {
           totalSets += exTotalSets;
           totalReps += exTotalReps;
 
-          if (ex.id) {
+          // Check if exercise_log already exists for this workout + exercise
+          let existingId = ex.id;
+          if (!existingId && ex.exerciseId) {
+            const { data: existing } = await supabase
+              .from('exercise_logs')
+              .select('id')
+              .eq('workout_log_id', workoutId)
+              .eq('exercise_id', ex.exerciseId)
+              .limit(1)
+              .maybeSingle();
+            if (existing) existingId = existing.id;
+          }
+
+          if (existingId) {
             // Update existing exercise log
             await supabase
               .from('exercise_logs')
@@ -220,10 +233,12 @@ exports.handler = async (event) => {
                 total_reps: exTotalReps,
                 total_volume: exTotalVolume,
                 max_weight: exMaxWeight,
+                exercise_name: ex.exerciseName || undefined,
+                exercise_order: ex.order || undefined,
                 notes: ex.notes,
                 is_pr: ex.isPr || false
               })
-              .eq('id', ex.id);
+              .eq('id', existingId);
           } else {
             // Insert new exercise log
             await supabase
