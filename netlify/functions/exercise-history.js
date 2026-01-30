@@ -80,7 +80,9 @@ exports.handler = async (event) => {
     if (exerciseId) {
       query = query.eq('exercise_id', exerciseId);
     } else if (exerciseName) {
-      query = query.ilike('exercise_name', `%${exerciseName}%`);
+      // Use exact match by default to avoid cross-exercise confusion
+      // (e.g. "Hack Squat" matching "Hack Squat Single Leg" could suggest unsafe weights)
+      query = query.ilike('exercise_name', exerciseName);
     }
 
     // Date range filters
