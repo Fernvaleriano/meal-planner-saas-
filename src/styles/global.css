@@ -17044,7 +17044,8 @@ a.nav-left {
     background: #1e1e1e;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    overflow: hidden;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
     width: calc(100% - 40px);
     max-width: 340px;
     z-index: 99999;
