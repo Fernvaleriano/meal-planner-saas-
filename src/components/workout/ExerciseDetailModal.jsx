@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp } from 'lucide-react';
-import { apiGet } from '../../utils/api';
+import { apiGet, apiPost, apiPut } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -388,7 +388,79 @@ function ExerciseDetailModal({
     setShowSwapModal(false);
     setTips([]);
     setTipsError(null);
+    // Reset auto-save flag so switching exercises doesn't trigger a stale save
+    setsChangedRef.current = false;
   }, [exercise?.id, initialSets]);
+
+  // Auto-save exercise_log to database when sets change (debounced)
+  // Uses a ref to track the workout_log_id so it persists across renders
+  const workoutLogIdRef = useRef(null);
+  const saveTimerRef = useRef(null);
+  const setsChangedRef = useRef(false);
+
+  useEffect(() => {
+    // Skip the initial render (sets haven't been edited by user yet)
+    if (!setsChangedRef.current) return;
+
+    // Don't save if we don't have the needed data
+    if (!clientId || !exercise?.id) return;
+
+    // Debounce: wait 2 seconds after last change
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        let logId = workoutLogIdRef.current;
+
+        // Auto-create workout log if needed
+        if (!logId) {
+          const dateStr = new Date().toISOString().split('T')[0];
+          const res = await apiPost('/.netlify/functions/workout-logs', {
+            clientId,
+            workoutDate: dateStr,
+            workoutName: exercise?.workoutName || 'Workout',
+            status: 'in_progress'
+          });
+          if (res?.workout?.id) {
+            logId = res.workout.id;
+            workoutLogIdRef.current = logId;
+          }
+        }
+
+        if (!logId) return;
+
+        const setsData = sets.map((s, i) => ({
+          setNumber: i + 1,
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: s.weightUnit || 'kg',
+          rpe: s.rpe || null,
+          restSeconds: s.restSeconds || null,
+          isTimeBased: s.isTimeBased || false
+        }));
+
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [{
+            exerciseId: exercise.id,
+            exerciseName: exercise.name || 'Unknown',
+            order: 1,
+            sets: setsData
+          }]
+        });
+      } catch (err) {
+        console.error('Error auto-saving exercise log:', err);
+      }
+    }, 2000);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [sets, clientId, exercise?.id, exercise?.name]);
+
+  // Mark sets as user-changed when handleSaveSets fires (not initial load)
+  const markSetsChanged = useCallback(() => {
+    setsChangedRef.current = true;
+  }, []);
 
   // Coaching data state (from database)
   const [commonMistakes, setCommonMistakes] = useState([]);
@@ -1603,6 +1675,7 @@ function ExerciseDetailModal({
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
 
+      markSetsChanged();
       setSets(prevSets => {
         // Use new smart parser with current sets context
         const parsed = parseVoiceInput(transcript, prevSets);
@@ -1720,6 +1793,7 @@ function ExerciseDetailModal({
       e.stopPropagation();
       e.preventDefault();
     }
+    markSetsChanged();
     setSets(prev => {
       const lastSet = prev[prev.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
       const newSets = [...prev, { ...lastSet, completed: false }];
@@ -1739,6 +1813,8 @@ function ExerciseDetailModal({
 
   // Save sets handler - updates local state AND persists to backend
   const handleSaveSets = useCallback((newSets, editMode) => {
+    // Flag that user has edited sets, so auto-save useEffect will fire
+    markSetsChanged();
     // Update local state
     setSets(newSets);
 
