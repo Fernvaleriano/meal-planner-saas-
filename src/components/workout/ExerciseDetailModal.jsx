@@ -394,12 +394,12 @@ function ExerciseDetailModal({
   }, [exercise?.id, initialSets]);
 
   // Auto-save exercise_log to database when sets change (debounced)
-  // Uses workoutLogId prop from parent when available, falls back to creating one
+  // Uses workoutLogId prop if available, otherwise checks for existing log today, then creates one
   const workoutLogIdRef = useRef(workoutLogId);
   const saveTimerRef = useRef(null);
   const setsChangedRef = useRef(false);
 
-  // Keep ref in sync with prop (parent may create workout log after modal opens)
+  // Keep ref in sync with prop (parent may load a log after modal opens)
   useEffect(() => {
     if (workoutLogId) {
       workoutLogIdRef.current = workoutLogId;
@@ -419,7 +419,19 @@ function ExerciseDetailModal({
       try {
         let logId = workoutLogIdRef.current;
 
-        // Auto-create workout log only if parent hasn't provided one
+        // If no log ID yet, check if one already exists for today
+        if (!logId) {
+          const dateStr = new Date().toISOString().split('T')[0];
+          const existing = await apiGet(
+            `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+          );
+          if (existing?.workouts && existing.workouts.length > 0) {
+            logId = existing.workouts[0].id;
+            workoutLogIdRef.current = logId;
+          }
+        }
+
+        // Still no log — create one
         if (!logId) {
           const dateStr = new Date().toISOString().split('T')[0];
           const res = await apiPost('/.netlify/functions/workout-logs', {
