@@ -797,9 +797,10 @@ function ExerciseDetailModal({
   const startVoiceNoteRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
-      });
+      const isWebm = MediaRecorder.isTypeSupported('audio/webm');
+      const mimeType = isWebm ? 'audio/webm' : 'audio/mp4';
+      const fileExt = isWebm ? 'webm' : 'mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -811,103 +812,129 @@ function ExerciseDetailModal({
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(track => track.stop());
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: mediaRecorder.mimeType || 'audio/webm'
-        });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
 
-        // Convert to base64 data URL for upload
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const audioData = reader.result;
-          setVoiceNoteUploading(true);
-          try {
-            const fileName = `note_${exercise.id}_${Date.now()}.webm`;
-            const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
-              clientId,
-              audioData,
-              fileName
-            });
-            if (res?.url) {
-              setVoiceNoteUrl(res.url);
-            }
-            // Also save the path to the exercise log
-            if (res?.filePath) {
-              voiceNotePathRef.current = res.filePath;
-              let logId = workoutLogIdRef.current;
-              const dateStr = getWorkoutDateStr();
-              if (!logId) {
-                const existing = await apiGet(
-                  `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
-                );
-                if (existing?.workouts && existing.workouts.length > 0) {
-                  logId = existing.workouts[0].id;
-                  workoutLogIdRef.current = logId;
-                }
-              }
-              if (!logId) {
-                const logRes = await apiPost('/.netlify/functions/workout-logs', {
-                  clientId,
-                  workoutDate: dateStr,
-                  workoutName: exercise?.workoutName || 'Workout',
-                  status: 'in_progress'
-                });
-                if (logRes?.workout?.id) {
-                  logId = logRes.workout.id;
-                  workoutLogIdRef.current = logId;
-                }
-              }
-              // Save voice note path alongside exercise data
-              if (logId) {
-                const setsData = sets.map((s, i) => ({
-                  setNumber: i + 1,
-                  reps: s.reps || 0,
-                  weight: s.weight || 0,
-                  weightUnit: s.weightUnit || 'kg',
-                  rpe: s.rpe || null,
-                  restSeconds: s.restSeconds || null,
-                  isTimeBased: s.isTimeBased || false
-                }));
-                await apiPut('/.netlify/functions/workout-logs', {
-                  workoutId: logId,
-                  exercises: [{
-                    exerciseId: exercise.id,
-                    exerciseName: exercise.name || 'Unknown',
-                    order: 1,
-                    sets: setsData,
-                    clientVoiceNotePath: res.filePath,
-                    clientNotes: clientNote || undefined
-                  }]
-                });
-              }
+        // Show blob URL for immediate playback while uploading
+        const blobUrl = URL.createObjectURL(audioBlob);
+        setVoiceNoteUrl(blobUrl);
+        setVoiceNoteUploading(true);
 
-              // Notify coach about voice note
-              if (coachId) {
-                try {
-                  await apiPost('/.netlify/functions/notifications', {
-                    coachId,
-                    clientId,
-                    type: 'client_exercise_voice_note',
-                    title: 'Client Voice Note',
-                    message: `Left a voice note on ${exercise.name || 'an exercise'}`,
-                    metadata: {
-                      exerciseName: exercise.name,
-                      exerciseId: exercise.id,
-                      workoutDate: dateStr,
-                      voiceNotePath: res.filePath
-                    }
-                  });
-                } catch (notifErr) {
-                  console.error('Error creating voice note notification:', notifErr);
-                }
-              }
-            }
-          } catch (err) {
-            console.error('Error uploading voice note:', err);
-          } finally {
-            setVoiceNoteUploading(false);
+        try {
+          const fileName = `note_${exercise.id}_${Date.now()}.${fileExt}`;
+          const dateStr = getWorkoutDateStr();
+
+          // Step 1: Get signed upload URL from backend (tiny request)
+          const urlRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
+            mode: 'get-upload-url',
+            clientId,
+            fileName,
+            contentType: mimeType
+          });
+
+          if (!urlRes?.uploadUrl) {
+            console.error('Failed to get upload URL:', urlRes?.error || 'Unknown error');
+            return; // Keep blob URL for this session
           }
-        };
-        reader.readAsDataURL(audioBlob);
+
+          // Step 2: Upload audio directly to Supabase storage (bypasses Netlify 1MB limit)
+          const uploadResponse = await fetch(urlRes.uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': mimeType
+            },
+            body: audioBlob
+          });
+
+          if (!uploadResponse.ok) {
+            console.error('Direct upload failed:', uploadResponse.status, uploadResponse.statusText);
+            return;
+          }
+
+          const filePath = urlRes.filePath;
+          voiceNotePathRef.current = filePath;
+
+          // Step 3: Confirm upload and get a signed download URL
+          const confirmRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
+            mode: 'confirm',
+            filePath
+          });
+
+          if (confirmRes?.url) {
+            URL.revokeObjectURL(blobUrl);
+            setVoiceNoteUrl(confirmRes.url);
+          }
+
+          // Save voice note path to the exercise log
+          let logId = workoutLogIdRef.current;
+          if (!logId) {
+            const existing = await apiGet(
+              `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+            );
+            if (existing?.workouts && existing.workouts.length > 0) {
+              logId = existing.workouts[0].id;
+              workoutLogIdRef.current = logId;
+            }
+          }
+          if (!logId) {
+            const logRes = await apiPost('/.netlify/functions/workout-logs', {
+              clientId,
+              workoutDate: dateStr,
+              workoutName: exercise?.workoutName || 'Workout',
+              status: 'in_progress'
+            });
+            if (logRes?.workout?.id) {
+              logId = logRes.workout.id;
+              workoutLogIdRef.current = logId;
+            }
+          }
+          if (logId) {
+            const setsData = sets.map((s, i) => ({
+              setNumber: i + 1,
+              reps: s.reps || 0,
+              weight: s.weight || 0,
+              weightUnit: s.weightUnit || 'kg',
+              rpe: s.rpe || null,
+              restSeconds: s.restSeconds || null,
+              isTimeBased: s.isTimeBased || false
+            }));
+            await apiPut('/.netlify/functions/workout-logs', {
+              workoutId: logId,
+              exercises: [{
+                exerciseId: exercise.id,
+                exerciseName: exercise.name || 'Unknown',
+                order: 1,
+                sets: setsData,
+                clientVoiceNotePath: filePath,
+                clientNotes: clientNote || undefined
+              }]
+            });
+          }
+
+          // Notify coach about voice note
+          if (coachId) {
+            try {
+              await apiPost('/.netlify/functions/notifications', {
+                coachId,
+                clientId,
+                type: 'client_exercise_voice_note',
+                title: 'Client Voice Note',
+                message: `Left a voice note on ${exercise.name || 'an exercise'}`,
+                metadata: {
+                  exerciseName: exercise.name,
+                  exerciseId: exercise.id,
+                  workoutDate: dateStr,
+                  voiceNotePath: filePath
+                }
+              });
+            } catch (notifErr) {
+              console.error('Error creating voice note notification:', notifErr);
+            }
+          }
+        } catch (err) {
+          console.error('Error uploading voice note:', err);
+        } finally {
+          setVoiceNoteUploading(false);
+        }
       };
 
       mediaRecorder.start();
