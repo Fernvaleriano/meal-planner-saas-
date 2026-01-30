@@ -77,6 +77,8 @@ exports.handler = async (event) => {
         };
       }
 
+      const { date } = event.queryStringParameters || {};
+
       let query = supabase
         .from('workout_logs')
         .select('*')
@@ -84,6 +86,10 @@ exports.handler = async (event) => {
         .order('workout_date', { ascending: false })
         .limit(parseInt(limit));
 
+      // Support single date filter (exact match)
+      if (date) {
+        query = query.eq('workout_date', date);
+      }
       if (startDate) {
         query = query.gte('workout_date', startDate);
       }
@@ -95,10 +101,25 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
+      // Fetch exercise_logs for each workout so client-side gets notes, sets, etc.
+      const workoutsWithExercises = await Promise.all(
+        (workouts || []).map(async (w) => {
+          const { data: exercises } = await supabase
+            .from('exercise_logs')
+            .select('*')
+            .eq('workout_log_id', w.id)
+            .order('exercise_order', { ascending: true });
+          return { ...w, exercises: exercises || [] };
+        })
+      );
+
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ workouts: workouts || [] })
+        body: JSON.stringify({
+          workouts: workoutsWithExercises,
+          logs: workoutsWithExercises  // alias for backward compat with Workouts.jsx
+        })
       };
     }
 
