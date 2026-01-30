@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp } from 'lucide-react';
-import { apiGet, apiPut } from '../../utils/api';
+import { apiGet } from '../../utils/api';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -186,8 +186,7 @@ function ExerciseDetailModal({
   onDeleteExercise, // Callback for deleting exercise from workout
   genderPreference = 'all', // Preferred gender for exercise demonstrations
   coachId = null, // Coach ID for loading custom exercises
-  clientId = null, // Client ID for fetching exercise history
-  workoutLogId = null // Workout log ID for saving exercise logs immediately
+  clientId = null // Client ID for fetching exercise history
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -1738,12 +1737,12 @@ function ExerciseDetailModal({
     });
   }, [exercise]);
 
-  // Save sets handler - updates local state, persists workout data, AND saves exercise_log
+  // Save sets handler - updates local state AND persists to backend
   const handleSaveSets = useCallback((newSets, editMode) => {
     // Update local state
     setSets(newSets);
 
-    // Persist to backend via parent callback (saves workout_data)
+    // Persist to backend via parent callback
     if (callbackRefs.current.onUpdateExercise && exercise) {
       const updatedExercise = {
         ...exercise,
@@ -1753,37 +1752,7 @@ function ExerciseDetailModal({
       };
       callbackRefs.current.onUpdateExercise(updatedExercise);
     }
-
-    // Immediately save exercise_log to database for history tracking
-    if (workoutLogId && exercise?.id) {
-      const setsData = newSets.map((s, i) => ({
-        setNumber: i + 1,
-        reps: s.reps || 0,
-        weight: s.weight || 0,
-        weightUnit: s.weightUnit || 'kg',
-        rpe: s.rpe || null,
-        restSeconds: s.restSeconds || null,
-        isTimeBased: s.isTimeBased || false
-      }));
-
-      apiPut('/.netlify/functions/workout-logs', {
-        workoutId: workoutLogId,
-        exercises: [{
-          exerciseId: exercise.id,
-          exerciseName: exercise.name || 'Unknown',
-          order: currentIndex + 1,
-          sets: setsData
-        }]
-      }).then(() => {
-        // Refresh history if it's currently shown
-        if (showHistory) {
-          fetchExerciseHistory();
-        }
-      }).catch(err => {
-        console.error('Error saving exercise log:', err);
-      });
-    }
-  }, [exercise, workoutLogId, currentIndex, showHistory, fetchExerciseHistory]);
+  }, [exercise]);
 
   // Delete exercise handler - uses requestAnimationFrame for mobile Safari
   const handleDeleteExercise = useCallback(() => {

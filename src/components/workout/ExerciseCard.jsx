@@ -384,25 +384,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
   };
 
-  const handleHeaderTouchEnd = (e) => {
-    // Detect tap: if no significant swipe occurred, treat as a click
-    if (!isHeaderSwiping && headerSwipeOffset === 0) {
-      // Small movement tolerance — fire onClick directly since preventDefault
-      // in touchmove can suppress the synthetic click event on mobile
-      const touch = e.changedTouches?.[0];
-      if (touch) {
-        const diffX = Math.abs(headerTouchStartX.current - touch.clientX);
-        const diffY = Math.abs(headerTouchStartY.current - touch.clientY);
-        if (diffX < 15 && diffY < 15) {
-          // Check the target isn't a button (mic, etc.) which handles its own click
-          const tag = e.target?.tagName?.toLowerCase();
-          const isButton = tag === 'button' || tag === 'svg' || tag === 'path' || e.target?.closest?.('button');
-          if (!isButton && onClick) {
-            onClick();
-          }
-        }
-      }
-    }
+  const handleHeaderTouchEnd = () => {
     setHeaderSwipeOffset(headerSwipeOffset > swipeThreshold ? headerMaxSwipe : 0);
     setIsHeaderSwiping(false);
   };
@@ -440,20 +422,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   const handleSetsTouchEnd = (e) => {
     e.stopPropagation();
-    // Detect tap on sets row - fire onClick to open exercise detail
-    if (!isSetsSwiping && setsSwipeOffset === 0) {
-      const touch = e.changedTouches?.[0];
-      if (touch) {
-        const diffX = Math.abs(setsTouchStartX.current - touch.clientX);
-        const diffY = Math.abs(setsTouchStartY.current - touch.clientY);
-        if (diffX < 15 && diffY < 15) {
-          const isButton = e.target?.closest?.('button');
-          if (!isButton && onClick) {
-            onClick();
-          }
-        }
-      }
-    }
     setSetsSwipeOffset(setsSwipeOffset > 40 ? setsMaxSwipe : 0);
     setIsSetsSwiping(false);
   };
