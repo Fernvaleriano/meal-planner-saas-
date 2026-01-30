@@ -224,7 +224,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const completedSets = sets.filter(s => s.completed).length;
 
   // Check if this is a timed/interval exercise - respect explicit trackingType from workout builder
-  const isTimedExercise = exercise.trackingType === 'time' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval'));
+  const isTimedExercise = exercise.trackingType === 'time' || exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval')) || sets.some(s => s?.isTimeBased);
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
@@ -729,8 +729,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               {isTimedExercise ? (
                 <>
                   {sets.map((set, idx) => (
-                    <div key={idx} className="time-box with-weight">
+                    <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
                       <span className="reps-value">{formatDuration(set?.duration || exercise.duration) || '45s'}</span>
+                      {set?.weight > 0 && <span className="weight-value">{set.weight} kg</span>}
                     </div>
                   ))}
                 </>

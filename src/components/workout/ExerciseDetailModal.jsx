@@ -1893,11 +1893,11 @@ function ExerciseDetailModal({
           <div className="modal-time-boxes" onClick={() => setShowSetEditor(true)}>
             <div className="time-boxes-row">
               {sets.map((set, idx) => (
-                <div key={idx} className="time-box with-weight clickable">
+                <div key={idx} className={`time-box ${!isTimedExercise || set?.weight ? 'with-weight' : ''} clickable`}>
                   {isTimedExercise ? (
                     <>
                       <span className="reps-value">{set?.duration || exercise.duration || 45}s</span>
-                      <span className="weight-value">{set?.weight || 0} kg</span>
+                      {set?.weight > 0 && <span className="weight-value">{set.weight} kg</span>}
                     </>
                   ) : (
                     <>
