@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Clock, ChevronDown, Mic, MicOff } from 'lucide-react';
+import Portal from '../Portal';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 const parseReps = (reps) => {
@@ -567,9 +568,9 @@ function SetEditorModal({
                     </span>
                     <ChevronDown size={12} className={rpePickerIndex === index ? 'open' : ''} />
                   </button>
-                  {/* RPE Dropdown - fixed position overlay */}
+                  {/* RPE Dropdown - rendered via Portal to escape scroll clipping */}
                   {rpePickerIndex === index && (
-                    <>
+                    <Portal>
                       <div className="rpe-backdrop" onClick={() => setRpePickerIndex(null)} />
                       <div className="rpe-dropdown">
                         <div className="rpe-dropdown-header">How hard was this set? (RPE)</div>
@@ -591,7 +592,7 @@ function SetEditorModal({
                           <span className="rpe-option-desc">Clear</span>
                         </button>
                       </div>
-                    </>
+                    </Portal>
                   )}
                 </div>
               </div>
