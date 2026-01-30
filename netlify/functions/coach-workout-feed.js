@@ -172,8 +172,14 @@ exports.handler = async (event) => {
         totalReps: ex.total_reps || 0,
         maxWeight: ex.max_weight || 0,
         totalVolume: ex.total_volume || 0,
-        isPr: ex.is_pr || false
+        isPr: ex.is_pr || false,
+        clientNotes: ex.client_notes || null,
+        clientVoiceNotePath: ex.client_voice_note_path || null,
+        setsData: ex.sets_data || []
       }));
+
+      // Flag if any exercise in this workout has client notes
+      const hasClientNotes = exercises.some(ex => ex.clientNotes || ex.clientVoiceNotePath);
 
       // Calculate improvements
       const newPRs = exercises.filter(ex => ex.isPr).length;
@@ -199,6 +205,7 @@ exports.handler = async (event) => {
         workoutRating: w.workout_rating || null,
         energyLevel: w.energy_level || null,
         exercises,
+        hasClientNotes,
         improvements: {
           volumeChange,
           newPRs

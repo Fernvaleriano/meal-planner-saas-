@@ -92,10 +92,52 @@ exports.handler = async (event) => {
       };
     }
 
-    // POST - Mark notifications as read
+    // POST - Create notification or mark as read
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body);
-      const { notificationIds, userId, clientId, markAllRead } = body;
+      const { notificationIds, userId, clientId, markAllRead, coachId, type, title, message, metadata } = body;
+
+      // Create a new notification (e.g. client note for coach)
+      if (type && title) {
+        const insertObj = {
+          type,
+          title,
+          message: message || null
+        };
+        // Route to coach (user_id) or client (client_id)
+        if (coachId) {
+          // Look up the coach's user_id from coaches table
+          const { data: coach } = await supabase
+            .from('coaches')
+            .select('user_id')
+            .eq('id', coachId)
+            .maybeSingle();
+          if (coach?.user_id) {
+            insertObj.user_id = coach.user_id;
+          }
+          if (clientId) {
+            insertObj.related_client_id = typeof clientId === 'string' ? parseInt(clientId) : clientId;
+          }
+        } else if (clientId) {
+          insertObj.client_id = typeof clientId === 'string' ? parseInt(clientId) : clientId;
+        }
+
+        const { data: notification, error: insertError } = await supabase
+          .from('notifications')
+          .insert([insertObj])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating notification:', insertError);
+        }
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, notification: notification || null })
+        };
+      }
 
       if (markAllRead) {
         // Mark all as read for this user

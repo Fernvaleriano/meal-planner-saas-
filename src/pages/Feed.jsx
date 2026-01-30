@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send, Dumbbell, TrendingUp, Award, Clock, Zap } from 'lucide-react';
+import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send, Dumbbell, TrendingUp, Award, Clock, Zap, Mic, Play, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -272,7 +272,8 @@ function MealCard({ meal, coachId, onUpdate }) {
 function WorkoutFeedCard({ workout, coachId, onUpdate }) {
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
-  const [exercisesExpanded, setExercisesExpanded] = useState(false);
+  const [exercisesExpanded, setExercisesExpanded] = useState(workout.hasClientNotes || false);
+  const [voiceNoteUrls, setVoiceNoteUrls] = useState({});
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -282,6 +283,29 @@ function WorkoutFeedCard({ workout, coachId, onUpdate }) {
   const [localComments, setLocalComments] = useState(workout.comments || []);
 
   const workoutId = workout.id || workout.workoutId;
+
+  // Resolve signed URLs for client voice notes
+  useEffect(() => {
+    const voicePaths = (workout.exercises || [])
+      .filter(ex => ex.clientVoiceNotePath)
+      .map(ex => ex.clientVoiceNotePath);
+    if (voicePaths.length === 0) return;
+
+    const fetchUrls = async () => {
+      try {
+        const res = await apiPost('/.netlify/functions/get-signed-urls', {
+          filePaths: voicePaths,
+          coachId
+        });
+        if (res?.signedUrls) {
+          setVoiceNoteUrls(res.signedUrls);
+        }
+      } catch (err) {
+        console.error('Error fetching voice note URLs:', err);
+      }
+    };
+    fetchUrls();
+  }, [workout.exercises, coachId]);
 
   const handleReaction = async (reaction) => {
     if (loading || !workoutId) return;
@@ -430,6 +454,11 @@ function WorkoutFeedCard({ workout, coachId, onUpdate }) {
             >
               <span className="feed-meal-item-count">
                 {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+                {workout.hasClientNotes && (
+                  <span className="client-note-badge-inline">
+                    <MessageCircle size={12} /> Notes
+                  </span>
+                )}
               </span>
               {exercisesExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
@@ -437,15 +466,58 @@ function WorkoutFeedCard({ workout, coachId, onUpdate }) {
             {exercisesExpanded && (
               <div className="workout-feed-exercises">
                 {workout.exercises.map((exercise, idx) => (
-                  <div key={exercise.id || idx} className="workout-feed-exercise">
-                    <span className="feed-item-name">{exercise.name}</span>
-                    {exercise.maxWeight != null && (
-                      <span className="feed-item-calories">{exercise.maxWeight} lbs max</span>
+                  <div key={exercise.id || idx} className="workout-feed-exercise-detail">
+                    <div className="workout-feed-exercise-header">
+                      <span className="feed-item-name">{exercise.exerciseName || exercise.name}</span>
+                      <div className="workout-feed-exercise-badges">
+                        {exercise.maxWeight != null && exercise.maxWeight > 0 && (
+                          <span className="feed-item-calories">{exercise.maxWeight} kg max</span>
+                        )}
+                        {(exercise.isPr || exercise.isPR) && (
+                          <span className="improvement-positive" style={{ fontSize: '0.75rem', marginLeft: 4 }}>
+                            <Award size={12} /> PR
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sets detail */}
+                    {exercise.setsData && exercise.setsData.length > 0 && (
+                      <div className="workout-feed-sets">
+                        {(typeof exercise.setsData === 'string' ? JSON.parse(exercise.setsData) : exercise.setsData).map((set, si) => (
+                          <span key={si} className="workout-feed-set-pill">
+                            {set.isTimeBased
+                              ? `${set.reps || 0}s`
+                              : `${set.reps || 0}x${set.weight || 0}${set.weightUnit || 'kg'}`}
+                            {set.rpe && <span className="set-rpe-mini"> RPE {set.rpe}</span>}
+                          </span>
+                        ))}
+                      </div>
                     )}
-                    {exercise.isPR && (
-                      <span className="improvement-positive" style={{ fontSize: '0.75rem', marginLeft: 4 }}>
-                        <Award size={12} /> PR
-                      </span>
+
+                    {/* Client text note */}
+                    {exercise.clientNotes && (
+                      <div className="workout-feed-client-note">
+                        <MessageCircle size={12} />
+                        <span>{exercise.clientNotes}</span>
+                      </div>
+                    )}
+
+                    {/* Client voice note */}
+                    {exercise.clientVoiceNotePath && (
+                      <div className="workout-feed-client-voice-note">
+                        <Mic size={12} />
+                        {voiceNoteUrls[exercise.clientVoiceNotePath] ? (
+                          <audio
+                            controls
+                            src={voiceNoteUrls[exercise.clientVoiceNotePath]}
+                            preload="metadata"
+                            className="feed-voice-note-player"
+                          />
+                        ) : (
+                          <span className="voice-note-loading">Loading...</span>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -559,6 +631,13 @@ function Feed() {
   const [filterMealType, setFilterMealType] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [clients, setClients] = useState([]);
+
+  // AI Workout Insights
+  const [showAiInsights, setShowAiInsights] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSelectedClient, setAiSelectedClient] = useState('');
 
   // The coach ID is the user's ID
   const coachId = user?.id;
@@ -706,6 +785,34 @@ function Feed() {
     setShowFilters(false);
   };
 
+  // AI Workout Insights handler
+  const askWorkoutAI = useCallback(async (question) => {
+    const targetClientId = aiSelectedClient || filterClient;
+    if (!targetClientId || !question?.trim()) return;
+
+    const client = clients.find(c => String(c.id) === String(targetClientId));
+    setAiLoading(true);
+    setAiResponse('');
+
+    try {
+      const res = await apiPost('/.netlify/functions/coach-workout-ai', {
+        clientId: targetClientId,
+        question: question.trim(),
+        clientName: client?.name || 'Client'
+      });
+      if (res?.response) {
+        setAiResponse(res.response);
+      } else {
+        setAiResponse('Unable to generate insights. Please try again.');
+      }
+    } catch (err) {
+      console.error('AI workout insights error:', err);
+      setAiResponse('Error fetching insights. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiSelectedClient, filterClient, clients]);
+
   // Build merged feed for "all" tab, sorted chronologically
   const getMergedFeed = () => {
     const mealItems = meals.map(m => ({
@@ -822,6 +929,108 @@ function Feed() {
               Apply Filters
             </button>
           </div>
+        </div>
+      )}
+
+      {/* AI Workout Insights Panel */}
+      {(activeTab === 'workouts' || activeTab === 'all') && (
+        <div className="ai-workout-insights-section">
+          <button
+            className={`ai-insights-toggle ${showAiInsights ? 'active' : ''}`}
+            onClick={() => setShowAiInsights(!showAiInsights)}
+          >
+            <div className="ai-insights-toggle-left">
+              <Zap size={16} />
+              <span>AI Workout Insights</span>
+            </div>
+            {showAiInsights ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showAiInsights && (
+            <div className="ai-insights-panel">
+              <div className="ai-insights-client-select">
+                <label>Select Client</label>
+                <select
+                  value={aiSelectedClient}
+                  onChange={(e) => { setAiSelectedClient(e.target.value); setAiResponse(''); }}
+                >
+                  <option value="">Choose a client...</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {(aiSelectedClient || filterClient) && (
+                <>
+                  <div className="ai-quick-questions">
+                    <button
+                      className="ai-quick-btn"
+                      onClick={() => askWorkoutAI('How is this client progressing overall? Any PRs, plateaus, or concerns?')}
+                      disabled={aiLoading}
+                    >
+                      Overall Progress
+                    </button>
+                    <button
+                      className="ai-quick-btn"
+                      onClick={() => askWorkoutAI('Where is this client plateauing and what changes would you recommend?')}
+                      disabled={aiLoading}
+                    >
+                      Plateaus
+                    </button>
+                    <button
+                      className="ai-quick-btn"
+                      onClick={() => askWorkoutAI('Did this client leave any notes? What are they saying about their training?')}
+                      disabled={aiLoading}
+                    >
+                      Client Notes
+                    </button>
+                    <button
+                      className="ai-quick-btn"
+                      onClick={() => askWorkoutAI('Is this client training consistently? How is their workout frequency and volume trending?')}
+                      disabled={aiLoading}
+                    >
+                      Consistency
+                    </button>
+                  </div>
+
+                  <div className="ai-custom-question">
+                    <textarea
+                      placeholder="Ask anything about this client's training..."
+                      value={aiQuestion}
+                      onChange={(e) => setAiQuestion(e.target.value)}
+                      rows={2}
+                      maxLength={300}
+                    />
+                    <button
+                      className="ai-ask-btn"
+                      onClick={() => { askWorkoutAI(aiQuestion); setAiQuestion(''); }}
+                      disabled={aiLoading || !aiQuestion.trim()}
+                    >
+                      {aiLoading ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {aiLoading && (
+                <div className="ai-insights-loading">
+                  <Loader2 size={20} className="spin" />
+                  <span>Analyzing workout data...</span>
+                </div>
+              )}
+
+              {aiResponse && !aiLoading && (
+                <div className="ai-insights-response">
+                  <div className="ai-response-header">
+                    <Zap size={14} />
+                    <span>AI Insights</span>
+                  </div>
+                  <p className="ai-response-text">{aiResponse}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
