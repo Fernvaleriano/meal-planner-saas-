@@ -17039,17 +17039,16 @@ a.nav-left {
 .rpe-dropdown {
     position: fixed;
     left: 50%;
-    transform: translateX(-50%);
-    bottom: 60px;
+    top: 50%;
+    transform: translate(-50%, -50%);
     background: #1e1e1e;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    overflow-y: auto;
-    max-height: calc(100vh - 120px);
+    overflow: hidden;
     width: calc(100% - 40px);
     max-width: 340px;
     z-index: 99999;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
 }
 
 [data-theme="light"] .rpe-dropdown {
