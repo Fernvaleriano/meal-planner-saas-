@@ -391,7 +391,12 @@ function SetEditorModal({
 
   // Handle save
   const handleSave = () => {
-    onSave(localSets);
+    // Tag each set with the edit mode so the parent knows if it's time-based
+    const setsToSave = localSets.map(s => ({
+      ...s,
+      isTimeBased: editMode === 'time'
+    }));
+    onSave(setsToSave, editMode);
     onClose();
   };
 
