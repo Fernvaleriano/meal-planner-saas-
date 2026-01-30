@@ -186,7 +186,8 @@ function ExerciseDetailModal({
   onDeleteExercise, // Callback for deleting exercise from workout
   genderPreference = 'all', // Preferred gender for exercise demonstrations
   coachId = null, // Coach ID for loading custom exercises
-  clientId = null // Client ID for fetching exercise history
+  clientId = null, // Client ID for fetching exercise history
+  workoutLogId = null // Workout log ID for saving exercise logs immediately
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -1743,6 +1744,7 @@ function ExerciseDetailModal({
     setSets(newSets);
 
     // Persist to backend via parent callback
+    // The parent (handleUpdateExercise) also saves exercise_log to the database immediately
     if (callbackRefs.current.onUpdateExercise && exercise) {
       const updatedExercise = {
         ...exercise,
@@ -1752,7 +1754,12 @@ function ExerciseDetailModal({
       };
       callbackRefs.current.onUpdateExercise(updatedExercise);
     }
-  }, [exercise]);
+
+    // Refresh history after a short delay to allow the parent save to complete
+    if (showHistory) {
+      setTimeout(() => fetchExerciseHistory(), 1500);
+    }
+  }, [exercise, showHistory, fetchExerciseHistory]);
 
   // Delete exercise handler - uses requestAnimationFrame for mobile Safari
   const handleDeleteExercise = useCallback(() => {
