@@ -7782,14 +7782,15 @@
                 const res = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${clientId}&limit=50`);
                 const data = await res.json();
 
-                if (!data.workouts || data.workouts.length === 0) {
+                const allWorkouts = data.feed || data.workouts || [];
+                if (allWorkouts.length === 0) {
                     container.innerHTML = '';
                     emptyState.style.display = 'flex';
                     return;
                 }
 
                 // Filter to date range
-                const workouts = data.workouts.filter(w => {
+                const workouts = allWorkouts.filter(w => {
                     const d = w.workoutDate;
                     return d >= startStr && d <= endStr;
                 });
