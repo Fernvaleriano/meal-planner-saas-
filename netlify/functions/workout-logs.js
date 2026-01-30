@@ -102,7 +102,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // POST - Create/start a workout log
+    // POST - Create/start a workout log (idempotent: returns existing if one exists for same client+date)
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
       const {
@@ -123,6 +123,25 @@ exports.handler = async (event) => {
         };
       }
 
+      const resolvedDate = getDefaultDate(workoutDate, timezone);
+
+      // Check if a workout log already exists for this client + date
+      const { data: existingLogs } = await supabase
+        .from('workout_logs')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('workout_date', resolvedDate)
+        .limit(1);
+
+      if (existingLogs && existingLogs.length > 0) {
+        // Return existing log instead of creating a duplicate
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, workout: existingLogs[0] })
+        };
+      }
+
       // Create workout log
       const { data: workout, error: workoutError } = await supabase
         .from('workout_logs')
@@ -130,7 +149,7 @@ exports.handler = async (event) => {
           client_id: clientId,
           coach_id: coachId,
           assignment_id: assignmentId,
-          workout_date: getDefaultDate(workoutDate, timezone),
+          workout_date: resolvedDate,
           workout_name: workoutName,
           started_at: new Date().toISOString(),
           status: 'in_progress'
