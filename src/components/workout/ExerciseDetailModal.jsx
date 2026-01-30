@@ -2582,6 +2582,74 @@ function ExerciseDetailModal({
           </div>
         )}
 
+        {/* Coaching Tips Section */}
+        <div className="ai-tips-section">
+          {/* Form Tips */}
+          <div className="tips-header">
+            <Lightbulb size={16} />
+            <span>Form Tips</span>
+            {tipsLoading && <Loader2 size={14} className="spin" />}
+          </div>
+          {tips.length > 0 ? (
+            <div className="tips-list">
+              {tips.map((tip, idx) => (
+                <div key={idx} className="tip-item">
+                  <span className="tip-bullet">•</span>
+                  <span className="tip-text">{tip}</span>
+                </div>
+              ))}
+            </div>
+          ) : tipsLoading ? (
+            <div className="tips-loading-placeholder">
+              <div className="tip-skeleton"></div>
+              <div className="tip-skeleton"></div>
+              <div className="tip-skeleton"></div>
+            </div>
+          ) : null}
+
+          {/* Common Mistakes */}
+          {commonMistakes.length > 0 && (
+            <>
+              <div className="tips-header mistakes-header">
+                <AlertCircle size={16} />
+                <span>Common Mistakes</span>
+              </div>
+              <div className="tips-list mistakes-list">
+                {commonMistakes.map((mistake, idx) => (
+                  <div key={idx} className="tip-item mistake-item">
+                    <span className="tip-bullet mistake-bullet">✗</span>
+                    <span className="tip-text">{mistake}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Coaching Cues */}
+          {coachingCues.length > 0 && (
+            <>
+              <div className="tips-header cues-header">
+                <MessageCircle size={16} />
+                <span>Coaching Cues</span>
+              </div>
+              <div className="coaching-cues-tags">
+                {coachingCues.map((cue, idx) => (
+                  <span key={idx} className="coaching-cue-tag">{cue}</span>
+                ))}
+              </div>
+            </>
+          )}
+
+          <button
+            className="ask-coach-btn"
+            onClick={() => setShowAskCoach(true)}
+            type="button"
+          >
+            <MessageCircle size={16} />
+            <span>Ask Coach</span>
+          </button>
+        </div>
+
         {/* Client Note for Coach */}
         <div className="client-note-for-coach-section">
           <button
@@ -2653,74 +2721,6 @@ function ExerciseDetailModal({
               )}
             </div>
           )}
-        </div>
-
-        {/* Coaching Tips Section */}
-        <div className="ai-tips-section">
-          {/* Form Tips */}
-          <div className="tips-header">
-            <Lightbulb size={16} />
-            <span>Form Tips</span>
-            {tipsLoading && <Loader2 size={14} className="spin" />}
-          </div>
-          {tips.length > 0 ? (
-            <div className="tips-list">
-              {tips.map((tip, idx) => (
-                <div key={idx} className="tip-item">
-                  <span className="tip-bullet">•</span>
-                  <span className="tip-text">{tip}</span>
-                </div>
-              ))}
-            </div>
-          ) : tipsLoading ? (
-            <div className="tips-loading-placeholder">
-              <div className="tip-skeleton"></div>
-              <div className="tip-skeleton"></div>
-              <div className="tip-skeleton"></div>
-            </div>
-          ) : null}
-
-          {/* Common Mistakes */}
-          {commonMistakes.length > 0 && (
-            <>
-              <div className="tips-header mistakes-header">
-                <AlertCircle size={16} />
-                <span>Common Mistakes</span>
-              </div>
-              <div className="tips-list mistakes-list">
-                {commonMistakes.map((mistake, idx) => (
-                  <div key={idx} className="tip-item mistake-item">
-                    <span className="tip-bullet mistake-bullet">✗</span>
-                    <span className="tip-text">{mistake}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Coaching Cues */}
-          {coachingCues.length > 0 && (
-            <>
-              <div className="tips-header cues-header">
-                <MessageCircle size={16} />
-                <span>Coaching Cues</span>
-              </div>
-              <div className="coaching-cues-tags">
-                {coachingCues.map((cue, idx) => (
-                  <span key={idx} className="coaching-cue-tag">{cue}</span>
-                ))}
-              </div>
-            </>
-          )}
-
-          <button
-            className="ask-coach-btn"
-            onClick={() => setShowAskCoach(true)}
-            type="button"
-          >
-            <MessageCircle size={16} />
-            <span>Ask Coach</span>
-          </button>
         </div>
 
         {/* Exercise History Section */}
