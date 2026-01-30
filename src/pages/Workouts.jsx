@@ -1661,6 +1661,7 @@ function Workouts() {
             genderPreference={clientData?.preferred_exercise_gender || 'all'}
             coachId={clientData?.coach_id}
             clientId={clientData?.id}
+            workoutLogId={workoutLog?.id || null}
           />
         </ErrorBoundary>
       )}

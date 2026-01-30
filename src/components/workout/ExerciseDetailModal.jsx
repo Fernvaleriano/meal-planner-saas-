@@ -186,7 +186,8 @@ function ExerciseDetailModal({
   onDeleteExercise, // Callback for deleting exercise from workout
   genderPreference = 'all', // Preferred gender for exercise demonstrations
   coachId = null, // Coach ID for loading custom exercises
-  clientId = null // Client ID for fetching exercise history
+  clientId = null, // Client ID for fetching exercise history
+  workoutLogId = null // Existing workout log ID for auto-saving exercise logs
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -393,10 +394,17 @@ function ExerciseDetailModal({
   }, [exercise?.id, initialSets]);
 
   // Auto-save exercise_log to database when sets change (debounced)
-  // Uses a ref to track the workout_log_id so it persists across renders
-  const workoutLogIdRef = useRef(null);
+  // Uses workoutLogId prop from parent when available, falls back to creating one
+  const workoutLogIdRef = useRef(workoutLogId);
   const saveTimerRef = useRef(null);
   const setsChangedRef = useRef(false);
+
+  // Keep ref in sync with prop (parent may create workout log after modal opens)
+  useEffect(() => {
+    if (workoutLogId) {
+      workoutLogIdRef.current = workoutLogId;
+    }
+  }, [workoutLogId]);
 
   useEffect(() => {
     // Skip the initial render (sets haven't been edited by user yet)
@@ -411,7 +419,7 @@ function ExerciseDetailModal({
       try {
         let logId = workoutLogIdRef.current;
 
-        // Auto-create workout log if needed
+        // Auto-create workout log only if parent hasn't provided one
         if (!logId) {
           const dateStr = new Date().toISOString().split('T')[0];
           const res = await apiPost('/.netlify/functions/workout-logs', {
@@ -2223,7 +2231,7 @@ function ExerciseDetailModal({
                 <div className="exercise-history-empty">
                   <History size={32} />
                   <p>No history yet for this exercise</p>
-                  <span>Complete a workout to start tracking</span>
+                  <span>Log sets to start tracking</span>
                 </div>
               ) : (() => {
                 // Pre-process history data for chart and grouping
