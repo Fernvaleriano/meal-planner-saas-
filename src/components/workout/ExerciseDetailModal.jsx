@@ -472,6 +472,7 @@ function ExerciseDetailModal({
         const struggling = lastSets.some(s => (s.reps || 0) > 0 && (s.reps || 0) < 8);
 
         // Plateau detection — same max weight across last 3+ sessions
+        // But skip if today's session already broke through with higher weight
         let isPlateaued = false;
         if (sessions.length >= 3) {
           const recentMaxes = sessions.slice(0, 3).map(s => {
@@ -479,6 +480,18 @@ function ExerciseDetailModal({
             return Math.max(...sd.map(set => set.weight || 0), 0);
           });
           isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
+
+          // Check if today's session already broke the plateau
+          if (isPlateaued) {
+            const todaySessions = allSessions.filter(s => s.workoutDate === todayStr);
+            if (todaySessions.length > 0) {
+              const todaySets = todaySessions[0].setsData || [];
+              const todayMax = Math.max(...todaySets.map(s => s.weight || 0), 0);
+              if (todayMax > recentMaxes[0]) {
+                isPlateaued = false; // Already broke through
+              }
+            }
+          }
         }
 
         // ── Readiness score (1-3 scale: 1=low, 2=normal, 3=high) ──

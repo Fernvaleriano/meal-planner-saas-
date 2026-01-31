@@ -320,10 +320,19 @@ function Workouts() {
         try {
           const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
           if (logRes?.logs && logRes.logs.length > 0) {
-            setWorkoutLog(logRes.logs[0]);
-            setWorkoutStarted(logRes.logs[0]?.status === 'in_progress' || logRes.logs[0]?.status === 'completed');
+            const log = logRes.logs[0];
+            setWorkoutLog(log);
+            setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
+            // Restore readiness data from existing workout log
+            if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
+              setReadinessData({
+                energy: log.energy_level || 2,
+                soreness: log.soreness_level || 2,
+                sleep: log.sleep_quality || 2
+              });
+            }
             const completed = new Set(
-              (logRes.logs[0]?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+              (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
             );
             setCompletedExercises(completed);
           } else {
@@ -411,10 +420,19 @@ function Workouts() {
             if (!mounted) return;
 
             if (logRes?.logs && logRes.logs.length > 0) {
-              setWorkoutLog(logRes.logs[0]);
-              setWorkoutStarted(logRes.logs[0]?.status === 'in_progress' || logRes.logs[0]?.status === 'completed');
+              const log = logRes.logs[0];
+              setWorkoutLog(log);
+              setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
+              // Restore readiness data from existing workout log
+              if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
+                setReadinessData({
+                  energy: log.energy_level || 2,
+                  soreness: log.soreness_level || 2,
+                  sleep: log.sleep_quality || 2
+                });
+              }
               const completed = new Set(
-                (logRes.logs[0]?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+                (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
               );
               setCompletedExercises(completed);
             } else {
@@ -1161,14 +1179,28 @@ function Workouts() {
     setShowReadinessCheck(true);
   }, []);
 
+  // Show readiness check when auto-resuming a workout that has no readiness data yet
+  const readinessShownRef = useRef(false);
+  useEffect(() => {
+    if (workoutStarted && !readinessData && !readinessShownRef.current && workoutLog) {
+      // Workout was auto-resumed but no readiness data — prompt the user
+      const hasReadiness = workoutLog.energy_level || workoutLog.soreness_level || workoutLog.sleep_quality;
+      if (!hasReadiness) {
+        readinessShownRef.current = true;
+        setShowReadinessCheck(true);
+      }
+    }
+  }, [workoutStarted, readinessData, workoutLog]);
+
   // Called after readiness check is completed (or skipped)
   const handleReadinessComplete = useCallback(async (readiness) => {
     setShowReadinessCheck(false);
     setReadinessData(readiness);
     setWorkoutStarted(true);
-    setWorkoutStartTime(new Date());
+    setWorkoutStartTime(prev => prev || new Date());
 
     if (!workoutLog && clientData?.id && todayWorkout?.id) {
+      // No existing log — create one with readiness data
       try {
         const postData = {
           clientId: clientData.id,
@@ -1190,6 +1222,18 @@ function Workouts() {
         }
       } catch (err) {
         console.error('Error creating workout log:', err);
+      }
+    } else if (workoutLog?.id && readiness) {
+      // Existing log (auto-resumed) — update it with readiness data
+      try {
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: workoutLog.id,
+          energyLevel: readiness.energy,
+          sorenessLevel: readiness.soreness,
+          sleepQuality: readiness.sleep
+        });
+      } catch (err) {
+        console.error('Error updating readiness data:', err);
       }
     }
   }, [workoutLog, clientData?.id, todayWorkout, selectedDate]);
