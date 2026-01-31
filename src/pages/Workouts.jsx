@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
@@ -38,6 +38,18 @@ const formatDisplayDate = (date) => {
   } catch {
     return 'Today';
   }
+};
+
+// Helper to format duration from minutes to HH:MM or M:SS
+const formatDuration = (minutes) => {
+  if (!minutes || minutes <= 0) return '0:00';
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.floor(minutes % 60);
+  const secs = Math.round((minutes % 1) * 60);
+  if (hrs > 0) {
+    return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${mins}:${String(secs).padStart(2, '0')}`;
 };
 
 // Helper to refresh signed URLs for private videos/audio
@@ -260,6 +272,17 @@ function Workouts() {
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [showShareResults, setShowShareResults] = useState(false);
+  const [shareToggles, setShareToggles] = useState({
+    muscles: true,
+    duration: true,
+    calories: true,
+    activities: true,
+    lifted: false,
+    sets: false
+  });
+  const shareCardRef = useRef(null);
   const menuRef = useRef(null);
   const heroMenuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
@@ -1241,6 +1264,7 @@ function Workouts() {
   // Complete workout - saves exercise_logs with all sets/reps/weight data
   const handleCompleteWorkout = useCallback(async () => {
     if (!workoutLog?.id) return;
+    setShowFinishConfirm(false);
 
     try {
       // Gather current exercises with their set data from todayWorkout
@@ -1297,6 +1321,105 @@ function Workouts() {
       console.error('Error completing workout:', err);
     }
   }, [workoutLog?.id, workoutStartTime]);
+
+  // Handle finish button click - show confirmation if activities are incomplete
+  const handleFinishClick = useCallback(() => {
+    if (!workoutLog?.id) return;
+    if (completedExercises.size < exercises.length) {
+      setShowFinishConfirm(true);
+    } else {
+      handleCompleteWorkout();
+    }
+  }, [workoutLog?.id, completedExercises.size, exercises.length, handleCompleteWorkout]);
+
+  // Mark all exercises as done and complete
+  const handleMarkAllDone = useCallback(() => {
+    const allIds = new Set(exercises.map(ex => ex?.id).filter(Boolean));
+    setCompletedExercises(allIds);
+    setShowFinishConfirm(false);
+    setTimeout(() => handleCompleteWorkout(), 100);
+  }, [exercises, handleCompleteWorkout]);
+
+  // Share workout results using canvas-based image generation
+  const handleShareResults = useCallback(async () => {
+    try {
+      const card = shareCardRef.current;
+      if (!card) return;
+
+      // Use html2canvas-like approach: render to canvas via SVG foreignObject
+      const cardRect = card.getBoundingClientRect();
+      const canvas = document.createElement('canvas');
+      const scale = 2; // Retina
+      canvas.width = cardRect.width * scale;
+      canvas.height = cardRect.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+
+      // Serialize the card HTML
+      const cardClone = card.cloneNode(true);
+      const svgData = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${cardRect.width}" height="${cardRect.height}">
+          <foreignObject width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml">
+              ${cardClone.outerHTML}
+            </div>
+          </foreignObject>
+        </svg>
+      `;
+
+      const img = new Image();
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = async () => {
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+
+          // Try Web Share API first (works on mobile + Capacitor)
+          if (navigator.share && navigator.canShare) {
+            const file = new File([blob], 'workout-results.png', { type: 'image/png' });
+            const shareData = { files: [file], title: 'Workout Results' };
+            if (navigator.canShare(shareData)) {
+              try {
+                await navigator.share(shareData);
+                return;
+              } catch (e) {
+                if (e.name === 'AbortError') return;
+              }
+            }
+          }
+
+          // Fallback: download the image
+          const downloadUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = 'workout-results.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(downloadUrl);
+        }, 'image/png');
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        // Fallback: just use Web Share API with text
+        if (navigator.share) {
+          navigator.share({
+            title: 'Workout Results',
+            text: `Workout Complete! Duration: ${formatDuration(workoutDuration)}, Calories: ${estimatedCalories}, Activities: ${exercises.length}, Lifted: ${totalLifted}kg, Sets: ${totalSets}`
+          }).catch(() => {});
+        }
+      };
+
+      img.src = url;
+    } catch (err) {
+      console.error('Error sharing results:', err);
+    }
+  }, [workoutDuration, estimatedCalories, exercises.length, totalLifted, totalSets]);
 
   // Fetch workout history
   const fetchWorkoutHistory = useCallback(async () => {
@@ -1465,6 +1588,42 @@ function Workouts() {
     });
     return volume;
   }, [exercises]);
+
+  // Calculate total lifted weight (kg) and total sets
+  const totalLifted = useMemo(() => {
+    let lifted = 0;
+    exercises.forEach(ex => {
+      if (Array.isArray(ex.sets)) {
+        ex.sets.forEach(s => {
+          const weight = parseFloat(s?.weight) || 0;
+          const reps = parseInt(s?.reps) || 0;
+          lifted += weight * reps;
+        });
+      } else {
+        const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
+        const reps = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
+        const weight = parseFloat(ex.weight) || 0;
+        lifted += numSets * reps * weight;
+      }
+    });
+    return Math.round(lifted * 10) / 10;
+  }, [exercises]);
+
+  const totalSets = useMemo(() => {
+    let sets = 0;
+    exercises.forEach(ex => {
+      if (Array.isArray(ex.sets)) {
+        sets += ex.sets.length;
+      } else {
+        sets += typeof ex.sets === 'number' ? ex.sets : 3;
+      }
+    });
+    return sets;
+  }, [exercises]);
+
+  const estimatedCalories = useMemo(() => {
+    return todayWorkout?.workout_data?.estimatedCalories || Math.round(totalSets * 6.5) || 300;
+  }, [todayWorkout, totalSets]);
 
   // Calculate progress
   const completedCount = completedExercises.size;
@@ -1781,7 +1940,7 @@ function Workouts() {
         <div className="finish-training-section">
           <button
             className={`finish-training-btn ${completedCount === totalExercises && totalExercises > 0 ? 'ready' : ''}`}
-            onClick={handleCompleteWorkout}
+            onClick={handleFinishClick}
           >
             <span className="btn-text">Finish training</span>
             <span className="btn-progress">{completedCount}/{totalExercises} activities done</span>
@@ -1823,36 +1982,138 @@ function Workouts() {
         />
       )}
 
-      {/* Workout Summary Modal */}
-      {showSummary && (
+      {/* Finish Confirmation Dialog */}
+      {showFinishConfirm && (
+        <div className="workout-summary-overlay" onClick={() => setShowFinishConfirm(false)}>
+          <div className="finish-confirm-sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <h2>Are you done?</h2>
+            <p className="confirm-subtitle">
+              {completedExercises.size === 0
+                ? 'None of the activities have been marked as done.'
+                : `${completedExercises.size} of ${exercises.length} activities have been marked as done.`}
+            </p>
+            <button className="confirm-mark-all-btn" onClick={handleMarkAllDone}>
+              Mark everything as done
+            </button>
+            <button className="confirm-manual-btn" onClick={handleCompleteWorkout}>
+              Manually mark as done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Workout Summary Modal - Enhanced */}
+      {showSummary && !showShareResults && (
         <div className="workout-summary-overlay" onClick={() => setShowSummary(false)}>
-          <div className="workout-summary-modal" onClick={e => e.stopPropagation()}>
+          <div className="workout-summary-modal enhanced" onClick={e => e.stopPropagation()}>
             <button className="summary-close-btn" onClick={() => setShowSummary(false)}>
               <X size={24} />
             </button>
             <div className="summary-header">
-              <Award size={48} className="summary-icon" />
-              <h2>Workout Complete!</h2>
-            </div>
-            <div className="summary-stats">
-              <div className="summary-stat">
-                <span className="stat-value">{workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45}</span>
-                <span className="stat-label">Minutes</span>
+              <div className="summary-stars">
+                <Star size={28} className="star-side" />
+                <Star size={40} className="star-main" />
+                <Star size={28} className="star-side" />
               </div>
-              <div className="summary-stat">
-                <span className="stat-value">{completedCount}</span>
-                <span className="stat-label">Exercises</span>
+              <h2>Great job!</h2>
+              <p className="summary-subtitle">Training finished</p>
+            </div>
+            <div className="summary-stats-grid">
+              <div className="summary-stat-card wide">
+                <span className="stat-value">{formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                <span className="stat-label">Duration</span>
+                <span className="stat-value secondary">{estimatedCalories}</span>
+                <span className="stat-label">Calories</span>
               </div>
-              <div className="summary-stat">
-                <span className="stat-value">{totalVolume}</span>
-                <span className="stat-label">Total Reps</span>
+              <div className="summary-stat-card">
+                <span className="stat-value">{exercises.length}</span>
+                <span className="stat-label">Activities</span>
+              </div>
+              <div className="summary-stat-card">
+                <span className="stat-value">{totalLifted > 0 ? totalLifted.toLocaleString() : '--'}</span>
+                <span className="stat-label">Lifted (kg)</span>
+              </div>
+              <div className="summary-stat-card full">
+                <span className="stat-value">{totalSets}</span>
+                <span className="stat-label">Sets</span>
               </div>
             </div>
-            <div className="summary-message">
-              <p>Great job completing your workout! Keep up the momentum.</p>
+            <button className="share-results-btn" onClick={() => setShowShareResults(true)}>
+              <Share2 size={18} />
+              Share results
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Share Results Modal */}
+      {showShareResults && (
+        <div className="workout-summary-overlay" onClick={() => setShowShareResults(false)}>
+          <div className="share-results-modal" onClick={e => e.stopPropagation()}>
+            <div className="share-modal-header">
+              <button className="summary-close-btn" onClick={() => setShowShareResults(false)}>
+                <X size={24} />
+              </button>
+              <h2>Share your results!</h2>
             </div>
-            <button className="summary-done-btn" onClick={() => setShowSummary(false)}>
-              Done
+
+            {/* Preview Card */}
+            <div className="share-card-preview" ref={shareCardRef}>
+              <div className="share-card-bg">
+                <div className="share-card-brand">Zique Fitness</div>
+                <div className="share-card-stats">
+                  {shareToggles.duration && (
+                    <div className="share-stat">
+                      <span className="share-stat-value">{formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                      <span className="share-stat-label">Duration</span>
+                    </div>
+                  )}
+                  {shareToggles.calories && (
+                    <div className="share-stat">
+                      <span className="share-stat-value">{estimatedCalories}</span>
+                      <span className="share-stat-label">Calories</span>
+                    </div>
+                  )}
+                  {shareToggles.activities && (
+                    <div className="share-stat">
+                      <span className="share-stat-value">{exercises.length}</span>
+                      <span className="share-stat-label">Activities</span>
+                    </div>
+                  )}
+                </div>
+                <div className="share-card-footer">Powered by Zique Fitness</div>
+              </div>
+            </div>
+
+            {/* Toggle Controls */}
+            <div className="share-toggles">
+              <h3>Statistics</h3>
+              {[
+                { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45) },
+                { key: 'calories', label: 'Calories', value: estimatedCalories },
+                { key: 'activities', label: 'Activities', value: exercises.length },
+                { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} kg` },
+                { key: 'sets', label: 'Sets', value: totalSets }
+              ].map(({ key, label, value }) => (
+                <div className="share-toggle-row" key={key}>
+                  <div className="toggle-info">
+                    <span className="toggle-label">{label}</span>
+                    <span className="toggle-value">{value}</span>
+                  </div>
+                  <button
+                    className={`toggle-switch ${shareToggles[key] ? 'active' : ''}`}
+                    onClick={() => setShareToggles(prev => ({ ...prev, [key]: !prev[key] }))}
+                  >
+                    <span className="toggle-knob" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button className="share-results-btn" onClick={handleShareResults}>
+              <Share2 size={18} />
+              Share results
             </button>
           </div>
         </div>
