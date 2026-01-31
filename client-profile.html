@@ -1533,6 +1533,580 @@
             }
         }
 
+        /* ========== Workout Calendar Section ========== */
+        .workout-calendar-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .wc-month-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .wc-month-label {
+            font-weight: 700;
+            font-size: 16px;
+            color: #1e293b;
+            min-width: 160px;
+            text-align: center;
+        }
+
+        .wc-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .wc-day-header {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            padding: 6px 0;
+        }
+
+        .wc-day {
+            position: relative;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+            min-height: 48px;
+            gap: 2px;
+        }
+
+        .wc-day:hover { background: #f1f5f9; }
+        .wc-day.empty { cursor: default; }
+        .wc-day.empty:hover { background: transparent; }
+        .wc-day.today { border-color: #3b82f6; background: #eff6ff; }
+        .wc-day.selected { background: #3b82f6; color: white; }
+        .wc-day.selected:hover { background: #2563eb; }
+
+        .wc-day-num {
+            font-size: 13px;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .wc-day.other-month .wc-day-num { color: #cbd5e1; }
+        .wc-day.selected .wc-day-num { color: white; }
+
+        .wc-day-indicators {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .wc-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .wc-indicator.completed { background: #22c55e; }
+        .wc-indicator.scheduled { background: #3b82f6; }
+        .wc-indicator.missed { background: #ef4444; }
+        .wc-indicator.in-progress { background: #f59e0b; }
+
+        .wc-day-detail {
+            margin-top: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .wc-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .wc-detail-date {
+            font-weight: 700;
+            font-size: 15px;
+            color: #1e293b;
+        }
+
+        .wc-detail-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        .wc-detail-status.completed { background: #dcfce7; color: #166534; }
+        .wc-detail-status.scheduled { background: #dbeafe; color: #1e40af; }
+        .wc-detail-status.missed { background: #fee2e2; color: #991b1b; }
+        .wc-detail-status.rest { background: #f1f5f9; color: #64748b; }
+
+        .wc-detail-exercises {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .wc-detail-exercise {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-size: 13px;
+        }
+
+        .wc-detail-ex-name {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .wc-detail-ex-info {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .wc-detail-empty {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            padding: 20px;
+        }
+
+        .wc-legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .wc-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        /* ========== Workout Programs Section ========== */
+        .workout-programs-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .wpr-header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .wpr-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: white;
+            color: #475569;
+        }
+
+        .wpr-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .wpr-btn.primary { background: #3b82f6; color: white; border-color: #3b82f6; }
+        .wpr-btn.primary:hover { background: #2563eb; }
+        .wpr-btn.danger { color: #dc2626; border-color: #fecaca; }
+        .wpr-btn.danger:hover { background: #fef2f2; }
+
+        .wpr-active-assignment {
+            padding: 16px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid #6ee7b7;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .wpr-active-badge {
+            display: inline-block;
+            background: #059669;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .wpr-active-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #065f46;
+            margin-bottom: 4px;
+        }
+
+        .wpr-active-meta {
+            font-size: 13px;
+            color: #047857;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .wpr-active-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .wpr-active-days {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .wpr-day-chip {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .wpr-day-chip:hover { background: #f3f4f6; }
+        .wpr-day-chip.expanded { background: #3b82f6; color: white; border-color: #3b82f6; }
+
+        .wpr-day-exercises {
+            margin-top: 8px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+
+        .wpr-day-exercises.show { display: block; }
+
+        .wpr-exercise-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
+
+        .wpr-exercise-row:last-child { border-bottom: none; }
+
+        .wpr-ex-name { font-weight: 500; color: #334155; flex: 1; }
+        .wpr-ex-detail { color: #64748b; font-size: 12px; }
+        .wpr-ex-actions { display: flex; gap: 4px; margin-left: 8px; }
+
+        .wpr-ex-btn {
+            padding: 2px 6px;
+            font-size: 11px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #94a3b8;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .wpr-ex-btn:hover { background: #f1f5f9; color: #475569; }
+        .wpr-ex-btn.delete:hover { background: #fef2f2; color: #dc2626; }
+
+        .wpr-programs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .wpr-program-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            transition: all 0.15s;
+        }
+
+        .wpr-program-card:hover { border-color: #cbd5e1; }
+
+        .wpr-program-info {
+            flex: 1;
+        }
+
+        .wpr-program-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .wpr-program-meta {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .wpr-program-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .wpr-no-programs {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            padding: 30px;
+        }
+
+        /* Edit Exercise Modal */
+        .wpr-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .wpr-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .wpr-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .wpr-form-group {
+            margin-bottom: 14px;
+        }
+
+        .wpr-form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .wpr-form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #1e293b;
+            box-sizing: border-box;
+        }
+
+        .wpr-form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+        }
+
+        .wpr-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .wpr-modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* Exercise Search in Modal */
+        .wpr-exercise-search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .wpr-search-result {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.1s;
+        }
+
+        .wpr-search-result:hover { background: #f1f5f9; }
+        .wpr-search-result:last-child { border-bottom: none; }
+
+        .wpr-search-result-name { font-weight: 600; color: #1e293b; }
+        .wpr-search-result-meta { font-size: 11px; color: #94a3b8; }
+
+        /* Assign Program Modal */
+        .wpr-assign-programs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .wpr-assign-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .wpr-assign-card:hover { background: #f8fafc; border-color: #3b82f6; }
+
+        .wpr-schedule-days {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .wpr-schedule-day {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .wpr-schedule-day.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* Dark Mode - Calendar */
+        [data-theme="dark"] .workout-calendar-section {
+            background: #1e293b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] .wc-month-label { color: #e2e8f0; }
+        [data-theme="dark"] .wc-day-header { color: #64748b; }
+        [data-theme="dark"] .wc-day-num { color: #cbd5e1; }
+        [data-theme="dark"] .wc-day:hover { background: #334155; }
+        [data-theme="dark"] .wc-day.today { border-color: #3b82f6; background: #1e3a5f; }
+        [data-theme="dark"] .wc-day.selected { background: #3b82f6; }
+        [data-theme="dark"] .wc-day.other-month .wc-day-num { color: #475569; }
+        [data-theme="dark"] .wc-day-detail { background: #0f172a; border-color: #334155; }
+        [data-theme="dark"] .wc-detail-date { color: #e2e8f0; }
+        [data-theme="dark"] .wc-detail-exercise { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .wc-detail-ex-name { color: #e2e8f0; }
+        [data-theme="dark"] .wc-detail-ex-info { color: #94a3b8; }
+        [data-theme="dark"] .wc-legend-item { color: #94a3b8; }
+
+        /* Dark Mode - Programs */
+        [data-theme="dark"] .workout-programs-section {
+            background: #1e293b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="dark"] .wpr-btn {
+            background: #334155;
+            border-color: #475569;
+            color: #cbd5e1;
+        }
+        [data-theme="dark"] .wpr-btn:hover { background: #475569; }
+        [data-theme="dark"] .wpr-btn.primary { background: #3b82f6; color: white; border-color: #3b82f6; }
+        [data-theme="dark"] .wpr-btn.danger { color: #f87171; border-color: #7f1d1d; }
+        [data-theme="dark"] .wpr-btn.danger:hover { background: #450a0a; }
+
+        [data-theme="dark"] .wpr-active-assignment {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+            border-color: #059669;
+        }
+        [data-theme="dark"] .wpr-active-name { color: #a7f3d0; }
+        [data-theme="dark"] .wpr-active-meta { color: #6ee7b7; }
+
+        [data-theme="dark"] .wpr-day-chip { background: #334155; border-color: #475569; color: #cbd5e1; }
+        [data-theme="dark"] .wpr-day-chip:hover { background: #475569; }
+        [data-theme="dark"] .wpr-day-chip.expanded { background: #3b82f6; color: white; }
+        [data-theme="dark"] .wpr-day-exercises { background: #0f172a; border-color: #334155; }
+        [data-theme="dark"] .wpr-exercise-row { border-color: #1e293b; }
+        [data-theme="dark"] .wpr-ex-name { color: #e2e8f0; }
+
+        [data-theme="dark"] .wpr-program-card { background: #0f172a; border-color: #334155; }
+        [data-theme="dark"] .wpr-program-name { color: #e2e8f0; }
+        [data-theme="dark"] .wpr-program-meta { color: #94a3b8; }
+
+        [data-theme="dark"] .wpr-modal { background: #1e293b; }
+        [data-theme="dark"] .wpr-modal-title { color: #e2e8f0; }
+        [data-theme="dark"] .wpr-form-label { color: #94a3b8; }
+        [data-theme="dark"] .wpr-form-input { background: #334155; border-color: #475569; color: #e2e8f0; }
+        [data-theme="dark"] .wpr-search-result:hover { background: #334155; }
+        [data-theme="dark"] .wpr-search-result-name { color: #e2e8f0; }
+        [data-theme="dark"] .wpr-assign-card { border-color: #334155; }
+        [data-theme="dark"] .wpr-assign-card:hover { background: #334155; }
+        [data-theme="dark"] .wpr-schedule-day { border-color: #475569; color: #94a3b8; }
+
+        @media (max-width: 600px) {
+            .wc-day { min-height: 36px; }
+            .wc-day-num { font-size: 11px; }
+            .wc-indicator { width: 4px; height: 4px; }
+            .wpr-program-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+
         /* Progress Photos Section */
         .photos-section {
             background: white;
@@ -5003,6 +5577,61 @@
             </div>
         </div>
 
+        <!-- Workout Calendar Section -->
+        <div class="workout-calendar-section">
+            <div class="section-header collapsible-header" onclick="toggleSection('workoutCalendar')" style="cursor: pointer;">
+                <h2 class="section-title">📅 Workout Calendar</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="workoutCalendarToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="workoutCalendarContent" class="collapsible-content collapsed">
+                <div class="wc-month-nav">
+                    <button class="workout-nav-btn" onclick="changeCalendarMonth(-1)">‹ Prev</button>
+                    <span class="wc-month-label" id="calendarMonthLabel">January 2026</span>
+                    <button class="workout-nav-btn" onclick="changeCalendarMonth(1)">Next ›</button>
+                </div>
+                <div id="calendarGrid" class="wc-grid"></div>
+                <div class="wc-legend">
+                    <div class="wc-legend-item"><span class="wc-indicator completed"></span> Completed</div>
+                    <div class="wc-legend-item"><span class="wc-indicator scheduled"></span> Scheduled</div>
+                    <div class="wc-legend-item"><span class="wc-indicator missed"></span> Missed</div>
+                    <div class="wc-legend-item"><span class="wc-indicator in-progress"></span> In Progress</div>
+                </div>
+                <div id="calendarDayDetail"></div>
+            </div>
+        </div>
+
+        <!-- Workout Programs Section -->
+        <div class="workout-programs-section">
+            <div class="section-header collapsible-header" onclick="toggleSection('workoutPrograms')" style="cursor: pointer;">
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <h2 class="section-title">📋 Workout Programs</h2>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="wpr-header-actions">
+                            <button class="wpr-btn primary" onclick="event.stopPropagation(); showAssignProgramModal()">+ Assign Program</button>
+                        </div>
+                        <button class="section-toggle-btn" type="button">
+                            <span class="toggle-icon collapsed" id="workoutProgramsToggleIcon">▼</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="workoutProgramsContent" class="collapsible-content collapsed">
+                <div id="activeAssignmentContainer"></div>
+                <h3 style="font-size: 14px; font-weight: 600; color: #64748b; margin: 20px 0 12px; text-transform: uppercase; letter-spacing: 0.5px;">Your Programs</h3>
+                <div id="programsListContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton" style="height: 60px; margin-bottom: 8px; border-radius: 10px;"></div>
+                        <div class="skeleton" style="height: 60px; margin-bottom: 8px; border-radius: 10px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Container for Workout Modals -->
+        <div id="workoutModalContainer"></div>
+
         <!-- Food Diary Section -->
         <div class="diary-section">
             <div class="diary-header">
@@ -5479,7 +6108,7 @@
         // Restore collapsed states on load
         // Default collapsed sections: plans, protocols, favorites, photos, measurements, checkins
         (function restoreCollapsedStates() {
-            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins', 'workouts'];
+            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins', 'workouts', 'workoutCalendar', 'workoutPrograms'];
             const savedStates = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
 
             defaultCollapsed.forEach(section => {
@@ -5733,7 +6362,9 @@
                 loadCheckins(clientId),
                 loadFavorites(clientId),
                 loadFoodDiary(clientId),
-                loadWorkoutLogs(clientId)
+                loadWorkoutLogs(clientId),
+                loadWorkoutCalendar(clientId),
+                loadWorkoutPrograms(clientId)
             ]);
 
             console.log('Data refreshed successfully');
@@ -8407,6 +9038,841 @@
                 askBtn.disabled = false;
                 askBtn.textContent = 'Ask AI';
             }
+        }
+
+        // ============ WORKOUT CALENDAR FUNCTIONS ============
+        let calendarMonth = new Date().getMonth();
+        let calendarYear = new Date().getFullYear();
+        let calendarWorkoutData = {}; // { 'YYYY-MM-DD': { status, exercises, workoutName } }
+        let calendarAssignment = null;
+        let selectedCalendarDate = null;
+
+        function changeCalendarMonth(delta) {
+            calendarMonth += delta;
+            if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+            if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+            loadWorkoutCalendar(clientId);
+        }
+
+        async function loadWorkoutCalendar(cId) {
+            if (!cId) return;
+
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            document.getElementById('calendarMonthLabel').textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+
+            // Get first and last day of month
+            const firstDay = new Date(calendarYear, calendarMonth, 1);
+            const lastDay = new Date(calendarYear, calendarMonth + 1, 0);
+            const startStr = firstDay.toISOString().split('T')[0];
+            const endStr = lastDay.toISOString().split('T')[0];
+
+            try {
+                // Fetch workout logs and assignments in parallel
+                const coachId = window.coachUserId || currentUser?.id;
+                const [logsRes, assignRes] = await Promise.all([
+                    fetch(`/.netlify/functions/coach-workout-feed?coachId=${coachId}&clientId=${cId}&limit=100`),
+                    fetch(`/.netlify/functions/workout-assignments?clientId=${cId}&activeOnly=true`)
+                ]);
+
+                const logsData = await logsRes.json();
+                const assignData = await assignRes.json();
+
+                const workouts = logsData.feed || logsData.workouts || [];
+                calendarAssignment = (assignData.assignments || [])[0] || null;
+
+                // Build workout data map
+                calendarWorkoutData = {};
+                workouts.forEach(w => {
+                    const date = w.workoutDate || w.workout_date;
+                    if (date) {
+                        calendarWorkoutData[date] = {
+                            status: w.status || 'completed',
+                            exercises: w.exercises || [],
+                            workoutName: w.workoutName || w.workout_name || 'Workout',
+                            totalVolume: w.totalVolume || w.total_volume || 0,
+                            totalSets: w.totalSets || w.total_sets || 0,
+                            duration: w.durationMinutes || w.duration_minutes || 0
+                        };
+                    }
+                });
+
+                // Determine scheduled days from assignment
+                if (calendarAssignment?.workout_data?.schedule) {
+                    const schedule = calendarAssignment.workout_data.schedule;
+                    const scheduledDays = schedule.days || schedule.selectedDays || [];
+                    const dayMap = { 'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6 };
+
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+
+                    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+                        const dateStr = d.toISOString().split('T')[0];
+                        const dayOfWeek = d.getDay();
+                        const isScheduled = scheduledDays.some(sd => dayMap[sd.toLowerCase()] === dayOfWeek);
+
+                        if (isScheduled && !calendarWorkoutData[dateStr]) {
+                            if (d < today) {
+                                calendarWorkoutData[dateStr] = { status: 'missed', exercises: [], workoutName: 'Missed' };
+                            } else {
+                                calendarWorkoutData[dateStr] = { status: 'scheduled', exercises: [], workoutName: 'Scheduled' };
+                            }
+                        }
+                    }
+                }
+
+                renderCalendar();
+            } catch (err) {
+                console.error('Error loading workout calendar:', err);
+            }
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const firstDay = new Date(calendarYear, calendarMonth, 1);
+            const lastDay = new Date(calendarYear, calendarMonth + 1, 0);
+            const startDayOfWeek = firstDay.getDay(); // 0=Sun
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            // Day headers
+            let html = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d =>
+                `<div class="wc-day-header">${d}</div>`
+            ).join('');
+
+            // Adjust for Monday start (0=Mon)
+            const adjustedStart = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+
+            // Empty cells before first day
+            for (let i = 0; i < adjustedStart; i++) {
+                html += '<div class="wc-day empty"></div>';
+            }
+
+            // Days of the month
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dateObj = new Date(calendarYear, calendarMonth, day);
+                const dateStr = dateObj.toISOString().split('T')[0];
+                const isToday = dateObj.getTime() === today.getTime();
+                const isSelected = selectedCalendarDate === dateStr;
+                const data = calendarWorkoutData[dateStr];
+
+                let classes = 'wc-day';
+                if (isToday) classes += ' today';
+                if (isSelected) classes += ' selected';
+
+                let indicators = '';
+                if (data) {
+                    indicators = `<div class="wc-day-indicators"><span class="wc-indicator ${data.status}"></span></div>`;
+                }
+
+                html += `<div class="${classes}" onclick="selectCalendarDay('${dateStr}')">
+                    <span class="wc-day-num">${day}</span>
+                    ${indicators}
+                </div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function selectCalendarDay(dateStr) {
+            selectedCalendarDate = dateStr;
+            renderCalendar();
+
+            const detailEl = document.getElementById('calendarDayDetail');
+            const data = calendarWorkoutData[dateStr];
+            const dateObj = new Date(dateStr + 'T12:00:00');
+            const dateLabel = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+            if (!data) {
+                detailEl.innerHTML = `
+                    <div class="wc-day-detail">
+                        <div class="wc-detail-header">
+                            <span class="wc-detail-date">${dateLabel}</span>
+                            <span class="wc-detail-status rest">Rest Day</span>
+                        </div>
+                        <div class="wc-detail-empty">No workout scheduled or logged for this day.</div>
+                    </div>`;
+                return;
+            }
+
+            const statusLabel = { completed: 'Completed', scheduled: 'Scheduled', missed: 'Missed', in_progress: 'In Progress' };
+            const statusClass = data.status === 'in_progress' ? 'scheduled' : data.status;
+
+            let exercisesHtml = '';
+            if (data.exercises && data.exercises.length > 0) {
+                exercisesHtml = '<div class="wc-detail-exercises">' + data.exercises.map(ex => {
+                    const name = ex.exerciseName || ex.exercise_name || ex.name || 'Exercise';
+                    const setsData = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.sets_data ? (typeof ex.sets_data === 'string' ? JSON.parse(ex.sets_data) : ex.sets_data) : (ex.setsData || []));
+                    const setCount = setsData.length || ex.totalSets || ex.total_sets || 0;
+                    const maxW = ex.maxWeight || ex.max_weight || 0;
+                    const info = maxW > 0 ? `${setCount} sets - ${maxW} kg max` : `${setCount} sets`;
+                    return `<div class="wc-detail-exercise"><span class="wc-detail-ex-name">${escapeHtml(name)}</span><span class="wc-detail-ex-info">${info}</span></div>`;
+                }).join('') + '</div>';
+            } else if (data.status === 'scheduled') {
+                // Try to show planned exercises from the assignment
+                exercisesHtml = '<div class="wc-detail-empty">Workout scheduled - not yet started.</div>';
+                if (calendarAssignment?.workout_data?.days) {
+                    const planned = getPlannedExercisesForDate(dateStr);
+                    if (planned && planned.length > 0) {
+                        exercisesHtml = '<div class="wc-detail-exercises">' + planned.map(ex => {
+                            const sets = ex.sets || 3;
+                            const reps = ex.reps || 10;
+                            return `<div class="wc-detail-exercise"><span class="wc-detail-ex-name">${escapeHtml(ex.name || 'Exercise')}</span><span class="wc-detail-ex-info">${sets} x ${reps}</span></div>`;
+                        }).join('') + '</div>';
+                    }
+                }
+            } else if (data.status === 'missed') {
+                exercisesHtml = '<div class="wc-detail-empty">This workout was scheduled but not logged.</div>';
+            }
+
+            let statsHtml = '';
+            if (data.status === 'completed' || data.status === 'in_progress') {
+                const vol = data.totalVolume ? Number(data.totalVolume).toLocaleString() : '0';
+                const dur = data.duration ? `${data.duration} min` : '';
+                statsHtml = `<div style="display:flex;gap:12px;margin-bottom:10px;font-size:12px;color:#64748b;">
+                    <span>${vol} kg volume</span>
+                    <span>${data.totalSets || 0} sets</span>
+                    ${dur ? `<span>${dur}</span>` : ''}
+                </div>`;
+            }
+
+            detailEl.innerHTML = `
+                <div class="wc-day-detail">
+                    <div class="wc-detail-header">
+                        <span class="wc-detail-date">${dateLabel}</span>
+                        <span class="wc-detail-status ${statusClass}">${statusLabel[data.status] || data.status}</span>
+                    </div>
+                    ${data.workoutName && data.status !== 'missed' ? `<div style="font-weight:600;font-size:14px;color:#475569;margin-bottom:8px;">${escapeHtml(data.workoutName)}</div>` : ''}
+                    ${statsHtml}
+                    ${exercisesHtml}
+                </div>`;
+        }
+
+        function getPlannedExercisesForDate(dateStr) {
+            if (!calendarAssignment?.workout_data?.days) return [];
+            const schedule = calendarAssignment.workout_data.schedule || {};
+            const scheduledDays = schedule.days || schedule.selectedDays || [];
+            const dayMap = { 'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6 };
+            const startDate = new Date(calendarAssignment.start_date + 'T12:00:00');
+            const targetDate = new Date(dateStr + 'T12:00:00');
+
+            // Count workout days from start to target
+            let workoutDayCount = 0;
+            for (let d = new Date(startDate); d < targetDate; d.setDate(d.getDate() + 1)) {
+                const dow = d.getDay();
+                if (scheduledDays.some(sd => dayMap[sd.toLowerCase()] === dow)) {
+                    workoutDayCount++;
+                }
+            }
+
+            const days = calendarAssignment.workout_data.days || [];
+            if (days.length === 0) return [];
+            const dayIndex = workoutDayCount % days.length;
+            return days[dayIndex]?.exercises || [];
+        }
+
+        // ============ WORKOUT PROGRAMS FUNCTIONS ============
+        let coachPrograms = [];
+        let clientActiveAssignment = null;
+
+        async function loadWorkoutPrograms(cId) {
+            if (!cId || !currentUser) return;
+
+            try {
+                const coachId = currentUser.id;
+                // Fetch programs and current assignment in parallel
+                const [progsRes, assignRes] = await Promise.all([
+                    fetch(`/.netlify/functions/workout-programs?coachId=${coachId}`),
+                    fetch(`/.netlify/functions/workout-assignments?clientId=${cId}&activeOnly=true`)
+                ]);
+
+                const progsData = await progsRes.json();
+                const assignData = await assignRes.json();
+
+                coachPrograms = progsData.programs || [];
+                clientActiveAssignment = (assignData.assignments || [])[0] || null;
+
+                renderActiveAssignment();
+                renderProgramsList();
+            } catch (err) {
+                console.error('Error loading workout programs:', err);
+                document.getElementById('programsListContainer').innerHTML = '<div class="wpr-no-programs">Failed to load programs.</div>';
+            }
+        }
+
+        function renderActiveAssignment() {
+            const container = document.getElementById('activeAssignmentContainer');
+            if (!clientActiveAssignment) {
+                container.innerHTML = `<div style="padding:16px;text-align:center;color:#94a3b8;font-size:14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+                    No active workout program assigned to this client.
+                </div>`;
+                return;
+            }
+
+            const a = clientActiveAssignment;
+            const days = a.workout_data?.days || [];
+            const schedule = a.workout_data?.schedule || {};
+            const scheduledDays = schedule.days || schedule.selectedDays || [];
+            const startDate = a.start_date ? new Date(a.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+            const endDate = a.end_date ? new Date(a.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ongoing';
+
+            const daysChips = days.map((d, i) => `<button class="wpr-day-chip" onclick="event.stopPropagation(); toggleProgramDay(${i})" data-day-index="${i}">${d.name || 'Day ' + (i+1)}</button>`).join('');
+
+            const daysExercises = days.map((d, i) => {
+                const exercises = (d.exercises || []).map((ex, ei) => {
+                    const sets = ex.sets || 3;
+                    const reps = ex.reps || 10;
+                    const weight = ex.weight ? `${ex.weight} kg` : '';
+                    return `<div class="wpr-exercise-row">
+                        <span class="wpr-ex-name">${escapeHtml(ex.name || 'Exercise')}</span>
+                        <span class="wpr-ex-detail">${sets} x ${reps}${weight ? ' @ ' + weight : ''}</span>
+                        <div class="wpr-ex-actions">
+                            <button class="wpr-ex-btn" onclick="event.stopPropagation(); editExerciseInProgram(${i}, ${ei})" title="Edit">✏️</button>
+                            <button class="wpr-ex-btn delete" onclick="event.stopPropagation(); removeExerciseFromProgram(${i}, ${ei})" title="Remove">🗑️</button>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                return `<div class="wpr-day-exercises" id="programDay${i}">
+                    ${exercises || '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:10px;">No exercises</div>'}
+                    <div style="margin-top:8px;text-align:center;">
+                        <button class="wpr-btn" onclick="event.stopPropagation(); addExerciseToProgram(${i})" style="font-size:11px;">+ Add Exercise</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="wpr-active-assignment">
+                    <span class="wpr-active-badge">Active Program</span>
+                    <div class="wpr-active-name">${escapeHtml(a.name || 'Workout Program')}</div>
+                    <div class="wpr-active-meta">
+                        <span>${days.length} days/week</span>
+                        <span>${startDate} → ${endDate}</span>
+                        ${scheduledDays.length > 0 ? `<span>Schedule: ${scheduledDays.map(d => d.charAt(0).toUpperCase() + d.slice(1,3)).join(', ')}</span>` : ''}
+                    </div>
+                    <div class="wpr-active-actions">
+                        <button class="wpr-btn" onclick="event.stopPropagation(); editAssignmentSchedule()">Edit Schedule</button>
+                        <button class="wpr-btn danger" onclick="event.stopPropagation(); unassignProgram()">Unassign</button>
+                    </div>
+                    <div class="wpr-active-days">${daysChips}</div>
+                    ${daysExercises}
+                </div>`;
+        }
+
+        function toggleProgramDay(dayIndex) {
+            const el = document.getElementById(`programDay${dayIndex}`);
+            const chip = document.querySelector(`[data-day-index="${dayIndex}"]`);
+            if (el) {
+                const isShowing = el.classList.contains('show');
+                // Close all first
+                document.querySelectorAll('.wpr-day-exercises').forEach(e => e.classList.remove('show'));
+                document.querySelectorAll('.wpr-day-chip').forEach(c => c.classList.remove('expanded'));
+                if (!isShowing) {
+                    el.classList.add('show');
+                    if (chip) chip.classList.add('expanded');
+                }
+            }
+        }
+
+        function renderProgramsList() {
+            const container = document.getElementById('programsListContainer');
+
+            if (coachPrograms.length === 0) {
+                container.innerHTML = `<div class="wpr-no-programs">
+                    <p>No workout programs created yet.</p>
+                    <a href="coach-workouts.html" class="wpr-btn primary" style="display:inline-block;margin-top:8px;text-decoration:none;">Create a Program</a>
+                </div>`;
+                return;
+            }
+
+            const isAssigned = clientActiveAssignment?.program_id;
+
+            container.innerHTML = '<div class="wpr-programs-list">' + coachPrograms.map(p => {
+                const isActive = isAssigned && isAssigned === p.id;
+                const days = p.program_data?.days?.length || p.days_per_week || 0;
+                const typeLabel = p.program_type ? p.program_type.charAt(0).toUpperCase() + p.program_type.slice(1) : '';
+                const diffLabel = p.difficulty ? p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1) : '';
+
+                return `<div class="wpr-program-card" ${isActive ? 'style="border-color:#22c55e;background:#f0fdf4;"' : ''}>
+                    <div class="wpr-program-info">
+                        <div class="wpr-program-name">${escapeHtml(p.name || 'Untitled')} ${isActive ? '<span style="color:#16a34a;font-size:11px;font-weight:700;">ACTIVE</span>' : ''}</div>
+                        <div class="wpr-program-meta">${[typeLabel, diffLabel, days + ' days/wk'].filter(Boolean).join(' · ')}</div>
+                    </div>
+                    <div class="wpr-program-actions">
+                        ${!isActive ? `<button class="wpr-btn primary" onclick="event.stopPropagation(); assignProgram('${p.id}')">Assign</button>` : ''}
+                        <button class="wpr-btn danger" onclick="event.stopPropagation(); deleteProgram('${p.id}', '${escapeHtml(p.name || '')}')">Delete</button>
+                    </div>
+                </div>`;
+            }).join('') + '</div>';
+        }
+
+        async function assignProgram(programId) {
+            const program = coachPrograms.find(p => p.id === programId);
+            if (!program) return;
+
+            // If there's already an active assignment, confirm
+            if (clientActiveAssignment) {
+                if (!confirm(`This client already has an active program "${clientActiveAssignment.name}". Assigning a new one will deactivate it. Continue?`)) return;
+
+                // Deactivate current
+                try {
+                    await fetch('/.netlify/functions/workout-assignments', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assignmentId: clientActiveAssignment.id, isActive: false })
+                    });
+                } catch (e) { console.error('Error deactivating old assignment:', e); }
+            }
+
+            // Show schedule picker modal
+            showScheduleModal(program);
+        }
+
+        function showScheduleModal(program) {
+            const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+            const dayKeys = ['mon','tue','wed','thu','fri','sat','sun'];
+            const daysPerWeek = program.program_data?.days?.length || program.days_per_week || 3;
+
+            const modal = document.getElementById('workoutModalContainer');
+            modal.innerHTML = `
+                <div class="wpr-modal-overlay" onclick="closeWorkoutModal(event)">
+                    <div class="wpr-modal" onclick="event.stopPropagation()">
+                        <div class="wpr-modal-title">Assign: ${escapeHtml(program.name)}</div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Start Date</label>
+                            <input type="date" class="wpr-form-input" id="assignStartDate" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Schedule Days (select ${daysPerWeek})</label>
+                            <div class="wpr-schedule-days" id="assignScheduleDays">
+                                ${dayNames.map((name, i) => `<div class="wpr-schedule-day" data-day="${dayKeys[i]}" onclick="toggleScheduleDay(this)">${name}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="wpr-modal-actions">
+                            <button class="wpr-btn" onclick="closeWorkoutModal()">Cancel</button>
+                            <button class="wpr-btn primary" onclick="confirmAssignProgram('${program.id}')">Assign</button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function toggleScheduleDay(el) {
+            el.classList.toggle('active');
+        }
+
+        async function confirmAssignProgram(programId) {
+            const program = coachPrograms.find(p => p.id === programId);
+            if (!program) return;
+
+            const startDate = document.getElementById('assignStartDate').value;
+            const selectedDays = Array.from(document.querySelectorAll('.wpr-schedule-day.active')).map(el => el.dataset.day);
+
+            if (!startDate) { alert('Please select a start date.'); return; }
+            if (selectedDays.length === 0) { alert('Please select at least one schedule day.'); return; }
+
+            try {
+                const res = await fetch('/.netlify/functions/workout-assignments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: clientId,
+                        coachId: currentUser.id,
+                        programId: programId,
+                        name: program.name,
+                        workoutData: program.program_data,
+                        schedule: { days: selectedDays },
+                        startDate: startDate
+                    })
+                });
+
+                if (!res.ok) throw new Error('Failed to assign program');
+
+                closeWorkoutModal();
+                await loadWorkoutPrograms(clientId);
+                await loadWorkoutCalendar(clientId);
+            } catch (err) {
+                console.error('Error assigning program:', err);
+                alert('Failed to assign program. Please try again.');
+            }
+        }
+
+        async function unassignProgram() {
+            if (!clientActiveAssignment) return;
+            if (!confirm(`Remove "${clientActiveAssignment.name}" from this client?`)) return;
+
+            try {
+                const res = await fetch('/.netlify/functions/workout-assignments', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ assignmentId: clientActiveAssignment.id, isActive: false })
+                });
+
+                if (!res.ok) throw new Error('Failed to unassign');
+                await loadWorkoutPrograms(clientId);
+                await loadWorkoutCalendar(clientId);
+            } catch (err) {
+                console.error('Error unassigning program:', err);
+                alert('Failed to unassign program.');
+            }
+        }
+
+        async function deleteProgram(programId, programName) {
+            if (!confirm(`Delete program "${programName}"? This cannot be undone.`)) return;
+
+            try {
+                const res = await fetch(`/.netlify/functions/workout-programs?programId=${programId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!res.ok) throw new Error('Failed to delete');
+                await loadWorkoutPrograms(clientId);
+            } catch (err) {
+                console.error('Error deleting program:', err);
+                alert('Failed to delete program.');
+            }
+        }
+
+        function showAssignProgramModal() {
+            if (coachPrograms.length === 0) {
+                alert('No programs available. Create one first in the Workout Editor.');
+                return;
+            }
+
+            const modal = document.getElementById('workoutModalContainer');
+            const programCards = coachPrograms.map(p => {
+                const days = p.program_data?.days?.length || p.days_per_week || 0;
+                const typeLabel = p.program_type ? p.program_type.charAt(0).toUpperCase() + p.program_type.slice(1) : '';
+                return `<div class="wpr-assign-card" onclick="assignProgram('${p.id}')">
+                    <div>
+                        <div class="wpr-program-name">${escapeHtml(p.name || 'Untitled')}</div>
+                        <div class="wpr-program-meta">${[typeLabel, days + ' days/wk'].filter(Boolean).join(' · ')}</div>
+                    </div>
+                    <span style="color:#3b82f6;font-weight:600;font-size:13px;">Select →</span>
+                </div>`;
+            }).join('');
+
+            modal.innerHTML = `
+                <div class="wpr-modal-overlay" onclick="closeWorkoutModal(event)">
+                    <div class="wpr-modal" onclick="event.stopPropagation()">
+                        <div class="wpr-modal-title">Assign Workout Program</div>
+                        <div class="wpr-assign-programs">${programCards}</div>
+                        <div class="wpr-modal-actions">
+                            <button class="wpr-btn" onclick="closeWorkoutModal()">Cancel</button>
+                            <a href="coach-workouts.html" class="wpr-btn primary" style="text-decoration:none;">Create New Program</a>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        // ============ WORKOUT EDITING FUNCTIONS ============
+
+        let editSearchTimeout = null;
+
+        function editExerciseInProgram(dayIndex, exerciseIndex) {
+            if (!clientActiveAssignment?.workout_data?.days) return;
+            const day = clientActiveAssignment.workout_data.days[dayIndex];
+            const exercise = day?.exercises?.[exerciseIndex];
+            if (!exercise) return;
+
+            const modal = document.getElementById('workoutModalContainer');
+            modal.innerHTML = `
+                <div class="wpr-modal-overlay" onclick="closeWorkoutModal(event)">
+                    <div class="wpr-modal" onclick="event.stopPropagation()">
+                        <div class="wpr-modal-title">Edit Exercise</div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Exercise Name</label>
+                            <input type="text" class="wpr-form-input" id="editExName" value="${escapeHtml(exercise.name || '')}">
+                        </div>
+                        <div class="wpr-form-row">
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Sets</label>
+                                <input type="number" class="wpr-form-input" id="editExSets" value="${exercise.sets || 3}" min="1" max="20">
+                            </div>
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Reps</label>
+                                <input type="number" class="wpr-form-input" id="editExReps" value="${exercise.reps || 10}" min="1" max="100">
+                            </div>
+                        </div>
+                        <div class="wpr-form-row">
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Weight (kg)</label>
+                                <input type="number" class="wpr-form-input" id="editExWeight" value="${exercise.weight || ''}" min="0" step="0.5">
+                            </div>
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Rest (sec)</label>
+                                <input type="number" class="wpr-form-input" id="editExRest" value="${exercise.rest_seconds || exercise.restSeconds || 60}" min="0" step="15">
+                            </div>
+                        </div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Notes</label>
+                            <input type="text" class="wpr-form-input" id="editExNotes" value="${escapeHtml(exercise.notes || '')}">
+                        </div>
+                        <div class="wpr-modal-actions">
+                            <button class="wpr-btn" onclick="closeWorkoutModal()">Cancel</button>
+                            <button class="wpr-btn primary" onclick="saveExerciseEdit(${dayIndex}, ${exerciseIndex})">Save</button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        async function saveExerciseEdit(dayIndex, exerciseIndex) {
+            const name = document.getElementById('editExName').value.trim();
+            const sets = parseInt(document.getElementById('editExSets').value) || 3;
+            const reps = parseInt(document.getElementById('editExReps').value) || 10;
+            const weight = parseFloat(document.getElementById('editExWeight').value) || 0;
+            const rest = parseInt(document.getElementById('editExRest').value) || 60;
+            const notes = document.getElementById('editExNotes').value.trim();
+
+            if (!name) { alert('Exercise name is required.'); return; }
+
+            const updatedData = JSON.parse(JSON.stringify(clientActiveAssignment.workout_data));
+            const exercise = updatedData.days[dayIndex].exercises[exerciseIndex];
+            exercise.name = name;
+            exercise.sets = sets;
+            exercise.reps = reps;
+            exercise.weight = weight;
+            exercise.rest_seconds = rest;
+            exercise.restSeconds = rest;
+            exercise.notes = notes;
+
+            try {
+                const res = await fetch('/.netlify/functions/workout-assignments', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        assignmentId: clientActiveAssignment.id,
+                        workoutData: updatedData
+                    })
+                });
+
+                if (!res.ok) throw new Error('Failed to update');
+                closeWorkoutModal();
+                await loadWorkoutPrograms(clientId);
+            } catch (err) {
+                console.error('Error saving exercise edit:', err);
+                alert('Failed to save changes.');
+            }
+        }
+
+        async function removeExerciseFromProgram(dayIndex, exerciseIndex) {
+            if (!clientActiveAssignment?.workout_data?.days) return;
+            const exercise = clientActiveAssignment.workout_data.days[dayIndex]?.exercises?.[exerciseIndex];
+            if (!confirm(`Remove "${exercise?.name || 'this exercise'}" from the program?`)) return;
+
+            const updatedData = JSON.parse(JSON.stringify(clientActiveAssignment.workout_data));
+            updatedData.days[dayIndex].exercises.splice(exerciseIndex, 1);
+
+            try {
+                const res = await fetch('/.netlify/functions/workout-assignments', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        assignmentId: clientActiveAssignment.id,
+                        workoutData: updatedData
+                    })
+                });
+
+                if (!res.ok) throw new Error('Failed to update');
+                await loadWorkoutPrograms(clientId);
+            } catch (err) {
+                console.error('Error removing exercise:', err);
+                alert('Failed to remove exercise.');
+            }
+        }
+
+        function addExerciseToProgram(dayIndex) {
+            const modal = document.getElementById('workoutModalContainer');
+            modal.innerHTML = `
+                <div class="wpr-modal-overlay" onclick="closeWorkoutModal(event)">
+                    <div class="wpr-modal" onclick="event.stopPropagation()">
+                        <div class="wpr-modal-title">Add Exercise to Day ${dayIndex + 1}</div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Search Exercises</label>
+                            <input type="text" class="wpr-form-input" id="exerciseSearchInput" placeholder="Type to search..." oninput="searchExercisesForAdd(this.value, ${dayIndex})">
+                            <div id="exerciseSearchResults" class="wpr-exercise-search-results" style="display:none;"></div>
+                        </div>
+                        <div style="text-align:center;color:#94a3b8;font-size:12px;margin:10px 0;">— or add manually —</div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Exercise Name</label>
+                            <input type="text" class="wpr-form-input" id="addExName" placeholder="e.g. Barbell Bench Press">
+                        </div>
+                        <div class="wpr-form-row">
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Sets</label>
+                                <input type="number" class="wpr-form-input" id="addExSets" value="3" min="1" max="20">
+                            </div>
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Reps</label>
+                                <input type="number" class="wpr-form-input" id="addExReps" value="10" min="1" max="100">
+                            </div>
+                        </div>
+                        <div class="wpr-form-row">
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Weight (kg)</label>
+                                <input type="number" class="wpr-form-input" id="addExWeight" min="0" step="0.5">
+                            </div>
+                            <div class="wpr-form-group">
+                                <label class="wpr-form-label">Rest (sec)</label>
+                                <input type="number" class="wpr-form-input" id="addExRest" value="60" min="0" step="15">
+                            </div>
+                        </div>
+                        <div class="wpr-modal-actions">
+                            <button class="wpr-btn" onclick="closeWorkoutModal()">Cancel</button>
+                            <button class="wpr-btn primary" onclick="confirmAddExercise(${dayIndex})">Add</button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        async function searchExercisesForAdd(query, dayIndex) {
+            clearTimeout(editSearchTimeout);
+            const resultsEl = document.getElementById('exerciseSearchResults');
+
+            if (query.length < 2) {
+                resultsEl.style.display = 'none';
+                return;
+            }
+
+            editSearchTimeout = setTimeout(async () => {
+                try {
+                    const coachId = currentUser?.id || '';
+                    const res = await fetch(`/.netlify/functions/exercises?coachId=${coachId}&search=${encodeURIComponent(query)}&limit=10`);
+                    const data = await res.json();
+                    const exercises = data.exercises || [];
+
+                    if (exercises.length === 0) {
+                        resultsEl.innerHTML = '<div style="padding:10px;color:#94a3b8;font-size:13px;text-align:center;">No exercises found</div>';
+                    } else {
+                        resultsEl.innerHTML = exercises.map(ex => {
+                            const meta = [ex.muscle_group, ex.equipment].filter(Boolean).join(' · ');
+                            return `<div class="wpr-search-result" onclick="selectSearchExercise('${escapeHtml(ex.name)}', '${ex.id}')">
+                                <div class="wpr-search-result-name">${escapeHtml(ex.name)}</div>
+                                <div class="wpr-search-result-meta">${meta}</div>
+                            </div>`;
+                        }).join('');
+                    }
+                    resultsEl.style.display = 'block';
+                } catch (err) {
+                    console.error('Error searching exercises:', err);
+                }
+            }, 300);
+        }
+
+        function selectSearchExercise(name, id) {
+            document.getElementById('addExName').value = name;
+            document.getElementById('exerciseSearchResults').style.display = 'none';
+            document.getElementById('exerciseSearchInput').value = '';
+        }
+
+        async function confirmAddExercise(dayIndex) {
+            const name = document.getElementById('addExName').value.trim();
+            const sets = parseInt(document.getElementById('addExSets').value) || 3;
+            const reps = parseInt(document.getElementById('addExReps').value) || 10;
+            const weight = parseFloat(document.getElementById('addExWeight').value) || 0;
+            const rest = parseInt(document.getElementById('addExRest').value) || 60;
+
+            if (!name) { alert('Please enter an exercise name.'); return; }
+            if (!clientActiveAssignment?.workout_data?.days) { alert('No active assignment.'); return; }
+
+            const updatedData = JSON.parse(JSON.stringify(clientActiveAssignment.workout_data));
+            updatedData.days[dayIndex].exercises.push({
+                name: name,
+                sets: sets,
+                reps: reps,
+                weight: weight,
+                rest_seconds: rest,
+                restSeconds: rest
+            });
+
+            try {
+                const res = await fetch('/.netlify/functions/workout-assignments', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        assignmentId: clientActiveAssignment.id,
+                        workoutData: updatedData
+                    })
+                });
+
+                if (!res.ok) throw new Error('Failed to update');
+                closeWorkoutModal();
+                await loadWorkoutPrograms(clientId);
+            } catch (err) {
+                console.error('Error adding exercise:', err);
+                alert('Failed to add exercise.');
+            }
+        }
+
+        function editAssignmentSchedule() {
+            if (!clientActiveAssignment) return;
+            const schedule = clientActiveAssignment.workout_data?.schedule || {};
+            const currentDays = schedule.days || schedule.selectedDays || [];
+            const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+            const dayKeys = ['mon','tue','wed','thu','fri','sat','sun'];
+
+            const modal = document.getElementById('workoutModalContainer');
+            modal.innerHTML = `
+                <div class="wpr-modal-overlay" onclick="closeWorkoutModal(event)">
+                    <div class="wpr-modal" onclick="event.stopPropagation()">
+                        <div class="wpr-modal-title">Edit Schedule</div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Active Days</label>
+                            <div class="wpr-schedule-days" id="editScheduleDays">
+                                ${dayNames.map((name, i) => `<div class="wpr-schedule-day ${currentDays.includes(dayKeys[i]) ? 'active' : ''}" data-day="${dayKeys[i]}" onclick="toggleScheduleDay(this)">${name}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">Start Date</label>
+                            <input type="date" class="wpr-form-input" id="editStartDate" value="${clientActiveAssignment.start_date || ''}">
+                        </div>
+                        <div class="wpr-form-group">
+                            <label class="wpr-form-label">End Date (optional)</label>
+                            <input type="date" class="wpr-form-input" id="editEndDate" value="${clientActiveAssignment.end_date || ''}">
+                        </div>
+                        <div class="wpr-modal-actions">
+                            <button class="wpr-btn" onclick="closeWorkoutModal()">Cancel</button>
+                            <button class="wpr-btn primary" onclick="saveScheduleEdit()">Save</button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        async function saveScheduleEdit() {
+            const selectedDays = Array.from(document.querySelectorAll('#editScheduleDays .wpr-schedule-day.active')).map(el => el.dataset.day);
+            const startDate = document.getElementById('editStartDate').value;
+            const endDate = document.getElementById('editEndDate').value;
+
+            if (selectedDays.length === 0) { alert('Please select at least one day.'); return; }
+
+            const updatedData = JSON.parse(JSON.stringify(clientActiveAssignment.workout_data));
+            updatedData.schedule = { days: selectedDays };
+
+            const updatePayload = {
+                assignmentId: clientActiveAssignment.id,
+                workoutData: updatedData
+            };
+            if (startDate) updatePayload.startDate = startDate;
+            if (endDate) updatePayload.endDate = endDate;
+
+            try {
+                const res = await fetch('/.netlify/functions/workout-assignments', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatePayload)
+                });
+
+                if (!res.ok) throw new Error('Failed to update');
+                closeWorkoutModal();
+                await loadWorkoutPrograms(clientId);
+                await loadWorkoutCalendar(clientId);
+            } catch (err) {
+                console.error('Error saving schedule:', err);
+                alert('Failed to save schedule.');
+            }
+        }
+
+        function closeWorkoutModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('workoutModalContainer').innerHTML = '';
         }
 
         // ============ SUPPLEMENT PROTOCOL FUNCTIONS ============
