@@ -17856,6 +17856,7 @@ a.nav-left {
     position: relative;
     left: 0;
     right: 0;
+    pointer-events: none;
 }
 
 .refresh-spinner {
