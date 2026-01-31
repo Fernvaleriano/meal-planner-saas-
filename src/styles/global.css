@@ -12316,6 +12316,78 @@ a.nav-left {
     margin-top: 2px;
 }
 
+/* PR section in workout summary modal */
+.summary-prs-section {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+.prs-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fbbf24;
+    margin-bottom: 10px;
+}
+
+.prs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pr-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pr-exercise {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.pr-detail {
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+.pr-prev {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+/* PR section in share card preview */
+.share-card-prs {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    text-align: center;
+}
+
+.share-prs-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #fbbf24;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.share-pr-item {
+    font-size: 11px;
+    color: #e5e7eb;
+    line-height: 1.4;
+}
+
 .share-results-btn {
     width: 100%;
     padding: 16px;

@@ -275,6 +275,7 @@ function Workouts() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [completingWorkout, setCompletingWorkout] = useState(false);
+  const [workoutPRs, setWorkoutPRs] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState([]);
@@ -296,7 +297,8 @@ function Workouts() {
     calories: true,
     activities: true,
     lifted: false,
-    sets: false
+    sets: false,
+    prs: true
   });
   const [shareBgImage, setShareBgImage] = useState(null);
   const shareCardRef = useRef(null);
@@ -1438,13 +1440,15 @@ function Workouts() {
         ? Math.round((new Date() - new Date(workoutStartTime)) / 60000)
         : null;
 
-      await apiPut('/.netlify/functions/workout-logs', {
+      const result = await apiPut('/.netlify/functions/workout-logs', {
         workoutId: workoutLog.id,
         status: 'completed',
         completedAt: new Date().toISOString(),
         durationMinutes,
         exercises: exerciseData
       });
+      // Capture any new PRs from the response
+      setWorkoutPRs(result?.prs || []);
       // Show summary modal
       setCompletingWorkout(false);
       setShowSummary(true);
@@ -1737,6 +1741,22 @@ function Workouts() {
             ctx.fillStyle = '#9ca3af';
             ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
             ctx.fillText(stat.label, x, statY + 28);
+          });
+        }
+
+        // PRs section
+        if (shareToggles.prs && workoutPRs.length > 0) {
+          const prStartY = activeToggles.length > 0 ? height / 2 + 50 : height / 2 - 20;
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`🏆 ${workoutPRs.length} New PR${workoutPRs.length !== 1 ? 's' : ''}!`, width / 2, prStartY);
+          ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillStyle = '#e5e7eb';
+          workoutPRs.forEach((pr, i) => {
+            if (i < 3) { // Max 3 PRs to fit in the card
+              ctx.fillText(`${pr.exerciseName}: ${pr.weight} ${pr.unit} x${pr.reps}`, width / 2, prStartY + 24 + i * 20);
+            }
           });
         }
 
@@ -2219,6 +2239,25 @@ function Workouts() {
                 <span className="stat-label">Sets</span>
               </div>
             </div>
+            {workoutPRs.length > 0 && (
+              <div className="summary-prs-section">
+                <div className="prs-header">
+                  <Award size={20} />
+                  <span>{workoutPRs.length} New PR{workoutPRs.length !== 1 ? 's' : ''}!</span>
+                </div>
+                <div className="prs-list">
+                  {workoutPRs.map((pr, idx) => (
+                    <div key={idx} className="pr-item">
+                      <span className="pr-exercise">{pr.exerciseName}</span>
+                      <span className="pr-detail">
+                        {pr.weight} {pr.unit} x{pr.reps}
+                        {pr.previousBest && <span className="pr-prev"> (prev: {pr.previousBest} {pr.unit})</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <button className="share-results-btn" onClick={() => setShowShareResults(true)}>
               <Share2 size={18} />
               Share results
@@ -2276,6 +2315,19 @@ function Workouts() {
                       </div>
                     )}
                   </div>
+                  {shareToggles.prs && workoutPRs.length > 0 && (
+                    <div className="share-card-prs">
+                      <div className="share-prs-badge">
+                        <Award size={14} />
+                        <span>{workoutPRs.length} New PR{workoutPRs.length !== 1 ? 's' : ''}!</span>
+                      </div>
+                      {workoutPRs.map((pr, idx) => (
+                        <div key={idx} className="share-pr-item">
+                          {pr.exerciseName}: {pr.weight} {pr.unit} x{pr.reps}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="share-card-footer">Powered by Zique Fitness</div>
                 </div>
               </div>
@@ -2301,7 +2353,8 @@ function Workouts() {
                 { key: 'calories', label: 'Calories', value: estimatedCalories },
                 { key: 'activities', label: 'Activities', value: exercises.length },
                 { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} kg` },
-                { key: 'sets', label: 'Sets', value: totalSets }
+                { key: 'sets', label: 'Sets', value: totalSets },
+                ...(workoutPRs.length > 0 ? [{ key: 'prs', label: 'New PRs', value: `${workoutPRs.length} PR${workoutPRs.length !== 1 ? 's' : ''}` }] : [])
               ].map(({ key, label, value }) => (
                 <div className="share-toggle-row" key={key}>
                   <div className="toggle-info">
