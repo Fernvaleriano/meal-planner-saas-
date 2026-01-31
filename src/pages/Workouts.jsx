@@ -441,8 +441,8 @@ function Workouts() {
     }
   }, [clientData?.id, selectedDate]);
 
-  // Setup pull-to-refresh
-  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshWorkoutData);
+  // Setup pull-to-refresh (DOM-driven — no React re-renders during drag)
+  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshWorkoutData);
 
   // Fetch workout for selected date
   useEffect(() => {
@@ -1763,11 +1763,10 @@ function Workouts() {
   }, [toggleExerciseComplete]);
 
   return (
-    <div className="workouts-page-v2" {...containerProps}>
-      {/* Pull-to-refresh indicator */}
+    <div className="workouts-page-v2" ref={bindToContainer}>
+      {/* Pull-to-refresh indicator (DOM-driven, never re-renders parent) */}
       <PullToRefreshIndicator
-        pullDistance={pullDistance}
-        isRefreshing={isRefreshing}
+        indicatorRef={indicatorRef}
         threshold={threshold}
       />
 
