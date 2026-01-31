@@ -321,10 +321,13 @@ function Workouts() {
   const todayWorkoutRef = useRef(null);
   const selectedExerciseRef = useRef(null);
   const isRefreshingRef = useRef(false);
+  const completedExercisesRef = useRef(new Set());
+  const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
 
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
   selectedExerciseRef.current = selectedExercise;
+  completedExercisesRef.current = completedExercises;
 
   // On app resume: close all modals/overlays and clean up body scroll lock
   // This prevents the "frozen screen" where an overlay blocks all touch events
@@ -379,6 +382,78 @@ function Workouts() {
     } catch (e) {
       // Ignore scroll errors
     }
+  }, []);
+
+  // Flush pending completion saves when page visibility changes (app close/switch)
+  // Uses fetch with keepalive flag which survives page unload
+  useEffect(() => {
+    const flushPendingSave = () => {
+      if (document.visibilityState !== 'hidden') return;
+      const pending = pendingSaveRef.current;
+      if (!pending) return;
+
+      const { workout, updatedWorkoutData } = pending;
+      if (!workout?.id) return;
+
+      try {
+        // Use fetch with keepalive to ensure request completes even if page is unloading
+        const token = document.cookie.match(/sb-.*-auth-token=([^;]+)/)?.[1];
+        const headers = { 'Content-Type': 'application/json' };
+
+        // Try to get auth token from supabase session in localStorage
+        let authToken = null;
+        try {
+          const keys = Object.keys(localStorage);
+          const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+          if (sbKey) {
+            const session = JSON.parse(localStorage.getItem(sbKey));
+            authToken = session?.access_token || session?.currentSession?.access_token;
+          }
+        } catch (e) { /* ignore */ }
+
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        if (workout.is_adhoc) {
+          const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+          const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+          fetch('/.netlify/functions/adhoc-workouts', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              ...(isRealId ? { workoutId: workout.id } : {}),
+              clientId: workout.client_id,
+              workoutDate: dateStr,
+              workoutData: updatedWorkoutData,
+              name: workout.name
+            }),
+            keepalive: true
+          }).catch(() => {});
+        } else {
+          fetch('/.netlify/functions/client-workout-log', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              assignmentId: workout.id,
+              dayIndex: workout.day_index,
+              workout_data: updatedWorkoutData
+            }),
+            keepalive: true
+          }).catch(() => {});
+        }
+        pendingSaveRef.current = null;
+      } catch (e) {
+        // Last resort: localStorage already has the data from toggleExerciseComplete
+      }
+    };
+
+    document.addEventListener('visibilitychange', flushPendingSave);
+    window.addEventListener('pagehide', flushPendingSave);
+    return () => {
+      document.removeEventListener('visibilitychange', flushPendingSave);
+      window.removeEventListener('pagehide', flushPendingSave);
+    };
   }, []);
 
   // Pull-to-refresh: Refresh workout data
@@ -624,7 +699,7 @@ function Workouts() {
     }
   }, [weekDates]);
 
-  // Toggle exercise completion - persists to workout_data so it survives navigation
+  // Toggle exercise completion - persists to workout_data so it survives navigation and app close
   const toggleExerciseComplete = useCallback(async (exerciseId) => {
     if (!exerciseId) return;
 
@@ -649,61 +724,72 @@ function Workouts() {
       return newCompleted;
     });
 
-    // Persist the completed flag into workout_data
-    const workout = todayWorkoutRef.current;
-    if (!workout?.workout_data) return;
+    // Persist the completed flag into workout_data using functional state update
+    // This avoids stale ref issues when multiple toggles happen in quick succession
+    setTodayWorkout(prev => {
+      if (!prev?.workout_data) return prev;
 
-    let currentExercises = [];
-    let isUsingDays = false;
-    const dayIndex = workout.day_index || 0;
+      let currentExercises = [];
+      let isUsingDays = false;
+      const dayIndex = prev.day_index || 0;
 
-    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
-      currentExercises = [...workout.workout_data.exercises];
-    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
-      isUsingDays = true;
-      const dayData = workout.workout_data.days[dayIndex];
-      if (dayData?.exercises && Array.isArray(dayData.exercises)) {
-        currentExercises = [...dayData.exercises];
+      if (Array.isArray(prev.workout_data.exercises) && prev.workout_data.exercises.length > 0) {
+        currentExercises = [...prev.workout_data.exercises];
+      } else if (prev.workout_data.days && Array.isArray(prev.workout_data.days)) {
+        isUsingDays = true;
+        const dayData = prev.workout_data.days[dayIndex];
+        if (dayData?.exercises && Array.isArray(dayData.exercises)) {
+          currentExercises = [...dayData.exercises];
+        }
       }
-    }
 
-    const updatedExercises = currentExercises.map(ex => {
-      if (ex?.id === exerciseId) {
-        return { ...ex, completed: isNowCompleted };
+      const updatedExercises = currentExercises.map(ex => {
+        if (ex?.id === exerciseId) {
+          return { ...ex, completed: isNowCompleted };
+        }
+        return ex;
+      });
+
+      let updatedWorkoutData;
+      if (isUsingDays) {
+        const updatedDays = [...prev.workout_data.days];
+        updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
+        updatedWorkoutData = { ...prev.workout_data, days: updatedDays };
+      } else {
+        updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
       }
-      return ex;
+
+      // Store the pending save data so visibilitychange can flush it
+      pendingSaveRef.current = {
+        workout: prev,
+        updatedWorkoutData
+      };
+
+      // Persist to backend with keepalive so it survives page close
+      if (prev.is_adhoc) {
+        const isRealId = prev.id && !String(prev.id).startsWith('adhoc-') && !String(prev.id).startsWith('custom-');
+        const dateStr = prev.workout_date || new Date().toISOString().split('T')[0];
+        apiPut('/.netlify/functions/adhoc-workouts', {
+          ...(isRealId ? { workoutId: prev.id } : {}),
+          clientId: prev.client_id,
+          workoutDate: dateStr,
+          workoutData: updatedWorkoutData,
+          name: prev.name
+        }).then(() => {
+          pendingSaveRef.current = null;
+        }).catch(err => console.error('Error persisting exercise completion:', err));
+      } else {
+        apiPut('/.netlify/functions/client-workout-log', {
+          assignmentId: prev.id,
+          dayIndex: prev.day_index,
+          workout_data: updatedWorkoutData
+        }).then(() => {
+          pendingSaveRef.current = null;
+        }).catch(err => console.error('Error persisting exercise completion:', err));
+      }
+
+      return { ...prev, workout_data: updatedWorkoutData };
     });
-
-    let updatedWorkoutData;
-    if (isUsingDays) {
-      const updatedDays = [...workout.workout_data.days];
-      updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
-      updatedWorkoutData = { ...workout.workout_data, days: updatedDays };
-    } else {
-      updatedWorkoutData = { ...workout.workout_data, exercises: updatedExercises };
-    }
-
-    // Update local state
-    setTodayWorkout(prev => prev ? { ...prev, workout_data: updatedWorkoutData } : prev);
-
-    // Persist to backend
-    if (workout.is_adhoc) {
-      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
-      apiPut('/.netlify/functions/adhoc-workouts', {
-        ...(isRealId ? { workoutId: workout.id } : {}),
-        clientId: workout.client_id,
-        workoutDate: dateStr,
-        workoutData: updatedWorkoutData,
-        name: workout.name
-      }).catch(err => console.error('Error persisting exercise completion:', err));
-    } else {
-      apiPut('/.netlify/functions/client-workout-log', {
-        assignmentId: workout.id,
-        dayIndex: workout.day_index,
-        workout_data: updatedWorkoutData
-      }).catch(err => console.error('Error persisting exercise completion:', err));
-    }
   }, []);
 
   // Handle exercise swap - use ref for stable callback
@@ -1017,10 +1103,15 @@ function Workouts() {
 
     if (currentExercises.length === 0) return;
 
-    // Update the exercise in the workout data
+    // Update the exercise in the workout data, preserving completed flags
+    const completed = completedExercisesRef.current;
     const updatedExercises = currentExercises.map(ex => {
       if (ex?.id === updatedExercise.id) {
-        return updatedExercise;
+        return { ...updatedExercise, completed: completed.has(updatedExercise.id) || false };
+      }
+      // Preserve completed flag from completedExercises ref (source of truth)
+      if (ex?.id && completed.has(ex.id)) {
+        return { ...ex, completed: true };
       }
       return ex;
     });
@@ -1984,6 +2075,13 @@ function Workouts() {
                       setWorkoutStarted(false);
                       setCompletedExercises(new Set());
                       setWorkoutStartTime(null);
+                      // Also clear localStorage backup
+                      try {
+                        const workout = todayWorkoutRef.current;
+                        if (workout?.id) {
+                          localStorage.removeItem(`completedExercises_${workout.id}`);
+                        }
+                      } catch (e) { /* ignore */ }
                     }}
                   >
                     <LogOut size={18} />
