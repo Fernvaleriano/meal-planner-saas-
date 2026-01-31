@@ -241,6 +241,20 @@ function ReadinessCheckModal({ onComplete, onSkip }) {
   );
 }
 
+// Extract completed exercise IDs from workout_data's exercise objects
+function getCompletedFromWorkoutData(workoutData, dayIndex = 0) {
+  let exercises = [];
+  if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
+    exercises = workoutData.exercises;
+  } else if (workoutData?.days && Array.isArray(workoutData.days)) {
+    const safeIndex = Math.abs(dayIndex) % workoutData.days.length;
+    exercises = workoutData.days[safeIndex]?.exercises || [];
+  }
+  return new Set(
+    exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
+  );
+}
+
 function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
@@ -389,13 +403,21 @@ function Workouts() {
                 sleep: log.sleep_quality || 2
               });
             }
-            const completed = new Set(
-              (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
-            );
-            setCompletedExercises(completed);
+            // Restore completed exercises: prefer workout_data flags, fallback to exercise_logs
+            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+            if (fromData.size > 0) {
+              setCompletedExercises(fromData);
+            } else {
+              const completed = new Set(
+                (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+              );
+              setCompletedExercises(completed);
+            }
           } else {
             setWorkoutLog(null);
-            setCompletedExercises(new Set());
+            // Still check workout_data for persisted completion flags
+            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+            setCompletedExercises(fromData);
           }
         } catch (logErr) {
           console.error('Error fetching workout log:', logErr);
@@ -419,7 +441,9 @@ function Workouts() {
               is_adhoc: true
             });
             setWorkoutLog(null);
-            setCompletedExercises(new Set());
+            // Restore completed exercises from ad-hoc workout_data
+            const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data);
+            setCompletedExercises(fromData);
           } else {
             setTodayWorkout(null);
             setWorkoutLog(null);
@@ -489,13 +513,21 @@ function Workouts() {
                   sleep: log.sleep_quality || 2
                 });
               }
-              const completed = new Set(
-                (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
-              );
-              setCompletedExercises(completed);
+              // Restore completed exercises: prefer workout_data flags, fallback to exercise_logs
+              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+              if (fromData.size > 0) {
+                setCompletedExercises(fromData);
+              } else {
+                const completed = new Set(
+                  (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+                );
+                setCompletedExercises(completed);
+              }
             } else {
               setWorkoutLog(null);
-              setCompletedExercises(new Set());
+              // Still check workout_data for persisted completion flags
+              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+              setCompletedExercises(fromData);
             }
           } catch (logErr) {
             console.error('Error fetching workout log:', logErr);
@@ -519,7 +551,9 @@ function Workouts() {
                 is_adhoc: true
               });
               setWorkoutLog(null);
-              setCompletedExercises(new Set());
+              // Restore completed exercises from ad-hoc workout_data
+              const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data);
+              setCompletedExercises(fromData);
             } else {
               setTodayWorkout(null);
               setWorkoutLog(null);
@@ -574,19 +608,78 @@ function Workouts() {
     }
   }, [weekDates]);
 
-  // Toggle exercise completion
+  // Toggle exercise completion - persists to workout_data so it survives navigation
   const toggleExerciseComplete = useCallback(async (exerciseId) => {
     if (!exerciseId) return;
 
+    let isNowCompleted = false;
     setCompletedExercises(prev => {
       const newCompleted = new Set(prev);
       if (newCompleted.has(exerciseId)) {
         newCompleted.delete(exerciseId);
+        isNowCompleted = false;
       } else {
         newCompleted.add(exerciseId);
+        isNowCompleted = true;
       }
       return newCompleted;
     });
+
+    // Persist the completed flag into workout_data
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data) return;
+
+    let currentExercises = [];
+    let isUsingDays = false;
+    const dayIndex = workout.day_index || 0;
+
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+      currentExercises = [...workout.workout_data.exercises];
+    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+      isUsingDays = true;
+      const dayData = workout.workout_data.days[dayIndex];
+      if (dayData?.exercises && Array.isArray(dayData.exercises)) {
+        currentExercises = [...dayData.exercises];
+      }
+    }
+
+    const updatedExercises = currentExercises.map(ex => {
+      if (ex?.id === exerciseId) {
+        return { ...ex, completed: isNowCompleted };
+      }
+      return ex;
+    });
+
+    let updatedWorkoutData;
+    if (isUsingDays) {
+      const updatedDays = [...workout.workout_data.days];
+      updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
+      updatedWorkoutData = { ...workout.workout_data, days: updatedDays };
+    } else {
+      updatedWorkoutData = { ...workout.workout_data, exercises: updatedExercises };
+    }
+
+    // Update local state
+    setTodayWorkout(prev => prev ? { ...prev, workout_data: updatedWorkoutData } : prev);
+
+    // Persist to backend
+    if (workout.is_adhoc) {
+      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      apiPut('/.netlify/functions/adhoc-workouts', {
+        ...(isRealId ? { workoutId: workout.id } : {}),
+        clientId: workout.client_id,
+        workoutDate: dateStr,
+        workoutData: updatedWorkoutData,
+        name: workout.name
+      }).catch(err => console.error('Error persisting exercise completion:', err));
+    } else {
+      apiPut('/.netlify/functions/client-workout-log', {
+        assignmentId: workout.id,
+        dayIndex: workout.day_index,
+        workout_data: updatedWorkoutData
+      }).catch(err => console.error('Error persisting exercise completion:', err));
+    }
   }, []);
 
   // Handle exercise swap - use ref for stable callback
