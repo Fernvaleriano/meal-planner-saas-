@@ -176,6 +176,13 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const headerTouchStartX = useRef(0);
   const headerTouchStartY = useRef(0);
 
+  // Swipe-right state for COMPLETE toggle
+  const [completeSwipeOffset, setCompleteSwipeOffset] = useState(0);
+  const [isCompleteSwiping, setIsCompleteSwiping] = useState(false);
+  const completeTouchStartX = useRef(0);
+  const completeTouchStartY = useRef(0);
+  const completeMaxSwipe = 90;
+
   // Swipe state for SETS ROW (add set)
   const [setsSwipeOffset, setSetsSwipeOffset] = useState(0);
   const [isSetsSwiping, setIsSetsSwiping] = useState(false);
@@ -395,38 +402,69 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   };
 
-  // HEADER swipe handlers (for swap/delete/move)
+  // HEADER swipe handlers (for swap/delete/move AND swipe-right to complete)
   const handleHeaderTouchStart = (e) => {
     headerTouchStartX.current = e.touches[0].clientX;
     headerTouchStartY.current = e.touches[0].clientY;
+    completeTouchStartX.current = e.touches[0].clientX;
+    completeTouchStartY.current = e.touches[0].clientY;
     setIsHeaderSwiping(false);
+    setIsCompleteSwiping(false);
   };
 
   const handleHeaderTouchMove = (e) => {
     const touchX = e.touches[0].clientX;
     const touchY = e.touches[0].clientY;
-    const diffX = headerTouchStartX.current - touchX;
+    const diffX = headerTouchStartX.current - touchX; // positive = left swipe
     const diffY = Math.abs(headerTouchStartY.current - touchY);
 
-    if (diffY > Math.abs(diffX) && !isHeaderSwiping) return;
+    if (diffY > Math.abs(diffX) && !isHeaderSwiping && !isCompleteSwiping) return;
 
     if (diffX > 10) {
+      // Swipe LEFT → show swap/delete actions
+      if (completeSwipeOffset > 0) {
+        setIsCompleteSwiping(true);
+        setCompleteSwipeOffset(0);
+        return;
+      }
       setIsHeaderSwiping(true);
       e.preventDefault();
       setHeaderSwipeOffset(Math.min(Math.max(0, diffX), headerMaxSwipe));
-    } else if (diffX < -10 && headerSwipeOffset > 0) {
-      setIsHeaderSwiping(true);
-      setHeaderSwipeOffset(Math.max(0, headerSwipeOffset + diffX));
+    } else if (diffX < -10) {
+      // Swipe RIGHT → show complete action (or close header swipe)
+      if (headerSwipeOffset > 0) {
+        setIsHeaderSwiping(true);
+        setHeaderSwipeOffset(Math.max(0, headerSwipeOffset + diffX));
+        return;
+      }
+      if (workoutStarted) {
+        setIsCompleteSwiping(true);
+        e.preventDefault();
+        setCompleteSwipeOffset(Math.min(Math.abs(diffX), completeMaxSwipe));
+      }
     }
   };
 
   const handleHeaderTouchEnd = () => {
-    setHeaderSwipeOffset(headerSwipeOffset > swipeThreshold ? headerMaxSwipe : 0);
-    setIsHeaderSwiping(false);
+    if (isHeaderSwiping) {
+      setHeaderSwipeOffset(headerSwipeOffset > swipeThreshold ? headerMaxSwipe : 0);
+      setIsHeaderSwiping(false);
+    }
+    if (isCompleteSwiping) {
+      if (completeSwipeOffset > swipeThreshold) {
+        // Trigger complete toggle
+        if (onToggleComplete) onToggleComplete();
+        setCompleteSwipeOffset(0);
+      } else {
+        setCompleteSwipeOffset(0);
+      }
+      setIsCompleteSwiping(false);
+    }
   };
 
   const closeHeaderSwipe = () => {
     setHeaderSwipeOffset(0);
+    setCompleteSwipeOffset(0);
   };
 
   // SETS ROW swipe handlers (for add set)
@@ -612,9 +650,21 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       <div
         className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
       >
-        {/* HEADER ZONE - Swipe for swap/delete/move */}
+        {/* HEADER ZONE - Swipe for swap/delete/move + swipe-right to complete */}
         <div className="header-swipe-zone">
-          {/* Swipe Action Buttons (behind the header) */}
+          {/* Complete action (behind header, LEFT side - revealed on swipe right) */}
+          {workoutStarted && (
+            <div className="swipe-actions complete-actions" style={{ left: 0, right: 'auto' }}>
+              <button
+                className={`swipe-action-btn complete-action ${isCompleted ? 'undo' : ''}`}
+                onClick={(e) => { e.stopPropagation(); if (onToggleComplete) onToggleComplete(); setCompleteSwipeOffset(0); }}
+              >
+                <Check size={20} />
+                <span>{isCompleted ? 'Undo' : 'Done'}</span>
+              </button>
+            </div>
+          )}
+          {/* Swipe Action Buttons (behind the header, RIGHT side) */}
           <div className="swipe-actions header-actions">
             {(onMoveUp || onMoveDown) && (
               <div className="swipe-reorder-btns">
@@ -652,10 +702,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           <div
             className="exercise-header-content"
             style={{
-              transform: `translateX(-${headerSwipeOffset}px)`,
-              transition: isHeaderSwiping ? 'none' : 'transform 0.2s ease-out'
+              transform: `translateX(${completeSwipeOffset > 0 ? completeSwipeOffset : -headerSwipeOffset}px)`,
+              transition: (isHeaderSwiping || isCompleteSwiping) ? 'none' : 'transform 0.2s ease-out'
             }}
-            onClick={headerSwipeOffset > 0 ? closeHeaderSwipe : onClick}
+            onClick={(headerSwipeOffset > 0 || completeSwipeOffset > 0) ? closeHeaderSwipe : onClick}
             onTouchStart={handleHeaderTouchStart}
             onTouchMove={handleHeaderTouchMove}
             onTouchEnd={handleHeaderTouchEnd}

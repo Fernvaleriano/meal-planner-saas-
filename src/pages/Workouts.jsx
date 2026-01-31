@@ -274,6 +274,7 @@ function Workouts() {
   // New states for menu, summary, and history
   const [showMenu, setShowMenu] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [completingWorkout, setCompletingWorkout] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState([]);
@@ -1393,6 +1394,7 @@ function Workouts() {
   const handleCompleteWorkout = useCallback(async () => {
     if (!workoutLog?.id) return;
     setShowFinishConfirm(false);
+    setCompletingWorkout(true);
 
     try {
       // Gather current exercises with their set data from todayWorkout
@@ -1444,9 +1446,11 @@ function Workouts() {
         exercises: exerciseData
       });
       // Show summary modal
+      setCompletingWorkout(false);
       setShowSummary(true);
     } catch (err) {
       console.error('Error completing workout:', err);
+      setCompletingWorkout(false);
     }
   }, [workoutLog?.id, workoutStartTime]);
 
@@ -2146,6 +2150,16 @@ function Workouts() {
           onComplete={handleReadinessComplete}
           onSkip={() => handleReadinessComplete(null)}
         />
+      )}
+
+      {/* Completing Workout Loading Overlay */}
+      {completingWorkout && (
+        <div className="workout-summary-overlay completing-overlay">
+          <div className="completing-spinner-container">
+            <div className="completing-spinner" />
+            <p>Saving your workout...</p>
+          </div>
+        </div>
       )}
 
       {/* Finish Confirmation Dialog */}
