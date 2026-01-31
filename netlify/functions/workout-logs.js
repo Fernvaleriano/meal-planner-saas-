@@ -133,7 +133,10 @@ exports.handler = async (event) => {
         workoutDate,
         workoutName,
         exercises, // Array of exercise data
-        timezone
+        timezone,
+        energyLevel,
+        sorenessLevel,
+        sleepQuality
       } = body;
 
       if (!clientId) {
@@ -164,17 +167,22 @@ exports.handler = async (event) => {
       }
 
       // Create workout log
+      const insertData = {
+        client_id: clientId,
+        coach_id: coachId,
+        assignment_id: assignmentId,
+        workout_date: resolvedDate,
+        workout_name: workoutName,
+        started_at: new Date().toISOString(),
+        status: 'in_progress'
+      };
+      if (energyLevel) insertData.energy_level = energyLevel;
+      if (sorenessLevel) insertData.soreness_level = sorenessLevel;
+      if (sleepQuality) insertData.sleep_quality = sleepQuality;
+
       const { data: workout, error: workoutError } = await supabase
         .from('workout_logs')
-        .insert([{
-          client_id: clientId,
-          coach_id: coachId,
-          assignment_id: assignmentId,
-          workout_date: resolvedDate,
-          workout_name: workoutName,
-          started_at: new Date().toISOString(),
-          status: 'in_progress'
-        }])
+        .insert([insertData])
         .select()
         .single();
 
@@ -229,6 +237,8 @@ exports.handler = async (event) => {
       if (updateData.durationMinutes !== undefined) updateFields.duration_minutes = updateData.durationMinutes;
       if (updateData.notes !== undefined) updateFields.notes = updateData.notes;
       if (updateData.energyLevel !== undefined) updateFields.energy_level = updateData.energyLevel;
+      if (updateData.sorenessLevel !== undefined) updateFields.soreness_level = updateData.sorenessLevel;
+      if (updateData.sleepQuality !== undefined) updateFields.sleep_quality = updateData.sleepQuality;
       if (updateData.workoutRating !== undefined) updateFields.workout_rating = updateData.workoutRating;
       if (updateData.status !== undefined) updateFields.status = updateData.status;
 

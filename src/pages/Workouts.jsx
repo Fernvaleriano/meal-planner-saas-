@@ -148,6 +148,86 @@ const getMonthName = (date) => {
   }
 };
 
+// Readiness Check Modal — 2-tap pre-workout check-in
+function ReadinessCheckModal({ onComplete, onSkip }) {
+  const [step, setStep] = useState(0); // 0=energy, 1=soreness, 2=sleep
+  const [energy, setEnergy] = useState(null);
+  const [soreness, setSoreness] = useState(null);
+  const [sleep, setSleep] = useState(null);
+
+  const handleSelect = (value) => {
+    if (step === 0) {
+      setEnergy(value);
+      setStep(1);
+    } else if (step === 1) {
+      setSoreness(value);
+      setStep(2);
+    } else {
+      setSleep(value);
+      // All done — submit
+      onComplete({ energy, soreness, sleep: value });
+    }
+  };
+
+  const steps = [
+    {
+      question: "How's your energy today?",
+      options: [
+        { value: 1, emoji: '\u{1F634}', label: 'Low' },
+        { value: 2, emoji: '\u{1F610}', label: 'Normal' },
+        { value: 3, emoji: '\u{1F4AA}', label: 'Great' }
+      ]
+    },
+    {
+      question: 'How sore are you?',
+      options: [
+        { value: 3, emoji: '\u{1F7E2}', label: 'Fresh' },
+        { value: 2, emoji: '\u{1F7E1}', label: 'A little' },
+        { value: 1, emoji: '\u{1F534}', label: 'Very sore' }
+      ]
+    },
+    {
+      question: 'How did you sleep?',
+      options: [
+        { value: 1, emoji: '\u{1F62B}', label: 'Poorly' },
+        { value: 2, emoji: '\u{1F634}', label: 'Okay' },
+        { value: 3, emoji: '\u{1F31F}', label: 'Great' }
+      ]
+    }
+  ];
+
+  const current = steps[step];
+
+  return (
+    <div className="readiness-overlay" onClick={onSkip}>
+      <div className="readiness-modal" onClick={e => e.stopPropagation()}>
+        <div className="readiness-progress">
+          {steps.map((_, i) => (
+            <div key={i} className={`readiness-dot ${i < step ? 'done' : ''} ${i === step ? 'active' : ''}`} />
+          ))}
+        </div>
+        <h3 className="readiness-question">{current.question}</h3>
+        <div className="readiness-options">
+          {current.options.map(opt => (
+            <button
+              key={opt.value}
+              className="readiness-option-btn"
+              onClick={() => handleSelect(opt.value)}
+              type="button"
+            >
+              <span className="readiness-emoji">{opt.emoji}</span>
+              <span className="readiness-label">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+        <button className="readiness-skip" onClick={onSkip} type="button">
+          Skip
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
@@ -161,6 +241,8 @@ function Workouts() {
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [completedExercises, setCompletedExercises] = useState(new Set());
+  const [showReadinessCheck, setShowReadinessCheck] = useState(false);
+  const [readinessData, setReadinessData] = useState(null); // { energy: 1-3, soreness: 1-3, sleep: 1-3 }
 
   // New states for menu, summary, and history
   const [showMenu, setShowMenu] = useState(false);
@@ -1074,20 +1156,33 @@ function Workouts() {
     }
   }, []);
 
-  // Start workout
-  const handleStartWorkout = useCallback(async () => {
+  // Start workout — show readiness check first
+  const handleStartWorkout = useCallback(() => {
+    setShowReadinessCheck(true);
+  }, []);
+
+  // Called after readiness check is completed (or skipped)
+  const handleReadinessComplete = useCallback(async (readiness) => {
+    setShowReadinessCheck(false);
+    setReadinessData(readiness);
     setWorkoutStarted(true);
     setWorkoutStartTime(new Date());
 
     if (!workoutLog && clientData?.id && todayWorkout?.id) {
       try {
-        const res = await apiPost('/.netlify/functions/workout-logs', {
+        const postData = {
           clientId: clientData.id,
           assignmentId: todayWorkout.id,
           workoutDate: formatDate(selectedDate),
           workoutName: todayWorkout?.name || 'Workout',
           status: 'in_progress'
-        });
+        };
+        if (readiness) {
+          postData.energyLevel = readiness.energy;
+          postData.sorenessLevel = readiness.soreness;
+          postData.sleepQuality = readiness.sleep;
+        }
+        const res = await apiPost('/.netlify/functions/workout-logs', postData);
         if (res?.workout) {
           setWorkoutLog(res.workout);
         } else if (res?.log) {
@@ -1671,8 +1766,17 @@ function Workouts() {
             clientId={clientData?.id}
             workoutLogId={workoutLog?.id || null}
             selectedDate={selectedDate}
+            readinessData={readinessData}
           />
         </ErrorBoundary>
+      )}
+
+      {/* Readiness Check Modal */}
+      {showReadinessCheck && (
+        <ReadinessCheckModal
+          onComplete={handleReadinessComplete}
+          onSkip={() => handleReadinessComplete(null)}
+        />
       )}
 
       {/* Workout Summary Modal */}

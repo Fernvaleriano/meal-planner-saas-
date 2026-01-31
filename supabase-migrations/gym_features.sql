@@ -196,6 +196,8 @@ CREATE TABLE IF NOT EXISTS workout_logs (
     -- Notes
     notes TEXT,
     energy_level INTEGER CHECK (energy_level >= 1 AND energy_level <= 5),
+    soreness_level INTEGER CHECK (soreness_level >= 1 AND soreness_level <= 3),
+    sleep_quality INTEGER CHECK (sleep_quality >= 1 AND sleep_quality <= 3),
     workout_rating INTEGER CHECK (workout_rating >= 1 AND workout_rating <= 5),
 
     -- Status

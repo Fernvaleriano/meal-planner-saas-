@@ -16720,6 +16720,120 @@ a.nav-left {
     border-color: rgba(59, 130, 246, 0.25);
 }
 
+.progress-tip-banner.progress-tip-deload {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(168, 85, 247, 0.05));
+    border-color: rgba(168, 85, 247, 0.25);
+}
+
+.progress-tip-banner.progress-tip-add_set {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(20, 184, 166, 0.05));
+    border-color: rgba(20, 184, 166, 0.25);
+}
+
+/* Readiness Check Modal */
+.readiness-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.readiness-modal {
+    background: #1a1a2e;
+    border-radius: 20px;
+    padding: 32px 24px 24px;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.readiness-progress {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.readiness-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    transition: background 0.2s;
+}
+
+.readiness-dot.active {
+    background: #60a5fa;
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+}
+
+.readiness-dot.done {
+    background: #34d399;
+}
+
+.readiness-question {
+    font-size: 20px;
+    font-weight: 600;
+    color: #f3f4f6;
+    margin: 0 0 24px;
+    line-height: 1.3;
+}
+
+.readiness-options {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.readiness-option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+    max-width: 100px;
+}
+
+.readiness-option-btn:active {
+    transform: scale(0.95);
+    background: rgba(96, 165, 250, 0.15);
+    border-color: rgba(96, 165, 250, 0.4);
+}
+
+.readiness-emoji {
+    font-size: 32px;
+    line-height: 1;
+}
+
+.readiness-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #d1d5db;
+}
+
+.readiness-skip {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
 .progress-tip-header {
     display: flex;
     align-items: center;
