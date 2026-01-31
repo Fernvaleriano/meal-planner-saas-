@@ -230,6 +230,15 @@ exports.handler = async (event) => {
         };
       }
 
+      // Get the workout log to find client_id and coach_id for PR notifications
+      const { data: workoutLogData } = await supabase
+        .from('workout_logs')
+        .select('client_id, coach_id')
+        .eq('id', workoutId)
+        .single();
+
+      const prNotifications = []; // Collect PRs to notify coach
+
       // Build workout update fields
       const updateFields = {};
       if (updateData.workoutName !== undefined) updateFields.workout_name = updateData.workoutName;
@@ -260,6 +269,51 @@ exports.handler = async (event) => {
           totalSets += exTotalSets;
           totalReps += exTotalReps;
 
+          // PR Detection: Check if this is a new personal record for this exercise
+          let isPr = ex.isPr || false;
+          if (exMaxWeight > 0 && workoutLogData?.client_id && ex.exerciseName) {
+            try {
+              // Get all workout log IDs for this client (excluding current workout)
+              const { data: clientWorkouts } = await supabase
+                .from('workout_logs')
+                .select('id')
+                .eq('client_id', workoutLogData.client_id)
+                .neq('id', workoutId);
+
+              const previousWorkoutIds = (clientWorkouts || []).map(w => w.id);
+
+              let previousBestWeight = 0;
+              if (previousWorkoutIds.length > 0) {
+                const { data: previousBest } = await supabase
+                  .from('exercise_logs')
+                  .select('max_weight')
+                  .eq('exercise_name', ex.exerciseName)
+                  .in('workout_log_id', previousWorkoutIds)
+                  .order('max_weight', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                previousBestWeight = previousBest?.max_weight || 0;
+              }
+
+              // It's a PR if new weight exceeds previous best
+              if (exMaxWeight > previousBestWeight) {
+                isPr = true;
+                const bestRepsAtWeight = setsData.find(s => s.weight === exMaxWeight)?.reps || 0;
+                prNotifications.push({
+                  exerciseName: ex.exerciseName,
+                  weight: exMaxWeight,
+                  reps: bestRepsAtWeight,
+                  unit: setsData.find(s => s.weight === exMaxWeight)?.weightUnit || 'lbs',
+                  previousBest: previousBestWeight > 0 ? previousBestWeight : null
+                });
+              }
+            } catch (prCheckError) {
+              console.warn('PR check failed for', ex.exerciseName, prCheckError.message);
+              // Non-critical, continue without PR detection
+            }
+          }
+
           // Check if exercise_log already exists for this workout + exercise
           let existingId = ex.id;
           if (!existingId && ex.exerciseId) {
@@ -284,7 +338,7 @@ exports.handler = async (event) => {
               exercise_name: ex.exerciseName || undefined,
               exercise_order: ex.order || undefined,
               notes: ex.notes,
-              is_pr: ex.isPr || false
+              is_pr: isPr
             };
             if (ex.clientNotes !== undefined) updateObj.client_notes = ex.clientNotes;
             if (ex.clientVoiceNotePath !== undefined) updateObj.client_voice_note_path = ex.clientVoiceNotePath;
@@ -304,7 +358,8 @@ exports.handler = async (event) => {
               total_reps: exTotalReps,
               total_volume: exTotalVolume,
               max_weight: exMaxWeight,
-              notes: ex.notes
+              notes: ex.notes,
+              is_pr: isPr
             };
             if (ex.clientNotes) insertObj.client_notes = ex.clientNotes;
             if (ex.clientVoiceNotePath) insertObj.client_voice_note_path = ex.clientVoiceNotePath;
@@ -329,10 +384,47 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
+      // Send PR notifications to coach (non-blocking)
+      if (prNotifications.length > 0 && workoutLogData?.coach_id && workoutLogData?.client_id) {
+        try {
+          // Get client name for notification
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('client_name, coach_id')
+            .eq('id', workoutLogData.client_id)
+            .single();
+
+          if (clientData) {
+            // Get coach's user_id for the notification
+            const coachUserId = workoutLogData.coach_id;
+
+            for (const pr of prNotifications) {
+              const prTitle = `New PR: ${clientData.client_name} - ${pr.exerciseName}`;
+              const prMessage = pr.previousBest
+                ? `${clientData.client_name} just hit a new personal record on ${pr.exerciseName}: ${pr.weight}${pr.unit} x${pr.reps} (previous best: ${pr.previousBest}${pr.unit})`
+                : `${clientData.client_name} just logged their first ${pr.exerciseName}: ${pr.weight}${pr.unit} x${pr.reps}`;
+
+              await supabase
+                .from('notifications')
+                .insert([{
+                  user_id: coachUserId,
+                  type: 'client_pr',
+                  title: prTitle,
+                  message: prMessage,
+                  related_client_id: workoutLogData.client_id
+                }]);
+            }
+          }
+        } catch (notifError) {
+          console.warn('Failed to send PR notification:', notifError.message);
+          // Non-critical, don't fail the workout save
+        }
+      }
+
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, workout })
+        body: JSON.stringify({ success: true, workout, prs: prNotifications })
       };
     }
 
