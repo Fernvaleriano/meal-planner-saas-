@@ -188,7 +188,8 @@ function ExerciseDetailModal({
   coachId = null, // Coach ID for loading custom exercises
   clientId = null, // Client ID for fetching exercise history
   workoutLogId = null, // Existing workout log ID for auto-saving exercise logs
-  selectedDate = null // Date the client is viewing (may be a past date)
+  selectedDate = null, // Date the client is viewing (may be a past date)
+  readinessData = null // Pre-workout readiness: { energy: 1-3, soreness: 1-3, sleep: 1-3 }
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -412,6 +413,7 @@ function ExerciseDetailModal({
   }, [exercise?.id, initialSets]);
 
   // Fetch last session and generate progressive overload tip
+  // Uses readiness data (energy, soreness, sleep) + performance history for smarter suggestions
   useEffect(() => {
     if (!clientId || !exercise?.id) {
       setProgressTip(null);
@@ -449,23 +451,27 @@ function ExerciseDetailModal({
         const lastTotalSets = lastSets.length;
         const lastDate = last.workoutDate;
 
+        // Days since last session for this exercise
+        const lastDateObj = lastDate ? new Date(lastDate + 'T12:00:00') : null;
+        const daysSinceLast = lastDateObj
+          ? Math.round((new Date() - lastDateObj) / (1000 * 60 * 60 * 24))
+          : null;
+
         // RPE analysis — average RPE from sets that have it logged
         const rpeValues = lastSets.map(s => s.rpe).filter(r => r != null && r >= 6);
         const hasRpe = rpeValues.length > 0;
         const avgRpe = hasRpe ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10 : null;
 
         // Format the date for display
-        const dateObj = lastDate ? new Date(lastDate + 'T00:00:00') : null;
-        const dateLabel = dateObj
-          ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        const dateLabel = lastDateObj
+          ? lastDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
           : 'last session';
 
-        // Check if all sets hit target reps (12+ reps = hit target for hypertrophy)
+        // Performance analysis
         const allSetsHitTarget = lastSets.every(s => (s.reps || 0) >= 12);
-        // Check if any sets were low reps (struggling)
         const struggling = lastSets.some(s => (s.reps || 0) > 0 && (s.reps || 0) < 8);
 
-        // Check for plateau — same max weight across last 3+ sessions
+        // Plateau detection — same max weight across last 3+ sessions
         let isPlateaued = false;
         if (sessions.length >= 3) {
           const recentMaxes = sessions.slice(0, 3).map(s => {
@@ -475,86 +481,131 @@ function ExerciseDetailModal({
           isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
         }
 
+        // ── Readiness score (1-3 scale: 1=low, 2=normal, 3=high) ──
+        // Combines energy, soreness (inverted: 1=very sore, 3=fresh), sleep
+        const energy = readinessData?.energy || 2;
+        const soreness = readinessData?.soreness || 2; // 1=very sore, 2=a little, 3=fresh
+        const sleepQ = readinessData?.sleep || 2;
+        // readinessScore: 3-9 range → bucket into low(3-4), normal(5-6), high(7-9)
+        const readinessScore = energy + soreness + sleepQ;
+        const readiness = readinessScore <= 4 ? 'low' : readinessScore >= 7 ? 'high' : 'normal';
+
+        // Recovery status based on soreness + days since last session
+        const wellRecovered = soreness >= 3 || (daysSinceLast !== null && daysSinceLast >= 3);
+        const underRecovered = soreness <= 1 || (daysSinceLast !== null && daysSinceLast <= 1 && soreness < 3);
+
         let tip = null;
 
-        // RPE-based tips take priority when RPE data is available
-        if (hasRpe && avgRpe >= 9.5) {
-          // Near max effort — suggest backing off or holding steady
+        // ── Decision matrix: readiness + performance ──
+
+        // 1. LOW readiness — protect the athlete
+        if (readiness === 'low' && underRecovered) {
+          tip = {
+            type: 'deload',
+            icon: '\u{1F6E1}\u{FE0F}',
+            title: 'Easy day — recover smart',
+            message: `You're tired and sore. Drop to ${Math.round(lastMaxWeight * 0.8)} kg, slow tempo, focus on form.`,
+          };
+        } else if (readiness === 'low') {
+          tip = {
+            type: 'deload',
+            icon: '\u{1F6E1}\u{FE0F}',
+            title: 'Listen to your body',
+            message: `Low energy today. Stay at ${lastMaxWeight} kg, focus on controlled reps and good form.`,
+          };
+
+        // 2. RPE was near-max last session — hold steady regardless of readiness
+        } else if (hasRpe && avgRpe >= 9.5) {
           tip = {
             type: 'build_reps',
-            icon: '🛡️',
+            icon: '\u{1F6E1}\u{FE0F}',
             title: 'Near your limit',
-            message: `RPE ${avgRpe} on ${dateLabel} — you were grinding. Stay at ${lastMaxWeight} kg and focus on clean reps.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets @ ${lastMaxWeight} kg, avg RPE ${avgRpe}`
+            message: `RPE ${avgRpe} on ${dateLabel} — you were grinding. Stay at ${lastMaxWeight} kg, clean reps.`,
           };
-        } else if (hasRpe && avgRpe <= 6.5 && lastMaxWeight > 0) {
-          // Low effort — room to push harder
+
+        // 3. HIGH readiness + well recovered + hit target reps → increase weight
+        } else if (readiness === 'high' && wellRecovered && allSetsHitTarget && lastMaxWeight > 0) {
           const increment = lastMaxWeight >= 80 ? 5 : 2.5;
-          const suggestedWeight = lastMaxWeight + increment;
           tip = {
             type: 'increase_weight',
-            icon: '🔥',
-            title: 'You had more in the tank',
-            message: `RPE ${avgRpe} on ${dateLabel} — felt easy. Bump to ${suggestedWeight} kg this session.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets @ ${lastMaxWeight} kg, avg RPE ${avgRpe}`
+            icon: '\u{1F525}',
+            title: 'Go heavier today',
+            message: `You're fresh and hit ${lastMaxReps} reps @ ${lastMaxWeight} kg on ${dateLabel}. Try ${lastMaxWeight + increment} kg.`,
           };
+
+        // 4. HIGH readiness + not fully recovered → add reps or set instead of weight
+        } else if (readiness === 'high' && !wellRecovered && lastMaxWeight > 0) {
+          if (allSetsHitTarget) {
+            tip = {
+              type: 'add_set',
+              icon: '\u{1F4AA}',
+              title: 'Add volume',
+              message: `Feeling strong but still recovering. Stay at ${lastMaxWeight} kg and add an extra set.`,
+            };
+          } else {
+            const targetReps = Math.min(lastMaxReps + 2, 15);
+            tip = {
+              type: 'add_reps',
+              icon: '\u{1F4AA}',
+              title: 'Push the reps',
+              message: `Good energy today. Aim for ${targetReps} reps @ ${lastMaxWeight} kg.`,
+            };
+          }
+
+        // 5. HIGH readiness + low RPE last session → weight bump
+        } else if (readiness === 'high' && hasRpe && avgRpe <= 6.5 && lastMaxWeight > 0) {
+          const increment = lastMaxWeight >= 80 ? 5 : 2.5;
+          tip = {
+            type: 'increase_weight',
+            icon: '\u{1F525}',
+            title: 'You had more in the tank',
+            message: `RPE ${avgRpe} on ${dateLabel} and you're feeling great. Bump to ${lastMaxWeight + increment} kg.`,
+          };
+
+        // 6. Plateau detected — suggest changing stimulus
         } else if (isPlateaued && !struggling) {
-          // Plateaued for 3+ sessions — suggest changing approach
-          const suggestedWeight = lastMaxWeight + 2.5;
           tip = {
             type: 'plateau',
-            icon: '⚡',
-            title: 'Break the plateau',
-            message: `You've hit ${lastMaxWeight} kg for 3 sessions. Try ${suggestedWeight} kg for fewer reps, or add an extra set.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets, best ${lastMaxReps} reps @ ${lastMaxWeight} kg`
+            icon: '\u{26A1}',
+            title: 'Switch it up',
+            message: `Same weight for 3 sessions. Try slower tempo, shorter rest, or add an extra set at ${lastMaxWeight} kg.`,
           };
-        } else if (hasRpe && avgRpe >= 8.5 && allSetsHitTarget && lastMaxWeight > 0) {
-          // High effort but hit all reps — ready for a small bump
+
+        // 7. NORMAL readiness + hit target reps → add a set first, then weight
+        } else if (readiness === 'normal' && allSetsHitTarget && lastMaxWeight > 0) {
           tip = {
-            type: 'increase_weight',
-            icon: '🔥',
-            title: 'Ready to go heavier',
-            message: `RPE ${avgRpe} and ${lastMaxReps} reps on ${dateLabel}. Try ${lastMaxWeight + 2.5} kg — you earned it.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets @ ${lastMaxWeight} kg, avg RPE ${avgRpe}`
+            type: 'add_set',
+            icon: '\u{1F4C8}',
+            title: 'Add a set',
+            message: `You hit ${lastMaxReps} reps on all sets on ${dateLabel}. Add a set at ${lastMaxWeight} kg before going heavier.`,
           };
-        } else if (allSetsHitTarget && lastMaxWeight > 0) {
-          // All sets hit 12+ reps — ready to increase weight
-          const increment = lastMaxWeight >= 80 ? 5 : 2.5;
-          const suggestedWeight = lastMaxWeight + increment;
-          tip = {
-            type: 'increase_weight',
-            icon: '🔥',
-            title: 'Ready to go heavier',
-            message: `You hit ${lastMaxReps} reps @ ${lastMaxWeight} kg on ${dateLabel}. Try ${suggestedWeight} kg this session.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps @ ${lastMaxWeight} kg`
-          };
+
+        // 8. NORMAL readiness + struggling → build reps
         } else if (struggling) {
-          // Some sets under 8 reps — keep same weight, focus on reps
           tip = {
             type: 'build_reps',
-            icon: '💪',
-            title: 'Build your reps up',
-            message: `On ${dateLabel} you got ${lastMaxReps} reps @ ${lastMaxWeight} kg. Aim for ${Math.min(lastMaxReps + 2, 12)} reps at the same weight.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps @ ${lastMaxWeight} kg`
+            icon: '\u{1F4AA}',
+            title: 'Build your reps',
+            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} kg. Aim for ${Math.min(lastMaxReps + 2, 12)} reps at the same weight.`,
           };
+
+        // 9. NORMAL readiness + mid-range reps → add 1 rep
         } else if (lastMaxWeight > 0) {
-          // Normal progress — encourage adding a rep or small weight bump
           const targetReps = Math.min(lastMaxReps + 1, 15);
           tip = {
             type: 'add_reps',
-            icon: '📈',
+            icon: '\u{1F4C8}',
             title: 'Keep progressing',
             message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} kg. Aim for ${targetReps} reps this session.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps`
           };
+
+        // 10. Bodyweight exercise — no weight tracked
         } else if (lastTotalReps > 0) {
-          // Bodyweight exercise — no weight tracked
           tip = {
             type: 'add_reps',
-            icon: '📈',
+            icon: '\u{1F4C8}',
             title: 'Keep progressing',
             message: `On ${dateLabel}: ${lastMaxReps} reps. Try ${lastMaxReps + 1}-${lastMaxReps + 3} reps this session.`,
-            lastSession: `${dateLabel}: ${lastTotalSets} sets, ${lastTotalReps} total reps`
           };
         }
 
@@ -568,7 +619,7 @@ function ExerciseDetailModal({
 
     generateTip();
     return () => { cancelled = true; };
-  }, [clientId, exercise?.id, exercise?.name]);
+  }, [clientId, exercise?.id, exercise?.name, readinessData]);
 
   // Auto-save exercise_log to database when sets change (debounced)
   // Uses workoutLogId prop if available, otherwise checks for existing log for selectedDate, then creates one
