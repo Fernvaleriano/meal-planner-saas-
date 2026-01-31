@@ -434,7 +434,11 @@ function ExerciseDetailModal({
         }
         if (cancelled || !res?.history || res.history.length === 0) return;
 
-        const sessions = res.history; // most recent first
+        const allSessions = res.history; // most recent first
+        // Exclude today's session so the tip is based on previous workouts
+        const todayStr = new Date().toISOString().split('T')[0];
+        const sessions = allSessions.filter(s => s.workoutDate !== todayStr);
+        if (sessions.length === 0) return;
         const last = sessions[0];
         const lastSets = last.setsData || [];
         if (lastSets.length === 0) return;
