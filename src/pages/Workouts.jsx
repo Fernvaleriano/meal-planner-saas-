@@ -320,11 +320,9 @@ function Workouts() {
       setSwipeSwapExercise(null);
       setSwipeDeleteExercise(null);
 
-      // Force-clean body scroll lock in case ExerciseDetailModal's cleanup didn't run
+      // Force-clean scroll lock in case modal cleanup didn't run
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
+      document.documentElement.style.overflow = '';
     });
 
     return () => unsubResume();

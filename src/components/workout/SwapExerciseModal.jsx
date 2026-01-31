@@ -57,25 +57,20 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     return () => window.removeEventListener('popstate', handlePopState);
   }, [forceClose]);
 
-  // Lock body scroll when modal is open to prevent background scrolling
+  // Prevent background scrolling when modal is open
+  // Uses overflow:hidden instead of position:fixed to avoid the stuck-offset bug
   useEffect(() => {
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    const originalPosition = window.getComputedStyle(document.body).position;
-    const scrollY = window.scrollY;
+    const html = document.documentElement;
+    const body = document.body;
+    const origHtmlOverflow = html.style.overflow;
+    const origBodyOverflow = body.style.overflow;
 
-    // Lock the body scroll
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
 
     return () => {
-      // Restore body scroll
-      document.body.style.overflow = originalStyle;
-      document.body.style.position = originalPosition;
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollY);
+      html.style.overflow = origHtmlOverflow;
+      body.style.overflow = origBodyOverflow;
     };
   }, []);
 

@@ -233,23 +233,22 @@ function ExerciseDetailModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [forceClose]);
 
-  // Lock body scroll when modal is open to prevent background scrolling issues
+  // Prevent background scrolling when modal is open
+  // Uses overflow:hidden instead of position:fixed to avoid the stuck-offset bug
+  // where the body stays shifted up if cleanup doesn't run (e.g., app backgrounded)
   useEffect(() => {
-    const scrollY = window.scrollY;
+    const html = document.documentElement;
+    const body = document.body;
+    // Store originals
+    const origHtmlOverflow = html.style.overflow;
+    const origBodyOverflow = body.style.overflow;
 
-    // Lock the body scroll
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
 
     return () => {
-      // Restore body scroll
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollY);
+      html.style.overflow = origHtmlOverflow;
+      body.style.overflow = origBodyOverflow;
     };
   }, []);
 

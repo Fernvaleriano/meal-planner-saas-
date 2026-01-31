@@ -12,6 +12,7 @@ import { ensureFreshSession } from '../utils/api';
  * - visibilitychange detection (app backgrounded/foregrounded)
  * - Session refresh on resume
  * - Subscriber pattern so components can register their own resume/suspend handlers
+ * - Watchdog that catches stuck body styles even if visibilitychange doesn't fire
  */
 
 // Global subscriber registry — persists across renders and component mounts
@@ -41,6 +42,34 @@ export function onAppSuspend(handler) {
 export function getBackgroundDuration() {
   if (!lastSuspendTime) return 0;
   return Date.now() - lastSuspendTime;
+}
+
+/**
+ * Clean up stuck body/html scroll locks.
+ * Called from multiple places as a safety net.
+ */
+function cleanupStuckScrollLock() {
+  let cleaned = false;
+
+  if (document.body.style.overflow === 'hidden') {
+    document.body.style.overflow = '';
+    cleaned = true;
+  }
+  if (document.documentElement.style.overflow === 'hidden') {
+    document.documentElement.style.overflow = '';
+    cleaned = true;
+  }
+  // Legacy: position:fixed body hack
+  if (document.body.style.position === 'fixed') {
+    const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10));
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, scrollY);
+    cleaned = true;
+  }
+
+  return cleaned;
 }
 
 /**
@@ -78,7 +107,6 @@ export function useAppLifecycle() {
       suspendTimeRef.current = null;
 
       // If backgrounded for more than 5 seconds, refresh auth session
-      // This prevents stale token errors that cause the app to freeze
       if (backgroundMs > 5000) {
         try {
           await ensureFreshSession();
@@ -87,15 +115,9 @@ export function useAppLifecycle() {
         }
       }
 
-      // Safety net: force-clean body scroll lock that could be stuck from a modal
-      // If body has position:fixed, it means a modal's scroll lock wasn't cleaned up
-      if (backgroundMs > 3000 && document.body.style.position === 'fixed') {
-        const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10));
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        window.scrollTo(0, scrollY);
+      // Clean up any stuck scroll locks
+      if (backgroundMs > 3000) {
+        cleanupStuckScrollLock();
       }
 
       // Notify all resume subscribers with how long we were away
@@ -119,15 +141,47 @@ export function useAppLifecycle() {
     // Also handle the pageshow event for bfcache restoration (iOS Safari)
     const handlePageShow = (event) => {
       if (event.persisted) {
-        // Page was restored from bfcache — treat like a resume
         handleVisibilityChange();
       }
     };
     window.addEventListener('pageshow', handlePageShow);
 
+    // Watchdog: detect stuck scroll locks that visibilitychange missed.
+    // On iOS, visibilitychange sometimes doesn't fire. This catches the case
+    // where the user comes back to a frozen screen — the first touch/click
+    // will trigger cleanup and the UI becomes responsive again.
+    const handleTouchStart = () => {
+      // Only act if body/html has a stuck scroll lock AND no modal overlay is
+      // currently visible in the DOM. If a modal IS visible, the lock is intentional.
+      const hasScrollLock =
+        document.body.style.overflow === 'hidden' ||
+        document.documentElement.style.overflow === 'hidden' ||
+        document.body.style.position === 'fixed';
+
+      if (!hasScrollLock) return;
+
+      // Check if any modal overlay is actually rendered and visible
+      const activeOverlay = document.querySelector(
+        '.exercise-modal-overlay-v2, .swap-modal-overlay, .readiness-overlay, ' +
+        '.workout-summary-overlay, .workout-history-overlay, .delete-confirm-overlay, ' +
+        '.rpe-backdrop, .add-activity-overlay, .create-workout-overlay'
+      );
+
+      if (!activeOverlay) {
+        // Scroll lock is stuck with no visible modal — clean it up
+        cleanupStuckScrollLock();
+      }
+    };
+
+    // Use capture phase so we see the event even if something else calls stopPropagation
+    document.addEventListener('touchstart', handleTouchStart, { capture: true, passive: true });
+    document.addEventListener('click', handleTouchStart, { capture: true });
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      document.removeEventListener('click', handleTouchStart, { capture: true });
     };
   }, [handleVisibilityChange]);
 }
