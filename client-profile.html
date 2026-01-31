@@ -1427,7 +1427,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.85);
             z-index: 9999;
             align-items: center;
             justify-content: center;
@@ -1438,7 +1438,7 @@
         }
 
         .ac-modal {
-            background: white;
+            background: #ffffff;
             border-radius: 16px;
             width: 90%;
             max-width: 600px;
@@ -1446,7 +1446,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
 
         .ac-modal-header {
@@ -1761,7 +1761,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.85);
             z-index: 9999;
             align-items: center;
             justify-content: center;
@@ -1770,13 +1770,13 @@
         .ac-exercise-detail-modal.active { display: flex; }
 
         .ac-exercise-detail-content {
-            background: white;
+            background: #ffffff;
             border-radius: 16px;
             width: 90%;
             max-width: 700px;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
 
         .ac-exd-header {
@@ -1921,7 +1921,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.85);
             z-index: 10000;
             align-items: center;
             justify-content: center;
@@ -1930,12 +1930,12 @@
         .ac-date-picker-modal.active { display: flex; }
 
         .ac-date-picker-content {
-            background: white;
+            background: #ffffff;
             border-radius: 16px;
             padding: 24px;
             width: 90%;
             max-width: 340px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
 
         .ac-date-picker-content h3 {
@@ -1945,18 +1945,79 @@
             color: #1e293b;
         }
 
-        .ac-date-picker-content input[type="date"] {
-            width: 100%;
-            padding: 10px 12px;
+        .ac-dp-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ac-dp-nav button {
+            background: none;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 16px;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
+        .ac-dp-nav button:hover { background: #f1f5f9; }
+
+        .ac-dp-nav span {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .ac-dp-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 4px;
+        }
+
+        .ac-dp-weekdays span {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 4px 0;
+        }
+
+        .ac-dp-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .ac-dp-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #334155;
+            border: 2px solid transparent;
+            background: none;
+            font-weight: 500;
+        }
+
+        .ac-dp-day:hover { background: #f1f5f9; }
+        .ac-dp-day.other-month { color: #cbd5e1; }
+        .ac-dp-day.today { font-weight: 700; color: #3b82f6; }
+        .ac-dp-day.selected { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 
         .ac-date-picker-btns {
             display: flex;
             gap: 8px;
+            margin-top: 16px;
             justify-content: flex-end;
         }
 
@@ -2005,7 +2066,7 @@
         [data-theme="dark"] .ac-set-pill { background: var(--bg-tertiary, #334155); border-color: var(--border-color); color: var(--text-primary); }
         [data-theme="dark"] .ac-set-editor { background: var(--bg-secondary, #1e293b); border-color: var(--border-color); }
         [data-theme="dark"] .ac-set-input { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
-        [data-theme="dark"] .ac-modal { background: var(--bg-secondary); }
+        [data-theme="dark"] .ac-modal { background: var(--bg-secondary, #1e293b); }
         [data-theme="dark"] .ac-modal-header { border-color: var(--border-color); }
         [data-theme="dark"] .ac-modal-header h3 { color: var(--text-primary); }
         [data-theme="dark"] .ac-modal-search { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
@@ -2020,9 +2081,10 @@
         [data-theme="dark"] .ac-add-workout-option { border-color: var(--border-color); }
         [data-theme="dark"] .ac-add-workout-option:hover { background: rgba(96,165,250,0.1); border-color: #60a5fa; }
         [data-theme="dark"] .ac-add-workout-info h4 { color: var(--text-primary); }
+        [data-theme="dark"] #acCustomWorkoutName { background: var(--bg-tertiary, #334155) !important; border-color: var(--border-color, #475569) !important; color: var(--text-primary, #e2e8f0) !important; }
         [data-theme="dark"] .ac-program-item:hover { background: rgba(96,165,250,0.1); }
         [data-theme="dark"] .ac-program-item-info h4 { color: var(--text-primary); }
-        [data-theme="dark"] .ac-exercise-detail-content { background: var(--bg-secondary); }
+        [data-theme="dark"] .ac-exercise-detail-content { background: var(--bg-secondary, #1e293b); }
         [data-theme="dark"] .ac-exd-header { border-color: var(--border-color); }
         [data-theme="dark"] .ac-exd-title { color: var(--text-primary); }
         [data-theme="dark"] .ac-exd-video-area { background: var(--bg-tertiary); }
@@ -2030,9 +2092,18 @@
         [data-theme="dark"] .ac-exd-tabs { border-color: var(--border-color); }
         [data-theme="dark"] .ac-exd-tab { color: var(--text-secondary); }
         [data-theme="dark"] .ac-exd-tab.active { color: #60a5fa; border-color: #60a5fa; }
-        [data-theme="dark"] .ac-date-picker-content { background: var(--bg-secondary); }
+        [data-theme="dark"] .ac-date-picker-content { background: var(--bg-secondary, #1e293b); }
         [data-theme="dark"] .ac-date-picker-content h3 { color: var(--text-primary); }
-        [data-theme="dark"] .ac-day-pick-btn { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
+        [data-theme="dark"] .ac-dp-nav span { color: var(--text-primary); }
+        [data-theme="dark"] .ac-dp-nav button { border-color: var(--border-color, #475569); color: var(--text-secondary); }
+        [data-theme="dark"] .ac-dp-nav button:hover { background: var(--bg-tertiary, #334155); }
+        [data-theme="dark"] .ac-dp-weekdays span { color: var(--text-secondary, #94a3b8); }
+        [data-theme="dark"] .ac-dp-day { color: var(--text-primary, #e2e8f0); }
+        [data-theme="dark"] .ac-dp-day:hover { background: var(--bg-tertiary, #334155); }
+        [data-theme="dark"] .ac-dp-day.other-month { color: var(--text-secondary, #64748b); }
+        [data-theme="dark"] .ac-dp-day.today { color: #60a5fa; }
+        [data-theme="dark"] .ac-dp-day.selected { background: #3b82f6; color: #fff; }
+        [data-theme="dark"] .ac-day-pick-btn { background: var(--bg-tertiary, #334155); border-color: var(--border-color, #475569); color: var(--text-primary); }
 
         /* Responsive */
         @media (max-width: 900px) {
@@ -6064,7 +6135,15 @@
         <div class="ac-date-picker-modal" id="acDatePickerModal">
             <div class="ac-date-picker-content">
                 <h3 id="acDatePickerTitle">Move to date</h3>
-                <input type="date" id="acDatePickerInput">
+                <div class="ac-dp-nav">
+                    <button onclick="acDpNavMonth(-1)">&larr;</button>
+                    <span id="acDpMonthLabel"></span>
+                    <button onclick="acDpNavMonth(1)">&rarr;</button>
+                </div>
+                <div class="ac-dp-weekdays">
+                    <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                </div>
+                <div class="ac-dp-days" id="acDpDays"></div>
                 <div class="ac-date-picker-btns">
                     <button class="ac-action-btn" onclick="acCloseDatePicker()">Cancel</button>
                     <button class="ac-set-save-btn" style="width:auto; margin:0; padding:8px 20px;" onclick="acConfirmDatePicker()">Confirm</button>
@@ -9581,11 +9660,7 @@
 
         // ---- Move Exercise(s) to another date ----
         function acMoveExercise(indices, assignmentId, dayIndex, isAdhoc, dateStr) {
-            document.getElementById('acDatePickerTitle').textContent = 'Move to date';
-            document.getElementById('acDatePickerInput').value = '';
-            document.getElementById('acDatePickerModal').classList.add('active');
-
-            acDatePickerCallback = async function(targetDate) {
+            acOpenDatePicker('Move to date', async function(targetDate) {
                 if (!targetDate || targetDate === dateStr) return;
                 const bodyEl = document.getElementById('acDetailBody');
                 const workout = JSON.parse(bodyEl.dataset.workout || '{}');
@@ -9596,16 +9671,12 @@
                 await acSaveExercises(remaining, assignmentId, dayIndex, isAdhoc, dateStr);
                 await acAddExercisesToDate(targetDate, movedExercises);
                 acSelectedExercises.clear();
-            };
+            });
         }
 
         // ---- Copy Exercise(s) to another date ----
         function acCopyExercise(indices, assignmentId, dayIndex, isAdhoc, dateStr) {
-            document.getElementById('acDatePickerTitle').textContent = 'Copy to date';
-            document.getElementById('acDatePickerInput').value = '';
-            document.getElementById('acDatePickerModal').classList.add('active');
-
-            acDatePickerCallback = async function(targetDate) {
+            acOpenDatePicker('Copy to date', async function(targetDate) {
                 if (!targetDate) return;
                 const bodyEl = document.getElementById('acDetailBody');
                 const workout = JSON.parse(bodyEl.dataset.workout || '{}');
@@ -9613,7 +9684,7 @@
                 const copiedExercises = indices.map(i => ({...exercises[i]})).filter(Boolean);
                 await acAddExercisesToDate(targetDate, copiedExercises);
                 acSelectedExercises.clear();
-            };
+            });
         }
 
         async function acAddExercisesToDate(targetDate, exercisesToAdd) {
@@ -9660,20 +9731,91 @@
             }
         }
 
-        // ---- Date Picker ----
+        // ---- Date Picker (Mini Calendar) ----
+        let acDpMonth = new Date().getMonth();
+        let acDpYear = new Date().getFullYear();
+        let acDpSelectedDate = null;
+
+        function acOpenDatePicker(title, callback) {
+            document.getElementById('acDatePickerTitle').textContent = title;
+            acDpMonth = new Date().getMonth();
+            acDpYear = new Date().getFullYear();
+            acDpSelectedDate = null;
+            acDatePickerCallback = callback;
+            acRenderDpCalendar();
+            document.getElementById('acDatePickerModal').classList.add('active');
+        }
+
+        function acDpNavMonth(dir) {
+            acDpMonth += dir;
+            if (acDpMonth > 11) { acDpMonth = 0; acDpYear++; }
+            if (acDpMonth < 0) { acDpMonth = 11; acDpYear--; }
+            acRenderDpCalendar();
+        }
+
+        function acRenderDpCalendar() {
+            const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            document.getElementById('acDpMonthLabel').textContent = `${months[acDpMonth]} ${acDpYear}`;
+
+            const firstDay = new Date(acDpYear, acDpMonth, 1);
+            const lastDay = new Date(acDpYear, acDpMonth + 1, 0);
+            let startDow = firstDay.getDay() || 7; // Monday=1
+            const daysInMonth = lastDay.getDate();
+            const prevLast = new Date(acDpYear, acDpMonth, 0).getDate();
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            let html = '';
+
+            // Previous month's trailing days
+            for (let i = startDow - 1; i >= 1; i--) {
+                const d = prevLast - i + 1;
+                const dt = new Date(acDpYear, acDpMonth - 1, d);
+                const ds = dt.toISOString().split('T')[0];
+                html += `<div class="ac-dp-day other-month" data-date="${ds}" onclick="acDpSelectDay(this, '${ds}')">${d}</div>`;
+            }
+
+            // Current month days
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dt = new Date(acDpYear, acDpMonth, d);
+                const ds = dt.toISOString().split('T')[0];
+                let cls = 'ac-dp-day';
+                if (ds === todayStr) cls += ' today';
+                if (ds === acDpSelectedDate) cls += ' selected';
+                html += `<div class="${cls}" data-date="${ds}" onclick="acDpSelectDay(this, '${ds}')">${d}</div>`;
+            }
+
+            // Next month's leading days
+            const totalCells = Math.ceil((startDow - 1 + daysInMonth) / 7) * 7;
+            const remaining = totalCells - (startDow - 1 + daysInMonth);
+            for (let d = 1; d <= remaining; d++) {
+                const dt = new Date(acDpYear, acDpMonth + 1, d);
+                const ds = dt.toISOString().split('T')[0];
+                html += `<div class="ac-dp-day other-month" data-date="${ds}" onclick="acDpSelectDay(this, '${ds}')">${d}</div>`;
+            }
+
+            document.getElementById('acDpDays').innerHTML = html;
+        }
+
+        function acDpSelectDay(el, dateStr) {
+            acDpSelectedDate = dateStr;
+            document.querySelectorAll('#acDpDays .ac-dp-day').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
         function acCloseDatePicker() {
             document.getElementById('acDatePickerModal').classList.remove('active');
             acDatePickerCallback = null;
+            acDpSelectedDate = null;
         }
 
         async function acConfirmDatePicker() {
-            const val = document.getElementById('acDatePickerInput').value;
-            if (!val) { alert('Please select a date'); return; }
+            if (!acDpSelectedDate) { alert('Please select a date'); return; }
             document.getElementById('acDatePickerModal').classList.remove('active');
             if (acDatePickerCallback) {
-                await acDatePickerCallback(val);
+                await acDatePickerCallback(acDpSelectedDate);
                 acDatePickerCallback = null;
             }
+            acDpSelectedDate = null;
         }
 
         // ---- Save Exercises Helper ----
@@ -9942,7 +10084,7 @@
 
             document.getElementById('acAddWorkoutBody').innerHTML = `
                 <div class="ac-add-workout-options">
-                    <div class="ac-add-workout-option" onclick="acCreateCustomWorkout('${dateStr}')">
+                    <div class="ac-add-workout-option" onclick="acShowCustomWorkoutForm('${dateStr}')">
                         <div class="ac-add-workout-icon">&#10010;</div>
                         <div class="ac-add-workout-info">
                             <h4>Custom Workout</h4>
@@ -9962,17 +10104,36 @@
             modal.classList.add('active');
         }
 
+        function acShowCustomWorkoutForm(dateStr) {
+            const body = document.getElementById('acAddWorkoutBody');
+            body.innerHTML = `
+                <div style="padding: 8px 0;">
+                    <label style="display:block; font-weight:600; margin-bottom:8px; color:#334155; font-size:14px;">Workout Name</label>
+                    <input type="text" id="acCustomWorkoutName" value="Custom Workout" placeholder="Enter workout name..."
+                        style="width:100%; padding:12px 14px; border:1px solid #e2e8f0; border-radius:10px; font-size:14px; box-sizing:border-box; outline:none;">
+                    <button onclick="acCreateCustomWorkout('${dateStr}')"
+                        style="width:100%; margin-top:16px; padding:14px; background:#3b82f6; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer;">
+                        Create Workout
+                    </button>
+                </div>
+            `;
+            setTimeout(() => {
+                const inp = document.getElementById('acCustomWorkoutName');
+                if (inp) { inp.focus(); inp.select(); }
+            }, 100);
+        }
+
         function acCloseAddWorkoutModal() {
             document.getElementById('acAddWorkoutModal').classList.remove('active');
         }
 
         async function acCreateCustomWorkout(dateStr) {
+            const nameInput = document.getElementById('acCustomWorkoutName');
+            const name = (nameInput?.value || '').trim() || 'Custom Workout';
             acCloseAddWorkoutModal();
-            const name = prompt('Workout name:', 'Custom Workout');
-            if (!name) return;
 
             try {
-                await fetch('/.netlify/functions/adhoc-workouts', {
+                const res = await fetch('/.netlify/functions/adhoc-workouts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -9982,10 +10143,18 @@
                         workoutData: { exercises: [] }
                     })
                 });
+                const data = await res.json();
 
                 acAssignmentCache[dateStr] = true;
                 acRenderCalendar();
-                acSelectDay(dateStr);
+                await acSelectDay(dateStr);
+
+                // Automatically open the exercise picker so the user can add exercises
+                const bodyEl = document.getElementById('acDetailBody');
+                const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+                if (workout.id) {
+                    acOpenAddExercise(workout.id, workout.day_index || 0, true, dateStr);
+                }
             } catch (err) {
                 console.error('Error creating custom workout:', err);
                 alert('Failed to create workout');
