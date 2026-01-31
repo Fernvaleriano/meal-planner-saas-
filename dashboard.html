@@ -331,6 +331,14 @@
             color: #fbbf24;
         }
 
+        .priority-label--positive {
+            color: #16a34a;
+        }
+
+        [data-theme="dark"] .priority-label--positive {
+            color: #4ade80;
+        }
+
         .action-center-link {
             display: inline-block;
             color: var(--brand-primary);
@@ -3090,8 +3098,8 @@
                             <div class="hero-ai-chip-row">
                                 <button class="hero-chip" onclick="askQuickQuestion('Who hit their protein goal?')">Who hit their protein goal?</button>
                                 <button class="hero-chip" onclick="askQuickQuestion('What are my clients bench press PRs?')">Bench press PRs</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Which clients logged workouts this week?')">Who's logging workouts?</button>
                                 <button class="hero-chip" onclick="askQuickQuestion('Which clients are losing weight?')">Who is losing weight?</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('Who has been inactive this week?')">Clients inactive week</button>
                             </div>
                         </div>
                         <div class="hero-ai-response" id="aiResponseArea" style="display:none;">
@@ -3700,6 +3708,65 @@
                     }
                 } catch (e) {
                     console.warn('Could not check expiring plans:', e);
+                }
+
+                // Check for recent PRs (last 7 days) - positive alert
+                try {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+
+                    const { data: prNotifications } = await supabaseClient
+                        .from('notifications')
+                        .select('title, message, created_at')
+                        .eq('user_id', coachId)
+                        .eq('type', 'client_pr')
+                        .gte('created_at', weekAgo.toISOString())
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+
+                    if (prNotifications && prNotifications.length > 0) {
+                        const prCount = prNotifications.length;
+                        const latestPr = prNotifications[0];
+                        alerts.push(`
+                            <div class="priority-alert">
+                                <span class="priority-dot priority-dot--green"></span>
+                                <span><span class="priority-label priority-label--positive">New PR${prCount > 1 ? 's' : ''}!</span> ${latestPr.message}${prCount > 1 ? ` (+${prCount - 1} more this week)` : ''}</span>
+                            </div>
+                        `);
+                    }
+                } catch (e) {
+                    console.warn('Could not check PRs:', e);
+                }
+
+                // Check for clients logging workouts this week
+                try {
+                    const { data: clients } = await supabaseClient
+                        .from('clients')
+                        .select('id')
+                        .eq('coach_id', coachId);
+
+                    if (clients && clients.length > 0) {
+                        const clientIds = clients.map(c => c.id);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+
+                        const { count: workoutCount } = await supabaseClient
+                            .from('workout_logs')
+                            .select('*', { count: 'exact', head: true })
+                            .in('client_id', clientIds)
+                            .gte('created_at', weekAgo.toISOString());
+
+                        if (workoutCount > 0) {
+                            alerts.push(`
+                                <div class="priority-alert">
+                                    <span class="priority-dot priority-dot--green"></span>
+                                    <span>${workoutCount} workout${workoutCount !== 1 ? 's' : ''} logged by your clients this week.</span>
+                                </div>
+                            `);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not check workout logs:', e);
                 }
 
                 if (alerts.length === 0) {
