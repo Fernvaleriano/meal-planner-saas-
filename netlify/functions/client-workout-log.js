@@ -157,16 +157,22 @@ exports.handler = async (event) => {
         const updatedDays = [...currentWorkoutData.days];
         const safeDayIndex = Math.abs(dayIndex) % updatedDays.length;
 
+        // Get exercises from request - check both workout_data.exercises (flat from frontend)
+        // and fall back to existing day exercises
+        const incomingExercises = workout_data?.exercises || workout_data?.days?.[safeDayIndex]?.exercises;
+
         // Merge the new workout_data into the specific day
         updatedDays[safeDayIndex] = {
           ...updatedDays[safeDayIndex],
-          exercises: workout_data.exercises || updatedDays[safeDayIndex].exercises
+          exercises: incomingExercises || updatedDays[safeDayIndex].exercises
         };
 
         updatedWorkoutData = {
           ...currentWorkoutData,
           days: updatedDays
         };
+
+        console.log(`[client-workout-log] Updated day ${safeDayIndex} exercises: ${(incomingExercises || []).length} exercises, completed: ${(incomingExercises || []).filter(e => e?.completed).length}`);
       } else {
         // Flat structure - update exercises directly
         updatedWorkoutData = {
