@@ -2627,6 +2627,177 @@ function ExerciseDetailModal({
           </div>
         )}
 
+        {/* Exercise History Section */}
+        <div className="exercise-history-section">
+          <button className="exercise-history-toggle" onClick={toggleHistory} type="button">
+            <div className="exercise-history-toggle-left">
+              <History size={18} />
+              <span>Exercise History</span>
+            </div>
+            {historyLoading ? (
+              <Loader2 size={16} className="spin" />
+            ) : (
+              showHistory ? <ChevronUp size={18} /> : <ChevronDown size={18} />
+            )}
+          </button>
+
+          {showHistory && (
+            <div className="exercise-history-content">
+              {historyLoading ? (
+                <div className="exercise-history-loading">
+                  <Loader2 size={20} className="spin" />
+                  <span>Loading history...</span>
+                </div>
+              ) : !historyData || historyData.length === 0 ? (
+                <div className="exercise-history-empty">
+                  <History size={32} />
+                  <p>No history yet for this exercise</p>
+                  <span>Log sets to start tracking</span>
+                </div>
+              ) : (() => {
+                // Pre-process history data for chart and grouping
+                const processedEntries = historyData.map(entry => {
+                  const setsData = typeof entry.setsData === 'string'
+                    ? JSON.parse(entry.setsData) : (entry.setsData || []);
+                  const maxW = Math.max(...setsData.map(s => s.weight || 0), 0);
+                  const dateObj = entry.workoutDate ? new Date(entry.workoutDate + 'T12:00:00') : null;
+                  return { ...entry, setsData, maxW, dateObj };
+                });
+
+                // Build bar chart data (last 8 sessions, chronological)
+                const chartEntries = [...processedEntries]
+                  .filter(e => e.maxW > 0 && e.dateObj)
+                  .slice(0, 8)
+                  .reverse();
+                const chartMax = chartEntries.length > 0
+                  ? Math.max(...chartEntries.map(e => e.maxW)) : 0;
+
+                // Find all-time PR
+                const allTimeMax = historyStats?.allTimeMaxWeight || 0;
+                const prEntry = allTimeMax > 0 ? processedEntries.find(e => e.maxW === allTimeMax) : null;
+                const prDate = prEntry?.dateObj
+                  ? prEntry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : null;
+
+                // Group entries by month
+                const monthGroups = [];
+                let currentMonth = '';
+                for (const entry of processedEntries) {
+                  const monthLabel = entry.dateObj
+                    ? entry.dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()
+                    : 'UNKNOWN';
+                  if (monthLabel !== currentMonth) {
+                    currentMonth = monthLabel;
+                    monthGroups.push({ label: monthLabel, entries: [] });
+                  }
+                  monthGroups[monthGroups.length - 1].entries.push(entry);
+                }
+
+                return (
+                  <>
+                    {/* PR Banner */}
+                    {allTimeMax > 0 && (
+                      <div className="history-pr-banner">
+                        <Award size={18} />
+                        <span className="history-pr-value">{allTimeMax} kg</span>
+                        {prDate && <span className="history-pr-date">{prDate}</span>}
+                      </div>
+                    )}
+
+                    {/* Bar Chart */}
+                    {chartEntries.length > 1 && (
+                      <div className="history-bar-chart">
+                        {chartEntries.map((entry, i) => {
+                          const heightPct = chartMax > 0 ? (entry.maxW / chartMax) * 100 : 0;
+                          const dateLabel = entry.dateObj
+                            ? `${entry.dateObj.getDate()} ${entry.dateObj.toLocaleDateString('en-US', { month: 'short' })}`
+                            : '';
+                          return (
+                            <div key={i} className="history-bar-col">
+                              <div className="history-bar-wrapper">
+                                <div
+                                  className={`history-bar ${entry.maxW === allTimeMax ? 'is-pr' : ''}`}
+                                  style={{ height: `${Math.max(heightPct, 8)}%` }}
+                                />
+                              </div>
+                              <span className="history-bar-weight">{entry.maxW}</span>
+                              <span className="history-bar-date">{dateLabel}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Stats Row */}
+                    <div className="history-stats-row">
+                      {best1RM && (
+                        <div className="history-stat-pill">
+                          <TrendingUp size={14} />
+                          <span>Est. 1RM: {best1RM} kg</span>
+                        </div>
+                      )}
+                      {historyStats?.totalWorkouts > 0 && (
+                        <div className="history-stat-pill">
+                          <BarChart3 size={14} />
+                          <span>{historyStats.totalWorkouts} sessions</span>
+                        </div>
+                      )}
+                      {historyStats?.prCount > 0 && (
+                        <div className="history-stat-pill highlight">
+                          <Award size={14} />
+                          <span>{historyStats.prCount} PRs</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Monthly Grouped Entries */}
+                    <div className="history-month-groups">
+                      {monthGroups.map((group, gIdx) => (
+                        <div key={gIdx} className="history-month-group">
+                          <div className="history-month-divider">
+                            <span>{group.label}</span>
+                          </div>
+                          {group.entries.map((entry, idx) => {
+                            const dayOfWeek = entry.dateObj
+                              ? entry.dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+                              : '';
+                            const dayNum = entry.dateObj ? entry.dateObj.getDate() : '';
+
+                            return (
+                              <div key={entry.id || idx} className={`history-date-entry ${entry.isPr ? 'is-pr' : ''}`}>
+                                <div className="history-date-side">
+                                  <span className="history-day-name">{dayOfWeek}</span>
+                                  <span className="history-day-num">{dayNum}</span>
+                                </div>
+                                <div className="history-sets-card">
+                                  {entry.isPr && (
+                                    <span className="history-card-pr-badge">
+                                      <Award size={10} /> PR
+                                    </span>
+                                  )}
+                                  {entry.setsData.map((s, sIdx) => (
+                                    <div key={sIdx} className="history-set-row">
+                                      <span className="history-set-num">Set {sIdx + 1}</span>
+                                      <span className="history-set-reps">{s.reps || 0} x</span>
+                                      {s.weight > 0 && (
+                                        <span className="history-set-weight">{s.weight} kg</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+
         {/* Muscle Groups */}
         <div className="muscle-groups-section">
           <h4>Muscle groups</h4>
@@ -2801,177 +2972,6 @@ function ExerciseDetailModal({
                   <span>Send Note</span>
                 </button>
               )}
-            </div>
-          )}
-        </div>
-
-        {/* Exercise History Section */}
-        <div className="exercise-history-section">
-          <button className="exercise-history-toggle" onClick={toggleHistory} type="button">
-            <div className="exercise-history-toggle-left">
-              <History size={18} />
-              <span>Exercise History</span>
-            </div>
-            {historyLoading ? (
-              <Loader2 size={16} className="spin" />
-            ) : (
-              showHistory ? <ChevronUp size={18} /> : <ChevronDown size={18} />
-            )}
-          </button>
-
-          {showHistory && (
-            <div className="exercise-history-content">
-              {historyLoading ? (
-                <div className="exercise-history-loading">
-                  <Loader2 size={20} className="spin" />
-                  <span>Loading history...</span>
-                </div>
-              ) : !historyData || historyData.length === 0 ? (
-                <div className="exercise-history-empty">
-                  <History size={32} />
-                  <p>No history yet for this exercise</p>
-                  <span>Log sets to start tracking</span>
-                </div>
-              ) : (() => {
-                // Pre-process history data for chart and grouping
-                const processedEntries = historyData.map(entry => {
-                  const setsData = typeof entry.setsData === 'string'
-                    ? JSON.parse(entry.setsData) : (entry.setsData || []);
-                  const maxW = Math.max(...setsData.map(s => s.weight || 0), 0);
-                  const dateObj = entry.workoutDate ? new Date(entry.workoutDate + 'T12:00:00') : null;
-                  return { ...entry, setsData, maxW, dateObj };
-                });
-
-                // Build bar chart data (last 8 sessions, chronological)
-                const chartEntries = [...processedEntries]
-                  .filter(e => e.maxW > 0 && e.dateObj)
-                  .slice(0, 8)
-                  .reverse();
-                const chartMax = chartEntries.length > 0
-                  ? Math.max(...chartEntries.map(e => e.maxW)) : 0;
-
-                // Find all-time PR
-                const allTimeMax = historyStats?.allTimeMaxWeight || 0;
-                const prEntry = allTimeMax > 0 ? processedEntries.find(e => e.maxW === allTimeMax) : null;
-                const prDate = prEntry?.dateObj
-                  ? prEntry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                  : null;
-
-                // Group entries by month
-                const monthGroups = [];
-                let currentMonth = '';
-                for (const entry of processedEntries) {
-                  const monthLabel = entry.dateObj
-                    ? entry.dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()
-                    : 'UNKNOWN';
-                  if (monthLabel !== currentMonth) {
-                    currentMonth = monthLabel;
-                    monthGroups.push({ label: monthLabel, entries: [] });
-                  }
-                  monthGroups[monthGroups.length - 1].entries.push(entry);
-                }
-
-                return (
-                  <>
-                    {/* PR Banner */}
-                    {allTimeMax > 0 && (
-                      <div className="history-pr-banner">
-                        <Award size={18} />
-                        <span className="history-pr-value">{allTimeMax} kg</span>
-                        {prDate && <span className="history-pr-date">{prDate}</span>}
-                      </div>
-                    )}
-
-                    {/* Bar Chart */}
-                    {chartEntries.length > 1 && (
-                      <div className="history-bar-chart">
-                        {chartEntries.map((entry, i) => {
-                          const heightPct = chartMax > 0 ? (entry.maxW / chartMax) * 100 : 0;
-                          const dateLabel = entry.dateObj
-                            ? `${entry.dateObj.getDate()} ${entry.dateObj.toLocaleDateString('en-US', { month: 'short' })}`
-                            : '';
-                          return (
-                            <div key={i} className="history-bar-col">
-                              <div className="history-bar-wrapper">
-                                <div
-                                  className={`history-bar ${entry.maxW === allTimeMax ? 'is-pr' : ''}`}
-                                  style={{ height: `${Math.max(heightPct, 8)}%` }}
-                                />
-                              </div>
-                              <span className="history-bar-weight">{entry.maxW}</span>
-                              <span className="history-bar-date">{dateLabel}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Stats Row */}
-                    <div className="history-stats-row">
-                      {best1RM && (
-                        <div className="history-stat-pill">
-                          <TrendingUp size={14} />
-                          <span>Est. 1RM: {best1RM} kg</span>
-                        </div>
-                      )}
-                      {historyStats?.totalWorkouts > 0 && (
-                        <div className="history-stat-pill">
-                          <BarChart3 size={14} />
-                          <span>{historyStats.totalWorkouts} sessions</span>
-                        </div>
-                      )}
-                      {historyStats?.prCount > 0 && (
-                        <div className="history-stat-pill highlight">
-                          <Award size={14} />
-                          <span>{historyStats.prCount} PRs</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Monthly Grouped Entries */}
-                    <div className="history-month-groups">
-                      {monthGroups.map((group, gIdx) => (
-                        <div key={gIdx} className="history-month-group">
-                          <div className="history-month-divider">
-                            <span>{group.label}</span>
-                          </div>
-                          {group.entries.map((entry, idx) => {
-                            const dayOfWeek = entry.dateObj
-                              ? entry.dateObj.toLocaleDateString('en-US', { weekday: 'short' })
-                              : '';
-                            const dayNum = entry.dateObj ? entry.dateObj.getDate() : '';
-
-                            return (
-                              <div key={entry.id || idx} className={`history-date-entry ${entry.isPr ? 'is-pr' : ''}`}>
-                                <div className="history-date-side">
-                                  <span className="history-day-name">{dayOfWeek}</span>
-                                  <span className="history-day-num">{dayNum}</span>
-                                </div>
-                                <div className="history-sets-card">
-                                  {entry.isPr && (
-                                    <span className="history-card-pr-badge">
-                                      <Award size={10} /> PR
-                                    </span>
-                                  )}
-                                  {entry.setsData.map((s, sIdx) => (
-                                    <div key={sIdx} className="history-set-row">
-                                      <span className="history-set-num">Set {sIdx + 1}</span>
-                                      <span className="history-set-reps">{s.reps || 0} x</span>
-                                      {s.weight > 0 && (
-                                        <span className="history-set-weight">{s.weight} kg</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
             </div>
           )}
         </div>
