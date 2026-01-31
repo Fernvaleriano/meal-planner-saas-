@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { useAppLifecycle } from './hooks/useAppLifecycle';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Diary from './pages/Diary';
@@ -37,6 +38,9 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
+  // Initialize app lifecycle handling (visibilitychange, session refresh on resume)
+  useAppLifecycle();
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
