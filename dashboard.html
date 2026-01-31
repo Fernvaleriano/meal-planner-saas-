@@ -593,6 +593,197 @@
             color: #64748b;
         }
 
+        /* Client PRs Section */
+        .client-prs-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        [data-theme="dark"] .client-prs-section {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        .prs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .prs-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prs-icon {
+            font-size: 1.5rem;
+        }
+
+        .prs-title-row h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        [data-theme="dark"] .prs-title-row h2 {
+            color: #f1f5f9;
+        }
+
+        .prs-filter-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--gray-100);
+            border-radius: 10px;
+            padding: 3px;
+        }
+
+        [data-theme="dark"] .prs-filter-tabs {
+            background: var(--gray-900);
+        }
+
+        .prs-tab {
+            padding: 7px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .prs-tab:hover {
+            color: var(--gray-700);
+        }
+
+        .prs-tab--active {
+            background: white;
+            color: var(--brand-primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] .prs-tab {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .prs-tab:hover {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .prs-tab--active {
+            background: var(--gray-700);
+            color: var(--brand-primary);
+            box-shadow: none;
+        }
+
+        .prs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .prs-loading, .prs-empty {
+            color: var(--gray-400);
+            font-size: 0.875rem;
+            padding: 16px 0;
+            text-align: center;
+        }
+
+        .pr-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            border: 1px solid var(--gray-100);
+            transition: all 0.2s;
+        }
+
+        .pr-item:hover {
+            border-color: var(--gray-200);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] .pr-item {
+            background: var(--gray-900);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .pr-item:hover {
+            border-color: var(--gray-600);
+        }
+
+        .pr-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .pr-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pr-client-name {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        [data-theme="dark"] .pr-client-name {
+            color: #f1f5f9;
+        }
+
+        .pr-exercise {
+            font-size: 0.8125rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .pr-weight {
+            font-size: 1.125rem;
+            font-weight: 800;
+            color: var(--brand-primary);
+            white-space: nowrap;
+        }
+
+        .pr-prev {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .pr-time {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .prs-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
         /* Stats Cards */
         .stats-grid {
             display: flex;
@@ -3301,6 +3492,24 @@
                 </div>
             </div>
 
+            <!-- Client PRs Section -->
+            <div class="client-prs-section" id="clientPrsSection">
+                <div class="prs-header">
+                    <div class="prs-title-row">
+                        <span class="prs-icon">🏆</span>
+                        <h2>Client PRs</h2>
+                    </div>
+                    <div class="prs-filter-tabs">
+                        <button class="prs-tab prs-tab--active" data-period="today" onclick="filterPRs('today')">Today</button>
+                        <button class="prs-tab" data-period="week" onclick="filterPRs('week')">This Week</button>
+                        <button class="prs-tab" data-period="month" onclick="filterPRs('month')">This Month</button>
+                    </div>
+                </div>
+                <div class="prs-list" id="prsList">
+                    <div class="prs-loading">Loading PRs...</div>
+                </div>
+            </div>
+
             <!-- Daily Operations -->
             <div class="cards-section-header">
                 <h2 class="cards-section-title">Daily Operations</h2>
@@ -3604,25 +3813,17 @@
                     document.getElementById('clientCount').textContent = clientCount || 0;
                 }
 
-                // Fetch pending check-ins count (unreviewed)
+                // Fetch pending check-ins count (unreviewed - no coach_responded_at)
                 let pendingCheckIns = 0;
                 try {
-                    const { data: clients } = await supabaseClient
-                        .from('clients')
-                        .select('id')
-                        .eq('coach_id', coachId);
+                    const { count: checkInCount, error: checkInError } = await supabaseClient
+                        .from('client_checkins')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('coach_id', coachId)
+                        .is('coach_responded_at', null);
 
-                    if (clients && clients.length > 0) {
-                        const clientIds = clients.map(c => c.id);
-                        const { count: checkInCount, error: checkInError } = await supabaseClient
-                            .from('check_ins')
-                            .select('*', { count: 'exact', head: true })
-                            .in('client_id', clientIds)
-                            .eq('reviewed', false);
-
-                        if (!checkInError) {
-                            pendingCheckIns = checkInCount || 0;
-                        }
+                    if (!checkInError) {
+                        pendingCheckIns = checkInCount || 0;
                     }
                 } catch (e) {
                     console.warn('Could not load check-in count:', e);
@@ -3641,28 +3842,42 @@
             const alerts = [];
 
             try {
-                // Check for high-stress clients (from recent check-ins)
+                // Check for high-stress clients (from recent check-ins, stress 4-5 on 1-5 scale)
                 let highStressCount = 0;
+                let lowEnergyCount = 0;
+                let newCheckinCount = 0;
                 try {
-                    const { data: clients } = await supabaseClient
-                        .from('clients')
-                        .select('id')
-                        .eq('coach_id', coachId);
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
 
-                    if (clients && clients.length > 0) {
-                        const clientIds = clients.map(c => c.id);
-                        const weekAgo = new Date();
-                        weekAgo.setDate(weekAgo.getDate() - 7);
+                    // High stress (4+ on 1-5 scale)
+                    const { count: stressCount } = await supabaseClient
+                        .from('client_checkins')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('coach_id', coachId)
+                        .gte('stress_level', 4)
+                        .gte('created_at', weekAgo.toISOString());
+                    highStressCount = stressCount || 0;
 
-                        const { count: stressCount } = await supabaseClient
-                            .from('check_ins')
-                            .select('*', { count: 'exact', head: true })
-                            .in('client_id', clientIds)
-                            .gte('stress_level', 4)
-                            .gte('created_at', weekAgo.toISOString());
+                    // Low energy (1-2 on 1-5 scale)
+                    const { count: energyCount } = await supabaseClient
+                        .from('client_checkins')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('coach_id', coachId)
+                        .lte('energy_level', 2)
+                        .gte('created_at', weekAgo.toISOString());
+                    lowEnergyCount = energyCount || 0;
 
-                        highStressCount = stressCount || 0;
-                    }
+                    // New check-ins today (not yet responded to)
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    const { count: todayCheckins } = await supabaseClient
+                        .from('client_checkins')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('coach_id', coachId)
+                        .is('coach_responded_at', null)
+                        .gte('created_at', todayStart.toISOString());
+                    newCheckinCount = todayCheckins || 0;
                 } catch (e) {
                     console.warn('Could not check stress levels:', e);
                 }
@@ -3672,6 +3887,24 @@
                         <div class="priority-alert">
                             <span class="priority-dot priority-dot--red"></span>
                             <span><span class="priority-label priority-label--action">Action required:</span> ${highStressCount} client${highStressCount !== 1 ? 's' : ''} reported high stress levels in their check-in.</span>
+                        </div>
+                    `);
+                }
+
+                if (lowEnergyCount > 0) {
+                    alerts.push(`
+                        <div class="priority-alert">
+                            <span class="priority-dot priority-dot--red"></span>
+                            <span><span class="priority-label priority-label--action">Action required:</span> ${lowEnergyCount} client${lowEnergyCount !== 1 ? 's' : ''} reported low energy levels.</span>
+                        </div>
+                    `);
+                }
+
+                if (newCheckinCount > 0) {
+                    alerts.push(`
+                        <div class="priority-alert">
+                            <span class="priority-dot priority-dot--amber"></span>
+                            <span><span class="priority-label priority-label--pending">New today:</span> ${newCheckinCount} check-in${newCheckinCount !== 1 ? 's' : ''} submitted today awaiting your response.</span>
                         </div>
                     `);
                 }
@@ -3807,6 +4040,130 @@
                 });
             }
         });
+
+        // ========================================
+        // CLIENT PRS SECTION
+        // ========================================
+        let cachedPrCoachId = null;
+        let allPrNotifications = [];
+
+        async function loadClientPRs(coachId) {
+            cachedPrCoachId = coachId;
+            const prsList = document.getElementById('prsList');
+
+            try {
+                // Fetch PR notifications for the last 30 days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                const { data: prNotifs, error } = await supabaseClient
+                    .from('notifications')
+                    .select('id, title, message, related_client_id, created_at')
+                    .eq('user_id', coachId)
+                    .eq('type', 'client_pr')
+                    .gte('created_at', thirtyDaysAgo.toISOString())
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+
+                allPrNotifications = prNotifs || [];
+                filterPRs('today');
+            } catch (e) {
+                console.warn('Could not load client PRs:', e);
+                prsList.innerHTML = '<div class="prs-empty">No PR data available yet.</div>';
+            }
+        }
+
+        function filterPRs(period) {
+            // Update active tab
+            document.querySelectorAll('.prs-tab').forEach(tab => {
+                tab.classList.toggle('prs-tab--active', tab.dataset.period === period);
+            });
+
+            const now = new Date();
+            let cutoff;
+            switch (period) {
+                case 'today':
+                    cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    break;
+                case 'week':
+                    cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                default:
+                    cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            }
+
+            const filtered = allPrNotifications.filter(pr => new Date(pr.created_at) >= cutoff);
+            renderPRs(filtered, period);
+        }
+
+        function renderPRs(prs, period) {
+            const prsList = document.getElementById('prsList');
+
+            if (prs.length === 0) {
+                const periodLabel = period === 'today' ? 'today' : period === 'week' ? 'this week' : 'this month';
+                prsList.innerHTML = `<div class="prs-empty">No PRs recorded ${periodLabel}. When your clients beat their personal records, they'll show up here!</div>`;
+                return;
+            }
+
+            prsList.innerHTML = prs.map(pr => {
+                // Parse PR data from notification
+                const title = pr.title || '';
+                const message = pr.message || '';
+
+                // Extract client name (format: "New PR: ClientName - Exercise")
+                const titleMatch = title.match(/New PR: (.+?) - (.+)/);
+                const clientName = titleMatch ? titleMatch[1] : 'Client';
+                const exerciseName = titleMatch ? titleMatch[2] : 'Exercise';
+
+                // Extract weight from message
+                const weightMatch = message.match(/(\d+(?:\.\d+)?)(lbs|kg)\s*x(\d+)/);
+                const weight = weightMatch ? weightMatch[1] : '';
+                const unit = weightMatch ? weightMatch[2] : 'lbs';
+                const reps = weightMatch ? weightMatch[3] : '';
+
+                // Extract previous best
+                const prevMatch = message.match(/previous best: (\d+(?:\.\d+)?)/);
+                const prevBest = prevMatch ? prevMatch[1] : null;
+
+                // Time ago
+                const timeAgo = formatPrTime(pr.created_at);
+
+                return `
+                    <div class="pr-item" ${pr.related_client_id ? `onclick="window.location.href='client-profile.html?clientId=${pr.related_client_id}'" style="cursor:pointer;"` : ''}>
+                        <div class="pr-badge">🏅</div>
+                        <div class="pr-details">
+                            <div class="pr-client-name">${clientName}</div>
+                            <div class="pr-exercise">${exerciseName}${prevBest ? ` (prev: ${prevBest}${unit})` : ''}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="pr-weight">${weight}${unit} x${reps}</div>
+                            <div class="pr-time">${timeAgo}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatPrTime(dateStr) {
+            const now = new Date();
+            const date = new Date(dateStr);
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
 
         async function loadDashboard() {
             // Prevent multiple simultaneous loads
@@ -4017,6 +4374,9 @@
 
                 // Fetch and display quick stats
                 await loadQuickStats(user.id);
+
+                // Load client PRs section
+                loadClientPRs(user.id);
 
                 // Load notifications
                 loadNotifications(user.id);
