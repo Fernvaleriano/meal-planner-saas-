@@ -1550,6 +1550,416 @@
             color: #64748b;
         }
 
+        /* Checkbox for multi-select */
+        .ac-exercise-checkbox {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid #cbd5e1;
+            cursor: pointer;
+            flex-shrink: 0;
+            accent-color: #3b82f6;
+        }
+
+        .ac-exercise-item.checked {
+            background: #eff6ff;
+            border-color: #93c5fd;
+        }
+
+        /* Bulk action bar */
+        .ac-bulk-bar {
+            display: none;
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ac-bulk-bar.visible {
+            display: flex;
+        }
+
+        .ac-bulk-count {
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .ac-bulk-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ac-bulk-btn:hover { background: rgba(255,255,255,0.2); }
+        .ac-bulk-btn.danger:hover { background: rgba(239,68,68,0.3); color: #fca5a5; }
+
+        /* 3-dot menu */
+        .ac-dot-menu-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            color: #94a3b8;
+            font-size: 18px;
+            line-height: 1;
+            letter-spacing: 1px;
+        }
+
+        .ac-dot-menu-btn:hover { background: #f1f5f9; color: #475569; }
+
+        .ac-dot-menu {
+            display: none;
+            position: absolute;
+            right: 8px;
+            top: 40px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 100;
+            min-width: 180px;
+            overflow: hidden;
+        }
+
+        .ac-dot-menu.open { display: block; }
+
+        .ac-dot-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            transition: background 0.1s;
+        }
+
+        .ac-dot-menu-item:hover { background: #f1f5f9; }
+        .ac-dot-menu-item.danger { color: #dc2626; }
+        .ac-dot-menu-item.danger:hover { background: #fef2f2; }
+
+        /* Add Workout modal (program picker) */
+        .ac-add-workout-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px;
+        }
+
+        .ac-add-workout-option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ac-add-workout-option:hover { border-color: #3b82f6; background: #f0f9ff; }
+
+        .ac-add-workout-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .ac-add-workout-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .ac-add-workout-info span {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .ac-program-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .ac-program-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+
+        .ac-program-item:hover { background: #f0f9ff; }
+
+        .ac-program-item img {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .ac-program-item-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .ac-program-item-info span {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .ac-program-day-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 12px;
+        }
+
+        .ac-day-pick-btn {
+            padding: 8px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ac-day-pick-btn:hover { border-color: #3b82f6; background: #f0f9ff; }
+
+        /* Exercise detail modal */
+        .ac-exercise-detail-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ac-exercise-detail-modal.active { display: flex; }
+
+        .ac-exercise-detail-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .ac-exd-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .ac-exd-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .ac-exd-video-area {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .ac-exd-video-area img {
+            max-height: 220px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .ac-exd-tracking-toggle {
+            display: flex;
+            gap: 16px;
+            padding: 0 24px 16px;
+            align-items: center;
+        }
+
+        .ac-exd-tracking-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #334155;
+            cursor: pointer;
+        }
+
+        .ac-exd-sets-area {
+            padding: 0 24px 20px;
+        }
+
+        .ac-exd-set-header, .ac-exd-set-row {
+            display: grid;
+            grid-template-columns: 50px repeat(auto-fill, minmax(70px, 1fr)) 40px;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .ac-exd-set-header span {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .ac-exd-set-input {
+            width: 100%;
+            padding: 8px 6px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            background: white;
+        }
+
+        .ac-exd-set-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+        }
+
+        .ac-exd-calories {
+            padding: 0 24px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ac-exd-calories label {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .ac-exd-tabs {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 0 24px;
+            gap: 24px;
+        }
+
+        .ac-exd-tab {
+            padding: 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .ac-exd-tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        .ac-exd-tab-content {
+            padding: 16px 24px;
+            min-height: 120px;
+        }
+
+        .ac-exd-history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
+
+        .ac-exd-actions {
+            display: flex;
+            gap: 10px;
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* Move/Copy date picker */
+        .ac-date-picker-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ac-date-picker-modal.active { display: flex; }
+
+        .ac-date-picker-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 340px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .ac-date-picker-content h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #1e293b;
+        }
+
+        .ac-date-picker-content input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .ac-date-picker-btns {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
         /* Loading spinner */
         .ac-loading {
             display: flex;
@@ -1601,6 +2011,28 @@
         [data-theme="dark"] .ac-modal-search { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
         [data-theme="dark"] .ac-exercise-option:hover { background: rgba(96,165,250,0.1); }
         [data-theme="dark"] .ac-exercise-option-info h4 { color: var(--text-primary); }
+        [data-theme="dark"] .ac-dot-menu { background: var(--bg-secondary); border-color: var(--border-color); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        [data-theme="dark"] .ac-dot-menu-item { color: var(--text-primary); }
+        [data-theme="dark"] .ac-dot-menu-item:hover { background: var(--bg-tertiary); }
+        [data-theme="dark"] .ac-dot-menu-item.danger { color: #f87171; }
+        [data-theme="dark"] .ac-exercise-item.checked { background: rgba(59,130,246,0.15); border-color: #3b82f6; }
+        [data-theme="dark"] .ac-bulk-bar { background: #0f172a; }
+        [data-theme="dark"] .ac-add-workout-option { border-color: var(--border-color); }
+        [data-theme="dark"] .ac-add-workout-option:hover { background: rgba(96,165,250,0.1); border-color: #60a5fa; }
+        [data-theme="dark"] .ac-add-workout-info h4 { color: var(--text-primary); }
+        [data-theme="dark"] .ac-program-item:hover { background: rgba(96,165,250,0.1); }
+        [data-theme="dark"] .ac-program-item-info h4 { color: var(--text-primary); }
+        [data-theme="dark"] .ac-exercise-detail-content { background: var(--bg-secondary); }
+        [data-theme="dark"] .ac-exd-header { border-color: var(--border-color); }
+        [data-theme="dark"] .ac-exd-title { color: var(--text-primary); }
+        [data-theme="dark"] .ac-exd-video-area { background: var(--bg-tertiary); }
+        [data-theme="dark"] .ac-exd-set-input { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
+        [data-theme="dark"] .ac-exd-tabs { border-color: var(--border-color); }
+        [data-theme="dark"] .ac-exd-tab { color: var(--text-secondary); }
+        [data-theme="dark"] .ac-exd-tab.active { color: #60a5fa; border-color: #60a5fa; }
+        [data-theme="dark"] .ac-date-picker-content { background: var(--bg-secondary); }
+        [data-theme="dark"] .ac-date-picker-content h3 { color: var(--text-primary); }
+        [data-theme="dark"] .ac-day-pick-btn { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
 
         /* Responsive */
         @media (max-width: 900px) {
@@ -5602,6 +6034,44 @@
             </div>
         </div>
 
+        <!-- Add Workout Modal (Program Picker) -->
+        <div class="ac-modal-overlay" id="acAddWorkoutModal">
+            <div class="ac-modal">
+                <div class="ac-modal-header">
+                    <h3 id="acAddWorkoutTitle">Add Workout</h3>
+                    <button class="ac-modal-close" onclick="acCloseAddWorkoutModal()">&times;</button>
+                </div>
+                <div class="ac-modal-body" id="acAddWorkoutBody">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercise Detail Modal -->
+        <div class="ac-exercise-detail-modal" id="acExerciseDetailModal">
+            <div class="ac-exercise-detail-content">
+                <div class="ac-exd-header">
+                    <h2 class="ac-exd-title" id="acExdTitle">Exercise</h2>
+                    <button class="ac-modal-close" onclick="acCloseExerciseDetail()">&times;</button>
+                </div>
+                <div id="acExdBody">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Picker Modal (for Move/Copy) -->
+        <div class="ac-date-picker-modal" id="acDatePickerModal">
+            <div class="ac-date-picker-content">
+                <h3 id="acDatePickerTitle">Move to date</h3>
+                <input type="date" id="acDatePickerInput">
+                <div class="ac-date-picker-btns">
+                    <button class="ac-action-btn" onclick="acCloseDatePicker()">Cancel</button>
+                    <button class="ac-set-save-btn" style="width:auto; margin:0; padding:8px 20px;" onclick="acConfirmDatePicker()">Confirm</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Workout Progress Section -->
         <div class="workout-progress-section">
             <div class="section-header collapsible-header" onclick="toggleSection('workouts')" style="cursor: pointer;">
@@ -8639,13 +9109,17 @@
         let acCurrentMonth = new Date().getMonth();
         let acCurrentYear = new Date().getFullYear();
         let acSelectedDate = null;
-        let acAssignmentCache = {}; // { 'YYYY-MM-DD': { assignment data } }
-        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': true } dates with logged workouts
-        let acCurrentAssignment = null; // the active assignment object
+        let acAssignmentCache = {}; // { 'YYYY-MM-DD': true }
+        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': true }
+        let acCurrentAssignment = null;
         let acExercisesCache = [];
         let acCurrentMuscleFilter = 'all';
         let acModalMode = 'add'; // 'add' or 'swap'
         let acSwapExerciseIndex = -1;
+        let acSelectedExercises = new Set(); // multi-select indices
+        let acProgramsCache = []; // coach programs
+        let acDatePickerCallback = null; // for move/copy date picker
+        let acOpenMenuIndex = -1; // track which 3-dot menu is open
 
         function acFormatDate(date) {
             const y = date.getFullYear();
@@ -8665,7 +9139,6 @@
         async function acInit() {
             acRenderCalendar();
             await acLoadMonthData();
-            // Select today by default
             const today = acFormatDate(new Date());
             acSelectDay(today);
         }
@@ -8684,11 +9157,9 @@
             const firstDay = new Date(acCurrentYear, acCurrentMonth, 1);
             const lastDay = new Date(acCurrentYear, acCurrentMonth + 1, 0);
 
-            // Monday=0 adjustment (JS: 0=Sun,1=Mon,...,6=Sat)
             let startDow = firstDay.getDay() - 1;
             if (startDow < 0) startDow = 6;
 
-            // Fill previous month days
             const prevMonthLast = new Date(acCurrentYear, acCurrentMonth, 0);
             for (let i = startDow - 1; i >= 0; i--) {
                 const day = prevMonthLast.getDate() - i;
@@ -8697,7 +9168,6 @@
                 html += acRenderDayCell(day, dateStr, true);
             }
 
-            // Current month days
             const todayStr = acFormatDate(new Date());
             for (let d = 1; d <= lastDay.getDate(); d++) {
                 const date = new Date(acCurrentYear, acCurrentMonth, d);
@@ -8715,11 +9185,10 @@
 
                 html += `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
                     <span class="ac-day-number">${d}</span>
-                    ${hasWorkout ? '<div class="ac-day-icons"><span class="ac-day-icon">🏋️</span></div>' : ''}
+                    ${hasWorkout ? '<div class="ac-day-icons"><span class="ac-day-icon">' + (hasLogged ? '&#9989;' : '&#127947;&#65039;') + '</span></div>' : ''}
                 </div>`;
             }
 
-            // Fill remaining cells
             const totalCells = startDow + lastDay.getDate();
             const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
             for (let i = 1; i <= remaining; i++) {
@@ -8743,7 +9212,6 @@
         }
 
         async function acLoadMonthData() {
-            // Load the active assignment for this client
             try {
                 const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&activeOnly=true`);
                 const data = await res.json();
@@ -8751,7 +9219,6 @@
                 acCurrentAssignment = assignments.find(a => a.is_active) || assignments[0] || null;
 
                 if (acCurrentAssignment) {
-                    // Calculate which dates in this month have workouts
                     acAssignmentCache = {};
                     const workoutData = acCurrentAssignment.workout_data || {};
                     const days = workoutData.days || [];
@@ -8778,7 +9245,6 @@
                     }
                 }
 
-                // Also load workout logs to show which days were actually completed
                 const feedRes = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${clientId}&limit=100`);
                 const feedData = await feedRes.json();
                 const feed = feedData.feed || feedData.workouts || [];
@@ -8787,7 +9253,6 @@
                     if (w.workoutDate) acWorkoutLogsCache[w.workoutDate] = true;
                 });
 
-                // Also load adhoc workouts for this month
                 try {
                     const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}`);
                     const adhocData = await adhocRes.json();
@@ -8805,11 +9270,7 @@
 
         async function acSelectDay(dateStr) {
             acSelectedDate = dateStr;
-            // Update calendar selection visually
-            document.querySelectorAll('.ac-day-cell').forEach(cell => {
-                cell.classList.toggle('selected', cell.onclick && cell.onclick.toString().includes(dateStr));
-            });
-            // Re-render to update selected state
+            acSelectedExercises.clear();
             acRenderCalendar();
 
             const headerEl = document.getElementById('acDetailDate');
@@ -8824,16 +9285,33 @@
             bodyEl.innerHTML = '<div class="ac-loading"><div class="ac-spinner"></div></div>';
 
             try {
-                // Fetch workout for this date
+                // Fetch assigned workout for this date
                 const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`);
                 const data = await res.json();
                 const assignments = data.assignments || [];
-                const workout = assignments[0] || null;
+                let workout = assignments[0] || null;
+
+                // Also check for adhoc workout
+                if (!workout || !workout.workout_data) {
+                    try {
+                        const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`);
+                        const adhocData = await adhocRes.json();
+                        const adhocWorkout = (adhocData.workouts || [])[0];
+                        if (adhocWorkout) {
+                            workout = {
+                                id: adhocWorkout.id,
+                                name: adhocWorkout.name || 'Custom Workout',
+                                workout_data: adhocWorkout.workout_data || { exercises: [] },
+                                is_adhoc: true,
+                                day_index: 0
+                            };
+                        }
+                    } catch (e) { /* ignore */ }
+                }
 
                 if (workout && workout.workout_data) {
                     acRenderDayDetail(workout, dateStr);
                 } else {
-                    // No assigned workout - show empty with add option
                     bodyEl.innerHTML = `
                         <div class="ac-detail-empty">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -8842,7 +9320,7 @@
                             <p>Rest day - no workout assigned</p>
                         </div>
                         <div class="ac-detail-actions" style="justify-content: center; margin-top: 12px;">
-                            <button class="ac-action-btn" onclick="acAddWorkoutToDate('${dateStr}')">
+                            <button class="ac-action-btn" onclick="acOpenAddWorkout('${dateStr}')">
                                 + Add Workout
                             </button>
                         </div>
@@ -8858,17 +9336,36 @@
             const bodyEl = document.getElementById('acDetailBody');
             const exercises = workout.workout_data.exercises || [];
             const workoutName = workout.name || 'Workout';
-            const isAdhoc = workout.is_adhoc;
+            const isAdhoc = !!workout.is_adhoc;
             const assignmentId = workout.id;
-            const dayIndex = workout.day_index;
+            const dayIndex = workout.day_index !== undefined ? workout.day_index : 0;
 
             let html = `<div class="ac-detail-workout-name">${escapeHtml(workoutName)}</div>`;
 
+            // Bulk action bar (hidden until selections made)
+            html += `<div class="ac-bulk-bar" id="acBulkBar">
+                <span class="ac-bulk-count" id="acBulkCount">0 selected</span>
+                <button class="ac-bulk-btn" onclick="acBulkCheckDone()">&#9745; Check done</button>
+                <button class="ac-bulk-btn" onclick="acBulkUncheckDone()">&#9744; Uncheck</button>
+                <button class="ac-bulk-btn danger" onclick="acBulkDelete()">&#128465; Delete</button>
+                <button class="ac-bulk-btn" onclick="acBulkMoveTo()">&#9999; Move to</button>
+                <button class="ac-bulk-btn" onclick="acBulkCopyTo()">&#128203; Copy to</button>
+            </div>`;
+
             // Action buttons
             html += `<div class="ac-detail-actions">
-                <button class="ac-action-btn" onclick="acOpenAddExercise('${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')">+ Add Exercise</button>
-                <button class="ac-action-btn danger" onclick="acDeleteWorkout('${assignmentId}', ${isAdhoc || false}, '${dateStr}')">Delete Workout</button>
+                <button class="ac-action-btn" onclick="acOpenAddExercise('${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">+ Add Exercise</button>
+                <button class="ac-action-btn" onclick="acOpenAddWorkout('${dateStr}')">+ Add Workout</button>
+                <button class="ac-action-btn danger" onclick="acDeleteWorkout('${assignmentId}', ${isAdhoc}, '${dateStr}')">Delete Workout</button>
             </div>`;
+
+            // Select all checkbox
+            if (exercises.length > 0) {
+                html += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:4px 0;">
+                    <input type="checkbox" class="ac-exercise-checkbox" id="acSelectAll" onchange="acToggleSelectAll(this.checked)">
+                    <label for="acSelectAll" style="font-size:12px; color:#64748b; font-weight:600; cursor:pointer;">Select All</label>
+                </div>`;
+            }
 
             // Exercise list
             if (exercises.length === 0) {
@@ -8880,12 +9377,14 @@
                     const reps = ex.reps || '0';
                     const restSec = ex.restSeconds || 0;
                     const trackingType = ex.trackingType || 'reps';
+                    const isChecked = acSelectedExercises.has(idx);
+                    const isDone = ex._done;
 
                     // Build sets display
                     let setsHtml = '';
                     if (ex.setsData && Array.isArray(ex.setsData)) {
-                        setsHtml = ex.setsData.map((s, si) =>
-                            `<span class="ac-set-pill">${s.reps || 0}${s.weight ? ' x ' + s.weight + (s.weightUnit || 'kg') : ''}</span>`
+                        setsHtml = ex.setsData.map(s =>
+                            `<span class="ac-set-pill${s._completed ? ' completed' : ''}">${s.reps || 0}${s.weight ? 'x' + s.weight + (s.weightUnit || 'lbs') : ''}</span>`
                         ).join('');
                     } else if (sets > 0) {
                         setsHtml = `<span class="ac-set-pill">${sets} sets x ${reps} ${trackingType === 'time' ? 'sec' : 'reps'}</span>`;
@@ -8895,20 +9394,25 @@
                     }
 
                     html += `
-                        <div class="ac-exercise-item" data-ex-index="${idx}">
+                        <div class="ac-exercise-item${isChecked ? ' checked' : ''}" data-ex-index="${idx}">
                             <div class="ac-exercise-header">
-                                ${thumb ? `<img class="ac-exercise-thumb" src="${thumb}" alt="" onerror="this.style.display='none'">` : '<div class="ac-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">🏋️</div>'}
-                                <div class="ac-exercise-info">
-                                    <div class="ac-exercise-name">${escapeHtml(ex.name || '')}</div>
-                                    <div class="ac-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '· ' + ex.equipment : ''}</div>
+                                <input type="checkbox" class="ac-exercise-checkbox" ${isChecked ? 'checked' : ''} onchange="acToggleExerciseSelect(${idx}, this.checked)">
+                                ${thumb ? `<img class="ac-exercise-thumb" src="${thumb}" alt="" onerror="this.style.display='none'" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">` : `<div class="ac-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#127947;&#65039;</div>`}
+                                <div class="ac-exercise-info" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">
+                                    <div class="ac-exercise-name">${escapeHtml(ex.name || '')}${isDone ? ' &#9989;' : ''}</div>
+                                    <div class="ac-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '&middot; ' + ex.equipment : ''}</div>
                                 </div>
-                                <div class="ac-exercise-actions">
-                                    <button class="ac-ex-btn" onclick="acEditSets(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')" title="Edit sets">&#9998;</button>
-                                    <button class="ac-ex-btn" onclick="acSwapExercise(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')" title="Swap exercise">&#8644;</button>
-                                    <button class="ac-ex-btn delete" onclick="acDeleteExercise(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')" title="Delete exercise">&#10005;</button>
+                                <button class="ac-dot-menu-btn" onclick="acToggleDotMenu(event, ${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#8942;</button>
+                                <div class="ac-dot-menu" id="acDotMenu_${idx}">
+                                    <button class="ac-dot-menu-item" onclick="acDotAction('checkDone', ${idx})">&#9745; ${isDone ? 'Uncheck done' : 'Check as done'}</button>
+                                    <button class="ac-dot-menu-item" onclick="acDotAction('edit', ${idx})">&#9998; Edit sets</button>
+                                    <button class="ac-dot-menu-item" onclick="acDotAction('swap', ${idx})">&#8644; Swap exercise</button>
+                                    <button class="ac-dot-menu-item" onclick="acDotAction('moveTo', ${idx})">&#8599; Move to</button>
+                                    <button class="ac-dot-menu-item" onclick="acDotAction('copyTo', ${idx})">&#128203; Copy to</button>
+                                    <button class="ac-dot-menu-item danger" onclick="acDotAction('delete', ${idx})">&#128465; Delete</button>
                                 </div>
                             </div>
-                            <div class="ac-sets-grid">${setsHtml}</div>
+                            <div class="ac-sets-grid" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">${setsHtml}</div>
                             <div id="acSetEditor_${idx}"></div>
                         </div>
                     `;
@@ -8916,9 +9420,283 @@
             }
 
             bodyEl.innerHTML = html;
-
-            // Store the current workout data for editing
             bodyEl.dataset.workout = JSON.stringify(workout);
+            bodyEl.dataset.dateStr = dateStr;
+        }
+
+        // ---- Close any open dot menu on click outside ----
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.ac-dot-menu-btn') && !e.target.closest('.ac-dot-menu')) {
+                document.querySelectorAll('.ac-dot-menu.open').forEach(m => m.classList.remove('open'));
+                acOpenMenuIndex = -1;
+            }
+        });
+
+        // ---- 3-Dot Menu ----
+        function acToggleDotMenu(event, idx, assignmentId, dayIndex, isAdhoc, dateStr) {
+            event.stopPropagation();
+            document.querySelectorAll('.ac-dot-menu.open').forEach(m => m.classList.remove('open'));
+
+            const menu = document.getElementById(`acDotMenu_${idx}`);
+            if (acOpenMenuIndex === idx) {
+                acOpenMenuIndex = -1;
+                return;
+            }
+            acOpenMenuIndex = idx;
+            menu.dataset.assignmentId = assignmentId;
+            menu.dataset.dayIndex = dayIndex;
+            menu.dataset.isAdhoc = isAdhoc;
+            menu.dataset.dateStr = dateStr;
+            menu.classList.add('open');
+        }
+
+        function acDotAction(action, idx) {
+            const menu = document.getElementById(`acDotMenu_${idx}`);
+            const assignmentId = menu.dataset.assignmentId;
+            const dayIndex = parseInt(menu.dataset.dayIndex);
+            const isAdhoc = menu.dataset.isAdhoc === 'true';
+            const dateStr = menu.dataset.dateStr;
+
+            menu.classList.remove('open');
+            acOpenMenuIndex = -1;
+
+            switch(action) {
+                case 'checkDone':
+                    acToggleExerciseDone(idx, assignmentId, dayIndex, isAdhoc, dateStr);
+                    break;
+                case 'edit':
+                    acEditSets(idx, assignmentId, dayIndex, isAdhoc, dateStr);
+                    break;
+                case 'swap':
+                    acSwapExercise(idx, assignmentId, dayIndex, isAdhoc, dateStr);
+                    break;
+                case 'moveTo':
+                    acMoveExercise([idx], assignmentId, dayIndex, isAdhoc, dateStr);
+                    break;
+                case 'copyTo':
+                    acCopyExercise([idx], assignmentId, dayIndex, isAdhoc, dateStr);
+                    break;
+                case 'delete':
+                    acDeleteExercise(idx, assignmentId, dayIndex, isAdhoc, dateStr);
+                    break;
+            }
+        }
+
+        // ---- Multi-Select ----
+        function acToggleExerciseSelect(idx, checked) {
+            if (checked) {
+                acSelectedExercises.add(idx);
+            } else {
+                acSelectedExercises.delete(idx);
+            }
+            acUpdateBulkBar();
+            const item = document.querySelector(`.ac-exercise-item[data-ex-index="${idx}"]`);
+            if (item) item.classList.toggle('checked', checked);
+        }
+
+        function acToggleSelectAll(checked) {
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+
+            acSelectedExercises.clear();
+            if (checked) {
+                exercises.forEach((_, i) => acSelectedExercises.add(i));
+            }
+
+            document.querySelectorAll('.ac-exercise-item .ac-exercise-checkbox').forEach((cb) => {
+                cb.checked = checked;
+                cb.closest('.ac-exercise-item')?.classList.toggle('checked', checked);
+            });
+            acUpdateBulkBar();
+        }
+
+        function acUpdateBulkBar() {
+            const bar = document.getElementById('acBulkBar');
+            const count = document.getElementById('acBulkCount');
+            if (!bar || !count) return;
+
+            if (acSelectedExercises.size > 0) {
+                bar.classList.add('visible');
+                count.textContent = `${acSelectedExercises.size} selected`;
+            } else {
+                bar.classList.remove('visible');
+            }
+        }
+
+        // ---- Bulk Actions ----
+        function acGetBulkContext() {
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const dateStr = bodyEl.dataset.dateStr;
+            return { workout, dateStr, assignmentId: workout.id, dayIndex: workout.day_index || 0, isAdhoc: !!workout.is_adhoc };
+        }
+
+        async function acBulkCheckDone() {
+            const { workout, dateStr, assignmentId, dayIndex, isAdhoc } = acGetBulkContext();
+            const exercises = workout.workout_data?.exercises || [];
+            acSelectedExercises.forEach(idx => {
+                if (exercises[idx]) exercises[idx]._done = true;
+            });
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
+        }
+
+        async function acBulkUncheckDone() {
+            const { workout, dateStr, assignmentId, dayIndex, isAdhoc } = acGetBulkContext();
+            const exercises = workout.workout_data?.exercises || [];
+            acSelectedExercises.forEach(idx => {
+                if (exercises[idx]) exercises[idx]._done = false;
+            });
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
+        }
+
+        async function acBulkDelete() {
+            if (!confirm(`Delete ${acSelectedExercises.size} selected exercise(s)?`)) return;
+            const { workout, dateStr, assignmentId, dayIndex, isAdhoc } = acGetBulkContext();
+            const exercises = (workout.workout_data?.exercises || []).filter((_, i) => !acSelectedExercises.has(i));
+            acSelectedExercises.clear();
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
+        }
+
+        function acBulkMoveTo() {
+            const { assignmentId, dayIndex, isAdhoc, dateStr } = acGetBulkContext();
+            acMoveExercise([...acSelectedExercises], assignmentId, dayIndex, isAdhoc, dateStr);
+        }
+
+        function acBulkCopyTo() {
+            const { assignmentId, dayIndex, isAdhoc, dateStr } = acGetBulkContext();
+            acCopyExercise([...acSelectedExercises], assignmentId, dayIndex, isAdhoc, dateStr);
+        }
+
+        // ---- Toggle Exercise Done ----
+        async function acToggleExerciseDone(idx, assignmentId, dayIndex, isAdhoc, dateStr) {
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+            if (exercises[idx]) {
+                exercises[idx]._done = !exercises[idx]._done;
+            }
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
+        }
+
+        // ---- Move Exercise(s) to another date ----
+        function acMoveExercise(indices, assignmentId, dayIndex, isAdhoc, dateStr) {
+            document.getElementById('acDatePickerTitle').textContent = 'Move to date';
+            document.getElementById('acDatePickerInput').value = '';
+            document.getElementById('acDatePickerModal').classList.add('active');
+
+            acDatePickerCallback = async function(targetDate) {
+                if (!targetDate || targetDate === dateStr) return;
+                const bodyEl = document.getElementById('acDetailBody');
+                const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+                const exercises = workout.workout_data?.exercises || [];
+                const movedExercises = indices.map(i => exercises[i]).filter(Boolean);
+
+                const remaining = exercises.filter((_, i) => !indices.includes(i));
+                await acSaveExercises(remaining, assignmentId, dayIndex, isAdhoc, dateStr);
+                await acAddExercisesToDate(targetDate, movedExercises);
+                acSelectedExercises.clear();
+            };
+        }
+
+        // ---- Copy Exercise(s) to another date ----
+        function acCopyExercise(indices, assignmentId, dayIndex, isAdhoc, dateStr) {
+            document.getElementById('acDatePickerTitle').textContent = 'Copy to date';
+            document.getElementById('acDatePickerInput').value = '';
+            document.getElementById('acDatePickerModal').classList.add('active');
+
+            acDatePickerCallback = async function(targetDate) {
+                if (!targetDate) return;
+                const bodyEl = document.getElementById('acDetailBody');
+                const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+                const exercises = workout.workout_data?.exercises || [];
+                const copiedExercises = indices.map(i => ({...exercises[i]})).filter(Boolean);
+                await acAddExercisesToDate(targetDate, copiedExercises);
+                acSelectedExercises.clear();
+            };
+        }
+
+        async function acAddExercisesToDate(targetDate, exercisesToAdd) {
+            try {
+                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${targetDate}`);
+                const data = await res.json();
+                const assignment = (data.assignments || [])[0];
+
+                if (assignment && assignment.workout_data) {
+                    const exercises = assignment.workout_data.exercises || [];
+                    exercises.push(...exercisesToAdd);
+                    await acSaveExercises(exercises, assignment.id, assignment.day_index || 0, !!assignment.is_adhoc, targetDate);
+                } else {
+                    const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${targetDate}`);
+                    const adhocData = await adhocRes.json();
+                    const adhocWorkout = (adhocData.workouts || [])[0];
+
+                    if (adhocWorkout) {
+                        const exercises = (adhocWorkout.workout_data || {}).exercises || [];
+                        exercises.push(...exercisesToAdd);
+                        await fetch('/.netlify/functions/adhoc-workouts', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ workoutId: adhocWorkout.id, workoutData: { exercises } })
+                        });
+                    } else {
+                        await fetch('/.netlify/functions/adhoc-workouts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                clientId,
+                                workoutDate: targetDate,
+                                name: 'Workout',
+                                workoutData: { exercises: exercisesToAdd }
+                            })
+                        });
+                    }
+                }
+                acAssignmentCache[targetDate] = true;
+                acRenderCalendar();
+            } catch (err) {
+                console.error('Error adding exercises to date:', err);
+                alert('Failed to add exercises to target date');
+            }
+        }
+
+        // ---- Date Picker ----
+        function acCloseDatePicker() {
+            document.getElementById('acDatePickerModal').classList.remove('active');
+            acDatePickerCallback = null;
+        }
+
+        async function acConfirmDatePicker() {
+            const val = document.getElementById('acDatePickerInput').value;
+            if (!val) { alert('Please select a date'); return; }
+            document.getElementById('acDatePickerModal').classList.remove('active');
+            if (acDatePickerCallback) {
+                await acDatePickerCallback(val);
+                acDatePickerCallback = null;
+            }
+        }
+
+        // ---- Save Exercises Helper ----
+        async function acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr) {
+            try {
+                if (isAdhoc) {
+                    await fetch('/.netlify/functions/adhoc-workouts', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ workoutId: assignmentId, workoutData: { exercises } })
+                    });
+                } else {
+                    await fetch('/.netlify/functions/client-workout-log', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assignmentId, dayIndex, workout_data: { exercises } })
+                    });
+                }
+                acSelectDay(dateStr);
+            } catch (err) {
+                console.error('Error saving exercises:', err);
+                alert('Failed to save changes');
+            }
         }
 
         // ---- Set Editing ----
@@ -8931,7 +9709,6 @@
 
             const editorEl = document.getElementById(`acSetEditor_${exIndex}`);
 
-            // Build sets from setsData or from sets/reps count
             let setsData = [];
             if (exercise.setsData && Array.isArray(exercise.setsData)) {
                 setsData = exercise.setsData.map(s => ({ reps: s.reps || 0, weight: s.weight || 0, weightUnit: s.weightUnit || 'lbs' }));
@@ -8949,9 +9726,9 @@
             setsData.forEach((s, i) => {
                 html += `<div class="ac-set-row">
                     <span class="ac-set-label">${i + 1}</span>
-                    <input class="ac-set-input" type="number" value="${s.reps}" data-set="${i}" data-field="reps" min="0">
-                    <input class="ac-set-input" type="number" value="${s.weight}" data-set="${i}" data-field="weight" min="0" step="0.5">
-                    <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">×</button>
+                    <input class="ac-set-input" type="number" value="${s.reps}" data-field="reps" min="0">
+                    <input class="ac-set-input" type="number" value="${s.weight}" data-field="weight" min="0" step="0.5">
+                    <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">&times;</button>
                 </div>`;
             });
 
@@ -8965,14 +9742,14 @@
         function acAddSetRow(btn) {
             const editor = btn.closest('.ac-set-editor');
             const rows = editor.querySelectorAll('.ac-set-row');
-            const num = rows.length; // includes header
+            const num = rows.length;
             const row = document.createElement('div');
             row.className = 'ac-set-row';
             row.innerHTML = `
                 <span class="ac-set-label">${num}</span>
-                <input class="ac-set-input" type="number" value="10" data-set="${num - 1}" data-field="reps" min="0">
-                <input class="ac-set-input" type="number" value="0" data-set="${num - 1}" data-field="weight" min="0" step="0.5">
-                <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">×</button>
+                <input class="ac-set-input" type="number" value="10" data-field="reps" min="0">
+                <input class="ac-set-input" type="number" value="0" data-field="weight" min="0" step="0.5">
+                <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">&times;</button>
             `;
             btn.before(row);
         }
@@ -8983,7 +9760,7 @@
             const newSetsData = [];
 
             rows.forEach((row, i) => {
-                if (i === 0) return; // skip header
+                if (i === 0) return;
                 const repsInput = row.querySelector('[data-field="reps"]');
                 const weightInput = row.querySelector('[data-field="weight"]');
                 if (repsInput && weightInput) {
@@ -8996,7 +9773,6 @@
                 }
             });
 
-            // Update the exercise in the workout data
             const bodyEl = document.getElementById('acDetailBody');
             const workout = JSON.parse(bodyEl.dataset.workout || '{}');
             const exercises = workout.workout_data?.exercises || [];
@@ -9010,72 +9786,16 @@
             const saveBtn = editorEl.querySelector('.ac-set-save-btn');
             if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
-            try {
-                if (isAdhoc) {
-                    await fetch('/.netlify/functions/adhoc-workouts', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            workoutId: assignmentId,
-                            workoutData: { exercises }
-                        })
-                    });
-                } else {
-                    await fetch('/.netlify/functions/client-workout-log', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            assignmentId,
-                            dayIndex,
-                            workout_data: { exercises }
-                        })
-                    });
-                }
-
-                // Refresh view
-                acSelectDay(dateStr);
-            } catch (err) {
-                console.error('Error saving sets:', err);
-                alert('Failed to save changes');
-                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
-            }
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
 
         // ---- Delete Exercise ----
         async function acDeleteExercise(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
             if (!confirm('Delete this exercise from the workout?')) return;
-
             const bodyEl = document.getElementById('acDetailBody');
             const workout = JSON.parse(bodyEl.dataset.workout || '{}');
             const exercises = (workout.workout_data?.exercises || []).filter((_, i) => i !== exIndex);
-
-            try {
-                if (isAdhoc) {
-                    await fetch('/.netlify/functions/adhoc-workouts', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            workoutId: assignmentId,
-                            workoutData: { exercises }
-                        })
-                    });
-                } else {
-                    await fetch('/.netlify/functions/client-workout-log', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            assignmentId,
-                            dayIndex,
-                            workout_data: { exercises }
-                        })
-                    });
-                }
-
-                acSelectDay(dateStr);
-            } catch (err) {
-                console.error('Error deleting exercise:', err);
-                alert('Failed to delete exercise');
-            }
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
 
         // ---- Swap Exercise ----
@@ -9084,7 +9804,6 @@
             acSwapExerciseIndex = exIndex;
             document.getElementById('acModalTitle').textContent = 'Swap Exercise';
 
-            // Store context for when a selection is made
             const modal = document.getElementById('acExerciseModal');
             modal.dataset.assignmentId = assignmentId;
             modal.dataset.dayIndex = dayIndex;
@@ -9149,10 +9868,10 @@
             listEl.innerHTML = acExercisesCache.map(ex => {
                 const thumb = ex.thumbnail_url || ex.animation_url || '';
                 return `<div class="ac-exercise-option" onclick="acSelectExercise('${ex.id}')">
-                    ${thumb ? `<img src="${thumb}" alt="" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:20px;">🏋️</div>'}
+                    ${thumb ? `<img src="${thumb}" alt="" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:20px;">&#127947;&#65039;</div>'}
                     <div class="ac-exercise-option-info">
                         <h4>${escapeHtml(ex.name || '')}</h4>
-                        <span>${ex.muscle_group || ''} ${ex.equipment ? '· ' + ex.equipment : ''}</span>
+                        <span>${ex.muscle_group || ''} ${ex.equipment ? '&middot; ' + ex.equipment : ''}</span>
                     </div>
                 </div>`;
             }).join('');
@@ -9181,7 +9900,6 @@
             const isAdhoc = modal.dataset.isAdhoc === 'true';
             const dateStr = modal.dataset.dateStr;
 
-            // Get current workout data
             const bodyEl = document.getElementById('acDetailBody');
             const workout = JSON.parse(bodyEl.dataset.workout || '{}');
             const exercises = workout.workout_data?.exercises || [];
@@ -9201,7 +9919,6 @@
             };
 
             if (acModalMode === 'swap' && acSwapExerciseIndex >= 0 && acSwapExerciseIndex < exercises.length) {
-                // Preserve sets/reps from the old exercise
                 const old = exercises[acSwapExerciseIndex];
                 newExercise.sets = old.sets || 3;
                 newExercise.reps = old.reps || '10';
@@ -9213,38 +9930,44 @@
             }
 
             acCloseExerciseModal();
-
-            try {
-                if (isAdhoc) {
-                    await fetch('/.netlify/functions/adhoc-workouts', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            workoutId: assignmentId,
-                            workoutData: { exercises }
-                        })
-                    });
-                } else {
-                    await fetch('/.netlify/functions/client-workout-log', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            assignmentId,
-                            dayIndex,
-                            workout_data: { exercises }
-                        })
-                    });
-                }
-
-                acSelectDay(dateStr);
-            } catch (err) {
-                console.error('Error updating exercises:', err);
-                alert('Failed to save exercise change');
-            }
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
 
-        // ---- Add Workout to Date ----
-        async function acAddWorkoutToDate(dateStr) {
+        // ============ ADD WORKOUT (Program Picker) ============
+
+        function acOpenAddWorkout(dateStr) {
+            const modal = document.getElementById('acAddWorkoutModal');
+            modal.dataset.dateStr = dateStr;
+            document.getElementById('acAddWorkoutTitle').textContent = 'Add Workout';
+
+            document.getElementById('acAddWorkoutBody').innerHTML = `
+                <div class="ac-add-workout-options">
+                    <div class="ac-add-workout-option" onclick="acCreateCustomWorkout('${dateStr}')">
+                        <div class="ac-add-workout-icon">&#10010;</div>
+                        <div class="ac-add-workout-info">
+                            <h4>Custom Workout</h4>
+                            <span>Create a blank workout and add exercises</span>
+                        </div>
+                    </div>
+                    <div class="ac-add-workout-option" onclick="acShowProgramPicker('${dateStr}')">
+                        <div class="ac-add-workout-icon">&#128218;</div>
+                        <div class="ac-add-workout-info">
+                            <h4>From Program Library</h4>
+                            <span>Assign a workout from your saved programs</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function acCloseAddWorkoutModal() {
+            document.getElementById('acAddWorkoutModal').classList.remove('active');
+        }
+
+        async function acCreateCustomWorkout(dateStr) {
+            acCloseAddWorkoutModal();
             const name = prompt('Workout name:', 'Custom Workout');
             if (!name) return;
 
@@ -9264,9 +9987,384 @@
                 acRenderCalendar();
                 acSelectDay(dateStr);
             } catch (err) {
-                console.error('Error adding workout:', err);
-                alert('Failed to add workout');
+                console.error('Error creating custom workout:', err);
+                alert('Failed to create workout');
             }
+        }
+
+        async function acShowProgramPicker(dateStr) {
+            const body = document.getElementById('acAddWorkoutBody');
+            body.innerHTML = '<div class="ac-loading"><div class="ac-spinner"></div></div>';
+
+            try {
+                if (acProgramsCache.length === 0) {
+                    const res = await fetch(`/.netlify/functions/workout-programs?coachId=${window.coachUserId || ''}`);
+                    const data = await res.json();
+                    acProgramsCache = data.programs || [];
+                }
+
+                if (acProgramsCache.length === 0) {
+                    body.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:30px;">No programs found in your library. Create programs in the Workout Builder first.</p>';
+                    return;
+                }
+
+                let html = '<input type="text" class="ac-modal-search" placeholder="Search programs..." oninput="acFilterPrograms(this.value)">';
+                html += '<div class="ac-program-list" id="acProgramList">';
+                html += acRenderProgramList(acProgramsCache, dateStr);
+                html += '</div>';
+
+                body.innerHTML = html;
+            } catch (err) {
+                console.error('Error loading programs:', err);
+                body.innerHTML = '<p style="color:#ef4444; padding:20px; text-align:center;">Failed to load programs</p>';
+            }
+        }
+
+        function acRenderProgramList(programs, dateStr) {
+            return programs.map(p => {
+                const imgUrl = p.program_data?.image_url || '';
+                const daysCount = (p.program_data?.days || []).length;
+                return `<div class="ac-program-item" onclick="acSelectProgram(${p.id}, '${dateStr}')">
+                    ${imgUrl ? `<img src="${imgUrl}" alt="" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:18px;">&#128218;</div>'}
+                    <div class="ac-program-item-info">
+                        <h4>${escapeHtml(p.name || 'Untitled')}</h4>
+                        <span>${daysCount} day${daysCount !== 1 ? 's' : ''} &middot; ${p.difficulty || 'Any level'} &middot; ${p.program_type || 'General'}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function acFilterPrograms(search) {
+            const filtered = acProgramsCache.filter(p =>
+                (p.name || '').toLowerCase().includes(search.toLowerCase())
+            );
+            const dateStr = document.getElementById('acAddWorkoutModal').dataset.dateStr;
+            document.getElementById('acProgramList').innerHTML = acRenderProgramList(filtered, dateStr);
+        }
+
+        async function acSelectProgram(programId, dateStr) {
+            const program = acProgramsCache.find(p => p.id === programId);
+            if (!program) return;
+
+            const days = program.program_data?.days || [];
+
+            if (days.length === 0) {
+                alert('This program has no workout days defined.');
+                return;
+            }
+
+            if (days.length === 1) {
+                await acAddProgramDayToDate(program, 0, dateStr);
+                return;
+            }
+
+            const body = document.getElementById('acAddWorkoutBody');
+            let html = `<p style="padding:12px; font-weight:600; color:#334155;">Select a workout day from "${escapeHtml(program.name)}":</p>`;
+            html += '<div class="ac-program-day-picker">';
+            days.forEach((day, i) => {
+                html += `<button class="ac-day-pick-btn" onclick="acAddProgramDayToDate(acProgramsCache.find(p=>p.id===${programId}), ${i}, '${dateStr}')">
+                    ${escapeHtml(day.name || 'Day ' + (i + 1))}
+                    <br><span style="font-size:11px; color:#64748b;">${(day.exercises || []).length} exercises</span>
+                </button>`;
+            });
+            html += '</div>';
+            body.innerHTML = html;
+        }
+
+        async function acAddProgramDayToDate(program, dayIndex, dateStr) {
+            acCloseAddWorkoutModal();
+
+            const day = program.program_data.days[dayIndex];
+            if (!day) return;
+
+            const exercises = (day.exercises || []).map(ex => ({
+                id: ex.id,
+                name: ex.name,
+                muscle_group: ex.muscle_group,
+                equipment: ex.equipment,
+                thumbnail_url: ex.thumbnail_url,
+                animation_url: ex.animation_url,
+                video_url: ex.video_url,
+                sets: ex.sets || 3,
+                reps: ex.reps || '10',
+                restSeconds: ex.restSeconds || 60,
+                trackingType: ex.trackingType || 'reps',
+                notes: ex.notes || ''
+            }));
+
+            const name = `${program.name} - ${day.name || 'Day ' + (dayIndex + 1)}`;
+
+            try {
+                await fetch('/.netlify/functions/adhoc-workouts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        workoutDate: dateStr,
+                        name,
+                        workoutData: { exercises }
+                    })
+                });
+
+                acAssignmentCache[dateStr] = true;
+                acRenderCalendar();
+                acSelectDay(dateStr);
+            } catch (err) {
+                console.error('Error adding program workout:', err);
+                alert('Failed to add workout from program');
+            }
+        }
+
+        // ============ EXERCISE DETAIL MODAL ============
+
+        function acOpenExerciseDetail(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+            const ex = exercises[exIndex];
+            if (!ex) return;
+
+            const modal = document.getElementById('acExerciseDetailModal');
+            modal.dataset.exIndex = exIndex;
+            modal.dataset.assignmentId = assignmentId;
+            modal.dataset.dayIndex = dayIndex;
+            modal.dataset.isAdhoc = isAdhoc;
+            modal.dataset.dateStr = dateStr;
+
+            document.getElementById('acExdTitle').textContent = ex.name || 'Exercise';
+
+            const imgSrc = ex.animation_url || ex.video_url || ex.thumbnail_url || '';
+            const trackingType = ex.trackingType || 'reps';
+
+            let setsData = [];
+            if (ex.setsData && Array.isArray(ex.setsData)) {
+                setsData = ex.setsData;
+            } else {
+                const numSets = ex.sets || 3;
+                const reps = parseInt(ex.reps) || 10;
+                for (let i = 0; i < numSets; i++) {
+                    setsData.push({ reps, weight: 0, weightUnit: 'lbs' });
+                }
+            }
+
+            let html = '';
+
+            if (imgSrc) {
+                html += `<div class="ac-exd-video-area">
+                    <img src="${imgSrc}" alt="${escapeHtml(ex.name || '')}" onerror="this.parentElement.style.display='none'">
+                </div>`;
+            }
+
+            html += `<div class="ac-exd-tracking-toggle">
+                <label><input type="radio" name="acExdTracking" value="reps" ${trackingType === 'reps' ? 'checked' : ''} onchange="acUpdateTrackingType('reps')"> Repetition-based</label>
+                <label><input type="radio" name="acExdTracking" value="time" ${trackingType === 'time' ? 'checked' : ''} onchange="acUpdateTrackingType('time')"> Time-based</label>
+            </div>`;
+
+            const repsLabel = trackingType === 'time' ? 'Duration (s)' : 'Reps (x)';
+            html += `<div class="ac-exd-sets-area" id="acExdSetsArea">`;
+
+            html += `<div style="margin-bottom:8px;">
+                <label style="font-size:13px; font-weight:600; color:#64748b; display:block; margin-bottom:4px;">${repsLabel}</label>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;" id="acExdRepsRow">`;
+            for (let i = 0; i < Math.max(setsData.length, 1); i++) {
+                html += `<input class="ac-exd-set-input" type="number" value="${setsData[i]?.reps || 0}" style="width:60px;" data-set="${i}" data-field="reps" min="0">`;
+            }
+            for (let i = setsData.length; i < 10; i++) {
+                html += `<input class="ac-exd-set-input" type="number" value="0" style="width:60px; opacity:0.4;" data-set="${i}" data-field="reps" min="0" onfocus="this.style.opacity=1" onblur="if(!this.value||this.value==='0')this.style.opacity=0.4">`;
+            }
+            html += `</div></div>`;
+
+            html += `<div style="margin-bottom:8px;">
+                <label style="font-size:13px; font-weight:600; color:#64748b; display:block; margin-bottom:4px;">Weight (lbs)</label>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;" id="acExdWeightRow">`;
+            for (let i = 0; i < Math.max(setsData.length, 1); i++) {
+                html += `<input class="ac-exd-set-input" type="number" value="${setsData[i]?.weight || ''}" style="width:60px;" data-set="${i}" data-field="weight" min="0" step="0.5" placeholder="">`;
+            }
+            for (let i = setsData.length; i < 10; i++) {
+                html += `<input class="ac-exd-set-input" type="number" value="" style="width:60px; opacity:0.4;" data-set="${i}" data-field="weight" min="0" step="0.5" placeholder="" onfocus="this.style.opacity=1" onblur="if(!this.value)this.style.opacity=0.4">`;
+            }
+            html += `</div></div>`;
+
+            html += '</div>';
+
+            html += `<div class="ac-exd-calories">
+                <label>Calories (Kcal)</label>
+                <input class="ac-exd-set-input" type="number" id="acExdCalories" value="${ex.calories || ''}" style="width:80px;" min="0">
+            </div>`;
+
+            html += `<div class="ac-exd-tabs">
+                <button class="ac-exd-tab active" onclick="acExdSwitchTab('progress', this)">Progress</button>
+                <button class="ac-exd-tab" onclick="acExdSwitchTab('history', this)">History</button>
+                <button class="ac-exd-tab" onclick="acExdSwitchTab('instructions', this)">Instructions</button>
+                <button class="ac-exd-tab" onclick="acExdSwitchTab('details', this)">Details</button>
+            </div>`;
+
+            html += `<div class="ac-exd-tab-content" id="acExdTabContent">
+                <p style="color:#94a3b8; text-align:center; padding:16px;">Loading progress data...</p>
+            </div>`;
+
+            html += `<div class="ac-exd-actions">
+                <button class="ac-action-btn" onclick="acCloseExerciseDetail()">Cancel</button>
+                <button class="ac-set-save-btn" style="width:auto; margin:0; flex:1;" onclick="acSaveExerciseDetail()">Save Changes</button>
+            </div>`;
+
+            document.getElementById('acExdBody').innerHTML = html;
+            modal.classList.add('active');
+
+            acLoadExerciseHistory(ex.id || ex.name);
+        }
+
+        function acCloseExerciseDetail() {
+            document.getElementById('acExerciseDetailModal').classList.remove('active');
+        }
+
+        function acUpdateTrackingType(type) {
+            const label = type === 'time' ? 'Duration (s)' : 'Reps (x)';
+            const setsArea = document.getElementById('acExdSetsArea');
+            if (setsArea) {
+                const firstLabel = setsArea.querySelector('label');
+                if (firstLabel) firstLabel.textContent = label;
+            }
+        }
+
+        function acExdSwitchTab(tab, btn) {
+            document.querySelectorAll('.ac-exd-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            const content = document.getElementById('acExdTabContent');
+            const modal = document.getElementById('acExerciseDetailModal');
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exIndex = parseInt(modal.dataset.exIndex);
+            const ex = (workout.workout_data?.exercises || [])[exIndex];
+
+            switch(tab) {
+                case 'progress':
+                    content.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:16px;">Loading...</p>';
+                    if (ex) acLoadExerciseHistory(ex.id || ex.name);
+                    break;
+                case 'history':
+                    content.innerHTML = '<div class="ac-loading"><div class="ac-spinner"></div></div>';
+                    if (ex) acLoadExerciseHistory(ex.id || ex.name);
+                    break;
+                case 'instructions':
+                    content.innerHTML = `<div style="padding:8px;">
+                        <textarea style="width:100%; min-height:80px; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; resize:vertical;"
+                            id="acExdInstructions" placeholder="Add exercise instructions or notes...">${escapeHtml(ex?.notes || '')}</textarea>
+                    </div>`;
+                    break;
+                case 'details':
+                    content.innerHTML = `<div style="padding:8px; font-size:13px; color:#64748b;">
+                        <p><strong>Muscle Group:</strong> ${ex?.muscle_group || 'N/A'}</p>
+                        <p><strong>Equipment:</strong> ${ex?.equipment || 'N/A'}</p>
+                        <p><strong>Rest Time:</strong> ${ex?.restSeconds || 60}s</p>
+                        <div style="margin-top:12px;">
+                            <label style="font-weight:600;">Rest (seconds):</label>
+                            <input class="ac-exd-set-input" type="number" id="acExdRestTime" value="${ex?.restSeconds || 60}" style="width:80px; margin-left:8px;" min="0">
+                        </div>
+                    </div>`;
+                    break;
+            }
+        }
+
+        async function acLoadExerciseHistory(exerciseIdOrName) {
+            try {
+                const res = await fetch(`/.netlify/functions/workout-logs?clientId=${clientId}&limit=30`);
+                const data = await res.json();
+                const logs = data.workouts || data.logs || [];
+
+                const history = [];
+                logs.forEach(log => {
+                    (log.exercises || []).forEach(ex => {
+                        const nameMatch = (ex.exercise_name || '').toLowerCase() === (exerciseIdOrName || '').toLowerCase() ||
+                                          ex.exercise_id === exerciseIdOrName;
+                        if (nameMatch) {
+                            history.push({
+                                date: log.workout_date,
+                                sets: ex.sets_data || [],
+                                maxWeight: ex.max_weight || 0,
+                                totalVolume: ex.total_volume || 0
+                            });
+                        }
+                    });
+                });
+
+                const content = document.getElementById('acExdTabContent');
+                if (!content) return;
+
+                if (history.length === 0) {
+                    content.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:16px;">No history found for this exercise yet.</p>';
+                    return;
+                }
+
+                let html = '';
+                history.slice(0, 10).forEach(h => {
+                    const dateStr = new Date(h.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const setsStr = (h.sets || []).map(s => `${s.reps || 0}x${s.weight || 0}`).join(', ');
+                    html += `<div class="ac-exd-history-item">
+                        <span style="font-weight:600; color:#334155;">${dateStr}</span>
+                        <span style="color:#64748b;">${setsStr || 'No data'}</span>
+                        <span style="color:#0369a1; font-weight:600;">${h.maxWeight ? h.maxWeight + ' lbs max' : ''}</span>
+                    </div>`;
+                });
+
+                content.innerHTML = html;
+            } catch (err) {
+                console.error('Error loading exercise history:', err);
+            }
+        }
+
+        async function acSaveExerciseDetail() {
+            const modal = document.getElementById('acExerciseDetailModal');
+            const exIndex = parseInt(modal.dataset.exIndex);
+            const assignmentId = modal.dataset.assignmentId;
+            const dayIndex = parseInt(modal.dataset.dayIndex);
+            const isAdhoc = modal.dataset.isAdhoc === 'true';
+            const dateStr = modal.dataset.dateStr;
+
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+            const ex = exercises[exIndex];
+            if (!ex) return;
+
+            const repsInputs = document.querySelectorAll('#acExdRepsRow input');
+            const weightInputs = document.querySelectorAll('#acExdWeightRow input');
+            const newSetsData = [];
+
+            repsInputs.forEach((input, i) => {
+                const reps = parseInt(input.value) || 0;
+                const weight = parseFloat(weightInputs[i]?.value) || 0;
+                if (reps > 0 || weight > 0) {
+                    newSetsData.push({
+                        setNumber: newSetsData.length + 1,
+                        reps,
+                        weight,
+                        weightUnit: 'lbs'
+                    });
+                }
+            });
+
+            const trackingRadio = document.querySelector('input[name="acExdTracking"]:checked');
+            ex.trackingType = trackingRadio ? trackingRadio.value : 'reps';
+
+            ex.sets = newSetsData.length || ex.sets;
+            ex.reps = (newSetsData[0]?.reps || ex.reps || 0).toString();
+            ex.setsData = newSetsData.length > 0 ? newSetsData : ex.setsData;
+
+            const caloriesInput = document.getElementById('acExdCalories');
+            if (caloriesInput) ex.calories = parseInt(caloriesInput.value) || 0;
+
+            const instructionsInput = document.getElementById('acExdInstructions');
+            if (instructionsInput) ex.notes = instructionsInput.value;
+
+            const restInput = document.getElementById('acExdRestTime');
+            if (restInput) ex.restSeconds = parseInt(restInput.value) || 60;
+
+            exercises[exIndex] = ex;
+
+            acCloseExerciseDetail();
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
 
         // ---- Delete Workout from Date ----
@@ -9279,7 +10377,6 @@
                         method: 'DELETE'
                     });
                 } else {
-                    // For assigned workouts, skip the day (mark as rest)
                     await fetch('/.netlify/functions/client-workout-log', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -9302,7 +10399,6 @@
 
         // Initialize the activity calendar when data loads
         if (clientId) {
-            // Delay init slightly so other loads complete first
             setTimeout(() => acInit(), 500);
         }
 
