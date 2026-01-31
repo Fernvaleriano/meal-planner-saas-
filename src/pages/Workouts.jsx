@@ -241,8 +241,8 @@ function ReadinessCheckModal({ onComplete, onSkip }) {
   );
 }
 
-// Extract completed exercise IDs from workout_data's exercise objects
-function getCompletedFromWorkoutData(workoutData, dayIndex = 0) {
+// Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
+function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
     exercises = workoutData.exercises;
@@ -250,9 +250,22 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0) {
     const safeIndex = Math.abs(dayIndex) % workoutData.days.length;
     exercises = workoutData.days[safeIndex]?.exercises || [];
   }
-  return new Set(
+  const fromData = new Set(
     exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
   );
+  // Merge with localStorage fallback (covers cases where API save was in-flight during app close)
+  if (workoutId) {
+    try {
+      const stored = localStorage.getItem(`completedExercises_${workoutId}`);
+      if (stored) {
+        const ids = JSON.parse(stored);
+        if (Array.isArray(ids)) {
+          ids.forEach(id => fromData.add(id));
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }
+  return fromData;
 }
 
 function Workouts() {
@@ -407,7 +420,7 @@ function Workouts() {
               });
             }
             // Restore completed exercises: prefer workout_data flags, fallback to exercise_logs
-            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
             if (fromData.size > 0) {
               setCompletedExercises(fromData);
             } else {
@@ -419,7 +432,7 @@ function Workouts() {
           } else {
             setWorkoutLog(null);
             // Still check workout_data for persisted completion flags
-            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
             setCompletedExercises(fromData);
           }
         } catch (logErr) {
@@ -445,7 +458,7 @@ function Workouts() {
             });
             setWorkoutLog(null);
             // Restore completed exercises from ad-hoc workout_data
-            const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data);
+            const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data, 0, adhocWorkout.id);
             setCompletedExercises(fromData);
           } else {
             setTodayWorkout(null);
@@ -517,7 +530,7 @@ function Workouts() {
                 });
               }
               // Restore completed exercises: prefer workout_data flags, fallback to exercise_logs
-              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
               if (fromData.size > 0) {
                 setCompletedExercises(fromData);
               } else {
@@ -529,7 +542,7 @@ function Workouts() {
             } else {
               setWorkoutLog(null);
               // Still check workout_data for persisted completion flags
-              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index);
+              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
               setCompletedExercises(fromData);
             }
           } catch (logErr) {
@@ -555,7 +568,7 @@ function Workouts() {
               });
               setWorkoutLog(null);
               // Restore completed exercises from ad-hoc workout_data
-              const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data);
+              const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data, 0, adhocWorkout.id);
               setCompletedExercises(fromData);
             } else {
               setTodayWorkout(null);
@@ -625,6 +638,14 @@ function Workouts() {
         newCompleted.add(exerciseId);
         isNowCompleted = true;
       }
+      // Save to localStorage immediately so it survives app close
+      try {
+        const workout = todayWorkoutRef.current;
+        if (workout?.id) {
+          const key = `completedExercises_${workout.id}`;
+          localStorage.setItem(key, JSON.stringify([...newCompleted]));
+        }
+      } catch (e) { /* ignore localStorage errors */ }
       return newCompleted;
     });
 
@@ -1449,6 +1470,11 @@ function Workouts() {
       });
       // Capture any new PRs from the response
       setWorkoutPRs(result?.prs || []);
+      // Clear localStorage completion cache since workout is done
+      try {
+        const workout = todayWorkoutRef.current;
+        if (workout?.id) localStorage.removeItem(`completedExercises_${workout.id}`);
+      } catch (e) { /* ignore */ }
       // Show summary modal
       setCompletingWorkout(false);
       setShowSummary(true);
@@ -2206,7 +2232,7 @@ function Workouts() {
       {/* Workout Summary Modal - Enhanced */}
       {showSummary && !showShareResults && (
         <div className="workout-summary-overlay" onClick={() => setShowSummary(false)}>
-          <div className="workout-summary-modal enhanced" onClick={e => e.stopPropagation()}>
+          <div className="workout-summary-modal enhanced" onClick={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
             <button className="summary-close-btn" onClick={() => setShowSummary(false)}>
               <X size={24} />
             </button>
