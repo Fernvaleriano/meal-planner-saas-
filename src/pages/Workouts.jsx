@@ -1993,7 +1993,7 @@ function Workouts() {
 
       {/* Share Results Modal */}
       {showShareResults && (
-        <div className="workout-summary-overlay" onClick={() => setShowShareResults(false)}>
+        <div className="workout-summary-overlay share-overlay" onClick={() => setShowShareResults(false)}>
           <div className="share-results-modal" onClick={e => e.stopPropagation()}>
             <div className="share-modal-header">
               <button className="summary-close-btn" onClick={() => setShowShareResults(false)}>
