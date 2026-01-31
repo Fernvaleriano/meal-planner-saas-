@@ -282,7 +282,9 @@ function Workouts() {
     lifted: false,
     sets: false
   });
+  const [shareBgImage, setShareBgImage] = useState(null);
   const shareCardRef = useRef(null);
+  const shareBgInputRef = useRef(null);
   const menuRef = useRef(null);
   const heroMenuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
@@ -1544,25 +1546,120 @@ function Workouts() {
     setTimeout(() => handleCompleteWorkout(), 100);
   }, [exercises, handleCompleteWorkout]);
 
-  // Share workout results
+  // Handle background image selection for share card
+  const handleBgImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setShareBgImage(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  // Generate share card as canvas image and share/save
   const handleShareResults = async () => {
     try {
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'Workout Results',
-            text: `Workout Complete! Check out my training results.`
-          });
-          return;
-        } catch (e) {
-          if (e.name === 'AbortError') return;
+      const width = 720;
+      const height = 480;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      const drawCard = () => {
+        // Background
+        if (!shareBgImage) {
+          const grad = ctx.createLinearGradient(0, 0, width, height);
+          grad.addColorStop(0, '#1a1a2e');
+          grad.addColorStop(0.5, '#16213e');
+          grad.addColorStop(1, '#0f3460');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, width, height);
         }
-      }
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText('Workout Complete! Check out my training results.');
-      } catch (e) {
-        console.log('Share not available');
+
+        // Dark overlay for text readability
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fillRect(0, 0, width, height);
+
+        // Brand name
+        ctx.fillStyle = '#0d9488';
+        ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Zique Fitness', width / 2, 50);
+
+        // Stats
+        const dur = formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45);
+        const activeToggles = [];
+        if (shareToggles.duration) activeToggles.push({ label: 'Duration', value: dur });
+        if (shareToggles.calories) activeToggles.push({ label: 'Calories', value: String(estimatedCalories) });
+        if (shareToggles.activities) activeToggles.push({ label: 'Activities', value: String(exercises.length) });
+        if (shareToggles.lifted && totalLifted > 0) activeToggles.push({ label: 'Lifted (kg)', value: totalLifted.toLocaleString() });
+        if (shareToggles.sets) activeToggles.push({ label: 'Sets', value: String(totalSets) });
+
+        if (activeToggles.length > 0) {
+          const statY = height / 2 - 10;
+          const spacing = width / (activeToggles.length + 1);
+          activeToggles.forEach((stat, i) => {
+            const x = spacing * (i + 1);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(stat.value, x, statY);
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText(stat.label, x, statY + 28);
+          });
+        }
+
+        // Footer
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Powered by Zique Fitness', width / 2, height - 20);
+
+        // Convert and share
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+
+          if (navigator.share && navigator.canShare) {
+            const file = new File([blob], 'workout-results.png', { type: 'image/png' });
+            const shareData = { files: [file] };
+            if (navigator.canShare(shareData)) {
+              try {
+                await navigator.share(shareData);
+                return;
+              } catch (e) {
+                if (e.name === 'AbortError') return;
+              }
+            }
+          }
+
+          // Fallback: download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'workout-results.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      };
+
+      if (shareBgImage) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          // Cover-fit the image
+          const scale = Math.max(width / img.width, height / img.height);
+          const sw = img.width * scale;
+          const sh = img.height * scale;
+          ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
+          drawCard();
+        };
+        img.onerror = () => drawCard();
+        img.src = shareBgImage;
+      } else {
+        drawCard();
       }
     } catch (err) {
       console.error('Error sharing results:', err);
@@ -2004,31 +2101,58 @@ function Workouts() {
 
             {/* Preview Card */}
             <div className="share-card-preview" ref={shareCardRef}>
-              <div className="share-card-bg">
-                <div className="share-card-brand">Zique Fitness</div>
-                <div className="share-card-stats">
-                  {shareToggles.duration && (
-                    <div className="share-stat">
-                      <span className="share-stat-value">{formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
-                      <span className="share-stat-label">Duration</span>
-                    </div>
-                  )}
-                  {shareToggles.calories && (
-                    <div className="share-stat">
-                      <span className="share-stat-value">{estimatedCalories}</span>
-                      <span className="share-stat-label">Calories</span>
-                    </div>
-                  )}
-                  {shareToggles.activities && (
-                    <div className="share-stat">
-                      <span className="share-stat-value">{exercises.length}</span>
-                      <span className="share-stat-label">Activities</span>
-                    </div>
-                  )}
+              <div className="share-card-bg" style={shareBgImage ? { backgroundImage: `url(${shareBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+                <div className="share-card-overlay" />
+                <div className="share-card-content">
+                  <div className="share-card-brand">Zique Fitness</div>
+                  <div className="share-card-stats">
+                    {shareToggles.duration && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                        <span className="share-stat-label">Duration</span>
+                      </div>
+                    )}
+                    {shareToggles.calories && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{estimatedCalories}</span>
+                        <span className="share-stat-label">Calories</span>
+                      </div>
+                    )}
+                    {shareToggles.activities && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{exercises.length}</span>
+                        <span className="share-stat-label">Activities</span>
+                      </div>
+                    )}
+                    {shareToggles.lifted && totalLifted > 0 && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{totalLifted.toLocaleString()}</span>
+                        <span className="share-stat-label">Lifted (kg)</span>
+                      </div>
+                    )}
+                    {shareToggles.sets && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{totalSets}</span>
+                        <span className="share-stat-label">Sets</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="share-card-footer">Powered by Zique Fitness</div>
                 </div>
-                <div className="share-card-footer">Powered by Zique Fitness</div>
               </div>
             </div>
+
+            {/* Change Image */}
+            <input
+              type="file"
+              accept="image/*"
+              ref={shareBgInputRef}
+              style={{ display: 'none' }}
+              onChange={handleBgImageChange}
+            />
+            <button className="change-image-btn" onClick={() => shareBgInputRef.current?.click()}>
+              Change image
+            </button>
 
             {/* Toggle Controls */}
             <div className="share-toggles">
