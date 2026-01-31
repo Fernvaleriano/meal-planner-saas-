@@ -244,6 +244,305 @@
             font-size: 1.0625rem;
         }
 
+        /* Action Center (replaces subtitle) */
+        .action-center {
+            margin-top: 16px;
+        }
+
+        .action-center-heading {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .action-center-heading {
+            color: #f1f5f9;
+        }
+
+        .priority-alerts {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .priority-alert {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9375rem;
+            color: var(--gray-700);
+            line-height: 1.5;
+        }
+
+        [data-theme="dark"] .priority-alert {
+            color: #cbd5e1;
+        }
+
+        .priority-alert--loading {
+            color: var(--gray-400);
+        }
+
+        .priority-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .priority-dot--red {
+            background: #ef4444;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+        }
+
+        .priority-dot--amber {
+            background: #f59e0b;
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+        }
+
+        .priority-dot--green {
+            background: #22c55e;
+            box-shadow: 0 0 6px rgba(34, 197, 94, 0.3);
+        }
+
+        .priority-dot--muted {
+            background: var(--gray-400);
+        }
+
+        .priority-label {
+            font-weight: 600;
+            margin-right: 2px;
+        }
+
+        .priority-label--action {
+            color: #ef4444;
+        }
+
+        .priority-label--pending {
+            color: #f59e0b;
+        }
+
+        [data-theme="dark"] .priority-label--action {
+            color: #f87171;
+        }
+
+        [data-theme="dark"] .priority-label--pending {
+            color: #fbbf24;
+        }
+
+        .action-center-link {
+            display: inline-block;
+            color: var(--brand-primary);
+            font-weight: 600;
+            font-size: 0.9375rem;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 2px solid var(--brand-primary);
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .action-center-link:hover {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        /* Hero AI Search (inside welcome card) */
+        .hero-ai-search {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .hero-ai-search {
+            border-top-color: var(--gray-600);
+        }
+
+        .hero-ai-prompt-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .hero-ai-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            transition: all 0.2s;
+        }
+
+        .hero-ai-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            background: white;
+        }
+
+        [data-theme="dark"] .hero-ai-input {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .hero-ai-input:focus {
+            background: var(--gray-900);
+            border-color: var(--brand-primary);
+        }
+
+        [data-theme="dark"] .hero-ai-input::placeholder {
+            color: #64748b;
+        }
+
+        .hero-ai-search-btn {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .hero-ai-search-btn:hover {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        [data-theme="dark"] .hero-ai-search-btn {
+            background: var(--gray-700);
+            border-color: var(--gray-600);
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .hero-ai-search-btn:hover {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        .hero-ai-chips {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .suggested-label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        [data-theme="dark"] .suggested-label {
+            color: #94a3b8;
+        }
+
+        .hero-ai-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .hero-chip {
+            padding: 7px 14px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 0.8125rem;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .hero-chip:hover {
+            background: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .hero-chip {
+            background: var(--gray-700);
+            border-color: var(--gray-600);
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .hero-chip:hover {
+            background: var(--gray-600);
+            color: #f1f5f9;
+        }
+
+        /* Stat card bell icon */
+        .stat-bell {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--gray-100);
+            color: var(--gray-400);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stat-bell:hover {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        [data-theme="dark"] .stat-bell {
+            background: var(--gray-700);
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .stat-bell:hover {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        /* Cards section headers */
+        .cards-section-header {
+            margin-bottom: 16px;
+            margin-top: 8px;
+        }
+
+        .cards-section-header--setup {
+            margin-top: 32px;
+        }
+
+        .cards-section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+
+        .cards-section-subtitle {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        [data-theme="dark"] .cards-section-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .cards-section-subtitle {
+            color: #64748b;
+        }
+
         /* Stats Cards */
         .stats-grid {
             display: flex;
@@ -2214,6 +2513,24 @@
             .action-btn {
                 width: 100%;
             }
+
+            .hero-ai-prompt-box {
+                flex-direction: column;
+            }
+
+            .hero-ai-search-btn {
+                width: 100%;
+                height: 44px;
+            }
+
+            .hero-ai-chip-row {
+                gap: 6px;
+            }
+
+            .hero-chip {
+                font-size: 0.75rem;
+                padding: 6px 10px;
+            }
         }
 
         /* Extra small screens */
@@ -2707,17 +3024,50 @@
             <div class="welcome-section">
                 <div class="welcome-card">
                     <span id="tierBadge" class="tier-badge">LOADING</span>
-                    <h1>Welcome back!</h1>
-                    <p class="subtitle">Here's what's happening with your coaching business today.</p>
+                    <h1>Coach Overview</h1>
+                    <div class="action-center" id="actionCenter">
+                        <div class="action-center-heading">Today's Priority</div>
+                        <div class="priority-alerts" id="priorityAlerts">
+                            <div class="priority-alert priority-alert--loading">
+                                <span class="priority-dot priority-dot--muted"></span>
+                                <span>Loading alerts...</span>
+                            </div>
+                        </div>
+                        <a href="manage-clients.html" class="action-center-link">[View Clients]</a>
+                    </div>
+                    <!-- AI Search integrated into hero -->
+                    <div class="hero-ai-search">
+                        <div class="hero-ai-prompt-box">
+                            <input type="text" id="heroAiInput" class="hero-ai-input" placeholder="Ask AI about your clients..." autocomplete="off">
+                            <button class="hero-ai-search-btn" onclick="askHeroAI()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                            </button>
+                        </div>
+                        <div class="hero-ai-chips">
+                            <span class="suggested-label">Suggested Prompts</span>
+                            <div class="hero-ai-chip-row">
+                                <button class="hero-chip" onclick="askQuickQuestion('Who hit their protein goal?')">Who hit their protein goal?</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('How are my clients doing overall?')">Overall stress?</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Who has been inactive this week?')">Clients inactive week</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Which clients need new meal plans?')">Which clients need new meal plans</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number" id="clientCount">-</div>
                         <div class="stat-label">Active Clients</div>
+                        <div class="stat-bell" title="View clients" onclick="window.location.href='manage-clients.html'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="planCount">-</div>
-                        <div class="stat-label">Plans Created</div>
+                    <div class="stat-card stat-card--pending">
+                        <div class="stat-number" id="checkInCount">-</div>
+                        <div class="stat-label">Check-Ins Pending</div>
+                        <div class="stat-bell" title="View check-ins" onclick="window.location.href='manage-clients.html'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2922,14 +3272,12 @@
                 </div>
             </div>
 
+            <!-- Daily Operations -->
+            <div class="cards-section-header">
+                <h2 class="cards-section-title">Daily Operations</h2>
+                <p class="cards-section-subtitle">Your core coaching tools</p>
+            </div>
             <div class="action-cards">
-                <div class="action-card">
-                    <div class="action-card-icon">✨</div>
-                    <h3>AI Meal Planner</h3>
-                    <p>Create personalized meal plans, single meals, cheat meal advice and more with AI assistance.</p>
-                    <button class="action-btn" onclick="window.location.href='planner.html'">Open Planner</button>
-                </div>
-
                 <div class="action-card">
                     <div class="action-card-icon">👥</div>
                     <h3>My Clients</h3>
@@ -2938,10 +3286,10 @@
                 </div>
 
                 <div class="action-card">
-                    <div class="action-card-icon">💊</div>
-                    <h3>Supplement Protocol</h3>
-                    <p>Manage supplement protocols for your clients quickly and easily with scheduling.</p>
-                    <button class="action-btn" onclick="window.location.href='supplement-protocols.html'">Manage Supplements</button>
+                    <div class="action-card-icon">✨</div>
+                    <h3>AI Meal Planner</h3>
+                    <p>Create personalized meal plans, single meals, cheat meal advice and more with AI assistance.</p>
+                    <button class="action-btn" onclick="window.location.href='planner.html'">Open Planner</button>
                 </div>
 
                 <div class="action-card" data-gym-feature style="display:none;">
@@ -2951,6 +3299,20 @@
                     <button class="action-btn" onclick="window.location.href='coach-workouts.html'">Build Workouts</button>
                 </div>
 
+                <div class="action-card">
+                    <div class="action-card-icon">💊</div>
+                    <h3>Supplement Protocol</h3>
+                    <p>Manage supplement protocols for your clients quickly and easily with scheduling.</p>
+                    <button class="action-btn" onclick="window.location.href='supplement-protocols.html'">Manage Supplements</button>
+                </div>
+            </div>
+
+            <!-- Business Setup -->
+            <div class="cards-section-header cards-section-header--setup">
+                <h2 class="cards-section-title">Business Setup</h2>
+                <p class="cards-section-subtitle">Configure once, run on autopilot</p>
+            </div>
+            <div class="action-cards action-cards--setup">
                 <div class="action-card">
                     <div class="action-card-icon">🔔</div>
                     <h3>Check-in Reminders</h3>
@@ -3213,20 +3575,158 @@
                     document.getElementById('clientCount').textContent = clientCount || 0;
                 }
 
-                // Fetch plan count
-                const { count: planCount, error: planError } = await supabaseClient
-                    .from('coach_meal_plans')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('coach_id', coachId);
+                // Fetch pending check-ins count (unreviewed)
+                let pendingCheckIns = 0;
+                try {
+                    const { data: clients } = await supabaseClient
+                        .from('clients')
+                        .select('id')
+                        .eq('coach_id', coachId);
 
-                if (!planError) {
-                    document.getElementById('planCount').textContent = planCount || 0;
+                    if (clients && clients.length > 0) {
+                        const clientIds = clients.map(c => c.id);
+                        const { count: checkInCount, error: checkInError } = await supabaseClient
+                            .from('check_ins')
+                            .select('*', { count: 'exact', head: true })
+                            .in('client_id', clientIds)
+                            .eq('reviewed', false);
+
+                        if (!checkInError) {
+                            pendingCheckIns = checkInCount || 0;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not load check-in count:', e);
                 }
+                document.getElementById('checkInCount').textContent = pendingCheckIns;
+
+                // Populate priority alerts
+                loadPriorityAlerts(coachId, clientCount || 0, pendingCheckIns);
             } catch (error) {
                 console.error('Error loading stats:', error);
-                // Non-critical, just show dashes if failed
             }
         }
+
+        async function loadPriorityAlerts(coachId, clientCount, pendingCheckIns) {
+            const alertsEl = document.getElementById('priorityAlerts');
+            const alerts = [];
+
+            try {
+                // Check for high-stress clients (from recent check-ins)
+                let highStressCount = 0;
+                try {
+                    const { data: clients } = await supabaseClient
+                        .from('clients')
+                        .select('id')
+                        .eq('coach_id', coachId);
+
+                    if (clients && clients.length > 0) {
+                        const clientIds = clients.map(c => c.id);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+
+                        const { count: stressCount } = await supabaseClient
+                            .from('check_ins')
+                            .select('*', { count: 'exact', head: true })
+                            .in('client_id', clientIds)
+                            .gte('stress_level', 4)
+                            .gte('created_at', weekAgo.toISOString());
+
+                        highStressCount = stressCount || 0;
+                    }
+                } catch (e) {
+                    console.warn('Could not check stress levels:', e);
+                }
+
+                if (highStressCount > 0) {
+                    alerts.push(`
+                        <div class="priority-alert">
+                            <span class="priority-dot priority-dot--red"></span>
+                            <span><span class="priority-label priority-label--action">Action required:</span> ${highStressCount} client${highStressCount !== 1 ? 's' : ''} reported high stress levels in their check-in.</span>
+                        </div>
+                    `);
+                }
+
+                if (pendingCheckIns > 0) {
+                    alerts.push(`
+                        <div class="priority-alert">
+                            <span class="priority-dot priority-dot--amber"></span>
+                            <span><span class="priority-label priority-label--pending">Pending:</span> ${pendingCheckIns} check-in${pendingCheckIns !== 1 ? 's' : ''} awaiting your review.</span>
+                        </div>
+                    `);
+                }
+
+                // Check for expiring meal plans (within 3 days)
+                try {
+                    const threeDaysFromNow = new Date();
+                    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+                    const today = new Date().toISOString().split('T')[0];
+
+                    const { count: expiringCount } = await supabaseClient
+                        .from('coach_meal_plans')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('coach_id', coachId)
+                        .lte('end_date', threeDaysFromNow.toISOString().split('T')[0])
+                        .gte('end_date', today);
+
+                    if (expiringCount > 0) {
+                        alerts.push(`
+                            <div class="priority-alert">
+                                <span class="priority-dot priority-dot--amber"></span>
+                                <span><span class="priority-label priority-label--pending">Pending:</span> ${expiringCount} meal plan${expiringCount !== 1 ? 's' : ''} expire within 3 days.</span>
+                            </div>
+                        `);
+                    }
+                } catch (e) {
+                    console.warn('Could not check expiring plans:', e);
+                }
+
+                if (alerts.length === 0) {
+                    alerts.push(`
+                        <div class="priority-alert">
+                            <span class="priority-dot priority-dot--green"></span>
+                            <span>All caught up! No urgent items today.</span>
+                        </div>
+                    `);
+                }
+
+                alertsEl.innerHTML = alerts.join('');
+            } catch (error) {
+                console.error('Error loading priority alerts:', error);
+                alertsEl.innerHTML = `
+                    <div class="priority-alert">
+                        <span class="priority-dot priority-dot--green"></span>
+                        <span>Dashboard ready. ${clientCount} active client${clientCount !== 1 ? 's' : ''}.</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Hero AI search - delegates to the existing AI assistant
+        function askHeroAI() {
+            const heroInput = document.getElementById('heroAiInput');
+            const mainInput = document.getElementById('aiPromptInput');
+            if (heroInput.value.trim()) {
+                mainInput.value = heroInput.value.trim();
+                heroInput.value = '';
+                askAIAssistant();
+                // Scroll to the response area
+                document.getElementById('aiResponseArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Allow Enter key on hero AI input
+        document.addEventListener('DOMContentLoaded', function() {
+            const heroInput = document.getElementById('heroAiInput');
+            if (heroInput) {
+                heroInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        askHeroAI();
+                    }
+                });
+            }
+        });
 
         async function loadDashboard() {
             // Prevent multiple simultaneous loads
