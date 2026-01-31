@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, T
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
+import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
@@ -294,6 +295,40 @@ function Workouts() {
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
   selectedExerciseRef.current = selectedExercise;
+
+  // On app resume: close all modals/overlays and clean up body scroll lock
+  // This prevents the "frozen screen" where an overlay blocks all touch events
+  useEffect(() => {
+    const unsubResume = onAppResume((backgroundMs) => {
+      // Only do full cleanup if backgrounded for more than 3 seconds
+      if (backgroundMs < 3000) return;
+
+      // Close the exercise detail modal (this also triggers its body scroll lock cleanup)
+      setSelectedExercise(null);
+
+      // Close all overlay modals that could be blocking touches
+      setShowReadinessCheck(false);
+      setShowFinishConfirm(false);
+      setShowSummary(false);
+      setShowShareResults(false);
+      setShowHistory(false);
+      setShowAddActivity(false);
+      setShowRescheduleModal(false);
+      setShowCreateWorkout(false);
+      setShowMenu(false);
+      setShowHeroMenu(false);
+      setSwipeSwapExercise(null);
+      setSwipeDeleteExercise(null);
+
+      // Force-clean body scroll lock in case ExerciseDetailModal's cleanup didn't run
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    });
+
+    return () => unsubResume();
+  }, []);
 
   // Close menus when clicking outside
   useEffect(() => {

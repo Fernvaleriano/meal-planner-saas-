@@ -87,6 +87,17 @@ export function useAppLifecycle() {
         }
       }
 
+      // Safety net: force-clean body scroll lock that could be stuck from a modal
+      // If body has position:fixed, it means a modal's scroll lock wasn't cleaned up
+      if (backgroundMs > 3000 && document.body.style.position === 'fixed') {
+        const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10));
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        window.scrollTo(0, scrollY);
+      }
+
       // Notify all resume subscribers with how long we were away
       for (const entry of subscribers) {
         if (entry.type === 'resume') {
