@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, X, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
+import { onAppResume, onAppSuspend } from '../hooks/useAppLifecycle';
 import StoryViewer from './StoryViewer';
 import NotificationDetail from './NotificationDetail';
 
@@ -107,15 +108,36 @@ function TopNav() {
   }, [clientData?.id]);
 
   // Load notifications on mount (with cache check) and periodically
+  // Pauses polling when app is backgrounded, refreshes immediately on resume
   useEffect(() => {
     // Only fetch if we haven't already or cache is stale
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
       fetchNotifications();
     }
+
     // Refresh every 60 seconds (matching cache TTL)
-    const interval = setInterval(() => fetchNotifications(true), 60000);
-    return () => clearInterval(interval);
+    let interval = setInterval(() => fetchNotifications(true), 60000);
+
+    // Pause polling when app goes to background, restart on resume
+    const unsubSuspend = onAppSuspend(() => {
+      clearInterval(interval);
+      interval = null;
+    });
+    const unsubResume = onAppResume(() => {
+      // Fetch fresh data immediately on resume
+      fetchNotifications(true);
+      // Restart polling
+      if (!interval) {
+        interval = setInterval(() => fetchNotifications(true), 60000);
+      }
+    });
+
+    return () => {
+      if (interval) clearInterval(interval);
+      unsubSuspend();
+      unsubResume();
+    };
   }, [fetchNotifications]);
 
   // Fetch stories with caching
@@ -150,14 +172,33 @@ function TopNav() {
   }, [clientData?.id, clientData?.coach_id]);
 
   // Load stories on mount (with cache check) and periodically
+  // Pauses polling when app is backgrounded, refreshes immediately on resume
   useEffect(() => {
     if (!hasFetchedStoriesRef.current) {
       hasFetchedStoriesRef.current = true;
       fetchStories();
     }
+
     // Refresh every 60 seconds (matching cache TTL)
-    const interval = setInterval(() => fetchStories(true), 60000);
-    return () => clearInterval(interval);
+    let interval = setInterval(() => fetchStories(true), 60000);
+
+    // Pause polling when app goes to background, restart on resume
+    const unsubSuspend = onAppSuspend(() => {
+      clearInterval(interval);
+      interval = null;
+    });
+    const unsubResume = onAppResume(() => {
+      fetchStories(true);
+      if (!interval) {
+        interval = setInterval(() => fetchStories(true), 60000);
+      }
+    });
+
+    return () => {
+      if (interval) clearInterval(interval);
+      unsubSuspend();
+      unsubResume();
+    };
   }, [fetchStories]);
 
   // Handle story click

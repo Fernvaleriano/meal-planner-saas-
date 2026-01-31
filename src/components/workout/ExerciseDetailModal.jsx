@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
+import { onAppSuspend } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -249,6 +250,45 @@ function ExerciseDetailModal({
       document.body.style.top = '';
       document.body.style.width = '';
       window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  // Clean up MediaRecorder, voice recognition, and video on app background or unmount
+  // iOS kills mic access when backgrounded, so the recorder will be in a broken state
+  useEffect(() => {
+    const stopRecordingResources = () => {
+      // Stop MediaRecorder if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          // Already stopped or errored
+        }
+      }
+      mediaRecorderRef.current = null;
+      setIsRecordingVoiceNote(false);
+
+      // Stop voice recognition if active
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          // Already stopped
+        }
+      }
+      setIsListening(false);
+    };
+
+    const unsubSuspend = onAppSuspend(stopRecordingResources);
+
+    return () => {
+      unsubSuspend();
+      // Also clean up on unmount
+      stopRecordingResources();
+      // Clear any pending debounce timers
+      if (clientNoteTimerRef.current) {
+        clearTimeout(clientNoteTimerRef.current);
+      }
     };
   }, []);
 

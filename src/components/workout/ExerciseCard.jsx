@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
+import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 // Defined outside component so it's available during initialization
@@ -167,6 +168,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [restTimerActive, setRestTimerActive] = useState(null);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const restTimerRef = useRef(null);
+  const restTimerEndTimeRef = useRef(null); // wall-clock end time for accurate resume
 
   // Swipe state for HEADER (swap/delete/move)
   const [headerSwipeOffset, setHeaderSwipeOffset] = useState(0);
@@ -200,6 +202,36 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Clean up rest timer on unmount and handle app resume
+  useEffect(() => {
+    // When app resumes from background, recalculate rest timer from wall-clock
+    const unsubResume = onAppResume(() => {
+      if (restTimerEndTimeRef.current && restTimerRef.current) {
+        const remaining = Math.ceil((restTimerEndTimeRef.current - Date.now()) / 1000);
+        if (remaining <= 0) {
+          // Timer expired while in background — clean up
+          clearInterval(restTimerRef.current);
+          restTimerRef.current = null;
+          restTimerEndTimeRef.current = null;
+          setRestTimerActive(null);
+          setRestTimeLeft(0);
+        } else {
+          // Timer still has time — update displayed value immediately
+          setRestTimeLeft(remaining);
+        }
+      }
+    });
+
+    return () => {
+      unsubResume();
+      // Clean up interval on unmount
+      if (restTimerRef.current) {
+        clearInterval(restTimerRef.current);
+        restTimerRef.current = null;
       }
     };
   }, []);
@@ -247,25 +279,29 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
   };
 
-  // Start rest timer
+  // Start rest timer — uses wall-clock end time so it survives app backgrounding
   const startRestTimer = (setIndex, duration) => {
     // Clear any existing timer
     if (restTimerRef.current) {
       clearInterval(restTimerRef.current);
     }
 
+    const endTime = Date.now() + duration * 1000;
+    restTimerEndTimeRef.current = endTime;
     setRestTimerActive(setIndex);
     setRestTimeLeft(duration);
 
     restTimerRef.current = setInterval(() => {
-      setRestTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(restTimerRef.current);
-          setRestTimerActive(null);
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = Math.ceil((restTimerEndTimeRef.current - Date.now()) / 1000);
+      if (remaining <= 0) {
+        clearInterval(restTimerRef.current);
+        restTimerRef.current = null;
+        restTimerEndTimeRef.current = null;
+        setRestTimerActive(null);
+        setRestTimeLeft(0);
+      } else {
+        setRestTimeLeft(remaining);
+      }
     }, 1000);
   };
 
