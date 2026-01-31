@@ -481,6 +481,48 @@
             color: #f1f5f9;
         }
 
+        /* Hero AI response area */
+        .hero-ai-response {
+            margin-top: 16px;
+            padding: 16px 20px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+        }
+
+        [data-theme="dark"] .hero-ai-response {
+            background: var(--gray-900);
+            border-color: var(--gray-600);
+        }
+
+        .hero-ai-response .ai-response-text {
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            color: var(--gray-800);
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        [data-theme="dark"] .hero-ai-response .ai-response-text {
+            color: #cbd5e1;
+        }
+
+        .hero-ai-response .ai-response-loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--gray-500);
+        }
+
+        .hero-ai-response .ai-loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
         /* Stat card bell icon */
         .stat-bell {
             position: absolute;
@@ -3052,6 +3094,9 @@
                                 <button class="hero-chip" onclick="askQuickQuestion('Which clients need new meal plans?')">Which clients need new meal plans</button>
                             </div>
                         </div>
+                        <div class="hero-ai-response" id="aiResponseArea" style="display:none;">
+                            <p class="ai-response-placeholder"></p>
+                        </div>
                     </div>
                 </div>
                 <div class="stats-grid">
@@ -3115,30 +3160,6 @@
                             <p>Send a portal invite to your client</p>
                         </div>
                     </a>
-                </div>
-            </div>
-
-            <!-- AI Client Assistant -->
-            <div class="ai-summary-section" id="aiSummarySection">
-                <div class="ai-summary-header">
-                    <div class="ai-summary-title">
-                        <h2>Ask About Your Clients</h2>
-                    </div>
-                </div>
-                <div class="ai-assistant-container">
-                    <div class="ai-prompt-box">
-                        <input type="text" id="aiPromptInput" class="ai-prompt-input" placeholder="Ask anything about your clients..." autocomplete="off">
-                        <button id="aiAskBtn" class="ai-ask-btn" onclick="askAIAssistant()">Ask</button>
-                    </div>
-                    <div class="ai-quick-questions">
-                        <button class="quick-question-btn" onclick="askQuickQuestion('Who has been inactive this week?')">Who's inactive?</button>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('Any pending diet requests?')">Diet requests?</button>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('How are my clients doing overall?')">Overall status?</button>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('Who reported high stress recently?')">High stress?</button>
-                    </div>
-                    <div class="ai-response-area" id="aiResponseArea">
-                        <p class="ai-response-placeholder">Ask a question to get insights about your clients.</p>
-                    </div>
                 </div>
             </div>
 
@@ -3702,17 +3723,9 @@
             }
         }
 
-        // Hero AI search - delegates to the existing AI assistant
+        // Hero AI search - works directly
         function askHeroAI() {
-            const heroInput = document.getElementById('heroAiInput');
-            const mainInput = document.getElementById('aiPromptInput');
-            if (heroInput.value.trim()) {
-                mainInput.value = heroInput.value.trim();
-                heroInput.value = '';
-                askAIAssistant();
-                // Scroll to the response area
-                document.getElementById('aiResponseArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            askAIAssistant();
         }
 
         // Allow Enter key on hero AI input
@@ -3722,7 +3735,7 @@
                 heroInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        askHeroAI();
+                        askAIAssistant();
                     }
                 });
             }
@@ -4310,17 +4323,17 @@
             }
         }
 
-        // AI Client Assistant functions
+        // AI Client Assistant functions (uses hero search input)
         async function askAIAssistant() {
-            const input = document.getElementById('aiPromptInput');
+            const input = document.getElementById('heroAiInput');
             const responseArea = document.getElementById('aiResponseArea');
-            const askBtn = document.getElementById('aiAskBtn');
+            const searchBtn = document.querySelector('.hero-ai-search-btn');
             const question = input.value.trim();
 
             if (!question) return;
 
-            askBtn.disabled = true;
-            askBtn.textContent = '...';
+            searchBtn.disabled = true;
+            responseArea.style.display = 'block';
             responseArea.innerHTML = `
                 <div class="ai-response-loading">
                     <div class="ai-loading-spinner"></div>
@@ -4351,22 +4364,14 @@
                 console.error('Error asking AI:', error);
                 responseArea.innerHTML = `<p class="ai-response-text" style="color: var(--gray-500);">Sorry, I couldn't process that question. Please try again.</p>`;
             } finally {
-                askBtn.disabled = false;
-                askBtn.textContent = 'Ask';
+                searchBtn.disabled = false;
             }
         }
 
         function askQuickQuestion(question) {
-            document.getElementById('aiPromptInput').value = question;
+            document.getElementById('heroAiInput').value = question;
             askAIAssistant();
         }
-
-        // Allow pressing Enter to submit
-        document.getElementById('aiPromptInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                askAIAssistant();
-            }
-        });
 
         // ========================================
         // COACH STORIES CREATOR
