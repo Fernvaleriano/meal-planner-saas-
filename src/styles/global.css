@@ -12246,8 +12246,10 @@ a.nav-left {
 .workout-summary-modal.enhanced {
     max-width: 400px;
     padding: 32px 24px;
-    max-height: 90vh;
+    max-height: 85vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 .summary-stars {
