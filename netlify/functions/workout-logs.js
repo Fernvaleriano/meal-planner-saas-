@@ -257,7 +257,54 @@ exports.handler = async (event) => {
         let totalSets = 0;
         let totalReps = 0;
 
-        // Update or insert exercise logs
+        // Pre-fetch all data needed for PR detection in batch (instead of per-exercise)
+        let previousBestMap = {}; // exerciseName -> max_weight
+        const exerciseNames = exercises.filter(ex => ex.exerciseName).map(ex => ex.exerciseName);
+
+        if (workoutLogData?.client_id && exerciseNames.length > 0) {
+          try {
+            // Single query: get previous best weight for all exercises at once
+            const { data: previousBests } = await supabase
+              .from('exercise_logs')
+              .select('exercise_name, max_weight, workout_log_id')
+              .eq('workout_log_id', workoutId)
+              .in('exercise_name', exerciseNames);
+
+            // Get all previous exercise logs (not from this workout) in one query
+            const { data: allPrevLogs } = await supabase
+              .from('exercise_logs')
+              .select('exercise_name, max_weight')
+              .in('exercise_name', exerciseNames)
+              .neq('workout_log_id', workoutId)
+              .order('max_weight', { ascending: false });
+
+            // Build map of exercise_name -> best previous weight
+            for (const name of exerciseNames) {
+              const prevLogs = (allPrevLogs || []).filter(l => l.exercise_name === name);
+              previousBestMap[name] = prevLogs.length > 0 ? prevLogs[0].max_weight : 0;
+            }
+          } catch (prBatchError) {
+            console.warn('Batch PR lookup failed:', prBatchError.message);
+            // Continue without PR detection
+          }
+        }
+
+        // Pre-fetch existing exercise logs for this workout in batch
+        let existingLogMap = {}; // exerciseId -> log id
+        try {
+          const { data: existingLogs } = await supabase
+            .from('exercise_logs')
+            .select('id, exercise_id')
+            .eq('workout_log_id', workoutId);
+
+          for (const log of (existingLogs || [])) {
+            if (log.exercise_id) existingLogMap[log.exercise_id] = log.id;
+          }
+        } catch (e) {
+          // Continue - will insert new logs
+        }
+
+        // Process exercises (now with minimal DB calls)
         for (const ex of exercises) {
           const setsData = ex.sets || [];
           const exTotalSets = setsData.length;
@@ -269,63 +316,25 @@ exports.handler = async (event) => {
           totalSets += exTotalSets;
           totalReps += exTotalReps;
 
-          // PR Detection: Check if this is a new personal record for this exercise
+          // PR Detection using pre-fetched data
           let isPr = ex.isPr || false;
-          if (exMaxWeight > 0 && workoutLogData?.client_id && ex.exerciseName) {
-            try {
-              // Get all workout log IDs for this client (excluding current workout)
-              const { data: clientWorkouts } = await supabase
-                .from('workout_logs')
-                .select('id')
-                .eq('client_id', workoutLogData.client_id)
-                .neq('id', workoutId);
-
-              const previousWorkoutIds = (clientWorkouts || []).map(w => w.id);
-
-              let previousBestWeight = 0;
-              if (previousWorkoutIds.length > 0) {
-                const { data: previousBest } = await supabase
-                  .from('exercise_logs')
-                  .select('max_weight')
-                  .eq('exercise_name', ex.exerciseName)
-                  .in('workout_log_id', previousWorkoutIds)
-                  .order('max_weight', { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-
-                previousBestWeight = previousBest?.max_weight || 0;
-              }
-
-              // It's a PR if new weight exceeds previous best
-              if (exMaxWeight > previousBestWeight) {
-                isPr = true;
-                const bestRepsAtWeight = setsData.find(s => s.weight === exMaxWeight)?.reps || 0;
-                prNotifications.push({
-                  exerciseName: ex.exerciseName,
-                  weight: exMaxWeight,
-                  reps: bestRepsAtWeight,
-                  unit: setsData.find(s => s.weight === exMaxWeight)?.weightUnit || 'lbs',
-                  previousBest: previousBestWeight > 0 ? previousBestWeight : null
-                });
-              }
-            } catch (prCheckError) {
-              console.warn('PR check failed for', ex.exerciseName, prCheckError.message);
-              // Non-critical, continue without PR detection
+          if (exMaxWeight > 0 && ex.exerciseName && previousBestMap.hasOwnProperty(ex.exerciseName)) {
+            const previousBestWeight = previousBestMap[ex.exerciseName] || 0;
+            if (exMaxWeight > previousBestWeight) {
+              isPr = true;
+              const bestRepsAtWeight = setsData.find(s => s.weight === exMaxWeight)?.reps || 0;
+              prNotifications.push({
+                exerciseName: ex.exerciseName,
+                weight: exMaxWeight,
+                reps: bestRepsAtWeight,
+                unit: setsData.find(s => s.weight === exMaxWeight)?.weightUnit || 'lbs',
+                previousBest: previousBestWeight > 0 ? previousBestWeight : null
+              });
             }
           }
 
-          // Check if exercise_log already exists for this workout + exercise
-          let existingId = ex.id;
-          if (!existingId && ex.exerciseId) {
-            const { data: existing } = await supabase
-              .from('exercise_logs')
-              .select('id')
-              .eq('workout_log_id', workoutId)
-              .eq('exercise_id', ex.exerciseId)
-              .limit(1)
-              .maybeSingle();
-            if (existing) existingId = existing.id;
-          }
+          // Check if exercise_log already exists using pre-fetched map
+          const existingId = ex.id || (ex.exerciseId ? existingLogMap[ex.exerciseId] : null);
 
           if (existingId) {
             // Update existing exercise log
