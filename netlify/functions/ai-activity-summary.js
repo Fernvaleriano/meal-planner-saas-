@@ -550,6 +550,7 @@ async function handleQuestion(event) {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch all client data for this coach
     const { data: clients, error: clientsError } = await supabase
@@ -574,20 +575,118 @@ async function handleQuestion(event) {
       };
     }
 
-    // Fetch recent check-ins
-    const { data: recentCheckins } = await supabase
-      .from('client_checkins')
-      .select('id, client_id, checkin_date, energy_level, stress_level, meal_plan_adherence, request_new_diet, diet_request_reason, created_at')
-      .eq('coach_id', coachId)
-      .gte('created_at', fourteenDaysAgo.toISOString())
-      .order('created_at', { ascending: false });
+    const clientIds = clients.map(c => c.id);
 
-    // Fetch food diary counts
-    const { data: diaryEntries } = await supabase
-      .from('food_diary')
-      .select('id, client_id, created_at')
-      .in('client_id', clients.map(c => c.id))
-      .gte('created_at', sevenDaysAgo.toISOString());
+    // Fetch all data sources in parallel for comprehensive context
+    const [
+      checkinsResult,
+      diaryResult,
+      diaryEntriesResult,
+      workoutLogsResult,
+      exerciseLogsResult,
+      workoutAssignmentsResult,
+      mealPlansResult,
+      measurementsResult,
+      weightLogsResult,
+      supplementIntakeResult,
+      protocolsResult,
+      goalsResult
+    ] = await Promise.all([
+      // Check-ins (14 days)
+      supabase
+        .from('client_checkins')
+        .select('id, client_id, checkin_date, energy_level, stress_level, meal_plan_adherence, request_new_diet, diet_request_reason, created_at')
+        .eq('coach_id', coachId)
+        .gte('created_at', fourteenDaysAgo.toISOString())
+        .order('created_at', { ascending: false }),
+      // Food diary counts (7 days)
+      supabase
+        .from('food_diary')
+        .select('id, client_id, created_at')
+        .in('client_id', clientIds)
+        .gte('created_at', sevenDaysAgo.toISOString()),
+      // Food diary entries with macros (7 days)
+      supabase
+        .from('food_diary_entries')
+        .select('id, client_id, food_name, calories, protein, carbs, fat, created_at')
+        .in('client_id', clientIds)
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(500),
+      // Workout logs (30 days)
+      supabase
+        .from('workout_logs')
+        .select('id, client_id, workout_name, completed_at, duration_minutes, created_at')
+        .in('client_id', clientIds)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(500),
+      // Exercise logs with sets/reps/weight (30 days)
+      supabase
+        .from('exercise_logs')
+        .select('id, client_id, exercise_name, sets, reps, weight, weight_unit, duration_seconds, created_at')
+        .in('client_id', clientIds)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1000),
+      // Active workout assignments
+      supabase
+        .from('client_workout_assignments')
+        .select('id, client_id, workout_data, is_active, start_date, created_at')
+        .in('client_id', clientIds)
+        .eq('is_active', true),
+      // Meal plans (active/recent)
+      supabase
+        .from('coach_meal_plans')
+        .select('id, client_id, plan_name, status, daily_calories, start_date, end_date, created_at')
+        .eq('coach_id', coachId)
+        .order('created_at', { ascending: false })
+        .limit(200),
+      // Body measurements (30 days)
+      supabase
+        .from('client_measurements')
+        .select('id, client_id, weight, body_fat, chest, waist, hips, arms, thighs, created_at')
+        .in('client_id', clientIds)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false }),
+      // Weight logs (30 days)
+      supabase
+        .from('weight_logs')
+        .select('id, client_id, weight, unit, created_at')
+        .in('client_id', clientIds)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false }),
+      // Supplement intake (7 days)
+      supabase
+        .from('supplement_intake')
+        .select('id, client_id, supplement_name, taken, created_at')
+        .in('client_id', clientIds)
+        .gte('created_at', sevenDaysAgo.toISOString()),
+      // Supplement protocols
+      supabase
+        .from('client_protocols')
+        .select('id, client_id, supplements')
+        .in('client_id', clientIds),
+      // Calorie/macro goals
+      supabase
+        .from('calorie_goals')
+        .select('client_id, calorie_goal, protein_goal, carbs_goal, fat_goal')
+        .in('client_id', clientIds)
+    ]);
+
+    // Safe data extraction (some tables might not exist)
+    const recentCheckins = checkinsResult.data || [];
+    const diaryEntries = diaryResult.data || [];
+    const foodEntries = diaryEntriesResult.data || [];
+    const workoutLogs = workoutLogsResult.data || [];
+    const exerciseLogs = exerciseLogsResult.data || [];
+    const workoutAssignments = workoutAssignmentsResult.data || [];
+    const mealPlans = mealPlansResult.data || [];
+    const measurements = measurementsResult.data || [];
+    const weightLogs = weightLogsResult.data || [];
+    const supplementIntake = supplementIntakeResult.data || [];
+    const protocols = protocolsResult.data || [];
+    const goals = goalsResult.data || [];
 
     // Build comprehensive client data
     const clientData = clients.map(client => {
@@ -596,9 +695,52 @@ async function handleQuestion(event) {
       const isActiveThisWeek = lastActivity && lastActivity >= sevenDaysAgo;
       const hasPortalAccess = !!client.user_id;
 
-      const clientCheckins = (recentCheckins || []).filter(c => c.client_id === client.id);
+      const clientCheckins = recentCheckins.filter(c => c.client_id === client.id);
       const latestCheckin = clientCheckins[0];
-      const diaryCount = (diaryEntries || []).filter(d => d.client_id === client.id).length;
+      const diaryCount = diaryEntries.filter(d => d.client_id === client.id).length;
+
+      // Nutrition data
+      const clientFoodEntries = foodEntries.filter(f => f.client_id === client.id);
+      const avgCalories = clientFoodEntries.length > 0
+        ? Math.round(clientFoodEntries.reduce((sum, f) => sum + (f.calories || 0), 0) / Math.max(1, new Set(clientFoodEntries.map(f => f.created_at?.split('T')[0])).size))
+        : null;
+      const avgProtein = clientFoodEntries.length > 0
+        ? Math.round(clientFoodEntries.reduce((sum, f) => sum + (f.protein || 0), 0) / Math.max(1, new Set(clientFoodEntries.map(f => f.created_at?.split('T')[0])).size))
+        : null;
+
+      // Goals
+      const clientGoals = goals.find(g => g.client_id === client.id);
+
+      // Workout data
+      const clientWorkoutLogs = workoutLogs.filter(w => w.client_id === client.id);
+      const clientExerciseLogs = exerciseLogs.filter(e => e.client_id === client.id);
+      const clientAssignment = workoutAssignments.find(a => a.client_id === client.id);
+
+      // Find PRs (heaviest weight per exercise)
+      const prsByExercise = {};
+      clientExerciseLogs.forEach(log => {
+        if (log.weight && log.exercise_name) {
+          const key = log.exercise_name;
+          if (!prsByExercise[key] || log.weight > prsByExercise[key].weight) {
+            prsByExercise[key] = { weight: log.weight, reps: log.reps, unit: log.weight_unit || 'lbs', date: log.created_at };
+          }
+        }
+      });
+
+      // Measurements & weight
+      const clientMeasurements = measurements.filter(m => m.client_id === client.id);
+      const latestMeasurement = clientMeasurements[0];
+      const clientWeightLogs = weightLogs.filter(w => w.client_id === client.id);
+      const latestWeight = clientWeightLogs[0];
+      const earliestWeight = clientWeightLogs[clientWeightLogs.length - 1];
+
+      // Meal plans
+      const clientMealPlans = mealPlans.filter(p => p.client_id === client.id);
+      const activePlan = clientMealPlans.find(p => p.status === 'published' || p.status === 'active');
+
+      // Supplements
+      const clientProtocol = protocols.find(p => p.client_id === client.id);
+      const clientSupplementIntake = supplementIntake.filter(s => s.client_id === client.id);
 
       return {
         name: client.client_name,
@@ -614,28 +756,110 @@ async function handleQuestion(event) {
           requestedDiet: latestCheckin.request_new_diet,
           dietReason: latestCheckin.diet_request_reason
         } : null,
-        diaryEntriesThisWeek: diaryCount
+        diaryEntriesThisWeek: diaryCount,
+        nutrition: {
+          avgDailyCalories: avgCalories,
+          avgDailyProtein: avgProtein,
+          goals: clientGoals ? { calories: clientGoals.calorie_goal, protein: clientGoals.protein_goal, carbs: clientGoals.carbs_goal, fat: clientGoals.fat_goal } : null
+        },
+        workouts: {
+          totalThisMonth: clientWorkoutLogs.length,
+          recentWorkouts: clientWorkoutLogs.slice(0, 5).map(w => ({ name: w.workout_name, date: w.completed_at || w.created_at, duration: w.duration_minutes })),
+          recentExercises: clientExerciseLogs.slice(0, 10).map(e => ({ name: e.exercise_name, sets: e.sets, reps: e.reps, weight: e.weight, unit: e.weight_unit })),
+          prs: Object.entries(prsByExercise).slice(0, 10).map(([exercise, data]) => ({ exercise, weight: data.weight, reps: data.reps, unit: data.unit, date: data.date })),
+          currentProgram: clientAssignment?.workout_data?.name || null
+        },
+        body: {
+          latestWeight: latestWeight ? { value: latestWeight.weight, unit: latestWeight.unit, date: latestWeight.created_at } : null,
+          weightChange: (latestWeight && earliestWeight && latestWeight !== earliestWeight)
+            ? { change: Math.round((latestWeight.weight - earliestWeight.weight) * 10) / 10, unit: latestWeight.unit, period: '30 days' }
+            : null,
+          latestMeasurement: latestMeasurement ? {
+            date: latestMeasurement.created_at,
+            bodyFat: latestMeasurement.body_fat,
+            waist: latestMeasurement.waist,
+            chest: latestMeasurement.chest,
+            arms: latestMeasurement.arms
+          } : null
+        },
+        mealPlan: activePlan ? { name: activePlan.plan_name, calories: activePlan.daily_calories, endDate: activePlan.end_date } : null,
+        supplements: {
+          protocol: clientProtocol?.supplements ? (Array.isArray(clientProtocol.supplements) ? clientProtocol.supplements.length : 0) : 0,
+          takenThisWeek: clientSupplementIntake.filter(s => s.taken).length,
+          totalThisWeek: clientSupplementIntake.length
+        }
       };
     });
 
-    // Build context for AI
+    // Build context string for AI
     const clientContext = clientData.map(c => {
-      let status = [];
-      if (c.isActive) status.push('active this week');
-      else if (c.daysSinceActivity === 'never logged in') status.push('never logged in');
-      else status.push(`inactive for ${c.daysSinceActivity} days`);
+      let parts = [];
 
-      if (c.hasCheckedInThisWeek) status.push('checked in');
-      if (c.diaryEntriesThisWeek > 0) status.push(`${c.diaryEntriesThisWeek} food diary entries`);
+      // Activity status
+      if (c.isActive) parts.push('active this week');
+      else if (c.daysSinceActivity === 'never logged in') parts.push('never logged in');
+      else parts.push(`inactive for ${c.daysSinceActivity} days`);
 
+      if (c.hasCheckedInThisWeek) parts.push('checked in');
+
+      // Check-in data
       if (c.latestCheckin) {
-        if (c.latestCheckin.stress >= 8) status.push(`high stress (${c.latestCheckin.stress}/10)`);
-        if (c.latestCheckin.energy <= 3) status.push(`low energy (${c.latestCheckin.energy}/10)`);
-        if (c.latestCheckin.adherence) status.push(`${c.latestCheckin.adherence}% adherence`);
-        if (c.latestCheckin.requestedDiet) status.push(`requested new diet${c.latestCheckin.dietReason ? ': ' + c.latestCheckin.dietReason : ''}`);
+        if (c.latestCheckin.stress >= 8) parts.push(`high stress (${c.latestCheckin.stress}/10)`);
+        if (c.latestCheckin.energy <= 3) parts.push(`low energy (${c.latestCheckin.energy}/10)`);
+        if (c.latestCheckin.adherence) parts.push(`${c.latestCheckin.adherence}% meal adherence`);
+        if (c.latestCheckin.requestedDiet) parts.push(`requested new diet${c.latestCheckin.dietReason ? ': ' + c.latestCheckin.dietReason : ''}`);
       }
 
-      return `- ${c.name}: ${status.join(', ')}`;
+      // Nutrition
+      if (c.nutrition.avgDailyCalories) {
+        let nutritionStr = `avg ${c.nutrition.avgDailyCalories} cal/day`;
+        if (c.nutrition.avgDailyProtein) nutritionStr += `, ${c.nutrition.avgDailyProtein}g protein`;
+        if (c.nutrition.goals) nutritionStr += ` (goal: ${c.nutrition.goals.calories} cal, ${c.nutrition.goals.protein}g protein)`;
+        parts.push(nutritionStr);
+      }
+      if (c.diaryEntriesThisWeek > 0) parts.push(`${c.diaryEntriesThisWeek} food diary entries`);
+
+      // Workouts
+      if (c.workouts.totalThisMonth > 0) {
+        parts.push(`${c.workouts.totalThisMonth} workouts this month`);
+        if (c.workouts.currentProgram) parts.push(`program: ${c.workouts.currentProgram}`);
+        if (c.workouts.recentExercises.length > 0) {
+          const exerciseStrs = c.workouts.recentExercises.slice(0, 5).map(e => {
+            let str = e.name;
+            if (e.weight) str += ` ${e.weight}${e.unit || 'lbs'}`;
+            if (e.sets && e.reps) str += ` ${e.sets}x${e.reps}`;
+            return str;
+          });
+          parts.push(`recent exercises: ${exerciseStrs.join(', ')}`);
+        }
+        if (c.workouts.prs.length > 0) {
+          const prStrs = c.workouts.prs.slice(0, 3).map(p => `${p.exercise}: ${p.weight}${p.unit} x${p.reps}`);
+          parts.push(`PRs: ${prStrs.join(', ')}`);
+        }
+      }
+
+      // Body/weight
+      if (c.body.latestWeight) {
+        let weightStr = `weight: ${c.body.latestWeight.value}${c.body.latestWeight.unit}`;
+        if (c.body.weightChange) {
+          const sign = c.body.weightChange.change > 0 ? '+' : '';
+          weightStr += ` (${sign}${c.body.weightChange.change}${c.body.weightChange.unit} over ${c.body.weightChange.period})`;
+        }
+        parts.push(weightStr);
+      }
+      if (c.body.latestMeasurement?.bodyFat) parts.push(`body fat: ${c.body.latestMeasurement.bodyFat}%`);
+
+      // Meal plan
+      if (c.mealPlan) {
+        parts.push(`meal plan: "${c.mealPlan.name}" (${c.mealPlan.calories} cal${c.mealPlan.endDate ? ', ends ' + c.mealPlan.endDate : ''})`);
+      }
+
+      // Supplements
+      if (c.supplements.protocol > 0) {
+        parts.push(`supplements: ${c.supplements.takenThisWeek}/${c.supplements.totalThisWeek} taken this week`);
+      }
+
+      return `- ${c.name}: ${parts.join(', ')}`;
     }).join('\n');
 
     // Calculate summary stats
@@ -644,8 +868,9 @@ async function handleQuestion(event) {
     const inactiveOver7Days = clientData.filter(c => typeof c.daysSinceActivity === 'number' && c.daysSinceActivity > 7).length;
     const dietRequests = clientData.filter(c => c.latestCheckin?.requestedDiet).length;
     const highStress = clientData.filter(c => c.latestCheckin?.stress >= 8).length;
+    const totalWorkouts = clientData.reduce((sum, c) => sum + c.workouts.totalThisMonth, 0);
 
-    const prompt = `You are an AI assistant helping a fitness/nutrition coach manage their clients. Answer the coach's question based on the client data below.
+    const prompt = `You are an AI assistant helping a fitness/nutrition coach manage their clients. You have access to comprehensive data including workouts, exercises, personal records, nutrition, body measurements, meal plans, supplements, check-ins, and more. Answer the coach's question thoroughly based on the data below.
 
 SUMMARY:
 - Total clients: ${clients.length}
@@ -654,6 +879,7 @@ SUMMARY:
 - Inactive over 7 days: ${inactiveOver7Days}
 - Pending diet requests: ${dietRequests}
 - Reporting high stress: ${highStress}
+- Total workouts logged (30 days): ${totalWorkouts}
 
 CLIENT DETAILS:
 ${clientContext}
@@ -665,7 +891,11 @@ IMPORTANT RULES:
 2. Use specific client names when relevant
 3. Be concise and direct - give the information they asked for
 4. If listing clients, use simple numbered lists (1. 2. 3.) or just commas
-5. Keep response under 150 words unless more detail is needed`;
+5. For workout/exercise questions, include specific weights, sets, reps, and PRs when available
+6. For nutrition questions, compare actual intake vs goals when both are available
+7. For body composition questions, mention weight changes and trends
+8. If the data needed to answer is not available, say so honestly rather than guessing
+9. Keep response under 200 words unless more detail is needed for the question`;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -674,7 +904,7 @@ IMPORTANT RULES:
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 500
+          maxOutputTokens: 800
         }
       })
     });
