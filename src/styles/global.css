@@ -12347,14 +12347,32 @@ a.nav-left {
 }
 
 .share-card-bg {
-    background: linear-gradient(180deg, rgba(20, 20, 20, 0.4) 0%, rgba(0, 0, 0, 0.7) 100%),
-                linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    min-height: 260px;
+    position: relative;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+}
+
+.share-card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1;
+}
+
+.share-card-content {
+    position: relative;
+    z-index: 2;
     padding: 24px;
-    min-height: 280px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    position: relative;
+    min-height: 260px;
 }
 
 .share-card-brand {
@@ -12362,17 +12380,20 @@ a.nav-left {
     font-size: 18px;
     font-weight: 700;
     color: var(--brand-primary, #0d9488);
-    margin-bottom: 40px;
+    margin-bottom: 32px;
 }
 
 .share-card-stats {
     display: flex;
     justify-content: space-around;
     padding: 16px 0;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .share-stat {
     text-align: center;
+    min-width: 70px;
 }
 
 .share-stat-value {
@@ -12380,21 +12401,34 @@ a.nav-left {
     font-size: 28px;
     font-weight: 700;
     color: white;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
 .share-stat-label {
     display: block;
     font-size: 11px;
-    color: #9ca3af;
+    color: #d1d5db;
     text-transform: capitalize;
     margin-top: 2px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
 .share-card-footer {
     text-align: center;
     font-size: 10px;
-    color: #6b7280;
+    color: #9ca3af;
     margin-top: 16px;
+}
+
+.change-image-btn {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 0;
+    margin-bottom: 8px;
 }
 
 /* Share Toggle Controls */
