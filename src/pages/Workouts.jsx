@@ -725,7 +725,10 @@ function Workouts() {
     });
 
     // Persist the completed flag into workout_data using functional state update
-    // This avoids stale ref issues when multiple toggles happen in quick succession
+    // Capture the updated data via ref so we can make the API call outside the updater
+    let capturedWorkoutData = null;
+    let capturedWorkout = null;
+
     setTodayWorkout(prev => {
       if (!prev?.workout_data) return prev;
 
@@ -759,37 +762,47 @@ function Workouts() {
         updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
       }
 
-      // Store the pending save data so visibilitychange can flush it
-      pendingSaveRef.current = {
-        workout: prev,
-        updatedWorkoutData
-      };
-
-      // Persist to backend with keepalive so it survives page close
-      if (prev.is_adhoc) {
-        const isRealId = prev.id && !String(prev.id).startsWith('adhoc-') && !String(prev.id).startsWith('custom-');
-        const dateStr = prev.workout_date || new Date().toISOString().split('T')[0];
-        apiPut('/.netlify/functions/adhoc-workouts', {
-          ...(isRealId ? { workoutId: prev.id } : {}),
-          clientId: prev.client_id,
-          workoutDate: dateStr,
-          workoutData: updatedWorkoutData,
-          name: prev.name
-        }).then(() => {
-          pendingSaveRef.current = null;
-        }).catch(err => console.error('Error persisting exercise completion:', err));
-      } else {
-        apiPut('/.netlify/functions/client-workout-log', {
-          assignmentId: prev.id,
-          dayIndex: prev.day_index,
-          workout_data: updatedWorkoutData
-        }).then(() => {
-          pendingSaveRef.current = null;
-        }).catch(err => console.error('Error persisting exercise completion:', err));
-      }
+      // Capture for API call (outside updater)
+      capturedWorkoutData = updatedWorkoutData;
+      capturedWorkout = prev;
 
       return { ...prev, workout_data: updatedWorkoutData };
     });
+
+    // Make the API call outside the state updater (updater should be pure)
+    // Use a small delay to ensure state has been committed and ref is available
+    await new Promise(r => setTimeout(r, 50));
+
+    const workout = capturedWorkout || todayWorkoutRef.current;
+    const updatedWorkoutData = capturedWorkoutData;
+    if (!workout || !updatedWorkoutData) return;
+
+    // Store pending save for visibilitychange flush
+    pendingSaveRef.current = { workout, updatedWorkoutData };
+
+    try {
+      if (workout.is_adhoc) {
+        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        await apiPut('/.netlify/functions/adhoc-workouts', {
+          ...(isRealId ? { workoutId: workout.id } : {}),
+          clientId: workout.client_id,
+          workoutDate: dateStr,
+          workoutData: updatedWorkoutData,
+          name: workout.name
+        });
+      } else {
+        await apiPut('/.netlify/functions/client-workout-log', {
+          assignmentId: workout.id,
+          dayIndex: workout.day_index,
+          workout_data: updatedWorkoutData
+        });
+      }
+      pendingSaveRef.current = null;
+    } catch (err) {
+      console.error('Error persisting exercise completion:', err);
+      // localStorage already has the data as backup
+    }
   }, []);
 
   // Handle exercise swap - use ref for stable callback
@@ -1552,13 +1565,29 @@ function Workouts() {
         ? Math.round((new Date() - new Date(workoutStartTime)) / 60000)
         : null;
 
-      const result = await apiPut('/.netlify/functions/workout-logs', {
-        workoutId: workoutLog.id,
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        durationMinutes,
-        exercises: exerciseData
-      });
+      // Use a timeout to ensure the user isn't stuck on the loading screen forever
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 20000)
+      );
+
+      let result;
+      try {
+        result = await Promise.race([
+          apiPut('/.netlify/functions/workout-logs', {
+            workoutId: workoutLog.id,
+            status: 'completed',
+            completedAt: new Date().toISOString(),
+            durationMinutes,
+            exercises: exerciseData
+          }),
+          timeoutPromise
+        ]);
+      } catch (raceErr) {
+        // If timed out, still show the summary (workout may have saved server-side)
+        console.warn('Workout save timed out or failed, showing summary anyway:', raceErr.message);
+        result = {};
+      }
+
       // Capture any new PRs from the response
       setWorkoutPRs(result?.prs || []);
       // Clear localStorage completion cache since workout is done
@@ -1572,6 +1601,8 @@ function Workouts() {
     } catch (err) {
       console.error('Error completing workout:', err);
       setCompletingWorkout(false);
+      // Still show summary even on error so user isn't stuck
+      setShowSummary(true);
     }
   }, [workoutLog?.id, workoutStartTime]);
 
