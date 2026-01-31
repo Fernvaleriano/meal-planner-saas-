@@ -621,11 +621,11 @@ async function handleQuestion(event) {
         .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: false })
         .limit(500),
-      // Exercise logs with sets/reps/weight (30 days)
+      // Exercise logs with sets/reps/weight via workout_logs join (30 days)
       supabase
         .from('exercise_logs')
-        .select('id, client_id, exercise_name, sets, reps, weight, weight_unit, duration_seconds, created_at')
-        .in('client_id', clientIds)
+        .select('id, workout_log_id, exercise_name, sets_data, total_sets, total_reps, total_volume, max_weight, is_pr, notes, created_at, workout_logs!inner(client_id)')
+        .in('workout_logs.client_id', clientIds)
         .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: false })
         .limit(1000),
@@ -679,7 +679,12 @@ async function handleQuestion(event) {
     const diaryEntries = diaryResult.data || [];
     const foodEntries = diaryEntriesResult.data || [];
     const workoutLogs = workoutLogsResult.data || [];
-    const exerciseLogs = exerciseLogsResult.data || [];
+    const exerciseLogsRaw = exerciseLogsResult.data || [];
+    // Flatten client_id from joined workout_logs
+    const exerciseLogs = exerciseLogsRaw.map(e => ({
+      ...e,
+      client_id: e.workout_logs?.client_id || null
+    }));
     const workoutAssignments = workoutAssignmentsResult.data || [];
     const mealPlans = mealPlansResult.data || [];
     const measurements = measurementsResult.data || [];
@@ -719,10 +724,10 @@ async function handleQuestion(event) {
       // Find PRs (heaviest weight per exercise)
       const prsByExercise = {};
       clientExerciseLogs.forEach(log => {
-        if (log.weight && log.exercise_name) {
+        if (log.max_weight && log.exercise_name) {
           const key = log.exercise_name;
-          if (!prsByExercise[key] || log.weight > prsByExercise[key].weight) {
-            prsByExercise[key] = { weight: log.weight, reps: log.reps, unit: log.weight_unit || 'lbs', date: log.created_at };
+          if (!prsByExercise[key] || log.max_weight > prsByExercise[key].weight) {
+            prsByExercise[key] = { weight: log.max_weight, reps: log.total_reps, unit: 'lbs', date: log.created_at, isPr: log.is_pr };
           }
         }
       });
@@ -765,7 +770,7 @@ async function handleQuestion(event) {
         workouts: {
           totalThisMonth: clientWorkoutLogs.length,
           recentWorkouts: clientWorkoutLogs.slice(0, 5).map(w => ({ name: w.workout_name, date: w.completed_at || w.created_at, duration: w.duration_minutes })),
-          recentExercises: clientExerciseLogs.slice(0, 10).map(e => ({ name: e.exercise_name, sets: e.sets, reps: e.reps, weight: e.weight, unit: e.weight_unit })),
+          recentExercises: clientExerciseLogs.slice(0, 10).map(e => ({ name: e.exercise_name, sets: e.total_sets, reps: e.total_reps, weight: e.max_weight, volume: e.total_volume, isPr: e.is_pr })),
           prs: Object.entries(prsByExercise).slice(0, 10).map(([exercise, data]) => ({ exercise, weight: data.weight, reps: data.reps, unit: data.unit, date: data.date })),
           currentProgram: clientAssignment?.workout_data?.name || null
         },
