@@ -12247,9 +12247,16 @@ a.nav-left {
     max-width: 400px;
     padding: 32px 24px;
     max-height: 85vh;
-    overflow-y: auto;
+    overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+/* Prevent the overlay behind the summary from scrolling on iOS */
+.summary-scroll-overlay {
+    overflow: hidden;
+    touch-action: none;
 }
 
 .summary-stars {
