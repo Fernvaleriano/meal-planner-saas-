@@ -269,7 +269,7 @@
 
         .priority-alert {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 10px;
             font-size: 0.9375rem;
             color: var(--gray-700);
@@ -278,6 +278,53 @@
 
         [data-theme="dark"] .priority-alert {
             color: #cbd5e1;
+        }
+
+        .priority-alert--clickable {
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+
+        .priority-alert--clickable:hover {
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .priority-alert--clickable:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .priority-alert-link {
+            color: var(--brand-primary);
+            font-weight: 600;
+            font-size: 0.8125rem;
+            white-space: nowrap;
+            margin-left: 4px;
+        }
+
+        .priority-alert-link:hover {
+            text-decoration: underline;
+        }
+
+        .priority-alert-detail {
+            color: var(--gray-500);
+            font-size: 0.8125rem;
+        }
+
+        [data-theme="dark"] .priority-alert-detail {
+            color: #94a3b8;
+        }
+
+        .priority-alert-more {
+            font-size: 0.8125rem;
+            color: var(--gray-500);
+            padding-left: 20px;
+            cursor: pointer;
+        }
+
+        .priority-alert-more:hover {
+            color: var(--brand-primary);
         }
 
         .priority-alert--loading {
@@ -3299,17 +3346,17 @@
                     </div>
                 </div>
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" style="cursor:pointer" onclick="window.location.href='manage-clients.html'" title="View all clients">
                         <div class="stat-number" id="clientCount">-</div>
                         <div class="stat-label">Active Clients</div>
-                        <div class="stat-bell" title="View clients" onclick="window.location.href='manage-clients.html'">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <div class="stat-bell">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         </div>
                     </div>
-                    <div class="stat-card stat-card--pending">
+                    <div class="stat-card stat-card--pending" style="cursor:pointer" onclick="document.getElementById('priorityAlerts').scrollIntoView({behavior:'smooth'})" title="View pending check-ins below">
                         <div class="stat-number" id="checkInCount">-</div>
                         <div class="stat-label">Check-Ins Pending</div>
-                        <div class="stat-bell" title="View check-ins" onclick="window.location.href='manage-clients.html'">
+                        <div class="stat-bell">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                         </div>
                     </div>
@@ -3837,120 +3884,220 @@
             }
         }
 
+        function timeAgo(dateStr) {
+            const now = new Date();
+            const date = new Date(dateStr);
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHrs = Math.floor(diffMins / 60);
+            if (diffHrs < 24) return `${diffHrs}h ago`;
+            const diffDays = Math.floor(diffHrs / 24);
+            if (diffDays === 1) return 'yesterday';
+            return `${diffDays}d ago`;
+        }
+
         async function loadPriorityAlerts(coachId, clientCount, pendingCheckIns) {
             const alertsEl = document.getElementById('priorityAlerts');
             const alerts = [];
+            const MAX_SHOWN = 3;
 
             try {
-                // Check for high-stress clients (from recent check-ins, stress 4-5 on 1-5 scale)
-                let highStressCount = 0;
-                let lowEnergyCount = 0;
-                let newCheckinCount = 0;
+                // Fetch client name lookup
+                const { data: allClients } = await supabaseClient
+                    .from('clients')
+                    .select('id, client_name')
+                    .eq('coach_id', coachId);
+                const clientMap = {};
+                (allClients || []).forEach(c => { clientMap[c.id] = c.client_name || 'Unknown Client'; });
+
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+
+                // Fetch actual check-in records (not just counts) for the past week
+                let highStressCheckins = [];
+                let lowEnergyCheckins = [];
+                let pendingCheckins = [];
                 try {
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-
-                    // High stress (4+ on 1-5 scale)
-                    const { count: stressCount } = await supabaseClient
-                        .from('client_checkins')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('coach_id', coachId)
-                        .gte('stress_level', 4)
-                        .gte('created_at', weekAgo.toISOString());
-                    highStressCount = stressCount || 0;
-
-                    // Low energy (1-2 on 1-5 scale)
-                    const { count: energyCount } = await supabaseClient
-                        .from('client_checkins')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('coach_id', coachId)
-                        .lte('energy_level', 2)
-                        .gte('created_at', weekAgo.toISOString());
-                    lowEnergyCount = energyCount || 0;
-
-                    // New check-ins today (not yet responded to)
-                    const todayStart = new Date();
-                    todayStart.setHours(0, 0, 0, 0);
-                    const { count: todayCheckins } = await supabaseClient
-                        .from('client_checkins')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('coach_id', coachId)
-                        .is('coach_responded_at', null)
-                        .gte('created_at', todayStart.toISOString());
-                    newCheckinCount = todayCheckins || 0;
+                    const [stressResult, energyResult, pendingResult] = await Promise.all([
+                        // High stress (4+ on 1-5 scale) - with client details
+                        supabaseClient
+                            .from('client_checkins')
+                            .select('id, client_id, stress_level, energy_level, created_at')
+                            .eq('coach_id', coachId)
+                            .gte('stress_level', 4)
+                            .gte('created_at', weekAgo.toISOString())
+                            .order('created_at', { ascending: false })
+                            .limit(10),
+                        // Low energy (1-2 on 1-5 scale)
+                        supabaseClient
+                            .from('client_checkins')
+                            .select('id, client_id, energy_level, stress_level, created_at')
+                            .eq('coach_id', coachId)
+                            .lte('energy_level', 2)
+                            .gte('created_at', weekAgo.toISOString())
+                            .order('created_at', { ascending: false })
+                            .limit(10),
+                        // All pending check-ins (unreviewed)
+                        supabaseClient
+                            .from('client_checkins')
+                            .select('id, client_id, stress_level, energy_level, created_at')
+                            .eq('coach_id', coachId)
+                            .is('coach_responded_at', null)
+                            .order('created_at', { ascending: false })
+                            .limit(20)
+                    ]);
+                    highStressCheckins = stressResult.data || [];
+                    lowEnergyCheckins = energyResult.data || [];
+                    pendingCheckins = pendingResult.data || [];
                 } catch (e) {
-                    console.warn('Could not check stress levels:', e);
+                    console.warn('Could not load check-in details:', e);
                 }
 
-                if (highStressCount > 0) {
-                    alerts.push(`
-                        <div class="priority-alert">
-                            <span class="priority-dot priority-dot--red"></span>
-                            <span><span class="priority-label priority-label--action">Action required:</span> ${highStressCount} client${highStressCount !== 1 ? 's' : ''} reported high stress levels in their check-in.</span>
-                        </div>
-                    `);
+                // --- HIGH STRESS ALERTS (red, per-client, clickable) ---
+                if (highStressCheckins.length > 0) {
+                    const shown = highStressCheckins.slice(0, MAX_SHOWN);
+                    const remaining = highStressCheckins.length - shown.length;
+                    shown.forEach(c => {
+                        const name = clientMap[c.client_id] || 'Unknown Client';
+                        alerts.push(`
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                <span class="priority-dot priority-dot--red"></span>
+                                <span>
+                                    <span class="priority-label priority-label--action">High stress:</span>
+                                    <strong>${name}</strong> reported ${c.stress_level}/5 stress
+                                    <span class="priority-alert-detail">· ${timeAgo(c.created_at)}</span>
+                                    <span class="priority-alert-link">View check-in →</span>
+                                </span>
+                            </div>
+                        `);
+                    });
+                    if (remaining > 0) {
+                        alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${remaining} more high stress check-in${remaining !== 1 ? 's' : ''}</div>`);
+                    }
                 }
 
-                if (lowEnergyCount > 0) {
-                    alerts.push(`
-                        <div class="priority-alert">
-                            <span class="priority-dot priority-dot--red"></span>
-                            <span><span class="priority-label priority-label--action">Action required:</span> ${lowEnergyCount} client${lowEnergyCount !== 1 ? 's' : ''} reported low energy levels.</span>
-                        </div>
-                    `);
+                // --- LOW ENERGY ALERTS (red, per-client, clickable) ---
+                // Exclude any already shown in high stress
+                const stressIds = new Set(highStressCheckins.map(c => c.id));
+                const uniqueLowEnergy = lowEnergyCheckins.filter(c => !stressIds.has(c.id));
+                if (uniqueLowEnergy.length > 0) {
+                    const shown = uniqueLowEnergy.slice(0, MAX_SHOWN);
+                    const remaining = uniqueLowEnergy.length - shown.length;
+                    shown.forEach(c => {
+                        const name = clientMap[c.client_id] || 'Unknown Client';
+                        alerts.push(`
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                <span class="priority-dot priority-dot--red"></span>
+                                <span>
+                                    <span class="priority-label priority-label--action">Low energy:</span>
+                                    <strong>${name}</strong> reported ${c.energy_level}/5 energy
+                                    <span class="priority-alert-detail">· ${timeAgo(c.created_at)}</span>
+                                    <span class="priority-alert-link">View check-in →</span>
+                                </span>
+                            </div>
+                        `);
+                    });
+                    if (remaining > 0) {
+                        alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${remaining} more low energy check-in${remaining !== 1 ? 's' : ''}</div>`);
+                    }
                 }
 
-                if (newCheckinCount > 0) {
-                    alerts.push(`
-                        <div class="priority-alert">
-                            <span class="priority-dot priority-dot--amber"></span>
-                            <span><span class="priority-label priority-label--pending">New today:</span> ${newCheckinCount} check-in${newCheckinCount !== 1 ? 's' : ''} submitted today awaiting your response.</span>
-                        </div>
-                    `);
+                // --- PENDING CHECK-INS (amber, per-client, clickable) ---
+                // Exclude ones already shown as stress/energy alerts
+                const shownIds = new Set([...highStressCheckins.map(c => c.id), ...uniqueLowEnergy.map(c => c.id)]);
+                const otherPending = pendingCheckins.filter(c => !shownIds.has(c.id));
+                if (otherPending.length > 0) {
+                    const todayOnes = otherPending.filter(c => new Date(c.created_at) >= todayStart);
+                    const olderOnes = otherPending.filter(c => new Date(c.created_at) < todayStart);
+
+                    // Show today's first
+                    const todayShown = todayOnes.slice(0, MAX_SHOWN);
+                    todayShown.forEach(c => {
+                        const name = clientMap[c.client_id] || 'Unknown Client';
+                        alerts.push(`
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                <span class="priority-dot priority-dot--amber"></span>
+                                <span>
+                                    <span class="priority-label priority-label--pending">New today:</span>
+                                    <strong>${name}</strong> checked in ${timeAgo(c.created_at)}
+                                    <span class="priority-alert-link">Review →</span>
+                                </span>
+                            </div>
+                        `);
+                    });
+
+                    // Show older pending
+                    const olderShown = olderOnes.slice(0, MAX_SHOWN);
+                    olderShown.forEach(c => {
+                        const name = clientMap[c.client_id] || 'Unknown Client';
+                        alerts.push(`
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                <span class="priority-dot priority-dot--amber"></span>
+                                <span>
+                                    <span class="priority-label priority-label--pending">Pending:</span>
+                                    <strong>${name}</strong> checked in ${timeAgo(c.created_at)}
+                                    <span class="priority-alert-link">Review →</span>
+                                </span>
+                            </div>
+                        `);
+                    });
+
+                    const totalRemaining = otherPending.length - todayShown.length - olderShown.length;
+                    if (totalRemaining > 0) {
+                        alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${totalRemaining} more pending check-in${totalRemaining !== 1 ? 's' : ''}</div>`);
+                    }
                 }
 
-                if (pendingCheckIns > 0) {
-                    alerts.push(`
-                        <div class="priority-alert">
-                            <span class="priority-dot priority-dot--amber"></span>
-                            <span><span class="priority-label priority-label--pending">Pending:</span> ${pendingCheckIns} check-in${pendingCheckIns !== 1 ? 's' : ''} awaiting your review.</span>
-                        </div>
-                    `);
-                }
-
-                // Check for expiring meal plans (within 3 days)
+                // --- EXPIRING MEAL PLANS (amber, with client names) ---
                 try {
                     const threeDaysFromNow = new Date();
                     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
                     const today = new Date().toISOString().split('T')[0];
 
-                    const { count: expiringCount } = await supabaseClient
+                    const { data: expiringPlans } = await supabaseClient
                         .from('coach_meal_plans')
-                        .select('*', { count: 'exact', head: true })
+                        .select('id, client_id, plan_name, end_date')
                         .eq('coach_id', coachId)
                         .lte('end_date', threeDaysFromNow.toISOString().split('T')[0])
-                        .gte('end_date', today);
+                        .gte('end_date', today)
+                        .order('end_date', { ascending: true })
+                        .limit(5);
 
-                    if (expiringCount > 0) {
-                        alerts.push(`
-                            <div class="priority-alert">
-                                <span class="priority-dot priority-dot--amber"></span>
-                                <span><span class="priority-label priority-label--pending">Pending:</span> ${expiringCount} meal plan${expiringCount !== 1 ? 's' : ''} expire within 3 days.</span>
-                            </div>
-                        `);
+                    if (expiringPlans && expiringPlans.length > 0) {
+                        const shown = expiringPlans.slice(0, MAX_SHOWN);
+                        const remaining = expiringPlans.length - shown.length;
+                        shown.forEach(p => {
+                            const name = clientMap[p.client_id] || 'Unknown Client';
+                            const daysLeft = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
+                            const urgency = daysLeft <= 1 ? 'Expires tomorrow' : `Expires in ${daysLeft} days`;
+                            alerts.push(`
+                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${p.client_id}'">
+                                    <span class="priority-dot priority-dot--amber"></span>
+                                    <span>
+                                        <span class="priority-label priority-label--pending">${urgency}:</span>
+                                        <strong>${name}</strong>'s meal plan "${p.plan_name || 'Untitled'}"
+                                        <span class="priority-alert-link">View client →</span>
+                                    </span>
+                                </div>
+                            `);
+                        });
+                        if (remaining > 0) {
+                            alerts.push(`<div class="priority-alert-more">+ ${remaining} more expiring plan${remaining !== 1 ? 's' : ''}</div>`);
+                        }
                     }
                 } catch (e) {
                     console.warn('Could not check expiring plans:', e);
                 }
 
-                // Check for recent PRs (last 7 days) - positive alert
+                // --- PR ALERTS (green, with client names) ---
                 try {
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-
                     const { data: prNotifications } = await supabaseClient
                         .from('notifications')
-                        .select('title, message, created_at')
+                        .select('title, message, created_at, related_client_id')
                         .eq('user_id', coachId)
                         .eq('type', 'client_pr')
                         .gte('created_at', weekAgo.toISOString())
@@ -3958,42 +4105,59 @@
                         .limit(5);
 
                     if (prNotifications && prNotifications.length > 0) {
-                        const prCount = prNotifications.length;
-                        const latestPr = prNotifications[0];
-                        alerts.push(`
-                            <div class="priority-alert">
-                                <span class="priority-dot priority-dot--green"></span>
-                                <span><span class="priority-label priority-label--positive">New PR${prCount > 1 ? 's' : ''}!</span> ${latestPr.message}${prCount > 1 ? ` (+${prCount - 1} more this week)` : ''}</span>
-                            </div>
-                        `);
+                        const shown = prNotifications.slice(0, MAX_SHOWN);
+                        const remaining = prNotifications.length - shown.length;
+                        shown.forEach(pr => {
+                            const name = clientMap[pr.related_client_id] || '';
+                            const clientLink = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
+                            alerts.push(`
+                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='${clientLink}'">
+                                    <span class="priority-dot priority-dot--green"></span>
+                                    <span>
+                                        <span class="priority-label priority-label--positive">New PR!</span>
+                                        ${name ? `<strong>${name}</strong> — ` : ''}${pr.message}
+                                        <span class="priority-alert-detail">· ${timeAgo(pr.created_at)}</span>
+                                        <span class="priority-alert-link">View →</span>
+                                    </span>
+                                </div>
+                            `);
+                        });
+                        if (remaining > 0) {
+                            alerts.push(`<div class="priority-alert-more" onclick="document.getElementById('clientPrsSection').scrollIntoView({behavior:'smooth'})">+ ${remaining} more PR${remaining !== 1 ? 's' : ''} this week</div>`);
+                        }
                     }
                 } catch (e) {
                     console.warn('Could not check PRs:', e);
                 }
 
-                // Check for clients logging workouts this week
+                // --- WORKOUT ACTIVITY (green, with client names) ---
                 try {
-                    const { data: clients } = await supabaseClient
-                        .from('clients')
-                        .select('id')
-                        .eq('coach_id', coachId);
-
-                    if (clients && clients.length > 0) {
-                        const clientIds = clients.map(c => c.id);
-                        const weekAgo = new Date();
-                        weekAgo.setDate(weekAgo.getDate() - 7);
-
-                        const { count: workoutCount } = await supabaseClient
+                    const clientIds = (allClients || []).map(c => c.id);
+                    if (clientIds.length > 0) {
+                        const { data: recentWorkouts } = await supabaseClient
                             .from('workout_logs')
-                            .select('*', { count: 'exact', head: true })
+                            .select('id, client_id, workout_name, created_at')
                             .in('client_id', clientIds)
-                            .gte('created_at', weekAgo.toISOString());
+                            .gte('created_at', weekAgo.toISOString())
+                            .order('created_at', { ascending: false })
+                            .limit(20);
 
-                        if (workoutCount > 0) {
+                        if (recentWorkouts && recentWorkouts.length > 0) {
+                            // Group by client to show unique names
+                            const clientWorkoutMap = {};
+                            recentWorkouts.forEach(w => {
+                                if (!clientWorkoutMap[w.client_id]) {
+                                    clientWorkoutMap[w.client_id] = { count: 0, latest: w };
+                                }
+                                clientWorkoutMap[w.client_id].count++;
+                            });
+                            const activeClients = Object.entries(clientWorkoutMap);
+                            const names = activeClients.slice(0, 3).map(([cid]) => clientMap[cid] || 'Unknown').join(', ');
+                            const extraCount = activeClients.length - 3;
                             alerts.push(`
                                 <div class="priority-alert">
                                     <span class="priority-dot priority-dot--green"></span>
-                                    <span>${workoutCount} workout${workoutCount !== 1 ? 's' : ''} logged by your clients this week.</span>
+                                    <span>${recentWorkouts.length} workout${recentWorkouts.length !== 1 ? 's' : ''} this week from <strong>${names}</strong>${extraCount > 0 ? ` + ${extraCount} more` : ''}</span>
                                 </div>
                             `);
                         }
