@@ -1013,6 +1013,611 @@
         }
 
         /* Workout Progress Section */
+        /* ============ ACTIVITY CALENDAR SECTION ============ */
+        .activity-calendar-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+
+        .ac-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+            margin-top: 16px;
+        }
+
+        .ac-calendar-container {
+            min-width: 0;
+        }
+
+        .ac-month-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .ac-month-nav button {
+            background: none;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #0369a1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .ac-month-nav button:hover {
+            background: #f0f9ff;
+            border-color: #0369a1;
+        }
+
+        .ac-month-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .ac-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .ac-day-header {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            padding: 8px 4px;
+            text-transform: uppercase;
+        }
+
+        .ac-day-cell {
+            min-height: 70px;
+            border: 1px solid #f1f5f9;
+            border-radius: 8px;
+            padding: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+        }
+
+        .ac-day-cell:hover {
+            background: #f0f9ff;
+            border-color: #93c5fd;
+        }
+
+        .ac-day-cell.selected {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+        }
+
+        .ac-day-cell.today .ac-day-number {
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ac-day-cell.other-month {
+            opacity: 0.35;
+        }
+
+        .ac-day-cell.has-workout::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+
+        .ac-day-cell.has-logged::after {
+            background: #3b82f6;
+        }
+
+        .ac-day-number {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            padding: 2px 4px;
+            display: inline-flex;
+        }
+
+        .ac-day-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin-top: 2px;
+        }
+
+        .ac-day-icon {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        /* Day Detail Panel */
+        .ac-detail-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .ac-detail-header {
+            padding: 16px 20px;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 700;
+            font-size: 16px;
+            color: #1e293b;
+        }
+
+        .ac-detail-body {
+            padding: 16px;
+        }
+
+        .ac-detail-workout-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0369a1;
+            text-align: center;
+            padding: 8px;
+            background: #eff6ff;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .ac-detail-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ac-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ac-action-btn:hover {
+            background: #f0f9ff;
+            border-color: #93c5fd;
+            color: #0369a1;
+        }
+
+        .ac-action-btn.danger:hover {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+
+        /* Exercise list in detail panel */
+        .ac-exercise-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .ac-exercise-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .ac-exercise-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #f1f5f9;
+            flex-shrink: 0;
+        }
+
+        .ac-exercise-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ac-exercise-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ac-exercise-meta {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .ac-exercise-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .ac-ex-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            color: #94a3b8;
+            font-size: 16px;
+            transition: all 0.15s;
+        }
+
+        .ac-ex-btn:hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .ac-ex-btn.delete:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        /* Sets editing */
+        .ac-sets-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .ac-set-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .ac-set-pill.completed {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #166534;
+        }
+
+        /* Set editor inline */
+        .ac-set-editor {
+            margin-top: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .ac-set-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 1fr 30px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .ac-set-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .ac-set-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+            background: white;
+        }
+
+        .ac-set-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        }
+
+        .ac-set-remove {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #ef4444;
+            font-size: 16px;
+            padding: 2px;
+        }
+
+        .ac-set-add-btn {
+            width: 100%;
+            padding: 6px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            background: transparent;
+            color: #64748b;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .ac-set-add-btn:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .ac-set-save-btn {
+            width: 100%;
+            padding: 8px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .ac-set-save-btn:hover { background: #2563eb; }
+        .ac-set-save-btn:disabled { opacity: 0.5; cursor: default; }
+
+        /* Empty state for detail panel */
+        .ac-detail-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .ac-detail-empty svg {
+            width: 48px;
+            height: 48px;
+            stroke: #cbd5e1;
+        }
+
+        /* Exercise search modal */
+        .ac-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ac-modal-overlay.active {
+            display: flex;
+        }
+
+        .ac-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .ac-modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ac-modal-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .ac-modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: #94a3b8;
+            padding: 4px;
+        }
+
+        .ac-modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .ac-modal-search {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .ac-modal-search:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .ac-modal-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .ac-filter-chip {
+            padding: 5px 12px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ac-filter-chip.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .ac-exercise-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .ac-exercise-option:hover {
+            background: #f0f9ff;
+        }
+
+        .ac-exercise-option img {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #f1f5f9;
+        }
+
+        .ac-exercise-option-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .ac-exercise-option-info span {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Loading spinner */
+        .ac-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .ac-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: ac-spin 0.6s linear infinite;
+        }
+
+        @keyframes ac-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] .activity-calendar-section {
+            background: var(--bg-secondary, #1e293b);
+        }
+
+        [data-theme="dark"] .ac-month-title { color: var(--text-primary, #f1f5f9); }
+        [data-theme="dark"] .ac-month-nav button { border-color: var(--border-color, #334155); color: #60a5fa; }
+        [data-theme="dark"] .ac-month-nav button:hover { background: rgba(96,165,250,0.1); }
+        [data-theme="dark"] .ac-day-header { color: var(--text-secondary, #94a3b8); }
+        [data-theme="dark"] .ac-day-cell { border-color: var(--border-color, #334155); }
+        [data-theme="dark"] .ac-day-cell:hover { background: rgba(96,165,250,0.1); border-color: #60a5fa; }
+        [data-theme="dark"] .ac-day-cell.selected { background: rgba(59,130,246,0.15); border-color: #3b82f6; }
+        [data-theme="dark"] .ac-day-number { color: var(--text-primary, #f1f5f9); }
+        [data-theme="dark"] .ac-detail-panel { background: var(--bg-tertiary, #334155); border-color: var(--border-color, #475569); }
+        [data-theme="dark"] .ac-detail-header { background: var(--bg-secondary, #1e293b); border-color: var(--border-color, #475569); color: var(--text-primary); }
+        [data-theme="dark"] .ac-detail-workout-name { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        [data-theme="dark"] .ac-action-btn { background: var(--bg-secondary, #1e293b); border-color: var(--border-color, #475569); color: var(--text-secondary); }
+        [data-theme="dark"] .ac-action-btn:hover { background: rgba(96,165,250,0.1); color: #60a5fa; border-color: #60a5fa; }
+        [data-theme="dark"] .ac-exercise-item { background: var(--bg-secondary, #1e293b); border-color: var(--border-color, #475569); }
+        [data-theme="dark"] .ac-exercise-name { color: var(--text-primary); }
+        [data-theme="dark"] .ac-exercise-meta { color: var(--text-secondary); }
+        [data-theme="dark"] .ac-set-pill { background: var(--bg-tertiary, #334155); border-color: var(--border-color); color: var(--text-primary); }
+        [data-theme="dark"] .ac-set-editor { background: var(--bg-secondary, #1e293b); border-color: var(--border-color); }
+        [data-theme="dark"] .ac-set-input { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
+        [data-theme="dark"] .ac-modal { background: var(--bg-secondary); }
+        [data-theme="dark"] .ac-modal-header { border-color: var(--border-color); }
+        [data-theme="dark"] .ac-modal-header h3 { color: var(--text-primary); }
+        [data-theme="dark"] .ac-modal-search { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
+        [data-theme="dark"] .ac-exercise-option:hover { background: rgba(96,165,250,0.1); }
+        [data-theme="dark"] .ac-exercise-option-info h4 { color: var(--text-primary); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .ac-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .ac-detail-panel {
+                position: static;
+                max-height: none;
+            }
+
+            .ac-day-cell {
+                min-height: 50px;
+            }
+        }
+
         .workout-progress-section {
             background: white;
             border-radius: 12px;
@@ -4934,6 +5539,69 @@
             </div>
         </div>
 
+        <!-- Activity Calendar Section -->
+        <div class="activity-calendar-section">
+            <div class="section-header collapsible-header" onclick="toggleSection('activityCalendar')" style="cursor: pointer;">
+                <h2 class="section-title">📅 Activity Calendar</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="activityCalendarToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="activityCalendarContent" class="collapsible-content">
+                <div class="ac-layout">
+                    <!-- Calendar Grid -->
+                    <div class="ac-calendar-container">
+                        <div class="ac-month-nav">
+                            <button onclick="acChangeMonth(-1)" title="Previous month">&#8592;</button>
+                            <span class="ac-month-title" id="acMonthTitle">January 2026</span>
+                            <button onclick="acChangeMonth(1)" title="Next month">&#8594;</button>
+                        </div>
+                        <div class="ac-grid" id="acCalendarGrid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Day Detail Panel -->
+                    <div class="ac-detail-panel" id="acDetailPanel">
+                        <div class="ac-detail-header" id="acDetailDate">Select a day</div>
+                        <div class="ac-detail-body" id="acDetailBody">
+                            <div class="ac-detail-empty">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <p>Click a day to view workouts</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercise Selector Modal (for Activity Calendar) -->
+        <div class="ac-modal-overlay" id="acExerciseModal">
+            <div class="ac-modal">
+                <div class="ac-modal-header">
+                    <h3 id="acModalTitle">Add Exercise</h3>
+                    <button class="ac-modal-close" onclick="acCloseExerciseModal()">&times;</button>
+                </div>
+                <div class="ac-modal-body">
+                    <input type="text" class="ac-modal-search" id="acExerciseSearch" placeholder="Search exercises..." oninput="acSearchExercises()">
+                    <div class="ac-modal-filters" id="acMuscleFilters">
+                        <button class="ac-filter-chip active" data-muscle="all" onclick="acFilterMuscle('all', this)">All</button>
+                        <button class="ac-filter-chip" data-muscle="chest" onclick="acFilterMuscle('chest', this)">Chest</button>
+                        <button class="ac-filter-chip" data-muscle="back" onclick="acFilterMuscle('back', this)">Back</button>
+                        <button class="ac-filter-chip" data-muscle="shoulders" onclick="acFilterMuscle('shoulders', this)">Shoulders</button>
+                        <button class="ac-filter-chip" data-muscle="legs" onclick="acFilterMuscle('legs', this)">Legs</button>
+                        <button class="ac-filter-chip" data-muscle="arms" onclick="acFilterMuscle('arms', this)">Arms</button>
+                        <button class="ac-filter-chip" data-muscle="core" onclick="acFilterMuscle('core', this)">Core</button>
+                    </div>
+                    <div id="acExerciseList">
+                        <div class="ac-loading"><div class="ac-spinner"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Workout Progress Section -->
         <div class="workout-progress-section">
             <div class="section-header collapsible-header" onclick="toggleSection('workouts')" style="cursor: pointer;">
@@ -7965,6 +8633,678 @@
                 askAICoach();
             }
         });
+
+        // ============ ACTIVITY CALENDAR FUNCTIONS ============
+
+        let acCurrentMonth = new Date().getMonth();
+        let acCurrentYear = new Date().getFullYear();
+        let acSelectedDate = null;
+        let acAssignmentCache = {}; // { 'YYYY-MM-DD': { assignment data } }
+        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': true } dates with logged workouts
+        let acCurrentAssignment = null; // the active assignment object
+        let acExercisesCache = [];
+        let acCurrentMuscleFilter = 'all';
+        let acModalMode = 'add'; // 'add' or 'swap'
+        let acSwapExerciseIndex = -1;
+
+        function acFormatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function acChangeMonth(delta) {
+            acCurrentMonth += delta;
+            if (acCurrentMonth > 11) { acCurrentMonth = 0; acCurrentYear++; }
+            if (acCurrentMonth < 0) { acCurrentMonth = 11; acCurrentYear--; }
+            acRenderCalendar();
+            acLoadMonthData();
+        }
+
+        async function acInit() {
+            acRenderCalendar();
+            await acLoadMonthData();
+            // Select today by default
+            const today = acFormatDate(new Date());
+            acSelectDay(today);
+        }
+
+        function acRenderCalendar() {
+            const grid = document.getElementById('acCalendarGrid');
+            if (!grid) return;
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('acMonthTitle').textContent = `${monthNames[acCurrentMonth]} ${acCurrentYear}`;
+
+            const dayHeaders = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+            let html = dayHeaders.map(d => `<div class="ac-day-header">${d}</div>`).join('');
+
+            const firstDay = new Date(acCurrentYear, acCurrentMonth, 1);
+            const lastDay = new Date(acCurrentYear, acCurrentMonth + 1, 0);
+
+            // Monday=0 adjustment (JS: 0=Sun,1=Mon,...,6=Sat)
+            let startDow = firstDay.getDay() - 1;
+            if (startDow < 0) startDow = 6;
+
+            // Fill previous month days
+            const prevMonthLast = new Date(acCurrentYear, acCurrentMonth, 0);
+            for (let i = startDow - 1; i >= 0; i--) {
+                const day = prevMonthLast.getDate() - i;
+                const date = new Date(acCurrentYear, acCurrentMonth - 1, day);
+                const dateStr = acFormatDate(date);
+                html += acRenderDayCell(day, dateStr, true);
+            }
+
+            // Current month days
+            const todayStr = acFormatDate(new Date());
+            for (let d = 1; d <= lastDay.getDate(); d++) {
+                const date = new Date(acCurrentYear, acCurrentMonth, d);
+                const dateStr = acFormatDate(date);
+                const isToday = dateStr === todayStr;
+                const isSelected = dateStr === acSelectedDate;
+                const hasWorkout = acAssignmentCache[dateStr];
+                const hasLogged = acWorkoutLogsCache[dateStr];
+
+                let classes = 'ac-day-cell';
+                if (isToday) classes += ' today';
+                if (isSelected) classes += ' selected';
+                if (hasWorkout) classes += ' has-workout';
+                if (hasLogged) classes += ' has-logged';
+
+                html += `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
+                    <span class="ac-day-number">${d}</span>
+                    ${hasWorkout ? '<div class="ac-day-icons"><span class="ac-day-icon">🏋️</span></div>' : ''}
+                </div>`;
+            }
+
+            // Fill remaining cells
+            const totalCells = startDow + lastDay.getDate();
+            const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let i = 1; i <= remaining; i++) {
+                const date = new Date(acCurrentYear, acCurrentMonth + 1, i);
+                const dateStr = acFormatDate(date);
+                html += acRenderDayCell(i, dateStr, true);
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function acRenderDayCell(day, dateStr, otherMonth) {
+            const hasWorkout = acAssignmentCache[dateStr];
+            const hasLogged = acWorkoutLogsCache[dateStr];
+            let classes = 'ac-day-cell other-month';
+            if (hasWorkout) classes += ' has-workout';
+            if (hasLogged) classes += ' has-logged';
+            return `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
+                <span class="ac-day-number">${day}</span>
+            </div>`;
+        }
+
+        async function acLoadMonthData() {
+            // Load the active assignment for this client
+            try {
+                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&activeOnly=true`);
+                const data = await res.json();
+                const assignments = data.assignments || [];
+                acCurrentAssignment = assignments.find(a => a.is_active) || assignments[0] || null;
+
+                if (acCurrentAssignment) {
+                    // Calculate which dates in this month have workouts
+                    acAssignmentCache = {};
+                    const workoutData = acCurrentAssignment.workout_data || {};
+                    const days = workoutData.days || [];
+                    const schedule = workoutData.schedule || {};
+                    const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+                    const dateOverrides = workoutData.date_overrides || {};
+                    const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+                    const firstDay = new Date(acCurrentYear, acCurrentMonth, 1);
+                    const lastDay = new Date(acCurrentYear, acCurrentMonth + 1, 0);
+
+                    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+                        const dateStr = acFormatDate(d);
+                        const dayName = dayNames[d.getDay()];
+                        const override = dateOverrides[dateStr];
+
+                        if (override) {
+                            if (!override.isRest && override.dayIndex !== undefined) {
+                                acAssignmentCache[dateStr] = true;
+                            }
+                        } else if (selectedDays.includes(dayName) && days.length > 0) {
+                            acAssignmentCache[dateStr] = true;
+                        }
+                    }
+                }
+
+                // Also load workout logs to show which days were actually completed
+                const feedRes = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${clientId}&limit=100`);
+                const feedData = await feedRes.json();
+                const feed = feedData.feed || feedData.workouts || [];
+                acWorkoutLogsCache = {};
+                feed.forEach(w => {
+                    if (w.workoutDate) acWorkoutLogsCache[w.workoutDate] = true;
+                });
+
+                // Also load adhoc workouts for this month
+                try {
+                    const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}`);
+                    const adhocData = await adhocRes.json();
+                    (adhocData.workouts || []).forEach(w => {
+                        if (w.workout_date) acAssignmentCache[w.workout_date] = true;
+                    });
+                } catch (e) { /* ignore */ }
+
+            } catch (err) {
+                console.error('Error loading calendar data:', err);
+            }
+
+            acRenderCalendar();
+        }
+
+        async function acSelectDay(dateStr) {
+            acSelectedDate = dateStr;
+            // Update calendar selection visually
+            document.querySelectorAll('.ac-day-cell').forEach(cell => {
+                cell.classList.toggle('selected', cell.onclick && cell.onclick.toString().includes(dateStr));
+            });
+            // Re-render to update selected state
+            acRenderCalendar();
+
+            const headerEl = document.getElementById('acDetailDate');
+            const bodyEl = document.getElementById('acDetailBody');
+
+            const dateObj = new Date(dateStr + 'T12:00:00');
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            headerEl.textContent = `${dayNames[dateObj.getDay()]} ${dateObj.getDate()} ${monthNames[dateObj.getMonth()]}`;
+
+            bodyEl.innerHTML = '<div class="ac-loading"><div class="ac-spinner"></div></div>';
+
+            try {
+                // Fetch workout for this date
+                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`);
+                const data = await res.json();
+                const assignments = data.assignments || [];
+                const workout = assignments[0] || null;
+
+                if (workout && workout.workout_data) {
+                    acRenderDayDetail(workout, dateStr);
+                } else {
+                    // No assigned workout - show empty with add option
+                    bodyEl.innerHTML = `
+                        <div class="ac-detail-empty">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4m8-8v16"/>
+                            </svg>
+                            <p>Rest day - no workout assigned</p>
+                        </div>
+                        <div class="ac-detail-actions" style="justify-content: center; margin-top: 12px;">
+                            <button class="ac-action-btn" onclick="acAddWorkoutToDate('${dateStr}')">
+                                + Add Workout
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error loading day detail:', err);
+                bodyEl.innerHTML = '<p style="color: #ef4444; padding: 12px; text-align: center;">Failed to load workout data</p>';
+            }
+        }
+
+        function acRenderDayDetail(workout, dateStr) {
+            const bodyEl = document.getElementById('acDetailBody');
+            const exercises = workout.workout_data.exercises || [];
+            const workoutName = workout.name || 'Workout';
+            const isAdhoc = workout.is_adhoc;
+            const assignmentId = workout.id;
+            const dayIndex = workout.day_index;
+
+            let html = `<div class="ac-detail-workout-name">${escapeHtml(workoutName)}</div>`;
+
+            // Action buttons
+            html += `<div class="ac-detail-actions">
+                <button class="ac-action-btn" onclick="acOpenAddExercise('${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')">+ Add Exercise</button>
+                <button class="ac-action-btn danger" onclick="acDeleteWorkout('${assignmentId}', ${isAdhoc || false}, '${dateStr}')">Delete Workout</button>
+            </div>`;
+
+            // Exercise list
+            if (exercises.length === 0) {
+                html += '<p style="text-align: center; color: #94a3b8; padding: 20px;">No exercises in this workout</p>';
+            } else {
+                exercises.forEach((ex, idx) => {
+                    const thumb = ex.thumbnail_url || ex.animation_url || '';
+                    const sets = ex.sets || 0;
+                    const reps = ex.reps || '0';
+                    const restSec = ex.restSeconds || 0;
+                    const trackingType = ex.trackingType || 'reps';
+
+                    // Build sets display
+                    let setsHtml = '';
+                    if (ex.setsData && Array.isArray(ex.setsData)) {
+                        setsHtml = ex.setsData.map((s, si) =>
+                            `<span class="ac-set-pill">${s.reps || 0}${s.weight ? ' x ' + s.weight + (s.weightUnit || 'kg') : ''}</span>`
+                        ).join('');
+                    } else if (sets > 0) {
+                        setsHtml = `<span class="ac-set-pill">${sets} sets x ${reps} ${trackingType === 'time' ? 'sec' : 'reps'}</span>`;
+                    }
+                    if (restSec > 0) {
+                        setsHtml += `<span class="ac-set-pill">Rest: ${restSec}s</span>`;
+                    }
+
+                    html += `
+                        <div class="ac-exercise-item" data-ex-index="${idx}">
+                            <div class="ac-exercise-header">
+                                ${thumb ? `<img class="ac-exercise-thumb" src="${thumb}" alt="" onerror="this.style.display='none'">` : '<div class="ac-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">🏋️</div>'}
+                                <div class="ac-exercise-info">
+                                    <div class="ac-exercise-name">${escapeHtml(ex.name || '')}</div>
+                                    <div class="ac-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '· ' + ex.equipment : ''}</div>
+                                </div>
+                                <div class="ac-exercise-actions">
+                                    <button class="ac-ex-btn" onclick="acEditSets(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')" title="Edit sets">&#9998;</button>
+                                    <button class="ac-ex-btn" onclick="acSwapExercise(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')" title="Swap exercise">&#8644;</button>
+                                    <button class="ac-ex-btn delete" onclick="acDeleteExercise(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc || false}, '${dateStr}')" title="Delete exercise">&#10005;</button>
+                                </div>
+                            </div>
+                            <div class="ac-sets-grid">${setsHtml}</div>
+                            <div id="acSetEditor_${idx}"></div>
+                        </div>
+                    `;
+                });
+            }
+
+            bodyEl.innerHTML = html;
+
+            // Store the current workout data for editing
+            bodyEl.dataset.workout = JSON.stringify(workout);
+        }
+
+        // ---- Set Editing ----
+        function acEditSets(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+            const exercise = exercises[exIndex];
+            if (!exercise) return;
+
+            const editorEl = document.getElementById(`acSetEditor_${exIndex}`);
+
+            // Build sets from setsData or from sets/reps count
+            let setsData = [];
+            if (exercise.setsData && Array.isArray(exercise.setsData)) {
+                setsData = exercise.setsData.map(s => ({ reps: s.reps || 0, weight: s.weight || 0, weightUnit: s.weightUnit || 'lbs' }));
+            } else {
+                const numSets = exercise.sets || 3;
+                const reps = parseInt(exercise.reps) || 10;
+                for (let i = 0; i < numSets; i++) {
+                    setsData.push({ reps, weight: 0, weightUnit: 'lbs' });
+                }
+            }
+
+            let html = '<div class="ac-set-editor">';
+            html += '<div class="ac-set-row"><span class="ac-set-label">Set</span><span class="ac-set-label">Reps</span><span class="ac-set-label">Weight</span><span></span></div>';
+
+            setsData.forEach((s, i) => {
+                html += `<div class="ac-set-row">
+                    <span class="ac-set-label">${i + 1}</span>
+                    <input class="ac-set-input" type="number" value="${s.reps}" data-set="${i}" data-field="reps" min="0">
+                    <input class="ac-set-input" type="number" value="${s.weight}" data-set="${i}" data-field="weight" min="0" step="0.5">
+                    <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">×</button>
+                </div>`;
+            });
+
+            html += `<button class="ac-set-add-btn" onclick="acAddSetRow(this)">+ Add Set</button>`;
+            html += `<button class="ac-set-save-btn" onclick="acSaveSets(${exIndex}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">Save Changes</button>`;
+            html += '</div>';
+
+            editorEl.innerHTML = html;
+        }
+
+        function acAddSetRow(btn) {
+            const editor = btn.closest('.ac-set-editor');
+            const rows = editor.querySelectorAll('.ac-set-row');
+            const num = rows.length; // includes header
+            const row = document.createElement('div');
+            row.className = 'ac-set-row';
+            row.innerHTML = `
+                <span class="ac-set-label">${num}</span>
+                <input class="ac-set-input" type="number" value="10" data-set="${num - 1}" data-field="reps" min="0">
+                <input class="ac-set-input" type="number" value="0" data-set="${num - 1}" data-field="weight" min="0" step="0.5">
+                <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">×</button>
+            `;
+            btn.before(row);
+        }
+
+        async function acSaveSets(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
+            const editorEl = document.getElementById(`acSetEditor_${exIndex}`);
+            const rows = editorEl.querySelectorAll('.ac-set-row');
+            const newSetsData = [];
+
+            rows.forEach((row, i) => {
+                if (i === 0) return; // skip header
+                const repsInput = row.querySelector('[data-field="reps"]');
+                const weightInput = row.querySelector('[data-field="weight"]');
+                if (repsInput && weightInput) {
+                    newSetsData.push({
+                        setNumber: newSetsData.length + 1,
+                        reps: parseInt(repsInput.value) || 0,
+                        weight: parseFloat(weightInput.value) || 0,
+                        weightUnit: 'lbs'
+                    });
+                }
+            });
+
+            // Update the exercise in the workout data
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+
+            if (exercises[exIndex]) {
+                exercises[exIndex].sets = newSetsData.length;
+                exercises[exIndex].reps = newSetsData[0]?.reps?.toString() || '0';
+                exercises[exIndex].setsData = newSetsData;
+            }
+
+            const saveBtn = editorEl.querySelector('.ac-set-save-btn');
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
+            try {
+                if (isAdhoc) {
+                    await fetch('/.netlify/functions/adhoc-workouts', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            workoutId: assignmentId,
+                            workoutData: { exercises }
+                        })
+                    });
+                } else {
+                    await fetch('/.netlify/functions/client-workout-log', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            assignmentId,
+                            dayIndex,
+                            workout_data: { exercises }
+                        })
+                    });
+                }
+
+                // Refresh view
+                acSelectDay(dateStr);
+            } catch (err) {
+                console.error('Error saving sets:', err);
+                alert('Failed to save changes');
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+            }
+        }
+
+        // ---- Delete Exercise ----
+        async function acDeleteExercise(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
+            if (!confirm('Delete this exercise from the workout?')) return;
+
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = (workout.workout_data?.exercises || []).filter((_, i) => i !== exIndex);
+
+            try {
+                if (isAdhoc) {
+                    await fetch('/.netlify/functions/adhoc-workouts', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            workoutId: assignmentId,
+                            workoutData: { exercises }
+                        })
+                    });
+                } else {
+                    await fetch('/.netlify/functions/client-workout-log', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            assignmentId,
+                            dayIndex,
+                            workout_data: { exercises }
+                        })
+                    });
+                }
+
+                acSelectDay(dateStr);
+            } catch (err) {
+                console.error('Error deleting exercise:', err);
+                alert('Failed to delete exercise');
+            }
+        }
+
+        // ---- Swap Exercise ----
+        function acSwapExercise(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
+            acModalMode = 'swap';
+            acSwapExerciseIndex = exIndex;
+            document.getElementById('acModalTitle').textContent = 'Swap Exercise';
+
+            // Store context for when a selection is made
+            const modal = document.getElementById('acExerciseModal');
+            modal.dataset.assignmentId = assignmentId;
+            modal.dataset.dayIndex = dayIndex;
+            modal.dataset.isAdhoc = isAdhoc;
+            modal.dataset.dateStr = dateStr;
+
+            modal.classList.add('active');
+            acLoadExercises();
+        }
+
+        // ---- Add Exercise ----
+        function acOpenAddExercise(assignmentId, dayIndex, isAdhoc, dateStr) {
+            acModalMode = 'add';
+            document.getElementById('acModalTitle').textContent = 'Add Exercise';
+
+            const modal = document.getElementById('acExerciseModal');
+            modal.dataset.assignmentId = assignmentId;
+            modal.dataset.dayIndex = dayIndex;
+            modal.dataset.isAdhoc = isAdhoc;
+            modal.dataset.dateStr = dateStr;
+
+            modal.classList.add('active');
+            acLoadExercises();
+        }
+
+        function acCloseExerciseModal() {
+            document.getElementById('acExerciseModal').classList.remove('active');
+        }
+
+        async function acLoadExercises() {
+            const listEl = document.getElementById('acExerciseList');
+            listEl.innerHTML = '<div class="ac-loading"><div class="ac-spinner"></div></div>';
+
+            try {
+                const params = new URLSearchParams({ coachId: window.coachUserId || '', limit: '100' });
+                if (acCurrentMuscleFilter && acCurrentMuscleFilter !== 'all') {
+                    params.set('muscleGroup', acCurrentMuscleFilter);
+                }
+                const searchVal = document.getElementById('acExerciseSearch')?.value?.trim();
+                if (searchVal) {
+                    params.set('search', searchVal);
+                }
+
+                const res = await fetch(`/.netlify/functions/exercises?${params.toString()}`);
+                const data = await res.json();
+                acExercisesCache = data.exercises || [];
+
+                acRenderExerciseList();
+            } catch (err) {
+                console.error('Error loading exercises:', err);
+                listEl.innerHTML = '<p style="color: #ef4444;">Failed to load exercises</p>';
+            }
+        }
+
+        function acRenderExerciseList() {
+            const listEl = document.getElementById('acExerciseList');
+            if (acExercisesCache.length === 0) {
+                listEl.innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 20px;">No exercises found</p>';
+                return;
+            }
+
+            listEl.innerHTML = acExercisesCache.map(ex => {
+                const thumb = ex.thumbnail_url || ex.animation_url || '';
+                return `<div class="ac-exercise-option" onclick="acSelectExercise('${ex.id}')">
+                    ${thumb ? `<img src="${thumb}" alt="" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:20px;">🏋️</div>'}
+                    <div class="ac-exercise-option-info">
+                        <h4>${escapeHtml(ex.name || '')}</h4>
+                        <span>${ex.muscle_group || ''} ${ex.equipment ? '· ' + ex.equipment : ''}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        let acSearchTimeout = null;
+        function acSearchExercises() {
+            clearTimeout(acSearchTimeout);
+            acSearchTimeout = setTimeout(() => acLoadExercises(), 300);
+        }
+
+        function acFilterMuscle(muscle, btn) {
+            acCurrentMuscleFilter = muscle;
+            document.querySelectorAll('#acMuscleFilters .ac-filter-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            acLoadExercises();
+        }
+
+        async function acSelectExercise(exerciseId) {
+            const exercise = acExercisesCache.find(e => e.id === exerciseId);
+            if (!exercise) return;
+
+            const modal = document.getElementById('acExerciseModal');
+            const assignmentId = modal.dataset.assignmentId;
+            const dayIndex = parseInt(modal.dataset.dayIndex);
+            const isAdhoc = modal.dataset.isAdhoc === 'true';
+            const dateStr = modal.dataset.dateStr;
+
+            // Get current workout data
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+
+            const newExercise = {
+                id: exercise.id,
+                name: exercise.name,
+                muscle_group: exercise.muscle_group,
+                equipment: exercise.equipment,
+                thumbnail_url: exercise.thumbnail_url,
+                animation_url: exercise.animation_url,
+                video_url: exercise.video_url,
+                sets: 3,
+                reps: '10',
+                restSeconds: 60,
+                trackingType: 'reps'
+            };
+
+            if (acModalMode === 'swap' && acSwapExerciseIndex >= 0 && acSwapExerciseIndex < exercises.length) {
+                // Preserve sets/reps from the old exercise
+                const old = exercises[acSwapExerciseIndex];
+                newExercise.sets = old.sets || 3;
+                newExercise.reps = old.reps || '10';
+                newExercise.restSeconds = old.restSeconds || 60;
+                newExercise.setsData = old.setsData;
+                exercises[acSwapExerciseIndex] = newExercise;
+            } else {
+                exercises.push(newExercise);
+            }
+
+            acCloseExerciseModal();
+
+            try {
+                if (isAdhoc) {
+                    await fetch('/.netlify/functions/adhoc-workouts', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            workoutId: assignmentId,
+                            workoutData: { exercises }
+                        })
+                    });
+                } else {
+                    await fetch('/.netlify/functions/client-workout-log', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            assignmentId,
+                            dayIndex,
+                            workout_data: { exercises }
+                        })
+                    });
+                }
+
+                acSelectDay(dateStr);
+            } catch (err) {
+                console.error('Error updating exercises:', err);
+                alert('Failed to save exercise change');
+            }
+        }
+
+        // ---- Add Workout to Date ----
+        async function acAddWorkoutToDate(dateStr) {
+            const name = prompt('Workout name:', 'Custom Workout');
+            if (!name) return;
+
+            try {
+                await fetch('/.netlify/functions/adhoc-workouts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId,
+                        workoutDate: dateStr,
+                        name,
+                        workoutData: { exercises: [] }
+                    })
+                });
+
+                acAssignmentCache[dateStr] = true;
+                acRenderCalendar();
+                acSelectDay(dateStr);
+            } catch (err) {
+                console.error('Error adding workout:', err);
+                alert('Failed to add workout');
+            }
+        }
+
+        // ---- Delete Workout from Date ----
+        async function acDeleteWorkout(assignmentId, isAdhoc, dateStr) {
+            if (!confirm('Delete this workout from ' + dateStr + '?')) return;
+
+            try {
+                if (isAdhoc) {
+                    await fetch(`/.netlify/functions/adhoc-workouts?workoutId=${assignmentId}`, {
+                        method: 'DELETE'
+                    });
+                } else {
+                    // For assigned workouts, skip the day (mark as rest)
+                    await fetch('/.netlify/functions/client-workout-log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            assignmentId,
+                            action: 'skip',
+                            targetDate: dateStr
+                        })
+                    });
+                }
+
+                delete acAssignmentCache[dateStr];
+                acRenderCalendar();
+                acSelectDay(dateStr);
+            } catch (err) {
+                console.error('Error deleting workout:', err);
+                alert('Failed to delete workout');
+            }
+        }
+
+        // Initialize the activity calendar when data loads
+        if (clientId) {
+            // Delay init slightly so other loads complete first
+            setTimeout(() => acInit(), 500);
+        }
 
         // ============ WORKOUT PROGRESS FUNCTIONS ============
 
