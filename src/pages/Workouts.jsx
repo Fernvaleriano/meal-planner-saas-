@@ -1322,105 +1322,6 @@ function Workouts() {
     }
   }, [workoutLog?.id, workoutStartTime]);
 
-  // Handle finish button click - show confirmation if activities are incomplete
-  const handleFinishClick = useCallback(() => {
-    if (!workoutLog?.id) return;
-    if (completedExercises.size < exercises.length) {
-      setShowFinishConfirm(true);
-    } else {
-      handleCompleteWorkout();
-    }
-  }, [workoutLog?.id, completedExercises.size, exercises.length, handleCompleteWorkout]);
-
-  // Mark all exercises as done and complete
-  const handleMarkAllDone = useCallback(() => {
-    const allIds = new Set(exercises.map(ex => ex?.id).filter(Boolean));
-    setCompletedExercises(allIds);
-    setShowFinishConfirm(false);
-    setTimeout(() => handleCompleteWorkout(), 100);
-  }, [exercises, handleCompleteWorkout]);
-
-  // Share workout results using canvas-based image generation
-  const handleShareResults = useCallback(async () => {
-    try {
-      const card = shareCardRef.current;
-      if (!card) return;
-
-      // Use html2canvas-like approach: render to canvas via SVG foreignObject
-      const cardRect = card.getBoundingClientRect();
-      const canvas = document.createElement('canvas');
-      const scale = 2; // Retina
-      canvas.width = cardRect.width * scale;
-      canvas.height = cardRect.height * scale;
-      const ctx = canvas.getContext('2d');
-      ctx.scale(scale, scale);
-
-      // Serialize the card HTML
-      const cardClone = card.cloneNode(true);
-      const svgData = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${cardRect.width}" height="${cardRect.height}">
-          <foreignObject width="100%" height="100%">
-            <div xmlns="http://www.w3.org/1999/xhtml">
-              ${cardClone.outerHTML}
-            </div>
-          </foreignObject>
-        </svg>
-      `;
-
-      const img = new Image();
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-
-      img.onload = async () => {
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(url);
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-
-          // Try Web Share API first (works on mobile + Capacitor)
-          if (navigator.share && navigator.canShare) {
-            const file = new File([blob], 'workout-results.png', { type: 'image/png' });
-            const shareData = { files: [file], title: 'Workout Results' };
-            if (navigator.canShare(shareData)) {
-              try {
-                await navigator.share(shareData);
-                return;
-              } catch (e) {
-                if (e.name === 'AbortError') return;
-              }
-            }
-          }
-
-          // Fallback: download the image
-          const downloadUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = downloadUrl;
-          a.download = 'workout-results.png';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(downloadUrl);
-        }, 'image/png');
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        // Fallback: just use Web Share API with text
-        if (navigator.share) {
-          navigator.share({
-            title: 'Workout Results',
-            text: `Workout Complete! Duration: ${formatDuration(workoutDuration)}, Calories: ${estimatedCalories}, Activities: ${exercises.length}, Lifted: ${totalLifted}kg, Sets: ${totalSets}`
-          }).catch(() => {});
-        }
-      };
-
-      img.src = url;
-    } catch (err) {
-      console.error('Error sharing results:', err);
-    }
-  }, [workoutDuration, estimatedCalories, exercises.length, totalLifted, totalSets]);
-
   // Fetch workout history
   const fetchWorkoutHistory = useCallback(async () => {
     if (!clientData?.id) return;
@@ -1624,6 +1525,49 @@ function Workouts() {
   const estimatedCalories = useMemo(() => {
     return todayWorkout?.workout_data?.estimatedCalories || Math.round(totalSets * 6.5) || 300;
   }, [todayWorkout, totalSets]);
+
+  // Handle finish button click - show confirmation if activities are incomplete
+  const handleFinishClick = useCallback(() => {
+    if (!workoutLog?.id) return;
+    if (completedExercises.size < exercises.length) {
+      setShowFinishConfirm(true);
+    } else {
+      handleCompleteWorkout();
+    }
+  }, [workoutLog?.id, completedExercises.size, exercises.length, handleCompleteWorkout]);
+
+  // Mark all exercises as done and complete
+  const handleMarkAllDone = useCallback(() => {
+    const allIds = new Set(exercises.map(ex => ex?.id).filter(Boolean));
+    setCompletedExercises(allIds);
+    setShowFinishConfirm(false);
+    setTimeout(() => handleCompleteWorkout(), 100);
+  }, [exercises, handleCompleteWorkout]);
+
+  // Share workout results
+  const handleShareResults = async () => {
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Workout Results',
+            text: `Workout Complete! Check out my training results.`
+          });
+          return;
+        } catch (e) {
+          if (e.name === 'AbortError') return;
+        }
+      }
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText('Workout Complete! Check out my training results.');
+      } catch (e) {
+        console.log('Share not available');
+      }
+    } catch (err) {
+      console.error('Error sharing results:', err);
+    }
+  };
 
   // Calculate progress
   const completedCount = completedExercises.size;
