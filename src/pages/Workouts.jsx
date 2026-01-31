@@ -2231,8 +2231,8 @@ function Workouts() {
 
       {/* Workout Summary Modal - Enhanced */}
       {showSummary && !showShareResults && (
-        <div className="workout-summary-overlay" onClick={() => setShowSummary(false)}>
-          <div className="workout-summary-modal enhanced" onClick={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+        <div className="workout-summary-overlay summary-scroll-overlay" onClick={() => setShowSummary(false)}>
+          <div className="workout-summary-modal enhanced" onClick={e => e.stopPropagation()}>
             <button className="summary-close-btn" onClick={() => setShowSummary(false)}>
               <X size={24} />
             </button>
