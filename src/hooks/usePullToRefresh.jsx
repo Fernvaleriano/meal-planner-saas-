@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { onAppResume } from './useAppLifecycle';
 
 /**
  * Reusable pull-to-refresh hook for mobile PWA pages
@@ -18,19 +19,30 @@ export function usePullToRefresh(onRefresh, options = {}) {
   const containerRef = useRef(null);
   const refreshTimeoutRef = useRef(null);
 
-  // Safety: reset stuck state on mount and when visibility changes
+  // Safety: reset stuck state on visibilitychange AND on app resume
+  // (heartbeat-based resume fires even when visibilitychange doesn't)
   useEffect(() => {
     const resetStuckState = () => {
       touchStartRef.current = 0;
       setPullDistance(0);
+      setIsRefreshing(false);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
     };
 
     // Reset touch state when app becomes visible again
-    // (touchend may have been missed during suspend)
     document.addEventListener('visibilitychange', resetStuckState);
+
+    // Also reset on heartbeat-detected resume (works when visibilitychange doesn't fire)
+    const unsubResume = onAppResume(() => {
+      resetStuckState();
+    });
 
     return () => {
       document.removeEventListener('visibilitychange', resetStuckState);
+      unsubResume();
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }

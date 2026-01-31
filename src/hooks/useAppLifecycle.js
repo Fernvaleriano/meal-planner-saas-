@@ -73,12 +73,58 @@ function cleanupStuckScrollLock() {
 }
 
 /**
+ * Notify all resume subscribers and perform cleanup.
+ * Extracted so both visibilitychange AND the heartbeat can call it.
+ */
+async function triggerResume(backgroundMs) {
+  // If backgrounded for more than 5 seconds, refresh auth session
+  if (backgroundMs > 5000) {
+    try {
+      await ensureFreshSession();
+    } catch (e) {
+      console.error('[AppLifecycle] session refresh error:', e);
+    }
+  }
+
+  // Clean up any stuck scroll locks
+  if (backgroundMs > 3000) {
+    cleanupStuckScrollLock();
+  }
+
+  // Notify all resume subscribers with how long we were away
+  for (const entry of subscribers) {
+    if (entry.type === 'resume') {
+      try {
+        entry.handler(backgroundMs);
+      } catch (e) {
+        console.error('[AppLifecycle] resume handler error:', e);
+      }
+    }
+  }
+}
+
+/**
  * Core lifecycle hook — mount this ONCE at the app root level.
  * It listens for visibilitychange and coordinates all resume/suspend work.
+ *
+ * CRITICAL: Also uses a heartbeat timer to detect app resume on iOS devices
+ * where visibilitychange doesn't fire (common in PWAs and WebViews).
+ * The heartbeat fires every 2s — if >5s elapsed since the last tick,
+ * the app was suspended and we trigger all resume handlers.
  */
 export function useAppLifecycle() {
   const suspendTimeRef = useRef(null);
   const isResumingRef = useRef(false);
+
+  const handleResume = useCallback(async (backgroundMs) => {
+    if (isResumingRef.current) return; // prevent double-fires
+    isResumingRef.current = true;
+
+    suspendTimeRef.current = null;
+    await triggerResume(backgroundMs);
+
+    isResumingRef.current = false;
+  }, []);
 
   const handleVisibilityChange = useCallback(async () => {
     if (document.visibilityState === 'hidden') {
@@ -97,43 +143,12 @@ export function useAppLifecycle() {
         }
       }
     } else if (document.visibilityState === 'visible') {
-      // App coming back to foreground
-      if (isResumingRef.current) return; // prevent double-fires
-      isResumingRef.current = true;
-
       const backgroundMs = suspendTimeRef.current
         ? Date.now() - suspendTimeRef.current
         : 0;
-      suspendTimeRef.current = null;
-
-      // If backgrounded for more than 5 seconds, refresh auth session
-      if (backgroundMs > 5000) {
-        try {
-          await ensureFreshSession();
-        } catch (e) {
-          console.error('[AppLifecycle] session refresh error:', e);
-        }
-      }
-
-      // Clean up any stuck scroll locks
-      if (backgroundMs > 3000) {
-        cleanupStuckScrollLock();
-      }
-
-      // Notify all resume subscribers with how long we were away
-      for (const entry of subscribers) {
-        if (entry.type === 'resume') {
-          try {
-            entry.handler(backgroundMs);
-          } catch (e) {
-            console.error('[AppLifecycle] resume handler error:', e);
-          }
-        }
-      }
-
-      isResumingRef.current = false;
+      await handleResume(backgroundMs);
     }
-  }, []);
+  }, [handleResume]);
 
   useEffect(() => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -146,13 +161,27 @@ export function useAppLifecycle() {
     };
     window.addEventListener('pageshow', handlePageShow);
 
-    // Watchdog: detect stuck scroll locks that visibilitychange missed.
-    // On iOS, visibilitychange sometimes doesn't fire. This catches the case
-    // where the user comes back to a frozen screen — the first touch/click
-    // will trigger cleanup and the UI becomes responsive again.
+    // ── HEARTBEAT: Detect app resume when visibilitychange doesn't fire ──
+    // On iOS PWAs / WebViews, visibilitychange is unreliable.
+    // setInterval callbacks are paused during suspend and fire on resume.
+    // If the gap between ticks is >5s, the app was backgrounded.
+    let lastHeartbeat = Date.now();
+    const heartbeatInterval = setInterval(() => {
+      const now = Date.now();
+      const gap = now - lastHeartbeat;
+      lastHeartbeat = now;
+
+      // If more than 5 seconds elapsed between 2-second ticks,
+      // the app was suspended. Trigger resume cleanup.
+      if (gap > 5000) {
+        console.log('[AppLifecycle] Heartbeat detected resume after', gap, 'ms');
+        handleResume(gap);
+      }
+    }, 2000);
+
+    // ── WATCHDOG: Detect stuck scroll locks on first touch ──
+    // Even after heartbeat fires, the first touch/click is a safety net.
     const handleTouchStart = () => {
-      // Only act if body/html has a stuck scroll lock AND no modal overlay is
-      // currently visible in the DOM. If a modal IS visible, the lock is intentional.
       const hasScrollLock =
         document.body.style.overflow === 'hidden' ||
         document.documentElement.style.overflow === 'hidden' ||
@@ -180,8 +209,9 @@ export function useAppLifecycle() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
+      clearInterval(heartbeatInterval);
       document.removeEventListener('touchstart', handleTouchStart, { capture: true });
       document.removeEventListener('click', handleTouchStart, { capture: true });
     };
-  }, [handleVisibilityChange]);
+  }, [handleVisibilityChange, handleResume]);
 }
