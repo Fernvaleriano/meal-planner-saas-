@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
  * Reusable pull-to-refresh hook for mobile PWA pages
@@ -16,12 +16,35 @@ export function usePullToRefresh(onRefresh, options = {}) {
   const [pullDistance, setPullDistance] = useState(0);
   const touchStartRef = useRef(0);
   const containerRef = useRef(null);
+  const refreshTimeoutRef = useRef(null);
+
+  // Safety: reset stuck state on mount and when visibility changes
+  useEffect(() => {
+    const resetStuckState = () => {
+      touchStartRef.current = 0;
+      setPullDistance(0);
+    };
+
+    // Reset touch state when app becomes visible again
+    // (touchend may have been missed during suspend)
+    document.addEventListener('visibilitychange', resetStuckState);
+
+    return () => {
+      document.removeEventListener('visibilitychange', resetStuckState);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleTouchStart = useCallback((e) => {
     // Only track if we're at the top of the scroll container
     const scrollTop = containerRef.current?.scrollTop || window.scrollY;
     if (scrollTop <= 0) {
       touchStartRef.current = e.touches[0].clientY;
+    } else {
+      // Not at top — don't activate pull-to-refresh
+      touchStartRef.current = 0;
     }
   }, []);
 
@@ -47,19 +70,38 @@ export function usePullToRefresh(onRefresh, options = {}) {
   }, [resistance, threshold]);
 
   const handleTouchEnd = useCallback(async () => {
-    if (pullDistance >= threshold && onRefresh && !isRefreshing) {
+    const wasPulled = pullDistance >= threshold;
+
+    // Always reset touch tracking immediately
+    touchStartRef.current = 0;
+    setPullDistance(0);
+
+    if (wasPulled && onRefresh && !isRefreshing) {
       setIsRefreshing(true);
+
+      // Safety timeout: force-reset isRefreshing after 15 seconds
+      // Prevents permanent stuck state if the API call hangs
+      refreshTimeoutRef.current = setTimeout(() => {
+        setIsRefreshing(false);
+      }, 15000);
+
       try {
         await onRefresh();
       } catch (error) {
         console.error('Pull-to-refresh error:', error);
       } finally {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
         setIsRefreshing(false);
       }
     }
+  }, [pullDistance, threshold, onRefresh, isRefreshing]);
+
+  // Also reset on touchcancel (fires when iOS interrupts a touch)
+  const handleTouchCancel = useCallback(() => {
     touchStartRef.current = 0;
     setPullDistance(0);
-  }, [pullDistance, threshold, onRefresh, isRefreshing]);
+  }, []);
 
   // Bind handlers to a container element
   const bindToContainer = useCallback((element) => {
@@ -72,6 +114,7 @@ export function usePullToRefresh(onRefresh, options = {}) {
     onTouchStart: handleTouchStart,
     onTouchMove: handleTouchMove,
     onTouchEnd: handleTouchEnd,
+    onTouchCancel: handleTouchCancel,
   };
 
   return {
