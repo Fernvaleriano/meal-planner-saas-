@@ -1049,6 +1049,24 @@
             margin-bottom: 20px;
         }
 
+        .workout-nav-btn {
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .workout-nav-btn:hover {
+            background: #f1f5f9;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+
         .workout-date-label {
             font-weight: 600;
             font-size: 14px;
@@ -1056,6 +1074,161 @@
             min-width: 160px;
             text-align: center;
         }
+
+        /* Weekly Summary Banner */
+        .wp-weekly-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 12px;
+            border: 1px solid #bae6fd;
+        }
+
+        .wp-summary-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .wp-summary-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0369a1;
+        }
+
+        .wp-summary-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .wp-summary-value.good { color: #16a34a; }
+        .wp-summary-value.warning { color: #d97706; }
+        .wp-summary-value.danger { color: #dc2626; }
+
+        /* Streak indicator */
+        .wp-streak-dots {
+            display: flex;
+            gap: 3px;
+            justify-content: center;
+            margin-top: 2px;
+        }
+
+        .wp-streak-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e2e8f0;
+        }
+
+        .wp-streak-dot.active { background: #22c55e; }
+        .wp-streak-dot.missed { background: #ef4444; }
+
+        /* Fatigue alert */
+        .wp-fatigue-alert {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .wp-fatigue-alert.fresh {
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            color: #166534;
+        }
+
+        .wp-fatigue-alert.moderate {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+        }
+
+        .wp-fatigue-alert.high {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+
+        /* Missed workout alert */
+        .wp-missed-workouts {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .wp-missed-day {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #991b1b;
+        }
+
+        /* RPE badge in card header */
+        .wp-avg-rpe {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .wp-avg-rpe.low { background: #dcfce7; color: #166534; }
+        .wp-avg-rpe.moderate { background: #fef3c7; color: #92400e; }
+        .wp-avg-rpe.high { background: #fee2e2; color: #991b1b; }
+
+        /* Exercise comparison */
+        .wp-exercise-comparison {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wp-compare-up { color: #16a34a; font-weight: 600; }
+        .wp-compare-down { color: #dc2626; font-weight: 600; }
+        .wp-compare-same { color: #64748b; }
+
+        /* Adherence bar */
+        .wp-adherence-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            width: 60px;
+            margin-top: 4px;
+        }
+
+        .wp-adherence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .wp-adherence-fill.good { background: #22c55e; }
+        .wp-adherence-fill.ok { background: #eab308; }
+        .wp-adherence-fill.low { background: #ef4444; }
 
         .workout-empty {
             display: flex;
@@ -1253,9 +1426,44 @@
             border-bottom-color: #334155;
         }
 
+        [data-theme="dark"] .workout-nav-btn {
+            background: transparent;
+            border-color: #475569;
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .workout-nav-btn:hover {
+            background: #334155;
+            color: #e2e8f0;
+            border-color: #64748b;
+        }
+
         [data-theme="dark"] .workout-date-label {
             color: #e2e8f0;
         }
+
+        [data-theme="dark"] .wp-weekly-summary {
+            background: linear-gradient(135deg, #0c2d48 0%, #0f3460 100%);
+            border-color: #1e40af;
+        }
+
+        [data-theme="dark"] .wp-summary-value { color: #38bdf8; }
+        [data-theme="dark"] .wp-summary-label { color: #94a3b8; }
+        [data-theme="dark"] .wp-summary-value.good { color: #4ade80; }
+        [data-theme="dark"] .wp-summary-value.warning { color: #fbbf24; }
+        [data-theme="dark"] .wp-summary-value.danger { color: #f87171; }
+        [data-theme="dark"] .wp-streak-dot { background: #334155; }
+
+        [data-theme="dark"] .wp-fatigue-alert.fresh { background: #14532d; border-color: #166534; color: #86efac; }
+        [data-theme="dark"] .wp-fatigue-alert.moderate { background: #451a03; border-color: #92400e; color: #fcd34d; }
+        [data-theme="dark"] .wp-fatigue-alert.high { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+
+        [data-theme="dark"] .wp-missed-day { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+        [data-theme="dark"] .wp-avg-rpe.low { background: #14532d; color: #86efac; }
+        [data-theme="dark"] .wp-avg-rpe.moderate { background: #451a03; color: #fcd34d; }
+        [data-theme="dark"] .wp-avg-rpe.high { background: #450a0a; color: #fca5a5; }
+        [data-theme="dark"] .wp-exercise-comparison { color: #94a3b8; }
+        [data-theme="dark"] .wp-adherence-bar { background: #334155; }
 
         [data-theme="dark"] .wp-card {
             background: #0f172a;
@@ -4764,10 +4972,19 @@
 
                 <!-- Workout Date Navigation -->
                 <div class="workout-date-nav">
-                    <button class="diary-nav-btn" onclick="changeWorkoutDateRange(-7)">‹ Prev Week</button>
+                    <button class="workout-nav-btn" onclick="changeWorkoutDateRange(-7)">‹ Prev Week</button>
                     <span id="workoutDateRange" class="workout-date-label">Last 7 Days</span>
-                    <button class="diary-nav-btn" onclick="changeWorkoutDateRange(7)">Next Week ›</button>
+                    <button class="workout-nav-btn" onclick="changeWorkoutDateRange(7)">Next Week ›</button>
                 </div>
+
+                <!-- Weekly Summary Banner (populated by JS) -->
+                <div id="workoutWeeklySummary"></div>
+
+                <!-- Fatigue / Readiness Alert (populated by JS) -->
+                <div id="workoutFatigueAlert"></div>
+
+                <!-- Missed Workouts (populated by JS) -->
+                <div id="workoutMissedDays"></div>
 
                 <!-- Workout Logs Container -->
                 <div id="workoutLogsContainer">
@@ -7751,7 +7968,8 @@
 
         // ============ WORKOUT PROGRESS FUNCTIONS ============
 
-        let workoutDateOffset = 0; // 0 = current week, -7 = prev week, etc.
+        let workoutDateOffset = 0;
+        let allFeedWorkouts = []; // cache all fetched workouts for cross-week comparison
 
         function changeWorkoutDateRange(days) {
             workoutDateOffset += days;
@@ -7763,6 +7981,9 @@
             const container = document.getElementById('workoutLogsContainer');
             const emptyState = document.getElementById('workoutEmptyState');
             const dateLabel = document.getElementById('workoutDateRange');
+            const summaryEl = document.getElementById('workoutWeeklySummary');
+            const fatigueEl = document.getElementById('workoutFatigueAlert');
+            const missedEl = document.getElementById('workoutMissedDays');
 
             // Calculate date range
             const endDate = new Date();
@@ -7777,23 +7998,54 @@
 
             container.innerHTML = '<div class="loading skeleton-loading"><div class="skeleton" style="height: 80px; margin-bottom: 12px; border-radius: 10px;"></div></div>';
             emptyState.style.display = 'none';
+            summaryEl.innerHTML = '';
+            fatigueEl.innerHTML = '';
+            missedEl.innerHTML = '';
 
             try {
                 const res = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${clientId}&limit=50`);
                 const data = await res.json();
 
-                const allWorkouts = data.feed || data.workouts || [];
-                if (allWorkouts.length === 0) {
+                allFeedWorkouts = data.feed || data.workouts || [];
+                if (allFeedWorkouts.length === 0) {
                     container.innerHTML = '';
                     emptyState.style.display = 'flex';
                     return;
                 }
 
-                // Filter to date range
-                const workouts = allWorkouts.filter(w => {
-                    const d = w.workoutDate;
-                    return d >= startStr && d <= endStr;
+                // Current week workouts
+                const workouts = allFeedWorkouts.filter(w => w.workoutDate >= startStr && w.workoutDate <= endStr);
+
+                // Previous week for comparison
+                const prevEnd = new Date(startDate);
+                prevEnd.setDate(prevEnd.getDate() - 1);
+                const prevStart = new Date(prevEnd);
+                prevStart.setDate(prevStart.getDate() - 6);
+                const prevStartStr = prevStart.toISOString().split('T')[0];
+                const prevEndStr = prevEnd.toISOString().split('T')[0];
+                const prevWorkouts = allFeedWorkouts.filter(w => w.workoutDate >= prevStartStr && w.workoutDate <= prevEndStr);
+
+                // Build previous week exercise map for comparison
+                const prevExerciseMap = {};
+                prevWorkouts.forEach(w => {
+                    (w.exercises || []).forEach(ex => {
+                        const name = (ex.exerciseName || '').toLowerCase();
+                        if (!prevExerciseMap[name]) prevExerciseMap[name] = { maxWeight: 0, totalVolume: 0, sets: [] };
+                        if (ex.maxWeight > prevExerciseMap[name].maxWeight) prevExerciseMap[name].maxWeight = ex.maxWeight;
+                        prevExerciseMap[name].totalVolume += (ex.totalVolume || 0);
+                        const sd = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.setsData || []);
+                        prevExerciseMap[name].sets.push(...sd);
+                    });
                 });
+
+                // Render weekly summary
+                summaryEl.innerHTML = renderWeeklySummary(workouts, prevWorkouts, startDate, endDate);
+
+                // Render fatigue indicator
+                fatigueEl.innerHTML = renderFatigueAlert(workouts);
+
+                // Fetch missed workouts from assignments
+                missedEl.innerHTML = await renderMissedWorkouts(clientId, startDate, endDate, workouts);
 
                 if (workouts.length === 0) {
                     container.innerHTML = '';
@@ -7825,7 +8077,7 @@
                     }
                 }
 
-                container.innerHTML = workouts.map(w => renderWorkoutCard(w, voiceUrls)).join('');
+                container.innerHTML = workouts.map(w => renderWorkoutCard(w, voiceUrls, prevExerciseMap)).join('');
 
             } catch (err) {
                 console.error('Error loading workout logs:', err);
@@ -7833,7 +8085,170 @@
             }
         }
 
-        function renderWorkoutCard(workout, voiceUrls) {
+        // ---- Weekly Summary Banner ----
+        function renderWeeklySummary(workouts, prevWorkouts, startDate, endDate) {
+            const totalWorkouts = workouts.length;
+            const totalVolume = workouts.reduce((s, w) => s + (w.totalVolume || 0), 0);
+            const totalSets = workouts.reduce((s, w) => s + (w.totalSets || 0), 0);
+            const prevVolume = prevWorkouts.reduce((s, w) => s + (w.totalVolume || 0), 0);
+
+            // Average RPE across all sets
+            let rpeSum = 0, rpeCount = 0;
+            workouts.forEach(w => {
+                (w.exercises || []).forEach(ex => {
+                    const sd = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.setsData || []);
+                    sd.forEach(s => { if (s.rpe) { rpeSum += s.rpe; rpeCount++; } });
+                });
+            });
+            const avgRpe = rpeCount > 0 ? (rpeSum / rpeCount).toFixed(1) : '—';
+            const rpeClass = avgRpe === '—' ? '' : (avgRpe <= 6 ? 'good' : avgRpe <= 8 ? 'warning' : 'danger');
+
+            // Volume change vs previous week
+            let volChangeHtml = '';
+            if (prevVolume > 0 && totalVolume > 0) {
+                const pct = (((totalVolume - prevVolume) / prevVolume) * 100).toFixed(1);
+                const cls = pct > 0 ? 'good' : 'danger';
+                const sign = pct > 0 ? '+' : '';
+                volChangeHtml = `<span class="wp-summary-value ${cls}" style="font-size:14px;">${sign}${pct}%</span>`;
+            }
+
+            // Workout streak (consecutive days from today backwards with a logged workout)
+            const workoutDates = new Set(workouts.map(w => w.workoutDate));
+            const allDates = new Set(allFeedWorkouts.map(w => w.workoutDate));
+            let streak = 0;
+            const checkDate = new Date();
+            for (let i = 0; i < 30; i++) {
+                const ds = checkDate.toISOString().split('T')[0];
+                if (allDates.has(ds)) { streak++; } else if (i > 0) { break; }
+                checkDate.setDate(checkDate.getDate() - 1);
+            }
+
+            // 7-day dot visualization
+            let dotsHtml = '';
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(startDate);
+                d.setDate(d.getDate() + (6 - i));
+                const ds = d.toISOString().split('T')[0];
+                const cls = workoutDates.has(ds) ? 'active' : '';
+                dotsHtml += `<span class="wp-streak-dot ${cls}"></span>`;
+            }
+
+            // Client notes count
+            let notesCount = 0;
+            workouts.forEach(w => (w.exercises || []).forEach(ex => {
+                if (ex.clientNotes || ex.clientVoiceNotePath) notesCount++;
+            }));
+
+            // Adherence percentage
+            const adherencePct = totalWorkouts > 0 ? Math.min(100, Math.round((totalWorkouts / 7) * 100)) : 0;
+            const adhCls = adherencePct >= 70 ? 'good' : adherencePct >= 40 ? 'ok' : 'low';
+
+            return `
+                <div class="wp-weekly-summary">
+                    <div class="wp-summary-stat">
+                        <span class="wp-summary-value">${totalWorkouts}</span>
+                        <span class="wp-summary-label">Workouts</span>
+                        <div class="wp-streak-dots">${dotsHtml}</div>
+                    </div>
+                    <div class="wp-summary-stat">
+                        <span class="wp-summary-value">${Number(totalVolume).toLocaleString()}</span>
+                        <span class="wp-summary-label">Total Vol (kg)</span>
+                        ${volChangeHtml}
+                    </div>
+                    <div class="wp-summary-stat">
+                        <span class="wp-summary-value">${totalSets}</span>
+                        <span class="wp-summary-label">Total Sets</span>
+                    </div>
+                    <div class="wp-summary-stat">
+                        <span class="wp-summary-value ${rpeClass}">${avgRpe}</span>
+                        <span class="wp-summary-label">Avg RPE</span>
+                    </div>
+                    <div class="wp-summary-stat">
+                        <span class="wp-summary-value">${streak}</span>
+                        <span class="wp-summary-label">Day Streak</span>
+                    </div>
+                    ${notesCount > 0 ? `<div class="wp-summary-stat"><span class="wp-summary-value" style="color:#7c3aed;">${notesCount}</span><span class="wp-summary-label">Client Notes</span></div>` : ''}
+                </div>
+            `;
+        }
+
+        // ---- Fatigue / Readiness Alert ----
+        function renderFatigueAlert(workouts) {
+            if (workouts.length < 2) return '';
+
+            let rpeValues = [];
+            let volumes = [];
+            workouts.forEach(w => {
+                let wRpe = [];
+                (w.exercises || []).forEach(ex => {
+                    const sd = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.setsData || []);
+                    sd.forEach(s => { if (s.rpe) wRpe.push(s.rpe); });
+                });
+                if (wRpe.length > 0) rpeValues.push(wRpe.reduce((a, b) => a + b, 0) / wRpe.length);
+                volumes.push(w.totalVolume || 0);
+            });
+
+            if (rpeValues.length < 2) return '';
+
+            const avgRpe = rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length;
+            const lastVol = volumes[0] || 0;
+            const prevVol = volumes[1] || 0;
+            const volumeDropping = prevVol > 0 && lastVol < prevVol * 0.85;
+
+            // High RPE + dropping volume = fatigue
+            if (avgRpe >= 8.5 && volumeDropping) {
+                return `<div class="wp-fatigue-alert high">⚠️ <strong>High fatigue detected</strong> — Avg RPE ${avgRpe.toFixed(1)} with declining volume. Consider a deload or recovery focus.</div>`;
+            }
+            if (avgRpe >= 7.5) {
+                return `<div class="wp-fatigue-alert moderate">💪 <strong>Moderate load</strong> — Avg RPE ${avgRpe.toFixed(1)}. Client is pushing hard. Monitor for overreaching.</div>`;
+            }
+            if (avgRpe <= 5.5 && avgRpe > 0) {
+                return `<div class="wp-fatigue-alert fresh">✅ <strong>Fresh & recovered</strong> — Avg RPE ${avgRpe.toFixed(1)}. Client has room to push harder.</div>`;
+            }
+            return '';
+        }
+
+        // ---- Missed Workout Alerts ----
+        async function renderMissedWorkouts(clientId, startDate, endDate, workouts) {
+            try {
+                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${startDate.toISOString().split('T')[0]}`);
+                const data = await res.json();
+                const assignment = data?.assignments?.[0];
+                if (!assignment?.workout_data) return '';
+
+                const schedule = assignment.workout_data.schedule || {};
+                const scheduledDays = schedule.days || schedule.scheduleDays || [];
+                if (scheduledDays.length === 0) return '';
+
+                // Map day names to day numbers (0=Sun, 1=Mon, etc.)
+                const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+                const scheduledDayNums = scheduledDays.map(d => dayMap[d.toLowerCase()] ?? -1).filter(n => n >= 0);
+
+                const workoutDates = new Set(workouts.map(w => w.workoutDate));
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const missed = [];
+
+                for (let d = new Date(startDate); d <= endDate && d <= today; d.setDate(d.getDate() + 1)) {
+                    const dayNum = d.getDay();
+                    const dateStr = d.toISOString().split('T')[0];
+                    if (scheduledDayNums.includes(dayNum) && !workoutDates.has(dateStr)) {
+                        missed.push(d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));
+                    }
+                }
+
+                if (missed.length === 0) return '';
+                return `<div class="wp-missed-workouts">${missed.map(d =>
+                    `<div class="wp-missed-day">❌ Missed scheduled workout: <strong>${d}</strong></div>`
+                ).join('')}</div>`;
+            } catch (err) {
+                console.error('Error checking missed workouts:', err);
+                return '';
+            }
+        }
+
+        // ---- Workout Card ----
+        function renderWorkoutCard(workout, voiceUrls, prevExerciseMap) {
             const dateObj = new Date(workout.workoutDate + 'T12:00:00');
             const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             const vol = workout.totalVolume ? Number(workout.totalVolume).toLocaleString() : '0';
@@ -7851,17 +8266,46 @@
 
             const hasNotes = workout.hasClientNotes;
 
+            // Calculate average RPE for this workout
+            let rpeSum = 0, rpeCount = 0;
+            (workout.exercises || []).forEach(ex => {
+                const sd = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.setsData || []);
+                sd.forEach(s => { if (s.rpe) { rpeSum += s.rpe; rpeCount++; } });
+            });
+            let avgRpeHtml = '';
+            if (rpeCount > 0) {
+                const avg = (rpeSum / rpeCount).toFixed(1);
+                const cls = avg <= 6 ? 'low' : avg <= 8 ? 'moderate' : 'high';
+                avgRpeHtml = `<span class="wp-avg-rpe ${cls}">RPE ${avg}</span>`;
+            }
+
             const exercisesHtml = (workout.exercises || []).map(ex => {
-                let setsHtml = '';
                 const setsData = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.setsData || []);
+
+                let setsHtml = '';
                 if (setsData.length > 0) {
                     setsHtml = '<div class="wp-sets">' + setsData.map(s => {
                         const label = s.isTimeBased
                             ? `${s.reps || 0}s`
-                            : `${s.reps || 0}x${s.weight || 0}${s.weightUnit || 'kg'}`;
+                            : `${s.reps || 0}×${s.weight || 0}${s.weightUnit || 'kg'}`;
                         const rpe = s.rpe ? `<span class="wp-rpe">RPE ${s.rpe}</span>` : '';
                         return `<span class="wp-set-pill">${label}${rpe}</span>`;
                     }).join('') + '</div>';
+                }
+
+                // Exercise comparison vs previous week
+                let comparisonHtml = '';
+                const name = (ex.exerciseName || '').toLowerCase();
+                const prev = prevExerciseMap[name];
+                if (prev && prev.maxWeight > 0) {
+                    const diff = (ex.maxWeight || 0) - prev.maxWeight;
+                    if (diff > 0) {
+                        comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-up">▲ +${diff} kg vs last week</span></div>`;
+                    } else if (diff < 0) {
+                        comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-down">▼ ${diff} kg vs last week</span></div>`;
+                    } else {
+                        comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-same">— Same weight as last week</span></div>`;
+                    }
                 }
 
                 let noteHtml = '';
@@ -7887,6 +8331,7 @@
                             <div class="wp-exercise-badges">${maxW}${prBadge}</div>
                         </div>
                         ${setsHtml}
+                        ${comparisonHtml}
                         ${noteHtml}
                         ${voiceHtml}
                     </div>
@@ -7898,6 +8343,7 @@
                     <div class="wp-card-header">
                         <div class="wp-card-date">${dateStr}</div>
                         <div class="wp-card-stats">
+                            ${avgRpeHtml}
                             <span>${vol} kg vol</span>
                             <span>${workout.totalSets || 0} sets</span>
                             ${hasNotes ? '<span class="wp-has-notes">💬 Notes</span>' : ''}
