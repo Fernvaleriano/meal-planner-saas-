@@ -1857,6 +1857,107 @@
             box-shadow: var(--shadow-md);
         }
 
+        .exercise-card.selected {
+            border-color: var(--brand-primary);
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        .exercise-card-check {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            transition: all 0.15s;
+        }
+
+        .exercise-card-check svg {
+            display: none;
+            width: 14px;
+            height: 14px;
+            stroke: #fff;
+        }
+
+        .exercise-card.selected .exercise-card-check {
+            background: var(--brand-primary, #8b5cf6);
+            border-color: var(--brand-primary, #8b5cf6);
+        }
+
+        .exercise-card.selected .exercise-card-check svg {
+            display: block;
+        }
+
+        /* Floating multi-select action bar */
+        .exercise-select-bar {
+            display: none;
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--brand-primary, #8b5cf6);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-top: 12px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 -4px 20px rgba(139, 92, 246, 0.4);
+            z-index: 10;
+        }
+
+        .exercise-select-bar.visible {
+            display: flex;
+        }
+
+        .exercise-select-bar-count {
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .exercise-select-bar-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .exercise-select-bar-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .exercise-select-bar-btn--add {
+            background: #fff;
+            color: var(--brand-primary, #8b5cf6);
+        }
+
+        .exercise-select-bar-btn--add:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-1px);
+        }
+
+        .exercise-select-bar-btn--clear {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .exercise-select-bar-btn--clear:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         .exercise-card .video-indicator {
             position: absolute;
             top: 24px;
@@ -2888,6 +2989,15 @@
                 <button id="loadMoreBtn" class="btn-secondary" onclick="loadMoreExercises()" style="width: 100%; margin-top: 16px; display: none;">
                     Load More Exercises
                 </button>
+
+                <!-- Multi-select action bar -->
+                <div class="exercise-select-bar" id="exerciseSelectBar">
+                    <span class="exercise-select-bar-count" id="exerciseSelectCount">0 selected</span>
+                    <div class="exercise-select-bar-actions">
+                        <button class="exercise-select-bar-btn exercise-select-bar-btn--clear" onclick="clearExerciseSelection()">Clear</button>
+                        <button class="exercise-select-bar-btn exercise-select-bar-btn--add" onclick="addSelectedExercises()">Add Selected</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -3916,8 +4026,76 @@
         }
 
         // Exercise modal
+        // Multi-select state for exercise browser
+        const selectedExercises = new Map(); // key: id or name, value: exercise object
+
+        function toggleExerciseSelection(exercise) {
+            const key = exercise.id || exercise.name;
+            if (selectedExercises.has(key)) {
+                selectedExercises.delete(key);
+            } else {
+                selectedExercises.set(key, exercise);
+            }
+            // Update card visual state without full re-render
+            const cards = document.querySelectorAll('.exercise-card');
+            cards.forEach(card => {
+                const cardId = card.dataset.exerciseId || card.dataset.exerciseName;
+                const cardName = card.dataset.exerciseName;
+                if (cardId === String(key) || cardName === String(key)) {
+                    card.classList.toggle('selected', selectedExercises.has(key));
+                }
+            });
+            updateSelectBar();
+        }
+
+        function updateSelectBar() {
+            const bar = document.getElementById('exerciseSelectBar');
+            const count = document.getElementById('exerciseSelectCount');
+            const n = selectedExercises.size;
+            if (n > 0) {
+                bar.classList.add('visible');
+                count.textContent = `${n} exercise${n !== 1 ? 's' : ''} selected`;
+            } else {
+                bar.classList.remove('visible');
+            }
+        }
+
+        function clearExerciseSelection() {
+            selectedExercises.clear();
+            document.querySelectorAll('.exercise-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            updateSelectBar();
+        }
+
+        function addSelectedExercises() {
+            if (selectedExercises.size === 0) return;
+            const exercises = Array.from(selectedExercises.values());
+            exercises.forEach(exercise => {
+                workoutDays[currentDayIndex].exercises.push({
+                    id: exercise.id,
+                    name: exercise.name,
+                    video_url: exercise.video_url,
+                    animation_url: exercise.animation_url,
+                    thumbnail_url: exercise.thumbnail_url || exercise.video_url,
+                    muscle_group: exercise.muscle_group,
+                    equipment: exercise.equipment,
+                    instructions: exercise.instructions,
+                    sets: 3,
+                    reps: '8-12',
+                    restSeconds: 90
+                });
+            });
+            renderWorkoutDays();
+            const count = exercises.length;
+            showToast(`Added ${count} exercise${count !== 1 ? 's' : ''}`);
+            clearExerciseSelection();
+            closeExerciseModal();
+        }
+
         function openExerciseModal(dayIndex) {
             currentDayIndex = dayIndex;
+            clearExerciseSelection();
             resetExerciseFilters();
             document.getElementById('exerciseModal').classList.add('active');
             renderExerciseGrid();
@@ -4169,9 +4347,13 @@
                     mediaElement = `<img class="exercise-card-thumb" src="/img/exercise-placeholder.svg" alt="${ex.name}">`;
                 }
 
+                const isSelected = selectedExercises.has(ex.id || ex.name);
                 return `
-                <div class="exercise-card" onclick='openExercisePreview(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
-                    <div class="exercise-thumb-container">
+                <div class="exercise-card${isSelected ? ' selected' : ''}" data-exercise-id="${ex.id || ''}" data-exercise-name="${ex.name}" onclick='toggleExerciseSelection(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
+                    <div class="exercise-card-check">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>
+                    </div>
+                    <div class="exercise-thumb-container" onclick="event.stopPropagation(); openExercisePreview(${JSON.stringify(ex).replace(/'/g, "\\'")})">
                         ${mediaElement}
                         ${hasVideo ? '<div class="video-indicator">▶</div>' : ''}
                         <button class="edit-thumb-btn ${hasThumbnail ? '' : 'no-thumb'}" onclick="event.stopPropagation(); openThumbnailModal(${JSON.stringify(ex).replace(/"/g, '&quot;')})" title="${hasThumbnail ? 'Change thumbnail' : 'Add thumbnail'}">
