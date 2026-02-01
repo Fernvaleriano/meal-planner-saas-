@@ -126,8 +126,61 @@ exports.handler = async (event) => {
   const batchNum = parseInt(params.batch) || 0;
   const batchSize = 50;
   const dryRun = params.dryRun === 'true' || params.dry === 'true';
+  const cleanup = params.cleanup === 'true';
 
   try {
+    // CLEANUP MODE: Remove bad records from old sync (gender suffixes still in name, version markers, etc.)
+    if (cleanup) {
+      // Find records that have gender suffixes or version markers still in the name
+      const { data: badRecords, error: fetchErr } = await supabase
+        .from('exercises')
+        .select('id, name')
+        .or('name.ilike.%_female,name.ilike.%_male,name.ilike.%_Female,name.ilike.%_Male,name.ilike.%Female,name.ilike.% female,name.ilike.%(Version%');
+
+      if (fetchErr) throw new Error('Failed to fetch records: ' + fetchErr.message);
+
+      // Filter to only video-sync records or records that clearly have gender suffixes
+      const toDelete = (badRecords || []).filter(r => {
+        const name = r.name;
+        return /[_\s](female|male)$/i.test(name) || /\(\s*version\s*\d*\s*\)/i.test(name);
+      });
+
+      if (dryRun) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            dryRun: true,
+            cleanup: true,
+            recordsToDelete: toDelete.length,
+            records: toDelete.map(r => r.name)
+          }, null, 2)
+        };
+      }
+
+      // Delete in batches
+      let deleted = 0;
+      const deleteIds = toDelete.map(r => r.id);
+      for (let i = 0; i < deleteIds.length; i += 50) {
+        const chunk = deleteIds.slice(i, i + 50);
+        const { error: delErr } = await supabase
+          .from('exercises')
+          .delete()
+          .in('id', chunk);
+        if (!delErr) deleted += chunk.length;
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          cleanup: true,
+          deleted,
+          records: toDelete.map(r => r.name)
+        }, null, 2)
+      };
+    }
     // Get all existing exercises (name lookup)
     const allExisting = [];
     let offset = 0;
