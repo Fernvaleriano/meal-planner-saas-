@@ -3692,12 +3692,25 @@
         }
 
         // Render workout days
+        function sortExercisesByStructure(exercises) {
+            // Enforce warm-up → main workout → stretching order
+            const warmups = exercises.filter(ex => ex.isWarmup);
+            const stretches = exercises.filter(ex => ex.isStretch);
+            const main = exercises.filter(ex => !ex.isWarmup && !ex.isStretch);
+            return [...warmups, ...main, ...stretches];
+        }
+
         function renderWorkoutDays() {
             const container = document.getElementById('workoutDays');
             if (workoutDays.length === 0) {
                 container.innerHTML = '<div class="empty-state"><p>Add your first workout day</p></div>';
                 return;
             }
+
+            // Sort each day's exercises: warm-ups → main → stretches
+            workoutDays.forEach(day => {
+                day.exercises = sortExercisesByStructure(day.exercises);
+            });
 
             container.innerHTML = workoutDays.map((day, dayIndex) => `
                 <div class="workout-day">
@@ -4072,6 +4085,7 @@
             if (selectedExercises.size === 0) return;
             const exercises = Array.from(selectedExercises.values());
             exercises.forEach(exercise => {
+                const { isWarmup, isStretch } = detectExerciseType(exercise);
                 workoutDays[currentDayIndex].exercises.push({
                     id: exercise.id,
                     name: exercise.name,
@@ -4081,9 +4095,11 @@
                     muscle_group: exercise.muscle_group,
                     equipment: exercise.equipment,
                     instructions: exercise.instructions,
-                    sets: 3,
-                    reps: '8-12',
-                    restSeconds: 90
+                    sets: isWarmup ? 1 : isStretch ? 1 : 3,
+                    reps: isWarmup ? '10-15' : isStretch ? '30s hold' : '8-12',
+                    restSeconds: isWarmup ? 30 : isStretch ? 0 : 90,
+                    isWarmup,
+                    isStretch
                 });
             });
             renderWorkoutDays();
@@ -4720,7 +4736,18 @@
             }
         }
 
+        function detectExerciseType(exercise) {
+            const name = (exercise.name || '').toLowerCase();
+            const group = (exercise.muscle_group || '').toLowerCase();
+            const isWarmup = group === 'cardio' || group === 'warmup' || group === 'warm-up' || group === 'mobility' ||
+                /warm.?up|activation|dynamic stretch|jumping jack|high knee|butt kick|arm circle|leg swing|hip circle|jog/i.test(name);
+            const isStretch = /stretch|yoga|cool.?down|flexibility|cat.?cow|spinal twist|foam roll/i.test(name) ||
+                group === 'stretching' || group === 'flexibility';
+            return { isWarmup: isWarmup && !isStretch, isStretch };
+        }
+
         function addExerciseToDay(exercise) {
+            const { isWarmup, isStretch } = detectExerciseType(exercise);
             workoutDays[currentDayIndex].exercises.push({
                 id: exercise.id,
                 name: exercise.name,
@@ -4730,9 +4757,11 @@
                 muscle_group: exercise.muscle_group,
                 equipment: exercise.equipment,
                 instructions: exercise.instructions,
-                sets: 3,
-                reps: '8-12',
-                restSeconds: 90
+                sets: isWarmup ? 1 : isStretch ? 1 : 3,
+                reps: isWarmup ? '10-15' : isStretch ? '30s hold' : '8-12',
+                restSeconds: isWarmup ? 30 : isStretch ? 0 : 90,
+                isWarmup,
+                isStretch
             });
             renderWorkoutDays();
             closeExerciseModal();
