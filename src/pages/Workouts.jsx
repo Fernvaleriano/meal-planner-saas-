@@ -2115,6 +2115,13 @@ function Workouts() {
     }
   };
 
+  // Auto-start workout when user enters detail view so completion features work immediately
+  useEffect(() => {
+    if (expandedWorkout && todayWorkout && !workoutStarted) {
+      setWorkoutStarted(true);
+    }
+  }, [expandedWorkout, todayWorkout, workoutStarted]);
+
   // Calculate progress
   const completedCount = completedExercises.size;
   const totalExercises = exercises.length;
