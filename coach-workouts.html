@@ -4372,6 +4372,29 @@
                         return armPrimaryMatch || armSecondaryMatch;
                     }
 
+                    // Special handling for broad categories that include specific muscle groups
+                    const categoryMap = {
+                        'legs': ['legs', 'quads', 'quadriceps', 'hamstrings', 'hamstring', 'glutes', 'calves', 'calf', 'hip flexors', 'adductors', 'abductors', 'thighs'],
+                        'back': ['back', 'lats', 'latissimus', 'rhomboids', 'traps', 'trapezius', 'rear delt', 'erector', 'lower back', 'upper back'],
+                        'shoulders': ['shoulders', 'delts', 'deltoids', 'front delt', 'side delt', 'rear delt', 'lateral delt', 'rotator cuff'],
+                        'chest': ['chest', 'pecs', 'pectorals', 'upper chest', 'lower chest'],
+                        'core': ['core', 'abs', 'abdominals', 'obliques', 'lower back', 'transverse']
+                    };
+                    const expandedMuscles = categoryMap[currentExerciseFilter];
+                    if (expandedMuscles) {
+                        const catPrimaryMatch = expandedMuscles.some(m =>
+                            e.muscle_group?.toLowerCase().includes(m) ||
+                            e.primary_muscles?.toLowerCase().includes(m) ||
+                            e.name?.toLowerCase().includes(m)
+                        );
+                        const catSecondaryMatch = e.secondary_muscles && (
+                            Array.isArray(e.secondary_muscles)
+                                ? e.secondary_muscles.some(sm => expandedMuscles.some(m => sm.toLowerCase().includes(m)))
+                                : expandedMuscles.some(m => e.secondary_muscles.toLowerCase().includes(m))
+                        );
+                        return catPrimaryMatch || catSecondaryMatch;
+                    }
+
                     return primaryMatch || secondaryMatch;
                 });
                 }
