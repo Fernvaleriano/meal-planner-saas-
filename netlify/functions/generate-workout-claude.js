@@ -447,23 +447,25 @@ exports.handler = async (event) => {
       console.log(`Warmup exercises found: ${uniqueWarmups.length > 0 ? JSON.stringify(uniqueWarmups) : 'NONE'}`);
       console.log(`Stretch exercises found: ${stretchExercises.length > 0 ? JSON.stringify(stretchExercises) : 'NONE'}`);
 
-      // Build warmup/stretch instructions - BE VERY STRICT
+      // Build warmup/stretch instructions - always include structure
       if (uniqueWarmups.length > 0 || stretchExercises.length > 0) {
         warmupStretchInstructions = '\n\n=== WARMUP AND STRETCH EXERCISES ===';
 
         if (uniqueWarmups.length > 0) {
           warmupStretchInstructions += `\n\nAVAILABLE WARM-UPS (copy name EXACTLY as shown):\n${uniqueWarmups.map(n => `"${n}"`).join(', ')}`;
+          warmupStretchInstructions += '\n\nInclude 2-3 warm-up exercises at the START of each workout. Mark them with "isWarmup": true. Use 1-2 sets, 10-15 reps, 0-30 seconds rest.';
         } else {
-          warmupStretchInstructions += '\n\n*** NO WARM-UP EXERCISES AVAILABLE - DO NOT ADD ANY WARM-UP EXERCISES TO THE WORKOUT ***';
+          warmupStretchInstructions += '\n\n*** NO WARM-UP EXERCISES AVAILABLE IN DATABASE - skip warm-ups ***';
         }
 
         if (stretchExercises.length > 0) {
           warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY as shown):\n${stretchExercises.map(n => `"${n}"`).join(', ')}`;
+          warmupStretchInstructions += '\n\nInclude 2-3 stretches at the END of each workout. Mark them with "isStretch": true. Use 1 set, "30s hold" for reps, 0 seconds rest.';
         } else {
-          warmupStretchInstructions += '\n\n*** NO STRETCH EXERCISES AVAILABLE - DO NOT ADD ANY STRETCH EXERCISES TO THE WORKOUT ***';
+          warmupStretchInstructions += '\n\n*** NO STRETCH EXERCISES AVAILABLE IN DATABASE - skip stretches ***';
         }
       } else {
-        warmupStretchInstructions = '\n\n*** IMPORTANT: NO WARM-UP OR STRETCH EXERCISES EXIST IN THE DATABASE. DO NOT INCLUDE ANY WARM-UP OR STRETCH EXERCISES. START DIRECTLY WITH MAIN EXERCISES. ***';
+        warmupStretchInstructions = '\n\n*** NO WARM-UP OR STRETCH EXERCISES EXIST IN THE DATABASE - skip warm-ups and stretches ***';
       }
 
       availableExercisesPrompt = `
@@ -514,12 +516,11 @@ ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 EXERCISE SELECTION GUIDELINES:
 - Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy-paste the exact name in quotes)
-- Structure: compound movements first, then isolation exercises
+- WORKOUT ORDER: warm-up exercises first (isWarmup: true), then compound movements, then isolation exercises, then stretches last (isStretch: true)
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
-- DO NOT include any warm-up exercises. Start directly with the main workout exercises.
-- DO NOT include any stretching exercises. End the workout with the last main exercise.
 - NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
+${warmupStretchInstructions}
 
 Return this exact JSON structure:
 {
@@ -570,12 +571,11 @@ ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 EXERCISE SELECTION GUIDELINES:
 - Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy-paste the exact name in quotes)
-- Structure: compound movements first, then isolation exercises
+- WORKOUT ORDER: warm-up exercises first (isWarmup: true), then compound movements, then isolation exercises, then stretches last (isStretch: true)
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
-- DO NOT include any warm-up exercises. Start directly with the main workout exercises.
-- DO NOT include any stretching exercises. End the workout with the last main exercise.
 - NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
+${warmupStretchInstructions}
 
 Return this exact JSON structure:
 {
@@ -704,7 +704,7 @@ Return this exact JSON structure:
               } else {
                 // No match found
                 if (isWarmupOrStretch) {
-                  // For warmup/stretch without video match, SKIP entirely (return null)
+                  // For warmup/stretch without video match, skip (no video to show)
                   console.log(`Skipping warmup/stretch without video match: ${aiExercise.name}`);
                   return null;
                 }
@@ -716,13 +716,13 @@ Return this exact JSON structure:
                 return {
                   name: aiExercise.name,
                   muscle_group: aiExercise.muscleGroup,
-                  equipment: null, // No equipment info available for unmatched exercises
+                  equipment: null,
                   sets: aiExercise.sets || 3,
                   reps: aiExercise.reps || '8-12',
                   restSeconds: aiExercise.restSeconds || 90,
                   notes: aiExercise.notes || '',
-                  isWarmup: false,
-                  isStretch: false,
+                  isWarmup: aiExercise.isWarmup || false,
+                  isStretch: aiExercise.isStretch || false,
                   isSuperset: aiExercise.isSuperset || false,
                   supersetGroup: aiExercise.supersetGroup || null,
                   matched: false
@@ -740,39 +740,9 @@ Return this exact JSON structure:
       console.log(`Unmatched exercises: ${matchStats.unmatchedNames.join(', ')}`);
     }
 
-    // POST-PROCESSING: Remove ALL warmup/stretch exercises - we don't want them at all
-    // This is the nuclear option - no warmups/stretches = no missing videos for warmups/stretches
-    let removedCount = 0;
-
-    for (const week of programData.weeks) {
-      for (const workout of week.workouts || []) {
-        const originalCount = workout.exercises.length;
-
-        workout.exercises = workout.exercises.filter(ex => {
-          // Detect warmup/stretch by BOTH flag AND name
-          const detectedWarmup = isWarmupExercise(ex.name);
-          const detectedStretch = isStretchExercise(ex.name);
-          const isWarmupOrStretch = ex.isWarmup || ex.isStretch || detectedWarmup || detectedStretch;
-
-          if (isWarmupOrStretch) {
-            removedCount++;
-            console.log(`Removing warmup/stretch: ${ex.name}`);
-            return false; // Remove from array
-          }
-
-          return true; // Keep the exercise
-        });
-
-        if (originalCount !== workout.exercises.length) {
-          console.log(`Workout "${workout.name}": removed ${originalCount - workout.exercises.length} warmups/stretches`);
-        }
-      }
-    }
-
-    if (removedCount > 0) {
-      console.log(`Total warmups/stretches removed: ${removedCount}`);
-    }
-
+    // Warmups and stretches are now kept in the output (proper workout structure)
+    // Only warmups/stretches that matched a database exercise with video are included
+    // (unmatched warmups/stretches were already filtered out during the matching step above)
 
     return {
       statusCode: 200,
