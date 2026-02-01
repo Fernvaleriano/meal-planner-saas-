@@ -12928,12 +12928,158 @@ a.nav-left {
     margin-left: 4px;
 }
 
+/* Workout Cards Container */
+.workout-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.workout-card-v3 {
+    position: relative;
+    min-height: 120px;
+    background-size: cover;
+    background-position: center;
+    background-color: #1e1e2e;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.workout-card-v3.active {
+    box-shadow: 0 0 0 2px #3b82f6, 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.workout-card-v3:active {
+    transform: scale(0.98);
+}
+
+.workout-card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0.3) 100%);
+    pointer-events: none;
+}
+
+.workout-card-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 16px 16px 20px;
+    min-height: 120px;
+}
+
+.workout-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.workout-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.workout-card-progress {
+    font-size: 13px;
+    color: #9ca3af;
+    margin: 0 0 2px 0;
+}
+
+.workout-card-day {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.workout-card-badge {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    background: rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.workout-card-menu {
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+.workout-card-menu-placeholder {
+    flex-shrink: 0;
+    margin-left: 12px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Start Workout Button - below cards */
+.start-workout-section {
+    padding: 0 16px 8px;
+}
+
+.start-workout-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.start-workout-btn:active {
+    transform: scale(0.98);
+    background: #2563eb;
+}
+
 /* Hero Menu - Day Options */
 .hero-menu-container {
     position: absolute;
     top: 16px;
     right: 16px;
     z-index: 10;
+}
+
+/* When menu is inside a card, don't use absolute positioning */
+.workout-card-menu .hero-menu-btn {
+    width: 36px;
+    height: 36px;
+}
+
+.workout-card-menu .hero-dropdown-menu {
+    right: 0;
+    top: 42px;
 }
 
 .hero-menu-btn {
