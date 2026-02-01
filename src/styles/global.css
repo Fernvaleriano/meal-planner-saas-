@@ -13493,7 +13493,448 @@ a.nav-left {
 }
 
 .rest-day-create-btn:active,
-.rest-day-add-btn:active {
+.rest-day-add-btn:active,
+.rest-day-club-btn:active {
+    transform: translateY(0);
+}
+
+.rest-day-club-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.rest-day-club-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
+}
+
+/* ============================================ */
+/* Club Workouts Modal                          */
+/* ============================================ */
+
+.club-workouts-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.club-workouts-modal {
+    background: #1e293b;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUpModal 0.3s ease;
+}
+
+@keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.club-workouts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #334155;
+}
+
+.club-workouts-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.club-workouts-close,
+.club-workouts-back {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.club-workouts-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Search and Filters */
+.club-workouts-filters {
+    margin-bottom: 16px;
+}
+
+.club-search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+.club-search-wrapper svg {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.club-search-input {
+    background: none;
+    border: none;
+    outline: none;
+    color: #f8fafc;
+    font-size: 14px;
+    width: 100%;
+    font-family: inherit;
+}
+
+.club-search-input::placeholder {
+    color: #64748b;
+}
+
+.club-category-filters {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.club-category-filters::-webkit-scrollbar {
+    display: none;
+}
+
+.club-category-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.club-category-btn.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
+    border-color: #8b5cf6;
+    color: #c4b5fd;
+}
+
+/* Loading and Empty States */
+.club-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 48px 20px;
+    color: #64748b;
+}
+
+.club-loading .spinning {
+    animation: spin 1s linear infinite;
+}
+
+.club-empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: #64748b;
+}
+
+.club-empty svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.club-empty h3 {
+    color: #e2e8f0;
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.club-empty p {
+    font-size: 14px;
+    color: #64748b;
+}
+
+/* Workout Card List */
+.club-workout-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.club-workout-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+}
+
+.club-workout-card:hover {
+    border-color: #8b5cf6;
+    transform: translateY(-1px);
+}
+
+.club-workout-card:active {
+    transform: translateY(0);
+}
+
+.club-workout-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.club-workout-card-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.club-workout-card-header svg {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.club-workout-card-desc {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.club-workout-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.club-workout-card-badges {
+    display: flex;
+    gap: 6px;
+}
+
+.club-workout-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.club-workout-badge.category {
+    color: #c4b5fd;
+}
+
+.club-workout-badge.difficulty {
+    text-transform: capitalize;
+}
+
+.club-workout-badge.small {
+    font-size: 11px;
+    padding: 2px 6px;
+}
+
+.club-workout-card-stats {
+    display: flex;
+    gap: 10px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.club-workout-card-stats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Workout Detail View */
+.club-workout-detail-info {
+    margin-bottom: 20px;
+}
+
+.club-workout-detail-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.club-workout-detail-desc {
+    font-size: 14px;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.club-workout-detail-stats {
+    display: flex;
+    gap: 16px;
+}
+
+.detail-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.detail-stat svg {
+    color: #64748b;
+}
+
+/* Exercise List in Detail */
+.club-workout-exercises {
+    margin-bottom: 20px;
+}
+
+.club-workout-exercises h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+}
+
+.club-exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.club-exercise-item:last-child {
+    border-bottom: none;
+}
+
+.club-exercise-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.club-exercise-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0f172a;
+    flex-shrink: 0;
+}
+
+.club-exercise-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.club-exercise-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.club-exercise-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.club-exercise-meta {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+/* Use Workout Button */
+.club-workout-action {
+    padding: 16px 20px;
+    border-top: 1px solid #334155;
+}
+
+.club-workout-use-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.club-workout-use-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
+}
+
+.club-workout-use-btn:active {
     transform: translateY(0);
 }
 
