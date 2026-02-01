@@ -1531,6 +1531,51 @@
             background: #f0f9ff;
         }
 
+        .ac-exercise-option.selected {
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            margin: -1px;
+        }
+
+        .ac-exercise-option .ac-modal-checkbox {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid #cbd5e1;
+            flex-shrink: 0;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .ac-modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .ac-modal-footer .ac-add-selected-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .ac-modal-footer .ac-add-selected-btn:hover {
+            background: #2563eb;
+        }
+
+        .ac-modal-footer .ac-add-selected-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
         .ac-exercise-option img {
             width: 48px;
             height: 48px;
@@ -2071,6 +2116,8 @@
         [data-theme="dark"] .ac-modal-header h3 { color: var(--text-primary); }
         [data-theme="dark"] .ac-modal-search { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
         [data-theme="dark"] .ac-exercise-option:hover { background: rgba(96,165,250,0.1); }
+        [data-theme="dark"] .ac-exercise-option.selected { background: rgba(59,130,246,0.15); border-color: #3b82f6; }
+        [data-theme="dark"] .ac-modal-footer { border-color: var(--border-color); }
         [data-theme="dark"] .ac-exercise-option-info h4 { color: var(--text-primary); }
         [data-theme="dark"] .ac-dot-menu { background: var(--bg-secondary); border-color: var(--border-color); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
         [data-theme="dark"] .ac-dot-menu-item { color: var(--text-primary); }
@@ -6676,6 +6723,9 @@
                         <div class="ac-loading"><div class="ac-spinner"></div></div>
                     </div>
                 </div>
+                <div class="ac-modal-footer" id="acModalFooter" style="display:none;">
+                    <button class="ac-add-selected-btn" id="acAddSelectedBtn" onclick="acAddSelectedExercises()" disabled>Add Selected (0)</button>
+                </div>
             </div>
         </div>
 
@@ -9335,7 +9385,7 @@
         // Handle window resize for chart
         window.addEventListener('resize', () => {
             if (clientMeasurements.length > 0) {
-                renderWeightChart();
+                renderAllCharts();
             }
         });
 
@@ -9826,6 +9876,7 @@
         let acCurrentMuscleFilter = 'all';
         let acModalMode = 'add'; // 'add' or 'swap'
         let acSwapExerciseIndex = -1;
+        let acModalSelectedIds = new Set(); // multi-select exercise IDs in add modal
         let acSelectedExercises = new Set(); // multi-select indices
         let acProgramsCache = []; // coach programs
         let acDatePickerCallback = null; // for move/copy date picker
@@ -10575,6 +10626,7 @@
         function acSwapExercise(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
             acModalMode = 'swap';
             acSwapExerciseIndex = exIndex;
+            acModalSelectedIds.clear();
             document.getElementById('acModalTitle').textContent = 'Swap Exercise';
 
             const modal = document.getElementById('acExerciseModal');
@@ -10583,6 +10635,8 @@
             modal.dataset.isAdhoc = isAdhoc;
             modal.dataset.dateStr = dateStr;
 
+            document.getElementById('acModalFooter').style.display = 'none';
+
             modal.classList.add('active');
             acLoadExercises();
         }
@@ -10590,7 +10644,8 @@
         // ---- Add Exercise ----
         function acOpenAddExercise(assignmentId, dayIndex, isAdhoc, dateStr) {
             acModalMode = 'add';
-            document.getElementById('acModalTitle').textContent = 'Add Exercise';
+            acModalSelectedIds.clear();
+            document.getElementById('acModalTitle').textContent = 'Add Exercises';
 
             const modal = document.getElementById('acExerciseModal');
             modal.dataset.assignmentId = assignmentId;
@@ -10598,12 +10653,16 @@
             modal.dataset.isAdhoc = isAdhoc;
             modal.dataset.dateStr = dateStr;
 
+            document.getElementById('acModalFooter').style.display = 'flex';
+            acUpdateAddSelectedBtn();
+
             modal.classList.add('active');
             acLoadExercises();
         }
 
         function acCloseExerciseModal() {
             document.getElementById('acExerciseModal').classList.remove('active');
+            acModalSelectedIds.clear();
         }
 
         async function acLoadExercises() {
@@ -10638,9 +10697,13 @@
                 return;
             }
 
+            const isAddMode = acModalMode === 'add';
             listEl.innerHTML = acExercisesCache.map(ex => {
                 const thumb = ex.thumbnail_url || ex.animation_url || '';
-                return `<div class="ac-exercise-option" onclick="acSelectExercise('${ex.id}')">
+                const exId = String(ex.id);
+                const isSelected = acModalSelectedIds.has(exId);
+                return `<div class="ac-exercise-option${isSelected ? ' selected' : ''}" onclick="acSelectExercise('${exId}')">
+                    ${isAddMode ? `<input type="checkbox" class="ac-modal-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); acSelectExercise('${exId}')">` : ''}
                     ${thumb ? `<img src="${thumb}" alt="" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:20px;">&#127947;&#65039;</div>'}
                     <div class="ac-exercise-option-info">
                         <h4>${escapeHtml(ex.name || '')}</h4>
@@ -10663,9 +10726,71 @@
             acLoadExercises();
         }
 
-        async function acSelectExercise(exerciseId) {
-            const exercise = acExercisesCache.find(e => e.id === exerciseId);
-            if (!exercise) return;
+        function acSelectExercise(exerciseId) {
+            const exId = String(exerciseId);
+
+            // In swap mode, immediately swap and close
+            if (acModalMode === 'swap') {
+                const exercise = acExercisesCache.find(e => String(e.id) === exId);
+                if (!exercise) return;
+
+                const modal = document.getElementById('acExerciseModal');
+                const assignmentId = modal.dataset.assignmentId;
+                const dayIndex = parseInt(modal.dataset.dayIndex);
+                const isAdhoc = modal.dataset.isAdhoc === 'true';
+                const dateStr = modal.dataset.dateStr;
+
+                const bodyEl = document.getElementById('acDetailBody');
+                const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+                const exercises = workout.workout_data?.exercises || [];
+
+                const newExercise = {
+                    id: exercise.id,
+                    name: exercise.name,
+                    muscle_group: exercise.muscle_group,
+                    equipment: exercise.equipment,
+                    thumbnail_url: exercise.thumbnail_url,
+                    animation_url: exercise.animation_url,
+                    video_url: exercise.video_url,
+                    sets: 3,
+                    reps: '10',
+                    restSeconds: 60,
+                    trackingType: 'reps'
+                };
+
+                if (acSwapExerciseIndex >= 0 && acSwapExerciseIndex < exercises.length) {
+                    const old = exercises[acSwapExerciseIndex];
+                    newExercise.sets = old.sets || 3;
+                    newExercise.reps = old.reps || '10';
+                    newExercise.restSeconds = old.restSeconds || 60;
+                    newExercise.setsData = old.setsData;
+                    exercises[acSwapExerciseIndex] = newExercise;
+                }
+
+                acCloseExerciseModal();
+                acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
+                return;
+            }
+
+            // In add mode, toggle multi-select
+            if (acModalSelectedIds.has(exId)) {
+                acModalSelectedIds.delete(exId);
+            } else {
+                acModalSelectedIds.add(exId);
+            }
+            acRenderExerciseList();
+            acUpdateAddSelectedBtn();
+        }
+
+        function acUpdateAddSelectedBtn() {
+            const count = acModalSelectedIds.size;
+            const btn = document.getElementById('acAddSelectedBtn');
+            btn.textContent = `Add Selected (${count})`;
+            btn.disabled = count === 0;
+        }
+
+        async function acAddSelectedExercises() {
+            if (acModalSelectedIds.size === 0) return;
 
             const modal = document.getElementById('acExerciseModal');
             const assignmentId = modal.dataset.assignmentId;
@@ -10677,31 +10802,26 @@
             const workout = JSON.parse(bodyEl.dataset.workout || '{}');
             const exercises = workout.workout_data?.exercises || [];
 
-            const newExercise = {
-                id: exercise.id,
-                name: exercise.name,
-                muscle_group: exercise.muscle_group,
-                equipment: exercise.equipment,
-                thumbnail_url: exercise.thumbnail_url,
-                animation_url: exercise.animation_url,
-                video_url: exercise.video_url,
-                sets: 3,
-                reps: '10',
-                restSeconds: 60,
-                trackingType: 'reps'
-            };
+            for (const exId of acModalSelectedIds) {
+                const exercise = acExercisesCache.find(e => String(e.id) === exId);
+                if (!exercise) continue;
 
-            if (acModalMode === 'swap' && acSwapExerciseIndex >= 0 && acSwapExerciseIndex < exercises.length) {
-                const old = exercises[acSwapExerciseIndex];
-                newExercise.sets = old.sets || 3;
-                newExercise.reps = old.reps || '10';
-                newExercise.restSeconds = old.restSeconds || 60;
-                newExercise.setsData = old.setsData;
-                exercises[acSwapExerciseIndex] = newExercise;
-            } else {
-                exercises.push(newExercise);
+                exercises.push({
+                    id: exercise.id,
+                    name: exercise.name,
+                    muscle_group: exercise.muscle_group,
+                    equipment: exercise.equipment,
+                    thumbnail_url: exercise.thumbnail_url,
+                    animation_url: exercise.animation_url,
+                    video_url: exercise.video_url,
+                    sets: 3,
+                    reps: '10',
+                    restSeconds: 60,
+                    trackingType: 'reps'
+                });
             }
 
+            acModalSelectedIds.clear();
             acCloseExerciseModal();
             await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
