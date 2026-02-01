@@ -272,7 +272,7 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
 function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
   const [todayWorkout, setTodayWorkout] = useState(null);
@@ -1098,24 +1098,29 @@ function Workouts() {
   }, [clientData?.id, selectedDate, showError]);
 
   // Handle selecting a club workout - creates an ad-hoc workout from the club workout template
+  // If workoutData.scheduledDate is set, schedule for that date instead of today
   const handleSelectClubWorkout = useCallback(async (workoutData) => {
     if (!workoutData?.exercises?.length) return;
 
-    const dateStr = formatDate(selectedDate);
+    const isScheduled = !!workoutData.scheduledDate;
+    const dateStr = workoutData.scheduledDate || formatDate(selectedDate);
     const workoutName = workoutData.name || 'Club Workout';
-    const newWorkout = {
-      id: `club-${dateStr}-${Date.now()}`,
-      client_id: clientData?.id,
-      workout_date: dateStr,
-      name: workoutName,
-      day_index: 0,
-      workout_data: workoutData,
-      is_adhoc: true
-    };
 
-    // Update local state with new workout
-    setTodayWorkout(newWorkout);
     setShowClubWorkouts(false);
+
+    // If scheduling for today, update local state immediately
+    if (!isScheduled) {
+      const newWorkout = {
+        id: `club-${dateStr}-${Date.now()}`,
+        client_id: clientData?.id,
+        workout_date: dateStr,
+        name: workoutName,
+        day_index: 0,
+        workout_data: workoutData,
+        is_adhoc: true
+      };
+      setTodayWorkout(newWorkout);
+    }
 
     // Create ad-hoc workout in backend
     try {
@@ -1126,20 +1131,24 @@ function Workouts() {
         name: workoutName
       });
 
-      if (res?.workout) {
+      if (!isScheduled && res?.workout) {
         setTodayWorkout(prev => ({
           ...prev,
           id: res.workout.id
         }));
-      } else {
-        console.error('No workout returned from POST:', res);
-        showError('Failed to save workout');
+      }
+
+      if (isScheduled) {
+        // Show success feedback for scheduled workout
+        if (typeof showSuccess === 'function') {
+          showSuccess(`"${workoutName}" scheduled for ${new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`);
+        }
       }
     } catch (err) {
       console.error('Error saving club workout:', err);
       showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
-  }, [clientData?.id, selectedDate, showError]);
+  }, [clientData?.id, selectedDate, showError, showSuccess]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {

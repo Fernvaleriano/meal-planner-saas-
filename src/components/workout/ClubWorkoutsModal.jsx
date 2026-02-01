@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Dumbbell, Clock, Flame, ChevronRight, Search, Filter, Users, Loader2 } from 'lucide-react';
+import { X, Dumbbell, Clock, Flame, ChevronRight, Search, Filter, Users, Loader2, CalendarPlus } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
 const CATEGORY_LABELS = {
@@ -38,6 +38,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWorkout, setSelectedWorkout] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
 
   // Lock body scroll
   useEffect(() => {
@@ -118,8 +120,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   // Get unique categories from workouts
   const availableCategories = [...new Set(workouts.map(w => w.category).filter(Boolean))];
 
-  // Handle selecting a workout to use
-  const handleUseWorkout = useCallback((workout) => {
+  // Handle selecting a workout to use (optionally for a specific date)
+  const handleUseWorkout = useCallback((workout, forDate) => {
     if (!workout?.workout_data) return;
 
     const workoutData = {
@@ -127,11 +129,18 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
       exercises: workout.workout_data.exercises || [],
       estimatedMinutes: workout.workout_data.estimatedMinutes || 45,
       estimatedCalories: workout.workout_data.estimatedCalories || 300,
-      club_workout_id: workout.id
+      club_workout_id: workout.id,
+      scheduledDate: forDate || null
     };
 
     onSelectWorkout(workoutData);
   }, [onSelectWorkout]);
+
+  // Handle scheduling for a specific date
+  const handleSchedule = useCallback(() => {
+    if (!scheduleDate || !selectedWorkout) return;
+    handleUseWorkout(selectedWorkout, scheduleDate);
+  }, [scheduleDate, selectedWorkout, handleUseWorkout]);
 
   // Workout detail view
   if (selectedWorkout) {
@@ -216,7 +225,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
             </div>
           </div>
 
-          {/* Use Workout Button */}
+          {/* Action Buttons */}
           <div className="club-workout-action">
             <button
               className="club-workout-use-btn"
@@ -225,6 +234,31 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
               <Dumbbell size={20} />
               <span>Start This Workout</span>
             </button>
+            <button
+              className="club-workout-schedule-btn"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+            >
+              <CalendarPlus size={18} />
+              <span>Schedule for Another Day</span>
+            </button>
+            {showDatePicker && (
+              <div className="club-workout-date-picker">
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="club-date-input"
+                />
+                <button
+                  className="club-date-confirm-btn"
+                  onClick={handleSchedule}
+                  disabled={!scheduleDate}
+                >
+                  Confirm
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
