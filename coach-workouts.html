@@ -1073,6 +1073,49 @@
             color: var(--text-muted);
             cursor: grab;
             font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .exercise-drag:active {
+            cursor: grabbing;
+        }
+
+        .exercise-item.dragging {
+            opacity: 0.4;
+            background: var(--bg-tertiary);
+        }
+
+        .exercise-item.drag-over {
+            border-top: 2px solid var(--brand-primary);
+        }
+
+        .exercise-move-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .exercise-move-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            font-size: 14px;
+            transition: color 0.15s;
+        }
+
+        .exercise-move-btn:hover {
+            color: var(--brand-primary);
+        }
+
+        .exercise-move-btn:disabled {
+            opacity: 0.2;
+            cursor: default;
         }
 
         .exercise-thumb-wrap {
@@ -3707,11 +3750,6 @@
                 return;
             }
 
-            // Sort each day's exercises: warm-ups → main → stretches
-            workoutDays.forEach(day => {
-                day.exercises = sortExercisesByStructure(day.exercises);
-            });
-
             container.innerHTML = workoutDays.map((day, dayIndex) => `
                 <div class="workout-day">
                     <div class="workout-day-header">
@@ -3757,9 +3795,16 @@
                 badges += `<span class="exercise-badge stretch-badge">Stretch</span>`;
             }
 
+            const totalExercises = workoutDays[dayIndex].exercises.length;
             return `
-                <div class="exercise-item ${exercise.isSuperset ? 'superset-exercise' : ''} ${exercise.isWarmup ? 'warmup-exercise' : ''} ${exercise.isStretch ? 'stretch-exercise' : ''}">
-                    <div class="exercise-drag">⋮⋮</div>
+                <div class="exercise-item ${exercise.isSuperset ? 'superset-exercise' : ''} ${exercise.isWarmup ? 'warmup-exercise' : ''} ${exercise.isStretch ? 'stretch-exercise' : ''}" draggable="true" data-day="${dayIndex}" data-index="${exIndex}" ondragstart="onExDragStart(event)" ondragover="onExDragOver(event)" ondrop="onExDrop(event)" ondragend="onExDragEnd(event)" ondragleave="onExDragLeave(event)">
+                    <div class="exercise-drag">
+                        ⋮⋮
+                        <div class="exercise-move-btns">
+                            <button class="exercise-move-btn" onclick="moveExercise(${dayIndex}, ${exIndex}, -1)" title="Move up" ${exIndex === 0 ? 'disabled' : ''}>▲</button>
+                            <button class="exercise-move-btn" onclick="moveExercise(${dayIndex}, ${exIndex}, 1)" title="Move down" ${exIndex === totalExercises - 1 ? 'disabled' : ''}>▼</button>
+                        </div>
+                    </div>
                     <div class="exercise-thumb-wrap">
                         ${thumbHtml}
                         ${hasVideo ? '<div class="video-badge"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>' : ''}
@@ -3785,7 +3830,7 @@
                                 </button>
                             </div>
                             <div class="config-group">
-                                <input type="number" class="config-input" value="${exercise.restSeconds || 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
+                                <input type="number" class="config-input" value="${exercise.restSeconds != null ? exercise.restSeconds : 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
                                 <span class="config-label">Rest</span>
                             </div>
                         </div>
@@ -3899,6 +3944,75 @@
 
         function removeExercise(dayIndex, exIndex) {
             workoutDays[dayIndex].exercises.splice(exIndex, 1);
+            renderWorkoutDays();
+        }
+
+        // ============ DRAG & DROP REORDER ============
+        let dragSrcDayIndex = null;
+        let dragSrcExIndex = null;
+
+        function onExDragStart(e) {
+            const item = e.target.closest('.exercise-item');
+            dragSrcDayIndex = parseInt(item.dataset.day);
+            dragSrcExIndex = parseInt(item.dataset.index);
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+        }
+
+        function onExDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const item = e.target.closest('.exercise-item');
+            if (item) {
+                // Remove drag-over from all items first
+                document.querySelectorAll('.exercise-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+                item.classList.add('drag-over');
+            }
+        }
+
+        function onExDragLeave(e) {
+            const item = e.target.closest('.exercise-item');
+            if (item) item.classList.remove('drag-over');
+        }
+
+        function onExDrop(e) {
+            e.preventDefault();
+            const item = e.target.closest('.exercise-item');
+            if (!item) return;
+
+            const destDayIndex = parseInt(item.dataset.day);
+            const destExIndex = parseInt(item.dataset.index);
+
+            // Only allow reorder within the same day
+            if (dragSrcDayIndex !== destDayIndex || dragSrcExIndex === destExIndex) {
+                onExDragEnd(e);
+                return;
+            }
+
+            const exercises = workoutDays[destDayIndex].exercises;
+            const [moved] = exercises.splice(dragSrcExIndex, 1);
+            exercises.splice(destExIndex, 0, moved);
+
+            dragSrcDayIndex = null;
+            dragSrcExIndex = null;
+            renderWorkoutDays();
+        }
+
+        function onExDragEnd(e) {
+            document.querySelectorAll('.exercise-item.dragging').forEach(el => el.classList.remove('dragging'));
+            document.querySelectorAll('.exercise-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+            dragSrcDayIndex = null;
+            dragSrcExIndex = null;
+        }
+
+        function moveExercise(dayIndex, exIndex, direction) {
+            const exercises = workoutDays[dayIndex].exercises;
+            const newIndex = exIndex + direction;
+            if (newIndex < 0 || newIndex >= exercises.length) return;
+
+            const [moved] = exercises.splice(exIndex, 1);
+            exercises.splice(newIndex, 0, moved);
             renderWorkoutDays();
         }
 
@@ -5807,9 +5921,9 @@
                                 muscle_group: ex.muscle_group || ex.muscleGroup,
                                 equipment: ex.equipment,
                                 instructions: ex.instructions,
-                                sets: ex.sets || 3,
-                                reps: ex.reps || '8-12',
-                                restSeconds: ex.restSeconds || 90,
+                                sets: ex.isWarmup ? (ex.sets || 1) : ex.isStretch ? (ex.sets || 1) : (ex.sets || 3),
+                                reps: ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12'),
+                                restSeconds: ex.isWarmup ? (ex.restSeconds != null ? ex.restSeconds : 30) : ex.isStretch ? (ex.restSeconds != null ? ex.restSeconds : 0) : (ex.restSeconds || 90),
                                 notes: ex.notes || '',
                                 matched: ex.matched,
                                 isSuperset: ex.isSuperset || false,

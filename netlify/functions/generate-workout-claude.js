@@ -460,7 +460,7 @@ exports.handler = async (event) => {
 
         if (stretchExercises.length > 0) {
           warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY as shown):\n${stretchExercises.map(n => `"${n}"`).join(', ')}`;
-          warmupStretchInstructions += '\n\nInclude 2-3 stretches at the END of each workout. Mark them with "isStretch": true. Use 1 set, "30s hold" for reps, 0 seconds rest.';
+          warmupStretchInstructions += '\n\nInclude 2-3 stretches at the END of each workout. Mark them with "isStretch": true. Use 1 set, "30s hold" for reps, 0 seconds rest. CRITICAL: Stretches MUST target the same muscle group being trained in the workout (e.g. leg stretches for leg day, chest stretches for chest day). Never include unrelated stretches.';
         } else {
           warmupStretchInstructions += '\n\n*** NO STRETCH EXERCISES AVAILABLE IN DATABASE - skip stretches ***';
         }
@@ -498,7 +498,7 @@ If an exercise category doesn't have enough options, select similar exercises fr
 
     if (isSingleWorkout) {
       const muscleLabel = muscleGroupMap[targetMuscle] || targetMuscle;
-      systemPrompt = `You are an expert personal trainer creating a single workout session. Return ONLY valid JSON, no markdown or extra text.
+      systemPrompt = `You are an expert personal trainer and bodybuilding coach creating a single workout session. Return ONLY valid JSON, no markdown or extra text.
 
 Create a single ${muscleLabel} workout for ${experience} level, optimized for ${goal}.
 ${availableExercisesPrompt}
@@ -507,7 +507,18 @@ WORKOUT STRUCTURE:
 - ${styleInstruction}
 - ${exerciseCountInstruction}
 - Target session duration: ~${sessionDuration} minutes
-- ALL exercises should target ${muscleLabel}. Include compound movements first, then isolation exercises.
+
+EXERCISE QUALITY REQUIREMENTS (VERY IMPORTANT):
+- Start with the BEST compound exercises for ${muscleLabel}. For example:
+  * Legs: squats, leg press, hack squat, Romanian deadlifts, lunges, leg curls, leg extensions, calf raises
+  * Chest: bench press, incline press, dumbbell press, flyes, cable crossovers
+  * Back: deadlifts, barbell rows, pull-ups, lat pulldowns, cable rows, T-bar rows
+  * Shoulders: overhead press, lateral raises, face pulls, front raises, reverse flyes
+  * Arms: barbell curls, dumbbell curls, skull crushers, tricep pushdowns, hammer curls
+- Pick exercises that a real bodybuilder/coach would actually program for ${muscleLabel}
+- Start with heavy compound movements, progress to isolation exercises
+- ALL main exercises (non-warmup, non-stretch) MUST directly target ${muscleLabel}
+- Do NOT include exercises for unrelated muscle groups
 
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
@@ -518,6 +529,7 @@ EXERCISE SELECTION GUIDELINES:
 - Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy-paste the exact name in quotes)
 - WORKOUT ORDER: warm-up exercises first (isWarmup: true), then compound movements, then isolation exercises, then stretches last (isStretch: true)
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
+- Rest periods: 60-120 seconds for main exercises, 0-30 seconds for warm-ups, 0 seconds for stretches
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
 - NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
 ${warmupStretchInstructions}
@@ -535,25 +547,19 @@ Return this exact JSON structure:
       "dayNumber": 1,
       "name": "${targetMuscle.charAt(0).toUpperCase() + targetMuscle.slice(1)} Day",
       "targetMuscles": ${JSON.stringify(targetMuscle === 'upper_body' ? ['chest', 'back', 'shoulders', 'arms'] : targetMuscle === 'lower_body' ? ['quads', 'hamstrings', 'glutes', 'calves'] : targetMuscle === 'full_body' ? ['chest', 'back', 'legs', 'shoulders'] : [targetMuscle])},
-      "exercises": [{
-        "name": "Exercise Name",
-        "muscleGroup": "primary_muscle",
-        "sets": 4,
-        "reps": "8-10",
-        "restSeconds": 90,
-        "notes": "Form tips",
-        "isSuperset": false,
-        "supersetGroup": null,
-        "isWarmup": false,
-        "isStretch": false
-      }]
+      "exercises": [
+        {"name": "Warm-up Name", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false},
+        {"name": "Compound Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form tips", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
+        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
+        {"name": "Stretch Name", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true}
+      ]
     }]
   }],
   "progressionNotes": "How to progress"
 }`;
       userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} exercises with proper sets, reps, and rest periods. Return only valid JSON.`;
     } else {
-      systemPrompt = `You are an expert personal trainer creating workout programs. Return ONLY valid JSON, no markdown or extra text.
+      systemPrompt = `You are an expert personal trainer and bodybuilding coach creating workout programs. Return ONLY valid JSON, no markdown or extra text.
 
 Create a ${daysPerWeek}-day ${goal} program for ${experience} level.
 ${availableExercisesPrompt}
@@ -564,6 +570,13 @@ WORKOUT STRUCTURE:
 - Target session duration: ~${sessionDuration} minutes
 ${focusInstruction ? `\n${focusInstruction}` : ''}
 
+EXERCISE QUALITY REQUIREMENTS:
+- Each workout day should start with the BEST compound exercises for that day's target muscles
+- Pick exercises that a real bodybuilder/coach would actually program
+- Start each day with heavy compound movements, then progress to isolation exercises
+- ALL exercises in a day must be relevant to that day's target muscles
+- Stretches at the end must target the muscles trained that day (not random body parts)
+
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
 - Available equipment: ${equipment.join(', ')}
@@ -573,6 +586,7 @@ EXERCISE SELECTION GUIDELINES:
 - Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy-paste the exact name in quotes)
 - WORKOUT ORDER: warm-up exercises first (isWarmup: true), then compound movements, then isolation exercises, then stretches last (isStretch: true)
 - Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
+- Rest periods: 60-120 seconds for main exercises, 0-30 seconds for warm-ups, 0 seconds for stretches
 - For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
 - NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
 ${warmupStretchInstructions}
@@ -590,18 +604,12 @@ Return this exact JSON structure:
       "dayNumber": 1,
       "name": "Day Name",
       "targetMuscles": ["muscle1", "muscle2"],
-      "exercises": [{
-        "name": "Exercise Name",
-        "muscleGroup": "primary_muscle",
-        "sets": 4,
-        "reps": "8-10",
-        "restSeconds": 90,
-        "notes": "Form tips",
-        "isSuperset": false,
-        "supersetGroup": null,
-        "isWarmup": false,
-        "isStretch": false
-      }]
+      "exercises": [
+        {"name": "Warm-up Name", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false},
+        {"name": "Compound Exercise", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form tips", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
+        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
+        {"name": "Stretch Name", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true}
+      ]
     }]
   }],
   "progressionNotes": "How to progress"
@@ -691,9 +699,9 @@ Return this exact JSON structure:
                   muscle_group: match.muscle_group,
                   equipment: match.equipment,
                   instructions: match.instructions,
-                  sets: aiExercise.sets || 3,
-                  reps: aiExercise.reps || '8-12',
-                  restSeconds: aiExercise.restSeconds || 90,
+                  sets: aiExercise.isWarmup ? (aiExercise.sets || 1) : aiExercise.isStretch ? (aiExercise.sets || 1) : (aiExercise.sets || 3),
+                  reps: aiExercise.isWarmup ? (aiExercise.reps || '10-15') : aiExercise.isStretch ? (aiExercise.reps || '30s hold') : (aiExercise.reps || '8-12'),
+                  restSeconds: aiExercise.isWarmup ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 30) : aiExercise.isStretch ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 0) : (aiExercise.restSeconds || 90),
                   notes: aiExercise.notes || '',
                   isWarmup: aiExercise.isWarmup || false,
                   isStretch: aiExercise.isStretch || false,
@@ -717,9 +725,9 @@ Return this exact JSON structure:
                   name: aiExercise.name,
                   muscle_group: aiExercise.muscleGroup,
                   equipment: null,
-                  sets: aiExercise.sets || 3,
-                  reps: aiExercise.reps || '8-12',
-                  restSeconds: aiExercise.restSeconds || 90,
+                  sets: aiExercise.isWarmup ? (aiExercise.sets || 1) : aiExercise.isStretch ? (aiExercise.sets || 1) : (aiExercise.sets || 3),
+                  reps: aiExercise.isWarmup ? (aiExercise.reps || '10-15') : aiExercise.isStretch ? (aiExercise.reps || '30s hold') : (aiExercise.reps || '8-12'),
+                  restSeconds: aiExercise.isWarmup ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 30) : aiExercise.isStretch ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 0) : (aiExercise.restSeconds || 90),
                   notes: aiExercise.notes || '',
                   isWarmup: aiExercise.isWarmup || false,
                   isStretch: aiExercise.isStretch || false,
