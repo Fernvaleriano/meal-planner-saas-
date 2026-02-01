@@ -258,30 +258,38 @@ exports.handler = async (event) => {
         let totalReps = 0;
 
         // Pre-fetch all data needed for PR detection in batch (instead of per-exercise)
-        let previousBestMap = {}; // exerciseName -> max_weight
+        let previousBestMap = {}; // exerciseName -> { maxWeight, bestRepsAtWeight: { weight -> maxReps } }
         const exerciseNames = exercises.filter(ex => ex.exerciseName).map(ex => ex.exerciseName);
 
         if (workoutLogData?.client_id && exerciseNames.length > 0) {
           try {
-            // Single query: get previous best weight for all exercises at once
-            const { data: previousBests } = await supabase
-              .from('exercise_logs')
-              .select('exercise_name, max_weight, workout_log_id')
-              .eq('workout_log_id', workoutId)
-              .in('exercise_name', exerciseNames);
-
             // Get all previous exercise logs (not from this workout) in one query
             const { data: allPrevLogs } = await supabase
               .from('exercise_logs')
-              .select('exercise_name, max_weight')
+              .select('exercise_name, max_weight, sets_data')
               .in('exercise_name', exerciseNames)
               .neq('workout_log_id', workoutId)
               .order('max_weight', { ascending: false });
 
-            // Build map of exercise_name -> best previous weight
+            // Build map of exercise_name -> { maxWeight, bestRepsAtWeight }
             for (const name of exerciseNames) {
               const prevLogs = (allPrevLogs || []).filter(l => l.exercise_name === name);
-              previousBestMap[name] = prevLogs.length > 0 ? prevLogs[0].max_weight : 0;
+              const maxWeight = prevLogs.length > 0 ? prevLogs[0].max_weight : 0;
+
+              // Build best reps at each weight from all previous sessions
+              const bestRepsAtWeight = {};
+              for (const log of prevLogs) {
+                const sets = Array.isArray(log.sets_data) ? log.sets_data : [];
+                for (const s of sets) {
+                  const w = Number(s.weight) || 0;
+                  const r = Number(s.reps) || 0;
+                  if (r > (bestRepsAtWeight[w] || 0)) {
+                    bestRepsAtWeight[w] = r;
+                  }
+                }
+              }
+
+              previousBestMap[name] = { maxWeight, bestRepsAtWeight };
             }
           } catch (prBatchError) {
             console.warn('Batch PR lookup failed:', prBatchError.message);
@@ -316,20 +324,56 @@ exports.handler = async (event) => {
           totalSets += exTotalSets;
           totalReps += exTotalReps;
 
-          // PR Detection using pre-fetched data
+          // PR Detection using pre-fetched data (weight PR + rep PR)
           let isPr = ex.isPr || false;
-          if (exMaxWeight > 0 && ex.exerciseName && previousBestMap.hasOwnProperty(ex.exerciseName)) {
-            const previousBestWeight = previousBestMap[ex.exerciseName] || 0;
-            if (exMaxWeight > previousBestWeight) {
+          if (ex.exerciseName && previousBestMap.hasOwnProperty(ex.exerciseName)) {
+            const prev = previousBestMap[ex.exerciseName];
+            const previousBestWeight = prev.maxWeight || 0;
+            const unit = setsData.find(s => Number(s.weight) > 0)?.weightUnit || 'kg';
+
+            // Weight PR: lifted heavier than ever before
+            if (exMaxWeight > 0 && exMaxWeight > previousBestWeight) {
               isPr = true;
               const bestRepsAtWeight = setsData.find(s => Number(s.weight) === exMaxWeight)?.reps || 0;
               prNotifications.push({
                 exerciseName: ex.exerciseName,
                 weight: exMaxWeight,
                 reps: bestRepsAtWeight,
-                unit: setsData.find(s => s.weight === exMaxWeight)?.weightUnit || 'lbs',
-                previousBest: previousBestWeight > 0 ? previousBestWeight : null
+                unit,
+                previousBest: previousBestWeight > 0 ? previousBestWeight : null,
+                type: 'weight'
               });
+            }
+
+            // Rep PR: more reps at the same weight than ever before
+            // Check each weight used in this session against previous best reps
+            if (!isPr) {
+              const weightsSeen = new Set();
+              for (const s of setsData) {
+                const w = Number(s.weight) || 0;
+                const r = Number(s.reps) || 0;
+                if (weightsSeen.has(w) || r <= 0) continue;
+                weightsSeen.add(w);
+
+                // Find best reps at this weight in current session
+                const bestCurrentReps = Math.max(
+                  ...setsData.filter(ss => (Number(ss.weight) || 0) === w).map(ss => Number(ss.reps) || 0)
+                );
+                const prevBestReps = prev.bestRepsAtWeight[w] || 0;
+
+                if (prevBestReps > 0 && bestCurrentReps > prevBestReps) {
+                  isPr = true;
+                  prNotifications.push({
+                    exerciseName: ex.exerciseName,
+                    weight: w,
+                    reps: bestCurrentReps,
+                    unit: w > 0 ? unit : 'bw',
+                    previousBest: prevBestReps > 0 ? `${prevBestReps} reps` : null,
+                    type: 'reps'
+                  });
+                  break; // One rep PR per exercise is enough
+                }
+              }
             }
           }
 

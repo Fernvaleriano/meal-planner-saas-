@@ -2686,8 +2686,10 @@ function Workouts() {
                     <div key={idx} className="pr-item">
                       <span className="pr-exercise">{pr.exerciseName}</span>
                       <span className="pr-detail">
-                        {pr.weight} {pr.unit} x{pr.reps}
-                        {pr.previousBest && <span className="pr-prev"> (prev: {pr.previousBest} {pr.unit})</span>}
+                        {pr.weight > 0 ? `${pr.weight} ${pr.unit} x${pr.reps}` : `${pr.reps} reps`}
+                        {pr.previousBest && (
+                          <span className="pr-prev"> (prev: {typeof pr.previousBest === 'string' ? pr.previousBest : `${pr.previousBest} ${pr.unit}`})</span>
+                        )}
                       </span>
                     </div>
                   ))}

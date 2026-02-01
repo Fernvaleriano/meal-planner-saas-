@@ -371,7 +371,8 @@ function ExerciseDetailModal({
 
   // Progressive overload tip state
   const [progressTip, setProgressTip] = useState(null);
-  const allTimeMaxWeightRef = useRef(0); // Track all-time PR for real-time PR detection
+  const allTimeMaxWeightRef = useRef(0); // Track all-time max weight for real-time PR detection
+  const allTimeBestRepsRef = useRef({}); // Track best reps at each weight: { weight -> maxReps }
 
   // Client note for coach state
   const [clientNote, setClientNote] = useState('');
@@ -476,9 +477,19 @@ function ExerciseDetailModal({
         }
         if (cancelled || !res?.history || res.history.length === 0) return;
 
-        // Store all-time max weight for real-time PR detection
+        // Store all-time bests for real-time PR detection (weight + reps)
         const allMaxWeights = res.history.map(h => Math.max(...(h.setsData || []).map(s => s.weight || 0), 0));
         allTimeMaxWeightRef.current = allMaxWeights.length > 0 ? Math.max(...allMaxWeights) : 0;
+
+        const bestReps = {};
+        for (const session of res.history) {
+          for (const s of (session.setsData || [])) {
+            const w = s.weight || 0;
+            const r = s.reps || 0;
+            if (r > (bestReps[w] || 0)) bestReps[w] = r;
+          }
+        }
+        allTimeBestRepsRef.current = bestReps;
 
         const allSessions = res.history; // most recent first
         // Exclude today's session so the tip is based on previous workouts
@@ -769,9 +780,12 @@ function ExerciseDetailModal({
           exercises: [exercisePayload]
         });
 
-        // Real-time PR detection: check if current sets beat all-time max weight
+        // Real-time PR detection: weight PR + rep PR
         const currentMaxWeight = Math.max(...setsData.map(s => s.weight || 0), 0);
         const previousMax = allTimeMaxWeightRef.current;
+        let prDetected = false;
+
+        // Weight PR
         if (currentMaxWeight > 0 && previousMax > 0 && currentMaxWeight > previousMax) {
           setProgressTip({
             type: 'new_pr',
@@ -779,7 +793,30 @@ function ExerciseDetailModal({
             title: 'New Personal Record!',
             message: `You just hit ${currentMaxWeight} kg — up from ${previousMax} kg. Keep pushing!`,
           });
-          allTimeMaxWeightRef.current = currentMaxWeight; // Update so it doesn't re-trigger
+          allTimeMaxWeightRef.current = currentMaxWeight;
+          prDetected = true;
+        }
+
+        // Rep PR: more reps at the same weight than ever before
+        if (!prDetected) {
+          const bestReps = allTimeBestRepsRef.current;
+          for (const s of setsData) {
+            const w = s.weight || 0;
+            const r = s.reps || 0;
+            const prevBest = bestReps[w] || 0;
+            if (r > 0 && prevBest > 0 && r > prevBest) {
+              setProgressTip({
+                type: 'new_pr',
+                icon: '\u{1F3C6}',
+                title: 'New Rep Record!',
+                message: w > 0
+                  ? `${r} reps at ${w} kg — beat your previous best of ${prevBest} reps!`
+                  : `${r} reps — beat your previous best of ${prevBest} reps!`,
+              });
+              bestReps[w] = r; // Update so it doesn't re-trigger
+              break;
+            }
+          }
         }
       } catch (err) {
         console.error('Error auto-saving exercise log:', err);
