@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
@@ -269,6 +269,26 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
   return fromData;
 }
 
+// Helper to get exercises array from a workout object
+function getWorkoutExercises(workout) {
+  if (!workout?.workout_data) return [];
+  if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+    return workout.workout_data.exercises.filter(ex => ex && ex.id);
+  }
+  if (workout.workout_data.days?.length > 0) {
+    const dayIndex = workout.day_index || 0;
+    const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+    return (workout.workout_data.days[safeIndex]?.exercises || []).filter(ex => ex && ex.id);
+  }
+  return [];
+}
+
+// Helper to get completed count for a workout (from workout_data flags + localStorage)
+function getWorkoutCompletedCount(workout) {
+  const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id);
+  return completed.size;
+}
+
 function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
@@ -276,6 +296,7 @@ function Workouts() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
   const [todayWorkout, setTodayWorkout] = useState(null);
+  const [todayWorkouts, setTodayWorkouts] = useState([]); // All workouts for selected day
   const [workoutLog, setWorkoutLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -330,6 +351,14 @@ function Workouts() {
   todayWorkoutRef.current = todayWorkout;
   selectedExerciseRef.current = selectedExercise;
   completedExercisesRef.current = completedExercises;
+
+  // Sync todayWorkouts array when active workout changes (e.g. exercise toggles)
+  useEffect(() => {
+    if (!todayWorkout?.id) return;
+    setTodayWorkouts(prev => prev.map(w =>
+      w.id === todayWorkout.id ? todayWorkout : w
+    ));
+  }, [todayWorkout]);
 
   // On app resume: close all modals/overlays and clean up body scroll lock
   // This prevents the "frozen screen" where an overlay blocks all touch events
@@ -469,86 +498,91 @@ function Workouts() {
     try {
       await ensureFreshSession();
       const dateStr = formatDate(selectedDate);
+      const allWorkouts = [];
 
       const assignmentRes = await apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`);
 
-      if (assignmentRes?.assignments && assignmentRes.assignments.length > 0) {
-        const assignment = assignmentRes.assignments[0];
-
-        // Refresh signed URLs for private coach videos/audio
-        if (assignment.workout_data) {
-          const refreshedData = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
-          assignment.workout_data = refreshedData;
-        }
-
-        setTodayWorkout(assignment);
-
-        try {
-          const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
-          if (logRes?.logs && logRes.logs.length > 0) {
-            const log = logRes.logs[0];
-            setWorkoutLog(log);
-            setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
-            // Restore readiness data from existing workout log
-            if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
-              setReadinessData({
-                energy: log.energy_level || 2,
-                soreness: log.soreness_level || 2,
-                sleep: log.sleep_quality || 2
-              });
-            }
-            // Restore completed exercises: prefer workout_data flags, fallback to exercise_logs
-            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
-            if (fromData.size > 0) {
-              setCompletedExercises(fromData);
-            } else {
-              const completed = new Set(
-                (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
-              );
-              setCompletedExercises(completed);
-            }
-          } else {
-            setWorkoutLog(null);
-            // Still check workout_data for persisted completion flags
-            const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
-            setCompletedExercises(fromData);
+      if (assignmentRes?.assignments?.length > 0) {
+        for (const assignment of assignmentRes.assignments) {
+          // Refresh signed URLs for private coach videos/audio
+          if (assignment.workout_data) {
+            assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
           }
-        } catch (logErr) {
-          console.error('Error fetching workout log:', logErr);
-          setWorkoutLog(null);
+          allWorkouts.push(assignment);
         }
-      } else {
-        // No coach-assigned workout - check for ad-hoc (client-created) workout
-        try {
-          const adhocRes = await apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`);
+      }
 
-          if (adhocRes?.workouts && adhocRes.workouts.length > 0) {
-            const adhocWorkout = adhocRes.workouts[0];
-            // Format ad-hoc workout to match expected structure
-            setTodayWorkout({
-              id: adhocWorkout.id,
-              client_id: adhocWorkout.client_id,
-              workout_date: adhocWorkout.workout_date,
-              name: adhocWorkout.name || 'Custom Workout',
+      // Also fetch ad-hoc workouts
+      try {
+        const adhocRes = await apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`);
+        if (adhocRes?.workouts?.length > 0) {
+          adhocRes.workouts.forEach(w => {
+            allWorkouts.push({
+              id: w.id,
+              client_id: w.client_id,
+              workout_date: w.workout_date,
+              name: w.name || 'Custom Workout',
               day_index: 0,
-              workout_data: adhocWorkout.workout_data,
+              workout_data: w.workout_data,
               is_adhoc: true
             });
-            setWorkoutLog(null);
-            // Restore completed exercises from ad-hoc workout_data
-            const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data, 0, adhocWorkout.id);
-            setCompletedExercises(fromData);
-          } else {
-            setTodayWorkout(null);
-            setWorkoutLog(null);
-            setCompletedExercises(new Set());
-          }
-        } catch (adhocErr) {
-          console.error('Error fetching adhoc workout:', adhocErr);
-          setTodayWorkout(null);
-          setWorkoutLog(null);
-          setCompletedExercises(new Set());
+          });
         }
+      } catch (adhocErr) {
+        console.error('Error fetching adhoc workouts:', adhocErr);
+      }
+
+      setTodayWorkouts(allWorkouts);
+
+      if (allWorkouts.length > 0) {
+        // Keep current selection if it still exists, otherwise select first
+        const currentId = todayWorkoutRef.current?.id;
+        const stillExists = allWorkouts.find(w => w.id === currentId);
+        const active = stillExists || allWorkouts[0];
+        setTodayWorkout(active);
+
+        if (!active.is_adhoc) {
+          try {
+            const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
+            if (logRes?.logs?.length > 0) {
+              const log = logRes.logs[0];
+              setWorkoutLog(log);
+              setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
+              if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
+                setReadinessData({
+                  energy: log.energy_level || 2,
+                  soreness: log.soreness_level || 2,
+                  sleep: log.sleep_quality || 2
+                });
+              }
+              const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
+              if (fromData.size > 0) {
+                setCompletedExercises(fromData);
+              } else {
+                const completed = new Set(
+                  (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+                );
+                setCompletedExercises(completed);
+              }
+            } else {
+              setWorkoutLog(null);
+              const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
+              setCompletedExercises(fromData);
+            }
+          } catch (logErr) {
+            console.error('Error fetching workout log:', logErr);
+            setWorkoutLog(null);
+          }
+        } else {
+          setWorkoutLog(null);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id);
+          setCompletedExercises(fromData);
+        }
+      } else {
+        setTodayWorkout(null);
+        setTodayWorkouts([]);
+        setWorkoutLog(null);
+        setCompletedExercises(new Set());
       }
       setError(null);
     } catch (err) {
@@ -562,7 +596,7 @@ function Workouts() {
   // Setup pull-to-refresh (DOM-driven — no React re-renders during drag)
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshWorkoutData);
 
-  // Fetch workout for selected date
+  // Fetch ALL workouts for selected date (assignments + ad-hoc)
   useEffect(() => {
     let mounted = true;
 
@@ -573,7 +607,6 @@ function Workouts() {
       }
 
       // Skip fetching if a pull-to-refresh is in progress to avoid race conditions
-      // This prevents the loading state from being set during refresh, which would hide the content
       if (isRefreshingRef.current) {
         return;
       }
@@ -583,82 +616,90 @@ function Workouts() {
 
       try {
         const dateStr = formatDate(selectedDate);
-        const assignmentRes = await apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`);
+        const allWorkouts = [];
 
+        // Fetch coach-assigned workouts
+        const assignmentRes = await apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`);
         if (!mounted) return;
 
-        if (assignmentRes?.assignments && assignmentRes.assignments.length > 0) {
-          const assignment = assignmentRes.assignments[0];
-          setTodayWorkout(assignment);
+        if (assignmentRes?.assignments?.length > 0) {
+          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
+        }
 
-          try {
-            const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
-            if (!mounted) return;
+        // Also fetch ad-hoc (client-created / club) workouts
+        try {
+          const adhocRes = await apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`);
+          if (!mounted) return;
 
-            if (logRes?.logs && logRes.logs.length > 0) {
-              const log = logRes.logs[0];
-              setWorkoutLog(log);
-              setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
-              // Restore readiness data from existing workout log
-              if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
-                setReadinessData({
-                  energy: log.energy_level || 2,
-                  soreness: log.soreness_level || 2,
-                  sleep: log.sleep_quality || 2
-                });
-              }
-              // Restore completed exercises: prefer workout_data flags, fallback to exercise_logs
-              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
-              if (fromData.size > 0) {
-                setCompletedExercises(fromData);
-              } else {
-                const completed = new Set(
-                  (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
-                );
-                setCompletedExercises(completed);
-              }
-            } else {
-              setWorkoutLog(null);
-              // Still check workout_data for persisted completion flags
-              const fromData = getCompletedFromWorkoutData(assignment.workout_data, assignment.day_index, assignment.id);
-              setCompletedExercises(fromData);
-            }
-          } catch (logErr) {
-            console.error('Error fetching workout log:', logErr);
-          }
-        } else {
-          // No coach-assigned workout - check for ad-hoc (client-created) workout
-          try {
-            const adhocRes = await apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`);
-            if (!mounted) return;
-
-            if (adhocRes?.workouts && adhocRes.workouts.length > 0) {
-              const adhocWorkout = adhocRes.workouts[0];
-              // Format ad-hoc workout to match expected structure
-              setTodayWorkout({
-                id: adhocWorkout.id,
-                client_id: adhocWorkout.client_id,
-                workout_date: adhocWorkout.workout_date,
-                name: adhocWorkout.name || 'Custom Workout',
+          if (adhocRes?.workouts?.length > 0) {
+            adhocRes.workouts.forEach(w => {
+              allWorkouts.push({
+                id: w.id,
+                client_id: w.client_id,
+                workout_date: w.workout_date,
+                name: w.name || 'Custom Workout',
                 day_index: 0,
-                workout_data: adhocWorkout.workout_data,
+                workout_data: w.workout_data,
                 is_adhoc: true
               });
-              setWorkoutLog(null);
-              // Restore completed exercises from ad-hoc workout_data
-              const fromData = getCompletedFromWorkoutData(adhocWorkout.workout_data, 0, adhocWorkout.id);
-              setCompletedExercises(fromData);
-            } else {
-              setTodayWorkout(null);
-              setWorkoutLog(null);
-              setCompletedExercises(new Set());
-            }
-          } catch (adhocErr) {
-            console.error('Error fetching adhoc workout:', adhocErr);
-            setTodayWorkout(null);
-            setWorkoutLog(null);
-            setCompletedExercises(new Set());
+            });
           }
+        } catch (adhocErr) {
+          console.error('Error fetching adhoc workouts:', adhocErr);
+        }
+
+        if (!mounted) return;
+        setTodayWorkouts(allWorkouts);
+
+        if (allWorkouts.length > 0) {
+          // Auto-select the first workout
+          const first = allWorkouts[0];
+          setTodayWorkout(first);
+
+          // Load workout log for assigned workouts
+          if (!first.is_adhoc) {
+            try {
+              const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
+              if (!mounted) return;
+
+              if (logRes?.logs?.length > 0) {
+                const log = logRes.logs[0];
+                setWorkoutLog(log);
+                setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
+                if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
+                  setReadinessData({
+                    energy: log.energy_level || 2,
+                    soreness: log.soreness_level || 2,
+                    sleep: log.sleep_quality || 2
+                  });
+                }
+                const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+                if (fromData.size > 0) {
+                  setCompletedExercises(fromData);
+                } else {
+                  const completed = new Set(
+                    (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+                  );
+                  setCompletedExercises(completed);
+                }
+              } else {
+                setWorkoutLog(null);
+                const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+                setCompletedExercises(fromData);
+              }
+            } catch (logErr) {
+              console.error('Error fetching workout log:', logErr);
+            }
+          } else {
+            setWorkoutLog(null);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id);
+            setCompletedExercises(fromData);
+          }
+        } else {
+          setTodayWorkout(null);
+          setTodayWorkouts([]);
+          setWorkoutLog(null);
+          setCompletedExercises(new Set());
         }
       } catch (err) {
         console.error('Error fetching workout:', err);
@@ -960,6 +1001,7 @@ function Workouts() {
 
       // Update local state with new ad-hoc workout
       setTodayWorkout(adHocWorkout);
+      setTodayWorkouts(prev => [...prev, adHocWorkout]);
 
       // Create ad-hoc workout in backend using dedicated endpoint
       try {
@@ -972,10 +1014,11 @@ function Workouts() {
 
         if (res?.workout) {
           // Update with real workout ID from backend
-          setTodayWorkout(prev => ({
-            ...prev,
-            id: res.workout.id
-          }));
+          const realId = res.workout.id;
+          setTodayWorkout(prev => ({ ...prev, id: realId }));
+          setTodayWorkouts(prev => prev.map(w =>
+            w.id === adHocWorkout.id ? { ...w, id: realId } : w
+          ));
         } else {
           console.error('No workout returned from POST:', res);
           showError('Failed to save workout');
@@ -1070,6 +1113,7 @@ function Workouts() {
 
     // Update local state with new workout
     setTodayWorkout(newWorkout);
+    setTodayWorkouts(prev => [...prev, newWorkout]);
     setShowCreateWorkout(false);
 
     // Create ad-hoc workout in backend using dedicated endpoint
@@ -1083,10 +1127,11 @@ function Workouts() {
 
       if (res?.workout) {
         // Update with real workout ID from backend
-        setTodayWorkout(prev => ({
-          ...prev,
-          id: res.workout.id
-        }));
+        const realId = res.workout.id;
+        setTodayWorkout(prev => ({ ...prev, id: realId }));
+        setTodayWorkouts(prev => prev.map(w =>
+          w.id === newWorkout.id ? { ...w, id: realId } : w
+        ));
       } else {
         console.error('No workout returned from POST:', res);
         showError('Failed to save workout');
@@ -1096,6 +1141,19 @@ function Workouts() {
       showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
   }, [clientData?.id, selectedDate, showError]);
+
+  // Handle switching active workout card
+  const handleSelectWorkoutCard = useCallback((workout) => {
+    if (!workout || workout.id === todayWorkout?.id) return;
+    setTodayWorkout(workout);
+    setWorkoutStarted(false);
+    setWorkoutLog(null);
+    setReadinessData(null);
+    setShowHeroMenu(false);
+    // Restore completed exercises for this workout
+    const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id);
+    setCompletedExercises(fromData);
+  }, [todayWorkout?.id]);
 
   // Handle selecting a club workout - creates an ad-hoc workout from the club workout template
   // If workoutData.scheduledDate is set, schedule for that date instead of today
@@ -1120,6 +1178,7 @@ function Workouts() {
         is_adhoc: true
       };
       setTodayWorkout(newWorkout);
+      setTodayWorkouts(prev => [...prev, newWorkout]);
     }
 
     // Create ad-hoc workout in backend
@@ -1132,10 +1191,12 @@ function Workouts() {
       });
 
       if (!isScheduled && res?.workout) {
-        setTodayWorkout(prev => ({
-          ...prev,
-          id: res.workout.id
-        }));
+        const realId = res.workout.id;
+        setTodayWorkout(prev => ({ ...prev, id: realId }));
+        setTodayWorkouts(prev => prev.map(w =>
+          w.id === `club-${dateStr}-${Date.now()}` || w.id?.toString().startsWith('club-') && w.name === workoutName
+            ? { ...w, id: realId } : w
+        ));
       }
 
       if (isScheduled) {
@@ -1539,7 +1600,7 @@ function Workouts() {
       try {
         const postData = {
           clientId: clientData.id,
-          assignmentId: todayWorkout.id,
+          assignmentId: todayWorkout.is_adhoc ? null : todayWorkout.id,
           workoutDate: formatDate(selectedDate),
           workoutName: todayWorkout?.name || 'Workout',
           status: 'in_progress'
@@ -1731,14 +1792,10 @@ function Workouts() {
 
     try {
       if (todayWorkout.is_adhoc) {
-        // Delete adhoc workout
-        const isRealId = todayWorkout.id && !String(todayWorkout.id).startsWith('adhoc-') && !String(todayWorkout.id).startsWith('custom-');
+        // Delete adhoc workout using HTTP DELETE with query params
+        const isRealId = todayWorkout.id && !String(todayWorkout.id).startsWith('adhoc-') && !String(todayWorkout.id).startsWith('custom-') && !String(todayWorkout.id).startsWith('club-');
         if (isRealId) {
-          await apiPost('/.netlify/functions/adhoc-workouts', {
-            action: 'delete',
-            workoutId: todayWorkout.id,
-            clientId: todayWorkout.client_id || clientData?.id
-          });
+          await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${todayWorkout.id}`);
         }
       } else {
         // Skip/delete assigned workout - mark as rest day
@@ -1751,19 +1808,21 @@ function Workouts() {
         });
       }
 
-      // Clear local state
-      setTodayWorkout(null);
+      // Remove from todayWorkouts and select next available
+      const remaining = todayWorkouts.filter(w => w.id !== todayWorkout.id);
+      setTodayWorkouts(remaining);
+      setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
       setWorkoutLog(null);
-      setCompletedExercises(new Set());
+      setCompletedExercises(remaining.length > 0
+        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+        : new Set()
+      );
       setShowHeroMenu(false);
-
-      // Optionally refresh
-      refreshWorkoutData();
     } catch (err) {
       console.error('Error deleting workout:', err);
       showError('Failed to delete workout');
     }
-  }, [todayWorkout, clientData?.id, selectedDate, refreshWorkoutData, showError]);
+  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError]);
 
   // Calculate workout duration
   const workoutDuration = useMemo(() => {
@@ -2104,120 +2163,134 @@ function Workouts() {
         <div className="nav-spacer" style={{ width: 40 }}></div>
       </div>
 
-      {/* Hero Section with Image */}
-      {todayWorkout && (
-        <div
-          className="workout-hero-v3"
-          style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
-        >
-          <div className="hero-overlay"></div>
+      {/* Workout Cards - one per workout for the day */}
+      {todayWorkouts.length > 0 && (
+        <div className="workout-cards-container">
+          {todayWorkouts.map((workout) => {
+            const isActive = workout.id === todayWorkout?.id;
+            const cardExercises = getWorkoutExercises(workout);
+            const cardCompletedCount = getWorkoutCompletedCount(workout);
+            const cardImage = workout.workout_data?.image_url || null;
+            const cardDayName = (() => {
+              if (workout.workout_data?.name) return workout.workout_data.name;
+              if (workout.workout_data?.days?.length > 0) {
+                const di = workout.day_index || 0;
+                const si = Math.abs(di) % workout.workout_data.days.length;
+                return workout.workout_data.days[si]?.name || workout.name;
+              }
+              return workout.name || 'Workout';
+            })();
+            const totalDays = workout.workout_data?.days?.length || 0;
+            const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
 
-          {/* Hero Menu Button - Top Right */}
-          <div className="hero-menu-container" ref={heroMenuRef}>
-            <button
-              className="hero-menu-btn"
-              aria-label="Day options"
-              onClick={() => setShowHeroMenu(!showHeroMenu)}
-            >
-              <MoreVertical size={22} />
-            </button>
-            {showHeroMenu && (
-              <div className="hero-dropdown-menu">
-                <button
-                  className="menu-item"
-                  onClick={() => {
-                    setShowHeroMenu(false);
-                    setShowClubWorkouts(true);
-                  }}
-                >
-                  <Users size={18} />
-                  <span>Club Workouts</span>
-                </button>
-                <button
-                  className="menu-item"
-                  onClick={() => {
-                    setShowHeroMenu(false);
-                    navigate('/workout-history');
-                  }}
-                >
-                  <History size={18} />
-                  <span>Workout History</span>
-                </button>
-                <button
-                  className="menu-item"
-                  onClick={() => openRescheduleModal('reschedule')}
-                >
-                  <MoveRight size={18} />
-                  <span>Move Day</span>
-                </button>
-                <button
-                  className="menu-item"
-                  onClick={() => openRescheduleModal('duplicate')}
-                >
-                  <Copy size={18} />
-                  <span>Duplicate Day</span>
-                </button>
-                <button
-                  className="menu-item delete"
-                  onClick={handleDeleteWorkout}
-                >
-                  <Trash2 size={18} />
-                  <span>Delete Day</span>
-                </button>
-                {workoutStarted && (
-                  <button
-                    className="menu-item exit"
-                    onClick={() => {
-                      setShowHeroMenu(false);
-                      setWorkoutStarted(false);
-                      setCompletedExercises(new Set());
-                      setWorkoutStartTime(null);
-                      // Also clear localStorage backup
-                      try {
-                        const workout = todayWorkoutRef.current;
-                        if (workout?.id) {
-                          localStorage.removeItem(`completedExercises_${workout.id}`);
-                        }
-                      } catch (e) { /* ignore */ }
-                    }}
-                  >
-                    <LogOut size={18} />
-                    <span>Exit Workout</span>
-                  </button>
-                )}
+            return (
+              <div
+                key={workout.id}
+                className={`workout-card-v3 ${isActive ? 'active' : ''}`}
+                style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
+                onClick={() => handleSelectWorkoutCard(workout)}
+              >
+                <div className="workout-card-overlay"></div>
+                <div className="workout-card-content">
+                  <div className="workout-card-info">
+                    <h3 className="workout-card-title">{cardDayName}</h3>
+                    <p className="workout-card-progress">
+                      {cardCompletedCount}/{cardExercises.length} activities done
+                    </p>
+                    {totalDays > 0 && (
+                      <p className="workout-card-day">Day {currentDay}/{totalDays}</p>
+                    )}
+                    {workout.is_adhoc && (
+                      <span className="workout-card-badge">Custom</span>
+                    )}
+                  </div>
+                  {isActive && (
+                    <div className="workout-card-menu" ref={heroMenuRef}>
+                      <button
+                        className="hero-menu-btn"
+                        aria-label="Workout options"
+                        onClick={(e) => { e.stopPropagation(); setShowHeroMenu(!showHeroMenu); }}
+                      >
+                        <MoreVertical size={20} />
+                      </button>
+                      {showHeroMenu && (
+                        <div className="hero-dropdown-menu">
+                          <button
+                            className="menu-item"
+                            onClick={(e) => { e.stopPropagation(); setShowHeroMenu(false); setShowClubWorkouts(true); }}
+                          >
+                            <Users size={18} />
+                            <span>Club Workouts</span>
+                          </button>
+                          <button
+                            className="menu-item"
+                            onClick={(e) => { e.stopPropagation(); setShowHeroMenu(false); navigate('/workout-history'); }}
+                          >
+                            <History size={18} />
+                            <span>Workout History</span>
+                          </button>
+                          <button
+                            className="menu-item"
+                            onClick={(e) => { e.stopPropagation(); openRescheduleModal('reschedule'); }}
+                          >
+                            <MoveRight size={18} />
+                            <span>Move Day</span>
+                          </button>
+                          <button
+                            className="menu-item"
+                            onClick={(e) => { e.stopPropagation(); openRescheduleModal('duplicate'); }}
+                          >
+                            <Copy size={18} />
+                            <span>Duplicate Day</span>
+                          </button>
+                          <button
+                            className="menu-item delete"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteWorkout(); }}
+                          >
+                            <Trash2 size={18} />
+                            <span>Delete</span>
+                          </button>
+                          {workoutStarted && (
+                            <button
+                              className="menu-item exit"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowHeroMenu(false);
+                                setWorkoutStarted(false);
+                                setCompletedExercises(new Set());
+                                setWorkoutStartTime(null);
+                                try {
+                                  const w = todayWorkoutRef.current;
+                                  if (w?.id) localStorage.removeItem(`completedExercises_${w.id}`);
+                                } catch (ex) { /* ignore */ }
+                              }}
+                            >
+                              <LogOut size={18} />
+                              <span>Exit Workout</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!isActive && (
+                    <div className="workout-card-menu-placeholder">
+                      <MoreVertical size={20} style={{ opacity: 0.5 }} />
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-
-          <div className="hero-content-v3">
-            <h1 className="hero-title-v3">
-              {workoutDayName || todayWorkout.name || 'Today\'s Workout'}
-            </h1>
-            <p className="hero-day-label">Day: {todayWorkout.workout_data?.dayName || 'Full Body'}</p>
-            <div className="hero-stats">
-              <span className="stat-item">
-                <Clock size={16} />
-                {todayWorkout.workout_data?.estimatedMinutes || 45} minutes
-              </span>
-              <span className="stat-item">
-                <Flame size={16} />
-                {todayWorkout.workout_data?.estimatedCalories || 300} kcal
-              </span>
-            </div>
-          </div>
-          {/* Large Play Button */}
-          <button className="hero-play-btn" onClick={handleStartWorkout} aria-label="Start workout">
-            <Play size={28} fill="white" />
-          </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Track Heart Rate Button */}
-      {todayWorkout && (
-        <div className="track-heart-rate-section">
-          <button className="track-heart-btn">
-            <Heart size={20} />
-            <span>Track heart rate</span>
+      {/* Start Workout Button - shown when a workout is selected */}
+      {todayWorkout && !workoutStarted && (
+        <div className="start-workout-section">
+          <button className="start-workout-btn" onClick={handleStartWorkout}>
+            <Play size={20} fill="white" />
+            <span>Start Workout</span>
           </button>
         </div>
       )}
