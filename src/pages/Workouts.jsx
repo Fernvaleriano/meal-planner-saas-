@@ -1230,6 +1230,28 @@ function Workouts() {
     const workout = todayWorkoutRef.current;
     if (!workout?.workout_data || !updatedExercise) return;
 
+    // Auto-mark exercise as completed when sets have been edited with actual data
+    if (updatedExercise.id && updatedExercise.sets?.length > 0) {
+      const hasEditedSets = updatedExercise.sets.some(s =>
+        (s.reps && s.reps > 0) || (s.weight && s.weight > 0) || s.duration
+      );
+      if (hasEditedSets && !completedExercisesRef.current.has(updatedExercise.id)) {
+        // Update ref immediately so the workout_data map below sees it
+        completedExercisesRef.current = new Set([...completedExercisesRef.current, updatedExercise.id]);
+        setCompletedExercises(prev => {
+          const next = new Set(prev);
+          next.add(updatedExercise.id);
+          // Persist to localStorage
+          try {
+            if (workout?.id) {
+              localStorage.setItem(`completedExercises_${workout.id}`, JSON.stringify([...next]));
+            }
+          } catch (e) { /* ignore */ }
+          return next;
+        });
+      }
+    }
+
     // Get exercises from either direct array or days structure
     let currentExercises = [];
     let isUsingDays = false;
