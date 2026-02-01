@@ -308,9 +308,9 @@ exports.handler = async (event) => {
         for (const ex of exercises) {
           const setsData = ex.sets || [];
           const exTotalSets = setsData.length;
-          const exTotalReps = setsData.reduce((sum, s) => sum + (s.reps || 0), 0);
-          const exTotalVolume = setsData.reduce((sum, s) => sum + ((s.reps || 0) * (s.weight || 0)), 0);
-          const exMaxWeight = Math.max(...setsData.map(s => s.weight || 0), 0);
+          const exTotalReps = setsData.reduce((sum, s) => sum + (Number(s.reps) || 0), 0);
+          const exTotalVolume = setsData.reduce((sum, s) => sum + ((Number(s.reps) || 0) * (Number(s.weight) || 0)), 0);
+          const exMaxWeight = Math.max(...setsData.map(s => Number(s.weight) || 0), 0);
 
           totalVolume += exTotalVolume;
           totalSets += exTotalSets;
@@ -322,7 +322,7 @@ exports.handler = async (event) => {
             const previousBestWeight = previousBestMap[ex.exerciseName] || 0;
             if (exMaxWeight > previousBestWeight) {
               isPr = true;
-              const bestRepsAtWeight = setsData.find(s => s.weight === exMaxWeight)?.reps || 0;
+              const bestRepsAtWeight = setsData.find(s => Number(s.weight) === exMaxWeight)?.reps || 0;
               prNotifications.push({
                 exerciseName: ex.exerciseName,
                 weight: exMaxWeight,
