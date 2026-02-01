@@ -6,7 +6,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Content-Type': 'application/json'
 };
 
@@ -26,26 +26,10 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    // GET - Fetch club workouts
+    // GET - Fetch club workouts (reads from workout_programs where is_club_workout = true)
+    // Returns individual day workouts extracted from programs for clients to browse
     if (event.httpMethod === 'GET') {
-      const { coachId, category, workoutId } = event.queryStringParameters || {};
-
-      // Get single club workout by ID
-      if (workoutId) {
-        const { data: workout, error } = await supabase
-          .from('club_workouts')
-          .select('*')
-          .eq('id', workoutId)
-          .single();
-
-        if (error) throw error;
-
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ workout })
-        };
-      }
+      const { coachId } = event.queryStringParameters || {};
 
       if (!coachId) {
         return {
@@ -55,18 +39,12 @@ exports.handler = async (event) => {
         };
       }
 
-      let query = supabase
-        .from('club_workouts')
+      const { data: programs, error } = await supabase
+        .from('workout_programs')
         .select('*')
         .eq('coach_id', coachId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (category) {
-        query = query.eq('category', category);
-      }
-
-      const { data: workouts, error } = await query;
+        .eq('is_club_workout', true)
+        .order('updated_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching club workouts:', error);
@@ -77,115 +55,59 @@ exports.handler = async (event) => {
         };
       }
 
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ workouts: workouts || [] })
-      };
-    }
+      // Transform programs into individual day workouts for clients to browse
+      const workouts = [];
+      for (const program of (programs || [])) {
+        const days = program.program_data?.days || [];
 
-    // POST - Create a new club workout (coach only)
-    if (event.httpMethod === 'POST') {
-      const body = JSON.parse(event.body || '{}');
-      const { coachId, name, description, category, difficulty, workoutData } = body;
-
-      if (!coachId || !name) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'coachId and name are required' })
-        };
-      }
-
-      const { data: workout, error } = await supabase
-        .from('club_workouts')
-        .insert([{
-          coach_id: coachId,
-          name,
-          description: description || null,
-          category: category || 'general',
-          difficulty: difficulty || 'intermediate',
-          workout_data: workoutData || { exercises: [] },
-          is_active: true
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating club workout:', error);
-        throw error;
-      }
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true, workout })
-      };
-    }
-
-    // PUT - Update a club workout
-    if (event.httpMethod === 'PUT') {
-      const body = JSON.parse(event.body || '{}');
-      const { workoutId, name, description, category, difficulty, workoutData, isActive } = body;
-
-      if (!workoutId) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'workoutId is required' })
-        };
-      }
-
-      const updateFields = {};
-      if (name !== undefined) updateFields.name = name;
-      if (description !== undefined) updateFields.description = description;
-      if (category !== undefined) updateFields.category = category;
-      if (difficulty !== undefined) updateFields.difficulty = difficulty;
-      if (workoutData !== undefined) updateFields.workout_data = workoutData;
-      if (isActive !== undefined) updateFields.is_active = isActive;
-
-      const { data: workout, error } = await supabase
-        .from('club_workouts')
-        .update(updateFields)
-        .eq('id', workoutId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating club workout:', error);
-        throw error;
+        if (days.length === 1) {
+          // Single-day program: show as one workout
+          const day = days[0];
+          workouts.push({
+            id: `${program.id}-0`,
+            program_id: program.id,
+            day_index: 0,
+            name: program.name,
+            description: program.description,
+            category: program.program_type || 'general',
+            difficulty: program.difficulty,
+            image_url: program.program_data?.image_url || null,
+            workout_data: {
+              exercises: day.exercises || [],
+              estimatedMinutes: estimateMinutes(day.exercises),
+              estimatedCalories: estimateCalories(day.exercises),
+              dayName: day.name
+            }
+          });
+        } else {
+          // Multi-day program: each day becomes a separate browseable workout
+          days.forEach((day, index) => {
+            if (day.exercises && day.exercises.length > 0) {
+              workouts.push({
+                id: `${program.id}-${index}`,
+                program_id: program.id,
+                day_index: index,
+                name: `${program.name} — ${day.name || `Day ${index + 1}`}`,
+                description: program.description,
+                category: program.program_type || 'general',
+                difficulty: program.difficulty,
+                image_url: program.program_data?.image_url || null,
+                workout_data: {
+                  exercises: day.exercises || [],
+                  estimatedMinutes: estimateMinutes(day.exercises),
+                  estimatedCalories: estimateCalories(day.exercises),
+                  dayName: day.name || `Day ${index + 1}`
+                }
+              });
+            }
+          });
+        }
       }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, workout })
-      };
-    }
-
-    // DELETE - Remove a club workout
-    if (event.httpMethod === 'DELETE') {
-      const { workoutId } = event.queryStringParameters || {};
-
-      if (!workoutId) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'workoutId is required' })
-        };
-      }
-
-      const { error } = await supabase
-        .from('club_workouts')
-        .delete()
-        .eq('id', workoutId);
-
-      if (error) throw error;
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true })
+        body: JSON.stringify({ workouts })
       };
     }
 
@@ -204,3 +126,19 @@ exports.handler = async (event) => {
     };
   }
 };
+
+function estimateMinutes(exercises) {
+  if (!exercises || exercises.length === 0) return 0;
+  let totalSeconds = 0;
+  for (const ex of exercises) {
+    const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
+    const restSeconds = ex.restSeconds || 60;
+    totalSeconds += numSets * 40 + (numSets - 1) * restSeconds;
+  }
+  totalSeconds += (exercises.length - 1) * 30;
+  return Math.ceil(totalSeconds / 60);
+}
+
+function estimateCalories(exercises) {
+  return Math.round(estimateMinutes(exercises) * 5);
+}

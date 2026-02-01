@@ -4,6 +4,9 @@ import { apiGet } from '../../utils/api';
 
 const CATEGORY_LABELS = {
   strength: 'Strength',
+  hypertrophy: 'Hypertrophy',
+  endurance: 'Endurance',
+  weight_loss: 'Weight Loss',
   cardio: 'Cardio',
   hiit: 'HIIT',
   mobility: 'Mobility',
@@ -13,6 +16,9 @@ const CATEGORY_LABELS = {
 
 const CATEGORY_ICONS = {
   strength: '🏋️',
+  hypertrophy: '💪',
+  endurance: '🏃',
+  weight_loss: '🔥',
   cardio: '🏃',
   hiit: '🔥',
   mobility: '🧘',

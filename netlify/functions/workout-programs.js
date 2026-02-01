@@ -85,7 +85,8 @@ exports.handler = async (event) => {
         programData,
         isTemplate,
         isPublished,
-        heroImageUrl
+        heroImageUrl,
+        isClubWorkout
       } = body;
 
       if (!coachId || !name) {
@@ -111,7 +112,8 @@ exports.handler = async (event) => {
             image_url: heroImageUrl || null
           },
           is_template: isTemplate !== false,
-          is_published: isPublished || false
+          is_published: isPublished || false,
+          is_club_workout: isClubWorkout || false
         }])
         .select()
         .single();
@@ -148,6 +150,7 @@ exports.handler = async (event) => {
       if (updateData.daysPerWeek !== undefined) updateFields.days_per_week = updateData.daysPerWeek;
       if (updateData.isTemplate !== undefined) updateFields.is_template = updateData.isTemplate;
       if (updateData.isPublished !== undefined) updateFields.is_published = updateData.isPublished;
+      if (updateData.isClubWorkout !== undefined) updateFields.is_club_workout = updateData.isClubWorkout;
 
       // Store image_url inside program_data
       if (updateData.programData !== undefined || updateData.heroImageUrl !== undefined) {

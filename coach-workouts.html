@@ -2708,6 +2708,38 @@
                     <textarea class="form-textarea" id="programDescription" placeholder="Describe the program goals and structure..."></textarea>
                 </div>
 
+                <!-- Club Workout Toggle -->
+                <div class="form-group" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 10px;">
+                    <label class="toggle-switch" style="position: relative; width: 44px; height: 24px; flex-shrink: 0;">
+                        <input type="checkbox" id="isClubWorkout" style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #334155; border-radius: 24px; transition: 0.3s;"></span>
+                    </label>
+                    <div>
+                        <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">Club Workout</div>
+                        <div style="font-size: 12px; color: #94a3b8;">Visible to all your clients — they can browse and start this workout anytime</div>
+                    </div>
+                </div>
+
+                <style>
+                    .toggle-switch input:checked + span {
+                        background: #8b5cf6 !important;
+                    }
+                    .toggle-switch span::before {
+                        content: "";
+                        position: absolute;
+                        height: 18px;
+                        width: 18px;
+                        left: 3px;
+                        bottom: 3px;
+                        background: white;
+                        border-radius: 50%;
+                        transition: 0.3s;
+                    }
+                    .toggle-switch input:checked + span::before {
+                        transform: translateX(20px);
+                    }
+                </style>
+
                 <!-- Hero Image Upload -->
                 <div class="form-group">
                     <label class="form-label">Cover Image</label>
@@ -3657,7 +3689,7 @@
             container.innerHTML = programs.map(p => `
                 <div class="program-item ${p.id === currentProgramId ? 'active' : ''}" onclick="selectProgram(${p.id})">
                     <div class="program-item-content">
-                        <div class="program-name">${p.name}</div>
+                        <div class="program-name">${p.name}${p.is_club_workout ? ' <span style="font-size:10px;background:rgba(139,92,246,0.2);color:#c4b5fd;padding:2px 6px;border-radius:4px;font-weight:600;vertical-align:middle;margin-left:4px;">CLUB</span>' : ''}</div>
                         <div class="program-meta">
                             <span>${p.difficulty || 'Intermediate'}</span>
                             <span>•</span>
@@ -3697,6 +3729,7 @@
                 pendingHeroImageData = null;
 
                 workoutDays = program.program_data?.days || [];
+                document.getElementById('isClubWorkout').checked = !!program.is_club_workout;
                 renderWorkoutDays();
                 enableAssignButton(); // Enable assign button for existing program
             }
@@ -3711,6 +3744,7 @@
             document.getElementById('programDifficulty').value = 'intermediate';
             document.getElementById('daysPerWeek').value = '4';
             document.getElementById('programDescription').value = '';
+            document.getElementById('isClubWorkout').checked = false;
 
             // Reset hero image
             removeHeroImage();
@@ -5130,7 +5164,8 @@
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
                             programData: { days: workoutDays },
-                            heroImageUrl: heroImageUrl || undefined
+                            heroImageUrl: heroImageUrl || undefined,
+                            isClubWorkout: document.getElementById('isClubWorkout').checked
                         })
                     });
 
@@ -5149,7 +5184,8 @@
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
                             programData: { days: workoutDays },
-                            heroImageUrl: heroImageUrl || undefined
+                            heroImageUrl: heroImageUrl || undefined,
+                            isClubWorkout: document.getElementById('isClubWorkout').checked
                         })
                     });
                     currentProgramId = result.program?.id;
