@@ -273,6 +273,7 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body || '{}');
     const {
+      mode = 'program',
       clientName = 'Client',
       goal = 'hypertrophy',
       experience = 'intermediate',
@@ -285,10 +286,12 @@ exports.handler = async (event) => {
       focusAreas = [],
       equipment = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'],
       injuries = '',
-      preferences = ''
+      preferences = '',
+      targetMuscle = ''
     } = body;
 
-    console.log('Generating workout:', { clientName, goal, experience, daysPerWeek, split, trainingStyle });
+    const isSingleWorkout = mode === 'single';
+    console.log('Generating workout:', { mode, clientName, goal, experience, daysPerWeek, split, trainingStyle, targetMuscle });
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
@@ -474,7 +477,82 @@ If an exercise category doesn't have enough options, select similar exercises fr
 `;
     }
 
-    const systemPrompt = `You are an expert personal trainer creating workout programs. Return ONLY valid JSON, no markdown or extra text.
+    // Build muscle group mapping for single workout mode
+    const muscleGroupMap = {
+      'chest': 'chest (pecs, upper chest, lower chest)',
+      'back': 'back (lats, rhomboids, traps, rear delts)',
+      'shoulders': 'shoulders (front delts, side delts, rear delts)',
+      'arms': 'arms (biceps, triceps, forearms)',
+      'legs': 'legs (quads, hamstrings, calves)',
+      'glutes': 'glutes and hamstrings',
+      'core': 'core (abs, obliques, lower back)',
+      'upper_body': 'upper body (chest, back, shoulders, arms)',
+      'lower_body': 'lower body (quads, hamstrings, glutes, calves)',
+      'full_body': 'full body (all major muscle groups)'
+    };
+
+    let systemPrompt;
+    let userMessage;
+
+    if (isSingleWorkout) {
+      const muscleLabel = muscleGroupMap[targetMuscle] || targetMuscle;
+      systemPrompt = `You are an expert personal trainer creating a single workout session. Return ONLY valid JSON, no markdown or extra text.
+
+Create a single ${muscleLabel} workout for ${experience} level, optimized for ${goal}.
+${availableExercisesPrompt}
+WORKOUT STRUCTURE:
+- Target muscle group: ${muscleLabel}
+- ${styleInstruction}
+- ${exerciseCountInstruction}
+- Target session duration: ~${sessionDuration} minutes
+- ALL exercises should target ${muscleLabel}. Include compound movements first, then isolation exercises.
+
+CONSTRAINTS:
+${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
+- Available equipment: ${equipment.join(', ')}
+${preferences ? `- Additional preferences: ${preferences}` : ''}
+
+EXERCISE SELECTION GUIDELINES:
+- Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy-paste the exact name in quotes)
+- Structure: compound movements first, then isolation exercises
+- Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
+- For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
+- DO NOT include any warm-up exercises. Start directly with the main workout exercises.
+- DO NOT include any stretching exercises. End the workout with the last main exercise.
+- NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
+
+Return this exact JSON structure:
+{
+  "programName": "${targetMuscle.charAt(0).toUpperCase() + targetMuscle.slice(1)} Workout",
+  "description": "Brief description of this workout",
+  "goal": "${goal}",
+  "difficulty": "${experience}",
+  "daysPerWeek": 1,
+  "weeks": [{
+    "weekNumber": 1,
+    "workouts": [{
+      "dayNumber": 1,
+      "name": "${targetMuscle.charAt(0).toUpperCase() + targetMuscle.slice(1)} Day",
+      "targetMuscles": ${JSON.stringify(targetMuscle === 'upper_body' ? ['chest', 'back', 'shoulders', 'arms'] : targetMuscle === 'lower_body' ? ['quads', 'hamstrings', 'glutes', 'calves'] : targetMuscle === 'full_body' ? ['chest', 'back', 'legs', 'shoulders'] : [targetMuscle])},
+      "exercises": [{
+        "name": "Exercise Name",
+        "muscleGroup": "primary_muscle",
+        "sets": 4,
+        "reps": "8-10",
+        "restSeconds": 90,
+        "notes": "Form tips",
+        "isSuperset": false,
+        "supersetGroup": null,
+        "isWarmup": false,
+        "isStretch": false
+      }]
+    }]
+  }],
+  "progressionNotes": "How to progress"
+}`;
+      userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} exercises with proper sets, reps, and rest periods. Return only valid JSON.`;
+    } else {
+      systemPrompt = `You are an expert personal trainer creating workout programs. Return ONLY valid JSON, no markdown or extra text.
 
 Create a ${daysPerWeek}-day ${goal} program for ${experience} level.
 ${availableExercisesPrompt}
@@ -528,13 +606,15 @@ Return this exact JSON structure:
   }],
   "progressionNotes": "How to progress"
 }`;
+      userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include 4-6 exercises per day with proper sets, reps, and rest periods. Return only valid JSON.`;
+    }
 
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
       max_tokens: 4000,
       messages: [{
         role: 'user',
-        content: `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include 4-6 exercises per day with proper sets, reps, and rest periods. Return only valid JSON.`
+        content: userMessage
       }],
       system: systemPrompt
     });
