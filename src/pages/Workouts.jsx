@@ -2119,8 +2119,26 @@ function Workouts() {
   useEffect(() => {
     if (expandedWorkout && todayWorkout && !workoutStarted) {
       setWorkoutStarted(true);
+      setWorkoutStartTime(prev => prev || new Date());
+
+      // Create workout log if one doesn't exist yet (needed for finish/save flow)
+      if (!workoutLog && clientData?.id && todayWorkout?.id) {
+        const postData = {
+          clientId: clientData.id,
+          assignmentId: todayWorkout.is_adhoc ? null : todayWorkout.id,
+          workoutDate: formatDate(selectedDate),
+          workoutName: todayWorkout?.name || 'Workout',
+          status: 'in_progress'
+        };
+        apiPost('/.netlify/functions/workout-logs', postData)
+          .then(res => {
+            if (res?.workout) setWorkoutLog(res.workout);
+            else if (res?.log) setWorkoutLog(res.log);
+          })
+          .catch(err => console.error('Error creating workout log on auto-start:', err));
+      }
     }
-  }, [expandedWorkout, todayWorkout, workoutStarted]);
+  }, [expandedWorkout, todayWorkout, workoutStarted, workoutLog, clientData?.id, selectedDate]);
 
   // Calculate progress
   const completedCount = completedExercises.size;
