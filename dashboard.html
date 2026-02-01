@@ -333,9 +333,12 @@
         }
 
         .priority-alert--dismissed {
-            opacity: 0.4;
-            text-decoration: line-through;
+            opacity: 0.45;
             pointer-events: none;
+        }
+
+        .priority-alert--dismissed .priority-alert-link {
+            display: none;
         }
 
         .priority-alert--dismissed .priority-checkbox {
@@ -344,8 +347,93 @@
 
         .priority-alert--fadeout {
             opacity: 0;
-            transform: translateX(20px);
-            transition: opacity 0.4s, transform 0.4s;
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin: 0;
+            overflow: hidden;
+            transition: opacity 0.3s, max-height 0.4s 0.1s, padding 0.4s 0.1s, margin 0.4s 0.1s;
+        }
+
+        /* Handled/archive section */
+        .priority-handled-section {
+            margin-top: 12px;
+            border-top: 1px solid var(--gray-200);
+            padding-top: 8px;
+        }
+
+        [data-theme="dark"] .priority-handled-section {
+            border-top-color: var(--gray-700);
+        }
+
+        .priority-handled-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 6px 4px;
+            border-radius: 6px;
+            transition: background 0.15s;
+            user-select: none;
+        }
+
+        .priority-handled-toggle:hover {
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .priority-handled-toggle:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .priority-handled-label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--gray-400);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .priority-handled-chevron {
+            transition: transform 0.2s;
+            color: var(--gray-400);
+        }
+
+        .priority-handled-chevron.open {
+            transform: rotate(180deg);
+        }
+
+        .priority-handled-list {
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            padding-top: 4px;
+        }
+
+        .priority-handled-list.open {
+            display: flex;
+        }
+
+        .priority-handled-clear {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .priority-handled-clear:hover {
+            color: var(--gray-600);
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .priority-handled-clear:hover {
+            color: var(--gray-300);
+            background: rgba(255, 255, 255, 0.06);
         }
 
         .priority-alert-link {
@@ -3196,10 +3284,11 @@
                         <div class="hero-ai-chips">
                             <span class="suggested-label">Suggested Prompts</span>
                             <div class="hero-ai-chip-row">
-                                <button class="hero-chip" onclick="askQuickQuestion('Who hit their protein goal?')">Who hit their protein goal?</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('What are my clients bench press PRs?')">Bench press PRs</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('Which clients logged workouts this week?')">Who's logging workouts?</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('Which clients are losing weight?')">Who is losing weight?</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Which clients hit new PRs this week?')">Who hit new PRs this week?</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Who hasn\'t logged a workout this week?')">Who hasn't logged a workout?</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Which clients are at risk of dropping off based on activity and check-ins?')">Who's at risk of dropping off?</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Which clients have a workout program ending this week?')">Whose program is ending?</button>
+                                <button class="hero-chip" onclick="askQuickQuestion('Give me a weekly summary of all client activity, check-ins, workouts, PRs, and anything that needs my attention')">Weekly summary</button>
                             </div>
                         </div>
                         <div class="hero-ai-response" id="aiResponseArea" style="display:none;">
@@ -3743,16 +3832,21 @@
         }
 
         // --- Priority Alert Checkbox/Dismiss Logic ---
+        // All generated alert HTML gets stored here so we can re-render active vs handled
+        let _allPriorityAlerts = []; // [{id, html}]
+
         function getDismissedAlerts() {
             try {
                 const raw = localStorage.getItem('dismissedPriorityAlerts');
                 if (!raw) return {};
                 const parsed = JSON.parse(raw);
-                // Clean entries older than 7 days
-                const now = Date.now();
+                // Only keep items dismissed today (since midnight)
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const todayMs = todayStart.getTime();
                 const cleaned = {};
                 for (const [key, ts] of Object.entries(parsed)) {
-                    if (now - ts < 7 * 24 * 60 * 60 * 1000) cleaned[key] = ts;
+                    if (ts >= todayMs) cleaned[key] = ts;
                 }
                 if (Object.keys(cleaned).length !== Object.keys(parsed).length) {
                     localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(cleaned));
@@ -3761,48 +3855,125 @@
             } catch { return {}; }
         }
 
+        function isDismissedToday(alertId) {
+            const dismissed = getDismissedAlerts();
+            return !!dismissed[alertId];
+        }
+
         function dismissPriorityAlert(alertId, el) {
             event.stopPropagation();
             const dismissed = getDismissedAlerts();
-            const alertRow = el.closest('.priority-alert');
             if (dismissed[alertId]) {
-                // Un-dismiss
+                // Un-dismiss: move back to active
                 delete dismissed[alertId];
                 localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(dismissed));
-                el.classList.remove('checked');
-                if (alertRow) alertRow.classList.remove('priority-alert--dismissed');
+                renderPriorityAlertSections();
             } else {
-                // Dismiss
+                // Dismiss: animate out then move to handled
                 dismissed[alertId] = Date.now();
                 localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(dismissed));
-                el.classList.add('checked');
+                const alertRow = el.closest('.priority-alert');
                 if (alertRow) {
-                    alertRow.classList.add('priority-alert--fadeout');
-                    setTimeout(() => {
-                        alertRow.classList.remove('priority-alert--fadeout');
-                        alertRow.classList.add('priority-alert--dismissed');
-                    }, 400);
+                    alertRow.style.maxHeight = alertRow.offsetHeight + 'px';
+                    requestAnimationFrame(() => alertRow.classList.add('priority-alert--fadeout'));
+                    setTimeout(() => renderPriorityAlertSections(), 450);
+                } else {
+                    renderPriorityAlertSections();
                 }
             }
         }
 
-        function checkboxHtml(alertId) {
-            const dismissed = getDismissedAlerts();
-            const isChecked = !!dismissed[alertId];
-            return `<span class="priority-checkbox${isChecked ? ' checked' : ''}" onclick="dismissPriorityAlert('${alertId}', this)" title="Mark as handled">
+        function clearAllHandled() {
+            localStorage.setItem('dismissedPriorityAlerts', '{}');
+            renderPriorityAlertSections();
+        }
+
+        function toggleHandledSection() {
+            const list = document.getElementById('handledList');
+            const chevron = document.getElementById('handledChevron');
+            if (list && chevron) {
+                list.classList.toggle('open');
+                chevron.classList.toggle('open');
+            }
+        }
+
+        function checkboxHtml(alertId, isDismissed) {
+            return `<span class="priority-checkbox${isDismissed ? ' checked' : ''}" onclick="dismissPriorityAlert('${alertId}', this)" title="${isDismissed ? 'Restore to active' : 'Mark as handled'}">
                 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>
             </span>`;
         }
 
-        function dismissedClass(alertId) {
+        function renderPriorityAlertSections() {
+            const alertsEl = document.getElementById('priorityAlerts');
+            if (!alertsEl || _allPriorityAlerts.length === 0) return;
+
             const dismissed = getDismissedAlerts();
-            return dismissed[alertId] ? ' priority-alert--dismissed' : '';
+            const active = [];
+            const handled = [];
+
+            _allPriorityAlerts.forEach(item => {
+                if (dismissed[item.id]) {
+                    handled.push(item);
+                } else {
+                    active.push(item);
+                }
+            });
+
+            let html = '';
+
+            // Active alerts
+            if (active.length > 0) {
+                active.forEach(item => {
+                    html += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
+                });
+            } else {
+                html += `
+                    <div class="priority-alert">
+                        <span class="priority-dot priority-dot--green"></span>
+                        <span>All caught up! No urgent items right now.</span>
+                    </div>
+                `;
+            }
+
+            // Handled section
+            if (handled.length > 0) {
+                html += `
+                    <div class="priority-handled-section">
+                        <div class="priority-handled-toggle" onclick="toggleHandledSection()">
+                            <span class="priority-handled-label">
+                                <svg class="priority-handled-chevron${document.getElementById('handledList')?.classList.contains('open') ? ' open' : ''}" id="handledChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                                Handled today (${handled.length})
+                            </span>
+                            <button class="priority-handled-clear" onclick="event.stopPropagation(); clearAllHandled()">Clear all</button>
+                        </div>
+                        <div class="priority-handled-list${document.getElementById('handledList')?.classList.contains('open') ? ' open' : ''}" id="handledList">
+                `;
+                handled.forEach(item => {
+                    html += `<div class="priority-alert priority-alert--dismissed priority-alert--clickable">${item.html.replace('__CHECKBOX__', checkboxHtml(item.id, true)).replace(/onclick="window\.location\.href=[^"]*"/, '')}</div>`;
+                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Append workout summary (informational, not dismissable)
+            if (alertsEl.dataset.workoutSummary) {
+                html += alertsEl.dataset.workoutSummary;
+            }
+
+            alertsEl.innerHTML = html;
         }
 
         async function loadPriorityAlerts(coachId, clientCount, pendingCheckIns) {
             const alertsEl = document.getElementById('priorityAlerts');
-            const alerts = [];
+            _allPriorityAlerts = [];
             const MAX_SHOWN = 3;
+
+            // Helper to register an alert with id + template (uses __CHECKBOX__ placeholder)
+            function addAlert(id, html) {
+                _allPriorityAlerts.push({ id, html });
+            }
 
             try {
                 // Fetch client name lookup
@@ -3824,7 +3995,6 @@
                 let pendingCheckins = [];
                 try {
                     const [stressResult, energyResult, pendingResult] = await Promise.all([
-                        // High stress (4+ on 1-5 scale) - with client details
                         supabaseClient
                             .from('client_checkins')
                             .select('id, client_id, stress_level, energy_level, created_at')
@@ -3833,7 +4003,6 @@
                             .gte('created_at', weekAgo.toISOString())
                             .order('created_at', { ascending: false })
                             .limit(10),
-                        // Low energy (1-2 on 1-5 scale)
                         supabaseClient
                             .from('client_checkins')
                             .select('id, client_id, energy_level, stress_level, created_at')
@@ -3842,7 +4011,6 @@
                             .gte('created_at', weekAgo.toISOString())
                             .order('created_at', { ascending: false })
                             .limit(10),
-                        // All pending check-ins (unreviewed)
                         supabaseClient
                             .from('client_checkins')
                             .select('id, client_id, stress_level, energy_level, created_at')
@@ -3858,16 +4026,15 @@
                     console.warn('Could not load check-in details:', e);
                 }
 
-                // --- HIGH STRESS ALERTS (red, per-client, clickable) ---
+                // --- HIGH STRESS ALERTS ---
                 if (highStressCheckins.length > 0) {
                     const shown = highStressCheckins.slice(0, MAX_SHOWN);
-                    const remaining = highStressCheckins.length - shown.length;
                     shown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'stress-' + c.id;
-                        alerts.push(`
-                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
-                                ${checkboxHtml(aid)}
+                        addAlert(aid, `
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                __CHECKBOX__
                                 <span class="priority-dot priority-dot--red"></span>
                                 <span>
                                     <span class="priority-label priority-label--action">High stress:</span>
@@ -3878,24 +4045,19 @@
                             </div>
                         `);
                     });
-                    if (remaining > 0) {
-                        alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${remaining} more high stress check-in${remaining !== 1 ? 's' : ''}</div>`);
-                    }
                 }
 
-                // --- LOW ENERGY ALERTS (red, per-client, clickable) ---
-                // Exclude any already shown in high stress
+                // --- LOW ENERGY ALERTS ---
                 const stressIds = new Set(highStressCheckins.map(c => c.id));
                 const uniqueLowEnergy = lowEnergyCheckins.filter(c => !stressIds.has(c.id));
                 if (uniqueLowEnergy.length > 0) {
                     const shown = uniqueLowEnergy.slice(0, MAX_SHOWN);
-                    const remaining = uniqueLowEnergy.length - shown.length;
                     shown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'energy-' + c.id;
-                        alerts.push(`
-                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
-                                ${checkboxHtml(aid)}
+                        addAlert(aid, `
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                __CHECKBOX__
                                 <span class="priority-dot priority-dot--red"></span>
                                 <span>
                                     <span class="priority-label priority-label--action">Low energy:</span>
@@ -3906,27 +4068,21 @@
                             </div>
                         `);
                     });
-                    if (remaining > 0) {
-                        alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${remaining} more low energy check-in${remaining !== 1 ? 's' : ''}</div>`);
-                    }
                 }
 
-                // --- PENDING CHECK-INS (amber, per-client, clickable) ---
-                // Exclude ones already shown as stress/energy alerts
+                // --- PENDING CHECK-INS ---
                 const shownIds = new Set([...highStressCheckins.map(c => c.id), ...uniqueLowEnergy.map(c => c.id)]);
                 const otherPending = pendingCheckins.filter(c => !shownIds.has(c.id));
                 if (otherPending.length > 0) {
                     const todayOnes = otherPending.filter(c => new Date(c.created_at) >= todayStart);
                     const olderOnes = otherPending.filter(c => new Date(c.created_at) < todayStart);
 
-                    // Show today's first
-                    const todayShown = todayOnes.slice(0, MAX_SHOWN);
-                    todayShown.forEach(c => {
+                    todayOnes.slice(0, MAX_SHOWN).forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'checkin-' + c.id;
-                        alerts.push(`
-                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
-                                ${checkboxHtml(aid)}
+                        addAlert(aid, `
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                __CHECKBOX__
                                 <span class="priority-dot priority-dot--amber"></span>
                                 <span>
                                     <span class="priority-label priority-label--pending">New today:</span>
@@ -3937,14 +4093,12 @@
                         `);
                     });
 
-                    // Show older pending
-                    const olderShown = olderOnes.slice(0, MAX_SHOWN);
-                    olderShown.forEach(c => {
+                    olderOnes.slice(0, MAX_SHOWN).forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'checkin-' + c.id;
-                        alerts.push(`
-                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
-                                ${checkboxHtml(aid)}
+                        addAlert(aid, `
+                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                __CHECKBOX__
                                 <span class="priority-dot priority-dot--amber"></span>
                                 <span>
                                     <span class="priority-label priority-label--pending">Pending:</span>
@@ -3954,14 +4108,9 @@
                             </div>
                         `);
                     });
-
-                    const totalRemaining = otherPending.length - todayShown.length - olderShown.length;
-                    if (totalRemaining > 0) {
-                        alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${totalRemaining} more pending check-in${totalRemaining !== 1 ? 's' : ''}</div>`);
-                    }
                 }
 
-                // --- EXPIRING MEAL PLANS (amber, with client names) ---
+                // --- EXPIRING MEAL PLANS ---
                 try {
                     const threeDaysFromNow = new Date();
                     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
@@ -3977,16 +4126,14 @@
                         .limit(5);
 
                     if (expiringPlans && expiringPlans.length > 0) {
-                        const shown = expiringPlans.slice(0, MAX_SHOWN);
-                        const remaining = expiringPlans.length - shown.length;
-                        shown.forEach(p => {
+                        expiringPlans.slice(0, MAX_SHOWN).forEach(p => {
                             const name = clientMap[p.client_id] || 'Unknown Client';
                             const daysLeft = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
                             const urgency = daysLeft <= 1 ? 'Expires tomorrow' : `Expires in ${daysLeft} days`;
                             const aid = 'plan-' + p.id;
-                            alerts.push(`
-                                <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${p.client_id}'">
-                                    ${checkboxHtml(aid)}
+                            addAlert(aid, `
+                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${p.client_id}'">
+                                    __CHECKBOX__
                                     <span class="priority-dot priority-dot--amber"></span>
                                     <span>
                                         <span class="priority-label priority-label--pending">${urgency}:</span>
@@ -3996,15 +4143,12 @@
                                 </div>
                             `);
                         });
-                        if (remaining > 0) {
-                            alerts.push(`<div class="priority-alert-more">+ ${remaining} more expiring plan${remaining !== 1 ? 's' : ''}</div>`);
-                        }
                     }
                 } catch (e) {
                     console.warn('Could not check expiring plans:', e);
                 }
 
-                // --- PR ALERTS (green, with client names) ---
+                // --- PR ALERTS ---
                 try {
                     const { data: prNotifications } = await supabaseClient
                         .from('notifications')
@@ -4016,15 +4160,13 @@
                         .limit(5);
 
                     if (prNotifications && prNotifications.length > 0) {
-                        const shown = prNotifications.slice(0, MAX_SHOWN);
-                        const remaining = prNotifications.length - shown.length;
-                        shown.forEach(pr => {
+                        prNotifications.slice(0, MAX_SHOWN).forEach(pr => {
                             const name = clientMap[pr.related_client_id] || '';
                             const clientLink = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
                             const aid = 'pr-' + (pr.related_client_id || '') + '-' + new Date(pr.created_at).getTime();
-                            alerts.push(`
-                                <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='${clientLink}'">
-                                    ${checkboxHtml(aid)}
+                            addAlert(aid, `
+                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='${clientLink}'">
+                                    __CHECKBOX__
                                     <span class="priority-dot priority-dot--green"></span>
                                     <span>
                                         <span class="priority-label priority-label--positive">New PR!</span>
@@ -4035,15 +4177,12 @@
                                 </div>
                             `);
                         });
-                        if (remaining > 0) {
-                            alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${remaining} more PR${remaining !== 1 ? 's' : ''} this week</div>`);
-                        }
                     }
                 } catch (e) {
                     console.warn('Could not check PRs:', e);
                 }
 
-                // --- WORKOUT ACTIVITY (green, with client names) ---
+                // --- WORKOUT ACTIVITY (informational, no checkbox) ---
                 try {
                     const clientIds = (allClients || []).map(c => c.id);
                     if (clientIds.length > 0) {
@@ -4056,7 +4195,6 @@
                             .limit(20);
 
                         if (recentWorkouts && recentWorkouts.length > 0) {
-                            // Group by client to show unique names
                             const clientWorkoutMap = {};
                             recentWorkouts.forEach(w => {
                                 if (!clientWorkoutMap[w.client_id]) {
@@ -4067,28 +4205,22 @@
                             const activeClients = Object.entries(clientWorkoutMap);
                             const names = activeClients.slice(0, 3).map(([cid]) => clientMap[cid] || 'Unknown').join(', ');
                             const extraCount = activeClients.length - 3;
-                            alerts.push(`
+                            // Workout summary is informational — not dismissable, just append directly
+                            alertsEl.dataset.workoutSummary = `
                                 <div class="priority-alert">
                                     <span class="priority-dot priority-dot--green"></span>
                                     <span>${recentWorkouts.length} workout${recentWorkouts.length !== 1 ? 's' : ''} this week from <strong>${names}</strong>${extraCount > 0 ? ` + ${extraCount} more` : ''}</span>
                                 </div>
-                            `);
+                            `;
                         }
                     }
                 } catch (e) {
                     console.warn('Could not check workout logs:', e);
                 }
 
-                if (alerts.length === 0) {
-                    alerts.push(`
-                        <div class="priority-alert">
-                            <span class="priority-dot priority-dot--green"></span>
-                            <span>All caught up! No urgent items today.</span>
-                        </div>
-                    `);
-                }
+                // Render active vs handled sections
+                renderPriorityAlertSections();
 
-                alertsEl.innerHTML = alerts.join('');
             } catch (error) {
                 console.error('Error loading priority alerts:', error);
                 alertsEl.innerHTML = `
