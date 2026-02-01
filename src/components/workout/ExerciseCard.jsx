@@ -389,9 +389,14 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const videoUrl = exercise.customVideoUrl || exercise.video_url || exercise.animation_url;
   const hasVideo = !!videoUrl;
 
-  // Format duration for display
+  // Format duration for display - show minutes if over 59 seconds
   const formatDuration = (seconds) => {
     if (!seconds) return null;
+    if (seconds > 59) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+    }
     return `${seconds}s`;
   };
 
