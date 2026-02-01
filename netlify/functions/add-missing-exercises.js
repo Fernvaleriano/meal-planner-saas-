@@ -86,7 +86,16 @@ function cleanExerciseName(filename) {
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Extract gender variant
+  // Remove duplicate file markers like (1), (2), etc. FIRST
+  name = name.replace(/\s*\(\d+\)\s*/g, '').trim();
+
+  // Remove version markers like ( Version2 ), (Version 3), etc.
+  name = name.replace(/\s*\(\s*version\s*\d*\s*\)\s*/gi, '').trim();
+
+  // Remove trailing " - " artifacts
+  name = name.replace(/\s*-\s*$/, '').trim();
+
+  // Extract gender variant (now works since (1) is already stripped)
   let gender = null;
   if (/[_\s]female$/i.test(name)) {
     gender = 'female';
@@ -95,9 +104,6 @@ function cleanExerciseName(filename) {
     gender = 'male';
     name = name.replace(/[_\s]male$/i, '').trim();
   }
-
-  // Clean up version markers like ( Version2 )
-  name = name.replace(/\s*\(\s*version\s*\d*\s*\)\s*/gi, '').trim();
 
   // Title case
   name = name.split(' ')
@@ -129,20 +135,27 @@ exports.handler = async (event) => {
   const cleanup = params.cleanup === 'true';
 
   try {
-    // CLEANUP MODE: Remove bad records from old sync (gender suffixes still in name, version markers, etc.)
+    // CLEANUP MODE: Remove bad records from old sync (gender suffixes still in name, version markers, duplicate markers, etc.)
     if (cleanup) {
-      // Find records that have gender suffixes or version markers still in the name
+      // Find records that have gender suffixes, version markers, or duplicate markers in the name
       const { data: badRecords, error: fetchErr } = await supabase
         .from('exercises')
         .select('id, name')
-        .or('name.ilike.%_female,name.ilike.%_male,name.ilike.%_Female,name.ilike.%_Male,name.ilike.%Female,name.ilike.% female,name.ilike.%(Version%');
+        .or('name.ilike.%_female%,name.ilike.%_male%,name.ilike.% female%,name.ilike.% male %,name.ilike.%(Version%,name.ilike.%(1),name.ilike.%(2),name.ilike.%(3)');
 
       if (fetchErr) throw new Error('Failed to fetch records: ' + fetchErr.message);
 
-      // Filter to only video-sync records or records that clearly have gender suffixes
+      // Filter to records that clearly have issues in their names
       const toDelete = (badRecords || []).filter(r => {
         const name = r.name;
-        return /[_\s](female|male)$/i.test(name) || /\(\s*version\s*\d*\s*\)/i.test(name);
+        // Gender suffix anywhere (e.g. "_female (1)", "_female", " female")
+        const hasGender = /[_\s](female|male)(\s*\(\d+\))?$/i.test(name) ||
+                          /[_\s](female|male)\s/i.test(name);
+        // Duplicate markers like (1), (2)
+        const hasDupeMarker = /\(\d+\)\s*$/.test(name);
+        // Version markers like (Version2)
+        const hasVersion = /\(\s*version\s*\d*\s*\)/i.test(name);
+        return hasGender || hasDupeMarker || hasVersion;
       });
 
       if (dryRun) {
