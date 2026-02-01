@@ -555,7 +555,7 @@ async function handleQuestion(event) {
     // Fetch all client data for this coach
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
-      .select('id, client_name, last_activity_at, user_id, created_at')
+      .select('id, client_name, last_activity_at, user_id, created_at, unit_preference')
       .eq('coach_id', coachId)
       .or('is_archived.eq.false,is_archived.is.null')
       .order('client_name', { ascending: true });
@@ -722,12 +722,19 @@ async function handleQuestion(event) {
       const clientAssignment = workoutAssignments.find(a => a.client_id === client.id);
 
       // Find PRs (heaviest weight per exercise)
+      // Use the client's unit preference, fallback to sets_data unit, then 'lbs'
+      const clientUnitPref = client.unit_preference === 'metric' ? 'kg' : 'lbs';
       const prsByExercise = {};
       clientExerciseLogs.forEach(log => {
         if (log.max_weight && log.exercise_name) {
           const key = log.exercise_name;
           if (!prsByExercise[key] || log.max_weight > prsByExercise[key].weight) {
-            prsByExercise[key] = { weight: log.max_weight, reps: log.total_reps, unit: 'lbs', date: log.created_at, isPr: log.is_pr };
+            // Get reps and unit from the specific set that achieved max weight
+            const setsData = Array.isArray(log.sets_data) ? log.sets_data : [];
+            const bestSet = setsData.find(s => Number(s.weight) === Number(log.max_weight));
+            const repsAtMaxWeight = bestSet ? (Number(bestSet.reps) || 0) : (Number(log.total_reps) || 0);
+            const unitFromSet = bestSet?.weightUnit || setsData[0]?.weightUnit || clientUnitPref;
+            prsByExercise[key] = { weight: log.max_weight, reps: repsAtMaxWeight, unit: unitFromSet, date: log.created_at, isPr: log.is_pr };
           }
         }
       });
@@ -770,7 +777,11 @@ async function handleQuestion(event) {
         workouts: {
           totalThisMonth: clientWorkoutLogs.length,
           recentWorkouts: clientWorkoutLogs.slice(0, 5).map(w => ({ name: w.workout_name, date: w.completed_at || w.created_at, duration: w.duration_minutes })),
-          recentExercises: clientExerciseLogs.slice(0, 10).map(e => ({ name: e.exercise_name, sets: e.total_sets, reps: e.total_reps, weight: e.max_weight, volume: e.total_volume, isPr: e.is_pr })),
+          recentExercises: clientExerciseLogs.slice(0, 10).map(e => {
+            const eSetsData = Array.isArray(e.sets_data) ? e.sets_data : [];
+            const eUnit = eSetsData[0]?.weightUnit || clientUnitPref;
+            return { name: e.exercise_name, sets: e.total_sets, reps: Number(e.total_reps) || 0, weight: e.max_weight, unit: eUnit, volume: e.total_volume, isPr: e.is_pr };
+          }),
           prs: Object.entries(prsByExercise).slice(0, 10).map(([exercise, data]) => ({ exercise, weight: data.weight, reps: data.reps, unit: data.unit, date: data.date })),
           currentProgram: clientAssignment?.workout_data?.name || null
         },
@@ -838,7 +849,7 @@ async function handleQuestion(event) {
           parts.push(`recent exercises: ${exerciseStrs.join(', ')}`);
         }
         if (c.workouts.prs.length > 0) {
-          const prStrs = c.workouts.prs.slice(0, 3).map(p => `${p.exercise}: ${p.weight}${p.unit} x${p.reps}`);
+          const prStrs = c.workouts.prs.slice(0, 3).map(p => `${p.exercise}: ${p.weight}${p.unit} for ${p.reps} reps`);
           parts.push(`PRs: ${prStrs.join(', ')}`);
         }
       }
@@ -900,7 +911,8 @@ IMPORTANT RULES:
 6. For nutrition questions, compare actual intake vs goals when both are available
 7. For body composition questions, mention weight changes and trends
 8. If the data needed to answer is not available, say so honestly rather than guessing
-9. Keep response under 200 words unless more detail is needed for the question`;
+9. Keep response under 200 words unless more detail is needed for the question
+10. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data`;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
