@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
@@ -1731,14 +1731,10 @@ function Workouts() {
 
     try {
       if (todayWorkout.is_adhoc) {
-        // Delete adhoc workout
-        const isRealId = todayWorkout.id && !String(todayWorkout.id).startsWith('adhoc-') && !String(todayWorkout.id).startsWith('custom-');
+        // Delete adhoc workout using HTTP DELETE with query params
+        const isRealId = todayWorkout.id && !String(todayWorkout.id).startsWith('adhoc-') && !String(todayWorkout.id).startsWith('custom-') && !String(todayWorkout.id).startsWith('club-');
         if (isRealId) {
-          await apiPost('/.netlify/functions/adhoc-workouts', {
-            action: 'delete',
-            workoutId: todayWorkout.id,
-            clientId: todayWorkout.client_id || clientData?.id
-          });
+          await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${todayWorkout.id}`);
         }
       } else {
         // Skip/delete assigned workout - mark as rest day
