@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, ensureFreshSession } from '../utils/api';
@@ -9,6 +9,7 @@ import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
+import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -302,6 +303,7 @@ function Workouts() {
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
+  const [showClubWorkouts, setShowClubWorkouts] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showShareResults, setShowShareResults] = useState(false);
   const [shareToggles, setShareToggles] = useState({
@@ -348,6 +350,7 @@ function Workouts() {
       setShowAddActivity(false);
       setShowRescheduleModal(false);
       setShowCreateWorkout(false);
+      setShowClubWorkouts(false);
       setShowMenu(false);
       setShowHeroMenu(false);
       setSwipeSwapExercise(null);
@@ -1090,6 +1093,50 @@ function Workouts() {
       }
     } catch (err) {
       console.error('Error saving workout:', err);
+      showError('Failed to save workout: ' + (err.message || 'Unknown error'));
+    }
+  }, [clientData?.id, selectedDate, showError]);
+
+  // Handle selecting a club workout - creates an ad-hoc workout from the club workout template
+  const handleSelectClubWorkout = useCallback(async (workoutData) => {
+    if (!workoutData?.exercises?.length) return;
+
+    const dateStr = formatDate(selectedDate);
+    const workoutName = workoutData.name || 'Club Workout';
+    const newWorkout = {
+      id: `club-${dateStr}-${Date.now()}`,
+      client_id: clientData?.id,
+      workout_date: dateStr,
+      name: workoutName,
+      day_index: 0,
+      workout_data: workoutData,
+      is_adhoc: true
+    };
+
+    // Update local state with new workout
+    setTodayWorkout(newWorkout);
+    setShowClubWorkouts(false);
+
+    // Create ad-hoc workout in backend
+    try {
+      const res = await apiPost('/.netlify/functions/adhoc-workouts', {
+        clientId: clientData?.id,
+        workoutDate: dateStr,
+        workoutData: workoutData,
+        name: workoutName
+      });
+
+      if (res?.workout) {
+        setTodayWorkout(prev => ({
+          ...prev,
+          id: res.workout.id
+        }));
+      } else {
+        console.error('No workout returned from POST:', res);
+        showError('Failed to save workout');
+      }
+    } catch (err) {
+      console.error('Error saving club workout:', err);
       showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
   }, [clientData?.id, selectedDate, showError]);
@@ -2261,11 +2308,11 @@ function Workouts() {
               </div>
               <div className="rest-day-actions">
                 <button
-                  className="rest-day-add-btn"
-                  onClick={() => setShowAddActivity(true)}
+                  className="rest-day-club-btn"
+                  onClick={() => setShowClubWorkouts(true)}
                 >
-                  <Plus size={18} />
-                  <span>Add Activity</span>
+                  <Users size={18} />
+                  <span>Club Workouts</span>
                 </button>
                 <button
                   className="rest-day-create-btn"
@@ -2273,6 +2320,13 @@ function Workouts() {
                 >
                   <PenSquare size={18} />
                   <span>Create Workout</span>
+                </button>
+                <button
+                  className="rest-day-add-btn"
+                  onClick={() => setShowAddActivity(true)}
+                >
+                  <Plus size={18} />
+                  <span>Add Activity</span>
                 </button>
               </div>
             </div>
@@ -2591,6 +2645,15 @@ function Workouts() {
           onClose={() => setShowCreateWorkout(false)}
           onCreateWorkout={handleCreateWorkout}
           selectedDate={selectedDate}
+          coachId={clientData?.coach_id}
+        />
+      )}
+
+      {/* Club Workouts Modal */}
+      {showClubWorkouts && (
+        <ClubWorkoutsModal
+          onClose={() => setShowClubWorkouts(false)}
+          onSelectWorkout={handleSelectClubWorkout}
           coachId={clientData?.coach_id}
         />
       )}
