@@ -297,6 +297,7 @@ function Workouts() {
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
   const [todayWorkout, setTodayWorkout] = useState(null);
   const [todayWorkouts, setTodayWorkouts] = useState([]); // All workouts for selected day
+  const [expandedWorkout, setExpandedWorkout] = useState(false); // true = detail view, false = cards view
   const [workoutLog, setWorkoutLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -613,6 +614,7 @@ function Workouts() {
 
       setLoading(true);
       setError(null);
+      setExpandedWorkout(false);
 
       try {
         const dateStr = formatDate(selectedDate);
@@ -1002,6 +1004,7 @@ function Workouts() {
       // Update local state with new ad-hoc workout
       setTodayWorkout(adHocWorkout);
       setTodayWorkouts(prev => [...prev, adHocWorkout]);
+      setExpandedWorkout(true);
 
       // Create ad-hoc workout in backend using dedicated endpoint
       try {
@@ -1115,6 +1118,7 @@ function Workouts() {
     setTodayWorkout(newWorkout);
     setTodayWorkouts(prev => [...prev, newWorkout]);
     setShowCreateWorkout(false);
+    setExpandedWorkout(true);
 
     // Create ad-hoc workout in backend using dedicated endpoint
     try {
@@ -1143,17 +1147,26 @@ function Workouts() {
   }, [clientData?.id, selectedDate, showError]);
 
   // Handle switching active workout card
+  // Handle tapping a workout card - select it and expand to detail view
   const handleSelectWorkoutCard = useCallback((workout) => {
-    if (!workout || workout.id === todayWorkout?.id) return;
-    setTodayWorkout(workout);
-    setWorkoutStarted(false);
-    setWorkoutLog(null);
-    setReadinessData(null);
-    setShowHeroMenu(false);
-    // Restore completed exercises for this workout
-    const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id);
-    setCompletedExercises(fromData);
+    if (!workout) return;
+    if (workout.id !== todayWorkout?.id) {
+      setTodayWorkout(workout);
+      setWorkoutStarted(false);
+      setWorkoutLog(null);
+      setReadinessData(null);
+      setShowHeroMenu(false);
+      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id);
+      setCompletedExercises(fromData);
+    }
+    setExpandedWorkout(true);
   }, [todayWorkout?.id]);
+
+  // Go back from detail view to cards view
+  const handleBackToCards = useCallback(() => {
+    setExpandedWorkout(false);
+    setShowHeroMenu(false);
+  }, []);
 
   // Handle selecting a club workout - creates an ad-hoc workout from the club workout template
   // If workoutData.scheduledDate is set, schedule for that date instead of today
@@ -1179,6 +1192,7 @@ function Workouts() {
       };
       setTodayWorkout(newWorkout);
       setTodayWorkouts(prev => [...prev, newWorkout]);
+      setExpandedWorkout(true);
     }
 
     // Create ad-hoc workout in backend
@@ -2150,203 +2164,279 @@ function Workouts() {
         threshold={threshold}
       />
 
-      {/* Top Navigation Bar */}
-      <div className="workout-top-nav">
-        <button
-          className="nav-back-btn"
-          aria-label="Go back"
-          onClick={() => window.history.back()}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
-        <div className="nav-spacer" style={{ width: 40 }}></div>
-      </div>
+      {/* ===== CARDS VIEW: Calendar + Workout Cards ===== */}
+      {!expandedWorkout && (
+        <>
+          {/* Top Navigation Bar */}
+          <div className="workout-top-nav">
+            <button
+              className="nav-back-btn"
+              aria-label="Go back"
+              onClick={() => window.history.back()}
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
+            <div className="nav-spacer" style={{ width: 40 }}></div>
+          </div>
 
-      {/* Workout Cards - one per workout for the day */}
-      {todayWorkouts.length > 0 && (
-        <div className="workout-cards-container">
-          {todayWorkouts.map((workout) => {
-            const isActive = workout.id === todayWorkout?.id;
-            const cardExercises = getWorkoutExercises(workout);
-            const cardCompletedCount = getWorkoutCompletedCount(workout);
-            const cardImage = workout.workout_data?.image_url || null;
-            const cardDayName = (() => {
-              if (workout.workout_data?.name) return workout.workout_data.name;
-              if (workout.workout_data?.days?.length > 0) {
-                const di = workout.day_index || 0;
-                const si = Math.abs(di) % workout.workout_data.days.length;
-                return workout.workout_data.days[si]?.name || workout.name;
-              }
-              return workout.name || 'Workout';
-            })();
-            const totalDays = workout.workout_data?.days?.length || 0;
-            const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
+          {/* Week Calendar Strip */}
+          <div className="week-calendar-v2">
+            <div className="calendar-header">
+              <button className="week-nav-btn" onClick={goToPreviousWeek} aria-label="Previous week">
+                <ChevronLeft size={20} />
+              </button>
+              <span className="month-label">{monthYearDisplay}</span>
+              <button className="week-nav-btn" onClick={goToNextWeek} aria-label="Next week">
+                <ChevronRight size={20} />
+              </button>
+            </div>
 
-            return (
-              <div
-                key={workout.id}
-                className={`workout-card-v3 ${isActive ? 'active' : ''}`}
-                style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
-                onClick={() => handleSelectWorkoutCard(workout)}
-              >
-                <div className="workout-card-overlay"></div>
-                <div className="workout-card-content">
-                  <div className="workout-card-info">
-                    <h3 className="workout-card-title">{cardDayName}</h3>
-                    <p className="workout-card-progress">
-                      {cardCompletedCount}/{cardExercises.length} activities done
-                    </p>
-                    {totalDays > 0 && (
-                      <p className="workout-card-day">Day {currentDay}/{totalDays}</p>
-                    )}
-                    {workout.is_adhoc && (
-                      <span className="workout-card-badge">Custom</span>
-                    )}
-                  </div>
-                  {isActive && (
-                    <div className="workout-card-menu" ref={heroMenuRef}>
-                      <button
-                        className="hero-menu-btn"
-                        aria-label="Workout options"
-                        onClick={(e) => { e.stopPropagation(); setShowHeroMenu(!showHeroMenu); }}
-                      >
-                        <MoreVertical size={20} />
-                      </button>
-                      {showHeroMenu && (
-                        <div className="hero-dropdown-menu">
-                          <button
-                            className="menu-item"
-                            onClick={(e) => { e.stopPropagation(); setShowHeroMenu(false); setShowClubWorkouts(true); }}
-                          >
-                            <Users size={18} />
-                            <span>Club Workouts</span>
-                          </button>
-                          <button
-                            className="menu-item"
-                            onClick={(e) => { e.stopPropagation(); setShowHeroMenu(false); navigate('/workout-history'); }}
-                          >
-                            <History size={18} />
-                            <span>Workout History</span>
-                          </button>
-                          <button
-                            className="menu-item"
-                            onClick={(e) => { e.stopPropagation(); openRescheduleModal('reschedule'); }}
-                          >
-                            <MoveRight size={18} />
-                            <span>Move Day</span>
-                          </button>
-                          <button
-                            className="menu-item"
-                            onClick={(e) => { e.stopPropagation(); openRescheduleModal('duplicate'); }}
-                          >
-                            <Copy size={18} />
-                            <span>Duplicate Day</span>
-                          </button>
-                          <button
-                            className="menu-item delete"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteWorkout(); }}
-                          >
-                            <Trash2 size={18} />
-                            <span>Delete</span>
-                          </button>
-                          {workoutStarted && (
-                            <button
-                              className="menu-item exit"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowHeroMenu(false);
-                                setWorkoutStarted(false);
-                                setCompletedExercises(new Set());
-                                setWorkoutStartTime(null);
-                                try {
-                                  const w = todayWorkoutRef.current;
-                                  if (w?.id) localStorage.removeItem(`completedExercises_${w.id}`);
-                                } catch (ex) { /* ignore */ }
-                              }}
-                            >
-                              <LogOut size={18} />
-                              <span>Exit Workout</span>
-                            </button>
-                          )}
+            <div className="week-days-strip">
+              {(weekDates || []).map((date, idx) => {
+                if (!date || !(date instanceof Date) || isNaN(date.getTime())) return null;
+
+                const dateStr = formatDate(date);
+                const isSelected = formatDate(selectedDate) === dateStr;
+                const isTodayDate = formatDate(new Date()) === dateStr;
+
+                return (
+                  <button
+                    key={dateStr || idx}
+                    className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
+                    onClick={() => setSelectedDate(date)}
+                  >
+                    <span className="day-name">{getDayName(date)}</span>
+                    <span className="day-number">{date.getDate()}</span>
+                    {isTodayDate && !isSelected && <span className="today-dot"></span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Workout Cards or Loading/Empty State */}
+          <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
+            {loading ? (
+              <div className="loading-state-v2">
+                <div className="loading-spinner"></div>
+                <span>Loading workout...</span>
+              </div>
+            ) : error ? (
+              <div className="error-state">
+                <p>{error}</p>
+                <button onClick={refreshWorkoutData} className="retry-btn">
+                  Try Again
+                </button>
+              </div>
+            ) : todayWorkouts.length > 0 ? (
+              <div className="workout-cards-container">
+                {todayWorkouts.map((workout) => {
+                  const cardExercises = getWorkoutExercises(workout);
+                  const cardCompletedCount = getWorkoutCompletedCount(workout);
+                  const cardImage = workout.workout_data?.image_url || null;
+                  const cardDayName = (() => {
+                    if (workout.workout_data?.name) return workout.workout_data.name;
+                    if (workout.workout_data?.days?.length > 0) {
+                      const di = workout.day_index || 0;
+                      const si = Math.abs(di) % workout.workout_data.days.length;
+                      return workout.workout_data.days[si]?.name || workout.name;
+                    }
+                    return workout.name || 'Workout';
+                  })();
+
+                  return (
+                    <div
+                      key={workout.id}
+                      className="workout-card-v3"
+                      style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
+                      onClick={() => handleSelectWorkoutCard(workout)}
+                    >
+                      <div className="workout-card-overlay"></div>
+                      <div className="workout-card-content">
+                        <div className="workout-card-info">
+                          <h3 className="workout-card-title">{cardDayName}</h3>
+                          <p className="workout-card-progress">
+                            {cardCompletedCount}/{cardExercises.length} activities done
+                          </p>
                         </div>
-                      )}
+                        <div className="workout-card-menu-placeholder">
+                          <MoreVertical size={20} />
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  {!isActive && (
-                    <div className="workout-card-menu-placeholder">
-                      <MoreVertical size={20} style={{ opacity: 0.5 }} />
-                    </div>
-                  )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="empty-state-v2">
+                <div className="empty-illustration">
+                  <Dumbbell size={64} />
+                </div>
+                <h3>Rest Day</h3>
+                <p>No workout scheduled for this day. Recovery is part of the process!</p>
+                <div className="empty-tips">
+                  <div className="tip">
+                    <span className="tip-icon">💧</span>
+                    <span>Stay hydrated</span>
+                  </div>
+                  <div className="tip">
+                    <span className="tip-icon">🧘</span>
+                    <span>Light stretching</span>
+                  </div>
+                  <div className="tip">
+                    <span className="tip-icon">😴</span>
+                    <span>Get good sleep</span>
+                  </div>
+                </div>
+                <div className="rest-day-actions">
+                  <button
+                    className="rest-day-club-btn"
+                    onClick={() => setShowClubWorkouts(true)}
+                  >
+                    <Users size={18} />
+                    <span>Club Workouts</span>
+                  </button>
+                  <button
+                    className="rest-day-create-btn"
+                    onClick={() => setShowCreateWorkout(true)}
+                  >
+                    <PenSquare size={18} />
+                    <span>Create Workout</span>
+                  </button>
+                  <button
+                    className="rest-day-add-btn"
+                    onClick={() => setShowAddActivity(true)}
+                  >
+                    <Plus size={18} />
+                    <span>Add Activity</span>
+                  </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
+        </>
       )}
 
-      {/* Start Workout Button - shown when a workout is selected */}
-      {todayWorkout && !workoutStarted && (
-        <div className="start-workout-section">
-          <button className="start-workout-btn" onClick={handleStartWorkout}>
-            <Play size={20} fill="white" />
-            <span>Start Workout</span>
-          </button>
-        </div>
-      )}
-
-      {/* Week Calendar Strip */}
-      <div className="week-calendar-v2">
-        <div className="calendar-header">
-          <button className="week-nav-btn" onClick={goToPreviousWeek} aria-label="Previous week">
-            <ChevronLeft size={20} />
-          </button>
-          <span className="month-label">{monthYearDisplay}</span>
-          <button className="week-nav-btn" onClick={goToNextWeek} aria-label="Next week">
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        <div className="week-days-strip">
-          {(weekDates || []).map((date, idx) => {
-            if (!date || !(date instanceof Date) || isNaN(date.getTime())) return null;
-
-            const dateStr = formatDate(date);
-            const isSelected = formatDate(selectedDate) === dateStr;
-            const isTodayDate = formatDate(new Date()) === dateStr;
-
-            return (
+      {/* ===== DETAIL VIEW: Hero + Exercises + Finish (shown when a card is tapped) ===== */}
+      {expandedWorkout && todayWorkout && (
+        <>
+          {/* Top Navigation Bar with back button */}
+          <div className="workout-top-nav">
+            <button
+              className="nav-back-btn"
+              aria-label="Back to workouts"
+              onClick={handleBackToCards}
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
+            <div className="nav-right-actions" ref={heroMenuRef}>
               <button
-                key={dateStr || idx}
-                className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
-                onClick={() => setSelectedDate(date)}
+                className="nav-menu-btn"
+                aria-label="Workout options"
+                onClick={() => setShowHeroMenu(!showHeroMenu)}
               >
-                <span className="day-name">{getDayName(date)}</span>
-                <span className="day-number">{date.getDate()}</span>
-                {isTodayDate && !isSelected && <span className="today-dot"></span>}
+                <MoreVertical size={22} />
               </button>
-            );
-          })}
-        </div>
-      </div>
+              {showHeroMenu && (
+                <div className="hero-dropdown-menu">
+                  <button
+                    className="menu-item"
+                    onClick={() => { setShowHeroMenu(false); setShowClubWorkouts(true); }}
+                  >
+                    <Users size={18} />
+                    <span>Club Workouts</span>
+                  </button>
+                  <button
+                    className="menu-item"
+                    onClick={() => { setShowHeroMenu(false); navigate('/workout-history'); }}
+                  >
+                    <History size={18} />
+                    <span>Workout History</span>
+                  </button>
+                  <button
+                    className="menu-item"
+                    onClick={() => openRescheduleModal('reschedule')}
+                  >
+                    <MoveRight size={18} />
+                    <span>Move Day</span>
+                  </button>
+                  <button
+                    className="menu-item"
+                    onClick={() => openRescheduleModal('duplicate')}
+                  >
+                    <Copy size={18} />
+                    <span>Duplicate Day</span>
+                  </button>
+                  <button
+                    className="menu-item delete"
+                    onClick={() => { handleDeleteWorkout(); setExpandedWorkout(false); }}
+                  >
+                    <Trash2 size={18} />
+                    <span>Delete</span>
+                  </button>
+                  {workoutStarted && (
+                    <button
+                      className="menu-item exit"
+                      onClick={() => {
+                        setShowHeroMenu(false);
+                        setWorkoutStarted(false);
+                        setCompletedExercises(new Set());
+                        setWorkoutStartTime(null);
+                        try {
+                          const w = todayWorkoutRef.current;
+                          if (w?.id) localStorage.removeItem(`completedExercises_${w.id}`);
+                        } catch (ex) { /* ignore */ }
+                      }}
+                    >
+                      <LogOut size={18} />
+                      <span>Exit Workout</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
-      {/* Exercise List Section */}
-      <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
-        <div className="exercises-list-v2">
-          {loading ? (
-            <div className="loading-state-v2">
-              <div className="loading-spinner"></div>
-              <span>Loading workout...</span>
+          {/* Hero Section with Image */}
+          <div
+            className="workout-hero-v3"
+            style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
+          >
+            <div className="hero-overlay"></div>
+            <div className="hero-content-v3">
+              <h1 className="hero-title-v3">
+                {workoutDayName || todayWorkout.name || 'Today\'s Workout'}
+              </h1>
+              <div className="hero-stats">
+                <span className="stat-item">
+                  <Clock size={16} />
+                  {todayWorkout.workout_data?.estimatedMinutes || 45} minutes
+                </span>
+                <span className="stat-item">
+                  <Flame size={16} />
+                  {todayWorkout.workout_data?.estimatedCalories || 300} kcal
+                </span>
+              </div>
             </div>
-          ) : error ? (
-            <div className="error-state">
-              <p>{error}</p>
-              <button onClick={refreshWorkoutData} className="retry-btn">
-                Try Again
-              </button>
-            </div>
-          ) : todayWorkout ? (
-            <>
+            {/* Large Play Button */}
+            <button className="hero-play-btn" onClick={handleStartWorkout} aria-label="Start workout">
+              <Play size={28} fill="white" />
+            </button>
+          </div>
+
+          {/* Track Heart Rate Button */}
+          <div className="track-heart-rate-section">
+            <button className="track-heart-btn">
+              <Heart size={20} />
+              <span>Track heart rate</span>
+            </button>
+          </div>
+
+          {/* Exercise List */}
+          <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
+            <div className="exercises-list-v2">
               {exercises.map((exercise, index) => (
                 exercise && exercise.id ? (
                   <ErrorBoundary key={exercise.id || `exercise-${index}`}>
@@ -2376,67 +2466,20 @@ function Workouts() {
                   <span>Add Activity</span>
                 </button>
               </div>
-            </>
-          ) : (
-            <div className="empty-state-v2">
-              <div className="empty-illustration">
-                <Dumbbell size={64} />
-              </div>
-              <h3>Rest Day</h3>
-              <p>No workout scheduled for this day. Recovery is part of the process!</p>
-              <div className="empty-tips">
-                <div className="tip">
-                  <span className="tip-icon">💧</span>
-                  <span>Stay hydrated</span>
-                </div>
-                <div className="tip">
-                  <span className="tip-icon">🧘</span>
-                  <span>Light stretching</span>
-                </div>
-                <div className="tip">
-                  <span className="tip-icon">😴</span>
-                  <span>Get good sleep</span>
-                </div>
-              </div>
-              <div className="rest-day-actions">
-                <button
-                  className="rest-day-club-btn"
-                  onClick={() => setShowClubWorkouts(true)}
-                >
-                  <Users size={18} />
-                  <span>Club Workouts</span>
-                </button>
-                <button
-                  className="rest-day-create-btn"
-                  onClick={() => setShowCreateWorkout(true)}
-                >
-                  <PenSquare size={18} />
-                  <span>Create Workout</span>
-                </button>
-                <button
-                  className="rest-day-add-btn"
-                  onClick={() => setShowAddActivity(true)}
-                >
-                  <Plus size={18} />
-                  <span>Add Activity</span>
-                </button>
-              </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Finish Training Button at Bottom */}
-      {todayWorkout && (
-        <div className="finish-training-section">
-          <button
-            className={`finish-training-btn ${completedCount === totalExercises && totalExercises > 0 ? 'ready' : ''}`}
-            onClick={handleFinishClick}
-          >
-            <span className="btn-text">Finish training</span>
-            <span className="btn-progress">{completedCount}/{totalExercises} activities done</span>
-          </button>
-        </div>
+          {/* Finish Training Button at Bottom */}
+          <div className="finish-training-section">
+            <button
+              className={`finish-training-btn ${completedCount === totalExercises && totalExercises > 0 ? 'ready' : ''}`}
+              onClick={handleFinishClick}
+            >
+              <span className="btn-text">Finish training</span>
+              <span className="btn-progress">{completedCount}/{totalExercises} activities done</span>
+            </button>
+          </div>
+        </>
       )}
 
       {/* Exercise Detail Modal - Wrapped in ErrorBoundary */}

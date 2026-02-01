@@ -11993,7 +11993,8 @@ a.nav-left {
 }
 
 /* Nav Menu Container and Dropdown */
-.workout-top-nav .nav-menu-container {
+.workout-top-nav .nav-menu-container,
+.workout-top-nav .nav-right-actions {
     position: relative;
 }
 
