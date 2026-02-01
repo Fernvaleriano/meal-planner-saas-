@@ -12247,18 +12247,16 @@ a.nav-left {
 .workout-summary-modal.enhanced {
     max-width: 400px;
     padding: 32px 24px calc(24px + env(safe-area-inset-bottom, 0px));
-    max-height: 90vh;
+    max-height: none;
+    overflow-y: visible;
+}
+
+/* Make the overlay itself scrollable so content isn't cut off */
+.summary-scroll-overlay {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    touch-action: pan-y;
-}
-
-/* Prevent the overlay behind the summary from scrolling on iOS */
-.summary-scroll-overlay {
-    overflow: hidden;
-    touch-action: none;
-    padding: 16px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
     align-items: flex-start;
     padding-top: max(40px, env(safe-area-inset-top, 40px));
 }
