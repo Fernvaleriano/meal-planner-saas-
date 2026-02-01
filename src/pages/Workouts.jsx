@@ -2230,44 +2230,89 @@ function Workouts() {
                 </button>
               </div>
             ) : todayWorkouts.length > 0 ? (
-              <div className="workout-cards-container">
-                {todayWorkouts.map((workout) => {
-                  const cardExercises = getWorkoutExercises(workout);
-                  const cardCompletedCount = getWorkoutCompletedCount(workout);
-                  const cardImage = workout.workout_data?.image_url || null;
-                  const cardDayName = (() => {
-                    if (workout.workout_data?.name) return workout.workout_data.name;
-                    if (workout.workout_data?.days?.length > 0) {
-                      const di = workout.day_index || 0;
-                      const si = Math.abs(di) % workout.workout_data.days.length;
-                      return workout.workout_data.days[si]?.name || workout.name;
-                    }
-                    return workout.name || 'Workout';
-                  })();
+              <>
+                <div className="workout-cards-container">
+                  {todayWorkouts.map((workout) => {
+                    const cardExercises = getWorkoutExercises(workout);
+                    const cardCompletedCount = getWorkoutCompletedCount(workout);
+                    const cardImage = workout.workout_data?.image_url || null;
+                    const cardDayName = (() => {
+                      if (workout.workout_data?.name) return workout.workout_data.name;
+                      if (workout.workout_data?.days?.length > 0) {
+                        const di = workout.day_index || 0;
+                        const si = Math.abs(di) % workout.workout_data.days.length;
+                        return workout.workout_data.days[si]?.name || workout.name;
+                      }
+                      return workout.name || 'Workout';
+                    })();
+                    const totalDays = workout.workout_data?.days?.length || 0;
+                    const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
+                    const estMinutes = workout.workout_data?.estimatedMinutes || null;
+                    const estCalories = workout.workout_data?.estimatedCalories || null;
 
-                  return (
-                    <div
-                      key={workout.id}
-                      className="workout-card-v3"
-                      style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
-                      onClick={() => handleSelectWorkoutCard(workout)}
-                    >
-                      <div className="workout-card-overlay"></div>
-                      <div className="workout-card-content">
-                        <div className="workout-card-info">
-                          <h3 className="workout-card-title">{cardDayName}</h3>
-                          <p className="workout-card-progress">
-                            {cardCompletedCount}/{cardExercises.length} activities done
-                          </p>
-                        </div>
-                        <div className="workout-card-menu-placeholder">
-                          <MoreVertical size={20} />
+                    return (
+                      <div
+                        key={workout.id}
+                        className="workout-card-v3"
+                        style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
+                        onClick={() => handleSelectWorkoutCard(workout)}
+                      >
+                        <div className="workout-card-overlay"></div>
+                        <div className="workout-card-content">
+                          <div className="workout-card-info">
+                            <h3 className="workout-card-title">{cardDayName}</h3>
+                            <p className="workout-card-progress">
+                              {cardCompletedCount}/{cardExercises.length} activities done
+                            </p>
+                            {totalDays > 0 && (
+                              <p className="workout-card-day">Day {currentDay}/{totalDays}</p>
+                            )}
+                            <div className="workout-card-stats">
+                              {estMinutes && (
+                                <span className="workout-card-stat">
+                                  <Clock size={13} />
+                                  {estMinutes} min
+                                </span>
+                              )}
+                              {estCalories && (
+                                <span className="workout-card-stat">
+                                  <Flame size={13} />
+                                  {estCalories} kcal
+                                </span>
+                              )}
+                              <span className="workout-card-stat">
+                                <Dumbbell size={13} />
+                                {cardExercises.length}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="workout-card-menu-placeholder" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical size={20} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+
+                {/* Quick action buttons below cards */}
+                <div className="cards-action-buttons">
+                  <button
+                    className="card-action-btn"
+                    onClick={() => setShowClubWorkouts(true)}
+                  >
+                    <Users size={16} />
+                    <span>Club Workouts</span>
+                  </button>
+                  <button
+                    className="card-action-btn"
+                    onClick={() => setShowCreateWorkout(true)}
+                  >
+                    <Plus size={16} />
+                    <span>Create Workout</span>
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="empty-state-v2">
                 <div className="empty-illustration">

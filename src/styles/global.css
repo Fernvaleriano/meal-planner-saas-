@@ -12933,25 +12933,22 @@ a.nav-left {
 .workout-cards-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 14px;
+    padding: 16px 16px 8px;
 }
 
 .workout-card-v3 {
     position: relative;
-    min-height: 120px;
+    min-height: 140px;
     background-size: cover;
     background-position: center;
-    background-color: #1e1e2e;
-    border-radius: 16px;
+    background-color: #141424;
+    border-radius: 18px;
     overflow: hidden;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     -webkit-tap-highlight-color: transparent;
-}
-
-.workout-card-v3.active {
-    box-shadow: 0 0 0 2px #3b82f6, 0 4px 16px rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .workout-card-v3:active {
@@ -12964,7 +12961,7 @@ a.nav-left {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0.3) 100%);
+    background: linear-gradient(135deg, rgba(10, 10, 30, 0.92) 0%, rgba(10, 10, 30, 0.7) 50%, rgba(10, 10, 30, 0.4) 100%);
     pointer-events: none;
 }
 
@@ -12972,38 +12969,62 @@ a.nav-left {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    padding: 16px 16px 16px 20px;
-    min-height: 120px;
+    padding: 20px;
+    min-height: 140px;
 }
 
 .workout-card-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100px;
 }
 
 .workout-card-title {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: white;
-    margin: 0 0 4px 0;
-    line-height: 1.3;
-    white-space: nowrap;
+    margin: 0 0 6px 0;
+    line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .workout-card-progress {
-    font-size: 13px;
-    color: #9ca3af;
-    margin: 0 0 2px 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0 0 4px 0;
 }
 
 .workout-card-day {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0 0 8px 0;
+}
+
+.workout-card-stats {
+    display: flex;
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.workout-card-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
-    color: #6b7280;
-    margin: 0;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.workout-card-stat svg {
+    color: rgba(255, 255, 255, 0.35);
 }
 
 .workout-card-badge {
@@ -13028,13 +13049,48 @@ a.nav-left {
 
 .workout-card-menu-placeholder {
     flex-shrink: 0;
-    margin-left: 12px;
-    width: 40px;
-    height: 40px;
+    margin-left: 8px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* Action buttons below workout cards */
+.cards-action-buttons {
+    display: flex;
+    gap: 10px;
+    padding: 8px 16px 16px;
+}
+
+.card-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.card-action-btn:active {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: scale(0.97);
+}
+
+.card-action-btn svg {
+    color: rgba(255, 255, 255, 0.4);
 }
 
 /* Start Workout Button - below cards */
