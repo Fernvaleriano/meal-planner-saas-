@@ -137,25 +137,43 @@ exports.handler = async (event) => {
   try {
     // CLEANUP MODE: Remove bad records from old sync (gender suffixes still in name, version markers, duplicate markers, etc.)
     if (cleanup) {
-      // Find records that have gender suffixes, version markers, or duplicate markers in the name
-      const { data: badRecords, error: fetchErr } = await supabase
-        .from('exercises')
-        .select('id, name')
-        .or('name.ilike.%_female%,name.ilike.%_male%,name.ilike.% female%,name.ilike.% male %,name.ilike.%(Version%,name.ilike.%(1),name.ilike.%(2),name.ilike.%(3)');
+      // Fetch ALL exercises added by video-sync and filter in JS
+      // Only targets records with source='video-sync' to avoid deleting original exercises
+      const allRecords = [];
+      let fetchOffset = 0;
+      while (true) {
+        const { data, error: fetchErr } = await supabase
+          .from('exercises')
+          .select('id, name, source')
+          .range(fetchOffset, fetchOffset + 999);
+        if (fetchErr) throw new Error('Failed to fetch records: ' + fetchErr.message);
+        allRecords.push(...(data || []));
+        if (!data || data.length < 1000) break;
+        fetchOffset += 1000;
+      }
 
-      if (fetchErr) throw new Error('Failed to fetch records: ' + fetchErr.message);
-
-      // Filter to records that clearly have issues in their names
-      const toDelete = (badRecords || []).filter(r => {
+      // Filter to records that have bad names
+      // For records WITH source='video-sync': delete if they have gender/dupe/version markers
+      // For records WITHOUT source field: only delete if name has _female or _male with underscores (not original data pattern)
+      const toDelete = allRecords.filter(r => {
         const name = r.name;
-        // Gender suffix anywhere (e.g. "_female (1)", "_female", " female")
-        const hasGender = /[_\s](female|male)(\s*\(\d+\))?$/i.test(name) ||
-                          /[_\s](female|male)\s/i.test(name);
-        // Duplicate markers like (1), (2)
+        const isVideoSync = r.source === 'video-sync';
+
+        // Gender suffix with underscore (e.g. "_female", "_Female", "_male") - never in original data
+        const hasUnderscoreGender = /_(female|male)/i.test(name);
+        // Duplicate markers like (1), (2) at end
         const hasDupeMarker = /\(\d+\)\s*$/.test(name);
-        // Version markers like (Version2)
+        // Version markers like ( Version2 )
         const hasVersion = /\(\s*version\s*\d*\s*\)/i.test(name);
-        return hasGender || hasDupeMarker || hasVersion;
+
+        if (isVideoSync) {
+          // Video-sync records: delete any with gender suffixes, dupe markers, or version markers
+          const hasAnyGender = /[_\s](female|male)/i.test(name);
+          return hasAnyGender || hasDupeMarker || hasVersion;
+        } else {
+          // Non-video-sync: only delete underscore-gender patterns and dupe/version markers
+          return hasUnderscoreGender || hasDupeMarker || hasVersion;
+        }
       });
 
       if (dryRun) {
