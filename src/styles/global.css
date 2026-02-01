@@ -17917,6 +17917,26 @@ a.nav-left {
     border-color: rgba(20, 184, 166, 0.25);
 }
 
+.progress-tip-banner.progress-tip-new_pr {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(245, 158, 11, 0.08));
+    border-color: rgba(251, 191, 36, 0.4);
+    animation: pr-glow 2s ease-in-out;
+}
+
+.progress-tip-banner.progress-tip-new_pr .progress-tip-title {
+    color: #fbbf24;
+    font-size: 14px;
+}
+
+.progress-tip-banner.progress-tip-new_pr .progress-tip-icon {
+    font-size: 18px;
+}
+
+@keyframes pr-glow {
+    0% { border-color: rgba(251, 191, 36, 0.8); box-shadow: 0 0 12px rgba(251, 191, 36, 0.3); }
+    100% { border-color: rgba(251, 191, 36, 0.4); box-shadow: none; }
+}
+
 /* Readiness Check Modal */
 .readiness-overlay {
     position: fixed;

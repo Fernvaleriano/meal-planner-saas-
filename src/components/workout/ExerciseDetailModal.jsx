@@ -371,6 +371,7 @@ function ExerciseDetailModal({
 
   // Progressive overload tip state
   const [progressTip, setProgressTip] = useState(null);
+  const allTimeMaxWeightRef = useRef(0); // Track all-time PR for real-time PR detection
 
   // Client note for coach state
   const [clientNote, setClientNote] = useState('');
@@ -474,6 +475,10 @@ function ExerciseDetailModal({
           );
         }
         if (cancelled || !res?.history || res.history.length === 0) return;
+
+        // Store all-time max weight for real-time PR detection
+        const allMaxWeights = res.history.map(h => Math.max(...(h.setsData || []).map(s => s.weight || 0), 0));
+        allTimeMaxWeightRef.current = allMaxWeights.length > 0 ? Math.max(...allMaxWeights) : 0;
 
         const allSessions = res.history; // most recent first
         // Exclude today's session so the tip is based on previous workouts
@@ -625,11 +630,12 @@ function ExerciseDetailModal({
 
         // 7. NORMAL readiness + hit target reps → add a set first, then weight
         } else if (readiness === 'normal' && allSetsHitTarget && lastMaxWeight > 0) {
+          const targetSets = lastTotalSets + 1;
           tip = {
             type: 'add_set',
             icon: '\u{1F4C8}',
             title: 'Add a set',
-            message: `You hit ${lastMaxReps} reps on all sets on ${dateLabel}. Add a set at ${lastMaxWeight} kg before going heavier.`,
+            message: `You did ${lastTotalSets}×${lastMaxReps} at ${lastMaxWeight} kg on ${dateLabel}. Try ${targetSets}×${lastMaxReps} at ${lastMaxWeight} kg today before going heavier.`,
           };
 
         // 8. NORMAL readiness + struggling → build reps
@@ -762,6 +768,19 @@ function ExerciseDetailModal({
           workoutId: logId,
           exercises: [exercisePayload]
         });
+
+        // Real-time PR detection: check if current sets beat all-time max weight
+        const currentMaxWeight = Math.max(...setsData.map(s => s.weight || 0), 0);
+        const previousMax = allTimeMaxWeightRef.current;
+        if (currentMaxWeight > 0 && previousMax > 0 && currentMaxWeight > previousMax) {
+          setProgressTip({
+            type: 'new_pr',
+            icon: '\u{1F3C6}',
+            title: 'New Personal Record!',
+            message: `You just hit ${currentMaxWeight} kg — up from ${previousMax} kg. Keep pushing!`,
+          });
+          allTimeMaxWeightRef.current = currentMaxWeight; // Update so it doesn't re-trigger
+        }
       } catch (err) {
         console.error('Error auto-saving exercise log:', err);
       }
