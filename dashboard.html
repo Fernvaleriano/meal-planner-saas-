@@ -284,7 +284,7 @@
             cursor: pointer;
             padding: 8px 12px;
             border-radius: 8px;
-            transition: background 0.15s;
+            transition: background 0.15s, opacity 0.3s;
         }
 
         .priority-alert--clickable:hover {
@@ -293,6 +293,59 @@
 
         [data-theme="dark"] .priority-alert--clickable:hover {
             background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* Checkbox for dismissing priority alerts */
+        .priority-checkbox {
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            border: 2px solid var(--gray-400);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            margin-top: 1px;
+            background: transparent;
+        }
+
+        .priority-checkbox:hover {
+            border-color: var(--brand-primary);
+            background: rgba(var(--brand-primary-rgb, 59, 130, 246), 0.1);
+        }
+
+        .priority-checkbox svg {
+            display: none;
+            width: 12px;
+            height: 12px;
+        }
+
+        .priority-checkbox.checked {
+            background: var(--brand-primary, #3b82f6);
+            border-color: var(--brand-primary, #3b82f6);
+        }
+
+        .priority-checkbox.checked svg {
+            display: block;
+            stroke: #fff;
+        }
+
+        .priority-alert--dismissed {
+            opacity: 0.4;
+            text-decoration: line-through;
+            pointer-events: none;
+        }
+
+        .priority-alert--dismissed .priority-checkbox {
+            pointer-events: auto;
+        }
+
+        .priority-alert--fadeout {
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.4s, transform 0.4s;
         }
 
         .priority-alert-link {
@@ -638,197 +691,6 @@
 
         [data-theme="dark"] .cards-section-subtitle {
             color: #64748b;
-        }
-
-        /* Client PRs Section */
-        .client-prs-section {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 30px;
-            border: 1px solid var(--gray-200);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
-        }
-
-        [data-theme="dark"] .client-prs-section {
-            background: var(--gray-800);
-            border-color: var(--gray-700);
-        }
-
-        .prs-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .prs-title-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .prs-icon {
-            font-size: 1.5rem;
-        }
-
-        .prs-title-row h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--gray-800);
-            margin: 0;
-        }
-
-        [data-theme="dark"] .prs-title-row h2 {
-            color: #f1f5f9;
-        }
-
-        .prs-filter-tabs {
-            display: flex;
-            gap: 4px;
-            background: var(--gray-100);
-            border-radius: 10px;
-            padding: 3px;
-        }
-
-        [data-theme="dark"] .prs-filter-tabs {
-            background: var(--gray-900);
-        }
-
-        .prs-tab {
-            padding: 7px 16px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: var(--gray-500);
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        .prs-tab:hover {
-            color: var(--gray-700);
-        }
-
-        .prs-tab--active {
-            background: white;
-            color: var(--brand-primary);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        [data-theme="dark"] .prs-tab {
-            color: #64748b;
-        }
-
-        [data-theme="dark"] .prs-tab:hover {
-            color: #94a3b8;
-        }
-
-        [data-theme="dark"] .prs-tab--active {
-            background: var(--gray-700);
-            color: var(--brand-primary);
-            box-shadow: none;
-        }
-
-        .prs-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .prs-loading, .prs-empty {
-            color: var(--gray-400);
-            font-size: 0.875rem;
-            padding: 16px 0;
-            text-align: center;
-        }
-
-        .pr-item {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px 16px;
-            background: var(--gray-50);
-            border-radius: 12px;
-            border: 1px solid var(--gray-100);
-            transition: all 0.2s;
-        }
-
-        .pr-item:hover {
-            border-color: var(--gray-200);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-        }
-
-        [data-theme="dark"] .pr-item {
-            background: var(--gray-900);
-            border-color: var(--gray-700);
-        }
-
-        [data-theme="dark"] .pr-item:hover {
-            border-color: var(--gray-600);
-        }
-
-        .pr-badge {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            flex-shrink: 0;
-        }
-
-        .pr-details {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .pr-client-name {
-            font-size: 0.9375rem;
-            font-weight: 700;
-            color: var(--gray-800);
-        }
-
-        [data-theme="dark"] .pr-client-name {
-            color: #f1f5f9;
-        }
-
-        .pr-exercise {
-            font-size: 0.8125rem;
-            color: var(--gray-500);
-            margin-top: 2px;
-        }
-
-        .pr-weight {
-            font-size: 1.125rem;
-            font-weight: 800;
-            color: var(--brand-primary);
-            white-space: nowrap;
-        }
-
-        .pr-prev {
-            font-size: 0.75rem;
-            color: var(--gray-400);
-            font-weight: 500;
-        }
-
-        .pr-time {
-            font-size: 0.75rem;
-            color: var(--gray-400);
-            white-space: nowrap;
-        }
-
-        @media (max-width: 768px) {
-            .prs-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
         }
 
         /* Stats Cards */
@@ -3539,24 +3401,6 @@
                 </div>
             </div>
 
-            <!-- Client PRs Section -->
-            <div class="client-prs-section" id="clientPrsSection">
-                <div class="prs-header">
-                    <div class="prs-title-row">
-                        <span class="prs-icon">🏆</span>
-                        <h2>Client PRs</h2>
-                    </div>
-                    <div class="prs-filter-tabs">
-                        <button class="prs-tab prs-tab--active" data-period="today" onclick="filterPRs('today')">Today</button>
-                        <button class="prs-tab" data-period="week" onclick="filterPRs('week')">This Week</button>
-                        <button class="prs-tab" data-period="month" onclick="filterPRs('month')">This Month</button>
-                    </div>
-                </div>
-                <div class="prs-list" id="prsList">
-                    <div class="prs-loading">Loading PRs...</div>
-                </div>
-            </div>
-
             <!-- Daily Operations -->
             <div class="cards-section-header">
                 <h2 class="cards-section-title">Daily Operations</h2>
@@ -3898,6 +3742,63 @@
             return `${diffDays}d ago`;
         }
 
+        // --- Priority Alert Checkbox/Dismiss Logic ---
+        function getDismissedAlerts() {
+            try {
+                const raw = localStorage.getItem('dismissedPriorityAlerts');
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                // Clean entries older than 7 days
+                const now = Date.now();
+                const cleaned = {};
+                for (const [key, ts] of Object.entries(parsed)) {
+                    if (now - ts < 7 * 24 * 60 * 60 * 1000) cleaned[key] = ts;
+                }
+                if (Object.keys(cleaned).length !== Object.keys(parsed).length) {
+                    localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(cleaned));
+                }
+                return cleaned;
+            } catch { return {}; }
+        }
+
+        function dismissPriorityAlert(alertId, el) {
+            event.stopPropagation();
+            const dismissed = getDismissedAlerts();
+            const alertRow = el.closest('.priority-alert');
+            if (dismissed[alertId]) {
+                // Un-dismiss
+                delete dismissed[alertId];
+                localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(dismissed));
+                el.classList.remove('checked');
+                if (alertRow) alertRow.classList.remove('priority-alert--dismissed');
+            } else {
+                // Dismiss
+                dismissed[alertId] = Date.now();
+                localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(dismissed));
+                el.classList.add('checked');
+                if (alertRow) {
+                    alertRow.classList.add('priority-alert--fadeout');
+                    setTimeout(() => {
+                        alertRow.classList.remove('priority-alert--fadeout');
+                        alertRow.classList.add('priority-alert--dismissed');
+                    }, 400);
+                }
+            }
+        }
+
+        function checkboxHtml(alertId) {
+            const dismissed = getDismissedAlerts();
+            const isChecked = !!dismissed[alertId];
+            return `<span class="priority-checkbox${isChecked ? ' checked' : ''}" onclick="dismissPriorityAlert('${alertId}', this)" title="Mark as handled">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>
+            </span>`;
+        }
+
+        function dismissedClass(alertId) {
+            const dismissed = getDismissedAlerts();
+            return dismissed[alertId] ? ' priority-alert--dismissed' : '';
+        }
+
         async function loadPriorityAlerts(coachId, clientCount, pendingCheckIns) {
             const alertsEl = document.getElementById('priorityAlerts');
             const alerts = [];
@@ -3963,8 +3864,10 @@
                     const remaining = highStressCheckins.length - shown.length;
                     shown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
+                        const aid = 'stress-' + c.id;
                         alerts.push(`
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                ${checkboxHtml(aid)}
                                 <span class="priority-dot priority-dot--red"></span>
                                 <span>
                                     <span class="priority-label priority-label--action">High stress:</span>
@@ -3989,8 +3892,10 @@
                     const remaining = uniqueLowEnergy.length - shown.length;
                     shown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
+                        const aid = 'energy-' + c.id;
                         alerts.push(`
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                ${checkboxHtml(aid)}
                                 <span class="priority-dot priority-dot--red"></span>
                                 <span>
                                     <span class="priority-label priority-label--action">Low energy:</span>
@@ -4018,8 +3923,10 @@
                     const todayShown = todayOnes.slice(0, MAX_SHOWN);
                     todayShown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
+                        const aid = 'checkin-' + c.id;
                         alerts.push(`
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                ${checkboxHtml(aid)}
                                 <span class="priority-dot priority-dot--amber"></span>
                                 <span>
                                     <span class="priority-label priority-label--pending">New today:</span>
@@ -4034,8 +3941,10 @@
                     const olderShown = olderOnes.slice(0, MAX_SHOWN);
                     olderShown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
+                        const aid = 'checkin-' + c.id;
                         alerts.push(`
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                                ${checkboxHtml(aid)}
                                 <span class="priority-dot priority-dot--amber"></span>
                                 <span>
                                     <span class="priority-label priority-label--pending">Pending:</span>
@@ -4074,8 +3983,10 @@
                             const name = clientMap[p.client_id] || 'Unknown Client';
                             const daysLeft = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
                             const urgency = daysLeft <= 1 ? 'Expires tomorrow' : `Expires in ${daysLeft} days`;
+                            const aid = 'plan-' + p.id;
                             alerts.push(`
-                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${p.client_id}'">
+                                <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='client-profile.html?clientId=${p.client_id}'">
+                                    ${checkboxHtml(aid)}
                                     <span class="priority-dot priority-dot--amber"></span>
                                     <span>
                                         <span class="priority-label priority-label--pending">${urgency}:</span>
@@ -4110,8 +4021,10 @@
                         shown.forEach(pr => {
                             const name = clientMap[pr.related_client_id] || '';
                             const clientLink = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
+                            const aid = 'pr-' + (pr.related_client_id || '') + '-' + new Date(pr.created_at).getTime();
                             alerts.push(`
-                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='${clientLink}'">
+                                <div class="priority-alert priority-alert--clickable${dismissedClass(aid)}" onclick="window.location.href='${clientLink}'">
+                                    ${checkboxHtml(aid)}
                                     <span class="priority-dot priority-dot--green"></span>
                                     <span>
                                         <span class="priority-label priority-label--positive">New PR!</span>
@@ -4123,7 +4036,7 @@
                             `);
                         });
                         if (remaining > 0) {
-                            alerts.push(`<div class="priority-alert-more" onclick="document.getElementById('clientPrsSection').scrollIntoView({behavior:'smooth'})">+ ${remaining} more PR${remaining !== 1 ? 's' : ''} this week</div>`);
+                            alerts.push(`<div class="priority-alert-more" onclick="window.location.href='manage-clients.html'">+ ${remaining} more PR${remaining !== 1 ? 's' : ''} this week</div>`);
                         }
                     }
                 } catch (e) {
@@ -4204,130 +4117,6 @@
                 });
             }
         });
-
-        // ========================================
-        // CLIENT PRS SECTION
-        // ========================================
-        let cachedPrCoachId = null;
-        let allPrNotifications = [];
-
-        async function loadClientPRs(coachId) {
-            cachedPrCoachId = coachId;
-            const prsList = document.getElementById('prsList');
-
-            try {
-                // Fetch PR notifications for the last 30 days
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-                const { data: prNotifs, error } = await supabaseClient
-                    .from('notifications')
-                    .select('id, title, message, related_client_id, created_at')
-                    .eq('user_id', coachId)
-                    .eq('type', 'client_pr')
-                    .gte('created_at', thirtyDaysAgo.toISOString())
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-
-                if (error) throw error;
-
-                allPrNotifications = prNotifs || [];
-                filterPRs('today');
-            } catch (e) {
-                console.warn('Could not load client PRs:', e);
-                prsList.innerHTML = '<div class="prs-empty">No PR data available yet.</div>';
-            }
-        }
-
-        function filterPRs(period) {
-            // Update active tab
-            document.querySelectorAll('.prs-tab').forEach(tab => {
-                tab.classList.toggle('prs-tab--active', tab.dataset.period === period);
-            });
-
-            const now = new Date();
-            let cutoff;
-            switch (period) {
-                case 'today':
-                    cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    break;
-                case 'week':
-                    cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    break;
-                case 'month':
-                    cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                    break;
-                default:
-                    cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            }
-
-            const filtered = allPrNotifications.filter(pr => new Date(pr.created_at) >= cutoff);
-            renderPRs(filtered, period);
-        }
-
-        function renderPRs(prs, period) {
-            const prsList = document.getElementById('prsList');
-
-            if (prs.length === 0) {
-                const periodLabel = period === 'today' ? 'today' : period === 'week' ? 'this week' : 'this month';
-                prsList.innerHTML = `<div class="prs-empty">No PRs recorded ${periodLabel}. When your clients beat their personal records, they'll show up here!</div>`;
-                return;
-            }
-
-            prsList.innerHTML = prs.map(pr => {
-                // Parse PR data from notification
-                const title = pr.title || '';
-                const message = pr.message || '';
-
-                // Extract client name (format: "New PR: ClientName - Exercise")
-                const titleMatch = title.match(/New PR: (.+?) - (.+)/);
-                const clientName = titleMatch ? titleMatch[1] : 'Client';
-                const exerciseName = titleMatch ? titleMatch[2] : 'Exercise';
-
-                // Extract weight from message
-                const weightMatch = message.match(/(\d+(?:\.\d+)?)(lbs|kg)\s*x(\d+)/);
-                const weight = weightMatch ? weightMatch[1] : '';
-                const unit = weightMatch ? weightMatch[2] : 'lbs';
-                const reps = weightMatch ? weightMatch[3] : '';
-
-                // Extract previous best
-                const prevMatch = message.match(/previous best: (\d+(?:\.\d+)?)/);
-                const prevBest = prevMatch ? prevMatch[1] : null;
-
-                // Time ago
-                const timeAgo = formatPrTime(pr.created_at);
-
-                return `
-                    <div class="pr-item" ${pr.related_client_id ? `onclick="window.location.href='client-profile.html?clientId=${pr.related_client_id}'" style="cursor:pointer;"` : ''}>
-                        <div class="pr-badge">🏅</div>
-                        <div class="pr-details">
-                            <div class="pr-client-name">${clientName}</div>
-                            <div class="pr-exercise">${exerciseName}${prevBest ? ` (prev: ${prevBest}${unit})` : ''}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div class="pr-weight">${weight}${unit} x${reps}</div>
-                            <div class="pr-time">${timeAgo}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function formatPrTime(dateStr) {
-            const now = new Date();
-            const date = new Date(dateStr);
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays === 1) return 'Yesterday';
-            if (diffDays < 7) return `${diffDays}d ago`;
-            return date.toLocaleDateString();
-        }
 
         async function loadDashboard() {
             // Prevent multiple simultaneous loads
@@ -4538,9 +4327,6 @@
 
                 // Fetch and display quick stats
                 await loadQuickStats(user.id);
-
-                // Load client PRs section
-                loadClientPRs(user.id);
 
                 // Load notifications
                 loadNotifications(user.id);
