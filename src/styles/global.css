@@ -12857,6 +12857,7 @@ a.nav-left {
     position: relative;
     z-index: 1;
     flex: 1;
+    padding-right: 80px;
 }
 
 .workout-hero-v3 .hero-title-v3 {

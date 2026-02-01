@@ -32,6 +32,18 @@ const DIFFICULTY_COLORS = {
   advanced: '#ef4444'
 };
 
+function formatDuration(seconds) {
+  if (!seconds) return '30s';
+  const num = typeof seconds === 'string' ? parseInt(seconds, 10) : seconds;
+  if (isNaN(num)) return '30s';
+  if (num > 59) {
+    const mins = Math.floor(num / 60);
+    const secs = num % 60;
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+  }
+  return `${num}s`;
+}
+
 function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -216,7 +228,9 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
                   <div className="club-exercise-info">
                     <span className="club-exercise-name">{exercise.name}</span>
                     <span className="club-exercise-meta">
-                      {exercise.sets || 3} sets x {exercise.reps || '10'} {exercise.trackingType === 'time' ? 'sec' : 'reps'}
+                      {exercise.sets || 3} sets x {exercise.trackingType === 'time'
+                        ? formatDuration(exercise.duration || exercise.reps || 30)
+                        : `${exercise.reps || '10'} reps`}
                       {exercise.equipment ? ` | ${exercise.equipment}` : ''}
                     </span>
                   </div>
