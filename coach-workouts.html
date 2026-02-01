@@ -2078,6 +2078,61 @@
             cursor: not-allowed;
         }
 
+        /* Mode selection cards */
+        .ai-mode-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .ai-mode-card {
+            padding: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .ai-mode-card:hover {
+            border-color: var(--brand-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+        }
+
+        .ai-mode-card.selected {
+            border-color: var(--brand-primary);
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        .ai-mode-icon {
+            font-size: 1.75rem;
+            margin-bottom: 8px;
+        }
+
+        .ai-mode-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .ai-mode-desc {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .ai-form-section {
+            display: none;
+        }
+
+        .ai-form-section.active {
+            display: block;
+        }
+
         .generating-text {
             display: flex;
             align-items: center;
@@ -2926,151 +2981,229 @@
                 <button class="modal-close" onclick="closeAIModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="ai-form-group">
-                    <label>Client Name (optional)</label>
-                    <input type="text" id="aiClientName" placeholder="e.g., John Smith">
-                </div>
-                <div class="ai-form-row">
-                    <div class="ai-form-group">
-                        <label>Training Goal</label>
-                        <select id="aiGoal">
-                            <option value="strength">Strength</option>
-                            <option value="hypertrophy" selected>Hypertrophy (Muscle Building)</option>
-                            <option value="fat_loss">Fat Loss</option>
-                            <option value="general_fitness">General Fitness</option>
-                        </select>
+                <!-- Mode Selection -->
+                <div class="ai-mode-selector" id="aiModeSelector">
+                    <div class="ai-mode-card" onclick="selectAIMode('single')" id="modeSingle">
+                        <div class="ai-mode-icon">
+                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M3 12h18M12 3v18"/></svg>
+                        </div>
+                        <div class="ai-mode-title">Single Workout</div>
+                        <div class="ai-mode-desc">One session for a specific body part</div>
                     </div>
-                    <div class="ai-form-group">
-                        <label>Experience Level</label>
-                        <select id="aiExperience">
-                            <option value="beginner">Beginner</option>
-                            <option value="intermediate" selected>Intermediate</option>
-                            <option value="advanced">Advanced</option>
-                        </select>
+                    <div class="ai-mode-card" onclick="selectAIMode('program')" id="modeProgram">
+                        <div class="ai-mode-icon">
+                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        </div>
+                        <div class="ai-mode-title">Full Program</div>
+                        <div class="ai-mode-desc">Multi-day/week training program</div>
                     </div>
                 </div>
-                <div class="ai-form-row">
+
+                <!-- Shared Fields -->
+                <div class="ai-form-section" id="aiSharedFields">
                     <div class="ai-form-group">
-                        <label>Days Per Week</label>
-                        <select id="aiDaysPerWeek">
-                            <option value="1">1 day</option>
-                            <option value="2">2 days</option>
-                            <option value="3">3 days</option>
-                            <option value="4" selected>4 days</option>
-                            <option value="5">5 days</option>
-                            <option value="6">6 days</option>
-                        </select>
+                        <label>Client Name (optional)</label>
+                        <input type="text" id="aiClientName" placeholder="e.g., John Smith">
                     </div>
-                    <div class="ai-form-group">
-                        <label>Program Duration</label>
-                        <select id="aiDuration">
-                            <option value="4" selected>4 weeks</option>
-                            <option value="6">6 weeks</option>
-                            <option value="8">8 weeks</option>
-                        </select>
+                    <div class="ai-form-row">
+                        <div class="ai-form-group">
+                            <label>Training Goal</label>
+                            <select id="aiGoal">
+                                <option value="strength">Strength</option>
+                                <option value="hypertrophy" selected>Hypertrophy (Muscle Building)</option>
+                                <option value="fat_loss">Fat Loss</option>
+                                <option value="general_fitness">General Fitness</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group">
+                            <label>Experience Level</label>
+                            <select id="aiExperience">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate" selected>Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div class="ai-form-row">
+
+                <!-- Single Workout Fields -->
+                <div class="ai-form-section" id="aiSingleFields">
+                    <div class="ai-form-row">
+                        <div class="ai-form-group">
+                            <label>Target Muscle Group</label>
+                            <select id="aiTargetMuscle">
+                                <option value="chest">Chest</option>
+                                <option value="back">Back</option>
+                                <option value="shoulders">Shoulders</option>
+                                <option value="arms">Arms (Biceps & Triceps)</option>
+                                <option value="legs">Legs</option>
+                                <option value="glutes">Glutes & Hamstrings</option>
+                                <option value="core">Core</option>
+                                <option value="upper_body">Upper Body</option>
+                                <option value="lower_body">Lower Body</option>
+                                <option value="full_body">Full Body</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group">
+                            <label>Session Duration</label>
+                            <select id="aiSingleSessionDuration">
+                                <option value="30">~30 minutes</option>
+                                <option value="45">~45 minutes</option>
+                                <option value="60" selected>~60 minutes</option>
+                                <option value="90">~90 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ai-form-row">
+                        <div class="ai-form-group">
+                            <label>Training Style</label>
+                            <select id="aiSingleTrainingStyle">
+                                <option value="straight_sets" selected>Straight Sets</option>
+                                <option value="supersets">Supersets</option>
+                                <option value="circuits">Circuits</option>
+                                <option value="mixed">Mixed</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group">
+                            <label>Exercises Per Workout</label>
+                            <select id="aiSingleExerciseCount">
+                                <option value="4-5">4-5 (Quick)</option>
+                                <option value="5-6" selected>5-6 (Standard)</option>
+                                <option value="6-8">6-8 (Comprehensive)</option>
+                                <option value="8-10">8-10 (High Volume)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Program Fields -->
+                <div class="ai-form-section" id="aiProgramFields">
+                    <div class="ai-form-row">
+                        <div class="ai-form-group">
+                            <label>Days Per Week</label>
+                            <select id="aiDaysPerWeek">
+                                <option value="2">2 days</option>
+                                <option value="3">3 days</option>
+                                <option value="4" selected>4 days</option>
+                                <option value="5">5 days</option>
+                                <option value="6">6 days</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group">
+                            <label>Program Duration</label>
+                            <select id="aiDuration">
+                                <option value="4" selected>4 weeks</option>
+                                <option value="6">6 weeks</option>
+                                <option value="8">8 weeks</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ai-form-row">
+                        <div class="ai-form-group">
+                            <label>Workout Split</label>
+                            <select id="aiSplit">
+                                <option value="auto" selected>Auto (AI decides)</option>
+                                <option value="push_pull_legs">Push/Pull/Legs</option>
+                                <option value="upper_lower">Upper/Lower</option>
+                                <option value="full_body">Full Body</option>
+                                <option value="bro_split">Bro Split (1 muscle/day)</option>
+                                <option value="push_pull">Push/Pull (2-day)</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group">
+                            <label>Session Duration</label>
+                            <select id="aiSessionDuration">
+                                <option value="30">~30 minutes</option>
+                                <option value="45">~45 minutes</option>
+                                <option value="60" selected>~60 minutes</option>
+                                <option value="90">~90 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ai-form-row">
+                        <div class="ai-form-group">
+                            <label>Training Style</label>
+                            <select id="aiTrainingStyle">
+                                <option value="straight_sets" selected>Straight Sets</option>
+                                <option value="supersets">Supersets</option>
+                                <option value="circuits">Circuits</option>
+                                <option value="mixed">Mixed</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group">
+                            <label>Exercises Per Workout</label>
+                            <select id="aiExerciseCount">
+                                <option value="4-5">4-5 (Quick)</option>
+                                <option value="5-6" selected>5-6 (Standard)</option>
+                                <option value="6-8">6-8 (Comprehensive)</option>
+                                <option value="8-10">8-10 (High Volume)</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="ai-form-group">
-                        <label>Workout Split</label>
-                        <select id="aiSplit">
-                            <option value="auto" selected>Auto (AI decides)</option>
-                            <option value="push_pull_legs">Push/Pull/Legs</option>
-                            <option value="upper_lower">Upper/Lower</option>
-                            <option value="full_body">Full Body</option>
-                            <option value="bro_split">Bro Split (1 muscle/day)</option>
-                            <option value="push_pull">Push/Pull (2-day)</option>
-                        </select>
+                        <label>Focus Areas (optional)</label>
+                        <div class="equipment-grid">
+                            <label class="equipment-item">
+                                <input type="checkbox" name="focusArea" value="chest"> Chest
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="focusArea" value="back"> Back
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="focusArea" value="shoulders"> Shoulders
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="focusArea" value="arms"> Arms
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="focusArea" value="legs"> Legs
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="focusArea" value="core"> Core
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="focusArea" value="glutes"> Glutes
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shared bottom fields (equipment, injuries, preferences) -->
+                <div class="ai-form-section" id="aiBottomFields">
+                    <div class="ai-form-group">
+                        <label>Available Equipment</label>
+                        <div class="equipment-grid">
+                            <label class="equipment-item">
+                                <input type="checkbox" name="equipment" value="barbell" checked> Barbell
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="equipment" value="dumbbell" checked> Dumbbells
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="equipment" value="cable" checked> Cables
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="equipment" value="machine" checked> Machines
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="equipment" value="bodyweight" checked> Bodyweight
+                            </label>
+                            <label class="equipment-item">
+                                <input type="checkbox" name="equipment" value="kettlebell"> Kettlebells
+                            </label>
+                        </div>
                     </div>
                     <div class="ai-form-group">
-                        <label>Session Duration</label>
-                        <select id="aiSessionDuration">
-                            <option value="30">~30 minutes</option>
-                            <option value="45">~45 minutes</option>
-                            <option value="60" selected>~60 minutes</option>
-                            <option value="90">~90 minutes</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="ai-form-row">
-                    <div class="ai-form-group">
-                        <label>Training Style</label>
-                        <select id="aiTrainingStyle">
-                            <option value="straight_sets" selected>Straight Sets</option>
-                            <option value="supersets">Supersets</option>
-                            <option value="circuits">Circuits</option>
-                            <option value="mixed">Mixed</option>
-                        </select>
+                        <label>Injuries or Limitations (optional)</label>
+                        <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid overhead pressing">
                     </div>
                     <div class="ai-form-group">
-                        <label>Exercises Per Workout</label>
-                        <select id="aiExerciseCount">
-                            <option value="4-5">4-5 (Quick)</option>
-                            <option value="5-6" selected>5-6 (Standard)</option>
-                            <option value="6-8">6-8 (Comprehensive)</option>
-                            <option value="8-10">8-10 (High Volume)</option>
-                        </select>
+                        <label>Additional Preferences (optional)</label>
+                        <textarea id="aiPreferences" rows="2" placeholder="e.g., Include stretching, prefer compound movements"></textarea>
                     </div>
-                </div>
-                <div class="ai-form-group">
-                    <label>Focus Areas (optional)</label>
-                    <div class="equipment-grid">
-                        <label class="equipment-item">
-                            <input type="checkbox" name="focusArea" value="chest"> Chest
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="focusArea" value="back"> Back
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="focusArea" value="shoulders"> Shoulders
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="focusArea" value="arms"> Arms
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="focusArea" value="legs"> Legs
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="focusArea" value="core"> Core
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="focusArea" value="glutes"> Glutes
-                        </label>
-                    </div>
-                </div>
-                <div class="ai-form-group">
-                    <label>Available Equipment</label>
-                    <div class="equipment-grid">
-                        <label class="equipment-item">
-                            <input type="checkbox" name="equipment" value="barbell" checked> Barbell
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="equipment" value="dumbbell" checked> Dumbbells
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="equipment" value="cable" checked> Cables
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="equipment" value="machine" checked> Machines
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="equipment" value="bodyweight" checked> Bodyweight
-                        </label>
-                        <label class="equipment-item">
-                            <input type="checkbox" name="equipment" value="kettlebell"> Kettlebells
-                        </label>
-                    </div>
-                </div>
-                <div class="ai-form-group">
-                    <label>Injuries or Limitations (optional)</label>
-                    <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid overhead pressing">
-                </div>
-                <div class="ai-form-group">
-                    <label>Additional Preferences (optional)</label>
-                    <textarea id="aiPreferences" rows="2" placeholder="e.g., Include stretching, prefer compound movements"></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" id="aiModalFooter" style="display:none;">
                 <button class="ai-btn ai-btn-cancel" onclick="closeAIModal()">Cancel</button>
                 <button class="ai-btn ai-btn-generate" id="aiGenerateBtn" onclick="generateAIWorkout()">
                     Generate Program
@@ -5303,8 +5436,40 @@
         }
 
         // AI Modal
+        let aiMode = null; // 'single' or 'program'
+
         function openAIModal() {
+            // Reset to mode selection
+            aiMode = null;
+            document.getElementById('modeSingle').classList.remove('selected');
+            document.getElementById('modeProgram').classList.remove('selected');
+            document.getElementById('aiSharedFields').classList.remove('active');
+            document.getElementById('aiSingleFields').classList.remove('active');
+            document.getElementById('aiProgramFields').classList.remove('active');
+            document.getElementById('aiBottomFields').classList.remove('active');
+            document.getElementById('aiModalFooter').style.display = 'none';
+            document.getElementById('aiModeSelector').style.display = '';
             document.getElementById('aiModal').classList.add('active');
+        }
+
+        function selectAIMode(mode) {
+            aiMode = mode;
+            // Update card selection
+            document.getElementById('modeSingle').classList.toggle('selected', mode === 'single');
+            document.getElementById('modeProgram').classList.toggle('selected', mode === 'program');
+
+            // Show shared fields
+            document.getElementById('aiSharedFields').classList.add('active');
+            document.getElementById('aiBottomFields').classList.add('active');
+            document.getElementById('aiModalFooter').style.display = '';
+
+            // Toggle mode-specific fields
+            document.getElementById('aiSingleFields').classList.toggle('active', mode === 'single');
+            document.getElementById('aiProgramFields').classList.toggle('active', mode === 'program');
+
+            // Update button text
+            const btn = document.getElementById('aiGenerateBtn');
+            btn.innerHTML = mode === 'single' ? 'Generate Workout' : 'Generate Program';
         }
 
         function closeAIModal() {
@@ -5314,29 +5479,74 @@
         async function generateAIWorkout() {
             const btn = document.getElementById('aiGenerateBtn');
             const originalText = btn.innerHTML;
+            const isSingle = aiMode === 'single';
 
-            // Get form values
+            // Get shared form values
             const clientName = document.getElementById('aiClientName').value || 'Client';
             const goal = document.getElementById('aiGoal').value;
             const experience = document.getElementById('aiExperience').value;
-            const daysPerWeek = parseInt(document.getElementById('aiDaysPerWeek').value);
-            const duration = parseInt(document.getElementById('aiDuration').value);
-            const split = document.getElementById('aiSplit').value;
-            const sessionDuration = parseInt(document.getElementById('aiSessionDuration').value);
-            const trainingStyle = document.getElementById('aiTrainingStyle').value;
-            const exerciseCount = document.getElementById('aiExerciseCount').value;
             const injuries = document.getElementById('aiInjuries').value;
             const preferences = document.getElementById('aiPreferences').value;
 
             const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
                 .map(cb => cb.value);
 
-            const focusAreas = Array.from(document.querySelectorAll('input[name="focusArea"]:checked'))
-                .map(cb => cb.value);
-
             if (equipment.length === 0) {
                 showToast('Please select at least one equipment type', 'error');
                 return;
+            }
+
+            // Build request body based on mode
+            let requestBody;
+            if (isSingle) {
+                const targetMuscle = document.getElementById('aiTargetMuscle').value;
+                const sessionDuration = parseInt(document.getElementById('aiSingleSessionDuration').value);
+                const trainingStyle = document.getElementById('aiSingleTrainingStyle').value;
+                const exerciseCount = document.getElementById('aiSingleExerciseCount').value;
+
+                requestBody = {
+                    mode: 'single',
+                    clientName,
+                    goal,
+                    experience,
+                    targetMuscle,
+                    daysPerWeek: 1,
+                    duration: 1,
+                    split: 'auto',
+                    sessionDuration,
+                    trainingStyle,
+                    exerciseCount,
+                    focusAreas: [targetMuscle],
+                    equipment,
+                    injuries,
+                    preferences
+                };
+            } else {
+                const daysPerWeek = parseInt(document.getElementById('aiDaysPerWeek').value);
+                const duration = parseInt(document.getElementById('aiDuration').value);
+                const split = document.getElementById('aiSplit').value;
+                const sessionDuration = parseInt(document.getElementById('aiSessionDuration').value);
+                const trainingStyle = document.getElementById('aiTrainingStyle').value;
+                const exerciseCount = document.getElementById('aiExerciseCount').value;
+                const focusAreas = Array.from(document.querySelectorAll('input[name="focusArea"]:checked'))
+                    .map(cb => cb.value);
+
+                requestBody = {
+                    mode: 'program',
+                    clientName,
+                    goal,
+                    experience,
+                    daysPerWeek,
+                    duration,
+                    split,
+                    sessionDuration,
+                    trainingStyle,
+                    exerciseCount,
+                    focusAreas,
+                    equipment,
+                    injuries,
+                    preferences
+                };
             }
 
             // Show loading
@@ -5347,21 +5557,7 @@
                 const response = await fetch('/.netlify/functions/generate-workout-claude', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientName,
-                        goal,
-                        experience,
-                        daysPerWeek,
-                        duration,
-                        split,
-                        sessionDuration,
-                        trainingStyle,
-                        exerciseCount,
-                        focusAreas,
-                        equipment,
-                        injuries,
-                        preferences
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const result = await response.json();
@@ -5372,10 +5568,17 @@
 
                 // Populate program
                 const program = result.program;
-                document.getElementById('programName').value = program.programName || `${goal} Program`;
-                document.getElementById('programType').value = goal;
+                const programGoal = requestBody.goal;
+
+                if (isSingle) {
+                    const targetLabel = document.getElementById('aiTargetMuscle').selectedOptions[0]?.text || requestBody.targetMuscle;
+                    document.getElementById('programName').value = program.programName || `${targetLabel} Workout`;
+                } else {
+                    document.getElementById('programName').value = program.programName || `${programGoal} Program`;
+                }
+                document.getElementById('programType').value = programGoal;
                 document.getElementById('programDifficulty').value = experience;
-                document.getElementById('daysPerWeek').value = daysPerWeek;
+                document.getElementById('daysPerWeek').value = requestBody.daysPerWeek;
                 document.getElementById('programDescription').value = program.description || '';
 
                 // Convert to workout days
@@ -5385,7 +5588,6 @@
                         workoutDays.push({
                             name: workout.name,
                             exercises: (workout.exercises || []).map(ex => ({
-                                // Include database fields if exercise was matched
                                 id: ex.id,
                                 name: ex.name,
                                 video_url: ex.video_url,
@@ -5398,8 +5600,7 @@
                                 reps: ex.reps || '8-12',
                                 restSeconds: ex.restSeconds || 90,
                                 notes: ex.notes || '',
-                                matched: ex.matched, // Track if this was matched to database
-                                // Superset and warmup/stretch indicators
+                                matched: ex.matched,
                                 isSuperset: ex.isSuperset || false,
                                 supersetGroup: ex.supersetGroup || null,
                                 isWarmup: ex.isWarmup || false,
@@ -5411,14 +5612,14 @@
 
                 renderWorkoutDays();
                 closeAIModal();
-                showToast('Workout program generated!');
+                showToast(isSingle ? 'Workout generated!' : 'Workout program generated!');
 
             } catch (error) {
                 console.error('AI generation error:', error);
                 showToast(error.message || 'Failed to generate workout', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Generate Program';
+                btn.innerHTML = isSingle ? 'Generate Workout' : 'Generate Program';
             }
         }
 
