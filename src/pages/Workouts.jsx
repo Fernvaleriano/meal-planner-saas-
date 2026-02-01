@@ -1539,7 +1539,7 @@ function Workouts() {
       try {
         const postData = {
           clientId: clientData.id,
-          assignmentId: todayWorkout.id,
+          assignmentId: todayWorkout.is_adhoc ? null : todayWorkout.id,
           workoutDate: formatDate(selectedDate),
           workoutName: todayWorkout?.name || 'Workout',
           status: 'in_progress'

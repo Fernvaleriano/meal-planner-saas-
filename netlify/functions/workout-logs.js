@@ -170,12 +170,12 @@ exports.handler = async (event) => {
       const insertData = {
         client_id: clientId,
         coach_id: coachId,
-        assignment_id: assignmentId,
         workout_date: resolvedDate,
         workout_name: workoutName,
         started_at: new Date().toISOString(),
         status: 'in_progress'
       };
+      if (assignmentId) insertData.assignment_id = assignmentId;
       if (energyLevel) insertData.energy_level = energyLevel;
       if (sorenessLevel) insertData.soreness_level = sorenessLevel;
       if (sleepQuality) insertData.sleep_quality = sleepQuality;
