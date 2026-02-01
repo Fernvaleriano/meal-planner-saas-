@@ -721,20 +721,24 @@ async function handleQuestion(event) {
       const clientExerciseLogs = exerciseLogs.filter(e => e.client_id === client.id);
       const clientAssignment = workoutAssignments.find(a => a.client_id === client.id);
 
-      // Find PRs (heaviest weight per exercise)
+      // Find PRs (heaviest weight per exercise) with previous best for comparison
       // Use the client's unit preference, fallback to sets_data unit, then 'lbs'
       const clientUnitPref = client.unit_preference === 'metric' ? 'kg' : 'lbs';
       const prsByExercise = {};
-      clientExerciseLogs.forEach(log => {
+      // Sort by date ascending so we process older logs first and track previous bests
+      const sortedExerciseLogs = [...clientExerciseLogs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      sortedExerciseLogs.forEach(log => {
         if (log.max_weight && log.exercise_name) {
           const key = log.exercise_name;
+          // Get reps and unit from the specific set that achieved max weight
+          const setsData = Array.isArray(log.sets_data) ? log.sets_data : [];
+          const bestSet = setsData.find(s => Number(s.weight) === Number(log.max_weight));
+          const repsAtMaxWeight = bestSet ? (Number(bestSet.reps) || 0) : 0;
+          const unitFromSet = bestSet?.weightUnit || setsData[0]?.weightUnit || clientUnitPref;
+
           if (!prsByExercise[key] || log.max_weight > prsByExercise[key].weight) {
-            // Get reps and unit from the specific set that achieved max weight
-            const setsData = Array.isArray(log.sets_data) ? log.sets_data : [];
-            const bestSet = setsData.find(s => Number(s.weight) === Number(log.max_weight));
-            const repsAtMaxWeight = bestSet ? (Number(bestSet.reps) || 0) : (Number(log.total_reps) || 0);
-            const unitFromSet = bestSet?.weightUnit || setsData[0]?.weightUnit || clientUnitPref;
-            prsByExercise[key] = { weight: log.max_weight, reps: repsAtMaxWeight, unit: unitFromSet, date: log.created_at, isPr: log.is_pr };
+            const previousWeight = prsByExercise[key]?.weight || null;
+            prsByExercise[key] = { weight: log.max_weight, reps: repsAtMaxWeight, unit: unitFromSet, date: log.created_at, isPr: log.is_pr, previousWeight };
           }
         }
       });
@@ -780,9 +784,17 @@ async function handleQuestion(event) {
           recentExercises: clientExerciseLogs.slice(0, 10).map(e => {
             const eSetsData = Array.isArray(e.sets_data) ? e.sets_data : [];
             const eUnit = eSetsData[0]?.weightUnit || clientUnitPref;
-            return { name: e.exercise_name, sets: e.total_sets, reps: Number(e.total_reps) || 0, weight: e.max_weight, unit: eUnit, volume: e.total_volume, isPr: e.is_pr };
+            // Compute reps from sets_data directly (DB total_reps may be corrupted from old string concatenation bug)
+            const computedTotalReps = eSetsData.reduce((sum, s) => sum + (Number(s.reps) || 0), 0);
+            // Only count sets with actual weight (> 0) for the display
+            const weightedSets = eSetsData.filter(s => Number(s.weight) > 0);
+            const bestSetReps = weightedSets.length > 0 ? Math.max(...weightedSets.map(s => Number(s.reps) || 0)) : computedTotalReps;
+            return { name: e.exercise_name, sets: weightedSets.length || e.total_sets, reps: bestSetReps, weight: e.max_weight, unit: eUnit, volume: e.total_volume, isPr: e.is_pr };
           }),
-          prs: Object.entries(prsByExercise).slice(0, 10).map(([exercise, data]) => ({ exercise, weight: data.weight, reps: data.reps, unit: data.unit, date: data.date })),
+          prs: Object.entries(prsByExercise).slice(0, 10).map(([exercise, data]) => ({
+            exercise, weight: data.weight, reps: data.reps, unit: data.unit, date: data.date,
+            previousWeight: data.previousWeight
+          })),
           currentProgram: clientAssignment?.workout_data?.name || null
         },
         body: {
@@ -842,14 +854,18 @@ async function handleQuestion(event) {
         if (c.workouts.recentExercises.length > 0) {
           const exerciseStrs = c.workouts.recentExercises.slice(0, 5).map(e => {
             let str = e.name;
-            if (e.weight) str += ` ${e.weight}${e.unit || 'lbs'}`;
-            if (e.sets && e.reps) str += ` ${e.sets}x${e.reps}`;
+            if (e.weight) str += ` ${e.weight}${e.unit || 'lbs'} for ${e.reps} reps`;
+            else if (e.reps) str += ` ${e.reps} reps`;
             return str;
           });
           parts.push(`recent exercises: ${exerciseStrs.join(', ')}`);
         }
         if (c.workouts.prs.length > 0) {
-          const prStrs = c.workouts.prs.slice(0, 3).map(p => `${p.exercise}: ${p.weight}${p.unit} for ${p.reps} reps`);
+          const prStrs = c.workouts.prs.slice(0, 3).map(p => {
+            let str = `${p.exercise}: ${p.weight}${p.unit} for ${p.reps} reps`;
+            if (p.previousWeight) str += ` (previous best: ${p.previousWeight}${p.unit})`;
+            return str;
+          });
           parts.push(`PRs: ${prStrs.join(', ')}`);
         }
       }
