@@ -12246,9 +12246,9 @@ a.nav-left {
 /* Enhanced Workout Summary Modal */
 .workout-summary-modal.enhanced {
     max-width: 400px;
-    padding: 32px 24px;
-    max-height: 85vh;
-    overflow-y: scroll;
+    padding: 32px 24px calc(24px + env(safe-area-inset-bottom, 0px));
+    max-height: 90vh;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-y;
@@ -12258,6 +12258,9 @@ a.nav-left {
 .summary-scroll-overlay {
     overflow: hidden;
     touch-action: none;
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: max(40px, env(safe-area-inset-top, 40px));
 }
 
 .summary-stars {
@@ -12412,7 +12415,8 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    margin-top: 8px;
+    margin-top: 16px;
+    flex-shrink: 0;
 }
 
 .workout-summary-overlay.share-overlay {
