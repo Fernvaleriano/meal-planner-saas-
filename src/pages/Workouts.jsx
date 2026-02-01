@@ -2118,6 +2118,16 @@ function Workouts() {
                   className="menu-item"
                   onClick={() => {
                     setShowHeroMenu(false);
+                    setShowClubWorkouts(true);
+                  }}
+                >
+                  <Users size={18} />
+                  <span>Club Workouts</span>
+                </button>
+                <button
+                  className="menu-item"
+                  onClick={() => {
+                    setShowHeroMenu(false);
                     navigate('/workout-history');
                   }}
                 >
