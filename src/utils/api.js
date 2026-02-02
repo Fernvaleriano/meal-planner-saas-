@@ -159,14 +159,8 @@ export async function ensureFreshSession() {
   return await getAuthToken();
 }
 
-// Authenticated fetch wrapper with improved error handling and retry
+// Authenticated fetch wrapper with improved error handling
 async function authenticatedFetch(url, options = {}) {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    const err = new Error('You appear to be offline. Please check your connection.');
-    err.isOffline = true;
-    throw err;
-  }
-
   const token = await getAuthToken();
 
   const headers = {
@@ -178,36 +172,10 @@ async function authenticatedFetch(url, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Retry logic for network failures
-  let lastError;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers
-      });
-      // If fetch succeeded, break out of retry loop and continue with response handling below
-      return await handleFetchResponse(response, url, options, headers, token);
-    } catch (err) {
-      lastError = err;
-      const isNetworkError = err.name === 'TypeError' || err.message === 'Failed to fetch';
-      if (isNetworkError && attempt < 2) {
-        await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000));
-        continue;
-      }
-      if (isNetworkError) {
-        const networkErr = new Error('Network error. Please check your connection and try again.');
-        networkErr.isOffline = true;
-        throw networkErr;
-      }
-      throw err;
-    }
-  }
-  throw lastError;
-}
-
-// Handle response after successful fetch
-async function handleFetchResponse(response, url, options, headers, token) {
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

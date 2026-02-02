@@ -1122,7 +1122,6 @@ function Workouts() {
       }
     }).catch(err => {
       console.error('Error adding exercise:', err);
-      showError('Failed to save exercise changes');
     });
   }, [clientData?.id, selectedDate, showError]); // Added dependencies for ad-hoc workout creation
 
