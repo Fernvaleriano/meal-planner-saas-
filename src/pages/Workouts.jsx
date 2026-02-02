@@ -10,6 +10,7 @@ import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
 import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
+import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -350,6 +351,7 @@ function Workouts() {
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
+  const [showGuidedWorkout, setShowGuidedWorkout] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showShareResults, setShowShareResults] = useState(false);
   const [shareToggles, setShareToggles] = useState({
@@ -1657,6 +1659,7 @@ function Workouts() {
     setReadinessData(readiness);
     setWorkoutStarted(true);
     setWorkoutStartTime(prev => prev || new Date());
+    setShowGuidedWorkout(true);
 
     if (!workoutLog && clientData?.id && todayWorkout?.id) {
       // No existing log — create one with readiness data
@@ -2712,6 +2715,21 @@ function Workouts() {
         <ReadinessCheckModal
           onComplete={handleReadinessComplete}
           onSkip={() => handleReadinessComplete(null)}
+        />
+      )}
+
+      {/* Guided Workout Mode */}
+      {showGuidedWorkout && exercises.length > 0 && (
+        <GuidedWorkoutModal
+          exercises={exercises}
+          workoutName={todayWorkout?.name || 'Workout'}
+          onClose={() => setShowGuidedWorkout(false)}
+          onExerciseComplete={(exerciseId) => {
+            if (exerciseId && !completedExercises.has(exerciseId)) {
+              toggleExerciseComplete(exerciseId);
+            }
+          }}
+          onWorkoutFinish={handleFinishClick}
         />
       )}
 
