@@ -441,6 +441,138 @@
             color: white;
         }
 
+        /* Save Dropdown */
+        .save-dropdown {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .save-dropdown .btn-save-main {
+            border-radius: var(--radius-md) 0 0 var(--radius-md);
+            padding-right: 16px;
+        }
+
+        .save-dropdown .btn-save-toggle {
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            padding: 10px 8px;
+            border-left: 1px solid rgba(13, 148, 136, 0.3);
+            background: white;
+            color: var(--brand-primary);
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            border: none;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .save-dropdown .btn-save-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        .save-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 6px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 260px;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+        }
+
+        .save-dropdown-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .save-dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .save-dropdown-item:first-child {
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        .save-dropdown-item:last-child {
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+        }
+
+        .save-dropdown-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .save-dropdown-item + .save-dropdown-item {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .save-dropdown-item-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .save-dropdown-item-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .save-dropdown-item .client-count-badge {
+            display: inline-block;
+            background: var(--brand-primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 6px;
+            font-weight: 600;
+        }
+
+        /* Update Clients Confirm Modal */
+        .update-clients-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 12px 0;
+            text-align: left;
+        }
+
+        .update-clients-list-item {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-tertiary);
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            border: none;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
         /* Confirm Modal */
         .confirm-modal-overlay {
             position: fixed;
@@ -2591,12 +2723,37 @@
         </a>
         <span class="nav-title">Workout Builder</span>
         <div class="nav-actions">
-            <button class="btn btn-primary" onclick="saveProgram()">
+            <!-- Simple save button (shown for new programs) -->
+            <button class="btn btn-primary" id="simpleSaveBtn" onclick="saveProgram()" style="display: inline-flex;">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 Save Program
             </button>
+            <!-- Dropdown save button (shown when editing existing program) -->
+            <div class="save-dropdown" id="saveDropdown" style="display: none;">
+                <button class="btn btn-primary btn-save-main" onclick="saveProgram()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Save Program
+                </button>
+                <button class="btn-save-toggle" onclick="toggleSaveDropdown(event)" title="More save options">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="save-dropdown-menu" id="saveDropdownMenu">
+                    <button class="save-dropdown-item" onclick="saveProgram(); closeSaveDropdown();">
+                        <span class="save-dropdown-item-title">Save Program Only</span>
+                        <span class="save-dropdown-item-desc">Update the template without affecting current clients</span>
+                    </button>
+                    <button class="save-dropdown-item" onclick="saveProgramAndUpdateClients(); closeSaveDropdown();">
+                        <span class="save-dropdown-item-title">Save & Update Clients <span class="client-count-badge" id="activeClientCount" style="display:none;">0</span></span>
+                        <span class="save-dropdown-item-desc">Save changes and apply them to all clients using this program</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -3414,6 +3571,26 @@
         </div>
     </div>
 
+    <!-- Confirm Update Clients Modal -->
+    <div class="confirm-modal-overlay" id="confirmUpdateClientsModal">
+        <div class="confirm-modal" style="max-width: 450px;">
+            <div class="confirm-modal-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <div class="confirm-modal-title">Save & Update Clients</div>
+            <div class="confirm-modal-message" id="updateClientsMessage">
+                This will save the program and update all clients currently using it.
+            </div>
+            <div class="update-clients-list" id="updateClientsList"></div>
+            <div class="confirm-modal-actions">
+                <button class="btn btn-secondary" onclick="closeUpdateClientsModal()" style="background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                <button class="btn btn-success" id="confirmUpdateClientsBtn" onclick="confirmSaveAndUpdateClients()">Save & Update</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Create Custom Exercise Modal -->
     <div class="modal-overlay" id="customExerciseModal">
         <div class="modal custom-exercise-modal">
@@ -3734,6 +3911,7 @@
                 enableAssignButton(); // Enable assign button for existing program
             }
             renderProgramList();
+            updateSaveButtonMode();
         }
 
         // Create new program
@@ -3756,6 +3934,7 @@
             // Disable assign button until program is saved
             const btn = document.getElementById('assignBtn');
             if (btn) btn.disabled = true;
+            updateSaveButtonMode();
         }
 
         // Add workout day
@@ -5197,9 +5376,154 @@
                 showToast('Program saved! You can now assign it to clients.');
                 enableAssignButton();
                 await loadPrograms();
+                updateSaveButtonMode();
             } catch (err) {
                 console.error('Error saving program:', err);
                 showToast('Error saving program: ' + err.message, 'error');
+            }
+        }
+
+        // Toggle between simple save and dropdown save based on whether we're editing an existing program
+        async function updateSaveButtonMode() {
+            const simpleBtn = document.getElementById('simpleSaveBtn');
+            const dropdown = document.getElementById('saveDropdown');
+            const badge = document.getElementById('activeClientCount');
+
+            if (currentProgramId) {
+                // Editing existing program - show dropdown
+                simpleBtn.style.display = 'none';
+                dropdown.style.display = 'inline-flex';
+
+                // Fetch active client count for this program
+                try {
+                    const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}`);
+                    const activeForProgram = (result.assignments || []).filter(
+                        a => a.program_id === currentProgramId && a.is_active
+                    );
+                    if (activeForProgram.length > 0) {
+                        badge.textContent = activeForProgram.length;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } catch (e) {
+                    badge.style.display = 'none';
+                }
+            } else {
+                // New program - show simple save
+                simpleBtn.style.display = 'inline-flex';
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Save dropdown toggle
+        function toggleSaveDropdown(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('saveDropdownMenu');
+            menu.classList.toggle('active');
+        }
+
+        function closeSaveDropdown() {
+            const menu = document.getElementById('saveDropdownMenu');
+            menu.classList.remove('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('saveDropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                closeSaveDropdown();
+            }
+        });
+
+        // Save program AND update all active client assignments
+        async function saveProgramAndUpdateClients() {
+            if (!currentProgramId) {
+                showToast('Please save the program first before updating clients.', 'error');
+                return;
+            }
+
+            // Fetch affected clients to show in confirmation
+            try {
+                const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}`);
+                const activeForProgram = (result.assignments || []).filter(
+                    a => a.program_id === currentProgramId && a.is_active
+                );
+
+                if (activeForProgram.length === 0) {
+                    // No clients using this program, just do a normal save
+                    showToast('No clients are currently assigned this program. Saving program only.');
+                    await saveProgram();
+                    return;
+                }
+
+                // Show confirmation modal with client list
+                const listEl = document.getElementById('updateClientsList');
+                const msgEl = document.getElementById('updateClientsMessage');
+                msgEl.textContent = `This will save the program and update ${activeForProgram.length} client${activeForProgram.length > 1 ? 's' : ''} currently using it. Their schedules and workout history will be preserved.`;
+
+                listEl.innerHTML = activeForProgram.map(a => {
+                    const clientName = a.clients?.client_name || a.clients?.email || 'Unknown Client';
+                    return `<div class="update-clients-list-item">${clientName}</div>`;
+                }).join('');
+
+                document.getElementById('confirmUpdateClientsModal').classList.add('active');
+            } catch (err) {
+                console.error('Error checking assignments:', err);
+                showToast('Error checking client assignments: ' + err.message, 'error');
+            }
+        }
+
+        function closeUpdateClientsModal() {
+            document.getElementById('confirmUpdateClientsModal').classList.remove('active');
+        }
+
+        async function confirmSaveAndUpdateClients() {
+            closeUpdateClientsModal();
+
+            const name = document.getElementById('programName').value.trim();
+            if (!name) {
+                showToast('Please enter a program name', 'error');
+                return;
+            }
+
+            if (workoutDays.length === 0) {
+                showToast('Please add at least one workout day', 'error');
+                return;
+            }
+
+            try {
+                let heroImageUrl = document.getElementById('heroImageUrl').value;
+                if (heroImageUrl === '__pending_upload__') {
+                    heroImageUrl = null;
+                }
+
+                const result = await apiCall('/.netlify/functions/workout-programs', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        programId: currentProgramId,
+                        name,
+                        description: document.getElementById('programDescription').value,
+                        programType: document.getElementById('programType').value,
+                        difficulty: document.getElementById('programDifficulty').value,
+                        daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
+                        programData: { days: workoutDays },
+                        heroImageUrl: heroImageUrl || undefined,
+                        isClubWorkout: document.getElementById('isClubWorkout').checked,
+                        updateClientAssignments: true
+                    })
+                });
+
+                await uploadHeroImageIfNeeded();
+
+                const count = result.updatedAssignments || 0;
+                showToast(`Program saved and ${count} client${count !== 1 ? 's' : ''} updated!`);
+                enableAssignButton();
+                await loadPrograms();
+                updateSaveButtonMode();
+            } catch (err) {
+                console.error('Error saving and updating clients:', err);
+                showToast('Error: ' + err.message, 'error');
             }
         }
 

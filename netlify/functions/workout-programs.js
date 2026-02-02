@@ -169,10 +169,57 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
+      // If requested, propagate changes to all active client assignments using this program
+      let updatedAssignments = 0;
+      if (updateData.updateClientAssignments) {
+        const { data: activeAssignments, error: fetchError } = await supabase
+          .from('client_workout_assignments')
+          .select('id, workout_data')
+          .eq('program_id', programId)
+          .eq('is_active', true);
+
+        if (fetchError) {
+          console.error('Error fetching active assignments:', fetchError);
+        } else if (activeAssignments && activeAssignments.length > 0) {
+          for (const assignment of activeAssignments) {
+            const assignmentUpdate = {};
+
+            // Update name if it changed
+            if (updateFields.name !== undefined) {
+              assignmentUpdate.name = updateFields.name;
+            }
+
+            // Update workout_data (program_data) while preserving assignment-specific fields like schedule and date_overrides
+            if (updateFields.program_data !== undefined) {
+              const existingData = assignment.workout_data || {};
+              assignmentUpdate.workout_data = {
+                ...updateFields.program_data,
+                // Preserve client-specific schedule and date overrides
+                schedule: existingData.schedule,
+                date_overrides: existingData.date_overrides
+              };
+            }
+
+            if (Object.keys(assignmentUpdate).length > 0) {
+              const { error: updateError } = await supabase
+                .from('client_workout_assignments')
+                .update(assignmentUpdate)
+                .eq('id', assignment.id);
+
+              if (updateError) {
+                console.error(`Error updating assignment ${assignment.id}:`, updateError);
+              } else {
+                updatedAssignments++;
+              }
+            }
+          }
+        }
+      }
+
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, program })
+        body: JSON.stringify({ success: true, program, updatedAssignments })
       };
     }
 
