@@ -152,11 +152,21 @@ exports.handler = async (event) => {
       if (updateData.isPublished !== undefined) updateFields.is_published = updateData.isPublished;
       if (updateData.isClubWorkout !== undefined) updateFields.is_club_workout = updateData.isClubWorkout;
 
-      // Store image_url inside program_data
+      // Fetch existing program to preserve image_url if not explicitly changed
+      let existingImageUrl = null;
       if (updateData.programData !== undefined || updateData.heroImageUrl !== undefined) {
+        const { data: existing } = await supabase
+          .from('workout_programs')
+          .select('program_data')
+          .eq('id', programId)
+          .single();
+        existingImageUrl = existing?.program_data?.image_url || null;
+
         updateFields.program_data = {
           ...(updateData.programData || {}),
-          image_url: updateData.heroImageUrl !== undefined ? updateData.heroImageUrl : (updateData.programData?.image_url || null)
+          image_url: updateData.heroImageUrl !== undefined
+            ? updateData.heroImageUrl
+            : (updateData.programData?.image_url || existingImageUrl)
         };
       }
 
