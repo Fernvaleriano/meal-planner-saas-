@@ -19,22 +19,29 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-// Text-to-speech helper
+// Text-to-speech helper — returns a promise that resolves when speech ends
 const speak = (text, enabled) => {
-  if (!enabled || typeof speechSynthesis === 'undefined') return;
-  speechSynthesis.cancel(); // Cancel any pending speech
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.95;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-  speechSynthesis.speak(utterance);
+  return new Promise((resolve) => {
+    if (!enabled || typeof speechSynthesis === 'undefined') { resolve(); return; }
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    utterance.onend = resolve;
+    utterance.onerror = resolve;
+    speechSynthesis.speak(utterance);
+    // Safety: resolve after 6s max in case onend never fires
+    setTimeout(resolve, 6000);
+  });
 };
 
 function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateExercise, onWorkoutFinish, workoutName }) {
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [phase, setPhase] = useState('get-ready'); // get-ready, exercise, rest, complete
-  const [timer, setTimer] = useState(10);
+  // Longer get-ready when coach voice note exists so it has time to play
+  const [timer, setTimer] = useState(exercises[0]?.voiceNoteUrl ? 20 : 10);
   const [isPaused, setIsPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState({}); // { exIndex: Set([setIndex, ...]) }
   const [totalElapsed, setTotalElapsed] = useState(0);
@@ -107,46 +114,49 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
   // Current set log values
   const currentSetLog = setLogs[currentExIndex]?.[currentSetIndex] || { reps: info.reps, weight: 0 };
 
-  // --- Voice announcements ---
+  // --- Voice announcements + coach voice note ---
+  // Chain: TTS speaks first, THEN coach voice note plays (no overlap)
+  // Voice note is NOT cut short when phase changes — it plays to completion
   useEffect(() => {
-    if (phase === 'get-ready' && currentExercise) {
-      const exInfo = getExerciseInfo(currentExIndex);
-      const desc = exInfo.isTimed
-        ? `${exInfo.sets} sets, ${formatTime(exInfo.duration)} each`
-        : `${exInfo.sets} sets of ${exInfo.reps} reps`;
-      speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
-    } else if (phase === 'exercise') {
-      speak('Go!', voiceEnabled);
-    } else if (phase === 'rest') {
-      speak('Rest.', voiceEnabled);
-    } else if (phase === 'complete') {
-      speak('Workout complete! Great job.', voiceEnabled);
-    }
-  }, [phase, currentExIndex, voiceEnabled]);
+    let cancelled = false;
 
-  // --- Coach voice note playback during get-ready ---
-  useEffect(() => {
-    if (phase === 'get-ready' && currentExercise?.voiceNoteUrl) {
-      // Delay slightly so TTS finishes first
-      const timeout = setTimeout(() => {
-        if (voiceNoteRef.current) {
-          voiceNoteRef.current.pause();
-          voiceNoteRef.current = null;
+    const runVoice = async () => {
+      if (phase === 'get-ready' && currentExercise) {
+        const exInfo = getExerciseInfo(currentExIndex);
+        const desc = exInfo.isTimed
+          ? `${exInfo.sets} sets, ${formatTime(exInfo.duration)} each`
+          : `${exInfo.sets} sets of ${exInfo.reps} reps`;
+        await speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
+
+        // After TTS finishes, play coach voice note if available
+        if (!cancelled && currentExercise.voiceNoteUrl && voiceEnabled) {
+          // Stop any previous voice note
+          if (voiceNoteRef.current) {
+            voiceNoteRef.current.pause();
+            voiceNoteRef.current = null;
+          }
+          const audio = new Audio(currentExercise.voiceNoteUrl);
+          audio.volume = 1.0;
+          audio.play().catch(() => {});
+          voiceNoteRef.current = audio;
+          // Let it play to completion — do NOT pause on cleanup
         }
-        const audio = new Audio(currentExercise.voiceNoteUrl);
-        audio.volume = 1.0;
-        audio.play().catch(() => {}); // Ignore autoplay blocks
-        voiceNoteRef.current = audio;
-      }, 2000);
-      return () => {
-        clearTimeout(timeout);
-        if (voiceNoteRef.current) {
-          voiceNoteRef.current.pause();
-          voiceNoteRef.current = null;
-        }
-      };
-    }
-  }, [phase, currentExIndex]);
+      } else if (phase === 'exercise') {
+        speak('Go!', voiceEnabled);
+      } else if (phase === 'rest') {
+        speak('Rest.', voiceEnabled);
+      } else if (phase === 'complete') {
+        speak('Workout complete! Great job.', voiceEnabled);
+      }
+    };
+
+    runVoice();
+
+    return () => {
+      cancelled = true;
+      // Cancel TTS on phase change, but do NOT stop voice notes
+    };
+  }, [phase, currentExIndex, voiceEnabled]);
 
   // Elapsed time tracker
   useEffect(() => {
@@ -262,7 +272,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
         setCurrentExIndex(nextEx);
         setCurrentSetIndex(0);
         setPhase('get-ready');
-        setTimer(10);
+        setTimer(exercises[nextEx]?.voiceNoteUrl ? 20 : 10);
       }
     } else {
       const nextInfo = getExerciseInfo(exIdx);
@@ -345,10 +355,11 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
       if (currentExIndex >= exercises.length - 1) {
         setPhase('complete');
       } else {
-        setCurrentExIndex(prev => prev + 1);
+        const nextIdx = currentExIndex + 1;
+        setCurrentExIndex(nextIdx);
         setCurrentSetIndex(0);
         setPhase('get-ready');
-        setTimer(10);
+        setTimer(exercises[nextIdx]?.voiceNoteUrl ? 20 : 10);
       }
     }
   };
@@ -379,7 +390,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
   const getMaxTime = () => {
-    if (phase === 'get-ready') return 10;
+    if (phase === 'get-ready') return currentExercise?.voiceNoteUrl ? 20 : 10;
     if (phase === 'rest') return info.rest;
     if (phase === 'exercise' && info.isTimed) return info.duration;
     return 1;
