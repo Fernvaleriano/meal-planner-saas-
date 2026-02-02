@@ -321,6 +321,9 @@ function Workouts() {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleAction, setRescheduleAction] = useState(null); // 'reschedule', 'duplicate', 'skip'
   const [showHeroMenu, setShowHeroMenu] = useState(false); // Hero section day options menu
+  const [cardMenuWorkoutId, setCardMenuWorkoutId] = useState(null); // Which card's 3-dot menu is open
+  const cardMenuRef = useRef(null);
+  const rescheduleWorkoutRef = useRef(null); // Track which workout is being rescheduled (for card menu context)
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
@@ -402,6 +405,9 @@ function Workouts() {
       }
       if (heroMenuRef.current && !heroMenuRef.current.contains(event.target)) {
         setShowHeroMenu(false);
+      }
+      if (cardMenuWorkoutId && !event.target.closest('.workout-card-menu')) {
+        setCardMenuWorkoutId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -1776,13 +1782,14 @@ function Workouts() {
 
   // Handle reschedule/duplicate/skip workout
   const handleRescheduleWorkout = useCallback(async () => {
-    if (!todayWorkout?.id || !rescheduleAction || !rescheduleTargetDate) return;
+    const targetWorkout = rescheduleWorkoutRef.current || todayWorkout;
+    if (!targetWorkout?.id || !rescheduleAction || !rescheduleTargetDate) return;
 
     try {
       const res = await apiPost('/.netlify/functions/client-workout-log', {
-        assignmentId: todayWorkout.id,
+        assignmentId: targetWorkout.id,
         action: rescheduleAction,
-        sourceDayIndex: todayWorkout.day_index,
+        sourceDayIndex: targetWorkout.day_index,
         sourceDate: formatDate(selectedDate),
         targetDate: rescheduleTargetDate
       });
@@ -1792,6 +1799,7 @@ function Workouts() {
         setShowRescheduleModal(false);
         setRescheduleAction(null);
         setRescheduleTargetDate('');
+        rescheduleWorkoutRef.current = null;
 
         // If rescheduled away, refresh to show rest day
         if (rescheduleAction === 'reschedule' || rescheduleAction === 'skip') {
@@ -1808,7 +1816,8 @@ function Workouts() {
   }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData]);
 
   // Open reschedule modal with action type
-  const openRescheduleModal = useCallback((action) => {
+  const openRescheduleModal = useCallback((action, targetWorkout) => {
+    rescheduleWorkoutRef.current = targetWorkout || todayWorkoutRef.current;
     setRescheduleAction(action);
     // Default to tomorrow
     const tomorrow = new Date();
@@ -1817,6 +1826,7 @@ function Workouts() {
     setShowRescheduleModal(true);
     setShowMenu(false);
     setShowHeroMenu(false);
+    setCardMenuWorkoutId(null);
   }, []);
 
   // Handle deleting today's workout (make it a rest day)
@@ -1859,6 +1869,46 @@ function Workouts() {
       showError('Failed to delete workout');
     }
   }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError]);
+
+  // Handle deleting a specific workout from card menu
+  const handleDeleteCardWorkout = useCallback(async (workout) => {
+    if (!workout?.id) return;
+
+    const confirmed = window.confirm(`Are you sure you want to delete "${workout.workout_data?.name || workout.name || 'this workout'}"?`);
+    if (!confirmed) return;
+
+    try {
+      if (workout.is_adhoc) {
+        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-') && !String(workout.id).startsWith('club-');
+        if (isRealId) {
+          await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
+        }
+      } else {
+        await apiPost('/.netlify/functions/client-workout-log', {
+          assignmentId: workout.id,
+          action: 'skip',
+          sourceDayIndex: workout.day_index,
+          sourceDate: formatDate(selectedDate),
+          targetDate: formatDate(selectedDate)
+        });
+      }
+
+      const remaining = todayWorkouts.filter(w => w.id !== workout.id);
+      setTodayWorkouts(remaining);
+      if (todayWorkout?.id === workout.id) {
+        setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
+        setWorkoutLog(null);
+        setCompletedExercises(remaining.length > 0
+          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+          : new Set()
+        );
+      }
+      setCardMenuWorkoutId(null);
+    } catch (err) {
+      console.error('Error deleting workout:', err);
+      showError('Failed to delete workout');
+    }
+  }, [todayWorkout, todayWorkouts, selectedDate, showError]);
 
   // Calculate workout duration
   const workoutDuration = useMemo(() => {
@@ -2304,7 +2354,6 @@ function Workouts() {
                         style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
                         onClick={() => handleSelectWorkoutCard(workout)}
                       >
-                        <div className="workout-card-overlay"></div>
                         <div className="workout-card-content">
                           <div className="workout-card-info">
                             <h3 className="workout-card-title">{cardDayName}</h3>
@@ -2333,8 +2382,45 @@ function Workouts() {
                               </span>
                             </div>
                           </div>
-                          <div className="workout-card-menu-placeholder" onClick={(e) => e.stopPropagation()}>
+                          <div className="workout-card-menu" onClick={(e) => {
+                            e.stopPropagation();
+                            setCardMenuWorkoutId(cardMenuWorkoutId === workout.id ? null : workout.id);
+                          }}>
                             <MoreVertical size={20} />
+                            {cardMenuWorkoutId === workout.id && (
+                              <div className="card-dropdown-menu">
+                                <button
+                                  className="menu-item"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openRescheduleModal('duplicate', workout);
+                                  }}
+                                >
+                                  <Copy size={16} />
+                                  <span>Duplicate</span>
+                                </button>
+                                <button
+                                  className="menu-item"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openRescheduleModal('reschedule', workout);
+                                  }}
+                                >
+                                  <MoveRight size={16} />
+                                  <span>Move to Day</span>
+                                </button>
+                                <button
+                                  className="menu-item delete"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteCardWorkout(workout);
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2904,9 +2990,9 @@ function Workouts() {
             <div className="reschedule-content">
               <p className="reschedule-description">
                 {rescheduleAction === 'reschedule' ?
-                  `Move "${todayWorkout?.name || 'Today\'s Workout'}" to another date:` :
+                  `Move "${rescheduleWorkoutRef.current?.workout_data?.name || rescheduleWorkoutRef.current?.name || 'Workout'}" to another date:` :
                  rescheduleAction === 'duplicate' ?
-                  `Copy "${todayWorkout?.name || 'Today\'s Workout'}" to another date:` :
+                  `Copy "${rescheduleWorkoutRef.current?.workout_data?.name || rescheduleWorkoutRef.current?.name || 'Workout'}" to another date:` :
                   `Skip today's workout and rest instead?`}
               </p>
               {rescheduleAction !== 'skip' && (
