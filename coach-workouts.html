@@ -5327,11 +5327,14 @@
 
                 // Get hero image URL (direct URL, not pending upload)
                 let heroImageUrl = document.getElementById('heroImageUrl').value;
-                if (heroImageUrl === '__pending_upload__') {
-                    heroImageUrl = null; // Will upload after save
-                }
 
                 if (currentProgramId) {
+                    // For existing programs, upload pending hero image FIRST so we can include the URL in the save
+                    if (heroImageUrl === '__pending_upload__') {
+                        const uploadedUrl = await uploadHeroImageIfNeeded();
+                        heroImageUrl = uploadedUrl || null;
+                    }
+
                     // Update existing program
                     result = await apiCall('/.netlify/functions/workout-programs', {
                         method: 'PUT',
@@ -5348,11 +5351,11 @@
                         })
                     });
 
-                    // Upload pending hero image if any
-                    await uploadHeroImageIfNeeded();
-
                 } else {
-                    // Create new program (without hero image first, will add after)
+                    // Create new program (need program ID first for image upload)
+                    if (heroImageUrl === '__pending_upload__') {
+                        heroImageUrl = null;
+                    }
                     result = await apiCall('/.netlify/functions/workout-programs', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -5493,9 +5496,11 @@
             }
 
             try {
+                // Upload pending hero image FIRST so it's included in save + propagation
                 let heroImageUrl = document.getElementById('heroImageUrl').value;
                 if (heroImageUrl === '__pending_upload__') {
-                    heroImageUrl = null;
+                    const uploadedUrl = await uploadHeroImageIfNeeded();
+                    heroImageUrl = uploadedUrl || null;
                 }
 
                 const result = await apiCall('/.netlify/functions/workout-programs', {
@@ -5513,8 +5518,6 @@
                         updateClientAssignments: true
                     })
                 });
-
-                await uploadHeroImageIfNeeded();
 
                 const count = result.updatedAssignments || 0;
                 const total = result.totalActiveAssignments || 0;
