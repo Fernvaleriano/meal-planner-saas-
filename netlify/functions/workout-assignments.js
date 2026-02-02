@@ -146,6 +146,21 @@ exports.handler = async (event) => {
           const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
           const targetDate = new Date(date);
 
+          // Resolve image_url: use assignment's image, or fall back to program's image
+          let resolvedImageUrl = workoutData.image_url || null;
+          if (!resolvedImageUrl && activeAssignment.program_id) {
+            try {
+              const { data: programData } = await supabase
+                .from('workout_programs')
+                .select('program_data')
+                .eq('id', activeAssignment.program_id)
+                .single();
+              resolvedImageUrl = programData?.program_data?.image_url || null;
+            } catch (e) {
+              // Ignore - program may have been deleted
+            }
+          }
+
           // Get day of week (0=Sunday, 6=Saturday)
           const targetDayOfWeek = targetDate.getDay();
           const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -190,7 +205,7 @@ exports.handler = async (event) => {
                   exercises: enrichedExercises,
                   estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
                   estimatedCalories: days[dayIndex].estimatedCalories || 300,
-                  image_url: workoutData.image_url || null
+                  image_url: resolvedImageUrl
                 },
                 program_id: activeAssignment.program_id,
                 client_id: activeAssignment.client_id,
@@ -242,7 +257,7 @@ exports.handler = async (event) => {
                   exercises: days[dayIndex].exercises || [],
                   estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
                   estimatedCalories: days[dayIndex].estimatedCalories || 300,
-                  image_url: workoutData.image_url || null
+                  image_url: resolvedImageUrl
                 },
                 program_id: activeAssignment.program_id,
                 client_id: activeAssignment.client_id
@@ -257,7 +272,7 @@ exports.handler = async (event) => {
                 exercises: workoutData.exercises,
                 estimatedMinutes: 45,
                 estimatedCalories: 300,
-                image_url: workoutData.image_url || null
+                image_url: resolvedImageUrl
               },
               program_id: activeAssignment.program_id,
               client_id: activeAssignment.client_id
