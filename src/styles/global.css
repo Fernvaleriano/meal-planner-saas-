@@ -24723,3 +24723,144 @@ a.nav-left {
 .guided-finish-btn:active {
     transform: scale(0.96);
 }
+
+/* Voice toggle button */
+.guided-top-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.guided-voice-toggle {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.guided-voice-toggle.on {
+    color: #10b981;
+}
+
+/* Coach voice note indicator */
+.guided-coach-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    background: rgba(13, 148, 136, 0.15);
+    border-radius: 20px;
+    font-size: 12px;
+    color: #0d9488;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Rep/Weight input area */
+.guided-input-area {
+    text-align: center;
+}
+
+.guided-input-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.guided-input-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    min-width: 100px;
+    transition: border-color 0.2s;
+}
+
+.guided-input-box.editing {
+    border-color: #0d9488;
+    background: rgba(13, 148, 136, 0.1);
+}
+
+.guided-input-value {
+    font-size: 42px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: white;
+}
+
+.guided-input-field {
+    width: 80px;
+    font-size: 42px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: white;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.guided-input-field::-webkit-outer-spin-button,
+.guided-input-field::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.guided-input-label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.4;
+}
+
+.guided-input-divider {
+    font-size: 24px;
+    font-weight: 300;
+    opacity: 0.3;
+    margin-top: -16px;
+}
+
+.guided-input-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.3;
+    letter-spacing: 0.5px;
+}
+
+/* Exercise actions (Done + Skip Exercise) */
+.guided-exercise-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.guided-skip-btn-small {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 16px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
