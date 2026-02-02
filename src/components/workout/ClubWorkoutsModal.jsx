@@ -142,6 +142,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
       estimatedMinutes: workout.workout_data.estimatedMinutes || 45,
       estimatedCalories: workout.workout_data.estimatedCalories || 300,
       club_workout_id: workout.id,
+      image_url: workout.image_url || null,
       scheduledDate: forDate || null
     };
 
