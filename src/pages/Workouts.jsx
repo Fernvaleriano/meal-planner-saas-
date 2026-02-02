@@ -283,6 +283,27 @@ function getWorkoutExercises(workout) {
   return [];
 }
 
+function estimateWorkoutMinutes(exercises) {
+  if (!exercises || exercises.length === 0) return 0;
+  let totalSeconds = 0;
+  for (const ex of exercises) {
+    const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
+    const restSeconds = ex.restSeconds || ex.rest_seconds || 60;
+    if (ex.trackingType === 'time') {
+      const duration = parseInt(ex.duration || ex.reps || 30, 10);
+      totalSeconds += numSets * duration + (numSets - 1) * restSeconds;
+    } else {
+      totalSeconds += numSets * 40 + (numSets - 1) * restSeconds;
+    }
+  }
+  totalSeconds += (exercises.length - 1) * 30;
+  return Math.ceil(totalSeconds / 60);
+}
+
+function estimateWorkoutCalories(exercises) {
+  return Math.round(estimateWorkoutMinutes(exercises) * 5);
+}
+
 // Helper to get completed count for a workout (from workout_data flags + localStorage)
 function getWorkoutCompletedCount(workout) {
   const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id);
@@ -2344,8 +2365,8 @@ function Workouts() {
                     })();
                     const totalDays = workout.workout_data?.days?.length || 0;
                     const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
-                    const estMinutes = workout.workout_data?.estimatedMinutes || null;
-                    const estCalories = workout.workout_data?.estimatedCalories || null;
+                    const estMinutes = estimateWorkoutMinutes(cardExercises) || workout.workout_data?.estimatedMinutes || null;
+                    const estCalories = estimateWorkoutCalories(cardExercises) || workout.workout_data?.estimatedCalories || null;
 
                     return (
                       <div
@@ -2590,11 +2611,11 @@ function Workouts() {
               <div className="hero-stats">
                 <span className="stat-item">
                   <Clock size={16} />
-                  {todayWorkout.workout_data?.estimatedMinutes || 45} minutes
+                  {estimateWorkoutMinutes(exercises) || todayWorkout.workout_data?.estimatedMinutes || 45} minutes
                 </span>
                 <span className="stat-item">
                   <Flame size={16} />
-                  {todayWorkout.workout_data?.estimatedCalories || 300} kcal
+                  {estimateWorkoutCalories(exercises) || todayWorkout.workout_data?.estimatedCalories || 300} kcal
                 </span>
               </div>
             </div>
