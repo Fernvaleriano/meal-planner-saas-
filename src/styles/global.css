@@ -12953,6 +12953,18 @@ a.nav-left {
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.workout-card-v3::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, rgba(10, 10, 30, 0.82) 0%, rgba(10, 10, 30, 0.6) 55%, rgba(10, 10, 30, 0.35) 100%);
+    pointer-events: none;
+    border-radius: 18px;
+}
+
 .workout-card-v3:active {
     transform: scale(0.98);
 }
@@ -12975,8 +12987,6 @@ a.nav-left {
     justify-content: space-between;
     padding: 20px;
     min-height: 140px;
-    background: linear-gradient(to right, rgba(10, 10, 30, 0.82) 0%, rgba(10, 10, 30, 0.6) 55%, rgba(10, 10, 30, 0.35) 100%);
-    border-radius: 18px;
 }
 
 .workout-card-info {
