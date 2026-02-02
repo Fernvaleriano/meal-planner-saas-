@@ -2729,6 +2729,7 @@ function Workouts() {
               toggleExerciseComplete(exerciseId);
             }
           }}
+          onUpdateExercise={handleUpdateExercise}
           onWorkoutFinish={handleFinishClick}
         />
       )}

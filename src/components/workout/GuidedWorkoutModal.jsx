@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, ChevronRight, Check, Timer } from 'lucide-react';
+import { X, Play, Pause, SkipForward, ChevronRight, Check, Volume2, VolumeX, Mic } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 
 // Parse reps helper
@@ -19,7 +19,18 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutFinish, workoutName }) {
+// Text-to-speech helper
+const speak = (text, enabled) => {
+  if (!enabled || typeof speechSynthesis === 'undefined') return;
+  speechSynthesis.cancel(); // Cancel any pending speech
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.95;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  speechSynthesis.speak(utterance);
+};
+
+function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateExercise, onWorkoutFinish, workoutName }) {
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [phase, setPhase] = useState('get-ready'); // get-ready, exercise, rest, complete
@@ -27,25 +38,54 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
   const [isPaused, setIsPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState({}); // { exIndex: Set([setIndex, ...]) }
   const [totalElapsed, setTotalElapsed] = useState(0);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+  // Set logging: track actual reps/weight per exercise per set
+  // Structure: { exIndex: [{ reps: number, weight: number }, ...] }
+  const [setLogs, setSetLogs] = useState(() => {
+    const initial = {};
+    exercises.forEach((ex, i) => {
+      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      const defaultReps = parseReps(ex.reps);
+      initial[i] = Array.from({ length: numSets }, (_, si) => {
+        // If sets is an array with existing data, use it
+        const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
+        return {
+          reps: existingSet?.reps || defaultReps,
+          weight: existingSet?.weight || 0,
+          duration: existingSet?.duration || ex.duration || null,
+          restSeconds: existingSet?.restSeconds || ex.restSeconds || ex.rest_seconds || 60
+        };
+      });
+    });
+    return initial;
+  });
+
+  // Input edit state — which field is being edited
+  const [editingField, setEditingField] = useState(null); // 'reps' or 'weight'
+  const inputRef = useRef(null);
 
   const intervalRef = useRef(null);
   const elapsedRef = useRef(null);
   const endTimeRef = useRef(null);
-  // Use refs to always have latest values in timer callback
+  const voiceNoteRef = useRef(null);
+  // Refs for latest state in timer callbacks
   const phaseRef = useRef(phase);
   const currentExIndexRef = useRef(currentExIndex);
   const currentSetIndexRef = useRef(currentSetIndex);
   const completedSetsRef = useRef(completedSets);
+  const setLogsRef = useRef(setLogs);
 
   // Keep refs in sync
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { currentExIndexRef.current = currentExIndex; }, [currentExIndex]);
   useEffect(() => { currentSetIndexRef.current = currentSetIndex; }, [currentSetIndex]);
   useEffect(() => { completedSetsRef.current = completedSets; }, [completedSets]);
+  useEffect(() => { setLogsRef.current = setLogs; }, [setLogs]);
 
   const currentExercise = exercises[currentExIndex];
 
-  // Get exercise info
+  // Get exercise info helper
   const getExerciseInfo = (exIndex) => {
     const ex = exercises[exIndex];
     if (!ex) return {};
@@ -64,6 +104,50 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
 
   const info = getExerciseInfo(currentExIndex);
 
+  // Current set log values
+  const currentSetLog = setLogs[currentExIndex]?.[currentSetIndex] || { reps: info.reps, weight: 0 };
+
+  // --- Voice announcements ---
+  useEffect(() => {
+    if (phase === 'get-ready' && currentExercise) {
+      const exInfo = getExerciseInfo(currentExIndex);
+      const desc = exInfo.isTimed
+        ? `${exInfo.sets} sets, ${formatTime(exInfo.duration)} each`
+        : `${exInfo.sets} sets of ${exInfo.reps} reps`;
+      speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
+    } else if (phase === 'exercise') {
+      speak('Go!', voiceEnabled);
+    } else if (phase === 'rest') {
+      speak('Rest.', voiceEnabled);
+    } else if (phase === 'complete') {
+      speak('Workout complete! Great job.', voiceEnabled);
+    }
+  }, [phase, currentExIndex, voiceEnabled]);
+
+  // --- Coach voice note playback during get-ready ---
+  useEffect(() => {
+    if (phase === 'get-ready' && currentExercise?.voiceNoteUrl) {
+      // Delay slightly so TTS finishes first
+      const timeout = setTimeout(() => {
+        if (voiceNoteRef.current) {
+          voiceNoteRef.current.pause();
+          voiceNoteRef.current = null;
+        }
+        const audio = new Audio(currentExercise.voiceNoteUrl);
+        audio.volume = 1.0;
+        audio.play().catch(() => {}); // Ignore autoplay blocks
+        voiceNoteRef.current = audio;
+      }, 2000);
+      return () => {
+        clearTimeout(timeout);
+        if (voiceNoteRef.current) {
+          voiceNoteRef.current.pause();
+          voiceNoteRef.current = null;
+        }
+      };
+    }
+  }, [phase, currentExIndex]);
+
   // Elapsed time tracker
   useEffect(() => {
     elapsedRef.current = setInterval(() => {
@@ -79,7 +163,42 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
     return () => { document.body.style.overflow = orig; };
   }, []);
 
-  // Core: what to do when timer hits zero
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+      if (voiceNoteRef.current) voiceNoteRef.current.pause();
+    };
+  }, []);
+
+  // Focus input when editing
+  useEffect(() => {
+    if (editingField && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingField]);
+
+  // --- Persist set data to parent when exercise changes or completes ---
+  const persistExerciseData = useCallback((exIdx) => {
+    if (!onUpdateExercise) return;
+    const ex = exercises[exIdx];
+    if (!ex) return;
+    const logs = setLogsRef.current[exIdx];
+    if (!logs) return;
+
+    const updatedSets = logs.map((log, i) => ({
+      reps: log.reps,
+      weight: log.weight,
+      completed: completedSetsRef.current[exIdx]?.has(i) || false,
+      duration: log.duration,
+      restSeconds: log.restSeconds
+    }));
+
+    onUpdateExercise({ ...ex, sets: updatedSets });
+  }, [exercises, onUpdateExercise]);
+
+  // --- Timer logic ---
   const onTimerComplete = useCallback(() => {
     const p = phaseRef.current;
     const exIdx = currentExIndexRef.current;
@@ -94,14 +213,12 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
         setPhase('exercise');
       }
     } else if (p === 'exercise' && exInfo.isTimed) {
-      // Timed exercise set complete
       doMarkSetDone(exIdx, setIdx, exInfo);
     } else if (p === 'rest') {
       doAdvanceAfterRest(exIdx, setIdx, exInfo);
     }
   }, [exercises]);
 
-  // Mark a set done and decide what's next
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
     setCompletedSets(prev => {
       const updated = { ...prev };
@@ -115,31 +232,29 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
     const newDone = prevDone + 1;
 
     if (newDone >= exInfo.sets) {
-      // All sets for this exercise done
+      // All sets done — persist and notify
+      persistExerciseData(exIdx);
       if (onExerciseComplete && exercises[exIdx]?.id) {
         onExerciseComplete(exercises[exIdx].id);
       }
       if (exIdx >= exercises.length - 1) {
         setPhase('complete');
       } else {
-        // Rest before next exercise
         setPhase('rest');
         setTimer(exInfo.rest);
         setCurrentSetIndex(0);
       }
     } else {
-      // Rest between sets
       setPhase('rest');
       setTimer(exInfo.rest);
       setCurrentSetIndex(setIdx + 1);
     }
-  }, [exercises, onExerciseComplete]);
+    setEditingField(null);
+  }, [exercises, onExerciseComplete, persistExerciseData]);
 
-  // After rest, advance to next set or next exercise
   const doAdvanceAfterRest = useCallback((exIdx, setIdx, exInfo) => {
     const setsDone = completedSetsRef.current[exIdx]?.size || 0;
     if (setsDone >= exInfo.sets) {
-      // Move to next exercise
       const nextEx = exIdx + 1;
       if (nextEx >= exercises.length) {
         setPhase('complete');
@@ -150,7 +265,6 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
         setTimer(10);
       }
     } else {
-      // Next set
       const nextInfo = getExerciseInfo(exIdx);
       if (nextInfo.isTimed) {
         setPhase('exercise');
@@ -164,7 +278,6 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
   // Timer effect
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-
     if (isPaused) return;
 
     const needsTimer =
@@ -193,9 +306,21 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
     };
   }, [phase, isPaused, currentExIndex, currentSetIndex]);
 
-  // Skip button
+  // --- Update set log values ---
+  const updateSetLog = (field, value) => {
+    setSetLogs(prev => {
+      const updated = { ...prev };
+      const exLogs = [...(updated[currentExIndex] || [])];
+      exLogs[currentSetIndex] = { ...exLogs[currentSetIndex], [field]: value };
+      updated[currentExIndex] = exLogs;
+      return updated;
+    });
+  };
+
+  // --- Skip ---
   const handleSkip = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    setEditingField(null);
 
     if (phase === 'rest') {
       doAdvanceAfterRest(currentExIndex, currentSetIndex, info);
@@ -207,12 +332,13 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
         setPhase('exercise');
       }
     } else if (phase === 'exercise') {
-      // Skip entire exercise
+      // Skip entire exercise — still persist whatever they logged
       setCompletedSets(prev => {
         const updated = { ...prev };
         updated[currentExIndex] = new Set(Array.from({ length: info.sets }, (_, i) => i));
         return updated;
       });
+      persistExerciseData(currentExIndex);
       if (onExerciseComplete && currentExercise?.id) {
         onExerciseComplete(currentExercise.id);
       }
@@ -233,6 +359,8 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
   };
 
   const handleFinishWorkout = () => {
+    // Persist any remaining exercise data
+    exercises.forEach((_, i) => persistExerciseData(i));
     if (onWorkoutFinish) onWorkoutFinish();
     onClose();
   };
@@ -261,6 +389,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
 
   if (!currentExercise) return null;
 
+  // --- Complete screen ---
   if (phase === 'complete') {
     return (
       <div className="guided-workout-overlay">
@@ -288,7 +417,15 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
           <X size={24} />
         </button>
         <div className="guided-workout-name">{workoutName || 'Workout'}</div>
-        <div className="guided-elapsed">{formatTime(totalElapsed)}</div>
+        <div className="guided-top-right">
+          <button
+            className={`guided-voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+          >
+            {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+          <div className="guided-elapsed">{formatTime(totalElapsed)}</div>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -311,6 +448,13 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
         <div className="guided-set-indicator">
           Set {Math.min(currentSetIndex + 1, info.sets)} of {info.sets}
         </div>
+        {/* Coach voice note indicator */}
+        {phase === 'get-ready' && currentExercise.voiceNoteUrl && (
+          <div className="guided-coach-note">
+            <Mic size={14} />
+            <span>Coach tip playing...</span>
+          </div>
+        )}
       </div>
 
       {/* Exercise thumbnail */}
@@ -323,7 +467,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
         />
       </div>
 
-      {/* Timer circle or rep display */}
+      {/* Timer or rep/weight input area */}
       <div className="guided-timer-area">
         {(phase === 'get-ready' || phase === 'rest' || (phase === 'exercise' && info.isTimed)) ? (
           <div className="guided-timer-circle">
@@ -344,9 +488,54 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
             </div>
           </div>
         ) : (
-          <div className="guided-rep-display">
-            <div className="guided-rep-count">{info.reps}</div>
-            <div className="guided-rep-label">reps</div>
+          /* Rep-based exercise: show editable reps and weight */
+          <div className="guided-input-area">
+            <div className="guided-input-row">
+              <div
+                className={`guided-input-box ${editingField === 'reps' ? 'editing' : ''}`}
+                onClick={() => setEditingField('reps')}
+              >
+                {editingField === 'reps' ? (
+                  <input
+                    ref={inputRef}
+                    type="number"
+                    inputMode="numeric"
+                    className="guided-input-field"
+                    value={currentSetLog.reps || ''}
+                    onChange={(e) => updateSetLog('reps', parseInt(e.target.value) || 0)}
+                    onBlur={() => setEditingField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                  />
+                ) : (
+                  <span className="guided-input-value">{currentSetLog.reps || info.reps}</span>
+                )}
+                <span className="guided-input-label">reps</span>
+              </div>
+
+              <div className="guided-input-divider">&times;</div>
+
+              <div
+                className={`guided-input-box ${editingField === 'weight' ? 'editing' : ''}`}
+                onClick={() => setEditingField('weight')}
+              >
+                {editingField === 'weight' ? (
+                  <input
+                    ref={inputRef}
+                    type="number"
+                    inputMode="decimal"
+                    className="guided-input-field"
+                    value={currentSetLog.weight || ''}
+                    onChange={(e) => updateSetLog('weight', parseFloat(e.target.value) || 0)}
+                    onBlur={() => setEditingField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                  />
+                ) : (
+                  <span className="guided-input-value">{currentSetLog.weight || 0}</span>
+                )}
+                <span className="guided-input-label">lbs</span>
+              </div>
+            </div>
+            <p className="guided-input-hint">Tap to edit</p>
           </div>
         )}
       </div>
@@ -375,10 +564,15 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onWorkoutF
             Skip Rest <ChevronRight size={18} />
           </button>
         ) : phase === 'exercise' && !info.isTimed ? (
-          <button className="guided-done-btn" onClick={handleSetDone}>
-            <Check size={22} />
-            Done
-          </button>
+          <div className="guided-exercise-actions">
+            <button className="guided-done-btn" onClick={handleSetDone}>
+              <Check size={22} />
+              Done
+            </button>
+            <button className="guided-skip-btn-small" onClick={handleSkip}>
+              Skip Exercise
+            </button>
+          </div>
         ) : phase === 'exercise' && info.isTimed ? (
           <div className="guided-timer-controls">
             <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
