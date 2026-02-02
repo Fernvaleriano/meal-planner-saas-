@@ -181,45 +181,60 @@ exports.handler = async (event) => {
 
       // If requested, propagate changes to all active client assignments using this program
       let updatedAssignments = 0;
+      let totalActiveAssignments = 0;
       if (updateData.updateClientAssignments) {
-        const { data: activeAssignments, error: fetchError } = await supabase
+        // Build query - use program_id, and also match by coach_id for safety
+        let query = supabase
           .from('client_workout_assignments')
-          .select('id, workout_data')
+          .select('id, workout_data, client_id')
           .eq('program_id', programId)
           .eq('is_active', true);
 
+        // Add coach_id filter if the program has one
+        if (program.coach_id) {
+          query = query.eq('coach_id', program.coach_id);
+        }
+
+        const { data: activeAssignments, error: fetchError } = await query;
+
         if (fetchError) {
-          console.error('Error fetching active assignments:', fetchError);
-        } else if (activeAssignments && activeAssignments.length > 0) {
-          for (const assignment of activeAssignments) {
-            const assignmentUpdate = {};
+          console.error('Error fetching active assignments for propagation:', fetchError);
+        } else {
+          totalActiveAssignments = activeAssignments ? activeAssignments.length : 0;
+          console.log(`Found ${totalActiveAssignments} active assignments for program ${programId}`);
 
-            // Update name if it changed
-            if (updateFields.name !== undefined) {
-              assignmentUpdate.name = updateFields.name;
-            }
+          if (activeAssignments && activeAssignments.length > 0) {
+            for (const assignment of activeAssignments) {
+              const assignmentUpdate = {};
 
-            // Update workout_data (program_data) while preserving assignment-specific fields like schedule and date_overrides
-            if (updateFields.program_data !== undefined) {
-              const existingData = assignment.workout_data || {};
-              assignmentUpdate.workout_data = {
-                ...updateFields.program_data,
-                // Preserve client-specific schedule and date overrides
-                schedule: existingData.schedule,
-                date_overrides: existingData.date_overrides
-              };
-            }
+              // Update name if it changed
+              if (updateFields.name !== undefined) {
+                assignmentUpdate.name = updateFields.name;
+              }
 
-            if (Object.keys(assignmentUpdate).length > 0) {
-              const { error: updateError } = await supabase
-                .from('client_workout_assignments')
-                .update(assignmentUpdate)
-                .eq('id', assignment.id);
+              // Update workout_data (program_data) while preserving assignment-specific fields like schedule and date_overrides
+              if (updateFields.program_data !== undefined) {
+                const existingData = assignment.workout_data || {};
+                assignmentUpdate.workout_data = {
+                  ...updateFields.program_data,
+                  // Preserve client-specific schedule and date overrides
+                  schedule: existingData.schedule,
+                  date_overrides: existingData.date_overrides
+                };
+              }
 
-              if (updateError) {
-                console.error(`Error updating assignment ${assignment.id}:`, updateError);
-              } else {
-                updatedAssignments++;
+              if (Object.keys(assignmentUpdate).length > 0) {
+                const { error: updateError } = await supabase
+                  .from('client_workout_assignments')
+                  .update(assignmentUpdate)
+                  .eq('id', assignment.id);
+
+                if (updateError) {
+                  console.error(`Error updating assignment ${assignment.id}:`, updateError);
+                } else {
+                  updatedAssignments++;
+                  console.log(`Updated assignment ${assignment.id} for client ${assignment.client_id}`);
+                }
               }
             }
           }
@@ -229,7 +244,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, program, updatedAssignments })
+        body: JSON.stringify({ success: true, program, updatedAssignments, totalActiveAssignments })
       };
     }
 

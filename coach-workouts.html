@@ -5517,7 +5517,14 @@
                 await uploadHeroImageIfNeeded();
 
                 const count = result.updatedAssignments || 0;
-                showToast(`Program saved and ${count} client${count !== 1 ? 's' : ''} updated!`);
+                const total = result.totalActiveAssignments || 0;
+                if (count > 0) {
+                    showToast(`Program saved and ${count} client${count !== 1 ? 's' : ''} updated!`);
+                } else if (total === 0) {
+                    showToast('Program saved. No active client assignments found for this program.');
+                } else {
+                    showToast(`Program saved but failed to update ${total} client assignment(s). Check console for details.`, 'error');
+                }
                 enableAssignButton();
                 await loadPrograms();
                 updateSaveButtonMode();
