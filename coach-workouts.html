@@ -182,6 +182,27 @@
             box-shadow: var(--shadow-lg);
         }
 
+        .btn-primary:disabled, .btn-save-main:disabled, .btn-save-toggle:disabled, .save-dropdown-item:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Main Layout */
         .main-content {
             display: flex;
@@ -3767,18 +3788,40 @@
         let ceRecordingInterval = null;
 
         // Helper for authenticated API calls
-        async function apiCall(url, options = {}) {
+        async function apiCall(url, options = {}, retries = 2) {
+            if (!navigator.onLine) {
+                showToast('You appear to be offline. Please check your connection.', 'error');
+                throw new Error('No internet connection');
+            }
+
             const headers = {
                 'Content-Type': 'application/json',
                 ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }),
                 ...options.headers
             };
-            const response = await fetch(url, { ...options, headers });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || data.message || 'API request failed');
+
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch(url, { ...options, headers });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || data.message || 'API request failed');
+                    }
+                    return data;
+                } catch (err) {
+                    // Only retry on network errors (not API errors)
+                    const isNetworkError = err.name === 'TypeError' || err.message === 'Failed to fetch';
+                    if (isNetworkError && attempt < retries) {
+                        const delay = Math.pow(2, attempt + 1) * 1000; // 2s, 4s
+                        await new Promise(r => setTimeout(r, delay));
+                        continue;
+                    }
+                    if (isNetworkError) {
+                        throw new Error('Network error. Please check your connection and try again.');
+                    }
+                    throw err;
+                }
             }
-            return data;
         }
 
         // Initialize
@@ -4156,6 +4199,9 @@
         }
 
         function removeExercise(dayIndex, exIndex) {
+            const exercise = workoutDays[dayIndex]?.exercises?.[exIndex];
+            const exerciseName = exercise?.name || 'this exercise';
+            if (!confirm(`Remove "${exerciseName}"?`)) return;
             workoutDays[dayIndex].exercises.splice(exIndex, 1);
             renderWorkoutDays();
         }
@@ -5266,12 +5312,19 @@
                 return;
             }
 
+            if (selectedClients.size === 0) {
+                showToast('Please select at least one client', 'error');
+                return;
+            }
+
             const programName = document.getElementById('programName').value.trim();
             const heroImageUrl = document.getElementById('heroImageUrl').value;
 
-            try {
-                showToast('Assigning workout...', 'success');
+            // Disable assign button during operation
+            const assignBtn = document.querySelector('#scheduleModal .btn-primary');
+            if (assignBtn) { assignBtn.disabled = true; assignBtn.innerHTML = '<span class="btn-spinner"></span> Assigning...'; }
 
+            try {
                 for (const clientId of selectedClients) {
                     await apiCall('/.netlify/functions/workout-assignments', {
                         method: 'POST',
@@ -5300,6 +5353,8 @@
             } catch (err) {
                 console.error('Assignment error:', err);
                 showToast('Failed to assign workout: ' + err.message, 'error');
+            } finally {
+                if (assignBtn) { assignBtn.disabled = false; assignBtn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Assign'; }
             }
         }
 
@@ -5321,6 +5376,9 @@
                 showToast('Please add at least one workout day', 'error');
                 return;
             }
+
+            // Disable save buttons during operation
+            setSaveButtonsLoading(true);
 
             try {
                 let result;
@@ -5383,6 +5441,28 @@
             } catch (err) {
                 console.error('Error saving program:', err);
                 showToast('Error saving program: ' + err.message, 'error');
+            } finally {
+                setSaveButtonsLoading(false);
+            }
+        }
+
+        // Helper to disable/enable all save buttons during async operations
+        function setSaveButtonsLoading(loading) {
+            const simpleBtn = document.getElementById('simpleSaveBtn');
+            const mainBtn = document.querySelector('.btn-save-main');
+            const toggleBtn = document.querySelector('.btn-save-toggle');
+            const dropdownItems = document.querySelectorAll('.save-dropdown-item');
+
+            if (loading) {
+                if (simpleBtn) { simpleBtn.disabled = true; simpleBtn.dataset.origText = simpleBtn.innerHTML; simpleBtn.innerHTML = '<span class="btn-spinner"></span> Saving...'; }
+                if (mainBtn) { mainBtn.disabled = true; mainBtn.dataset.origText = mainBtn.innerHTML; mainBtn.innerHTML = '<span class="btn-spinner"></span> Saving...'; }
+                if (toggleBtn) toggleBtn.disabled = true;
+                dropdownItems.forEach(item => item.disabled = true);
+            } else {
+                if (simpleBtn) { simpleBtn.disabled = false; if (simpleBtn.dataset.origText) simpleBtn.innerHTML = simpleBtn.dataset.origText; }
+                if (mainBtn) { mainBtn.disabled = false; if (mainBtn.dataset.origText) mainBtn.innerHTML = mainBtn.dataset.origText; }
+                if (toggleBtn) toggleBtn.disabled = false;
+                dropdownItems.forEach(item => item.disabled = false);
             }
         }
 
@@ -5495,6 +5575,9 @@
                 return;
             }
 
+            // Disable save buttons during operation
+            setSaveButtonsLoading(true);
+
             try {
                 // Upload pending hero image FIRST so it's included in save + propagation
                 let heroImageUrl = document.getElementById('heroImageUrl').value;
@@ -5521,12 +5604,15 @@
 
                 const count = result.updatedAssignments || 0;
                 const total = result.totalActiveAssignments || 0;
-                if (count > 0) {
+                const failed = total - count;
+                if (count > 0 && failed === 0) {
                     showToast(`Program saved and ${count} client${count !== 1 ? 's' : ''} updated!`);
+                } else if (count > 0 && failed > 0) {
+                    showToast(`Program saved. ${count} client(s) updated, but ${failed} failed to update.`, 'error');
                 } else if (total === 0) {
                     showToast('Program saved. No active client assignments found for this program.');
                 } else {
-                    showToast(`Program saved but failed to update ${total} client assignment(s). Check console for details.`, 'error');
+                    showToast(`Program saved but failed to update ${total} client assignment(s). Please try again.`, 'error');
                 }
                 enableAssignButton();
                 await loadPrograms();
@@ -5534,6 +5620,8 @@
             } catch (err) {
                 console.error('Error saving and updating clients:', err);
                 showToast('Error: ' + err.message, 'error');
+            } finally {
+                setSaveButtonsLoading(false);
             }
         }
 
@@ -5606,10 +5694,23 @@
         }
 
         // ============ DELETE PROGRAM FUNCTIONS ============
-        function openDeleteConfirm(programId, programName) {
+        async function openDeleteConfirm(programId, programName) {
             pendingDeleteProgramId = programId;
-            document.getElementById('confirmDeleteMessage').textContent =
-                `Are you sure you want to delete "${programName}"? This action cannot be undone.`;
+
+            // Check if any active clients are using this program
+            let activeClientCount = 0;
+            try {
+                const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}`);
+                activeClientCount = (result.assignments || []).filter(
+                    a => a.program_id === programId && a.is_active
+                ).length;
+            } catch (e) { /* ignore, show default message */ }
+
+            let message = `Are you sure you want to delete "${programName}"? This action cannot be undone.`;
+            if (activeClientCount > 0) {
+                message += ` Warning: ${activeClientCount} client${activeClientCount !== 1 ? 's are' : ' is'} currently assigned this program.`;
+            }
+            document.getElementById('confirmDeleteMessage').textContent = message;
             document.getElementById('confirmDeleteModal').classList.add('active');
         }
 
@@ -5661,6 +5762,11 @@
             const program = programs.find(p => p.id === programId);
             if (!program) {
                 showToast('Program not found', 'error');
+                return;
+            }
+
+            if (!program.program_data || !program.program_data.days) {
+                showToast('Program has no workout data to duplicate', 'error');
                 return;
             }
 

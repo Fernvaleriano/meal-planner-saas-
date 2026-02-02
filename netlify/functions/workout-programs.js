@@ -182,6 +182,7 @@ exports.handler = async (event) => {
       // If requested, propagate changes to all active client assignments using this program
       let updatedAssignments = 0;
       let totalActiveAssignments = 0;
+      let failedAssignments = [];
       if (updateData.updateClientAssignments) {
         // Build query - use program_id, and also match by coach_id for safety
         let query = supabase
@@ -199,6 +200,7 @@ exports.handler = async (event) => {
 
         if (fetchError) {
           console.error('Error fetching active assignments for propagation:', fetchError);
+          failedAssignments.push({ error: 'Failed to fetch assignments: ' + fetchError.message });
         } else {
           totalActiveAssignments = activeAssignments ? activeAssignments.length : 0;
           console.log(`Found ${totalActiveAssignments} active assignments for program ${programId}`);
@@ -231,6 +233,7 @@ exports.handler = async (event) => {
 
                 if (updateError) {
                   console.error(`Error updating assignment ${assignment.id}:`, updateError);
+                  failedAssignments.push({ assignmentId: assignment.id, clientId: assignment.client_id, error: updateError.message });
                 } else {
                   updatedAssignments++;
                   console.log(`Updated assignment ${assignment.id} for client ${assignment.client_id}`);
@@ -244,7 +247,13 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, program, updatedAssignments, totalActiveAssignments })
+        body: JSON.stringify({
+          success: true,
+          program,
+          updatedAssignments,
+          totalActiveAssignments,
+          failedAssignments: failedAssignments.length > 0 ? failedAssignments : undefined
+        })
       };
     }
 

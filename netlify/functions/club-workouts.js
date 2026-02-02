@@ -49,9 +49,9 @@ exports.handler = async (event) => {
       if (error) {
         console.error('Error fetching club workouts:', error);
         return {
-          statusCode: 200,
+          statusCode: 500,
           headers,
-          body: JSON.stringify({ workouts: [] })
+          body: JSON.stringify({ error: 'Failed to fetch club workouts', workouts: [] })
         };
       }
 
