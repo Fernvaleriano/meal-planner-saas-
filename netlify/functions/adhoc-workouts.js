@@ -50,19 +50,12 @@ exports.handler = async (event) => {
       const { data: workouts, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
+        // Table might not exist, return empty
         console.error('Error fetching adhoc workouts:', error);
-        // If table doesn't exist, return empty (expected during setup)
-        if (error.code === '42P01') {
-          return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({ workouts: [] })
-          };
-        }
         return {
-          statusCode: 500,
+          statusCode: 200,
           headers,
-          body: JSON.stringify({ error: 'Failed to fetch workouts', workouts: [] })
+          body: JSON.stringify({ workouts: [] })
         };
       }
 

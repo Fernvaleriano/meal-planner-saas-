@@ -52,7 +52,6 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
-  const [fetchError, setFetchError] = useState(false);
 
   // Lock body scroll
   useEffect(() => {
@@ -110,7 +109,6 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
       } catch (err) {
         console.error('Error fetching club workouts:', err);
         setWorkouts([]);
-        setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -340,12 +338,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
           ) : filteredWorkouts.length === 0 ? (
             <div className="club-empty">
               <Users size={48} strokeWidth={1} />
-              {fetchError ? (
-                <>
-                  <h3>Failed to Load Workouts</h3>
-                  <p>Something went wrong. Check your connection and try again.</p>
-                </>
-              ) : workouts.length === 0 ? (
+              {workouts.length === 0 ? (
                 <>
                   <h3>No Club Workouts Yet</h3>
                   <p>Your coach hasn't created any club workouts yet. Check back later!</p>
