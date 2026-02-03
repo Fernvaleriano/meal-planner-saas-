@@ -1811,27 +1811,62 @@ function Workouts() {
 
     let succeeded = false;
     try {
-      const res = await apiPost('/.netlify/functions/client-workout-log', {
-        assignmentId: targetWorkout.id,
-        action: rescheduleAction,
-        sourceDayIndex: targetWorkout.day_index,
-        sourceDate: formatDate(selectedDate),
-        targetDate: rescheduleTargetDate
-      });
+      // Check if this is an adhoc workout
+      if (targetWorkout.is_adhoc) {
+        const isRealId = targetWorkout.id && !String(targetWorkout.id).startsWith('adhoc-') && !String(targetWorkout.id).startsWith('custom-') && !String(targetWorkout.id).startsWith('club-');
 
-      if (res?.success) {
-        succeeded = true;
+        if (rescheduleAction === 'skip') {
+          // For adhoc workouts, skip means delete
+          if (isRealId) {
+            await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${targetWorkout.id}`);
+          }
+          succeeded = true;
+        } else if (rescheduleAction === 'duplicate') {
+          // Create a copy on the target date
+          await apiPost('/.netlify/functions/adhoc-workouts', {
+            clientId: targetWorkout.client_id || clientData?.id,
+            workoutDate: rescheduleTargetDate,
+            workoutData: targetWorkout.workout_data,
+            name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
+          });
+          succeeded = true;
+        } else if (rescheduleAction === 'reschedule') {
+          // Create on target date, then delete from source
+          await apiPost('/.netlify/functions/adhoc-workouts', {
+            clientId: targetWorkout.client_id || clientData?.id,
+            workoutDate: rescheduleTargetDate,
+            workoutData: targetWorkout.workout_data,
+            name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
+          });
+          // Delete the original
+          if (isRealId) {
+            await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${targetWorkout.id}`);
+          }
+          succeeded = true;
+        }
+      } else {
+        // Assigned workout - use client-workout-log
+        const res = await apiPost('/.netlify/functions/client-workout-log', {
+          assignmentId: targetWorkout.id,
+          action: rescheduleAction,
+          sourceDayIndex: targetWorkout.day_index,
+          sourceDate: formatDate(selectedDate),
+          targetDate: rescheduleTargetDate
+        });
+
+        if (res?.success) {
+          succeeded = true;
+        }
       }
     } catch (err) {
       console.error('Error rescheduling workout:', err);
-      // If assignment not found (404), the workout program may have been removed/updated
-      // Close modal and refresh to show current state
+      // If assignment not found (404), show specific error
       if (err.status === 404 || err.message?.includes('not found')) {
-        succeeded = true; // Treat as success - will refresh to show current state
+        alert('Could not find this workout. It may have been removed or updated. Please refresh and try again.');
       } else {
         alert('Failed to update workout schedule');
-        return;
       }
+      return;
     }
 
     if (succeeded) {
@@ -1850,7 +1885,7 @@ function Workouts() {
       // Show success feedback
       alert(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
     }
-  }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData]);
+  }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData, clientData?.id]);
 
   // Open reschedule modal with action type
   const openRescheduleModal = useCallback((action, targetWorkout) => {
