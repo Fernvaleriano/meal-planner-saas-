@@ -2720,18 +2720,20 @@ function Workouts() {
 
       {/* Guided Workout Mode */}
       {showGuidedWorkout && exercises.length > 0 && (
-        <GuidedWorkoutModal
-          exercises={exercises}
-          workoutName={todayWorkout?.name || 'Workout'}
-          onClose={() => setShowGuidedWorkout(false)}
-          onExerciseComplete={(exerciseId) => {
-            if (exerciseId && !completedExercises.has(exerciseId)) {
-              toggleExerciseComplete(exerciseId);
-            }
-          }}
-          onUpdateExercise={handleUpdateExercise}
-          onWorkoutFinish={handleFinishClick}
-        />
+        <ErrorBoundary>
+          <GuidedWorkoutModal
+            exercises={exercises}
+            workoutName={todayWorkout?.name || 'Workout'}
+            onClose={() => setShowGuidedWorkout(false)}
+            onExerciseComplete={(exerciseId) => {
+              if (exerciseId && !completedExercises.has(exerciseId)) {
+                toggleExerciseComplete(exerciseId);
+              }
+            }}
+            onUpdateExercise={handleUpdateExercise}
+            onWorkoutFinish={handleFinishClick}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Completing Workout Loading Overlay */}
