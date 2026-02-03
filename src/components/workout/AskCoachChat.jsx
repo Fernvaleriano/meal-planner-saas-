@@ -2,6 +2,24 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, Loader2, MessageCircle, Bot, ChevronLeft } from 'lucide-react';
 import { apiPost } from '../../utils/api';
 
+// Helper function to strip markdown formatting from text
+const stripMarkdown = (text) => {
+  if (!text) return text;
+  return text
+    // Remove bold: **text** or __text__
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    // Remove italic: *text* or _text_ (but not if part of a word)
+    .replace(/(?<!\w)\*([^*]+)\*(?!\w)/g, '$1')
+    .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '$1')
+    // Remove headers: # ## ### etc at start of lines
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove inline code: `text`
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove strikethrough: ~~text~~
+    .replace(/~~([^~]+)~~/g, '$1');
+};
+
 function AskCoachChat({ exercise, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -655,7 +673,7 @@ function AskCoachChat({ exercise, onClose }) {
                 </div>
               )}
               <div className="message-bubble">
-                {msg.text}
+                {stripMarkdown(msg.text)}
               </div>
             </div>
           ))}
