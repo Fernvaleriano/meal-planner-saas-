@@ -2732,6 +2732,10 @@ function Workouts() {
             }}
             onUpdateExercise={handleUpdateExercise}
             onWorkoutFinish={handleFinishClick}
+            clientId={clientData?.id}
+            coachId={clientData?.coach_id}
+            workoutLogId={workoutLog?.id}
+            selectedDate={selectedDate}
           />
         </ErrorBoundary>
       )}
