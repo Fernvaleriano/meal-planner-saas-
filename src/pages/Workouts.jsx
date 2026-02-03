@@ -1806,6 +1806,7 @@ function Workouts() {
     const targetWorkout = rescheduleWorkoutRef.current || todayWorkout;
     if (!targetWorkout?.id || !rescheduleAction || !rescheduleTargetDate) return;
 
+    let succeeded = false;
     try {
       const res = await apiPost('/.netlify/functions/client-workout-log', {
         assignmentId: targetWorkout.id,
@@ -1816,23 +1817,35 @@ function Workouts() {
       });
 
       if (res?.success) {
-        // Close modal and refresh
-        setShowRescheduleModal(false);
-        setRescheduleAction(null);
-        setRescheduleTargetDate('');
-        rescheduleWorkoutRef.current = null;
-
-        // If rescheduled away, refresh to show rest day
-        if (rescheduleAction === 'reschedule' || rescheduleAction === 'skip') {
-          refreshWorkoutData();
-        }
-
-        // Show success feedback
-        alert(`Workout ${rescheduleAction === 'duplicate' ? 'duplicated' : rescheduleAction === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
+        succeeded = true;
       }
     } catch (err) {
       console.error('Error rescheduling workout:', err);
-      alert('Failed to update workout schedule');
+      // If assignment not found (404), the workout program may have been removed/updated
+      // Close modal and refresh to show current state
+      if (err.status === 404 || err.message?.includes('not found')) {
+        succeeded = true; // Treat as success - will refresh to show current state
+      } else {
+        alert('Failed to update workout schedule');
+        return;
+      }
+    }
+
+    if (succeeded) {
+      // Save action before clearing state
+      const action = rescheduleAction;
+
+      // Close modal and refresh
+      setShowRescheduleModal(false);
+      setRescheduleAction(null);
+      setRescheduleTargetDate('');
+      rescheduleWorkoutRef.current = null;
+
+      // Refresh to show updated state
+      refreshWorkoutData();
+
+      // Show success feedback
+      alert(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
     }
   }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData]);
 
