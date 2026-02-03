@@ -1,8 +1,8 @@
-// Food photo analysis using Gemini 2.0 Flash (2.5 has image analysis issues - revisit before March 2026)
+// Food photo analysis using Claude Haiku (better accuracy than Gemini for food analysis)
+const Anthropic = require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -55,12 +55,12 @@ exports.handler = async (event, context) => {
 
         console.log(`📸 Photo analysis for user ${user.id}`);
 
-        if (!GEMINI_API_KEY) {
-            console.error('GEMINI_API_KEY is not configured');
+        if (!ANTHROPIC_API_KEY) {
+            console.error('ANTHROPIC_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'AI analysis is not configured. Please add GEMINI_API_KEY.' })
+                body: JSON.stringify({ error: 'AI analysis is not configured. Please add ANTHROPIC_API_KEY.' })
             };
         }
 
@@ -138,40 +138,37 @@ ${processedImages.length > 1 ? '- Use multiple angles to better estimate portion
 
 Return ONLY the JSON array.`;
 
-        console.log('🤖 Calling Gemini 2.0 Flash for food analysis...');
+        console.log('🤖 Calling Claude Haiku for food analysis...');
 
-        // Build parts array with images and text for Gemini
-        const parts = [
-            { text: analysisPrompt },
+        // Build content array with images for Claude
+        const contentParts = [
             ...processedImages.map((img) => ({
-                inline_data: {
-                    mime_type: img.mimeType,
+                type: 'image',
+                source: {
+                    type: 'base64',
+                    media_type: img.mimeType,
                     data: img.base64Data
                 }
-            }))
+            })),
+            {
+                type: 'text',
+                text: analysisPrompt
+            }
         ];
 
-        let response;
+        let message;
         try {
-            response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: 1024
-                    }
-                })
+            const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+            message = await anthropic.messages.create({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 1024,
+                messages: [{
+                    role: 'user',
+                    content: contentParts
+                }]
             });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Gemini API error:', errorText);
-                throw new Error(`Gemini API error: ${response.status}`);
-            }
         } catch (apiError) {
-            console.error('Gemini API error:', apiError);
+            console.error('Claude API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
@@ -182,13 +179,12 @@ Return ONLY the JSON array.`;
             };
         }
 
-        const data = await response.json();
-        console.log('✅ Gemini 2.0 response received');
+        console.log('✅ Claude Haiku response received');
 
         // Extract response text
-        const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const content = message.content?.[0]?.text || '';
         if (!content) {
-            console.error('No content from Gemini:', JSON.stringify(data).substring(0, 500));
+            console.error('No content from Claude:', JSON.stringify(message).substring(0, 500));
             return {
                 statusCode: 200,
                 headers,
