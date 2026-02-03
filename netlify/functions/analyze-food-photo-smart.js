@@ -1,8 +1,8 @@
-// Smart food photo analysis using Gemini 2.0 Flash (reliable, no safety filter issues)
+// Smart food photo analysis using Claude Haiku (better accuracy than Gemini for food analysis)
+const Anthropic = require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -55,12 +55,12 @@ exports.handler = async (event, context) => {
 
         console.log(`🧠 Smart analysis for user ${user.id} (${rateLimit.remaining} requests remaining)`);
 
-        if (!GEMINI_API_KEY) {
-            console.error('GEMINI_API_KEY is not configured');
+        if (!ANTHROPIC_API_KEY) {
+            console.error('ANTHROPIC_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'Smart AI analysis is not configured. Please add GEMINI_API_KEY to environment variables.' })
+                body: JSON.stringify({ error: 'Smart AI analysis is not configured. Please add ANTHROPIC_API_KEY to environment variables.' })
             };
         }
 
@@ -102,7 +102,7 @@ exports.handler = async (event, context) => {
         // User-provided context about the food (optional)
         const userContext = details ? details.trim() : null;
 
-        console.log('🧠 Calling Gemini 2.5 Flash for smart food analysis...');
+        console.log('🧠 Calling Claude Haiku for smart food analysis...');
 
         // Build the prompt
         const analysisPrompt = `Analyze this food image carefully and identify all food items visible. For each item, provide accurate nutritional estimates.
@@ -135,38 +135,35 @@ Guidelines for ACCURATE estimation:
 
 Take your time to be accurate. Return ONLY the JSON array.`;
 
-        // Build parts array for Gemini
-        const parts = [
-            { text: analysisPrompt },
+        // Build content array for Claude
+        const contentParts = [
             {
-                inline_data: {
-                    mime_type: mimeType,
+                type: 'image',
+                source: {
+                    type: 'base64',
+                    media_type: mimeType,
                     data: base64Data
                 }
+            },
+            {
+                type: 'text',
+                text: analysisPrompt
             }
         ];
 
-        let response;
+        let message;
         try {
-            response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: 1024
-                    }
-                })
+            const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+            message = await anthropic.messages.create({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 1024,
+                messages: [{
+                    role: 'user',
+                    content: contentParts
+                }]
             });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Gemini API error:', errorText);
-                throw new Error(`Gemini API error: ${response.status}`);
-            }
         } catch (apiError) {
-            console.error('Gemini API error:', apiError);
+            console.error('Claude API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
@@ -177,20 +174,19 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             };
         }
 
-        const data = await response.json();
-        console.log('✅ Gemini 2.0 response received');
+        console.log('✅ Claude Haiku response received');
 
-        const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const content = message.content?.[0]?.text || '';
         if (!content) {
-            console.error('No content from Gemini:', JSON.stringify(data).substring(0, 500));
+            console.error('No content from Claude:', JSON.stringify(message).substring(0, 500));
             return {
                 statusCode: 200,
                 headers,
-                body: JSON.stringify({ foods: [], model: 'gemini-2.0-flash', smart: true })
+                body: JSON.stringify({ foods: [], model: 'claude-haiku', smart: true })
             };
         }
 
-        console.log('Gemini response:', content.substring(0, 200));
+        console.log('Claude response:', content.substring(0, 200));
 
         // Parse the response
         let foods = [];
@@ -213,7 +209,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
                     console.error('Could not parse extracted JSON:', e);
                 }
             } else {
-                console.error('Could not parse Gemini response:', trimmedContent);
+                console.error('Could not parse Claude response:', trimmedContent);
             }
         }
 
@@ -232,7 +228,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             headers,
             body: JSON.stringify({
                 foods,
-                model: 'gemini-2.0-flash',
+                model: 'claude-haiku',
                 smart: true
             })
         };

@@ -1,5 +1,7 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+// Text-based food analysis using Claude Haiku (better accuracy than Gemini for food analysis)
+const Anthropic = require('@anthropic-ai/sdk');
+
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -41,12 +43,12 @@ exports.handler = async (event, context) => {
             };
         }
 
-        if (!GEMINI_API_KEY) {
-            console.error('GEMINI_API_KEY is not configured');
+        if (!ANTHROPIC_API_KEY) {
+            console.error('ANTHROPIC_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'AI analysis is not configured. Please add GEMINI_API_KEY to environment variables.' })
+                body: JSON.stringify({ error: 'AI analysis is not configured. Please add ANTHROPIC_API_KEY to environment variables.' })
             };
         }
 
@@ -99,39 +101,34 @@ Guidelines:
 
 Return ONLY the JSON array, nothing else.`;
 
-        // Call Gemini 2.0 Flash API
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.3,
-                    maxOutputTokens: 1024
-                }
-            })
-        });
+        // Call Claude Haiku API
+        console.log('🤖 Calling Claude Haiku for text food analysis...');
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Gemini API error:', response.status, errorText);
+        let message;
+        try {
+            const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+            message = await anthropic.messages.create({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 1024,
+                messages: [{
+                    role: 'user',
+                    content: prompt
+                }]
+            });
+        } catch (apiError) {
+            console.error('Claude API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
                 body: JSON.stringify({
                     error: 'AI analysis failed',
-                    details: `Gemini API returned ${response.status}`
+                    details: apiError.message || 'Unknown API error'
                 })
             };
         }
 
-        const data = await response.json();
-        let content = '';
-        if (data.candidates?.[0]?.content?.parts) {
-            content = data.candidates[0].content.parts.filter(p => p.text).map(p => p.text).join('');
-        }
-
-        console.log('Gemini 2.0 response:', content);
+        const content = message.content?.[0]?.text || '';
+        console.log('Claude Haiku response:', content);
 
         // Parse the response
         let foods = [];
@@ -150,7 +147,7 @@ Return ONLY the JSON array, nothing else.`;
             if (jsonMatch) {
                 foods = JSON.parse(jsonMatch[0]);
             } else {
-                console.error('Could not parse Gemini response:', trimmedContent);
+                console.error('Could not parse Claude response:', trimmedContent);
             }
         }
 
