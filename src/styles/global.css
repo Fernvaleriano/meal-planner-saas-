@@ -24447,11 +24447,72 @@ a.nav-left {
     background: rgba(255,255,255,0.05);
 }
 
-.guided-exercise-visual img,
-.guided-exercise-visual video {
+.guided-exercise-visual img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* Thumbnail wrapper with play hint */
+.guided-thumbnail-wrapper {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    cursor: pointer;
+}
+
+.guided-play-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: background 0.2s;
+}
+
+.guided-thumbnail-wrapper:active .guided-play-hint {
+    background: rgba(59, 130, 246, 0.8);
+}
+
+/* Inline video player */
+.guided-video-container {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #000;
+    cursor: pointer;
+}
+
+.guided-video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.guided-video-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
 }
 
 /* Timer area */

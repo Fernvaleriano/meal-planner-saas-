@@ -40,12 +40,12 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [phase, setPhase] = useState('get-ready'); // get-ready, exercise, rest, complete
-  // Longer get-ready when coach voice note exists so it has time to play
-  const [timer, setTimer] = useState(exercises[0]?.voiceNoteUrl ? 20 : 10);
+  const [timer, setTimer] = useState(10);
   const [isPaused, setIsPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState({}); // { exIndex: Set([setIndex, ...]) }
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [showVideo, setShowVideo] = useState(false);
 
   // Set logging: track actual reps/weight per exercise per set
   // Structure: { exIndex: [{ reps: number, weight: number }, ...] }
@@ -89,6 +89,8 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
   useEffect(() => { currentSetIndexRef.current = currentSetIndex; }, [currentSetIndex]);
   useEffect(() => { completedSetsRef.current = completedSets; }, [completedSets]);
   useEffect(() => { setLogsRef.current = setLogs; }, [setLogs]);
+  // Reset video when exercise changes
+  useEffect(() => { setShowVideo(false); }, [currentExIndex]);
 
   const currentExercise = exercises[currentExIndex];
 
@@ -116,6 +118,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
 
   // --- Voice announcements + coach voice note ---
   // Chain: TTS speaks first, THEN coach voice note plays (no overlap)
+  // Timer dynamically extends to match voice note duration
   // Voice note is NOT cut short when phase changes — it plays to completion
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +140,21 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
           }
           const audio = new Audio(currentExercise.voiceNoteUrl);
           audio.volume = 1.0;
+
+          // Once metadata loads, extend timer if the note needs more time
+          audio.addEventListener('loadedmetadata', () => {
+            if (!cancelled && audio.duration && isFinite(audio.duration)) {
+              const noteLength = Math.ceil(audio.duration) + 2; // +2s buffer
+              // Check remaining time — if note is longer, extend
+              const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+              if (noteLength > remaining) {
+                const newTime = noteLength;
+                endTimeRef.current = Date.now() + newTime * 1000;
+                setTimer(newTime);
+              }
+            }
+          });
+
           audio.play().catch(() => {});
           voiceNoteRef.current = audio;
           // Let it play to completion — do NOT pause on cleanup
@@ -272,7 +290,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
         setCurrentExIndex(nextEx);
         setCurrentSetIndex(0);
         setPhase('get-ready');
-        setTimer(exercises[nextEx]?.voiceNoteUrl ? 20 : 10);
+        setTimer(10);
       }
     } else {
       const nextInfo = getExerciseInfo(exIdx);
@@ -359,7 +377,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
         setCurrentExIndex(nextIdx);
         setCurrentSetIndex(0);
         setPhase('get-ready');
-        setTimer(exercises[nextIdx]?.voiceNoteUrl ? 20 : 10);
+        setTimer(10);
       }
     }
   };
@@ -390,7 +408,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
   const getMaxTime = () => {
-    if (phase === 'get-ready') return currentExercise?.voiceNoteUrl ? 20 : 10;
+    if (phase === 'get-ready') return 10;
     if (phase === 'rest') return info.rest;
     if (phase === 'exercise' && info.isTimed) return info.duration;
     return 1;
@@ -468,14 +486,40 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
         )}
       </div>
 
-      {/* Exercise thumbnail */}
-      <div className="guided-exercise-visual">
-        <SmartThumbnail
-          exercise={currentExercise}
-          size="large"
-          showPlayIndicator={false}
-          className="guided-thumbnail"
-        />
+      {/* Exercise thumbnail / video player */}
+      <div className="guided-exercise-visual" onClick={() => {
+        const videoUrl = currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url;
+        if (videoUrl) setShowVideo(prev => !prev);
+      }}>
+        {showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
+          <div className="guided-video-container">
+            <video
+              src={currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
+              autoPlay
+              loop
+              muted
+              playsInline
+              onError={() => setShowVideo(false)}
+            />
+            <button className="guided-video-close" onClick={(e) => { e.stopPropagation(); setShowVideo(false); }}>
+              <X size={18} />
+            </button>
+          </div>
+        ) : (
+          <div className="guided-thumbnail-wrapper">
+            <SmartThumbnail
+              exercise={currentExercise}
+              size="large"
+              showPlayIndicator={false}
+              className="guided-thumbnail"
+            />
+            {(currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) && (
+              <div className="guided-play-hint">
+                <Play size={24} fill="white" />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Timer or rep/weight input area */}
