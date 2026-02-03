@@ -11883,6 +11883,10 @@ a.nav-left {
     min-height: 100vh;
     background: #000;
     padding-bottom: 140px;
+    /* Prevent Android Chrome's native pull-to-refresh from hijacking gesture */
+    overscroll-behavior-y: contain;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Hero Header */
