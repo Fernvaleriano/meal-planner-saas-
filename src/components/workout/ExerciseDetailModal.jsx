@@ -2641,7 +2641,7 @@ function ExerciseDetailModal({
     if (seconds >= 60) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
-      return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+      return secs > 0 ? `${mins} min ${secs}s` : `${mins} min`;
     }
     return `${seconds}s`;
   };

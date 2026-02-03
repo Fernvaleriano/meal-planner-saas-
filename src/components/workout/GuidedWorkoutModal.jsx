@@ -12,11 +12,22 @@ const parseReps = (reps) => {
   return 12;
 };
 
-// Format seconds to mm:ss
+// Format seconds to mm:ss (for timer display)
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+// Format seconds to readable duration (for exercise info)
+const formatDuration = (seconds) => {
+  if (!seconds) return '45s';
+  if (seconds >= 60) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins} min ${secs}s` : `${mins} min`;
+  }
+  return `${seconds}s`;
 };
 
 // Text-to-speech helper — returns a promise that resolves when speech ends
@@ -126,7 +137,7 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
       if (phase === 'get-ready' && currentExercise) {
         const exInfo = getExerciseInfo(currentExIndex);
         const desc = exInfo.isTimed
-          ? `${exInfo.sets} sets, ${formatTime(exInfo.duration)} each`
+          ? `${exInfo.sets} sets, ${formatDuration(exInfo.duration)} each`
           : `${exInfo.sets} sets of ${exInfo.reps} reps`;
         await speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
       } else if (phase === 'exercise') {
@@ -482,7 +493,7 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
         <h1 className="guided-exercise-name">{currentExercise.name}</h1>
         <div className="guided-exercise-meta">
           {info.isTimed
-            ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${formatTime(info.duration)}`
+            ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${formatDuration(info.duration)}`
             : `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${info.reps} reps`
           }
         </div>
