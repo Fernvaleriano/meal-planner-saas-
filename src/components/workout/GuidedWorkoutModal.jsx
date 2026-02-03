@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, ChevronRight, Check, Volume2, VolumeX, Mic } from 'lucide-react';
+import { X, Play, Pause, SkipForward, ChevronRight, Check, Volume2, VolumeX, Mic, MessageSquare } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 
 // Parse reps helper
@@ -50,6 +50,8 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showVideo, setShowVideo] = useState(false);
+  const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
+  const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
 
   // Set logging: track actual reps/weight per exercise per set
   // Structure: { exIndex: [{ reps: number, weight: number }, ...] }
@@ -94,9 +96,6 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
   useEffect(() => { currentSetIndexRef.current = currentSetIndex; }, [currentSetIndex]);
   useEffect(() => { completedSetsRef.current = completedSets; }, [completedSets]);
   useEffect(() => { setLogsRef.current = setLogs; }, [setLogs]);
-  // Reset video when exercise changes
-  useEffect(() => { setShowVideo(false); }, [currentExIndex]);
-
   const currentExercise = exercises[currentExIndex];
 
   // Get exercise info helper
@@ -121,13 +120,8 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
   // Current set log values
   const currentSetLog = setLogs[currentExIndex]?.[currentSetIndex] || { reps: info.reps, weight: 0 };
 
-  // --- Voice announcements + coach voice note ---
-  // Chain: TTS speaks first, THEN coach voice note plays (no overlap)
-  // Timer dynamically extends to match voice note duration
-  // Voice note is NOT cut short when phase changes — it plays to completion
+  // --- Voice announcements (TTS only, no auto-play of coach voice notes) ---
   useEffect(() => {
-    let cancelled = false;
-
     const runVoice = async () => {
       if (phase === 'get-ready' && currentExercise) {
         const exInfo = getExerciseInfo(currentExIndex);
@@ -135,35 +129,6 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
           ? `${exInfo.sets} sets, ${formatTime(exInfo.duration)} each`
           : `${exInfo.sets} sets of ${exInfo.reps} reps`;
         await speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
-
-        // After TTS finishes, play coach voice note if available
-        if (!cancelled && currentExercise.voiceNoteUrl && voiceEnabled) {
-          // Stop any previous voice note
-          if (voiceNoteRef.current) {
-            voiceNoteRef.current.pause();
-            voiceNoteRef.current = null;
-          }
-          const audio = new Audio(currentExercise.voiceNoteUrl);
-          audio.volume = 1.0;
-
-          // Once metadata loads, extend timer if the note needs more time
-          audio.addEventListener('loadedmetadata', () => {
-            if (!cancelled && audio.duration && isFinite(audio.duration)) {
-              const noteLength = Math.ceil(audio.duration) + 2; // +2s buffer
-              // Check remaining time — if note is longer, extend
-              const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
-              if (noteLength > remaining) {
-                endTimeRef.current = Date.now() + noteLength * 1000;
-                phaseMaxTimeRef.current = noteLength;
-                setTimer(noteLength);
-              }
-            }
-          });
-
-          audio.play().catch(() => {});
-          voiceNoteRef.current = audio;
-          // Let it play to completion — do NOT pause on cleanup
-        }
       } else if (phase === 'exercise') {
         speak('Go!', voiceEnabled);
       } else if (phase === 'rest') {
@@ -173,13 +138,59 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
       }
     };
 
-    runVoice().catch(() => {}); // Prevent unhandled rejection
-
-    return () => {
-      cancelled = true;
-      // Cancel TTS on phase change, but do NOT stop voice notes
-    };
+    runVoice().catch(() => {});
   }, [phase, currentExIndex, voiceEnabled]);
+
+  // --- Play coach voice note (tap to play, pauses timer) ---
+  const handlePlayVoiceNote = useCallback(() => {
+    if (!currentExercise?.voiceNoteUrl) return;
+
+    // If already playing, stop it
+    if (playingVoiceNote && voiceNoteRef.current) {
+      voiceNoteRef.current.pause();
+      voiceNoteRef.current = null;
+      setPlayingVoiceNote(false);
+      setIsPaused(false); // Resume timer
+      return;
+    }
+
+    // Pause the workout timer while voice note plays
+    setIsPaused(true);
+    setPlayingVoiceNote(true);
+
+    const audio = new Audio(currentExercise.voiceNoteUrl);
+    audio.volume = 1.0;
+
+    audio.addEventListener('ended', () => {
+      setPlayingVoiceNote(false);
+      setIsPaused(false); // Resume timer when done
+      voiceNoteRef.current = null;
+    });
+
+    audio.addEventListener('error', () => {
+      setPlayingVoiceNote(false);
+      setIsPaused(false);
+      voiceNoteRef.current = null;
+    });
+
+    audio.play().catch(() => {
+      setPlayingVoiceNote(false);
+      setIsPaused(false);
+    });
+
+    voiceNoteRef.current = audio;
+  }, [currentExercise?.voiceNoteUrl, playingVoiceNote]);
+
+  // Reset state when exercise changes
+  useEffect(() => {
+    if (voiceNoteRef.current) {
+      voiceNoteRef.current.pause();
+      voiceNoteRef.current = null;
+    }
+    setPlayingVoiceNote(false);
+    setShowCoachNote(false);
+    setShowVideo(false);
+  }, [currentExIndex]);
 
   // Elapsed time tracker
   useEffect(() => {
@@ -478,11 +489,33 @@ function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpd
         <div className="guided-set-indicator">
           Set {Math.min(currentSetIndex + 1, info.sets)} of {info.sets}
         </div>
-        {/* Coach voice note indicator */}
-        {phase === 'get-ready' && currentExercise.voiceNoteUrl && (
-          <div className="guided-coach-note">
-            <Mic size={14} />
-            <span>Coach tip playing...</span>
+        {/* Coach tip buttons - voice note and/or text note */}
+        {(currentExercise.voiceNoteUrl || currentExercise.notes) && (
+          <div className="guided-coach-tips">
+            {currentExercise.voiceNoteUrl && (
+              <button
+                className={`guided-coach-tip-btn ${playingVoiceNote ? 'playing' : ''}`}
+                onClick={handlePlayVoiceNote}
+              >
+                <Mic size={16} />
+                <span>{playingVoiceNote ? 'Tap to stop' : 'Coach Tip'}</span>
+              </button>
+            )}
+            {currentExercise.notes && (
+              <button
+                className={`guided-coach-tip-btn text ${showCoachNote ? 'active' : ''}`}
+                onClick={() => setShowCoachNote(prev => !prev)}
+              >
+                <MessageSquare size={16} />
+                <span>Note</span>
+              </button>
+            )}
+          </div>
+        )}
+        {/* Text note display */}
+        {showCoachNote && currentExercise.notes && (
+          <div className="guided-text-note">
+            <p>{currentExercise.notes}</p>
           </div>
         )}
       </div>
