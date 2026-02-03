@@ -481,6 +481,18 @@ function ExerciseDetailModal({
       return;
     }
 
+    // Skip progress tips for timed/cardio exercises - doesn't make sense to suggest "more reps"
+    const isTimed = exercise.trackingType === 'time' ||
+      exercise.exercise_type === 'timed' ||
+      exercise.exercise_type === 'cardio' ||
+      exercise.exercise_type === 'interval' ||
+      !!exercise.duration;
+
+    if (isTimed) {
+      setProgressTip(null);
+      return;
+    }
+
     let cancelled = false;
 
     const generateTip = async () => {
@@ -708,7 +720,7 @@ function ExerciseDetailModal({
 
     generateTip();
     return () => { cancelled = true; };
-  }, [clientId, exercise?.id, exercise?.name, readinessData]);
+  }, [clientId, exercise?.id, exercise?.name, exercise?.trackingType, exercise?.exercise_type, exercise?.duration, readinessData]);
 
   // Auto-save exercise_log to database when sets change (debounced)
   // Uses workoutLogId prop if available, otherwise checks for existing log for selectedDate, then creates one
