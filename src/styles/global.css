@@ -24883,6 +24883,187 @@ a.nav-left {
     line-height: 1.5;
 }
 
+/* Progressive Overload Tip in Guided Workout */
+.guided-progress-tip {
+    margin: 12px 16px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+}
+
+.guided-progress-tip .progress-tip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.guided-progress-tip .progress-tip-icon {
+    font-size: 16px;
+}
+
+.guided-progress-tip .progress-tip-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #10b981;
+}
+
+.guided-progress-tip .progress-tip-message {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.4;
+}
+
+/* Client Note for Coach in Guided Workout */
+.guided-client-note-section {
+    margin: 8px 16px 0;
+}
+
+.guided-client-note-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(147, 51, 234, 0.1);
+    border: 1px solid rgba(147, 51, 234, 0.3);
+    border-radius: 10px;
+    color: #a78bfa;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guided-client-note-toggle:hover {
+    background: rgba(147, 51, 234, 0.15);
+}
+
+.guided-client-note-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.guided-client-note-toggle .note-saved-badge {
+    font-size: 11px;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.guided-client-note-input-area {
+    margin-top: 10px;
+    animation: fadeIn 0.2s ease;
+}
+
+.guided-client-note-textarea {
+    width: 100%;
+    padding: 12px;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(147, 51, 234, 0.3);
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.guided-client-note-textarea:focus {
+    border-color: rgba(147, 51, 234, 0.6);
+}
+
+.guided-client-note-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.guided-client-note-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.guided-client-note-actions-left {
+    display: flex;
+    gap: 8px;
+}
+
+.guided-voice-note-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(147, 51, 234, 0.2);
+    border: 1px solid rgba(147, 51, 234, 0.4);
+    border-radius: 8px;
+    color: #a78bfa;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guided-voice-note-btn:hover:not(:disabled) {
+    background: rgba(147, 51, 234, 0.3);
+}
+
+.guided-voice-note-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.guided-voice-note-btn.recording {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #f87171;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.guided-client-note-char-count {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.guided-client-voice-note-preview {
+    margin-top: 10px;
+    padding: 8px;
+    background: rgba(30, 41, 59, 0.6);
+    border-radius: 8px;
+}
+
+.guided-client-voice-note-preview audio {
+    width: 100%;
+    height: 36px;
+}
+
+.guided-client-note-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.guided-client-note-send-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+}
+
 @keyframes pulse-glow {
     0%, 100% { opacity: 0.8; }
     50% { opacity: 1; }
