@@ -18782,27 +18782,55 @@ a.nav-left {
     width: 100%;
     max-width: 100vw;
     overflow: hidden;
-    background: linear-gradient(180deg, rgba(13, 148, 136, 0.1) 0%, transparent 100%);
-    transition: opacity 0.2s ease;
+    background: linear-gradient(180deg, rgba(13, 148, 136, 0.15) 0%, transparent 100%);
+    transition: opacity 0.15s ease-out, background 0.15s ease-out;
     position: relative;
     left: 0;
     right: 0;
     pointer-events: none;
 }
 
+.pull-to-refresh-indicator.ready {
+    background: linear-gradient(180deg, rgba(13, 148, 136, 0.3) 0%, transparent 100%);
+}
+
+.pull-to-refresh-indicator.refreshing {
+    background: linear-gradient(180deg, rgba(13, 148, 136, 0.2) 0%, transparent 100%);
+}
+
 .refresh-spinner {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--brand-primary);
     font-weight: 500;
     gap: 8px;
+    transition: transform 0.15s ease-out;
 }
 
-.refresh-spinner.spinning {
-    animation: spin 1s linear infinite;
-    font-size: 24px;
+.refresh-spinner.ready {
+    transform: scale(1.1);
+    color: #0f766e;
+}
+
+.refresh-spinner .refresh-icon {
+    fill: currentColor;
+    transition: transform 0.2s ease-out;
+    flex-shrink: 0;
+}
+
+.refresh-spinner.ready .refresh-icon {
+    transform: rotate(180deg);
+}
+
+.refresh-spinner.spinning .refresh-icon {
+    animation: spin 0.6s linear infinite;
+}
+
+.refresh-spinner .refresh-text {
+    font-size: 13px;
+    font-weight: 500;
 }
 
 @keyframes spin {
