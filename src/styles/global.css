@@ -24806,22 +24806,71 @@ a.nav-left {
     color: #10b981;
 }
 
-/* Coach voice note indicator */
-.guided-coach-note {
+/* Coach tip buttons */
+.guided-coach-tips {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.guided-coach-tip-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-top: 8px;
-    padding: 4px 12px;
+    padding: 8px 16px;
     background: rgba(13, 148, 136, 0.15);
+    border: 1px solid rgba(13, 148, 136, 0.3);
     border-radius: 20px;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
     color: #0d9488;
-    animation: pulse-glow 2s ease-in-out infinite;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guided-coach-tip-btn:active {
+    transform: scale(0.96);
+}
+
+.guided-coach-tip-btn.playing {
+    background: rgba(13, 148, 136, 0.3);
+    border-color: #0d9488;
+    animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.guided-coach-tip-btn.text {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+}
+
+.guided-coach-tip-btn.text.active {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: #3b82f6;
+}
+
+/* Text note display */
+.guided-text-note {
+    margin-top: 10px;
+    padding: 12px 16px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.guided-text-note p {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
 }
 
 @keyframes pulse-glow {
-    0%, 100% { opacity: 0.7; }
+    0%, 100% { opacity: 0.8; }
     50% { opacity: 1; }
 }
 
