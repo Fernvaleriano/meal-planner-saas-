@@ -23,20 +23,24 @@ const formatTime = (seconds) => {
 const speak = (text, enabled) => {
   return new Promise((resolve) => {
     if (!enabled || typeof speechSynthesis === 'undefined') { resolve(); return; }
-    speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    utterance.onend = resolve;
-    utterance.onerror = resolve;
-    speechSynthesis.speak(utterance);
-    // Safety: resolve after 6s max in case onend never fires
-    setTimeout(resolve, 6000);
+    try {
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      utterance.onend = resolve;
+      utterance.onerror = resolve;
+      speechSynthesis.speak(utterance);
+      // Safety: resolve after 6s max in case onend never fires
+      setTimeout(resolve, 6000);
+    } catch (e) {
+      resolve(); // Don't block if TTS fails
+    }
   });
 };
 
-function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateExercise, onWorkoutFinish, workoutName }) {
+function GuidedWorkoutModal({ exercises = [], onClose, onExerciseComplete, onUpdateExercise, onWorkoutFinish, workoutName }) {
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [phase, setPhase] = useState('get-ready'); // get-ready, exercise, rest, complete
@@ -76,6 +80,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
   const elapsedRef = useRef(null);
   const endTimeRef = useRef(null);
   const voiceNoteRef = useRef(null);
+  const phaseMaxTimeRef = useRef(10); // Tracks max time for current phase (for progress ring)
   // Refs for latest state in timer callbacks
   const phaseRef = useRef(phase);
   const currentExIndexRef = useRef(currentExIndex);
@@ -148,9 +153,9 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
               // Check remaining time — if note is longer, extend
               const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
               if (noteLength > remaining) {
-                const newTime = noteLength;
-                endTimeRef.current = Date.now() + newTime * 1000;
-                setTimer(newTime);
+                endTimeRef.current = Date.now() + noteLength * 1000;
+                phaseMaxTimeRef.current = noteLength;
+                setTimer(noteLength);
               }
             }
           });
@@ -168,7 +173,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
       }
     };
 
-    runVoice();
+    runVoice().catch(() => {}); // Prevent unhandled rejection
 
     return () => {
       cancelled = true;
@@ -315,6 +320,7 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
 
     if (!needsTimer) return;
 
+    phaseMaxTimeRef.current = timer; // Track initial max for progress ring
     endTimeRef.current = Date.now() + timer * 1000;
 
     intervalRef.current = setInterval(() => {
@@ -407,13 +413,8 @@ function GuidedWorkoutModal({ exercises, onClose, onExerciseComplete, onUpdateEx
   // Circular timer
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
-  const getMaxTime = () => {
-    if (phase === 'get-ready') return 10;
-    if (phase === 'rest') return info.rest;
-    if (phase === 'exercise' && info.isTimed) return info.duration;
-    return 1;
-  };
-  const timerProgress = timer / getMaxTime();
+  const maxTime = phaseMaxTimeRef.current || 10;
+  const timerProgress = Math.min(timer / maxTime, 1);
   const strokeDashoffset = circumference * (1 - timerProgress);
 
   if (!currentExercise) return null;
