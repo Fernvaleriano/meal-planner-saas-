@@ -1,7 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
+const OpenAI = require('openai');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -398,16 +398,16 @@ exports.handler = async (event) => {
       };
     }
 
-    // Try AI-powered suggestions with Gemini, fallback to simple list if AI fails
+    // Try AI-powered suggestions with GPT-4o Mini, fallback to simple list if AI fails
     let aiSuggestions = [];
 
     try {
-      // Check if Gemini API key is available
-      if (!GEMINI_API_KEY) {
-        throw new Error("GEMINI_API_KEY not configured");
+      // Check if OpenAI API key is available
+      if (!OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY not configured");
       }
 
-      // Build the prompt for Gemini - exercises are already pre-filtered and sorted by movement pattern
+      // Build the prompt - exercises are already pre-filtered and sorted by movement pattern
       const exerciseListForAI = sortedAlternatives.slice(0, 25).map(ex => ({
         id: ex.id,
         name: ex.name,
@@ -489,24 +489,15 @@ Select 3-5 exercises. STRONGLY prefer exercises from the TOP of the list as they
 RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks):
 {"suggestions":[{"id":"exercise_id","name":"Exercise Name","reason":"Brief coaching reason (8 words max)"}]}`;
 
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 512
-          }
-        })
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 512,
+        temperature: 0.3
       });
 
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const responseText = completion.choices?.[0]?.message?.content || '';
 
       // Parse JSON from response
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
