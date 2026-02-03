@@ -92,6 +92,9 @@ export function usePullToRefresh(onRefresh, options = {}) {
       const diff = currentY - touchStartRef.current;
 
       if (diff > 0) {
+        // Prevent default browser behavior (back navigation, page refresh)
+        // when actively pulling down at the top of the page
+        e.preventDefault();
         const pulledDistance = Math.min(diff * resistance, threshold * 1.5);
         pullDistanceRef.current = pulledDistance;
         updateIndicatorDOM(pulledDistance);
@@ -153,8 +156,10 @@ export function usePullToRefresh(onRefresh, options = {}) {
     };
 
     // Use passive listeners for better scroll performance
+    // Note: touchmove is NOT passive so we can call preventDefault() to stop
+    // the browser's default pull-to-refresh/back navigation behavior
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd, { passive: true });
     container.addEventListener('touchcancel', handleTouchCancel, { passive: true });
 
