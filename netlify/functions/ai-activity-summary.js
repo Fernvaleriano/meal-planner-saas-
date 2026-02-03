@@ -725,16 +725,32 @@ async function handleQuestion(event) {
       // Use the client's unit preference, fallback to sets_data unit, then 'lbs'
       const clientUnitPref = client.unit_preference === 'metric' ? 'kg' : 'lbs';
       const prsByExercise = {};
+      const newPrsThisWeek = []; // NEW: Capture actual new PRs from this week
+
       clientExerciseLogs.forEach(log => {
         if (log.max_weight && log.exercise_name) {
           const key = log.exercise_name;
+          // Get reps and unit from the specific set that achieved max weight
+          const setsData = Array.isArray(log.sets_data) ? log.sets_data : [];
+          const bestSet = setsData.find(s => Number(s.weight) === Number(log.max_weight));
+          const repsAtMaxWeight = bestSet ? (Number(bestSet.reps) || 0) : (Number(log.total_reps) || 0);
+          const unitFromSet = bestSet?.weightUnit || setsData[0]?.weightUnit || clientUnitPref;
+
+          // Track all-time best per exercise
           if (!prsByExercise[key] || log.max_weight > prsByExercise[key].weight) {
-            // Get reps and unit from the specific set that achieved max weight
-            const setsData = Array.isArray(log.sets_data) ? log.sets_data : [];
-            const bestSet = setsData.find(s => Number(s.weight) === Number(log.max_weight));
-            const repsAtMaxWeight = bestSet ? (Number(bestSet.reps) || 0) : (Number(log.total_reps) || 0);
-            const unitFromSet = bestSet?.weightUnit || setsData[0]?.weightUnit || clientUnitPref;
             prsByExercise[key] = { weight: log.max_weight, reps: repsAtMaxWeight, unit: unitFromSet, date: log.created_at, isPr: log.is_pr };
+          }
+
+          // NEW: Capture actual new PRs achieved this week (where is_pr = true)
+          const logDate = new Date(log.created_at);
+          if (log.is_pr && logDate >= sevenDaysAgo) {
+            newPrsThisWeek.push({
+              exercise: log.exercise_name,
+              weight: log.max_weight,
+              reps: repsAtMaxWeight,
+              unit: unitFromSet,
+              date: log.created_at
+            });
           }
         }
       });
@@ -783,6 +799,7 @@ async function handleQuestion(event) {
             return { name: e.exercise_name, sets: e.total_sets, reps: Number(e.total_reps) || 0, weight: e.max_weight, unit: eUnit, volume: e.total_volume, isPr: e.is_pr };
           }),
           prs: Object.entries(prsByExercise).slice(0, 10).map(([exercise, data]) => ({ exercise, weight: data.weight, reps: data.reps, unit: data.unit, date: data.date })),
+          newPrsThisWeek: newPrsThisWeek.slice(0, 10), // NEW: Actual new PRs achieved this week
           currentProgram: clientAssignment?.workout_data?.name || null
         },
         body: {
@@ -850,7 +867,12 @@ async function handleQuestion(event) {
         }
         if (c.workouts.prs.length > 0) {
           const prStrs = c.workouts.prs.slice(0, 3).map(p => `${p.exercise}: ${p.weight}${p.unit} for ${p.reps} reps`);
-          parts.push(`PRs: ${prStrs.join(', ')}`);
+          parts.push(`all-time PRs: ${prStrs.join(', ')}`);
+        }
+        // NEW: Highlight new PRs achieved THIS WEEK specifically
+        if (c.workouts.newPrsThisWeek && c.workouts.newPrsThisWeek.length > 0) {
+          const newPrStrs = c.workouts.newPrsThisWeek.map(p => `${p.exercise}: ${p.weight}${p.unit} x ${p.reps} reps`);
+          parts.push(`NEW PRs THIS WEEK: ${newPrStrs.join(', ')}`);
         }
       }
 
@@ -885,6 +907,8 @@ async function handleQuestion(event) {
     const dietRequests = clientData.filter(c => c.latestCheckin?.requestedDiet).length;
     const highStress = clientData.filter(c => c.latestCheckin?.stress >= 8).length;
     const totalWorkouts = clientData.reduce((sum, c) => sum + c.workouts.totalThisMonth, 0);
+    const clientsWithNewPrs = clientData.filter(c => c.workouts.newPrsThisWeek && c.workouts.newPrsThisWeek.length > 0);
+    const totalNewPrsThisWeek = clientData.reduce((sum, c) => sum + (c.workouts.newPrsThisWeek?.length || 0), 0);
 
     const prompt = `You are an AI assistant helping a fitness/nutrition coach manage their clients. You have access to comprehensive data including workouts, exercises, personal records, nutrition, body measurements, meal plans, supplements, check-ins, and more. Answer the coach's question thoroughly based on the data below.
 
@@ -896,6 +920,8 @@ SUMMARY:
 - Pending diet requests: ${dietRequests}
 - Reporting high stress: ${highStress}
 - Total workouts logged (30 days): ${totalWorkouts}
+- Clients who hit NEW PRs this week: ${clientsWithNewPrs.length}${clientsWithNewPrs.length > 0 ? ` (${clientsWithNewPrs.map(c => c.name).join(', ')})` : ''}
+- Total new PRs achieved this week: ${totalNewPrsThisWeek}
 
 CLIENT DETAILS:
 ${clientContext}
