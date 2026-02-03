@@ -24351,7 +24351,7 @@ a.nav-left {
     overflow: hidden;
 }
 
-/* Scrollable content area */
+/* Scrollable content area - unified card containing all workout content */
 .guided-scroll-content {
     flex: 1;
     overflow-y: auto;
@@ -24359,6 +24359,7 @@ a.nav-left {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     min-height: 0; /* Important for flex children to shrink */
+    padding-bottom: 20px;
 }
 
 /* Top bar */

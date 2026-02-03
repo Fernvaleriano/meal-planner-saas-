@@ -966,7 +966,6 @@ function GuidedWorkoutModal({
           </div>
         )}
       </div>
-      </div>{/* End scrollable content area */}
 
       {/* Timer or rep/weight input area */}
       <div className="guided-timer-area">
@@ -1053,8 +1052,9 @@ function GuidedWorkoutModal({
           />
         ))}
       </div>
+      </div>{/* End scrollable content area */}
 
-      {/* Action buttons */}
+      {/* Action buttons - fixed at bottom */}
       <div className="guided-actions">
         {phase === 'get-ready' ? (
           <button className="guided-skip-btn" onClick={handleSkip}>
