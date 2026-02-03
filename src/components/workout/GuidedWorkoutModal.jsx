@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Play, Pause, SkipForward, ChevronRight, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
+import { onAppResume } from '../../hooks/useAppLifecycle';
 
 // Parse reps helper
 const parseReps = (reps) => {
@@ -532,6 +533,27 @@ function GuidedWorkoutModal({
     return () => { document.body.style.overflow = orig; };
   }, []);
 
+  // State for forcing re-render on app resume
+  const [resumeKey, setResumeKey] = useState(0);
+
+  // Handle app resume: restore scroll lock and force re-layout
+  // This fixes blank screen / frozen UI on iOS Safari when returning from background
+  useEffect(() => {
+    const unsubscribe = onAppResume((backgroundMs) => {
+      // Re-ensure body scroll is locked since we're still mounted
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
+      // Force a re-render to fix any stale layout on iOS Safari
+      // This triggers React to recalculate and repaint the component
+      if (backgroundMs > 2000) {
+        setResumeKey(k => k + 1);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   // Cleanup speech on unmount
   useEffect(() => {
     return () => {
@@ -793,7 +815,7 @@ function GuidedWorkoutModal({
   // --- Complete screen ---
   if (phase === 'complete') {
     return (
-      <div className="guided-workout-overlay">
+      <div className="guided-workout-overlay" key={`complete-${resumeKey}`}>
         <div className="guided-complete-screen">
           <div className="guided-complete-icon">
             <Check size={48} />
@@ -811,7 +833,7 @@ function GuidedWorkoutModal({
   }
 
   return (
-    <div className="guided-workout-overlay">
+    <div className="guided-workout-overlay" key={`workout-${resumeKey}`}>
       {/* Top bar */}
       <div className="guided-top-bar">
         <button className="guided-close-btn" onClick={onClose}>

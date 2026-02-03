@@ -193,7 +193,7 @@ export function useAppLifecycle() {
       const activeOverlay = document.querySelector(
         '.exercise-modal-overlay-v2, .swap-modal-overlay, .readiness-overlay, ' +
         '.workout-summary-overlay, .workout-history-overlay, .delete-confirm-overlay, ' +
-        '.rpe-backdrop, .add-activity-overlay, .create-workout-overlay'
+        '.rpe-backdrop, .add-activity-overlay, .create-workout-overlay, .guided-workout-overlay'
       );
 
       if (!activeOverlay) {
