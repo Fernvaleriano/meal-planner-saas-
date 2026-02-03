@@ -3833,45 +3833,96 @@
 
         // --- Priority Alert Checkbox/Dismiss Logic ---
         // All generated alert HTML gets stored here so we can re-render active vs handled
-        let _allPriorityAlerts = []; // [{id, html}]
+        // Now includes metadata for database persistence: {id, html, clientId, reason, relatedCheckinId}
+        let _allPriorityAlerts = [];
+        let _dismissedFromDb = new Set(); // Alert IDs that are dismissed in database
+        let _currentCoachId = null; // Set during loadPriorityAlerts
+
+        // Load dismissed alerts from database
+        async function loadDismissedAlertsFromDb(coachId) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('dismissed_activity_items')
+                    .select('client_id, reason, related_checkin_id')
+                    .eq('coach_id', coachId);
+
+                if (error) {
+                    console.warn('Could not load dismissed items:', error.message);
+                    return new Set();
+                }
+
+                // Build a set of alert IDs that match our format
+                const dismissed = new Set();
+                (data || []).forEach(item => {
+                    // Map database reason to alert ID prefix
+                    const prefixMap = {
+                        'high_stress': 'stress',
+                        'low_energy': 'energy',
+                        'pending_checkin': 'checkin',
+                        'expiring_plan': 'plan',
+                        'client_pr': 'pr'
+                    };
+                    const prefix = prefixMap[item.reason];
+                    if (prefix && item.related_checkin_id) {
+                        dismissed.add(`${prefix}-${item.related_checkin_id}`);
+                    }
+                });
+                return dismissed;
+            } catch (e) {
+                console.warn('Error loading dismissed alerts:', e);
+                return new Set();
+            }
+        }
 
         function getDismissedAlerts() {
-            try {
-                const raw = localStorage.getItem('dismissedPriorityAlerts');
-                if (!raw) return {};
-                const parsed = JSON.parse(raw);
-                // Only keep items dismissed today (since midnight)
-                const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-                const todayMs = todayStart.getTime();
-                const cleaned = {};
-                for (const [key, ts] of Object.entries(parsed)) {
-                    if (ts >= todayMs) cleaned[key] = ts;
-                }
-                if (Object.keys(cleaned).length !== Object.keys(parsed).length) {
-                    localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(cleaned));
-                }
-                return cleaned;
-            } catch { return {}; }
+            // Now returns object from database-backed set
+            const result = {};
+            _dismissedFromDb.forEach(id => {
+                result[id] = Date.now(); // Timestamp not used anymore, but keep for compatibility
+            });
+            return result;
         }
 
         function isDismissedToday(alertId) {
-            const dismissed = getDismissedAlerts();
-            return !!dismissed[alertId];
+            return _dismissedFromDb.has(alertId);
         }
 
-        function dismissPriorityAlert(alertId, el) {
+        async function dismissPriorityAlert(alertId, el) {
             event.stopPropagation();
-            const dismissed = getDismissedAlerts();
-            if (dismissed[alertId]) {
-                // Un-dismiss: move back to active
-                delete dismissed[alertId];
-                localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(dismissed));
+
+            // Find the alert metadata
+            const alert = _allPriorityAlerts.find(a => a.id === alertId);
+            if (!alert) {
+                console.warn('Alert not found:', alertId);
+                return;
+            }
+
+            const isDismissed = _dismissedFromDb.has(alertId);
+
+            if (isDismissed) {
+                // Un-dismiss: remove from database
+                _dismissedFromDb.delete(alertId);
                 renderPriorityAlertSections();
+
+                // Call backend to restore
+                try {
+                    await fetch('/.netlify/functions/dismiss-activity', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: _currentCoachId,
+                            clientId: alert.clientId,
+                            reason: alert.reason,
+                            relatedCheckinId: alert.relatedCheckinId
+                        })
+                    });
+                } catch (e) {
+                    console.warn('Could not restore item:', e);
+                }
             } else {
-                // Dismiss: animate out then move to handled
-                dismissed[alertId] = Date.now();
-                localStorage.setItem('dismissedPriorityAlerts', JSON.stringify(dismissed));
+                // Dismiss: add to database
+                _dismissedFromDb.add(alertId);
+
                 const alertRow = el.closest('.priority-alert');
                 if (alertRow) {
                     alertRow.style.maxHeight = alertRow.offsetHeight + 'px';
@@ -3880,12 +3931,50 @@
                 } else {
                     renderPriorityAlertSections();
                 }
+
+                // Call backend to persist dismissal
+                try {
+                    await fetch('/.netlify/functions/dismiss-activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: _currentCoachId,
+                            clientId: alert.clientId,
+                            reason: alert.reason,
+                            relatedCheckinId: alert.relatedCheckinId
+                        })
+                    });
+                } catch (e) {
+                    console.warn('Could not persist dismissal:', e);
+                }
             }
         }
 
-        function clearAllHandled() {
-            localStorage.setItem('dismissedPriorityAlerts', '{}');
+        async function clearAllHandled() {
+            // Get all currently dismissed alerts
+            const toRestore = _allPriorityAlerts.filter(a => _dismissedFromDb.has(a.id));
+
+            // Clear local state
+            _dismissedFromDb.clear();
             renderPriorityAlertSections();
+
+            // Restore each in database (fire and forget)
+            for (const alert of toRestore) {
+                try {
+                    fetch('/.netlify/functions/dismiss-activity', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: _currentCoachId,
+                            clientId: alert.clientId,
+                            reason: alert.reason,
+                            relatedCheckinId: alert.relatedCheckinId
+                        })
+                    });
+                } catch (e) {
+                    // Ignore errors on clear all
+                }
+            }
         }
 
         function toggleHandledSection() {
@@ -3942,9 +4031,9 @@
                         <div class="priority-handled-toggle" onclick="toggleHandledSection()">
                             <span class="priority-handled-label">
                                 <svg class="priority-handled-chevron${document.getElementById('handledList')?.classList.contains('open') ? ' open' : ''}" id="handledChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                                Handled today (${handled.length})
+                                Archived (${handled.length})
                             </span>
-                            <button class="priority-handled-clear" onclick="event.stopPropagation(); clearAllHandled()">Clear all</button>
+                            <button class="priority-handled-clear" onclick="event.stopPropagation(); clearAllHandled()">Restore all</button>
                         </div>
                         <div class="priority-handled-list${document.getElementById('handledList')?.classList.contains('open') ? ' open' : ''}" id="handledList">
                 `;
@@ -3968,11 +4057,16 @@
         async function loadPriorityAlerts(coachId, clientCount, pendingCheckIns) {
             const alertsEl = document.getElementById('priorityAlerts');
             _allPriorityAlerts = [];
+            _currentCoachId = coachId;
             const MAX_SHOWN = 3;
 
+            // Load dismissed items from database first
+            _dismissedFromDb = await loadDismissedAlertsFromDb(coachId);
+
             // Helper to register an alert with id + template (uses __CHECKBOX__ placeholder)
-            function addAlert(id, html) {
-                _allPriorityAlerts.push({ id, html });
+            // Now includes metadata for database persistence
+            function addAlert(id, html, clientId, reason, relatedCheckinId) {
+                _allPriorityAlerts.push({ id, html, clientId, reason, relatedCheckinId });
             }
 
             try {
@@ -4043,7 +4137,7 @@
                                     <span class="priority-alert-link">View check-in →</span>
                                 </span>
                             </div>
-                        `);
+                        `, c.client_id, 'high_stress', c.id);
                     });
                 }
 
@@ -4066,7 +4160,7 @@
                                     <span class="priority-alert-link">View check-in →</span>
                                 </span>
                             </div>
-                        `);
+                        `, c.client_id, 'low_energy', c.id);
                     });
                 }
 
@@ -4090,7 +4184,7 @@
                                     <span class="priority-alert-link">Review →</span>
                                 </span>
                             </div>
-                        `);
+                        `, c.client_id, 'pending_checkin', c.id);
                     });
 
                     olderOnes.slice(0, MAX_SHOWN).forEach(c => {
@@ -4106,7 +4200,7 @@
                                     <span class="priority-alert-link">Review →</span>
                                 </span>
                             </div>
-                        `);
+                        `, c.client_id, 'pending_checkin', c.id);
                     });
                 }
 
@@ -4141,7 +4235,7 @@
                                         <span class="priority-alert-link">View client →</span>
                                     </span>
                                 </div>
-                            `);
+                            `, p.client_id, 'expiring_plan', p.id);
                         });
                     }
                 } catch (e) {
@@ -4152,7 +4246,7 @@
                 try {
                     const { data: prNotifications } = await supabaseClient
                         .from('notifications')
-                        .select('title, message, created_at, related_client_id')
+                        .select('id, title, message, created_at, related_client_id')
                         .eq('user_id', coachId)
                         .eq('type', 'client_pr')
                         .gte('created_at', weekAgo.toISOString())
@@ -4163,7 +4257,7 @@
                         prNotifications.slice(0, MAX_SHOWN).forEach(pr => {
                             const name = clientMap[pr.related_client_id] || '';
                             const clientLink = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
-                            const aid = 'pr-' + (pr.related_client_id || '') + '-' + new Date(pr.created_at).getTime();
+                            const aid = 'pr-' + pr.id;
                             addAlert(aid, `
                                 <div class="priority-alert priority-alert--clickable" onclick="window.location.href='${clientLink}'">
                                     __CHECKBOX__
@@ -4175,7 +4269,7 @@
                                         <span class="priority-alert-link">View →</span>
                                     </span>
                                 </div>
-                            `);
+                            `, pr.related_client_id, 'client_pr', pr.id);
                         });
                     }
                 } catch (e) {
