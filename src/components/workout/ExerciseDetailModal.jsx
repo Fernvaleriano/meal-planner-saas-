@@ -2635,6 +2635,17 @@ function ExerciseDetailModal({
     return 12;
   };
 
+  // Format duration - show minutes if 60 seconds or more
+  const formatDuration = (seconds) => {
+    if (!seconds) return '45s';
+    if (seconds >= 60) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+    }
+    return `${seconds}s`;
+  };
+
   return (
     <div className="exercise-modal-overlay-v2" onClick={handleClose}>
       <div className="exercise-modal-v2 modal-v3" onClick={stopPropagation}>
@@ -2724,7 +2735,7 @@ function ExerciseDetailModal({
                 <div key={idx} className={`time-box ${!isTimedExercise || set?.weight ? 'with-weight' : ''} clickable`}>
                   {isTimedExercise ? (
                     <>
-                      <span className="reps-value">{set?.duration || exercise.duration || 45}s</span>
+                      <span className="reps-value">{formatDuration(set?.duration || exercise.duration)}</span>
                       {set?.weight > 0 && <span className="weight-value">{set.weight} kg</span>}
                     </>
                   ) : (
