@@ -171,10 +171,22 @@ function GuidedWorkoutModal({
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }, [selectedDate]);
 
-  // Fetch progressive overload tip for current exercise
+  // Fetch progressive overload tip for current exercise (only for rep-based exercises)
   useEffect(() => {
     if (!clientId || !currentExercise?.id) return;
     if (progressTips[currentExIndex] !== undefined) return; // Already fetched
+
+    // Skip progress tips for timed/cardio exercises - doesn't make sense to suggest "more reps"
+    const isTimed = currentExercise.trackingType === 'time' ||
+      currentExercise.exercise_type === 'timed' ||
+      currentExercise.exercise_type === 'cardio' ||
+      currentExercise.exercise_type === 'interval' ||
+      !!currentExercise.duration;
+
+    if (isTimed) {
+      setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
+      return;
+    }
 
     let cancelled = false;
 
@@ -229,7 +241,7 @@ function GuidedWorkoutModal({
 
     fetchProgressTip();
     return () => { cancelled = true; };
-  }, [clientId, currentExercise?.id, currentExercise?.name, currentExIndex, getWorkoutDateStr, progressTips]);
+  }, [clientId, currentExercise?.id, currentExercise?.name, currentExercise?.trackingType, currentExercise?.exercise_type, currentExercise?.duration, currentExIndex, getWorkoutDateStr, progressTips]);
 
   // Save client note for coach
   const saveClientNote = useCallback(async (noteText, exIndex = currentExIndex) => {
@@ -787,8 +799,10 @@ function GuidedWorkoutModal({
         <div className="guided-progress-fill" style={{ width: `${progressPct}%` }} />
       </div>
 
-      {/* Exercise info */}
-      <div className="guided-exercise-info">
+      {/* Scrollable content area */}
+      <div className="guided-scroll-content">
+        {/* Exercise info */}
+        <div className="guided-exercise-info">
         <div className="guided-exercise-number">
           Exercise {currentExIndex + 1} of {exercises.length}
         </div>
@@ -952,6 +966,7 @@ function GuidedWorkoutModal({
           </div>
         )}
       </div>
+      </div>{/* End scrollable content area */}
 
       {/* Timer or rep/weight input area */}
       <div className="guided-timer-area">
