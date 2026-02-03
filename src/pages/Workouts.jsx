@@ -1860,6 +1860,7 @@ function Workouts() {
     const confirmed = window.confirm('Are you sure you want to delete this workout? This will make today a rest day.');
     if (!confirmed) return;
 
+    let deleteSucceeded = false;
     try {
       if (todayWorkout.is_adhoc) {
         // Delete adhoc workout using HTTP DELETE with query params
@@ -1867,6 +1868,7 @@ function Workouts() {
         if (isRealId) {
           await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${todayWorkout.id}`);
         }
+        deleteSucceeded = true;
       } else {
         // Skip/delete assigned workout - mark as rest day
         await apiPost('/.netlify/functions/client-workout-log', {
@@ -1876,8 +1878,20 @@ function Workouts() {
           sourceDate: formatDate(selectedDate),
           targetDate: formatDate(selectedDate)
         });
+        deleteSucceeded = true;
       }
+    } catch (err) {
+      console.error('Error deleting workout:', err);
+      // If assignment not found (404), treat as already deleted - still update local state
+      if (err.status === 404 || err.message?.includes('not found')) {
+        deleteSucceeded = true;
+      } else {
+        showError('Failed to delete workout');
+        return;
+      }
+    }
 
+    if (deleteSucceeded) {
       // Remove from todayWorkouts and select next available
       const remaining = todayWorkouts.filter(w => w.id !== todayWorkout.id);
       setTodayWorkouts(remaining);
@@ -1888,9 +1902,6 @@ function Workouts() {
         : new Set()
       );
       setShowHeroMenu(false);
-    } catch (err) {
-      console.error('Error deleting workout:', err);
-      showError('Failed to delete workout');
     }
   }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError]);
 
@@ -1901,12 +1912,14 @@ function Workouts() {
     const confirmed = window.confirm(`Are you sure you want to delete "${workout.workout_data?.name || workout.name || 'this workout'}"?`);
     if (!confirmed) return;
 
+    let deleteSucceeded = false;
     try {
       if (workout.is_adhoc) {
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-') && !String(workout.id).startsWith('club-');
         if (isRealId) {
           await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
         }
+        deleteSucceeded = true;
       } else {
         await apiPost('/.netlify/functions/client-workout-log', {
           assignmentId: workout.id,
@@ -1915,8 +1928,20 @@ function Workouts() {
           sourceDate: formatDate(selectedDate),
           targetDate: formatDate(selectedDate)
         });
+        deleteSucceeded = true;
       }
+    } catch (err) {
+      console.error('Error deleting workout:', err);
+      // If assignment not found (404), treat as already deleted - still update local state
+      if (err.status === 404 || err.message?.includes('not found')) {
+        deleteSucceeded = true;
+      } else {
+        showError('Failed to delete workout');
+        return;
+      }
+    }
 
+    if (deleteSucceeded) {
       const remaining = todayWorkouts.filter(w => w.id !== workout.id);
       setTodayWorkouts(remaining);
       if (todayWorkout?.id === workout.id) {
@@ -1928,9 +1953,6 @@ function Workouts() {
         );
       }
       setCardMenuWorkoutId(null);
-    } catch (err) {
-      console.error('Error deleting workout:', err);
-      showError('Failed to delete workout');
     }
   }, [todayWorkout, todayWorkouts, selectedDate, showError]);
 
