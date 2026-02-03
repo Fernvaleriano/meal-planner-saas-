@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
-import { onAppSuspend } from '../../hooks/useAppLifecycle';
+import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -252,6 +252,26 @@ function ExerciseDetailModal({
     };
   }, []);
 
+  // State for forcing re-render on app resume
+  const [resumeKey, setResumeKey] = useState(0);
+
+  // Handle app resume: restore scroll lock and force re-layout
+  // This fixes blank screen / frozen UI on iOS Safari when returning from background
+  useEffect(() => {
+    const unsubscribe = onAppResume((backgroundMs) => {
+      // Re-ensure body scroll is locked since we're still mounted
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
+      // Force a re-render to fix any stale layout on iOS Safari
+      if (backgroundMs > 2000) {
+        setResumeKey(k => k + 1);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   // Clean up MediaRecorder, voice recognition, and video on app background or unmount
   // iOS kills mic access when backgrounded, so the recorder will be in a broken state
   useEffect(() => {
@@ -295,7 +315,7 @@ function ExerciseDetailModal({
   // This prevents the black screen issue where overlay renders but content doesn't
   if (!exercise || !exercise.id) {
     return (
-      <div className="exercise-modal-overlay-v2" onClick={forceClose}>
+      <div className="exercise-modal-overlay-v2" key={`fallback-${resumeKey}`} onClick={forceClose}>
         <div className="exercise-modal-v2 modal-v3" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header-v3">
             <button className="close-btn" onClick={forceClose} type="button">
@@ -2647,7 +2667,7 @@ function ExerciseDetailModal({
   };
 
   return (
-    <div className="exercise-modal-overlay-v2" onClick={handleClose}>
+    <div className="exercise-modal-overlay-v2" key={`modal-${resumeKey}`} onClick={handleClose}>
       <div className="exercise-modal-v2 modal-v3" onClick={stopPropagation}>
         {/* Header */}
         <div className="modal-header-v3">
