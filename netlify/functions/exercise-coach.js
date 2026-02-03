@@ -1,5 +1,6 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const OpenAI = require('openai');
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -362,7 +363,7 @@ exports.handler = async (event) => {
       };
     }
 
-    if (!GEMINI_API_KEY) {
+    if (!OPENAI_API_KEY) {
       return {
         statusCode: 500,
         headers,
@@ -622,50 +623,42 @@ NOW ANSWER THE CLIENT'S QUESTION: "${question}"`;
       };
     }
 
-    // Call Gemini API
-    console.log(`Exercise coach: Calling Gemini API for ${mode} mode, exercise: ${exerciseName}`);
+    // Call GPT-4o Mini API
+    console.log(`Exercise coach: Calling GPT-4o Mini for ${mode} mode, exercise: ${exerciseName}`);
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: maxTokens
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      // Return a more helpful error with details
+    let responseText;
+    try {
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: maxTokens,
+        temperature: 0.7
+      });
+      responseText = completion.choices?.[0]?.message?.content || '';
+    } catch (apiError) {
+      console.error('OpenAI API error:', apiError);
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: false,
-          error: `Gemini API error: ${response.status}`,
-          debugInfo: errorText.substring(0, 200)
+          error: 'AI API error',
+          debugInfo: apiError.message?.substring(0, 200) || 'Unknown error'
         })
       };
     }
 
-    const data = await response.json();
-    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    console.log(`Gemini response length: ${responseText.length} chars`);
+    console.log(`GPT-4o Mini response length: ${responseText.length} chars`);
 
     if (!responseText) {
-      console.error('Empty response from Gemini. Full response:', JSON.stringify(data));
+      console.error('Empty response from GPT-4o Mini');
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: false,
-          error: 'Empty response from AI',
-          debugInfo: data.candidates?.[0]?.finishReason || 'unknown'
+          error: 'Empty response from AI'
         })
       };
     }
