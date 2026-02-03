@@ -540,6 +540,36 @@ function GuidedWorkoutModal({
     };
   }, []);
 
+  // Store onTimerComplete in ref so visibility handler can access it
+  const onTimerCompleteRef = useRef(null);
+
+  // Handle app returning from background - recalculate timer from timestamp
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && endTimeRef.current && !isPaused) {
+        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+        if (remaining <= 0) {
+          // Timer should have completed while in background
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          endTimeRef.current = null;
+          setTimer(0);
+          // Trigger completion callback
+          if (onTimerCompleteRef.current) {
+            onTimerCompleteRef.current();
+          }
+        } else {
+          setTimer(remaining);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isPaused]);
+
   // Focus input when editing
   useEffect(() => {
     if (editingField && inputRef.current) {
@@ -587,6 +617,11 @@ function GuidedWorkoutModal({
       doAdvanceAfterRest(exIdx, setIdx, exInfo);
     }
   }, [exercises]);
+
+  // Keep ref in sync for visibility handler
+  useEffect(() => {
+    onTimerCompleteRef.current = onTimerComplete;
+  }, [onTimerComplete]);
 
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
     setCompletedSets(prev => {
